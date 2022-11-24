@@ -511,8 +511,8 @@ job_configuration:
     resource_class_to_use: medium+
   - &config-2_7
     <<: *filters_all_branches_and_tags
-    ruby_version: 'ruby-2.7.3'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.3-dd
+    ruby_version: 'ruby-2.7.6'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.6-dd
     resource_class_to_use: medium+
   - &config-2_7-small
     <<: *config-2_7
