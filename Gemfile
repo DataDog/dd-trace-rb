@@ -4,7 +4,6 @@ gemspec
 
 # Development dependencies
 gem 'addressable', '~> 2.4.0' # locking transitive dependency of webmock
-gem 'appraisal', '~> 2.2'
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
 gem 'builder'
@@ -15,7 +14,6 @@ gem 'extlz4', '~> 0.3', '>= 0.3.3' if RUBY_PLATFORM != 'java' # Used to test lz4
 gem 'json-schema', '< 3' # V3 only works with 2.5+
 gem 'memory_profiler', '~> 0.9'
 gem 'os', '~> 1.1'
-gem 'pimpmychangelog', '>= 0.1.2'
 gem 'pry'
 if RUBY_PLATFORM != 'java'
   # There's a few incompatibilities between pry/pry-byebug on older Rubies
@@ -28,7 +26,6 @@ else
 end
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
-gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.12'
 gem 'rspec-collection_matchers', '~> 1.1'
 if RUBY_VERSION >= '2.3.0'
@@ -55,14 +52,6 @@ if RUBY_VERSION < '2.3.0'
   gem 'rexml', '< 3.2.5' # Pinned due to https://github.com/ruby/rexml/issues/69
 end
 gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
-gem 'yard', '~> 0.9'
-
-if RUBY_VERSION >= '2.4.0'
-  gem 'rubocop', ['~> 1.10', '< 1.33.0'], require: false
-  gem 'rubocop-packaging', '~> 0.5', require: false
-  gem 'rubocop-performance', '~> 1.9', require: false
-  gem 'rubocop-rspec', '~> 2.2', require: false
-end
 
 # Optional extensions
 # TODO: Move this to Appraisals?
@@ -84,12 +73,31 @@ if RUBY_PLATFORM != 'java'
   end
 end
 
-# For type checking
-# Sorbet releases almost daily, with new checks introduced that can make a
-# previously-passing codebase start failing. Thus, we need to lock to a specific
-# version and bump it from time to time.
-# Also, there's no support for windows
-if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
-  gem 'sorbet', '= 0.5.9672'
-  gem 'spoom', '~> 1.1'
+group :appraisal do
+  gem 'appraisal', '~> 2.2'
+end
+
+group :release do
+  gem 'pimpmychangelog', '>= 0.1.2' # Formats the CHANGELOG.md file
+  gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java' # Used by YARD to generate docs
+  gem 'yard', '~> 0.9'
+end
+
+group :static_check do
+  if RUBY_VERSION >= '2.4.0'
+    gem 'rubocop', ['~> 1.10', '< 1.33.0'], require: false
+    gem 'rubocop-packaging', '~> 0.5', require: false
+    gem 'rubocop-performance', '~> 1.9', require: false
+    gem 'rubocop-rspec', '~> 2.2', require: false
+  end
+
+  # For type checking
+  # Sorbet releases almost daily, with new checks introduced that can make a
+  # previously-passing codebase start failing. Thus, we need to lock to a specific
+  # version and bump it from time to time.
+  # Also, there's no support for windows
+  if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
+    gem 'sorbet', '= 0.5.9672'
+    gem 'spoom', '~> 1.1'
+  end
 end
