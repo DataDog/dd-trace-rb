@@ -1,12 +1,25 @@
-name: macOS testing
+name: Test macOS
 on: [push]
 jobs:
   test-macos:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
-        ruby: [2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, '3.0', 3.1] # ADD NEW RUBIES HERE
+        os:
+          - macos-11
+          - macos-12
+        ruby:
+          - '2.1'
+          - '2.2'
+          - '2.3'
+          - '2.4'
+          - '2.5'
+          - '2.6'
+          - '2.7'
+          - '3.0'
+          - '3.1'
+          # ADD NEW RUBIES HERE
+    name: Test (${{ matrix.os }}, ${{ matrix.ruby }})
     runs-on: ${{ matrix.os }}
     env:
       SKIP_SIMPLECOV: 1
