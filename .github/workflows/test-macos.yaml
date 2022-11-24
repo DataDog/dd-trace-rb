@@ -12,7 +12,7 @@ jobs:
       SKIP_SIMPLECOV: 1
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       # bundler appears to match both prerelease and release rubies when we
       # want the former only. relax the constraint to allow any version for
       # head rubies
