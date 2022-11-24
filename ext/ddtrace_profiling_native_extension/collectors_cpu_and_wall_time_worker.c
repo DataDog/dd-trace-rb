@@ -255,7 +255,18 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // The sample trigger loop finished (either cleanly or with an error); let's clean up
 
   rb_tracepoint_disable(state->gc_tracepoint);
-  remove_sigprof_signal_handler();
+
+  // Why replace and not use remove the signal handler? We do this because when a process receives a SIGPROF without
+  // having an explicit signal handler set up, the process will instantly terminate with a confusing
+  // "Profiling timer expired" message left behind. (This message doesn't come from us -- it's the default message for
+  // an unhandled SIGPROF. Pretty confusing UNIX/POSIX behavior...)
+  //
+  // Unfortunately, because signal delivery is asynchronous, there's no way to guarantee that there are no pending
+  // profiler-sent signals by the time we get here and want to clean up.
+  // @ivoanjo: I suspect this will never happen, but the cost of getting it wrong is really high (VM terminates) so this
+  // is a just-in-case situation.
+  replace_sigprof_signal_handler_with_empty_handler(handle_sampling_signal);
+
   active_sampler_instance = Qnil;
   active_sampler_owner_thread = Qnil;
 
@@ -283,11 +294,6 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception) {
 
   return Qtrue;
 }
-
-
-
-
-
 
 // NOTE: Remember that this will run in the thread and within the scope of user code, including user C code.
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
@@ -371,6 +377,8 @@ static VALUE _native_current_sigprof_signal_handler(DDTRACE_UNUSED VALUE self) {
 
   if (existing_signal_handler_config.sa_sigaction == handle_sampling_signal) {
     return ID2SYM(rb_intern("profiling"));
+  } else if (existing_signal_handler_config.sa_sigaction == empty_signal_handler) {
+    return ID2SYM(rb_intern("empty"));
   } else if (existing_signal_handler_config.sa_sigaction != NULL) {
     return ID2SYM(rb_intern("other"));
   } else {
