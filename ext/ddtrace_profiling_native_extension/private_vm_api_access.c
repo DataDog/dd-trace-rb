@@ -66,8 +66,15 @@ bool is_current_thread_holding_the_gvl(void) {
 }
 
 #ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
+  // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
+  //
+  // While we could potentially grab this lock, I (@ivoanjo) think we actually don't need it because:
+  // * In the case where a thread owns the GVL and calls `gvl_owner`, it will always see the correct value. That's
+  //   because every thread sets itself as the owner when it grabs the GVL and unsets itself at the end.
+  //   That means that `is_current_thread_holding_the_gvl` is always accurate.
+  // * In a case where we observe a different thread, then this may change by the time we do something with this value
+  //   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
   current_gvl_owner gvl_owner(void) {
-    // TODO: Reading owner/running is a racy read. Should we perhaps add a read barrier here?
     const rb_thread_t *current_owner =
       #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
         GET_RACTOR()->threads.sched.running;
