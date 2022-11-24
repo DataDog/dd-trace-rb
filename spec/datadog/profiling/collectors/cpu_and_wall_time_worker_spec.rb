@@ -133,15 +133,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         serialization_result = recorder.serialize
         raise 'Unexpected: Serialization failed' unless serialization_result
 
-        samples = samples_from_pprof(serialization_result.last)
+        samples =
+          samples_from_pprof(serialization_result.last)
+            .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
+
         samples if samples.any?
       end
 
-      current_thread_gc_samples =
-        samples_for_thread(all_samples, Thread.current)
-          .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
-
-      expect(current_thread_gc_samples).to_not be_empty
+      expect(samples_for_thread(all_samples, Thread.current)).to_not be_empty
     end
 
     it 'records garbage collection cycles' do
