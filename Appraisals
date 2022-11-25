@@ -1118,7 +1118,7 @@ elsif ruby_version?('2.6')
       gem 'rack-contrib'
       gem 'rack-test'
       gem 'rake', '>= 12.3'
-      gem 'redis', '< 4.0'
+      gem 'redis', '~> 4' # TODO: Support redis 5.x
       gem 'rest-client'
       gem 'resque'
       gem 'ruby-kafka', '>= 0.7.10'
@@ -1144,7 +1144,7 @@ elsif ruby_version?('2.6')
       gem 'dalli', '< 3.0.0'
       gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
       gem 'faraday', '0.17'
-      gem 'graphql', '>= 1.12.0', '< 2.0'
+      gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
       gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
       if RUBY_PLATFORM == 'java'

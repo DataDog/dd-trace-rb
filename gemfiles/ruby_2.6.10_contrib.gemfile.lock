@@ -1594,9 +1594,9 @@ GEM
       mini_portile2 (~> 2.6)
       rake (> 12)
     redcarpet (3.5.1)
-    redis (3.3.5)
-    redis-namespace (1.8.2)
-      redis (>= 3.0.4)
+    redis (4.8.0)
+    redis-namespace (1.9.0)
+      redis (>= 4)
     regexp_parser (2.6.1)
     request_store (1.5.1)
       rack (>= 1.4)
@@ -1665,11 +1665,10 @@ GEM
       aws-sdk-core (>= 2)
       concurrent-ruby
       thor
-    sidekiq (5.2.9)
-      connection_pool (~> 2.2, >= 2.2.2)
+    sidekiq (6.5.8)
+      connection_pool (>= 2.2.5, < 3)
       rack (~> 2.0)
-      rack-protection (>= 1.5.0)
-      redis (>= 3.3.5, < 4.2)
+      redis (>= 4.5.0, < 5)
     sigdump (0.2.4)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
@@ -1771,7 +1770,7 @@ DEPENDENCIES
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
-  redis (< 4.0)
+  redis (~> 4)
   resque
   rest-client
   rspec (>= 3.0.0)
