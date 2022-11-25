@@ -1457,7 +1457,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', platform: :jruby
-    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'pg', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
@@ -1470,7 +1470,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0'
     gem 'shoryuken'
     gem 'sidekiq', '~> 6'
     gem 'sneakers', '>= 2.12.0'
