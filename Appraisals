@@ -1394,7 +1394,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'rails', '~> 6.1.0'
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-    gem 'redis', '~> 4'
+    gem 'redis', '~> 4' # TODO: Support redis 5.x
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'net-smtp'
@@ -1439,7 +1439,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'activerecord'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'cucumber', '~> 7'
+    gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
     gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
@@ -1464,15 +1464,15 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
-    gem 'redis', '~> 4'
+    gem 'redis', '~> 4' # TODO: Support redis 5.x
     gem 'rest-client'
     gem 'resque'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel', '~> 5.54.0'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
-    gem 'sidekiq', '~> 6'
+    gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '>= 1.4.2', platform: :ruby
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
@@ -1490,7 +1490,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
   appraise 'contrib-old' do
     gem 'dalli', '< 3.0.0'
     gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
-    gem 'graphql', '~> 1.12.0', '< 2.0'
+    gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
     gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
     if RUBY_PLATFORM == 'java'
