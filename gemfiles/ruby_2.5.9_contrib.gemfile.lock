@@ -1402,6 +1402,7 @@ GEM
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
       rake
+    google-protobuf (3.19.4)
     google-protobuf (3.19.4-x86_64-linux)
     googleapis-common-protos-types (1.3.0)
       google-protobuf (~> 3.14)
@@ -1413,6 +1414,9 @@ GEM
       rack (>= 1.3.0)
       rack-accept
     graphql (2.0.6)
+    grpc (1.45.0)
+      google-protobuf (~> 3.19)
+      googleapis-common-protos-types (~> 1.0)
     grpc (1.45.0-x86_64-linux)
       google-protobuf (~> 3.19)
       googleapis-common-protos-types (~> 1.0)
@@ -1437,7 +1441,10 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.0)
+    libdatadog (0.9.0.1.0-aarch64-linux)
     libdatadog (0.9.0.1.0-x86_64-linux)
+    libddwaf (1.5.1.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.5.1.0.0-x86_64-linux)
       ffi (~> 1.0)
     lograge (0.11.2)
@@ -1455,7 +1462,7 @@ GEM
     mime-types (3.4.1)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2022.0105)
-    mini_portile2 (2.8.0)
+    mini_portile2 (2.6.1)
     minitest (5.15.0)
     mongo (2.14.1)
       bson (>= 4.8.2, < 5.0.0)
@@ -1470,6 +1477,9 @@ GEM
       mustermann (>= 1.0.0)
     mysql2 (0.5.3)
     netrc (0.11.0)
+    nokogiri (1.12.5)
+      mini_portile2 (~> 2.6.1)
+      racc (~> 1.4)
     nokogiri (1.12.5-x86_64-linux)
       racc (~> 1.4)
     opentracing (0.5.0)
@@ -1611,17 +1621,9 @@ GEM
       rake (~> 12.3)
       serverengine (~> 2.1.0)
       thor
-    sorbet (0.5.9672)
-      sorbet-static (= 0.5.9672)
-    sorbet-runtime (0.5.9807)
-    sorbet-static (0.5.9672-x86_64-linux)
     sorted_set (1.0.3)
       rbtree
       set (~> 1.0)
-    spoom (1.1.9)
-      sorbet (>= 0.5.9204)
-      sorbet-runtime (>= 0.5.9204)
-      thor (>= 0.19.2)
     sqlite3 (1.4.2)
     sucker_punch (3.0.1)
       concurrent-ruby (~> 1.0)
@@ -1648,6 +1650,7 @@ GEM
     zeitwerk (2.5.4)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
@@ -1698,7 +1701,7 @@ DEPENDENCIES
   pry
   pry-nav
   pry-stack_explorer
-  que (>= 1.0.0)
+  que (>= 1.0.0, < 2.0.0)
   racecar (>= 0.3.5)
   rack
   rack-contrib
@@ -1725,8 +1728,6 @@ DEPENDENCIES
   sidekiq
   simplecov!
   sneakers (>= 2.12.0)
-  sorbet (= 0.5.9672)
-  spoom (~> 1.1)
   sqlite3 (~> 1.4.1)
   sucker_punch
   typhoeus
@@ -1735,4 +1736,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.2.19
+   2.3.26

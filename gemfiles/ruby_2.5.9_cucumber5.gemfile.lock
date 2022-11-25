@@ -83,13 +83,17 @@ GEM
     dogstatsd-ruby (5.4.0)
     extlz4 (0.3.3)
     ffi (1.15.5)
+    google-protobuf (3.19.4)
     google-protobuf (3.19.4-x86_64-linux)
     hashdiff (1.0.1)
     i18n (1.10.0)
       concurrent-ruby (~> 1.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (0.9.0.1.0-aarch64-linux)
     libdatadog (0.9.0.1.0-x86_64-linux)
+    libddwaf (1.5.1.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.5.1.0.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -166,14 +170,6 @@ GEM
     ruby-progressbar (1.11.0)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
-    sorbet (0.5.9672)
-      sorbet-static (= 0.5.9672)
-    sorbet-runtime (0.5.9807)
-    sorbet-static (0.5.9672-x86_64-linux)
-    spoom (1.1.9)
-      sorbet (>= 0.5.9204)
-      sorbet-runtime (>= 0.5.9204)
-      thor (>= 0.19.2)
     sys-uname (1.2.2)
       ffi (~> 1.1)
     thor (1.2.1)
@@ -192,6 +188,7 @@ GEM
     zeitwerk (2.5.4)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
@@ -228,11 +225,9 @@ DEPENDENCIES
   rubocop-rspec (~> 2.2)
   ruby-prof (~> 1.4)
   simplecov!
-  sorbet (= 0.5.9672)
-  spoom (~> 1.1)
   warning (~> 1)
   webmock (>= 3.10.0)
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.2.19
+   2.3.26
