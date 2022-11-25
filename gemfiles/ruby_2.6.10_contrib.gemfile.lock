@@ -1665,10 +1665,10 @@ GEM
       aws-sdk-core (>= 2)
       concurrent-ruby
       thor
-    sidekiq (6.5.8)
-      connection_pool (>= 2.2.5, < 3)
+    sidekiq (6.4.1)
+      connection_pool (>= 2.2.2)
       rack (~> 2.0)
-      redis (>= 4.5.0, < 5)
+      redis (>= 4.2.0)
     sigdump (0.2.4)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
@@ -1786,7 +1786,7 @@ DEPENDENCIES
   semantic_logger (~> 4.0)
   sequel (~> 5.54.0)
   shoryuken
-  sidekiq
+  sidekiq (~> 6.4.1)
   simplecov!
   sneakers (>= 2.12.0)
   sqlite3 (~> 1.4.1)
