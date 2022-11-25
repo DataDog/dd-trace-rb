@@ -1464,7 +1464,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
-    gem 'redis', '< 4.0'
+    gem 'redis', '~> 4'
     gem 'rest-client'
     gem 'resque'
     gem 'ruby-kafka', '>= 0.7.10'
@@ -1472,7 +1472,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'semantic_logger', '~> 4.0'
     gem 'sequel'
     gem 'shoryuken'
-    gem 'sidekiq'
+    gem 'sidekiq', '~> 6'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '>= 1.4.2', platform: :ruby
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
@@ -1490,7 +1490,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
   appraise 'contrib-old' do
     gem 'dalli', '< 3.0.0'
     gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
-    gem 'graphql', '>= 1.12.0', '< 2.0'
+    gem 'graphql', '~> 1.12.0', '< 2.0'
     gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
     if RUBY_PLATFORM == 'java'

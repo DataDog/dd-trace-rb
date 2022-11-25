@@ -1576,9 +1576,7 @@ GEM
       mini_portile2 (~> 2.6)
       rake (> 12)
     redcarpet (3.5.1)
-    redis (3.3.5)
-    redis-client (0.11.2)
-      connection_pool
+    redis (4.8.0)
     redis-namespace (1.8.2)
       redis (>= 3.0.4)
     regexp_parser (2.6.1)
@@ -1647,11 +1645,10 @@ GEM
       aws-sdk-core (>= 2)
       concurrent-ruby
       thor
-    sidekiq (7.0.1)
-      concurrent-ruby (< 2)
-      connection_pool (>= 2.3.0)
-      rack (>= 2.2.4)
-      redis-client (>= 0.9.0)
+    sidekiq (6.4.1)
+      connection_pool (>= 2.2.2)
+      rack (~> 2.0)
+      redis (>= 4.2.0)
     sigdump (0.2.4)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
@@ -1754,7 +1751,7 @@ DEPENDENCIES
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
-  redis (< 4.0)
+  redis (~> 4)
   resque
   rest-client
   rspec (>= 3.0.0)
@@ -1770,7 +1767,7 @@ DEPENDENCIES
   semantic_logger (~> 4.0)
   sequel
   shoryuken
-  sidekiq
+  sidekiq (~> 6)
   simplecov!
   sneakers (>= 2.12.0)
   sqlite3 (>= 1.4.2)
