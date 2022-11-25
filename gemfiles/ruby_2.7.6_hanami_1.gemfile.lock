@@ -166,7 +166,7 @@ GEM
     rake-compiler (1.2.0)
       rake
     redcarpet (3.5.1)
-    regexp_parser (2.6.0)
+    regexp_parser (2.6.1)
     rexml (3.2.5)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
@@ -202,7 +202,7 @@ GEM
       parser (>= 3.1.1.0)
     rubocop-packaging (0.5.1)
       rubocop (>= 0.89, < 2.0)
-    rubocop-performance (1.15.0)
+    rubocop-performance (1.15.1)
       rubocop (>= 1.7.0, < 2.0)
       rubocop-ast (>= 0.4.0)
     rubocop-rspec (2.12.1)
@@ -225,7 +225,7 @@ GEM
     webrick (1.7.0)
     yard (0.9.28)
       webrick (~> 1.7.0)
-    zeitwerk (2.6.3)
+    zeitwerk (2.6.6)
 
 PLATFORMS
   aarch64-linux
