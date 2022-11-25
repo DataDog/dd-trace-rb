@@ -3,7 +3,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'redis'
-require 'hiredis'
 require 'datadog/tracing/contrib/redis/quantize'
 
 RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
@@ -75,6 +74,18 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
     context 'given an array' do
       context 'of some basic values' do
         let(:args) { [:set, 'KEY', 'VALUE'] }
+
+        it { is_expected.to eq('SET KEY VALUE') }
+      end
+
+      context do
+        let(:args) { %w[set KEY VALUE] }
+
+        it { is_expected.to eq('SET KEY VALUE') }
+      end
+
+      context do
+        let(:args) { [%w[set KEY VALUE]] }
 
         it { is_expected.to eq('SET KEY VALUE') }
       end

@@ -61,12 +61,15 @@ module Datadog
             require_relative 'quantize'
             require_relative 'instrumentation'
 
-            # InstancePatch and ClientPatch allows the client object to access pin on redis instance
-            ::Redis.include(InstancePatch)
-            ::Redis::Client.include(ClientPatch)
-
-            # TODO: To support redis-rb 5.x, Redis::Client -> RedisClient
-            ::Redis::Client.include(Instrumentation)
+            if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0')
+              require 'redis_client'
+              require_relative 'trace_middleware'
+              ::RedisClient.register(TraceMiddleware)
+            else
+              ::Redis.include(InstancePatch)
+              ::Redis::Client.include(ClientPatch)
+              ::Redis::Client.include(Instrumentation)
+            end
           end
         end
       end

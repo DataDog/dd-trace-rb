@@ -301,36 +301,36 @@ module Datadog
       end
 
       # Return a human readable version of the span
-      def pretty_print(q)
-        start_time = (self.start_time.to_f * 1e9).to_i
-        end_time = (self.end_time.to_f * 1e9).to_i
-        q.group 0 do
-          q.breakable
-          q.text "Name: #{@name}\n"
-          q.text "Span ID: #{@id}\n"
-          q.text "Parent ID: #{@parent_id}\n"
-          q.text "Trace ID: #{@trace_id}\n"
-          q.text "Type: #{@type}\n"
-          q.text "Service: #{@service}\n"
-          q.text "Resource: #{@resource}\n"
-          q.text "Error: #{@status}\n"
-          q.text "Start: #{start_time}\n"
-          q.text "End: #{end_time}\n"
-          q.text "Duration: #{duration.to_f if stopped?}\n"
-          q.group(2, 'Tags: [', "]\n") do
-            q.breakable
-            q.seplist meta.each do |key, value|
-              q.text "#{key} => #{value}"
-            end
-          end
-          q.group(2, 'Metrics: [', ']') do
-            q.breakable
-            q.seplist metrics.each do |key, value|
-              q.text "#{key} => #{value}"
-            end
-          end
-        end
-      end
+      # def pretty_print(q)
+      #   start_time = (self.start_time.to_f * 1e9).to_i
+      #   end_time = (self.end_time.to_f * 1e9).to_i
+      #   q.group 0 do
+      #     q.breakable
+      #     q.text "Name: #{@name}\n"
+      #     q.text "Span ID: #{@id}\n"
+      #     q.text "Parent ID: #{@parent_id}\n"
+      #     q.text "Trace ID: #{@trace_id}\n"
+      #     q.text "Type: #{@type}\n"
+      #     q.text "Service: #{@service}\n"
+      #     q.text "Resource: #{@resource}\n"
+      #     q.text "Error: #{@status}\n"
+      #     q.text "Start: #{start_time}\n"
+      #     q.text "End: #{end_time}\n"
+      #     q.text "Duration: #{duration.to_f if stopped?}\n"
+      #     q.group(2, 'Tags: [', "]\n") do
+      #       q.breakable
+      #       q.seplist meta.each do |key, value|
+      #         q.text "#{key} => #{value}"
+      #       end
+      #     end
+      #     q.group(2, 'Metrics: [', ']') do
+      #       q.breakable
+      #       q.seplist metrics.each do |key, value|
+      #         q.text "#{key} => #{value}"
+      #       end
+      #     end
+      #   end
+      # end
 
       # Callback behavior
       class Events

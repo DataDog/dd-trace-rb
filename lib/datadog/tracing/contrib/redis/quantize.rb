@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # typed: true
 
 require 'set'
@@ -8,8 +10,8 @@ module Datadog
       module Redis
         # Quantize contains Redis-specific resource quantization tools.
         module Quantize
-          PLACEHOLDER = '?'.freeze
-          TOO_LONG_MARK = '...'.freeze
+          PLACEHOLDER = '?'
+          TOO_LONG_MARK = '...'
           VALUE_MAX_LEN = 50
           CMD_MAX_LEN = 500
 
@@ -29,7 +31,7 @@ module Datadog
           module_function
 
           def format_arg(arg)
-            str = arg.is_a?(Symbol) ? arg.to_s.upcase : arg.to_s
+            str = arg.to_s
             str = Core::Utils.utf8_encode(str, binary: true, placeholder: PLACEHOLDER)
             Core::Utils.truncate(str, VALUE_MAX_LEN, TOO_LONG_MARK)
           rescue => e
@@ -41,8 +43,8 @@ module Datadog
             command_args = resolve_command_args(command_args)
             return 'AUTH ?' if auth_command?(command_args)
 
-            cmd = command_args.map { |x| format_arg(x) }.join(' ')
-            Core::Utils.truncate(cmd, CMD_MAX_LEN, TOO_LONG_MARK)
+            verb, *args = command_args.map { |x| format_arg(x) }
+            Core::Utils.truncate("#{verb.upcase} #{args.join(' ')}", CMD_MAX_LEN, TOO_LONG_MARK)
           end
 
           def get_verb(command_args)
@@ -50,8 +52,7 @@ module Datadog
 
             return get_verb(command_args.first) if command_args.first.is_a?(Array)
 
-            arg = command_args.first
-            verb = arg.is_a?(Symbol) ? arg.to_s.upcase : arg.to_s
+            verb = command_args.first.to_s.upcase
             return verb unless MULTI_VERB_COMMANDS.include?(verb) && command_args[1]
 
             "#{verb} #{command_args[1]}"
@@ -60,7 +61,8 @@ module Datadog
           def auth_command?(command_args)
             return false unless command_args.is_a?(Array) && !command_args.empty?
 
-            command_args.first.to_sym == :auth
+            verb = command_args.first.to_s
+            %w[AUTH auth].include?(verb)
           end
 
           # Unwraps command array when Redis is called with the following syntax:

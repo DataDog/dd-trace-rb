@@ -27,7 +27,7 @@ module Datadog
           end
 
           def self.compatible?
-            super && version >= MINIMUM_VERSION && version < MAX_VERSION
+            super && version >= MINIMUM_VERSION
           end
 
           def new_configuration
