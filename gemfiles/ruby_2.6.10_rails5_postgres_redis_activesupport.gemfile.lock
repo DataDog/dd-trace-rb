@@ -79,7 +79,6 @@ GEM
     coderay (1.1.3)
     colorize (0.8.1)
     concurrent-ruby (1.1.10)
-    connection_pool (2.3.0)
     crack (0.4.5)
       rexml
     crass (1.0.6)
@@ -178,8 +177,7 @@ GEM
     rake-compiler (1.2.0)
       rake
     redcarpet (3.5.1)
-    redis (5.0.5)
-      redis-client (>= 0.9.0)
+    redis (4.8.0)
     redis-actionpack (5.3.0)
       actionpack (>= 5, < 8)
       redis-rack (>= 2.1.0, < 3)
@@ -187,8 +185,6 @@ GEM
     redis-activesupport (5.3.0)
       activesupport (>= 3, < 8)
       redis-store (>= 1.3, < 2)
-    redis-client (0.11.2)
-      connection_pool
     redis-rack (2.1.4)
       rack (>= 2.0.8, < 3)
       redis-store (>= 1.2, < 2)
@@ -196,8 +192,8 @@ GEM
       redis-actionpack (>= 5.0, < 6)
       redis-activesupport (>= 5.0, < 6)
       redis-store (>= 1.2, < 2)
-    redis-store (1.3.0)
-      redis (>= 2.2)
+    redis-store (1.9.1)
+      redis (>= 4, < 5)
     regexp_parser (2.6.1)
     request_store (1.5.1)
       rack (>= 1.4)
@@ -300,8 +296,9 @@ DEPENDENCIES
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
-  redis (>= 4.0.1)
+  redis
   redis-rails
+  redis-store (>= 1.4, < 2)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec_junit_formatter (>= 0.5.1)

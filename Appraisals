@@ -960,10 +960,11 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis', '>= 4.0.1'
+      gem 'redis'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
+      gem 'redis-store', '>= 1.4', '< 2'
     end
 
     appraise 'rails5-postgres-sidekiq' do
@@ -1013,10 +1014,11 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis', '>= 4.0.1'
+      gem 'redis'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
+      gem 'redis-store', '>= 1.4', '< 2'
     end
 
     appraise 'rails6-postgres-sidekiq' do
