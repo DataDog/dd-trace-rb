@@ -1439,7 +1439,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'activerecord'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'cucumber'
+    gem 'cucumber', '~> 7'
     gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
