@@ -62,7 +62,6 @@ module Datadog
 
             return unless @worker_thread
 
-            @worker_thread.kill
             self.class._native_stop(self)
 
             @worker_thread.join
