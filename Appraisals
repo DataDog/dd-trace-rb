@@ -951,7 +951,7 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis', '>= 4.0.1'
+      gem 'redis', '~> 4' # TODO: Support redis 5.x
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1005,7 +1005,7 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis', '>= 4.0.1'
+      gem 'redis', '~> 4' # TODO: Support redis 5.x
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1051,7 +1051,7 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis', '>= 4.2.5'
+      gem 'redis', '~> 4' # TODO: Support redis 5.x
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1074,12 +1074,12 @@ elsif ruby_version?('2.6')
     end
 
     appraise 'resque2-redis3' do
-      gem 'redis', '< 4.0'
+      gem 'redis', '~> 3.0'
       gem 'resque', '>= 2.0'
     end
 
     appraise 'resque2-redis4' do
-      gem 'redis', '>= 4.0'
+      gem 'redis', '~> 4.0'
       gem 'resque', '>= 2.0'
     end
 
@@ -1092,7 +1092,7 @@ elsif ruby_version?('2.6')
       gem 'activerecord'
       gem 'aws-sdk'
       gem 'concurrent-ruby'
-      gem 'cucumber'
+      gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
       gem 'dalli', '>= 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'

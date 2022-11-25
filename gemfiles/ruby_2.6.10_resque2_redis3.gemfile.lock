@@ -187,7 +187,7 @@ DEPENDENCIES
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
-  redis (< 4.0)
+  redis (~> 3.0)
   resque (>= 2.0)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
