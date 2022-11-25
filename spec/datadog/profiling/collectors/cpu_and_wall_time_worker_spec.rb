@@ -114,7 +114,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         exception = try_wait_until(backoff: 0.01) { cpu_and_wall_time_worker.send(:failure_exception) }
 
         expect(exception.message).to include 'pre-existing SIGPROF'
-        expect(exception.message).to include 'handle_sampling_signal' # validate that handler name is included
       end
 
       it 'leaves the existing signal handler in place' do
@@ -298,38 +297,58 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe '#stop' do
     subject(:stop) { cpu_and_wall_time_worker.stop }
 
-    before do
+    context 'after starting' do
+      before do
+        cpu_and_wall_time_worker.start
+        wait_until_running
+      end
+
+      it 'shuts down the background thread' do
+        stop
+
+        skip 'Spec not compatible with Ruby 2.2' if RUBY_VERSION.start_with?('2.2.')
+
+        expect(Thread.list.map(&:name)).to_not include(described_class.name)
+      end
+
+      it 'replaces the profiling sigprof signal handler with an empty one' do
+        stop
+
+        expect(described_class::Testing._native_current_sigprof_signal_handler).to be :empty
+      end
+
+      it 'disables the garbage collection tracepoint' do
+        stop
+
+        expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+      end
+
+      it 'leaves behind an empty SIGPROF signal handler' do
+        stop
+
+        # Without an empty SIGPROF signal handler (e.g. with no signal handler) the following command will make the VM
+        # instantly terminate with a confusing "Profiling timer expired" message left behind. (This message doesn't
+        # come from us -- it's the default message for an unhandled SIGPROF. Pretty confusing UNIX/POSIX behavior...)
+        Process.kill('SIGPROF', Process.pid)
+      end
+    end
+
+    it 'unblocks SIGPROF signal handling from the worker thread' do
+      inner_ran = false
+
+      expect(described_class).to receive(:_native_sampling_loop).and_wrap_original do |native, *args|
+        native.call(*args)
+
+        expect(described_class::Testing._native_is_sigprof_blocked_in_current_thread).to be false
+        inner_ran = true
+      end
+
       cpu_and_wall_time_worker.start
       wait_until_running
-    end
 
-    it 'shuts down the background thread' do
       stop
 
-      skip 'Spec not compatible with Ruby 2.2' if RUBY_VERSION.start_with?('2.2.')
-
-      expect(Thread.list.map(&:name)).to_not include(described_class.name)
-    end
-
-    it 'replaces the profiling sigprof signal handler with an empty one' do
-      stop
-
-      expect(described_class::Testing._native_current_sigprof_signal_handler).to be :empty
-    end
-
-    it 'disables the garbage collection tracepoint' do
-      stop
-
-      expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
-    end
-
-    it 'leaves behind an empty SIGPROF signal handler' do
-      stop
-
-      # Without an empty SIGPROF signal handler (e.g. with no signal handler) the following command will make the VM
-      # instantly terminate with a confusing "Profiling timer expired" message left behind. (This message doesn't
-      # come from us -- it's the default message for an unhandled SIGPROF. Pretty confusing UNIX/POSIX behavior...)
-      Process.kill('SIGPROF', Process.pid)
+      expect(inner_ran).to be true
     end
   end
 

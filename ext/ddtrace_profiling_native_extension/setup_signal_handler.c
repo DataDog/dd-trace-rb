@@ -88,9 +88,26 @@ void remove_sigprof_signal_handler(void) {
   if (sigaction(SIGPROF, &signal_handler_config, NULL) != 0) rb_sys_fail("Failure while removing the signal handler");
 }
 
+static void toggle_sigprof_signal_handler_for_current_thread(int action) {
+  sigset_t signals_to_toggle;
+  sigemptyset(&signals_to_toggle);
+  sigaddset(&signals_to_toggle, SIGPROF);
+  int error = pthread_sigmask(action, &signals_to_toggle, NULL);
+  if (error) rb_exc_raise(rb_syserr_new_str(errno, rb_sprintf("Unexpected failure in pthread_sigmask, action=%d", action)));
+}
+
 void block_sigprof_signal_handler_from_running_in_current_thread(void) {
-  sigset_t signals_to_block;
-  sigemptyset(&signals_to_block);
-  sigaddset(&signals_to_block, SIGPROF);
-  pthread_sigmask(SIG_BLOCK, &signals_to_block, NULL);
+  toggle_sigprof_signal_handler_for_current_thread(SIG_BLOCK);
+}
+
+void unblock_sigprof_signal_handler_from_running_in_current_thread(void) {
+  toggle_sigprof_signal_handler_for_current_thread(SIG_UNBLOCK);
+}
+
+VALUE is_sigprof_blocked_in_current_thread(void) {
+  sigset_t current_signals;
+  sigemptyset(&current_signals);
+  int error = pthread_sigmask(0, NULL, &current_signals);
+  if (error) rb_exc_raise(rb_syserr_new_str(errno, rb_sprintf("Unexpected failure in is_sigprof_blocked_in_current_thread")));
+  return sigismember(&current_signals, SIGPROF) ? Qtrue : Qfalse;
 }
