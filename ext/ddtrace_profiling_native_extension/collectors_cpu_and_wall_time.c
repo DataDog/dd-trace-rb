@@ -693,8 +693,6 @@ static VALUE per_thread_context_st_table_as_ruby_hash(struct cpu_and_wall_time_c
   return result;
 }
 
-#define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
-
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash) {
   VALUE thread = (VALUE) key_thread;
   struct per_thread_context *thread_context = (struct per_thread_context*) value_context;

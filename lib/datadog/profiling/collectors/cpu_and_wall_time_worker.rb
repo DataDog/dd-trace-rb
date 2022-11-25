@@ -73,6 +73,10 @@ module Datadog
         def reset_after_fork
           self.class._native_reset_after_fork(self)
         end
+
+        def stats
+          self.class._native_stats(self)
+        end
       end
     end
   end

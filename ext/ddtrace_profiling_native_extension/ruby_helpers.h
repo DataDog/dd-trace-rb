@@ -59,3 +59,5 @@ NORETURN(void raise_unexpected_type(
   int line,
   const char* function_name
 ));
+
+#define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))

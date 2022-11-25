@@ -84,6 +84,15 @@ struct cpu_and_wall_time_worker_state {
 
   // Used to get gc start/finish information
   VALUE gc_tracepoint;
+
+  struct stats {
+    // How many times we tried to trigger a sample
+    unsigned int trigger_sample_attempts;
+    // How many times we actually called rb_postponed_job_register_one from a signal handler
+    unsigned int signal_handler_enqueued_sample;
+    // How many times the signal handler was called from the wrong thread
+    unsigned int signal_handler_wrong_thread;
+  } stats;
 };
 
 static VALUE _native_new(VALUE klass);
@@ -117,6 +126,7 @@ static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
 static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE self);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
+static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 
 // Global state -- be very careful when accessing or modifying it
 
@@ -150,6 +160,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
   rb_define_singleton_method(testing_module, "_native_current_sigprof_signal_handler", _native_current_sigprof_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(testing_module, "_native_install_testing_signal_handler", _native_install_testing_signal_handler, 0);
@@ -309,11 +320,24 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception) {
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
+  VALUE instance = active_sampler_instance; // Read from global variable
+
+  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the signal delivery was happening
+  if (instance == Qnil) return;
+
+  struct cpu_and_wall_time_worker_state *state;
+  if (!rb_typeddata_is_kind_of(instance, &cpu_and_wall_time_worker_typed_data)) return;
+  // This should never fail the the above check passes
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
     !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
     !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
-  ) return;
+  ) {
+    state->stats.signal_handler_wrong_thread++;
+    return;
+  }
 
   // We implicitly assume there can be no concurrent nor nested calls to handle_sampling_signal because
   // a) we get triggered using SIGPROF, and the docs state second SIGPROF will not interrupt an existing one
@@ -323,6 +347,8 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // Note: rb_postponed_job_register_one ensures that if there's a previous sample_from_postponed_job queued for execution
   // then we will not queue a second one. It does this by doing a linear scan on the existing jobs; in the future we
   // may want to implement that check ourselves.
+
+  state->stats.signal_handler_enqueued_sample++;
 
   // TODO: Do something with result (potentially update tracking counters?)
   /*int result =*/ rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
@@ -335,6 +361,8 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
   struct timespec time_between_signals = {.tv_nsec = 10 * 1000 * 1000 /* 10ms */};
 
   while (state->should_run) {
+    state->stats.trigger_sample_attempts++;
+
     // TODO: This is still a placeholder for a more complex mechanism. In particular:
     // * We want to signal a particular thread or threads, not the process in general
     // * We want to track if a signal landed on the thread holding the global VM lock and do something about it
@@ -572,11 +600,28 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
   // Disable all tracepoints, so that there are no more attempts to mutate the profile
   rb_tracepoint_disable(state->gc_tracepoint);
 
+  state->stats = (struct stats) {}; // Resets all stats back to zero
+
   // Remove all state from the `Collectors::CpuAndWallTime` and connected downstream components
   rb_funcall(state->cpu_and_wall_time_collector_instance, rb_intern("reset_after_fork"), 0);
 
   return Qtrue;
 }
+
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self) {
   return is_sigprof_blocked_in_current_thread();
+}
+
+static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  VALUE stats_as_hash = rb_hash_new();
+  VALUE arguments[] = {
+    ID2SYM(rb_intern("trigger_sample_attempts")),        /* => */ UINT2NUM(state->stats.trigger_sample_attempts),
+    ID2SYM(rb_intern("signal_handler_enqueued_sample")), /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
+    ID2SYM(rb_intern("signal_handler_wrong_thread")),    /* => */ UINT2NUM(state->stats.signal_handler_wrong_thread),
+  };
+  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+  return stats_as_hash;
 }
