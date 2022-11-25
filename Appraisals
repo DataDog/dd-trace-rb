@@ -1394,7 +1394,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'rails', '~> 6.1.0'
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-    gem 'redis', '>= 4.2.5'
+    gem 'redis', '~> 4'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'net-smtp'
