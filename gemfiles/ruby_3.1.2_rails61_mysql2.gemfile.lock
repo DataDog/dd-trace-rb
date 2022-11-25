@@ -279,6 +279,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  activerecord-jdbcmysql-adapter
   addressable (~> 2.4.0)
   appraisal (~> 2.2)
   benchmark-ips (~> 2.8)
