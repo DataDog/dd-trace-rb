@@ -105,13 +105,17 @@ GEM
     ffi (1.15.5)
     globalid (1.0.0)
       activesupport (>= 5.0)
+    google-protobuf (3.19.4)
     google-protobuf (3.19.4-x86_64-linux)
     hashdiff (1.0.1)
     i18n (1.10.0)
       concurrent-ruby (~> 1.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (0.9.0.1.0-aarch64-linux)
     libdatadog (0.9.0.1.0-x86_64-linux)
+    libddwaf (1.5.1.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.5.1.0.0-x86_64-linux)
       ffi (~> 1.0)
     loofah (2.15.0)
@@ -123,9 +127,13 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.0.0)
     mini_mime (1.1.2)
+    mini_portile2 (2.6.1)
     minitest (5.15.0)
     msgpack (1.6.0)
     nio4r (2.5.8)
+    nokogiri (1.12.5)
+      mini_portile2 (~> 2.6.1)
+      racc (~> 1.4)
     nokogiri (1.12.5-x86_64-linux)
       racc (~> 1.4)
     opentracing (0.5.0)
@@ -228,14 +236,6 @@ GEM
       concurrent-ruby (~> 1.0)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
-    sorbet (0.5.9672)
-      sorbet-static (= 0.5.9672)
-    sorbet-runtime (0.5.9807)
-    sorbet-static (0.5.9672-x86_64-linux)
-    spoom (1.1.9)
-      sorbet (>= 0.5.9204)
-      sorbet-runtime (>= 0.5.9204)
-      thor (>= 0.19.2)
     sprockets (3.7.2)
       concurrent-ruby (~> 1.0)
       rack (> 1, < 3)
@@ -262,6 +262,7 @@ GEM
     zeitwerk (2.5.4)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
@@ -302,12 +303,10 @@ DEPENDENCIES
   rubocop-rspec (~> 2.2)
   ruby-prof (~> 1.4)
   simplecov!
-  sorbet (= 0.5.9672)
-  spoom (~> 1.1)
   sprockets (< 4)
   warning (~> 1)
   webmock (>= 3.10.0)
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.2.19
+   2.3.26
