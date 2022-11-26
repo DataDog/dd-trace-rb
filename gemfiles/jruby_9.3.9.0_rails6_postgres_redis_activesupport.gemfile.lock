@@ -297,8 +297,9 @@ DEPENDENCIES
   rails (~> 6.0.0)
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redis (>= 4.0.1)
+  redis
   redis-rails
+  redis-store (>= 1.4, < 2)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec_junit_formatter (>= 0.5.1)
@@ -314,4 +315,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.20
+   2.3.26

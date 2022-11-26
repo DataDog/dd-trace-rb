@@ -169,7 +169,7 @@ DEPENDENCIES
   pry-debugger-jruby
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redis (< 4.0)
+  redis (~> 3.0)
   resque (>= 2.0)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
@@ -185,4 +185,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.20
+   2.3.26
