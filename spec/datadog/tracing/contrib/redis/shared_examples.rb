@@ -1,23 +1,16 @@
-RSpec.shared_examples_for 'a span with common tags' do
+require 'datadog/tracing/contrib/integration_examples'
+require 'datadog/tracing/contrib/analytics_examples'
+
+require 'datadog/tracing/contrib/redis/ext'
+
+RSpec.shared_examples_for 'a redis span with common tags' do
   it do
-    expect(span).to_not be nil
     expect(span.name).to eq('redis.command')
     expect(span.get_tag('out.host')).to eq(host)
     expect(span.get_tag('out.port')).to eq(port)
     expect(span.get_tag('out.redis_db')).to eq(0)
     expect(span.get_tag('db.system')).to eq('redis')
     expect(span.get_tag('span.kind')).to eq('client')
-  end
-
-  # it_behaves_like 'analytics for integration' do
-  #   let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
-  #   let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
-  # end
-
-  it_behaves_like 'measured span for integration', false
-
-  it_behaves_like 'a peer service span' do
-    let(:peer_hostname) { host }
   end
 end
 
@@ -45,7 +38,15 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
         end
       end
 
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
     end
 
     describe 'get span' do
@@ -63,7 +64,15 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
         end
       end
 
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
     end
   end
 
@@ -77,7 +86,15 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
     describe 'span' do
       let(:span) { spans[-1] }
 
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
 
       it do
         if options[:command_args]
@@ -134,14 +151,23 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
         end
       end
 
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
     end
   end
 
   context 'empty pipeline' do
-    before { skip if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0') }
-
-    before { empty_pipeline }
+    before do
+      skip if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0')
+      empty_pipeline
+    end
 
     subject(:empty_pipeline) do
       redis.pipelined do |_|
@@ -169,7 +195,15 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
         end
       end
 
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
     end
   end
 
@@ -206,7 +240,15 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
         expect(span.get_tag('error.stack').length).to be >= 3
       end
 
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
     end
   end
 
@@ -226,7 +268,15 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
         end
       end
 
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
     end
 
     describe 'get span' do
@@ -249,14 +299,21 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
         end
       end
 
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
     end
   end
 end
 
 RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options = {}|
   describe 'when given username and password' do
-    # The first span would the auth span
     let(:span) { spans.first }
     let(:username) { 'data' }
     let(:password) { 'dog' }
@@ -292,17 +349,18 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
           redis.client.call([:auth, username, password])
         else
           redis.auth(username, password)
-
         end
       end
 
       it_behaves_like 'an authentication span'
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
 
     context 'with `url`' do
-      before { skip if Gem::Version.new(::Redis::VERSION) < Gem::Version.new('4.0.0') }
-
       let(:redis) do
         Redis.new(
           redis_options.merge(
@@ -311,17 +369,22 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
         )
       end
 
-      before { redis.ping }
+      before do
+        skip if Gem::Version.new(::Redis::VERSION) < Gem::Version.new('4.0.0')
+        redis.ping
+      end
 
       it { expect(spans).to have(2).items }
 
       it_behaves_like 'an authentication span'
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
 
     context 'with redis optins' do
-      before { skip if Gem::Version.new(::Redis::VERSION) < Gem::Version.new('4.0.0') }
-
       let(:redis) do
         Redis.new(
           redis_options.merge(
@@ -331,12 +394,19 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
         )
       end
 
-      before { redis.ping }
+      before do
+        skip if Gem::Version.new(::Redis::VERSION) < Gem::Version.new('4.0.0')
+        redis.ping
+      end
 
       it { expect(spans).to have(2).items }
 
       it_behaves_like 'an authentication span'
-      it_behaves_like 'a span with common tags'
+      it_behaves_like 'a redis span with common tags'
+      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 end
