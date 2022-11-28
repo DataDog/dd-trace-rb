@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.6.1)
-      debase-ruby_core_source (>= 0.10.16, <= 0.10.17)
+      debase-ruby_core_source (>= 0.10.16, <= 0.10.18)
       libdatadog (~> 0.9.0.1.0)
       libddwaf (~> 1.5.1.0.0)
       msgpack
@@ -301,4 +301,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.2.19
+   2.3.26

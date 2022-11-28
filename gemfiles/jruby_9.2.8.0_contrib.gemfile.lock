@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.6.1)
-      debase-ruby_core_source (>= 0.10.16, <= 0.10.17)
+      debase-ruby_core_source (>= 0.10.16, <= 0.10.18)
       libdatadog (~> 0.9.0.1.0)
       libddwaf (~> 1.5.1.0.0)
       msgpack
@@ -1415,7 +1415,6 @@ GEM
       rack-accept
     graphql (2.0.6)
     hashdiff (1.0.1)
-    hiredis (0.6.3-java)
     http (4.4.1)
       addressable (~> 2.3)
       http-cookie (~> 1.0)
@@ -1662,7 +1661,6 @@ DEPENDENCIES
   grape
   graphql (>= 2.0)
   grpc
-  hiredis
   http
   httpclient
   i18n (= 1.8.7)
@@ -1686,7 +1684,6 @@ DEPENDENCIES
   rack-test
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redis (< 4.0)
   resque
   rest-client
   rspec (>= 3.0.0)
