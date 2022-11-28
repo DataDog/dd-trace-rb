@@ -342,7 +342,7 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
 
     context 'with auth command' do
       before do
-        if ::Redis::VERSION < Gem::Version.new('4.0.0')
+        if Gem::Version.new(::Redis::VERSION) < Gem::Version.new('4.0.0')
           # Since 3.x does not support `username`
           # This is a workaround to test `auth` command without setting a password-protected redis instance
           # https://github.com/redis/redis-rb/blob/3.3/lib/redis.rb#L127-L131
