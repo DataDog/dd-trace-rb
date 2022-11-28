@@ -257,6 +257,57 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
       end
     end
+
+    describe 'SIGPROF signal delivery' do
+      let(:ready_queue) { Queue.new }
+      let(:background_thread) do
+        Thread.new do
+          ready_queue << true
+          i = 0
+          loop { (i = (i + 1) % 2) }
+        end
+      end
+
+      after do
+        background_thread.kill
+        background_thread.join
+      end
+
+      it 'is able to sample even when the main thread is sleeping' do
+        background_thread
+        ready_queue.pop
+
+        start
+
+        sleep 0.1
+
+        cpu_and_wall_time_worker.stop
+        background_thread.kill
+
+        serialization_result = recorder.serialize
+        raise 'Unexpected: Serialization failed' unless serialization_result
+
+        result = samples_for_thread(samples_from_pprof(serialization_result.last), Thread.current)
+        sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+
+        stats = cpu_and_wall_time_worker.stats
+
+        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts).to_f
+        signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample).to_f
+        signal_handler_wrong_thread = stats.fetch(:signal_handler_wrong_thread).to_f
+
+        expect(signal_handler_enqueued_sample / trigger_sample_attempts).to (be >= 0.8), \
+          "Expected at least 80% of signals to be delivered to correct thread (#{stats})"
+
+        # Sanity checking
+
+        # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
+        # will not cause flakyness
+        expect(sample_count).to be >= 5
+        expect(trigger_sample_attempts).to be >= sample_count
+        expect(trigger_sample_attempts).to be signal_handler_enqueued_sample + signal_handler_wrong_thread
+      end
+    end
   end
 
   describe 'Ractor safety' do
