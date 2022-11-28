@@ -57,15 +57,15 @@ module Datadog
           def patch
             # do not require these by default, but only when actually patching
             require 'redis'
-            require_relative 'tags'
-            require_relative 'quantize'
-            require_relative 'instrumentation'
 
             if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0')
               require 'redis_client'
               require_relative 'trace_middleware'
+
               ::RedisClient.register(TraceMiddleware)
             else
+              require_relative 'instrumentation'
+
               ::Redis.include(InstancePatch)
               ::Redis::Client.include(ClientPatch)
               ::Redis::Client.include(Instrumentation)
