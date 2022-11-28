@@ -2,7 +2,6 @@
 
 require 'datadog/tracing/contrib/support/spec_helper'
 
-require 'redis'
 require 'datadog/tracing/contrib/redis/quantize'
 
 RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do

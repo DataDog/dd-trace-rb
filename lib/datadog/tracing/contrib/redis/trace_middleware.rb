@@ -1,11 +1,9 @@
 # typed: false
 
 require_relative '../patcher'
-# require_relative 'configuration/resolver'
 require_relative 'ext'
 require_relative 'quantize'
 require_relative 'tags'
-require_relative 'vendor/resolver'
 
 module Datadog
   module Tracing
