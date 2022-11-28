@@ -262,10 +262,11 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
     let(:password) { 'dog' }
 
     around do |example|
-      __redis__ = ::Redis.new(default_redis_options)
-      __redis__.call('ACL', 'SETUSER', username, 'on', ">#{password}", '+@all')
-      example.run
-      __redis__.call('ACL', 'DELUSER', username)
+      ::Redis.new(default_redis_options).tap do |r|
+        r.call('ACL', 'SETUSER', username, 'on', ">#{password}", '+@all')
+        example.run
+        r.call('ACL', 'DELUSER', username)
+      end
     end
 
     shared_examples 'an authentication span' do
