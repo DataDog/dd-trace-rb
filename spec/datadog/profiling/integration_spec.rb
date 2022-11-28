@@ -120,8 +120,9 @@ RSpec.describe 'profiling integration test' do
           @current_span = span
           @current_root_span = trace.send(:root_span)
           example.run
+
+          Datadog::Tracing.shutdown!
         end
-        Datadog::Tracing.shutdown!
       end
 
       let(:tracer) { Datadog::Tracing.send(:tracer) }
