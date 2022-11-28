@@ -134,7 +134,7 @@ if ruby_version?('2.1')
 
   [3].each do |n|
     appraise "redis-#{n}" do
-      gem 'redis', ">= #{n}", "< #{n.succ}"
+      gem 'redis', "~> #{n}"
     end
   end
 
@@ -320,7 +320,7 @@ elsif ruby_version?('2.2')
 
   [3].each do |n|
     appraise "redis-#{n}" do
-      gem 'redis', ">= #{n}", "< #{n.succ}"
+      gem 'redis', "~> #{n}"
     end
   end
 
@@ -518,7 +518,7 @@ elsif ruby_version?('2.3')
 
   [3].each do |n|
     appraise "redis-#{n}" do
-      gem 'redis', ">= #{n}", "< #{n.succ}"
+      gem 'redis', "~> #{n}"
     end
   end
 
@@ -650,7 +650,7 @@ elsif ruby_version?('2.4')
 
   [3, 4].each do |n|
     appraise "redis-#{n}" do
-      gem 'redis', ">= #{n}", "< #{n.succ}"
+      gem 'redis', "~> #{n}"
     end
   end
 
@@ -913,7 +913,7 @@ elsif ruby_version?('2.5')
 
   [3, 4, 5].each do |n|
     appraise "redis-#{n}" do
-      gem 'redis', ">= #{n}", "< #{n.succ}"
+      gem 'redis', "~> #{n}"
     end
   end
 
@@ -1161,7 +1161,7 @@ elsif ruby_version?('2.6')
 
     [3, 4, 5].each do |n|
       appraise "redis-#{n}" do
-        gem 'redis', ">= #{n}", "< #{n.succ}"
+        gem 'redis', "~> #{n}"
       end
     end
 
@@ -1387,7 +1387,7 @@ elsif ruby_version?('2.7')
 
     [3, 4, 5].each do |n|
       appraise "redis-#{n}" do
-        gem 'redis', ">= #{n}", "< #{n.succ}"
+        gem 'redis', "~> #{n}"
       end
     end
 
@@ -1515,7 +1515,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
 
   [3, 4, 5].each do |n|
     appraise "redis-#{n}" do
-      gem 'redis', ">= #{n}", "< #{n.succ}"
+      gem 'redis', "~> #{n}"
     end
   end
 
@@ -1651,7 +1651,7 @@ elsif ruby_version?('3.2')
 
   [3, 4, 5].each do |n|
     appraise "redis-#{n}" do
-      gem 'redis', ">= #{n}", "< #{n.succ}"
+      gem 'redis', "~> #{n}"
     end
   end
 
