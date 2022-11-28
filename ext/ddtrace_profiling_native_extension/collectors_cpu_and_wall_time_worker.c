@@ -75,9 +75,11 @@ struct cpu_and_wall_time_worker_state {
   // telling the sampling trigger loop to stop, but if we ever need to communicate more, we should move to actual
   // atomic operations. stdatomic.h seems a nice thing to reach out for.
   volatile bool should_run;
+
   bool gc_profiling_enabled;
   VALUE self_instance;
   VALUE cpu_and_wall_time_collector_instance;
+  VALUE owner_thread;
 
   // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
   // the CpuAndWallTimeWorker thread
@@ -136,13 +138,9 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 // where we can't easily pass in the context as an argument.
 static VALUE active_sampler_instance = Qnil;
 struct cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
-// ...We also store active_sampler_owner_thread to be able to tell who the active_sampler_instance belongs to (and also
-// to detect when it is outdated)
-static VALUE active_sampler_owner_thread = Qnil;
 
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
-  rb_global_variable(&active_sampler_owner_thread);
 
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   VALUE collectors_cpu_and_wall_time_worker_class = rb_define_class_under(collectors_module, "CpuAndWallTimeWorker", rb_cObject);
@@ -194,6 +192,7 @@ static VALUE _native_new(VALUE klass) {
   state->should_run = false;
   state->gc_profiling_enabled = false;
   state->cpu_and_wall_time_collector_instance = Qnil;
+  state->owner_thread = Qnil;
   state->failure_exception = Qnil;
   state->gc_tracepoint = Qnil;
 
@@ -223,6 +222,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
   rb_gc_mark(state->cpu_and_wall_time_collector_instance);
+  rb_gc_mark(state->owner_thread);
   rb_gc_mark(state->failure_exception);
   rb_gc_mark(state->gc_tracepoint);
 }
@@ -232,8 +232,9 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  if (active_sampler_owner_thread != Qnil) {
-    if (is_thread_alive(active_sampler_owner_thread)) {
+  struct cpu_and_wall_time_worker_state *old_state = active_sampler_instance_state;
+  if (old_state != NULL) {
+    if (is_thread_alive(old_state->owner_thread)) {
       rb_raise(
         rb_eRuntimeError,
         "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread"
@@ -247,7 +248,6 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
       // b) If this is the same instance of the CpuAndWallTimeWorker if we call enable on a tracepoint that is already
       //    enabled, it will start firing more than once, see https://bugs.ruby-lang.org/issues/19114 for details.
 
-      struct cpu_and_wall_time_worker_state *old_state = active_sampler_instance_state;
       rb_tracepoint_disable(old_state->gc_tracepoint);
     }
   }
@@ -255,7 +255,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance_state = state;
   active_sampler_instance = instance;
-  active_sampler_owner_thread = rb_thread_current();
+  state->owner_thread = rb_thread_current();
 
   state->should_run = true;
 
@@ -271,7 +271,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   active_sampler_instance_state = NULL;
   active_sampler_instance = Qnil;
-  active_sampler_owner_thread = Qnil;
+  state->owner_thread = Qnil;
 
   // If this `Thread` is about to die, why is this important? It's because Ruby caches native threads for a period after
   // the `Thread` dies, and reuses them if a new Ruby `Thread` gets created. This means that while conceptually the
@@ -438,12 +438,9 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_is_running(DDTRACE_UNUSED VALUE self, VALUE instance) {
-  return \
-    (active_sampler_owner_thread != Qnil
-      && is_thread_alive(active_sampler_owner_thread)
-      && active_sampler_instance_state != NULL
-      && active_sampler_instance_state->self_instance == instance) ?
-    Qtrue : Qfalse;
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable
+
+  return (state != NULL && is_thread_alive(state->owner_thread) && state->self_instance == instance) ? Qtrue : Qfalse;
 }
 
 static void testing_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
