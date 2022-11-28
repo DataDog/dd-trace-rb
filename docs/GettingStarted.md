@@ -507,7 +507,7 @@ For a list of available integrations, and their configuration options, please re
 | Rack                       | `rack`                     | `>= 1.1`                 | `>= 1.1`                  | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
 | Rails                      | `rails`                    | `>= 3.2`                 | `>= 3.2`                  | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
 | Rake                       | `rake`                     | `>= 12.0`                | `>= 12.0`                 | *[Link](#rake)*                     | *[Link](https://github.com/ruby/rake)*                                         |
-| Redis                      | `redis`                    | `>= 3.2`, `< 5`                | `>= 3.2`, `< 5`                    | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
+| Redis                      | `redis`                    | `>= 3.2`                 | `>= 3.2`,                 | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
 | Resque                     | `resque`                   | `>= 1.0`                 | `>= 1.0`                  | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
 | Rest Client                | `rest-client`              | `>= 1.8`                 | `>= 1.8`                  | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
 | Sequel                     | `sequel`                   | `>= 3.41`                | `>= 3.41`                 | *[Link](#sequel)*                   | *[Link](https://github.com/jeremyevans/sequel)*                                |
@@ -1722,7 +1722,28 @@ redis.set 'foo', 'bar'
 | `service_name` | Service name used for `redis` instrumentation | `'redis'` |
 | `command_args` | Show the command arguments (e.g. `key` in `GET key`) as resource name and tag | true |
 
-You can also set *per-instance* configuration as it follows:
+**Configuring trace settings per instance**
+
+With version >= 5
+
+```ruby
+require 'redis'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.tracing.instrument :redis # Enabling integration instrumentation is still required
+end
+
+customer_cache = Redis.new(custom: { datadog: { service_name: 'custom-cache' } })
+invoice_cache = Redis.new(custom: { datadog: { service_name: 'invoice-cache' } })
+
+# Traced call will belong to `customer-cache` service
+customer_cache.get(...)
+# Traced call will belong to `invoice-cache` service
+invoice_cache.get(...)
+```
+
+With version < 5
 
 ```ruby
 require 'redis'
