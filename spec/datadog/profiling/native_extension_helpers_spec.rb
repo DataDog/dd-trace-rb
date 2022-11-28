@@ -216,7 +216,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         # This helper is designed to be called from extconf.rb, which requires mkmf, which defines xsystem.
         # When executed in RSpec, mkmf is not required, so we replace it with the regular system call.
         without_partial_double_verification do
-          expect(described_class).to receive(:xsystem) { |*args| system(*args) }
+          expect(described_class).to receive(:xsystem) { |arg| system("#{arg.to_str} &> /dev/null") }
         end
       end
 
