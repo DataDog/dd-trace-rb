@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [1.7.0] - 2022-11-29
+
+### Added
+* Integrations: Support que 2 ([#2382][]) ([@danhodge][])
+* Tracing: Unified tagging `span.kind` as `server` and `client` ([#2365][])
+* Tracing: Adds `span.kind` tag for `kafka`, `sidekiq`, `racecar`,  `que`, `shoryuken`, `sneakers`, and `resque` ([#2420][], [#2419][], [#2413][], [#2394][])
+* Tracing: Adds `span.kind` with values `producer` and `consumer` for `delayed_job` ([#2393][])
+* Tracing: Adds `span.kind` as `client` for `redis` ([#2392][])
+* Appsec: Pass HTTP client IP to WAF ([#2316][])
+* Unified tagging `process_id` ([#2276][])
+
+### Changed
+* Allow `debase-ruby_core_source` 0.10.18 to be used ([#2435][])
+* Update AppSec ruleset to v1.4.2 ([#2390][])
+* Refactored clearing of profile data after Ruby app forks ([#2362][], [#2367][])
+* Tracing: Move distributed propagation to Contrib ([#2352][])
+
+### Fixed
+* Fix ddtrace installation issue when users have CI=true ([#2378][])
+
 ## [1.6.1] - 2022-11-16
 
 ### Changed
@@ -2198,7 +2218,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.1...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.7.0...master
+[1.7.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.1...v1.5.2
@@ -3102,6 +3123,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2260]: https://github.com/DataDog/dd-trace-rb/issues/2260
 [#2265]: https://github.com/DataDog/dd-trace-rb/issues/2265
 [#2267]: https://github.com/DataDog/dd-trace-rb/issues/2267
+[#2276]: https://github.com/DataDog/dd-trace-rb/issues/2276
 [#2279]: https://github.com/DataDog/dd-trace-rb/issues/2279
 [#2283]: https://github.com/DataDog/dd-trace-rb/issues/2283
 [#2289]: https://github.com/DataDog/dd-trace-rb/issues/2289
@@ -3114,6 +3136,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2310]: https://github.com/DataDog/dd-trace-rb/issues/2310
 [#2311]: https://github.com/DataDog/dd-trace-rb/issues/2311
 [#2313]: https://github.com/DataDog/dd-trace-rb/issues/2313
+[#2316]: https://github.com/DataDog/dd-trace-rb/issues/2316
 [#2317]: https://github.com/DataDog/dd-trace-rb/issues/2317
 [#2318]: https://github.com/DataDog/dd-trace-rb/issues/2318
 [#2319]: https://github.com/DataDog/dd-trace-rb/issues/2319
@@ -3124,7 +3147,21 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2331]: https://github.com/DataDog/dd-trace-rb/issues/2331
 [#2335]: https://github.com/DataDog/dd-trace-rb/issues/2335
 [#2339]: https://github.com/DataDog/dd-trace-rb/issues/2339
+[#2352]: https://github.com/DataDog/dd-trace-rb/issues/2352
+[#2362]: https://github.com/DataDog/dd-trace-rb/issues/2362
 [#2363]: https://github.com/DataDog/dd-trace-rb/issues/2363
+[#2365]: https://github.com/DataDog/dd-trace-rb/issues/2365
+[#2367]: https://github.com/DataDog/dd-trace-rb/issues/2367
+[#2378]: https://github.com/DataDog/dd-trace-rb/issues/2378
+[#2382]: https://github.com/DataDog/dd-trace-rb/issues/2382
+[#2390]: https://github.com/DataDog/dd-trace-rb/issues/2390
+[#2392]: https://github.com/DataDog/dd-trace-rb/issues/2392
+[#2393]: https://github.com/DataDog/dd-trace-rb/issues/2393
+[#2394]: https://github.com/DataDog/dd-trace-rb/issues/2394
+[#2413]: https://github.com/DataDog/dd-trace-rb/issues/2413
+[#2419]: https://github.com/DataDog/dd-trace-rb/issues/2419
+[#2420]: https://github.com/DataDog/dd-trace-rb/issues/2420
+[#2435]: https://github.com/DataDog/dd-trace-rb/issues/2435
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -3170,6 +3207,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@components]: https://github.com/components
 [@cswatt]: https://github.com/cswatt
 [@cwoodcox]: https://github.com/cwoodcox
+[@danhodge]: https://github.com/danhodge
 [@dasch]: https://github.com/dasch
 [@dim]: https://github.com/dim
 [@dirk]: https://github.com/dirk
