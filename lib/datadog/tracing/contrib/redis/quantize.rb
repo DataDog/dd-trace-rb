@@ -15,6 +15,8 @@ module Datadog
           VALUE_MAX_LEN = 50
           CMD_MAX_LEN = 500
 
+          AUTH_COMMANDS = %w[AUTH auth].freeze
+
           MULTI_VERB_COMMANDS = Set.new(
             %w[
               ACL
@@ -31,8 +33,7 @@ module Datadog
           module_function
 
           def format_arg(arg)
-            str = arg.to_s
-            str = Core::Utils.utf8_encode(str, binary: true, placeholder: PLACEHOLDER)
+            str = Core::Utils.utf8_encode(arg, binary: true, placeholder: PLACEHOLDER)
             Core::Utils.truncate(str, VALUE_MAX_LEN, TOO_LONG_MARK)
           rescue => e
             Datadog.logger.debug("non formattable Redis arg #{str}: #{e}")
@@ -62,7 +63,7 @@ module Datadog
             return false unless command_args.is_a?(Array) && !command_args.empty?
 
             verb = command_args.first.to_s
-            %w[AUTH auth].include?(verb)
+            AUTH_COMMANDS.include?(verb)
           end
 
           # Unwraps command array when Redis is called with the following syntax:

@@ -53,13 +53,9 @@ module Datadog
             Integration.version
           end
 
-          # patch applies our patch if needed
           def patch
-            # do not require these by default, but only when actually patching
-            require 'redis'
-
-            if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0')
-              require 'redis_client'
+            # Redis 5+ extracts RedisClient to its own gem and provide instrumentation interface
+            if target_version >= Gem::Version.new('5.0.0')
               require_relative 'trace_middleware'
 
               ::RedisClient.register(TraceMiddleware)

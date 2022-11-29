@@ -10,7 +10,7 @@ module Datadog
   module Tracing
     module Contrib
       module Redis
-        # Instrumentation for Redis
+        # Instrumentation for Redis < 5
         module Instrumentation
           def self.included(base)
             base.prepend(InstanceMethods)

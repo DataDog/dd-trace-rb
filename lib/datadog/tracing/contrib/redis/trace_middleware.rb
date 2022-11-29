@@ -9,13 +9,13 @@ module Datadog
   module Tracing
     module Contrib
       module Redis
-        # Instrumentation for Redis
+        # Instrumentation for Redis 5+
         module TraceMiddleware
           def call(commands, redis_config)
-            datadog_configuration = resolve(redis_config)
-            resource = get_command(commands, datadog_configuration[:command_args])
-
             Tracing.trace(Contrib::Redis::Ext::SPAN_COMMAND) do |span|
+              datadog_configuration = resolve(redis_config)
+              resource = get_command(commands, datadog_configuration[:command_args])
+
               span.service = datadog_configuration[:service_name]
               span.span_type = Contrib::Redis::Ext::TYPE
               span.resource = resource
@@ -27,10 +27,10 @@ module Datadog
           end
 
           def call_pipelined(commands, redis_config)
-            datadog_configuration = resolve(redis_config)
-            pipelined_commands = get_pipeline_commands(commands, datadog_configuration[:command_args])
-
             Tracing.trace(Contrib::Redis::Ext::SPAN_COMMAND) do |span|
+              datadog_configuration = resolve(redis_config)
+              pipelined_commands = get_pipeline_commands(commands, datadog_configuration[:command_args])
+
               span.service = datadog_configuration[:service_name]
               span.span_type = Contrib::Redis::Ext::TYPE
               span.resource = pipelined_commands.join("\n")

@@ -1724,7 +1724,7 @@ redis.set 'foo', 'bar'
 
 **Configuring trace settings per instance**
 
-With version >= 5
+With Redis version >= 5:
 
 ```ruby
 require 'redis'
@@ -1743,7 +1743,7 @@ customer_cache.get(...)
 invoice_cache.get(...)
 ```
 
-With version < 5
+With Redis version < 5:
 
 ```ruby
 require 'redis'
