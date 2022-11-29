@@ -88,8 +88,8 @@ end
 # Sorbet releases almost daily, with new checks introduced that can make a
 # previously-passing codebase start failing. Thus, we need to lock to a specific
 # version and bump it from time to time.
-# Also, there's no support for windows
-if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
+# Also, there's no support for windows, but M1 Mac with `arm64-darwin21` architecture is doing fine
+if RUBY_VERSION >= '2.4.0'
   gem 'sorbet', '= 0.5.9672'
   gem 'spoom', '~> 1.1'
 end
