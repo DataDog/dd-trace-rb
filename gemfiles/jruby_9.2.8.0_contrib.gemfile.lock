@@ -11,8 +11,8 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.6.1)
-      debase-ruby_core_source (>= 0.10.16, <= 0.10.17)
+    ddtrace (1.7.0)
+      debase-ruby_core_source (>= 0.10.16, <= 0.10.18)
       libdatadog (~> 0.9.0.1.0)
       libddwaf (~> 1.5.1.0.0)
       msgpack
@@ -1336,7 +1336,7 @@ GEM
       cucumber-core (~> 10.1, >= 10.1.0)
       cucumber-cucumber-expressions (~> 14.0, >= 14.0.0)
     dalli (3.2.0)
-    debase-ruby_core_source (0.10.17)
+    debase-ruby_core_source (0.10.18)
     delayed_job (4.1.10)
       activesupport (>= 3.0, < 8.0)
     delayed_job_active_record (4.1.7)
@@ -1712,4 +1712,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.26
+   2.3.6
