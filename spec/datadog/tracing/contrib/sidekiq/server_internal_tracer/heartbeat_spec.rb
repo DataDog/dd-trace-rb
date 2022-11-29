@@ -30,6 +30,8 @@ RSpec.describe 'Server internal tracer heartbeat' do
 
   context 'traces the stop command' do
     before do
+      skip('`exit` from `run_sidekiq_server` would terminate the program prematurely')
+
       run_sidekiq_server
     end
 
