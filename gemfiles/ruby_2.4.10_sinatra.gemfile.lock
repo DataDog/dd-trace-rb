@@ -1,8 +1,8 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.6.1)
-      debase-ruby_core_source (>= 0.10.16, <= 0.10.17)
+    ddtrace (1.7.0)
+      debase-ruby_core_source (>= 0.10.16, <= 0.10.18)
       libdatadog (~> 0.9.0.1.0)
       libddwaf (~> 1.5.1.0.0)
       msgpack
@@ -29,7 +29,7 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.10)
-    debase-ruby_core_source (0.10.17)
+    debase-ruby_core_source (0.10.18)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.3.5)
@@ -129,6 +129,14 @@ GEM
       rack (~> 2.2)
       rack-protection (= 2.1.0)
       tilt (~> 2.0)
+    sorbet (0.5.9672)
+      sorbet-static (= 0.5.9672)
+    sorbet-runtime (0.5.10461)
+    sorbet-static (0.5.9672-x86_64-linux)
+    spoom (1.1.11)
+      sorbet (>= 0.5.9204)
+      sorbet-runtime (>= 0.5.9204)
+      thor (>= 0.19.2)
     thor (1.2.1)
     tilt (2.0.11)
     unicode-display_width (2.3.0)
@@ -179,6 +187,8 @@ DEPENDENCIES
   ruby-prof (~> 1.4)
   simplecov (~> 0.17)
   sinatra
+  sorbet (= 0.5.9672)
+  spoom (~> 1.1)
   webmock (>= 3.10.0)
   yard (~> 0.9)
 
