@@ -1,0 +1,16 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Configuration
+        class Settings
+          include Datadog::Core::Configuration::Base
+
+          # through Datadog::Configuration::Base
+          include Datadog::Core::Environment::VariableHelpers
+          extend Datadog::Core::Environment::VariableHelpers
+          extend Datadog::Core::Configuration::Options::ClassMethods
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,14 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rails
+        # Rack middleware for AppSec on Rails
+        class RequestMiddleware
+          def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> void
+
+          def call: (untyped env) -> untyped
+        end
+      end
+    end
+  end
+end

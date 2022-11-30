@@ -14,7 +14,9 @@ module Datadog
 
       # Configuration DSL implementation
       class DSL
-        Instrument = Struct.new(:name, :options)
+        # Struct constant whisker cast for Steep
+        Instrument = _ = Struct.new(:name, :options)
+
         def initialize
           @instruments = []
           @options = {}

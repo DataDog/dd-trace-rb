@@ -1,0 +1,19 @@
+module Datadog
+  module Core
+    module Environment
+      # Reads information from Linux cgroups.
+      # This information is used to extract information
+      # about the current Linux container identity.
+      # @see https://man7.org/linux/man-pages/man7/cgroups.7.html
+      module Cgroup
+        LINE_REGEX: untyped
+
+        Descriptor: untyped
+
+        def self?.descriptors: (?::String process) -> untyped
+
+        def self?.parse: (untyped line) -> untyped
+      end
+    end
+  end
+end

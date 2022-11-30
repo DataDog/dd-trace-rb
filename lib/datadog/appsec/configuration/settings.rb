@@ -8,7 +8,8 @@ module Datadog
       class Settings
         class << self
           def boolean
-            lambda do |v|
+            # @type ^(::String) -> bool
+            ->(v) do
               case v
               when /(1|true)/i
                 true
@@ -22,14 +23,16 @@ module Datadog
 
           # TODO: allow symbols
           def string
+            # @type ^(::String) -> ::String
             ->(v) { v.to_s }
           end
 
           def integer
-            lambda do |v|
+            # @type ^(::String) -> ::Integer
+            ->(v) do
               case v
               when /(\d+)/
-                Integer(Regexp.last_match[1])
+                Integer($1)
               else
                 raise ArgumentError, "invalid integer: #{v.inspect}"
               end
@@ -38,7 +41,8 @@ module Datadog
 
           # rubocop:disable Metrics/MethodLength
           def duration(base = :ns, type = :integer)
-            lambda do |v|
+            # @type ^(::String) -> ::Integer | ::Float
+            ->(v) do
               cast = case type
                      when :integer, Integer
                        method(:Integer)
@@ -63,19 +67,19 @@ module Datadog
 
               case v
               when /^(\d+)h$/
-                cast.call(Regexp.last_match[1]) * 1_000_000_000 * 60 * 60 / scale
+                cast.call($1) * 1_000_000_000 * 60 * 60 / scale
               when /^(\d+)m$/
-                cast.call(Regexp.last_match[1]) * 1_000_000_000 * 60 / scale
+                cast.call($1) * 1_000_000_000 * 60 / scale
               when /^(\d+)s$/
-                cast.call(Regexp.last_match[1]) * 1_000_000_000 / scale
+                cast.call($1) * 1_000_000_000 / scale
               when /^(\d+)ms$/
-                cast.call(Regexp.last_match[1]) * 1_000_000 / scale
+                cast.call($1) * 1_000_000 / scale
               when /^(\d+)us$/
-                cast.call(Regexp.last_match[1]) * 1_000 / scale
+                cast.call($1) * 1_000 / scale
               when /^(\d+)ns$/
-                cast.call(Regexp.last_match[1]) / scale
+                cast.call($1) / scale
               when /^(\d+)$/
-                cast.call(Regexp.last_match[1])
+                cast.call($1)
               else
                 raise ArgumentError, "invalid duration: #{v.inspect}"
               end
@@ -109,7 +113,8 @@ module Datadog
           'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP' => [:obfuscator_value_regex, Settings.string],
         }.freeze
 
-        Integration = Struct.new(:integration, :options)
+        # Struct constant whisker cast for Steep
+        Integration = _ = Struct.new(:integration, :options)
 
         def initialize
           @integrations = []
@@ -159,7 +164,7 @@ module Datadog
 
           raise ArgumentError, "'#{integration_name}' is not a valid integration." unless integration
 
-          integration.options if integration
+          integration.options
         end
 
         def merge(dsl)

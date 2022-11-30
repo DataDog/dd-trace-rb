@@ -1,0 +1,21 @@
+module Datadog
+  module AppSec
+    module Contrib
+      # Instrument Sinatra.
+      module Sinatra
+        # Sinatra framework code, used to essentially:
+        # - handle configuration entries which are specific to Datadog tracing
+        # - instrument parts of the framework when needed
+        module Framework
+          # Configure Rack from Sinatra, but only if Rack has not been configured manually beforehand
+          def self.setup: () -> untyped
+
+          def self.config_with_defaults: (untyped datadog_config) -> untyped
+
+          # Apply relevant configuration from Sinatra to Rack
+          def self.activate_rack!: (untyped datadog_config, untyped sinatra_config) -> untyped
+        end
+      end
+    end
+  end
+end

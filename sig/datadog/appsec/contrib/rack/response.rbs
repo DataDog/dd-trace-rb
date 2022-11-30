@@ -1,0 +1,16 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        # Normalized extration of data from Rack::Response
+        module Response
+          def self.headers: (untyped response) -> untyped
+
+          def self.cookies: (untyped response) -> untyped
+
+          def self.status: (untyped response) -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,48 @@
+module Datadog
+  module AppSec
+    module Configuration
+      class Settings
+        def initialize: () -> void
+
+        type duration = (::Integer | ::Float)
+        type options = Configuration::DSL::options
+
+        class Integration < ::Struct[untyped]
+          def initialize: (untyped integration, options options) -> void
+          attr_accessor integration: untyped
+          attr_accessor options: options
+        end
+
+        def self.boolean: () -> ^(::String) -> bool
+        def self.string: () -> ^(::String) -> ::String
+        def self.integer: () -> ^(::String) -> ::Integer
+        def self.duration: (?::Symbol base, ?::Symbol type) -> ^(::String, ::Symbol) -> duration
+
+        DEFAULTS: options
+        ENVS: Hash[::String, ::Array[untyped]]
+        DEFAULT_OBFUSCATOR_VALUE_REGEX: ::String
+        DEFAULT_OBFUSCATOR_KEY_REGEX: ::String
+
+        @options: options
+        @integrations: ::Array[Integration]
+
+        def enabled: () -> bool
+        def ruleset: () -> (::Symbol | ::String)
+        def ip_denylist: () -> ::Array[::String]
+        def waf_timeout: () -> ::Integer
+        def waf_debug: () -> bool
+        def trace_rate_limit: () -> ::Integer
+        def obfuscator_key_regex: () -> ::String
+        def obfuscator_value_regex: () -> ::String
+
+        def []: (::Symbol integration_name) -> options
+
+        def merge: (DSL) -> Settings
+
+        private
+
+        def reset!: () -> void
+      end
+    end
+  end
+end

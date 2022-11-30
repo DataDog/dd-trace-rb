@@ -93,3 +93,9 @@ if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
   gem 'sorbet', '= 0.5.9672'
   gem 'spoom', '~> 1.1'
 end
+
+# type checking with steep
+if RUBY_VERSION >= '2.6.0' && RUBY_PLATFORM != 'java'
+  gem 'rbs', '~> 2.8.1', require: false
+  gem 'steep', '~> 1.3.0', require: false
+end
