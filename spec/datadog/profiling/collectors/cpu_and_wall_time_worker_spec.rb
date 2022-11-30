@@ -262,7 +262,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
-    describe 'SIGPROF signal delivery' do
+    context 'when main thread is sleeping but background thread is working' do
       let(:ready_queue) { Queue.new }
       let(:background_thread) do
         Thread.new do
@@ -282,6 +282,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         ready_queue.pop
 
         start
+        wait_until_running
 
         sleep 0.1
 
@@ -302,6 +303,42 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         expect(signal_handler_enqueued_sample / trigger_sample_attempts).to (be >= 0.8), \
           "Expected at least 80% of signals to be delivered to correct thread (#{stats})"
+
+        # Sanity checking
+
+        # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
+        # will not cause flakyness
+        expect(sample_count).to be >= 5, "Stats: #{stats}"
+        expect(trigger_sample_attempts).to be >= sample_count
+        expect(trigger_sample_attempts).to be signal_handler_enqueued_sample + signal_handler_wrong_thread
+      end
+    end
+
+    context 'when all threads are sleeping (no thread holds the Global VM Lock)' do
+      it 'is able to sample even when all threads are sleeping' do
+        start
+        wait_until_running
+
+        sleep 0.1
+
+        cpu_and_wall_time_worker.stop
+
+        serialization_result = recorder.serialize
+        raise 'Unexpected: Serialization failed' unless serialization_result
+
+        result = samples_for_thread(samples_from_pprof(serialization_result.last), Thread.current)
+        sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+
+        stats = cpu_and_wall_time_worker.stats
+
+        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts).to_f
+        signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample).to_f
+        signal_handler_wrong_thread = stats.fetch(:signal_handler_wrong_thread).to_f
+
+        simulated_signal_delivery = stats.fetch(:simulated_signal_delivery).to_f
+
+        expect(simulated_signal_delivery / trigger_sample_attempts).to (be >= 0.8), \
+          "Expected at least 80% of signals to be simulated (#{stats})"
 
         # Sanity checking
 
