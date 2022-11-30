@@ -61,6 +61,34 @@ module Datadog
 
         private
 
+        # Refinements to ensure newer rubies do not suffer performance impact
+        # by needing to use older APIs.
+        module Refine
+          # Backport `Regexp::match?` because it is measurably the most performant
+          # way to check if a string matches a regular expression.
+          unless Regexp.method_defined?(:match?)
+            refine ::Regexp do
+              def match?(*args)
+                !match(*args).nil?
+              end
+            end
+          end
+
+          unless String.method_defined?(:delete_prefix)
+            refine ::String do
+              def delete_prefix(prefix)
+                prefix = prefix.to_s
+                if rindex(prefix, 0)
+                  self[prefix.length..-1]
+                else
+                  dup
+                end
+              end
+            end
+          end
+        end
+        using Refine
+
         # @see https://www.w3.org/TR/trace-context/#traceparent-header
         def build_traceparent(digest)
           build_traceparent_string(
@@ -167,6 +195,9 @@ module Datadog
         def serialize_tag_key(name)
           key = name.delete_prefix(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX)
 
+          # DEV: It's unlikely that characters will be out of range, as they mostly
+          # DEV: come from Datadog-controlled sources.
+          # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
           if INVALID_TAG_KEY_CHARS.match?(key)
             key.gsub(INVALID_TAG_KEY_CHARS, '_')
           else
@@ -233,12 +264,21 @@ module Datadog
           dd_tracestate = vendors.find { |v| v.start_with?('dd=') }
           return tracestate unless dd_tracestate
 
+          # Delete `dd=` prefix
+          dd_tracestate.slice!(0..2)
+
+          origin, sampling_priority, tags = extract_datadog_fields(dd_tracestate)
+
+          [tracestate, sampling_priority, origin, tags]
+        end
+
+        def extract_datadog_fields(dd_tracestate)
           sampling_priority = nil
           origin = nil
           tags = nil
 
-          dd_tracestate.delete_prefix!('dd=')
-          dd_tracestate.split(';') do |pair|
+          # DEV: Since Ruby 2.6 `split` can receive a block, so `each` can be removed then.
+          dd_tracestate.split(';').each do |pair|
             key, value = pair.split(':', 2)
             case key
             when 's'
@@ -246,7 +286,7 @@ module Datadog
             when 'o'
               origin = value
             when /^t\./
-              key.delete_prefix!('t.')
+              key.slice!(0..1) # Delete `t.` prefix
 
               value = deserialize_tag_value(value)
 
@@ -255,7 +295,7 @@ module Datadog
             end
           end
 
-          [tracestate, sampling_priority, origin, tags]
+          [origin, sampling_priority, tags]
         end
 
         # Restore `:` back to `=`.
