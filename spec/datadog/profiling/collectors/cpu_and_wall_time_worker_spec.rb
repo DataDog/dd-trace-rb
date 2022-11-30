@@ -133,10 +133,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       all_samples = try_wait_until do
-        samples =
-          samples_from_pprof(recorder.serialize!)
-            .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
-
+        samples = samples_from_pprof_without_gc(recorder.serialize!)
         samples if samples.any?
       end
 
@@ -150,10 +147,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       all_samples = try_wait_until do
-        samples =
-          samples_from_pprof(recorder.serialize!)
-            .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
-
+        samples = samples_from_pprof_without_gc(recorder.serialize!)
         samples if samples.any?
       end
 
@@ -525,5 +519,13 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   def wait_until_running
     try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(cpu_and_wall_time_worker) }
+  end
+
+  # This is useful because in a bunch of tests above we want to assert on properties of the period sampling, and having
+  # a random GC in the middle of the spec contribute a sample can throw off the expected values and counts.
+  #
+  # We have separate specs that assert on the GC behaviors.
+  def samples_from_pprof_without_gc(pprof_data)
+    samples_from_pprof(pprof_data).reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
   end
 end
