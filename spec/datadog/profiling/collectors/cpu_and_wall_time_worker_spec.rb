@@ -310,7 +310,11 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # will not cause flakyness
         expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
-        expect(trigger_sample_attempts).to be signal_handler_enqueued_sample + signal_handler_wrong_thread
+        # It's possible that we stop in between trigger_sample_attempts being incrementing and the other values
+        # actually being updated, so this is why we allow both values
+        expect(
+          [trigger_sample_attempts, trigger_sample_attempts - 1]
+        ).to include(signal_handler_enqueued_sample + signal_handler_wrong_thread)
       end
     end
 
@@ -346,7 +350,11 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # will not cause flakyness
         expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
-        expect(trigger_sample_attempts).to be signal_handler_enqueued_sample + signal_handler_wrong_thread
+        # It's possible that we stop in between trigger_sample_attempts being incrementing and the other values
+        # actually being updated, so this is why we allow both values
+        expect(
+          [trigger_sample_attempts, trigger_sample_attempts - 1]
+        ).to include(signal_handler_enqueued_sample + signal_handler_wrong_thread)
       end
     end
   end
