@@ -274,7 +274,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         cpu_and_wall_time_worker.stop
         background_thread.kill
 
-        result = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
+        result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
         sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
@@ -309,7 +309,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        result = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
+        result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
         sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
