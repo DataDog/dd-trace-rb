@@ -262,7 +262,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
-    context 'when main thread is sleeping but background thread is working' do
+    context 'when main thread is sleeping but a background thread is working' do
       let(:ready_queue) { Queue.new }
       let(:background_thread) do
         Thread.new do
@@ -297,18 +297,18 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         stats = cpu_and_wall_time_worker.stats
 
-        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts).to_f
-        signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample).to_f
-        signal_handler_wrong_thread = stats.fetch(:signal_handler_wrong_thread).to_f
+        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
+        signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample)
+        signal_handler_wrong_thread = stats.fetch(:signal_handler_wrong_thread)
 
-        expect(signal_handler_enqueued_sample / trigger_sample_attempts).to (be >= 0.8), \
+        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.8), \
           "Expected at least 80% of signals to be delivered to correct thread (#{stats})"
 
         # Sanity checking
 
         # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
         # will not cause flakyness
-        expect(sample_count).to be >= 5, "Stats: #{stats}"
+        expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
         expect(trigger_sample_attempts).to be signal_handler_enqueued_sample + signal_handler_wrong_thread
       end
@@ -331,20 +331,20 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         stats = cpu_and_wall_time_worker.stats
 
-        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts).to_f
-        signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample).to_f
-        signal_handler_wrong_thread = stats.fetch(:signal_handler_wrong_thread).to_f
+        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
+        signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample)
+        signal_handler_wrong_thread = stats.fetch(:signal_handler_wrong_thread)
 
-        simulated_signal_delivery = stats.fetch(:simulated_signal_delivery).to_f
+        simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
 
-        expect(simulated_signal_delivery / trigger_sample_attempts).to (be >= 0.8), \
+        expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8), \
           "Expected at least 80% of signals to be simulated (#{stats})"
 
         # Sanity checking
 
         # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
         # will not cause flakyness
-        expect(sample_count).to be >= 5
+        expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
         expect(trigger_sample_attempts).to be signal_handler_enqueued_sample + signal_handler_wrong_thread
       end
