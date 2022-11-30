@@ -133,11 +133,8 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       all_samples = try_wait_until do
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
         samples =
-          samples_from_pprof(serialization_result.last)
+          samples_from_pprof(recorder.serialize!)
             .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
 
         samples if samples.any?
@@ -153,11 +150,8 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       all_samples = try_wait_until do
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
         samples =
-          samples_from_pprof(serialization_result.last)
+          samples_from_pprof(recorder.serialize!)
             .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
 
         samples if samples.any?
@@ -198,10 +192,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       cpu_and_wall_time_worker.stop
 
-      serialization_result = recorder.serialize
-      raise 'Unexpected: Serialization failed' unless serialization_result
-
-      all_samples = samples_from_pprof(serialization_result.last)
+      all_samples = samples_from_pprof(recorder.serialize!)
 
       current_thread_gc_samples =
         samples_for_thread(all_samples, Thread.current)
@@ -289,10 +280,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         cpu_and_wall_time_worker.stop
         background_thread.kill
 
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
-        result = samples_for_thread(samples_from_pprof(serialization_result.last), Thread.current)
+        result = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
         sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
@@ -327,10 +315,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
-        result = samples_for_thread(samples_from_pprof(serialization_result.last), Thread.current)
+        result = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
         sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
@@ -376,11 +361,8 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
         samples_from_ractor =
-          samples_from_pprof(serialization_result.last)
+          samples_from_pprof(recorder.serialize!)
             .select { |it| it.fetch(:labels)[:'thread name'] == 'background ractor' }
 
         expect(samples_from_ractor).to be_empty
