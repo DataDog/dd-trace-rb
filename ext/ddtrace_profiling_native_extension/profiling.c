@@ -90,9 +90,9 @@ static void *trigger_grab_gvl_and_raise(void *trigger_args) {
   struct trigger_grab_gvl_and_raise_arguments *args = (struct trigger_grab_gvl_and_raise_arguments *) trigger_args;
 
   if (args->test_message_arg >= 0) {
-    grab_gvl_and_raise(args->exception_class, args->test_message, args->test_message_arg);
+    grab_gvl_and_raise(args->exception_class, "%s%d", args->test_message, args->test_message_arg);
   } else {
-    grab_gvl_and_raise(args->exception_class, args->test_message);
+    grab_gvl_and_raise(args->exception_class, "%s", args->test_message);
   }
 
   return NULL;
@@ -122,9 +122,9 @@ static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
   struct trigger_grab_gvl_and_raise_syserr_arguments *args = (struct trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
 
   if (args->test_message_arg >= 0) {
-    grab_gvl_and_raise_syserr(args->syserr_errno, args->test_message, args->test_message_arg);
+    grab_gvl_and_raise_syserr(args->syserr_errno, "%s%d", args->test_message, args->test_message_arg);
   } else {
-    grab_gvl_and_raise_syserr(args->syserr_errno, args->test_message);
+    grab_gvl_and_raise_syserr(args->syserr_errno, "%s", args->test_message);
   }
 
   return NULL;

@@ -168,7 +168,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     it 'accepts printf-style string formatting' do
-      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, 'divided zero by %d', 42) }
+      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, 'divided zero by ', 42) }
         .to raise_exception(ZeroDivisionError, 'divided zero by 42')
     end
 
@@ -189,7 +189,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     it 'accepts printf-style string formatting' do
       expect do
-        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, 'divided zero by %d', 42)
+        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, 'divided zero by ', 42)
       end.to raise_exception(Errno::EINTR, "#{Errno::EINTR.exception.message} - divided zero by 42")
     end
 
