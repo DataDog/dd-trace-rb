@@ -161,8 +161,49 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
   end
 
+  describe 'grab_gvl_and_raise' do
+    it 'raises the requested exception with the passed in message' do
+      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, 'this is a test', nil) }
+        .to raise_exception(ZeroDivisionError, 'this is a test')
+    end
+
+    it 'accepts printf-style string formatting' do
+      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, 'divided zero by %d', 42) }
+        .to raise_exception(ZeroDivisionError, 'divided zero by 42')
+    end
+
+    it 'limits the exception message to 255 characters' do
+      big_message = 'a' * 500
+
+      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, big_message, nil) }
+        .to raise_exception(ZeroDivisionError, /a{255}\z/)
+    end
+  end
+
+  describe 'grab_gvl_and_raise_syserr' do
+    it 'raises an exception with the passed in message and errno' do
+      expect do
+        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, 'this is a test', nil)
+      end.to raise_exception(Errno::EINTR, "#{Errno::EINTR.exception.message} - this is a test")
+    end
+
+    it 'accepts printf-style string formatting' do
+      expect do
+        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, 'divided zero by %d', 42)
+      end.to raise_exception(Errno::EINTR, "#{Errno::EINTR.exception.message} - divided zero by 42")
+    end
+
+    it 'limits the caller-provided exception message to 255 characters' do
+      big_message = 'a' * 500
+
+      expect do
+        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, big_message, nil)
+      end.to raise_exception(Errno::EINTR, /.+a{255}\z/)
+    end
+  end
+
   describe 'ddtrace_rb_ractor_main_p' do
-    subject(:ddtrace_rb_ractor_main_p) { Datadog::Profiling::NativeExtension::Testing._native_ddtrace_rb_ractor_main_p }
+    subject(:ddtrace_rb_ractor_main_p) { described_class::Testing._native_ddtrace_rb_ractor_main_p }
 
     context 'when Ruby has no support for Ractors' do
       before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3' }

@@ -389,7 +389,7 @@ static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_reco
   int previously_active_slot = state->active_slot;
 
   if (previously_active_slot != 1 && previously_active_slot != 2) {
-    rb_raise(rb_eRuntimeError, "Unexpected active_slot state %d in serializer_flip_active_and_inactive_slots", previously_active_slot);
+    grab_gvl_and_raise(rb_eRuntimeError, "Unexpected active_slot state %d in serializer_flip_active_and_inactive_slots", previously_active_slot);
   }
 
   pthread_mutex_t *previously_active = (previously_active_slot == 1) ? &state->slot_one_mutex : &state->slot_two_mutex;
@@ -397,11 +397,11 @@ static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_reco
 
   // Release the lock, thus making this slot active
   error = pthread_mutex_unlock(previously_inactive);
-  if (error) rb_syserr_fail(error, "Unexpected failure during serializer_flip_active_and_inactive_slots for previously_inactive");
+  if (error) grab_gvl_and_raise_syserr(error, "Unexpected failure during serializer_flip_active_and_inactive_slots for previously_inactive");
 
   // Grab the lock, thus making this slot inactive
   error = pthread_mutex_lock(previously_active);
-  if (error) rb_syserr_fail(error, "Unexpected failure during serializer_flip_active_and_inactive_slots for previously_active");
+  if (error) grab_gvl_and_raise_syserr(error, "Unexpected failure during serializer_flip_active_and_inactive_slots for previously_active");
 
   // Update active_slot
   state->active_slot = (previously_active_slot == 1) ? 2 : 1;

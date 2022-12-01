@@ -61,3 +61,6 @@ NORETURN(void raise_unexpected_type(
 ));
 
 #define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
+
+NORETURN(void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...));
+NORETURN(void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...));
