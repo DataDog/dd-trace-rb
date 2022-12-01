@@ -1013,7 +1013,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
@@ -1021,15 +1021,28 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
 
           context 'is defined' do
-            let(:environment) { 'B3,B3 single header' }
+            let(:environment) { 'b3multi,b3' }
 
             it do
               is_expected.to eq(
                 [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
+            end
+          end
+
+          context 'is set to deprecated style names' do
+            let(:environment) { 'B3,B3 single header' }
+
+            it 'translates to new names' do
+              is_expected.to eq(
+                               [
+                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                               ]
+                             )
             end
           end
         end
@@ -1054,15 +1067,28 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
 
           context 'is defined' do
-            let(:environment) { 'Datadog,B3' }
+            let(:environment) { 'Datadog,b3' }
 
             it do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
+            end
+          end
+
+          context 'is set to deprecated style names' do
+            let(:environment) { 'B3,B3 single header' }
+
+            it 'translates to new names' do
+              is_expected.to eq(
+                               [
+                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                               ]
+                             )
             end
           end
         end

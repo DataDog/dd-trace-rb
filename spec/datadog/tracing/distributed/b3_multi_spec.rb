@@ -2,10 +2,10 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/distributed/b3'
+require 'datadog/tracing/distributed/b3_multi'
 require 'datadog/tracing/trace_digest'
 
-RSpec.shared_examples 'B3 distributed format' do
+RSpec.shared_examples 'B3 Multi distributed format' do
   subject(:b3) { described_class.new(fetcher: fetcher_class) }
   let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
 
@@ -147,6 +147,6 @@ RSpec.shared_examples 'B3 distributed format' do
   end
 end
 
-RSpec.describe Datadog::Tracing::Distributed::B3 do
-  it_behaves_like 'B3 distributed format'
+RSpec.describe Datadog::Tracing::Distributed::B3Multi do
+  it_behaves_like 'B3 Multi distributed format'
 end

@@ -6,18 +6,50 @@ require 'datadog/core/environment/variable_helpers'
 
 RSpec.describe Datadog::Core::Environment::VariableHelpers do
   let(:variable_helpers) { Class.new { extend Datadog::Core::Environment::VariableHelpers } }
+  let(:env_key) { var }
   let(:var) { 'TEST_VAR' }
+  let(:options) { {} }
 
   shared_context 'env var' do
     around do |example|
-      ClimateControl.modify(var => env_value) do
+      ClimateControl.modify(env_key => env_value) do
         example.run
       end
     end
   end
 
+  shared_context 'with deprecated options' do
+    context 'with deprecated environment variables' do
+      let(:env_key) { "key-deprecated" }
+      let(:var) { ['key', "key-deprecated"] }
+      let(:env_value) { 'value' }
+
+      context 'and deprecation_warning option is true' do
+        let(:options) { { deprecation_warning: true } }
+
+        it 'records to deprecation log' do
+          expect { subject }.to log_deprecation(include('key-deprecated'))
+        end
+      end
+
+      context 'and deprecation_warning option is false' do
+        let(:options) { { deprecation_warning: false } }
+
+        it 'does not record to deprecation log' do
+          expect { subject }.to_not log_deprecation
+        end
+      end
+
+      context 'and deprecation_warning option the default' do
+        it 'records to deprecation log' do
+          expect { subject }.to log_deprecation(include('key-deprecated'))
+        end
+      end
+    end
+  end
+
   describe '::env_to_bool' do
-    subject(:env_to_bool) { variable_helpers.env_to_bool(var) }
+    subject(:env_to_bool) { variable_helpers.env_to_bool(var, **options) }
 
     context 'when env var is not defined' do
       context 'and default is not defined' do
@@ -62,11 +94,13 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
           it { is_expected.to be false }
         end
       end
+
+      include_context 'with deprecated options'
     end
   end
 
   describe '::env_to_int' do
-    subject(:env_to_int) { variable_helpers.env_to_int(var) }
+    subject(:env_to_int) { variable_helpers.env_to_int(var, **options) }
 
     context 'when env var is not defined' do
       context 'and default is not defined' do
@@ -108,11 +142,13 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
 
         it { is_expected.to eq 0 }
       end
+
+      include_context 'with deprecated options'
     end
   end
 
   describe '::env_to_float' do
-    subject(:env_to_float) { variable_helpers.env_to_float(var) }
+    subject(:env_to_float) { variable_helpers.env_to_float(var, **options) }
 
     context 'when env var is not defined' do
       context 'and default is not defined' do
@@ -154,11 +190,13 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
 
         it { is_expected.to eq 0.0 }
       end
+
+      include_context 'with deprecated options'
     end
   end
 
   describe '::env_to_list' do
-    subject(:env_to_list) { variable_helpers.env_to_list(var, comma_separated_only: false) }
+    subject(:env_to_list) { variable_helpers.env_to_list(var, comma_separated_only: false, **options) }
 
     context 'when env var is not defined' do
       context 'and default is not defined' do
@@ -234,12 +272,14 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
       context 'and comma_separated_only is set' do
         subject(:env_to_list) { variable_helpers.env_to_list(var, comma_separated_only: true) }
 
-        context 'B3 single header ' do
-          let(:env_value) { 'B3 single header ' }
+        context 'value with space' do
+          let(:env_value) { 'value with space' }
 
-          it { is_expected.to eq(['B3 single header']) }
+          it { is_expected.to eq(['value with space']) }
         end
       end
+
+      include_context 'with deprecated options'
     end
   end
 end

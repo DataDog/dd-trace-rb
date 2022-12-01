@@ -9,18 +9,45 @@ module Datadog
       module VariableHelpers
         extend self
 
-        def env_to_bool(var, default = nil)
-          var = decode_array(var)
+        # Reads an environment variable as a Boolean.
+        #
+        # @param [String] var environment variable
+        # @param [Array<String>] var list of environment variables
+        # @param [Boolean] default the default value if the keys in `var` are not present in the environment
+        # @param [Boolean] deprecation_warning when `var` is a list, record a deprecation log when
+        #   the first key in `var` is not used.
+        # @return [Boolean] if the environment value is the string `true`
+        # @return [default] if the environment value is not found
+        def env_to_bool(var, default = nil, deprecation_warning: true)
+          var = decode_array(var, deprecation_warning)
           var && ENV.key?(var) ? ENV[var].to_s.strip.downcase == 'true' : default
         end
 
-        def env_to_int(var, default = nil)
-          var = decode_array(var)
+        # Reads an environment variable as an Integer.
+        #
+        # @param [String] var environment variable
+        # @param [Array<String>] var list of environment variables
+        # @param [Integer] default the default value if the keys in `var` are not present in the environment
+        # @param [Boolean] deprecation_warning when `var` is a list, record a deprecation log when
+        #   the first key in `var` is not used.
+        # @return [Integer] if the environment value is a valid Integer
+        # @return [default] if the environment value is not found
+        def env_to_int(var, default = nil, deprecation_warning: true)
+          var = decode_array(var, deprecation_warning)
           var && ENV.key?(var) ? ENV[var].to_i : default
         end
 
-        def env_to_float(var, default = nil)
-          var = decode_array(var)
+        # Reads an environment variable as a Float.
+        #
+        # @param [String] var environment variable
+        # @param [Array<String>] var list of environment variables
+        # @param [Float] default the default value if the keys in `var` are not present in the environment
+        # @param [Boolean] deprecation_warning when `var` is a list, record a deprecation log when
+        #   the first key in `var` is not used.
+        # @return [Float] if the environment value is a valid Float
+        # @return [default] if the environment value is not found
+        def env_to_float(var, default = nil, deprecation_warning: true)
+          var = decode_array(var, deprecation_warning)
           var && ENV.key?(var) ? ENV[var].to_f : default
         end
 
@@ -33,8 +60,16 @@ module Datadog
         # either trailing or leading are trimmed.
         #
         # Empty entries, after trimmed, are also removed from the result.
-        def env_to_list(var, default = [], comma_separated_only:)
-          var = decode_array(var)
+        #
+        # @param [String] var environment variable
+        # @param [Array<String>] var list of environment variables
+        # @param [Array<Object>] default the default value if the keys in `var` are not present in the environment
+        # @param [Boolean] deprecation_warning when `var` is a list, record a deprecation log when
+        #   the first key in `var` is not used.
+        # @return [Array<Object>] if the environment value is a valid list
+        # @return [default] if the environment value is not found
+        def env_to_list(var, default = [], comma_separated_only:, deprecation_warning: true)
+          var = decode_array(var, deprecation_warning)
           if var && ENV.key?(var)
             value = ENV[var]
 
@@ -59,8 +94,21 @@ module Datadog
 
         private
 
-        def decode_array(var)
-          var.is_a?(Array) ? var.find { |env_var| ENV.key?(env_var) } : var
+        def decode_array(var, deprecation_warning)
+          if var.is_a?(Array)
+            var.find.with_index do |env_var, i|
+              found = ENV.key?(env_var)
+
+              # Check if we are using a non-preferred environment variable
+              if deprecation_warning && found && i != 0
+                Datadog::Core.log_deprecation { "#{env_var} environment variable is deprecated, use #{var.first} instead." }
+              end
+
+              found
+            end
+          else
+            var
+          end
         end
       end
     end
