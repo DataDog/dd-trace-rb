@@ -15,6 +15,8 @@ RSpec.describe 'Server internal tracer' do
   end
 
   it 'traces the redis info command' do
+    # TODO: Fix `expect_in_sidekiq_server`
+    skip('`expect_in_sidekiq_server` is giving false positive which is always green')
     expect_in_sidekiq_server do
       span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.redis_info' }
 
