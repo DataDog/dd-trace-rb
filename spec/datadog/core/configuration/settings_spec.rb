@@ -1074,9 +1074,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       it { is_expected.to be true }
 
-      context "when #{Datadog::Core::Diagnostics::Ext::DD_TRACE_ENABLED}" do
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_ENABLED}" do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Diagnostics::Ext::DD_TRACE_ENABLED => enable) do
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_ENABLED => enable) do
             example.run
           end
         end

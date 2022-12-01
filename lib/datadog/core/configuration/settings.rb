@@ -490,7 +490,7 @@ module Datadog
           # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Datadog::Core::Diagnostics::Ext::DD_TRACE_ENABLED, true) }
+            o.default { env_to_bool(Tracing::Configuration::Ext::ENV_ENABLED, true) }
             o.lazy
           end
 
