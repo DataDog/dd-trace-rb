@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.6.1)
+    ddtrace (1.7.0)
       debase-ruby_core_source (>= 0.10.16, <= 0.10.18)
       libdatadog (~> 0.9.0.1.0)
       libddwaf (~> 1.5.1.0.0)
@@ -1322,7 +1322,7 @@ GEM
       cucumber-cucumber-expressions (~> 10.1, >= 10.1.0)
       cucumber-messages (~> 12.2, >= 12.2.0)
     dalli (2.7.11)
-    debase-ruby_core_source (0.10.17)
+    debase-ruby_core_source (0.10.18)
     debug_inspector (1.1.0)
     delayed_job (4.1.10)
       activesupport (>= 3.0, < 8.0)

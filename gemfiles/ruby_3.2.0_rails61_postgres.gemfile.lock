@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.6.1)
+    ddtrace (1.7.0)
       debase-ruby_core_source (>= 0.10.16, <= 0.10.18)
       libdatadog (~> 0.9.0.1.0)
       libddwaf (~> 1.5.1.0.0)
@@ -46,7 +46,7 @@ GEM
     dogstatsd-ruby (5.5.0)
     extlz4 (0.3.3)
     ffi (1.15.5)
-    google-protobuf (3.21.9)
+    google-protobuf (3.21.10)
     hashdiff (1.0.1)
     json (2.6.2)
     json-schema (2.8.1)
@@ -106,7 +106,7 @@ GEM
       rubocop-ast (>= 1.19.1, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 1.4.0, < 3.0)
-    rubocop-ast (1.23.0)
+    rubocop-ast (1.24.0)
       parser (>= 3.1.1.0)
     rubocop-packaging (0.5.1)
       rubocop (>= 0.89, < 2.0)
