@@ -175,7 +175,7 @@ static VALUE _native_active_slot(DDTRACE_UNUSED VALUE _self, VALUE recorder_inst
 static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
-static ddog_Timespec time_now();
+static ddog_Timespec time_now(void);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec timestamp);
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
@@ -449,7 +449,7 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
 }
 
 // Note that this is using CLOCK_REALTIME (e.g. actual time since unix epoch) and not the CLOCK_MONOTONIC as we use in other parts of the codebase
-static ddog_Timespec time_now() {
+static ddog_Timespec time_now(void) {
   struct timespec current_time;
 
   if (clock_gettime(CLOCK_REALTIME, &current_time) != 0) rb_sys_fail("Failed to read CLOCK_REALTIME");
