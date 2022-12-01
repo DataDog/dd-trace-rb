@@ -4,7 +4,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/contrib/grpc/distributed/propagation'
 require_relative '../../../distributed/b3_single_spec'
-require_relative '../../../distributed/b3_spec'
+require_relative '../../../distributed/b3_multi_spec'
 require_relative '../../../distributed/datadog_spec'
 require_relative '../../../distributed/propagation_spec'
 
@@ -36,9 +36,9 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
     end
   end
 
-  context 'for B3' do
-    it_behaves_like 'B3 distributed format' do
-      let(:b3) { Datadog::Tracing::Distributed::B3.new(fetcher: fetcher_class) }
+  context 'for B3 Multi' do
+    it_behaves_like 'B3 Multi distributed format' do
+      let(:b3) { Datadog::Tracing::Distributed::B3Multi.new(fetcher: fetcher_class) }
       let(:fetcher_class) { Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher }
     end
   end

@@ -7,9 +7,9 @@ require_relative '../trace_digest'
 module Datadog
   module Tracing
     module Distributed
-      # B3-style trace propagation.
+      # B3 multi header-style trace propagation.
       # @see https://github.com/openzipkin/b3-propagation#multiple-headers
-      class B3
+      class B3Multi
         B3_TRACE_ID_KEY = 'x-b3-traceid'
         B3_SPAN_ID_KEY = 'x-b3-spanid'
         B3_SAMPLED_KEY = 'x-b3-sampled'

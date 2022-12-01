@@ -10,8 +10,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   let(:propagation_styles) do
     {
       'Datadog' => Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class),
-      'B3' => Datadog::Tracing::Distributed::B3.new(fetcher: fetcher_class),
-      'B3 single header' => Datadog::Tracing::Distributed::B3Single.new(fetcher: fetcher_class),
+      'b3multi' => Datadog::Tracing::Distributed::B3Multi.new(fetcher: fetcher_class),
+      'b3' => Datadog::Tracing::Distributed::B3Single.new(fetcher: fetcher_class),
     }
   end
   let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
@@ -205,7 +205,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         end
       end
 
-      context 'B3 trace id and parent id' do
+      context 'B3 Multi trace id and parent id' do
         let(:data) do
           {
             prepare_key['x-b3-traceid'] => '00ef01',
@@ -238,7 +238,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         end
       end
 
-      context 'B3 single trace id and parent id' do
+      context 'B3 Single trace id and parent id' do
         let(:data) do
           {
             prepare_key['b3'] => '00ef01-011ef0'
