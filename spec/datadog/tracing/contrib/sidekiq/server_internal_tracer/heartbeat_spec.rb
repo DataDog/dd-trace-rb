@@ -15,8 +15,6 @@ RSpec.describe 'Server internal tracer heartbeat' do
   end
 
   it 'traces the looping heartbeat' do
-    # TODO: Fix `expect_in_sidekiq_server`
-    skip('`expect_in_sidekiq_server` is giving false positive which is always green')
     expect_in_sidekiq_server do
       span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.heartbeat' }
 

@@ -18,9 +18,6 @@ RSpec.describe 'Server internal tracer' do
     # fetches block for 2 seconds when there is nothing in the queue
     # https://github.com/mperham/sidekiq/blob/v6.2.2/lib/sidekiq/fetch.rb#L7-L9
     # https://redis.io/commands/blpop#blocking-behavior
-
-    # TODO: Fix `expect_in_sidekiq_server`
-    skip('`expect_in_sidekiq_server` is giving false positive which is always green')
     expect_in_sidekiq_server(duration: 3) do
       span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.job_fetch' }
 

@@ -24,8 +24,6 @@ RSpec.describe 'Server internal tracer' do
   end
 
   it 'traces the looping scheduled push' do
-    # TODO: Fix `expect_in_sidekiq_server`
-    skip('`expect_in_sidekiq_server` is giving false positive which is always green')
     expect_in_sidekiq_server(duration: 6) do
       span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.scheduled_push' }
 
@@ -40,8 +38,6 @@ RSpec.describe 'Server internal tracer' do
   end
 
   it 'traces the looping scheduled wait' do
-    # TODO: Fix `expect_in_sidekiq_server`
-    skip('`expect_in_sidekiq_server` is giving false positive which is always green')
     expect_in_sidekiq_server(duration: 6) do
       span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.scheduled_poller_wait' }
 
