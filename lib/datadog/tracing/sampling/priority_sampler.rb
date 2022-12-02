@@ -85,6 +85,17 @@ module Datadog
           @priority_sampler.update(rate_by_service, decision: decision)
         end
 
+        # Check if the Priority Sampling decision is to keep or drop the trace.
+        # Other factors can influence the sampling decision; this method is only
+        # responsible for interpreting the Sampling Priority decision.
+        #
+        # @param priority_sampling [Integer] priority sampling number
+        # @return [Boolean] true if trace is "kept" by priority sampling
+        # @return [Boolean] false if trace is "dropped" by priority sampling
+        def self.sampled?(priority_sampling)
+          priority_sampling >= Ext::Priority::AUTO_KEEP
+        end
+
         private
 
         def pre_sample?(trace)
