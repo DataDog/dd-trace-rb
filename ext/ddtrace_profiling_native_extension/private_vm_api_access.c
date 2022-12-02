@@ -58,6 +58,7 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
 // will have the GVL which is probably true for the situations that API was designed to be called from BUT this assumption
 // does not hold true when calling `ruby_thread_has_gvl_p` from a signal handler. (Because the thread may have lost the
 // GVL due to a scheduler decision, not because it decided to block.)
+// I have also submitted https://bugs.ruby-lang.org/issues/19172 to discuss this with upstream Ruby developers.
 //
 // Thus we need our own gvl-checking method which actually looks at the gvl structure to determine if it is the owner.
 bool is_current_thread_holding_the_gvl(void) {
