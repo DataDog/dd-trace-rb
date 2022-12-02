@@ -1,16 +1,17 @@
 # typed: ignore
 
-require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/analytics_examples'
 
-require 'time'
 require 'redis'
-require 'hiredis'
 require 'ddtrace'
+
+require_relative './shared_examples'
 
 RSpec.describe 'Redis test' do
   let(:configuration_options) { {} }
+  let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
+  let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
+  let(:default_redis_options) { { host: host, port: port, driver: driver } }
 
   before do
     Datadog.configure do |c|
@@ -25,319 +26,67 @@ RSpec.describe 'Redis test' do
     Datadog.registry[:redis].reset_configuration!
   end
 
-  shared_examples_for 'a Redis driver' do |driver|
-    let(:redis_options) { { host: host, port: port, driver: driver } }
-    let(:redis) { Redis.new(redis_options.freeze) }
-    let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
-    let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
+  context 'with ruby driver' do
+    let(:driver) { :ruby }
 
-    let(:client) do
-      if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('4.0.0')
-        redis._client
-      else
-        redis.client
-      end
-    end
-
-    shared_context 'password-protected Redis server' do
-      let(:redis_options) { { host: host, port: port, driver: driver, password: password } }
+    context 'with standard configuration' do
+      let(:redis_options) { default_redis_options }
       let(:redis) { Redis.new(redis_options.freeze) }
-      let(:password) { 'foobar' }
 
-      before do
-        allow(client).to receive(:process).and_call_original
+      context 'with default settings' do
+        let(:configuration_options) { {} }
 
-        expect(client).to receive(:process)
-          .with([[:auth, password]])
-          .and_return("+OK\r\n")
-      end
-    end
-
-    shared_examples_for 'a span with common tags' do
-      it do
-        expect(span).to_not be nil
-        expect(span.get_tag('out.host')).to eq(host)
-        expect(span.get_tag('out.port')).to eq(port)
-        expect(span.get_tag('out.redis_db')).to eq(0)
+        it_behaves_like 'redis instrumentation', command_args: true
+        it_behaves_like 'an authenticated redis instrumentation', command_args: true
       end
 
-      it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      context 'with service_name as `standard`' do
+        let(:configuration_options) { { service_name: 'standard' } }
+
+        it_behaves_like 'redis instrumentation', service_name: 'standard', command_args: true
+        it_behaves_like 'an authenticated redis instrumentation', service_name: 'standard', command_args: true
       end
 
-      it_behaves_like 'measured span for integration', false
-    end
-
-    context 'roundtrip' do
-      # Run a roundtrip
-      before do
-        expect(redis.set('FOO', 'bar')).to eq('OK')
-        expect(redis.get('FOO')).to eq('bar')
-      end
-
-      it { expect(spans).to have(2).items }
-
-      describe 'set span' do
-        subject(:span) { spans[-1] }
-
-        it do
-          expect(span.name).to eq('redis.command')
-          expect(span.service).to eq('redis')
-          expect(span.resource).to eq('SET FOO bar')
-          expect(span.get_tag('redis.raw_command')).to eq('SET FOO bar')
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.get_tag('span.kind')).to eq('client')
-        end
-
-        it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span' do
-          let(:peer_hostname) { host }
-        end
-      end
-
-      describe 'get span' do
-        subject(:span) { spans[0] }
-
-        it do
-          expect(span.name).to eq('redis.command')
-          expect(span.service).to eq('redis')
-          expect(span.resource).to eq('GET FOO')
-          expect(span.get_tag('redis.raw_command')).to eq('GET FOO')
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.get_tag('span.kind')).to eq('client')
-        end
-
-        it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span' do
-          let(:peer_hostname) { host }
-        end
-      end
-    end
-
-    context 'arguments wrapped in array' do
-      before do
-        expect(redis.call([:set, 'FOO', 'bar'])).to eq('OK')
-      end
-
-      it { expect(spans).to have(1).item }
-
-      describe 'span' do
-        subject(:span) { spans[-1] }
-
-        it do
-          expect(span.resource).to eq('SET FOO bar')
-          expect(span.get_tag('redis.raw_command')).to eq('SET FOO bar')
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.get_tag('span.kind')).to eq('client')
-        end
-      end
-    end
-
-    context 'command_args disabled' do
-      let(:configuration_options) { { command_args: false } }
-
-      before do
-        expect(redis.call([:set, 'FOO', 'bar'])).to eq('OK')
-      end
-
-      it { expect(spans).to have(1).item }
-
-      describe 'span' do
-        subject(:span) { spans[-1] }
-
-        it do
-          expect(span.resource).to eq('SET')
-          expect(span.get_tag('redis.raw_command')).to be_nil
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.get_tag('span.kind')).to eq('client')
-        end
-      end
-    end
-
-    context 'pipeline' do
-      before do
-        redis.pipelined do
-          responses << redis.set('v1', '0')
-          responses << redis.set('v2', '0')
-          responses << redis.incr('v1')
-          responses << redis.incr('v2')
-          responses << redis.incr('v2')
-        end
-      end
-
-      let(:responses) { [] }
-
-      it do
-        expect(responses.map(&:value)).to eq(['OK', 'OK', 1, 1, 2])
-        expect(spans).to have(1).items
-      end
-
-      describe 'span' do
-        subject(:span) { spans[-1] }
-
-        it do
-          expect(span.get_metric('redis.pipeline_length')).to eq(5)
-          expect(span.name).to eq('redis.command')
-          expect(span.service).to eq('redis')
-          expect(span.resource).to eq("SET v1 0\nSET v2 0\nINCR v1\nINCR v2\nINCR v2")
-          expect(span.get_tag('redis.raw_command')).to eq("SET v1 0\nSET v2 0\nINCR v1\nINCR v2\nINCR v2")
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.get_tag('span.kind')).to eq('client')
-        end
-
-        it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span' do
-          let(:peer_hostname) { host }
-        end
-      end
-
-      describe 'command_args disabled' do
-        subject(:span) { spans[-1] }
-
+      context 'with command_args as `false`' do
         let(:configuration_options) { { command_args: false } }
 
-        it 'hides the sensitive params' do
-          expect(span.get_metric('redis.pipeline_length')).to eq(5)
-          expect(span.name).to eq('redis.command')
-          expect(span.service).to eq('redis')
-          expect(span.resource).to eq("SET\nSET\nINCR\nINCR\nINCR")
-          expect(span.get_tag('redis.raw_command')).to be_nil
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.get_tag('span.kind')).to eq('client')
-        end
+        it_behaves_like 'redis instrumentation'
+        it_behaves_like 'an authenticated redis instrumentation'
       end
     end
 
-    context 'empty pipeline' do
-      before do
-        responses.push(*redis.pipelined {})
+    context 'with custom configuration', skip: Gem::Version.new(::Redis::VERSION) < Gem::Version.new('5.0.0') do
+      let(:redis) { Redis.new(redis_options.freeze) }
+
+      context 'with service_name as `custom`' do
+        let(:redis_options) do
+          default_redis_options.merge(
+            custom: {
+              datadog: {
+                service_name: 'custom'
+              }
+            }
+          )
+        end
+
+        it_behaves_like 'redis instrumentation', service_name: 'custom', command_args: true
+        it_behaves_like 'an authenticated redis instrumentation', service_name: 'custom', command_args: true
       end
 
-      let(:responses) { [] }
-
-      it do
-        expect(responses).to eq([])
-        expect(spans).to have(1).items
-      end
-
-      describe 'span' do
-        subject(:span) { spans[-1] }
-
-        it do
-          expect(span.get_metric('redis.pipeline_length')).to eq(0)
-          expect(span.name).to eq('redis.command')
-          expect(span.service).to eq('redis')
-          expect(span.resource).to eq('(none)')
-          expect(span.get_tag('redis.raw_command')).to eq('(none)')
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.get_tag('span.kind')).to eq('client')
+      context 'with command_args as `false`' do
+        let(:redis_options) do
+          default_redis_options.merge(
+            custom: {
+              datadog: {
+                command_args: false
+              }
+            }
+          )
         end
 
-        it_behaves_like 'a span with common tags'
-      end
-    end
-
-    context 'error' do
-      subject(:bad_call) do
-        redis.call 'THIS_IS_NOT_A_REDIS_FUNC', 'THIS_IS_NOT_A_VALID_ARG'
-      end
-
-      before do
-        expect { bad_call }.to raise_error(Redis::CommandError, /ERR unknown command/)
-      end
-
-      it do
-        expect(spans).to have(1).items
-      end
-
-      describe 'span' do
-        subject(:span) { spans[-1] }
-
-        it do
-          expect(span.name).to eq('redis.command')
-          expect(span.service).to eq('redis')
-          expect(span.resource).to eq('THIS_IS_NOT_A_REDIS_FUNC THIS_IS_NOT_A_VALID_ARG')
-          expect(span.get_tag('redis.raw_command')).to eq('THIS_IS_NOT_A_REDIS_FUNC THIS_IS_NOT_A_VALID_ARG')
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg')).to match(/ERR unknown command/)
-          expect(span.get_tag('error.type')).to eq('Redis::CommandError')
-          expect(span.get_tag('error.stack').length).to be >= 3
-          expect(span.get_tag('span.kind')).to eq('client')
-        end
-
-        it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span' do
-          let(:peer_hostname) { host }
-        end
-      end
-    end
-
-    context 'quantize' do
-      describe 'set span' do
-        before { expect(redis.set('K', 'x' * 500)).to eq('OK') }
-
-        it do
-          expect(span.name).to eq('redis.command')
-          expect(span.service).to eq('redis')
-          expect(span.resource).to eq("SET K #{'x' * 47}...")
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.get_tag('redis.raw_command')).to eq("SET K #{'x' * 47}...")
-          expect(span.get_tag('span.kind')).to eq('client')
-        end
-
-        it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span' do
-          let(:peer_hostname) { host }
-        end
-      end
-
-      describe 'get span' do
-        subject(:span) { spans.first }
-
-        before do
-          expect(redis.set('K', 'x' * 500)).to eq('OK')
-          expect(redis.get('K')).to eq('x' * 500)
-        end
-
-        it do
-          expect(spans).to have(2).items
-          expect(span.name).to eq('redis.command')
-          expect(span.service).to eq('redis')
-          expect(span.resource).to eq('GET K')
-          expect(span.get_tag('redis.raw_command')).to eq('GET K')
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.get_tag('span.kind')).to eq('client')
-        end
-
-        it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span' do
-          let(:peer_hostname) { host }
-        end
-      end
-
-      describe 'auth span' do
-        include_context 'password-protected Redis server'
-
-        before { redis.auth(password) }
-
-        it do
-          expect(span.name).to eq('redis.command')
-          expect(span.service).to eq('redis')
-          expect(span.resource).to eq('AUTH ?')
-          expect(span.get_tag('redis.raw_command')).to eq('AUTH ?')
-          expect(span.get_tag('db.system')).to eq('redis')
-          expect(span.get_tag('span.kind')).to eq('client')
-        end
-
-        it_behaves_like 'a peer service span' do
-          let(:peer_hostname) { host }
-        end
+        it_behaves_like 'redis instrumentation'
+        it_behaves_like 'an authenticated redis instrumentation'
       end
     end
   end
-
-  it_behaves_like 'a Redis driver', :ruby
-  it_behaves_like 'a Redis driver', :hiredis
 end

@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 require_relative '../patcher'
 require_relative 'ext'
@@ -53,20 +53,19 @@ module Datadog
             Integration.version
           end
 
-          # patch applies our patch if needed
           def patch
-            # do not require these by default, but only when actually patching
-            require 'redis'
-            require_relative 'tags'
-            require_relative 'quantize'
-            require_relative 'instrumentation'
+            # Redis 5+ extracts RedisClient to its own gem and provide instrumentation interface
+            if target_version >= Gem::Version.new('5.0.0')
+              require_relative 'trace_middleware'
 
-            # InstancePatch and ClientPatch allows the client object to access pin on redis instance
-            ::Redis.include(InstancePatch)
-            ::Redis::Client.include(ClientPatch)
+              ::RedisClient.register(TraceMiddleware)
+            else
+              require_relative 'instrumentation'
 
-            # TODO: To support redis-rb 5.x, Redis::Client -> RedisClient
-            ::Redis::Client.include(Instrumentation)
+              ::Redis.include(InstancePatch)
+              ::Redis::Client.include(ClientPatch)
+              ::Redis::Client.include(Instrumentation)
+            end
           end
         end
       end

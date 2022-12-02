@@ -20,7 +20,23 @@ end
 
 def self.gem_cucumber(version)
   appraise "cucumber#{version}" do
-    gem 'cucumber', ">=#{version}.0.0", "<#{version + 1}.0.0"
+    gem 'cucumber', "~>#{version}"
+
+    # Without this, we can get this error:
+    # > TypeError:
+    # >   superclass mismatch for class FileDescriptorSet
+    # This happens because cucumber has its own Protobuf gem (`protobuf-cucumber`)
+    # that conflicts with `google-protobuf`: the load slightly different version of the same classes.
+    # Locking them together ensures they don't have conflicting class declaration.
+    # This only affects: 4.0.0 >= cucumber > 7.0.0.
+    #
+    # DEV: Ideally, the profiler would not be loaded when running cucumber tests as it is unrelated.
+    if Gem::Version.new(version) >= Gem::Version.new('4.0.0') &&
+        Gem::Version.new(version) < Gem::Version.new('7.0.0') &&
+        RUBY_PLATFORM != 'java' &&
+        Bundler::VERSION > '2.0.0'
+      gem 'google-protobuf', force_ruby_platform: true
+    end
   end
 end
 
@@ -102,7 +118,6 @@ if ruby_version?('2.1')
     gem 'presto-client', '>=  0.5.14'
     gem 'ethon'
     gem 'excon'
-    gem 'hiredis'
     gem 'http'
     gem 'httpclient'
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
@@ -114,7 +129,6 @@ if ruby_version?('2.1')
     gem 'rack-cache', '1.7.1'
     gem 'rack-test', '0.7.0'
     gem 'rake', '< 12.3'
-    gem 'redis', '< 4.0'
     gem 'rest-client'
     gem 'resque', '< 2.0'
     gem 'ruby-kafka', '>= 0.7.10'
@@ -132,6 +146,12 @@ if ruby_version?('2.1')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
+  end
+
+  [3].each do |n|
+    appraise "redis-#{n}" do
+      gem 'redis', "~> #{n}"
+    end
   end
 
   appraise 'core-old' do
@@ -281,7 +301,6 @@ elsif ruby_version?('2.2')
     gem 'grape'
     gem 'graphql'
     gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
-    gem 'hiredis'
     gem 'http'
     gem 'httpclient'
     gem 'lograge', '~> 0.11'
@@ -295,7 +314,6 @@ elsif ruby_version?('2.2')
     gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
-    gem 'redis', '< 4.0'
     gem 'rest-client'
     gem 'resque', '< 2.0'
     gem 'ruby-kafka', '>= 0.7.10'
@@ -314,6 +332,12 @@ elsif ruby_version?('2.2')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
+  end
+
+  [3].each do |n|
+    appraise "redis-#{n}" do
+      gem 'redis', "~> #{n}"
+    end
   end
 
   appraise 'core-old' do
@@ -476,7 +500,6 @@ elsif ruby_version?('2.3')
     gem 'graphql'
     gem 'grpc'
     gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
-    gem 'hiredis'
     gem 'http'
     gem 'httpclient'
     gem 'lograge', '~> 0.11'
@@ -489,7 +512,6 @@ elsif ruby_version?('2.3')
     gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
-    gem 'redis', '< 4.0'
     gem 'rest-client'
     gem 'resque'
     gem 'ruby-kafka', '>= 0.7.10'
@@ -508,6 +530,12 @@ elsif ruby_version?('2.3')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
+  end
+
+  [3].each do |n|
+    appraise "redis-#{n}" do
+      gem 'redis', "~> #{n}"
+    end
   end
 
   appraise 'contrib-old' do
@@ -604,7 +632,6 @@ elsif ruby_version?('2.4')
     gem 'graphql', '>= 2.0'
     gem 'grpc'
     gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
-    gem 'hiredis'
     gem 'http'
     gem 'httpclient'
     gem 'lograge', '~> 0.11'
@@ -617,7 +644,6 @@ elsif ruby_version?('2.4')
     gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
-    gem 'redis', '< 4.0'
     gem 'rest-client'
     gem 'resque'
     gem 'ruby-kafka', '>= 0.7.10'
@@ -636,6 +662,12 @@ elsif ruby_version?('2.4')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
+  end
+
+  [3, 4].each do |n|
+    appraise "redis-#{n}" do
+      gem 'redis', "~> #{n}"
+    end
   end
 
   appraise 'contrib-old' do
@@ -859,7 +891,6 @@ elsif ruby_version?('2.5')
     gem 'grape'
     gem 'graphql', '>= 2.0'
     gem 'grpc', platform: :ruby
-    gem 'hiredis'
     gem 'http'
     gem 'httpclient'
     gem 'lograge', '~> 0.11'
@@ -875,7 +906,6 @@ elsif ruby_version?('2.5')
     gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
-    gem 'redis', '< 4.0'
     gem 'rest-client'
     gem 'resque'
     gem 'ruby-kafka', '>= 0.7.10'
@@ -895,6 +925,12 @@ elsif ruby_version?('2.5')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
+  end
+
+  [3, 4, 5].each do |n|
+    appraise "redis-#{n}" do
+      gem 'redis', "~> #{n}"
+    end
   end
 
   appraise 'contrib-old' do
@@ -1103,7 +1139,6 @@ elsif ruby_version?('2.6')
       gem 'grape'
       gem 'graphql', '>= 2.0'
       gem 'grpc', platform: :ruby
-      gem 'hiredis'
       gem 'http'
       gem 'httpclient'
       gem 'lograge', '~> 0.11'
@@ -1138,6 +1173,12 @@ elsif ruby_version?('2.6')
     appraise 'sinatra' do
       gem 'sinatra', '>= 3'
       gem 'rack-test'
+    end
+
+    [3, 4, 5].each do |n|
+      appraise "redis-#{n}" do
+        gem 'redis', "~> #{n}"
+      end
     end
 
     appraise 'contrib-old' do
@@ -1190,7 +1231,7 @@ elsif ruby_version?('2.7')
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis', '~> 4' # TODO: Support redis 5.x
+      gem 'redis'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1238,7 +1279,7 @@ elsif ruby_version?('2.7')
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis', '~> 4' # TODO: Support redis 5.x
+      gem 'redis'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1279,7 +1320,7 @@ elsif ruby_version?('2.7')
     appraise 'rails61-postgres-redis' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
-      gem 'redis', '~> 4' # TODO: Support redis 5.x
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1305,7 +1346,7 @@ elsif ruby_version?('2.7')
     end
 
     appraise 'resque2-redis4' do
-      gem 'redis', '>= 4.0'
+      gem 'redis', '~> 4.0'
       gem 'resque', '>= 2.0'
     end
 
@@ -1328,7 +1369,6 @@ elsif ruby_version?('2.7')
       gem 'grape'
       gem 'graphql', '>= 2.0'
       gem 'grpc'
-      gem 'hiredis'
       gem 'http'
       gem 'httpclient'
       gem 'lograge', '~> 0.11'
@@ -1341,7 +1381,6 @@ elsif ruby_version?('2.7')
       gem 'rack-contrib'
       gem 'rack-test'
       gem 'rake', '>= 12.3'
-      gem 'redis', '~> 4' # TODO: Support redis 5.x
       gem 'rest-client'
       gem 'resque'
       gem 'ruby-kafka', '>= 0.7.10'
@@ -1360,6 +1399,12 @@ elsif ruby_version?('2.7')
     appraise 'sinatra' do
       gem 'sinatra', '>= 3'
       gem 'rack-test'
+    end
+
+    [3, 4, 5].each do |n|
+      appraise "redis-#{n}" do
+        gem 'redis', "~> #{n}"
+      end
     end
 
     appraise 'contrib-old' do
@@ -1453,7 +1498,6 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'grape'
     gem 'graphql', '>= 2.0'
     gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
-    gem 'hiredis'
     gem 'http'
     gem 'httpclient'
     # gem 'lograge', '~> 0.11'  # creates conflict with qless dependancy on thor ~0.19.1
@@ -1468,7 +1512,6 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
-    gem 'redis', '~> 4' # TODO: Support redis 5.x
     gem 'rest-client'
     gem 'resque'
     gem 'ruby-kafka', '>= 0.7.10'
@@ -1484,6 +1527,12 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'
     gem 'net-smtp'
+  end
+
+  [3, 4, 5].each do |n|
+    appraise "redis-#{n}" do
+      gem 'redis', "~> #{n}"
+    end
   end
 
   appraise 'sinatra' do
@@ -1582,7 +1631,6 @@ elsif ruby_version?('3.2')
     gem 'grape'
     gem 'graphql', '>= 2.0'
     gem 'grpc', '>= 1.38.0' # Minimum version with Ruby 3.0 support
-    gem 'hiredis'
     gem 'http'
     gem 'httpclient'
     # gem 'lograge', '~> 0.11'  # creates conflict with qless dependancy on thor ~0.19.1
@@ -1595,7 +1643,6 @@ elsif ruby_version?('3.2')
     gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
-    gem 'redis', '< 4.0'
     gem 'rest-client'
     gem 'resque'
     gem 'ruby-kafka', '>= 0.7.10'
@@ -1616,6 +1663,12 @@ elsif ruby_version?('3.2')
   appraise 'sinatra' do
     gem 'sinatra', '>= 3'
     gem 'rack-test'
+  end
+
+  [3, 4, 5].each do |n|
+    appraise "redis-#{n}" do
+      gem 'redis', "~> #{n}"
+    end
   end
 
   appraise 'contrib-old' do

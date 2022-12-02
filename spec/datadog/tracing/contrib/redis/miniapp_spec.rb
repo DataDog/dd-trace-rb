@@ -5,10 +5,9 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'time'
 require 'redis'
-require 'hiredis'
 require 'ddtrace'
 
-RSpec.describe 'Redis mini app test' do
+RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0') do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   before do

@@ -1415,7 +1415,6 @@ GEM
       rack-accept
     graphql (2.0.6)
     hashdiff (1.0.1)
-    hiredis (0.6.3-java)
     http (4.4.1)
       addressable (~> 2.3)
       http-cookie (~> 1.0)
@@ -1661,7 +1660,6 @@ DEPENDENCIES
   grape
   graphql (>= 2.0)
   grpc
-  hiredis
   http
   httpclient
   jdbc-sqlite3 (>= 3.28)

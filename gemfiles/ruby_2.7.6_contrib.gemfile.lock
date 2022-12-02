@@ -1478,7 +1478,6 @@ GEM
       google-protobuf (~> 3.21)
       googleapis-common-protos-types (~> 1.0)
     hashdiff (1.0.1)
-    hiredis (0.6.3)
     http (4.4.1)
       addressable (~> 2.3)
       http-cookie (~> 1.0)
@@ -1685,17 +1684,9 @@ GEM
       rake (~> 12.3)
       serverengine (~> 2.1.0)
       thor
-    sorbet (0.5.9672)
-      sorbet-static (= 0.5.9672)
-    sorbet-runtime (0.5.10565)
-    sorbet-static (0.5.9672-x86_64-linux)
     sorted_set (1.0.3)
       rbtree
       set (~> 1.0)
-    spoom (1.1.13)
-      sorbet (>= 0.5.9204)
-      sorbet-runtime (>= 0.5.9204)
-      thor (>= 0.19.2)
     sqlite3 (1.4.4)
     sucker_punch (3.1.0)
       concurrent-ruby (~> 1.0)
@@ -1753,7 +1744,6 @@ DEPENDENCIES
   grape
   graphql (>= 2.0)
   grpc
-  hiredis
   http
   httpclient
   json-schema (< 3)
@@ -1777,7 +1767,6 @@ DEPENDENCIES
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
-  redis (~> 4)
   resque
   rest-client
   rspec (>= 3.0.0)
@@ -1796,8 +1785,6 @@ DEPENDENCIES
   sidekiq (~> 6)
   simplecov!
   sneakers (>= 2.12.0)
-  sorbet (= 0.5.9672)
-  spoom (~> 1.1)
   sqlite3 (~> 1.4.1)
   sucker_punch
   typhoeus

@@ -2,8 +2,6 @@
 
 require 'datadog/tracing/contrib/support/spec_helper'
 
-require 'redis'
-require 'hiredis'
 require 'datadog/tracing/contrib/redis/quantize'
 
 RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
@@ -73,10 +71,44 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
     subject(:output) { described_class.format_command_args(args) }
 
     context 'given an array' do
-      context 'of some basic values' do
-        let(:args) { [:set, 'KEY', 'VALUE'] }
+      context 'simple command' do
+        context 'string' do
+          let(:args) { %w[set KEY VALUE] }
 
-        it { is_expected.to eq('SET KEY VALUE') }
+          it { is_expected.to eq('SET KEY VALUE') }
+        end
+
+        context 'uppercase string' do
+          let(:args) { %w[SET KEY VALUE] }
+
+          it { is_expected.to eq('SET KEY VALUE') }
+        end
+
+        context 'symbol' do
+          let(:args) { [:set, 'KEY', 'VALUE'] }
+
+          it { is_expected.to eq('SET KEY VALUE') }
+        end
+
+        context 'nested array' do
+          context 'string' do
+            let(:args) { [%w[set KEY VALUE]] }
+
+            it { is_expected.to eq('SET KEY VALUE') }
+          end
+
+          context 'uppercase string' do
+            let(:args) { [%w[SET KEY VALUE]] }
+
+            it { is_expected.to eq('SET KEY VALUE') }
+          end
+
+          context 'symbol' do
+            let(:args) { [[:set, 'KEY', 'VALUE']] }
+
+            it { is_expected.to eq('SET KEY VALUE') }
+          end
+        end
       end
 
       context 'of many very long args (over the limit)' do
@@ -85,12 +117,46 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
         it { expect(output.length).to eq(500) }
         it { expect(output[496..499]).to eq('X...') }
       end
-    end
 
-    context 'given a nested array' do
-      let(:args) { [[:set, 'KEY', 'VALUE']] }
+      context 'authentication' do
+        context 'all strings' do
+          let(:args) { %w[auth data dog] }
 
-      it { is_expected.to eq('SET KEY VALUE') }
+          it { is_expected.to eq('AUTH ?') }
+        end
+
+        context 'all strings uppercase' do
+          let(:args) { %w[AUTH data dog] }
+
+          it { is_expected.to eq('AUTH ?') }
+        end
+
+        context 'with symbol' do
+          let(:args) { [:auth, 'data', 'dog'] }
+
+          it { is_expected.to eq('AUTH ?') }
+        end
+
+        context 'nested array' do
+          context 'strings' do
+            let(:args) { [%w[auth data dog]] }
+
+            it { is_expected.to eq('AUTH ?') }
+          end
+
+          context 'uppercase strings' do
+            let(:args) { [%w[AUTH data dog]] }
+
+            it { is_expected.to eq('AUTH ?') }
+          end
+
+          context 'symbol' do
+            let(:args) { [[:auth, 'data', 'dog']] }
+
+            it { is_expected.to eq('AUTH ?') }
+          end
+        end
+      end
     end
   end
 
@@ -98,27 +164,67 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
     subject(:output) { described_class.get_verb(args) }
 
     context 'given an array' do
-      let(:args) { [:set, 'KEY', 'VALUE'] }
+      context 'string' do
+        let(:args) { %w[set KEY VALUE] }
 
-      it { is_expected.to eq('SET') }
+        it { is_expected.to eq('SET') }
+      end
+
+      context 'uppercase string' do
+        let(:args) { [%w[SET KEY VALUE]] }
+
+        it { is_expected.to eq('SET') }
+      end
+
+      context 'symbol' do
+        let(:args) { [:set, 'KEY', 'VALUE'] }
+
+        it { is_expected.to eq('SET') }
+      end
+
+      context 'given an multi verb commands' do
+        let(:args) { [:acl, 'CAT', 'categoryname'] }
+
+        it { is_expected.to eq('ACL CAT') }
+      end
+
+      context 'given an multi verb commands' do
+        let(:args) { [:acl, 'HELP'] }
+
+        it { is_expected.to eq('ACL HELP') }
+      end
     end
 
-    context 'given an multi verb commands' do
-      let(:args) { [:acl, 'CAT', 'categoryname'] }
+    context 'nested array' do
+      context 'symbol' do
+        let(:args) { [[:set, 'KEY', 'VALUE']] }
 
-      it { is_expected.to eq('ACL CAT') }
-    end
+        it { is_expected.to eq('SET') }
+      end
 
-    context 'given an multi verb commands' do
-      let(:args) { [:acl, 'HELP'] }
+      context 'string' do
+        let(:args) { [%w[set KEY VALUE]] }
 
-      it { is_expected.to eq('ACL HELP') }
-    end
+        it { is_expected.to eq('SET') }
+      end
 
-    context 'given a nested array' do
-      let(:args) { [[:set, 'KEY', 'VALUE']] }
+      context 'uppercase string' do
+        let(:args) { [%w[SET KEY VALUE]] }
 
-      it { is_expected.to eq('SET') }
+        it { is_expected.to eq('SET') }
+      end
+
+      context 'given an multi verb commands' do
+        let(:args) { [:acl, 'CAT', 'categoryname'] }
+
+        it { is_expected.to eq('ACL CAT') }
+      end
+
+      context 'given an multi verb commands' do
+        let(:args) { [:acl, 'HELP'] }
+
+        it { is_expected.to eq('ACL HELP') }
+      end
     end
   end
 end
