@@ -40,17 +40,6 @@ module SynchronizationHelpers
     end
   end
 
-  def expect_in_thread(&block)
-    # Start in thread
-    t = Thread.new(&block)
-
-    # Wait for thread to finish, retrieve its return value.
-    status = t.value
-
-    # Expect thread and assertions to have completed successfully.
-    expect(status).to be true
-  end
-
   # Defaults to 5 second timeout
   def try_wait_until(attempts: 50, backoff: 0.1)
     # It's common for tests to want to run simple tasks in a background thread
