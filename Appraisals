@@ -22,7 +22,6 @@ def self.gem_cucumber(version)
   appraise "cucumber#{version}" do
     gem 'cucumber', "~>#{version}"
 
-    # Locks the profiler's protobuf dependency to avoid conflict with cucumber.
     # Without this, we can get this error:
     # > TypeError:
     # >   superclass mismatch for class FileDescriptorSet
@@ -33,9 +32,10 @@ def self.gem_cucumber(version)
     #
     # DEV: Ideally, the profiler would not be loaded when running cucumber tests as it is unrelated.
     if Gem::Version.new(version) >= Gem::Version.new('4.0.0') &&
-      Gem::Version.new(version) < Gem::Version.new('7.0.0')
-      gem 'google-protobuf', '3.10.1' if RUBY_PLATFORM != 'java'
-      gem 'protobuf-cucumber', '3.10.8'
+        Gem::Version.new(version) < Gem::Version.new('7.0.0') &&
+        RUBY_PLATFORM != 'java' &&
+        Bundler::VERSION > '2.0.0'
+      gem 'google-protobuf', force_ruby_platform: true
     end
   end
 end

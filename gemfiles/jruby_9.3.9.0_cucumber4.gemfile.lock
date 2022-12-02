@@ -197,7 +197,6 @@ DEPENDENCIES
   opentracing (>= 0.4.1)
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
-  protobuf-cucumber (= 3.10.8)
   pry
   pry-debugger-jruby
   rake (>= 10.5)
