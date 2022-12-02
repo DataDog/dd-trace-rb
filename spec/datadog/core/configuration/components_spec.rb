@@ -1063,7 +1063,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         context 'on Ruby 2.x' do
-          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3.' }
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3.0' }
 
           it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to true' do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
@@ -1075,7 +1075,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         context 'on Ruby 3.x' do
-          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3.' }
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3.0' }
 
           it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to false' do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
