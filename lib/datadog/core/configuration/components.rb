@@ -352,7 +352,7 @@ module Datadog
             if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
               Datadog.logger.warn(
                 'New Ruby profiler has been force-enabled. This feature is in alpha state. Please report any issues ' \
-                'you run into!'
+                'you run into via <https://github.com/datadog/dd-trace-rb/issues/new>!'
               )
             else
               # For more details on the issue, see the "BIG Issue" comment on `gvl_owner` function in
@@ -360,7 +360,7 @@ module Datadog
               Datadog.logger.warn(
                 'New Ruby profiler has been force-enabled on a legacy Ruby version (< 2.6). This is not recommended in ' \
                 'production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes in very ' \
-                'rare situations. Please report any issues you run into!'
+                'rare situations. Please report any issues you run into via <https://github.com/datadog/dd-trace-rb/issues/new>!'
               )
             end
           end
