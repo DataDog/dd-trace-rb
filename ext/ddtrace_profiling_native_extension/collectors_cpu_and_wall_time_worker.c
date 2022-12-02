@@ -131,11 +131,14 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 
-// Global state -- be very careful when accessing or modifying it
-
-// Note: Global state must only be mutated while holding the global VM lock (we piggy back on it to ensure correctness).
-// The active_sampler_instance_state needs to be global because we access it from a few functions (e.g. signal handler)
-// where we can't easily pass in the context as an argument.
+// Note on sampler global state safety:
+//
+// Both `active_sampler_instance` and `active_sampler_instance_state` are **GLOBAL** state. Be careful when accessing
+// or modifying them.
+// In particular, it's important to only mutate them while holding the global VM lock, to ensure correctness.
+//
+// This global state is needed because a bunch of functions on this file need to access it from situations
+// (e.g. signal handler) where it's impossible or just awkward to pass it as an argument.
 static VALUE active_sampler_instance = Qnil;
 struct cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 
@@ -324,7 +327,7 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception) {
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
-  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the signal delivery was happening; nothing to do
   if (state == NULL) return;
@@ -382,7 +385,7 @@ static void interrupt_sampling_trigger_loop(void *state_ptr) {
 }
 
 static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
-  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
   if (state == NULL) return;
@@ -438,7 +441,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_is_running(DDTRACE_UNUSED VALUE self, VALUE instance) {
-  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   return (state != NULL && is_thread_alive(state->owner_thread) && state->self_instance == instance) ? Qtrue : Qfalse;
 }
@@ -498,7 +501,7 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   int event = rb_tracearg_event_flag(rb_tracearg_from_tracepoint(tracepoint_data));
   if (event != RUBY_INTERNAL_EVENT_GC_ENTER && event != RUBY_INTERNAL_EVENT_GC_EXIT) return; // Unknown event
 
-  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This should not happen in a normal situation because the tracepoint is always enabled after the instance is set
   // and disabled before it is cleared, but just in case...
@@ -530,7 +533,7 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
 }
 
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
-  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
   if (state == NULL) return;
