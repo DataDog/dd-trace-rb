@@ -59,9 +59,3 @@ NORETURN(void raise_unexpected_type(
   int line,
   const char* function_name
 ));
-
-// This API is exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
-// repeat it here to be able to use in our code.
-//
-// Queries if the current thread is the owner of the global VM lock.
-int ruby_thread_has_gvl_p(void);

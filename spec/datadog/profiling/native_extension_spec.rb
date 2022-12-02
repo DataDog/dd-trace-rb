@@ -197,4 +197,64 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
     end
   end
+
+  describe 'is_current_thread_holding_the_gvl' do
+    subject(:is_current_thread_holding_the_gvl) do
+      Datadog::Profiling::NativeExtension::Testing._native_is_current_thread_holding_the_gvl
+    end
+
+    context 'when current thread is holding the global VM lock' do
+      it { is_expected.to be true }
+    end
+
+    context 'when current thread is not holding the global VM lock' do
+      subject(:is_current_thread_holding_the_gvl) do
+        Datadog::Profiling::NativeExtension::Testing._native_release_gvl_and_call_is_current_thread_holding_the_gvl
+      end
+
+      it { is_expected.to be false }
+    end
+
+    describe 'correctness' do
+      before do
+        skip 'Ruby 2.2 does not expose ruby_thread_has_gvl_p so nothing to compare to' if RUBY_VERSION.start_with?('2.2.')
+      end
+
+      let(:ready_queue) { Queue.new }
+      let(:background_thread) do
+        Thread.new do
+          Datadog::Profiling::NativeExtension::Testing._native_install_holding_the_gvl_signal_handler
+          ready_queue << true
+          i = 0
+          loop { (i = (i + 1) % 2) }
+        end
+      end
+
+      after do
+        background_thread.kill
+        background_thread.join
+      end
+
+      # ruby_thread_has_gvl_p() can return true even when the thread is not holding the global VM lock. See the comments
+      # on is_current_thread_holding_the_gvl() for more details. Here we test that our function is accurate in the same
+      # situation.
+      #
+      # Here's how this works:
+      # * background_thread installs a signal handler that will call both ruby_thread_has_gvl_p() and
+      #   is_current_thread_holding_the_gvl() and return their results
+      # * the main testing thread waits until the background thread is executing the dummy infinite loop and then
+      #   triggers the signal. Because the main testing thread keeps holding the GVL while it sends the signal to
+      #   the background thread, we are guaranteed that the background thread does not have the GVL.
+      #
+      # @ivoanjo: It's a bit weird but I wanted test coverage for this. Improvements welcome ;)
+      it 'returns accurate results when compared to ruby_thread_has_gvl_p' do
+        background_thread
+        ready_queue.pop
+
+        result = Datadog::Profiling::NativeExtension::Testing
+          ._native_trigger_holding_the_gvl_signal_handler_on(background_thread)
+        expect(result).to eq(ruby_thread_has_gvl_p: true, is_current_thread_holding_the_gvl: false)
+      end
+    end
+  end
 end

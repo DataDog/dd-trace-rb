@@ -129,6 +129,9 @@ end
 # On older Rubies, there was no struct rb_native_thread. See private_vm_api_acccess.c for details.
 $defs << '-DNO_RB_NATIVE_THREAD' if RUBY_VERSION < '3.2'
 
+# On older Rubies, there was no struct rb_thread_sched (it was struct rb_global_vm_lock_struct)
+$defs << '-DNO_RB_THREAD_SCHED' if RUBY_VERSION < '3.2'
+
 # On older Rubies, there was no tid member in the internal thread structure
 $defs << '-DNO_THREAD_TID' if RUBY_VERSION < '3.1'
 
@@ -138,8 +141,14 @@ $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
 # On older Rubies, there are no Ractors
 $defs << '-DNO_RACTORS' if RUBY_VERSION < '3'
 
+# On older Rubies, rb_global_vm_lock_struct did not include the owner field
+$defs << '-DNO_GVL_OWNER' if RUBY_VERSION < '2.6'
+
 # On older Rubies, we need to use rb_thread_t instead of rb_execution_context_t
 $defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT' if RUBY_VERSION < '2.5'
+
+# On older Rubies, extensions can't use GET_VM()
+$defs << '-DNO_GET_VM' if RUBY_VERSION < '2.5'
 
 # On older Rubies...
 if RUBY_VERSION < '2.4'
@@ -157,8 +166,6 @@ if RUBY_VERSION < '2.3'
   $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
   # ... you couldn't name threads
   $defs << '-DNO_THREAD_NAMES'
-  # ...the ruby_thread_has_gvl_p function was not exposed to users outside of the VM
-  $defs << '-DNO_THREAD_HAS_GVL'
 end
 
 # If we got here, libdatadog is available and loaded
