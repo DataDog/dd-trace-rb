@@ -366,11 +366,20 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
     state->stats.trigger_sample_attempts++;
 
     // TODO: This is still a placeholder for a more complex mechanism. In particular:
-    // * We want to signal a particular thread or threads, not the process in general
     // * We want to track if a signal landed on the thread holding the global VM lock and do something about it
     // * We want to do more than having a fixed sampling rate
 
-    kill(getpid(), SIGPROF);
+    current_gvl_owner owner = gvl_owner();
+    if (owner.valid) {
+      // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
+      // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
+      // includes a check to see if it got called in the right thread
+      pthread_kill(owner.owner, SIGPROF);
+    } else {
+      // TODO: This is not a great "plan B", will be improved on a later PR
+      kill(getpid(), SIGPROF);
+    }
+
     nanosleep(&time_between_signals, NULL);
   }
 
