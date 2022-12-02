@@ -1,5 +1,6 @@
 #include <ruby.h>
 #include <ruby/thread.h>
+#include <errno.h>
 
 #include "clock_id.h"
 #include "helpers.h"
@@ -111,14 +112,29 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 
   pthread_mutex_lock(&holding_the_gvl_signal_handler_mutex);
 
-  for (int tries = 0; holding_the_gvl_signal_handler_result[0] == Qfalse && tries < 100; tries++) {
+  // We keep trying for ~5 seconds (500 x 10ms) to try to avoid any flakiness if the test machine is a bit slow
+  for (int tries = 0; holding_the_gvl_signal_handler_result[0] == Qfalse && tries < 500; tries++) {
     pthread_kill(thread, SIGPROF);
 
+    // pthread_cond_timedwait is simply awful -- the deadline is based on wall-clock using a struct timespec, so we need
+    // all of the below complexity just to tell it "timeout is 10ms". The % limit dance below is needed because the
+    // `tv_nsec` part of a timespec can't go over the limit.
     struct timespec deadline;
     clock_gettime(CLOCK_REALTIME, &deadline);
-    deadline.tv_nsec += 10 * 1000 * 1000 /* 10ms */;
 
-    pthread_cond_timedwait(&holding_the_gvl_signal_handler_executed, &holding_the_gvl_signal_handler_mutex, &deadline);
+    unsigned int timeout_ns = 10 * 1000 * 1000 /* 10ms */;
+    unsigned int tv_nsec_limit = 1000 * 1000 * 1000 /* 1s */;
+    if ((deadline.tv_nsec + timeout_ns) < tv_nsec_limit) {
+      deadline.tv_nsec += timeout_ns;
+    } else {
+      deadline.tv_nsec = (deadline.tv_nsec + timeout_ns) % tv_nsec_limit;
+      deadline.tv_sec++;
+    }
+
+    int error = pthread_cond_timedwait(&holding_the_gvl_signal_handler_executed, &holding_the_gvl_signal_handler_mutex, &deadline);
+    if (error && error != ETIMEDOUT) {
+      rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in _native_trigger_holding_the_gvl_signal_handler_on")));
+    }
   }
 
   pthread_mutex_unlock(&holding_the_gvl_signal_handler_mutex);

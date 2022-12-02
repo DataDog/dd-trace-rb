@@ -62,7 +62,6 @@ module Datadog
 
             return unless @worker_thread
 
-            @worker_thread.kill
             self.class._native_stop(self)
 
             @worker_thread.join
@@ -73,6 +72,10 @@ module Datadog
 
         def reset_after_fork
           self.class._native_reset_after_fork(self)
+        end
+
+        def stats
+          self.class._native_stats(self)
         end
       end
     end
