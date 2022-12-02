@@ -15,6 +15,8 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
     before do
       described_class::ACTIVATE_EXTENSIONS_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
+
+      allow(task).to receive(:check_if_cpu_time_profiling_is_supported)
     end
 
     it 'actives the forking extension before setting up the at_fork hooks' do

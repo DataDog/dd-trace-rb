@@ -75,8 +75,11 @@ struct cpu_and_wall_time_worker_state {
   // telling the sampling trigger loop to stop, but if we ever need to communicate more, we should move to actual
   // atomic operations. stdatomic.h seems a nice thing to reach out for.
   volatile bool should_run;
+
   bool gc_profiling_enabled;
+  VALUE self_instance;
   VALUE cpu_and_wall_time_collector_instance;
+  VALUE owner_thread;
 
   // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
   // the CpuAndWallTimeWorker thread
@@ -128,18 +131,19 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 
-// Global state -- be very careful when accessing or modifying it
-
-// Note: Global state must only be mutated while holding the global VM lock (we piggy back on it to ensure correctness).
-// The active_sampler_instance needs to be global because we access it from the signal handler.
+// Note on sampler global state safety:
+//
+// Both `active_sampler_instance` and `active_sampler_instance_state` are **GLOBAL** state. Be careful when accessing
+// or modifying them.
+// In particular, it's important to only mutate them while holding the global VM lock, to ensure correctness.
+//
+// This global state is needed because a bunch of functions on this file need to access it from situations
+// (e.g. signal handler) where it's impossible or just awkward to pass it as an argument.
 static VALUE active_sampler_instance = Qnil;
-// ...We also store active_sampler_owner_thread to be able to tell who the active_sampler_instance belongs to (and also
-// to detect when it is outdated)
-static VALUE active_sampler_owner_thread = Qnil;
+struct cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
-  rb_global_variable(&active_sampler_owner_thread);
 
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   VALUE collectors_cpu_and_wall_time_worker_class = rb_define_class_under(collectors_module, "CpuAndWallTimeWorker", rb_cObject);
@@ -191,10 +195,11 @@ static VALUE _native_new(VALUE klass) {
   state->should_run = false;
   state->gc_profiling_enabled = false;
   state->cpu_and_wall_time_collector_instance = Qnil;
+  state->owner_thread = Qnil;
   state->failure_exception = Qnil;
   state->gc_tracepoint = Qnil;
 
-  return TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
+  return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
 }
 
 static VALUE _native_initialize(
@@ -220,6 +225,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
   rb_gc_mark(state->cpu_and_wall_time_collector_instance);
+  rb_gc_mark(state->owner_thread);
   rb_gc_mark(state->failure_exception);
   rb_gc_mark(state->gc_tracepoint);
 }
@@ -229,8 +235,9 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  if (active_sampler_owner_thread != Qnil) {
-    if (is_thread_alive(active_sampler_owner_thread)) {
+  struct cpu_and_wall_time_worker_state *old_state = active_sampler_instance_state;
+  if (old_state != NULL) {
+    if (is_thread_alive(old_state->owner_thread)) {
       rb_raise(
         rb_eRuntimeError,
         "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread"
@@ -244,15 +251,14 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
       // b) If this is the same instance of the CpuAndWallTimeWorker if we call enable on a tracepoint that is already
       //    enabled, it will start firing more than once, see https://bugs.ruby-lang.org/issues/19114 for details.
 
-      struct cpu_and_wall_time_worker_state *old_state;
-      TypedData_Get_Struct(active_sampler_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, old_state);
       rb_tracepoint_disable(old_state->gc_tracepoint);
     }
   }
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
+  active_sampler_instance_state = state;
   active_sampler_instance = instance;
-  active_sampler_owner_thread = rb_thread_current();
+  state->owner_thread = rb_thread_current();
 
   state->should_run = true;
 
@@ -266,8 +272,9 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   rb_tracepoint_disable(state->gc_tracepoint);
 
+  active_sampler_instance_state = NULL;
   active_sampler_instance = Qnil;
-  active_sampler_owner_thread = Qnil;
+  state->owner_thread = Qnil;
 
   // If this `Thread` is about to die, why is this important? It's because Ruby caches native threads for a period after
   // the `Thread` dies, and reuses them if a new Ruby `Thread` gets created. This means that while conceptually the
@@ -320,15 +327,10 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception) {
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
-  VALUE instance = active_sampler_instance; // Read from global variable
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
-  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the signal delivery was happening
-  if (instance == Qnil) return;
-
-  struct cpu_and_wall_time_worker_state *state;
-  if (!rb_typeddata_is_kind_of(instance, &cpu_and_wall_time_worker_typed_data)) return;
-  // This should never fail the the above check passes
-  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the signal delivery was happening; nothing to do
+  if (state == NULL) return;
 
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
@@ -383,10 +385,10 @@ static void interrupt_sampling_trigger_loop(void *state_ptr) {
 }
 
 static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
-  VALUE instance = active_sampler_instance; // Read from global variable
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
-  if (instance == Qnil) return;
+  if (state == NULL) return;
 
   // @ivoanjo: I'm not sure this can ever happen because `handle_sampling_signal` only enqueues this callback if
   // it's running on the main Ractor, but just in case...
@@ -394,11 +396,8 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
-  struct cpu_and_wall_time_worker_state *state;
-  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
-
   // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
-  safely_call(cpu_and_wall_time_collector_sample, state->cpu_and_wall_time_collector_instance, instance);
+  safely_call(cpu_and_wall_time_collector_sample, state->cpu_and_wall_time_collector_instance, state->self_instance);
 }
 
 static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) { return stop(self_instance, exception); }
@@ -442,9 +441,9 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_is_running(DDTRACE_UNUSED VALUE self, VALUE instance) {
-  return \
-    (active_sampler_owner_thread != Qnil && is_thread_alive(active_sampler_owner_thread) && active_sampler_instance == instance) ?
-    Qtrue : Qfalse;
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+  return (state != NULL && is_thread_alive(state->owner_thread) && state->self_instance == instance) ? Qtrue : Qfalse;
 }
 
 static void testing_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
@@ -502,16 +501,11 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   int event = rb_tracearg_event_flag(rb_tracearg_from_tracepoint(tracepoint_data));
   if (event != RUBY_INTERNAL_EVENT_GC_ENTER && event != RUBY_INTERNAL_EVENT_GC_EXIT) return; // Unknown event
 
-  VALUE instance = active_sampler_instance; // Read from global variable
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This should not happen in a normal situation because the tracepoint is always enabled after the instance is set
   // and disabled before it is cleared, but just in case...
-  if (instance == Qnil) return;
-
-  struct cpu_and_wall_time_worker_state *state;
-  if (!rb_typeddata_is_kind_of(instance, &cpu_and_wall_time_worker_typed_data)) return;
-  // This should never fail the the above check passes
-  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+  if (state == NULL) return;
 
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
     cpu_and_wall_time_collector_on_gc_start(state->cpu_and_wall_time_collector_instance);
@@ -539,10 +533,10 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
 }
 
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
-  VALUE instance = active_sampler_instance; // Read from global variable
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
-  if (instance == Qnil) return;
+  if (state == NULL) return;
 
   // @ivoanjo: I'm not sure this can ever happen because `on_gc_event` only enqueues this callback if
   // it's running on the main Ractor, but just in case...
@@ -550,11 +544,8 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
-  struct cpu_and_wall_time_worker_state *state;
-  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
-
   // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
-  safely_call(cpu_and_wall_time_collector_sample_after_gc, state->cpu_and_wall_time_collector_instance, instance);
+  safely_call(cpu_and_wall_time_collector_sample_after_gc, state->cpu_and_wall_time_collector_instance, state->self_instance);
 }
 
 // Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
