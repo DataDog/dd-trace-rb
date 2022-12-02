@@ -998,23 +998,23 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#propagation_extract_style' do
         subject(:propagation_extract_style) { settings.tracing.distributed_tracing.propagation_extract_style }
 
-        context "when #{Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT}" do
-          around do |example|
-            ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT => environment
-            ) do
-              example.run
-            end
+        around do |example|
+          ClimateControl.modify(var_name => var_value) do
+            example.run
           end
+        end
+
+        context 'when DD_TRACE_PROPAGATION_STYLE_EXTRACT' do
+          let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE_EXTRACT' }
 
           context 'is not defined' do
-            let(:environment) { nil }
+            let(:var_value) { nil }
 
             it do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
@@ -1022,16 +1022,48 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
 
           context 'is defined' do
-            let(:environment) { 'B3,B3 single header' }
+            let(:var_value) { 'b3multi,b3' }
 
             it do
               is_expected.to eq(
                 [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
             end
+          end
+
+          context 'is set to deprecated style names' do
+            let(:var_value) { 'B3,B3 single header' }
+
+            it 'translates to new names' do
+              is_expected.to eq(
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                ]
+              )
+            end
+          end
+        end
+
+        context 'with deprecated DD_PROPAGATION_STYLE_EXTRACT' do
+          let(:var_name) { 'DD_PROPAGATION_STYLE_EXTRACT' }
+
+          context 'is defined' do
+            let(:var_value) { 'b3multi,b3' }
+
+            it do
+              is_expected.to eq(
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                ]
+              )
+            end
+
+            include_examples 'records deprecated action', 'DD_PROPAGATION_STYLE_EXTRACT environment variable is deprecated'
           end
         end
       end
@@ -1039,32 +1071,64 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#propagation_inject_style' do
         subject(:propagation_inject_style) { settings.tracing.distributed_tracing.propagation_inject_style }
 
-        context "when #{Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT}" do
-          around do |example|
-            ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT => environment
-            ) do
-              example.run
-            end
+        around do |example|
+          ClimateControl.modify(var_name => var_value) do
+            example.run
           end
+        end
+
+        context 'with DD_TRACE_PROPAGATION_STYLE_INJECT' do
+          let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE_INJECT' }
 
           context 'is not defined' do
-            let(:environment) { nil }
+            let(:var_value) { nil }
 
             it { is_expected.to eq([Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG]) }
           end
 
           context 'is defined' do
-            let(:environment) { 'Datadog,B3' }
+            let(:var_value) { 'Datadog,b3' }
 
             it do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
             end
+          end
+
+          context 'is set to deprecated style names' do
+            let(:var_value) { 'B3,B3 single header' }
+
+            it 'translates to new names' do
+              is_expected.to eq(
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                ]
+              )
+            end
+          end
+        end
+
+        context 'with deprecated DD_PROPAGATION_STYLE_INJECT' do
+          let(:var_name) { 'DD_PROPAGATION_STYLE_INJECT' }
+
+          context 'is defined' do
+            let(:var_value) { 'Datadog,b3' }
+
+            it do
+              is_expected.to eq(
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                ]
+              )
+            end
+
+            include_examples 'records deprecated action', 'DD_PROPAGATION_STYLE_INJECT environment variable is deprecated'
           end
         end
       end

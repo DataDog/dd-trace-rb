@@ -431,8 +431,8 @@ module Datadog
           #
           # The supported formats are:
           # * `Datadog`: Datadog propagation format, described by [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing).
-          # * `B3`: B3 Propagation using multiple headers, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#multiple-headers).
-          # * `B3 single header`: B3 Propagation using a single header, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#single-header).
+          # * `b3multi`: B3 Propagation using multiple headers, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#multiple-headers).
+          # * `b3`: B3 Propagation using a single header, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#single-header).
           #
           # @public_api
           settings :distributed_tracing do
@@ -442,21 +442,38 @@ module Datadog
             # The tracer will try to find distributed headers in the order they are present in the list provided to this option.
             # The first format to have valid data present will be used.
             #
-            # @default `DD_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
-            #   otherwise `['Datadog','B3','B3 single header']`.
+            # @default `DD_TRACE_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
+            #   otherwise `['Datadog','b3multi','b3']`.
             # @return [Array<String>]
             option :propagation_extract_style do |o|
               o.default do
+                # DEV-2.0: Change default value to `tracecontext, Datadog`.
                 # Look for all headers by default
                 env_to_list(
-                  Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT,
+                  [Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT,
+                   Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT_OLD],
                   [
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                   ],
                   comma_separated_only: true
                 )
+              end
+
+              o.on_set do |styles|
+                # Modernize B3 options
+                # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
+                styles.map! do |style|
+                  case style
+                  when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
+                  when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                  else
+                    style
+                  end
+                end
               end
 
               o.lazy
@@ -467,15 +484,32 @@ module Datadog
             #
             # The tracer will inject data from all styles specified in this option.
             #
-            # @default `DD_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
+            # @default `DD_TRACE_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
             # @return [Array<String>]
             option :propagation_inject_style do |o|
               o.default do
+                # DEV-2.0: Change default value to `tracecontext, Datadog`.
                 env_to_list(
-                  Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT,
+                  [Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT,
+                   Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD],
                   [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG],
                   comma_separated_only: true # Only inject Datadog headers by default
                 )
+              end
+
+              o.on_set do |styles|
+                # Modernize B3 options
+                # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
+                styles.map! do |style|
+                  case style
+                  when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
+                  when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                  else
+                    style
+                  end
+                end
               end
 
               o.lazy
