@@ -693,8 +693,6 @@ static VALUE per_thread_context_st_table_as_ruby_hash(struct cpu_and_wall_time_c
   return result;
 }
 
-#define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
-
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash) {
   VALUE thread = (VALUE) key_thread;
   struct per_thread_context *thread_context = (struct per_thread_context*) value_context;
@@ -723,8 +721,8 @@ static VALUE stats_as_ruby_hash(struct cpu_and_wall_time_collector_state *state)
   // Update this when modifying state struct (stats inner struct)
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
-    ID2SYM(rb_intern("gc_samples")),                               /* => */ INT2NUM(state->stats.gc_samples),
-    ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")), /* => */ INT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
+    ID2SYM(rb_intern("gc_samples")),                               /* => */ UINT2NUM(state->stats.gc_samples),
+    ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")), /* => */ UINT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;

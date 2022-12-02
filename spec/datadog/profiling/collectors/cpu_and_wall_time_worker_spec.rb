@@ -142,6 +142,35 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(samples_for_thread(all_samples, Thread.current)).to_not be_empty
     end
 
+    it(
+      'keeps statistics on how many samples were triggered by the background thread, ' \
+      'as well as how many samples were requested from the VM'
+    ) do
+      start
+
+      all_samples = try_wait_until do
+        serialization_result = recorder.serialize
+        raise 'Unexpected: Serialization failed' unless serialization_result
+
+        samples =
+          samples_from_pprof(serialization_result.last)
+            .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
+
+        samples if samples.any?
+      end
+
+      cpu_and_wall_time_worker.stop
+
+      sample_count =
+        samples_for_thread(all_samples, Thread.current).map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+
+      stats = cpu_and_wall_time_worker.stats
+
+      expect(sample_count).to be > 0
+      expect(stats.fetch(:signal_handler_enqueued_sample)).to be >= sample_count
+      expect(stats.fetch(:trigger_sample_attempts)).to be >= stats.fetch(:signal_handler_enqueued_sample)
+    end
+
     it 'records garbage collection cycles' do
       if RUBY_VERSION.start_with?('3.')
         skip(
@@ -391,6 +420,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       reset_after_fork
+    end
+
+    it 'resets all stats' do
+      cpu_and_wall_time_worker.stop
+
+      reset_after_fork
+
+      expect(cpu_and_wall_time_worker.stats.values).to all be 0
     end
   end
 
