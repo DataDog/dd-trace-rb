@@ -4,6 +4,8 @@ module Datadog
   module Tracing
     module Configuration
       module Ext
+        ENV_ENABLED = 'DD_TRACE_ENABLED'.freeze
+
         # @public_api
         module Analytics
           ENV_TRACE_ANALYTICS_ENABLED = 'DD_TRACE_ANALYTICS_ENABLED'.freeze

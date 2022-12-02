@@ -6,7 +6,6 @@ require 'securerandom'
 require 'logger'
 
 require 'datadog/core/configuration/settings'
-require 'datadog/core/diagnostics/ext'
 require 'datadog/core/environment/ext'
 require 'datadog/core/runtime/ext'
 require 'datadog/core/utils/time'
@@ -64,9 +63,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       it { is_expected.to be false }
 
-      context "when #{Datadog::Core::Diagnostics::Ext::DD_TRACE_DEBUG}" do
+      context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED}" do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Diagnostics::Ext::DD_TRACE_DEBUG => environment) do
+          ClimateControl.modify(Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => environment) do
             example.run
           end
         end
@@ -121,9 +120,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#enabled' do
         subject(:enabled) { settings.diagnostics.health_metrics.enabled }
 
-        context "when #{Datadog::Core::Diagnostics::Ext::Health::Metrics::ENV_ENABLED}" do
+        context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED}" do
           around do |example|
-            ClimateControl.modify(Datadog::Core::Diagnostics::Ext::Health::Metrics::ENV_ENABLED => environment) do
+            ClimateControl.modify(
+              Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED => environment
+            ) do
               example.run
             end
           end
@@ -1074,9 +1075,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       it { is_expected.to be true }
 
-      context "when #{Datadog::Core::Diagnostics::Ext::DD_TRACE_ENABLED}" do
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_ENABLED}" do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Diagnostics::Ext::DD_TRACE_ENABLED => enable) do
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_ENABLED => enable) do
             example.run
           end
         end

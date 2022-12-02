@@ -1,19 +1,14 @@
 # typed: true
 
 module Datadog
-  module Core
+  module Tracing
     module Diagnostics
       # @public_api
       module Ext
-        DD_TRACE_STARTUP_LOGS = 'DD_TRACE_STARTUP_LOGS'.freeze
-        DD_TRACE_DEBUG = 'DD_TRACE_DEBUG'.freeze
-        DD_TRACE_ENABLED = 'DD_TRACE_ENABLED'.freeze
         # Health
         module Health
           # Metrics
           module Metrics
-            ENV_ENABLED = 'DD_HEALTH_METRICS_ENABLED'.freeze
-
             METRIC_API_ERRORS = 'datadog.tracer.api.errors'.freeze
             METRIC_API_REQUESTS = 'datadog.tracer.api.requests'.freeze
             METRIC_API_RESPONSES = 'datadog.tracer.api.responses'.freeze
