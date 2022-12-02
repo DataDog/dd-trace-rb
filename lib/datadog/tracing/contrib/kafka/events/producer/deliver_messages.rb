@@ -23,6 +23,7 @@ module Datadog
                 if payload.key?(:delivered_message_count)
                   span.set_tag(Ext::TAG_DELIVERED_MESSAGE_COUNT, payload[:delivered_message_count])
                 end
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
               end
 
               module_function

@@ -116,6 +116,8 @@ module Datadog
             span.service = service_name(datum[:host], @options)
             span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
+            span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 

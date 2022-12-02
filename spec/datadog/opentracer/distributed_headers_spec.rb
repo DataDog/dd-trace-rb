@@ -15,11 +15,11 @@ RSpec.describe Datadog::OpenTracer::DistributedHeaders do
 
     before do
       allow(carrier).to receive(:[])
-        .with(described_class::HTTP_HEADER_TRACE_ID)
+        .with('x-datadog-trace-id')
         .and_return(trace_id)
 
       allow(carrier).to receive(:[])
-        .with(described_class::HTTP_HEADER_PARENT_ID)
+        .with('x-datadog-parent-id')
         .and_return(parent_id)
     end
 
@@ -50,7 +50,7 @@ RSpec.describe Datadog::OpenTracer::DistributedHeaders do
 
     before do
       allow(carrier).to receive(:[])
-        .with(described_class::HTTP_HEADER_TRACE_ID)
+        .with('x-datadog-trace-id')
         .and_return(value)
     end
 
@@ -85,7 +85,7 @@ RSpec.describe Datadog::OpenTracer::DistributedHeaders do
 
     before do
       allow(carrier).to receive(:[])
-        .with(described_class::HTTP_HEADER_PARENT_ID)
+        .with('x-datadog-parent-id')
         .and_return(value)
     end
 
@@ -120,7 +120,7 @@ RSpec.describe Datadog::OpenTracer::DistributedHeaders do
 
     before do
       allow(carrier).to receive(:[])
-        .with(described_class::HTTP_HEADER_SAMPLING_PRIORITY)
+        .with('x-datadog-sampling-priority')
         .and_return(value)
     end
 

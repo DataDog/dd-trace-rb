@@ -14,10 +14,11 @@
 #else
   // On older Rubies, use a copy of the VM internal headers shipped in the debase-ruby_core_source gem
 
-  // We can't do anything about warnings in VM headers, so we just use this technique to surpress them.
+  // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
   // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
+  #pragma GCC diagnostic ignored "-Wattributes"
     #include <vm_core.h>
   #pragma GCC diagnostic pop
   #include <iseq.h>
@@ -35,7 +36,7 @@
 // if the argument passed in is not actually a `Thread` instance.
 static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
   static const rb_data_type_t *thread_data_type = NULL;
-  if (thread_data_type == NULL) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  if (UNLIKELY(thread_data_type == NULL)) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
 
   return (rb_thread_t *) rb_check_typeddata(thread, thread_data_type);
 }
@@ -46,6 +47,134 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
     return thread_struct_from_object(thread)->nt->thread_id;
   #else
     return thread_struct_from_object(thread)->thread_id;
+  #endif
+}
+
+// Queries if the current thread is the owner of the global VM lock.
+//
+// @ivoanjo: Ruby has a similarly-named `ruby_thread_has_gvl_p` but that API is insufficient for our needs because it can
+// still return `true` even when a thread DOES NOT HAVE the global VM lock.
+// In particular, looking at the implementation, that API assumes that if a thread is not in a "blocking region" then it
+// will have the GVL which is probably true for the situations that API was designed to be called from BUT this assumption
+// does not hold true when calling `ruby_thread_has_gvl_p` from a signal handler. (Because the thread may have lost the
+// GVL due to a scheduler decision, not because it decided to block.)
+// I have also submitted https://bugs.ruby-lang.org/issues/19172 to discuss this with upstream Ruby developers.
+//
+// Thus we need our own gvl-checking method which actually looks at the gvl structure to determine if it is the owner.
+bool is_current_thread_holding_the_gvl(void) {
+  current_gvl_owner owner = gvl_owner();
+  return owner.valid && pthread_equal(pthread_self(), owner.owner);
+}
+
+#ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
+  // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
+  //
+  // While we could potentially grab this lock, I (@ivoanjo) think we actually don't need it because:
+  // * In the case where a thread owns the GVL and calls `gvl_owner`, it will always see the correct value. That's
+  //   because every thread sets itself as the owner when it grabs the GVL and unsets itself at the end.
+  //   That means that `is_current_thread_holding_the_gvl` is always accurate.
+  // * In a case where we observe a different thread, then this may change by the time we do something with this value
+  //   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
+  current_gvl_owner gvl_owner(void) {
+    const rb_thread_t *current_owner =
+      #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
+        GET_RACTOR()->threads.sched.running;
+      #elif HAVE_RUBY_RACTOR_H
+        GET_RACTOR()->threads.gvl.owner;
+      #else
+        GET_VM()->gvl.owner;
+      #endif
+
+    if (current_owner == NULL) return (current_gvl_owner) {.valid = false};
+
+    return (current_gvl_owner) {
+      .valid = true,
+      .owner =
+        #ifndef NO_RB_NATIVE_THREAD
+          current_owner->nt->thread_id
+        #else
+          current_owner->thread_id
+        #endif
+    };
+  }
+#else
+  current_gvl_owner gvl_owner(void) {
+    rb_vm_t *vm =
+      #ifndef NO_GET_VM
+        GET_VM();
+      #else
+        thread_struct_from_object(rb_thread_current())->vm;
+      #endif
+
+    // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
+    // "atomic" -- when a thread sets it, it "declares" two things in a single step
+    // * Declaration 1: Someone has the GVL
+    // * Declaration 2: That someone is the specific thread
+    //
+    // Observation 1: On older versions of Ruby, this ownership concept is actually split. Specifically, `gvl.acquired`
+    // is a boolean that represents declaration 1 above, and `vm->running_thread` (or `ruby_current_thread`/
+    // `ruby_current_execution_context_ptr`) represents declaration 2.
+    //
+    // Observation 2: In addition, when a thread releases the GVL, it only sets `gvl.acquired` back to 0 **BUT CRUCIALLY
+    // DOES NOT CHANGE THE OTHER global variables**.
+    //
+    // Observation 1+2 above lead to the following possible race:
+    // * Thread A grabs the GVL (`gvl.acquired == 1`)
+    // * Thread A sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread A`)
+    // * Thread A releases the GVL (`gvl.acquired == 0` + `running_thread == Thread A`)
+    // * Thread B grabs the GVL (`gvl.acquired == 1` + `running_thread == Thread A`)
+    // * Thread A calls gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
+    //   function returns an incorrect result.
+    // * Thread B finally sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread B`)
+    //
+    // This is especially problematic because we use `gvl_owner` to implement `is_current_thread_holding_the_gvl` which
+    // is called in a signal handler to decide "is it safe for me to call `rb_postponed_job_register_one` or not".
+    // (See constraints in `collectors_cpu_and_wall_time_worker.c` comments for why).
+    //
+    // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
+    //
+    // For this reason we currently do not enable the new Ruby profiler on Ruby 2.5 and below by default, and we print a
+    // warning when customers force-enable it.
+    bool gvl_acquired = vm->gvl.acquired != 0;
+    rb_thread_t *current_owner = vm->running_thread;
+
+    if (!gvl_acquired || current_owner == NULL) return (current_gvl_owner) {.valid = false};
+
+    return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+  }
+#endif // NO_GVL_OWNER
+
+// Taken from upstream vm_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
+// Copyright (C) 2004-2007 Koichi Sasada
+// to support tid_for (see below)
+// Modifications: None
+#if defined(__linux__) || defined(__FreeBSD__)
+# define RB_THREAD_T_HAS_NATIVE_ID
+#endif
+
+uint64_t native_thread_id_for(VALUE thread) {
+  // The tid is only available on Ruby >= 3.1 + Linux (and FreeBSD). It's the same as `gettid()` aka the task id as seen in /proc
+  #if !defined(NO_THREAD_TID) && defined(RB_THREAD_T_HAS_NATIVE_ID)
+    #ifndef NO_RB_NATIVE_THREAD
+      return thread_struct_from_object(thread)->nt->tid;
+    #else
+      return thread_struct_from_object(thread)->tid;
+    #endif
+  #else
+    rb_nativethread_id_t pthread_id = pthread_id_for(thread);
+
+    #ifdef __APPLE__
+      uint64_t result;
+      // On macOS, this gives us the same identifier that shows up in activity monitor
+      int error = pthread_threadid_np(pthread_id, &result);
+      if (error) rb_syserr_fail(error, "Unexpected failure in pthread_threadid_np");
+      return result;
+    #else
+      // Fallback, when we have nothing better (e.g. on Ruby < 3.1 on Linux)
+      // @ivoanjo: In the future we may want to explore some potential hacks to get the actual tid on linux
+      // (e.g. https://stackoverflow.com/questions/558469/how-do-i-get-a-thread-id-from-an-arbitrary-pthread-t )
+      return (uint64_t) pthread_id;
+    #endif
   #endif
 }
 
@@ -93,7 +222,12 @@ VALUE ddtrace_thread_list(void) {
     rb_ractor_t *current_ractor = GET_RACTOR();
     ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
   #else
-    rb_vm_t *vm = thread_struct_from_object(rb_thread_current())->vm;
+    rb_vm_t *vm =
+      #ifndef NO_GET_VM
+        GET_VM();
+      #else
+        thread_struct_from_object(rb_thread_current())->vm;
+      #endif
     list_for_each(&vm->living_threads, thread, vmlt_node) {
   #endif
       switch (thread->status) {
@@ -682,11 +816,27 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
 
 #endif // USE_LEGACY_RB_PROFILE_FRAMES
 
-#ifdef NO_THREAD_HAS_GVL
-int ruby_thread_has_gvl_p(void) {
-  // TODO: The CpuAndWallTimeWorker needs this function, but Ruby 2.2 doesn't expose it... For now this placeholder
-  // will enable the profiling native extension to continue to compile on Ruby 2.2, but the CpuAndWallTimeWorker will
-  // not work properly on 2.2. Will be addressed later.
-  return 0;
-}
-#endif // NO_THREAD_HAS_GVL
+#ifndef NO_RACTORS
+  // This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
+  // repeat it here to be able to use in our code.
+  bool rb_ractor_main_p_(void);
+  extern struct rb_ractor_struct *ruby_single_main_ractor;
+
+  // Taken from upstream ractor_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
+  // to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
+  // Modifications:
+  // * None
+  bool ddtrace_rb_ractor_main_p(void)
+  {
+      if (ruby_single_main_ractor) {
+          return true;
+      }
+      else {
+          return rb_ractor_main_p_();
+      }
+  }
+#else
+  // Simplify callers on older Rubies, instead of having them probe if the VM supports Ractors we just tell them that yes
+  // they're always on the main Ractor
+  bool ddtrace_rb_ractor_main_p(void) { return true; }
+#endif // NO_RACTORS

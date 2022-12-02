@@ -1,7 +1,6 @@
 # typed: true
 
 require_relative 'ext'
-require_relative '../core/utils/compression'
 require_relative 'tag_builder'
 
 module Datadog
@@ -60,16 +59,20 @@ module Datadog
           start: start,
           finish: finish,
           pprof_file_name: Datadog::Profiling::Ext::Transport::HTTP::PPROF_DEFAULT_FILENAME,
-          pprof_data: Datadog::Core::Utils::Compression.gzip(uncompressed_pprof),
+          pprof_data: uncompressed_pprof.to_s,
           code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
-          code_provenance_data:
-            (Datadog::Core::Utils::Compression.gzip(uncompressed_code_provenance) if uncompressed_code_provenance),
+          code_provenance_data: uncompressed_code_provenance,
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
         )
       end
 
       def can_flush?
         !duration_below_threshold?(last_flush_finish_at || created_at, time_provider.now.utc)
+      end
+
+      def reset_after_fork
+        @last_flush_finish_at = time_provider.now.utc
+        nil
       end
 
       private

@@ -35,8 +35,8 @@ RSpec.describe Datadog::Profiling::Exporter do
         code_provenance_file_name: 'code-provenance.json',
         tags_as_array: array_including(%w[language ruby], ['process_id', Process.pid.to_s]),
       )
-      expect(Datadog::Core::Utils::Compression.gunzip(flush.pprof_data)).to eq pprof_data
-      expect(Datadog::Core::Utils::Compression.gunzip(flush.code_provenance_data)).to eq code_provenance_data
+      expect(flush.pprof_data).to eq pprof_data
+      expect(flush.code_provenance_data).to eq code_provenance_data
     end
 
     context 'when pprof recorder has no data' do
@@ -71,6 +71,20 @@ RSpec.describe Datadog::Profiling::Exporter do
       let(:finish) { start + 1 }
 
       it { is_expected.to_not be nil }
+    end
+  end
+
+  describe '#reset_after_fork' do
+    let(:dummy_current_time) { Time.new(2022) }
+    let(:time_provider) { class_double(Time, now: dummy_current_time) }
+    let(:options) { { **super(), time_provider: class_double(Time, now: dummy_current_time) } }
+
+    subject(:reset_after_fork) { exporter.reset_after_fork }
+
+    it { is_expected.to be nil }
+
+    it 'sets the last_flush_finish_at to be the current time' do
+      expect { reset_after_fork }.to change { exporter.send(:last_flush_finish_at) }.from(nil).to(dummy_current_time)
     end
   end
 

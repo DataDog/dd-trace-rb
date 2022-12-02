@@ -41,6 +41,8 @@ module Datadog
 
               request_span.set_tag(Ext::TAG_JOB_BODY, deserialized_msg) if configuration[:tag_body]
 
+              request_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER)
+
               @app.call(deserialized_msg, delivery_info, metadata, handler)
             end
           end

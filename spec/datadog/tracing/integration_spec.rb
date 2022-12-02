@@ -71,6 +71,10 @@ RSpec.describe 'Tracer integration tests' do
     it { expect(sampling_priority).to eq(expected) }
   end
 
+  shared_examples 'sampling decision' do |sampling_decision|
+    it { expect(span.get_tag('_dd.p.dm')).to eq(sampling_decision) }
+  end
+
   after { tracer.shutdown! }
 
   describe 'agent receives span' do
@@ -202,10 +206,6 @@ RSpec.describe 'Tracer integration tests' do
       Datadog.configuration.tracing.sampling.reset!
     end
 
-    shared_examples 'priority sampled' do |sampling_priority|
-      it { expect(@sampling_priority).to eq(sampling_priority) }
-    end
-
     shared_examples 'rule sampling rate metric' do |rate|
       it { expect(@rule_sample_rate).to eq(rate) }
     end
@@ -214,20 +214,30 @@ RSpec.describe 'Tracer integration tests' do
       it { expect(@rate_limiter_rate).to eq(rate) }
     end
 
+    shared_examples 'sampling decision' do |sampling_decision|
+      it { expect(span.get_tag('_dd.p.dm')).to eq(sampling_decision) }
+    end
+
     let!(:trace) do
       tracer.trace_completed.subscribe do |trace|
         @sampling_priority = trace.sampling_priority
         @rule_sample_rate = trace.rule_sample_rate
         @rate_limiter_rate = trace.rate_limiter_rate
+        @span = trace.spans[0]
       end
 
       tracer.trace('my.op').finish
+
+      try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
 
       tracer.shutdown!
     end
 
     let(:stats) { tracer.writer.stats }
     let(:sampler) { Datadog::Tracing::Sampling::PrioritySampler.new(post_sampler: rule_sampler) }
+    let(:sampling_priority) { @sampling_priority }
+    let(:local_root_span) { trace_segments[0].spans.find { |x| x.parent_id == 0 } }
+    let(:span) { local_root_span }
 
     context 'with default settings' do
       let(:sampler) { nil }
@@ -236,12 +246,13 @@ RSpec.describe 'Tracer integration tests' do
       it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
       it_behaves_like 'rule sampling rate metric', nil
       it_behaves_like 'rate limit metric', nil
+      it_behaves_like 'sampling decision', '-0'
 
       context 'with default fallback RateByServiceSampler throttled to 0% sampling rate' do
         let!(:trace) do
           # Force configuration before span is traced
           # DEV: Use MIN because 0.0 is "auto-corrected" to 1.0
-          tracer.sampler.update('service:,env:' => Float::MIN)
+          tracer.sampler.update({ 'service:,env:' => Float::MIN })
 
           super()
         end
@@ -263,6 +274,7 @@ RSpec.describe 'Tracer integration tests' do
       it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
       it_behaves_like 'rule sampling rate metric', 1.0
       it_behaves_like 'rate limit metric', 1.0
+      it_behaves_like 'sampling decision', '-3'
     end
 
     context 'with low default sample rate' do
@@ -272,6 +284,7 @@ RSpec.describe 'Tracer integration tests' do
       it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
       it_behaves_like 'rule sampling rate metric', Float::MIN
       it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
+      it_behaves_like 'sampling decision', nil
     end
 
     context 'with rule' do
@@ -285,6 +298,7 @@ RSpec.describe 'Tracer integration tests' do
         it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
         it_behaves_like 'rule sampling rate metric', 1.0
         it_behaves_like 'rate limit metric', 1.0
+        it_behaves_like 'sampling decision', '-3'
 
         context 'with low sample rate' do
           let(:rule) { Datadog::Tracing::Sampling::SimpleRule.new(sample_rate: Float::MIN) }
@@ -293,6 +307,7 @@ RSpec.describe 'Tracer integration tests' do
           it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
           it_behaves_like 'rule sampling rate metric', Float::MIN
           it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
+          it_behaves_like 'sampling decision', nil
         end
 
         context 'rate limited' do
@@ -302,6 +317,7 @@ RSpec.describe 'Tracer integration tests' do
           it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
           it_behaves_like 'rule sampling rate metric', 1.0
           it_behaves_like 'rate limit metric', 0.0
+          it_behaves_like 'sampling decision', nil
         end
       end
 
@@ -313,6 +329,7 @@ RSpec.describe 'Tracer integration tests' do
         it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
         it_behaves_like 'rule sampling rate metric', nil
         it_behaves_like 'rate limit metric', nil
+        it_behaves_like 'sampling decision', '-0'
       end
     end
   end
@@ -341,11 +358,10 @@ RSpec.describe 'Tracer integration tests' do
       WebMock.enable!
 
       trace # Run test subject
-      tracer.shutdown! # Ensure trace is flushed, so we can read writer statistics
+      wait_for_flush
     end
 
-    let(:trace_segments) { [] }
-
+    let(:wait_for_flush) { try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 } }
     let(:trace_op) { @trace_op }
     let(:stats) { tracer.writer.stats }
 
@@ -361,6 +377,10 @@ RSpec.describe 'Tracer integration tests' do
       trace_segments[0].spans
     end
 
+    let(:local_root_span) do
+      spans.find { |x| x.parent_id == 0 } || spans[0]
+    end
+
     let(:single_sampled_span) do
       single_sampled_spans = spans.select { |s| s.name == 'single.sampled_span' }
       expect(single_sampled_spans).to have(1).item
@@ -373,10 +393,14 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     shared_examples 'does not modify spans' do
-      it do
+      it 'does not modify span sampling tags' do
         expect(spans).to_not include(have_tag('_dd.span_sampling.mechanism'))
         expect(spans).to_not include(have_tag('_dd.span_sampling.rule_rate'))
         expect(spans).to_not include(have_tag('_dd.span_sampling.max_per_second'))
+      end
+
+      it 'trace sampling decision is not set to simple span sampling' do
+        expect(local_root_span.get_tag('_dd.p.dm')).to_not eq('-8')
       end
     end
 
@@ -385,6 +409,7 @@ RSpec.describe 'Tracer integration tests' do
         expect(single_sampled_span.get_metric('_dd.span_sampling.mechanism')).to eq(8)
         expect(single_sampled_span.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
         expect(single_sampled_span.get_metric('_dd.span_sampling.max_per_second')).to eq(-1)
+        expect(local_root_span.get_tag('_dd.p.dm')).to eq('-8')
       end
     end
 
@@ -430,7 +455,7 @@ RSpec.describe 'Tracer integration tests' do
           context 'with a kept span' do
             let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
 
-            it_behaves_like 'flushed complete trace'
+            # it_behaves_like 'flushed complete trace'
             it_behaves_like 'set single span sampling tags'
           end
         end
@@ -450,6 +475,8 @@ RSpec.describe 'Tracer integration tests' do
 
         context 'with rule matching' do
           context 'with a dropped span' do
+            let(:wait_for_flush) {} # No spans will be flushed with direct sampling drops
+
             context 'by sampling rate' do
               let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
 
@@ -613,7 +640,7 @@ RSpec.describe 'Tracer integration tests' do
       let(:set_agent_rates!) do
         # Send span to receive response from "agent" with mocked service rates above.
         tracer.trace('send_trace_to_fetch_service_rates') {}
-        try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
 
         # Reset stats and collected segments before test starts
         tracer.writer.send(:reset_stats!)
@@ -630,6 +657,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           it_behaves_like 'priority sampled', 1.0
+          it_behaves_like 'sampling decision', '-1'
         end
 
         context 'with a dropped span' do
@@ -639,6 +667,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           it_behaves_like 'priority sampled', 0.0
+          it_behaves_like 'sampling decision', nil
         end
       end
 
@@ -662,15 +691,90 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           it_behaves_like 'priority sampled', 1.0
+          it_behaves_like 'sampling decision', '-1'
         end
 
         context 'with a span not matching the environment rates' do
           before do
-            tracer.trace('kept.span', service: 'kept', tags: { 'env' => 'not-right' }) {}
+            Datadog.configure { |c| c.env = 'not-matching' }
+
+            tracer.trace('kept.span', service: 'kept') {}
             try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
           end
 
           it_behaves_like 'priority sampled', 1.0
+          it_behaves_like 'sampling decision', '-0'
+        end
+      end
+    end
+  end
+
+  describe 'manual sampling' do
+    include_context 'agent-based test'
+
+    context 'with a kept trace' do
+      before do
+        tracer.trace('span') { |_, trace| trace.keep! }
+        try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+      end
+
+      it_behaves_like 'priority sampled', 2.0
+      it_behaves_like 'sampling decision', '-4'
+    end
+
+    context 'with a rejected trace' do
+      it 'drops trace at application side' do
+        expect(tracer.writer).to_not receive(:write)
+
+        tracer.trace('span') { |_, trace| trace.reject! }
+      end
+    end
+
+    context 'with a custom sampler class' do
+      before do
+        Datadog.configure do |c|
+          c.tracing.sampler = custom_sampler
+        end
+      end
+
+      let(:custom_sampler) do
+        instance_double(Datadog::Tracing::Sampling::Sampler, sample?: sample, sample!: sample, sample_rate: double)
+      end
+
+      context 'that accepts a span' do
+        let(:sample) { true }
+
+        before do
+          tracer.trace('span') {}
+          try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+        end
+
+        it_behaves_like 'priority sampled', 1.0
+
+        # DEV: the `custom_sampler` is configured as a `pre_sampler` in the PrioritySampler.
+        # When `custom_sampler` returns `trace.sampled? == true`, the `post_sampler` is
+        # still consulted. This is unlikely to be the desired behaviour when a user configures
+        # `c.tracing.sampler = custom_sampler`.
+        # In practice, the `custom_sampler` can reject traces (`trace.sampled? == false`),
+        # but accepting them does not actually change the default sampler's behavior.
+        # Changing this is a breaking change.
+        it_behaves_like 'sampling decision', '-0' # This is incorrect. -4 (MANUAL) is the correct value.
+        it_behaves_like 'sampling decision', '-4' do
+          before do
+            pending(
+              'A custom sampler consults PrioritySampler#post_sampler for the final sampling decision. ' \
+              'This is incorrect, as a custom sampler should allow complete control of the sampling decision.'
+            )
+          end
+        end
+      end
+
+      context 'that rejects a span' do
+        let(:sample) { false }
+        it 'drops trace at application side' do
+          expect(tracer.writer).to_not receive(:write)
+
+          tracer.trace('span') {}
         end
       end
     end
@@ -752,7 +856,7 @@ RSpec.describe 'Tracer integration tests' do
 
       # Verify priority sampler is configured and rates are updated
       expect(tracer.sampler).to receive(:update)
-        .with(kind_of(Hash))
+        .with(kind_of(Hash), decision: '-1')
         .and_call_original
         .at_least(1).time
     end
@@ -778,6 +882,8 @@ RSpec.describe 'Tracer integration tests' do
   end
 
   describe 'tracer transport' do
+    include_context 'agent-based test'
+
     subject(:configure) do
       Datadog.configure do |c|
         c.agent.host = hostname
@@ -786,7 +892,6 @@ RSpec.describe 'Tracer integration tests' do
       end
     end
 
-    let(:tracer) { Datadog::Tracing.send(:tracer) }
     let(:hostname) { double('hostname') }
     let(:port) { 34567 }
 

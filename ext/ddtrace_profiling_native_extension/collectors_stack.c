@@ -22,13 +22,37 @@ struct sampling_buffer {
   VALUE *stack_buffer;
   int *lines_buffer;
   bool *is_ruby_frame;
-  ddprof_ffi_Location *locations;
-  ddprof_ffi_Line *lines;
+  ddog_Location *locations;
+  ddog_Line *lines;
 }; // Note: typedef'd in the header to sampling_buffer
 
-static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames);
+static VALUE _native_sample(
+  VALUE self,
+  VALUE thread,
+  VALUE recorder_instance,
+  VALUE metric_values_hash,
+  VALUE labels_array,
+  VALUE max_frames,
+  VALUE in_gc
+);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
-static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
+static void record_placeholder_stack_in_native_code(
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  ddog_Slice_i64 metric_values,
+  ddog_Slice_label labels,
+  sampling_buffer *record_buffer,
+  int extra_frames_in_record_buffer
+);
+static void sample_thread_internal(
+  VALUE thread,
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  ddog_Slice_i64 metric_values,
+  ddog_Slice_label labels,
+  sampling_buffer *record_buffer,
+  int extra_frames_in_record_buffer
+);
 
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -36,7 +60,7 @@ void collectors_stack_init(VALUE profiling_module) {
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
 
-  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 5);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 6);
 
   missing_string = rb_str_new2("");
   rb_global_variable(&missing_string);
@@ -44,7 +68,15 @@ void collectors_stack_init(VALUE profiling_module) {
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames) {
+static VALUE _native_sample(
+  DDTRACE_UNUSED VALUE _self,
+  VALUE thread,
+  VALUE recorder_instance,
+  VALUE metric_values_hash,
+  VALUE labels_array,
+  VALUE max_frames,
+  VALUE in_gc
+) {
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
 
@@ -64,12 +96,12 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE reco
   }
 
   long labels_count = RARRAY_LEN(labels_array);
-  ddprof_ffi_Label labels[labels_count];
+  ddog_Label labels[labels_count];
 
   for (int i = 0; i < labels_count; i++) {
     VALUE key_str_pair = rb_ary_entry(labels_array, i);
 
-    labels[i] = (ddprof_ffi_Label) {
+    labels[i] = (ddog_Label) {
       .key = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 0)),
       .str = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 1))
     };
@@ -84,8 +116,9 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE reco
     thread,
     buffer,
     recorder_instance,
-    (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-    (ddprof_ffi_Slice_label) {.ptr = labels, .len = labels_count}
+    (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+    (ddog_Slice_label) {.ptr = labels, .len = labels_count},
+    RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
   );
 
   sampling_buffer_free(buffer);
@@ -93,7 +126,77 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE reco
   return Qtrue;
 }
 
-void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
+void sample_thread(
+  VALUE thread,
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  ddog_Slice_i64 metric_values,
+  ddog_Slice_label labels,
+  sample_type type
+) {
+  // Samples thread into recorder
+  if (type == SAMPLE_REGULAR) {
+    sampling_buffer *record_buffer = buffer;
+    int extra_frames_in_record_buffer = 0;
+    sample_thread_internal(thread, buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+    return;
+  }
+
+  // Samples thread into recorder, including as a top frame in the stack a frame named "Garbage Collection"
+  if (type == SAMPLE_IN_GC) {
+    ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
+    ddog_CharSlice function_filename = DDOG_CHARSLICE_C("Garbage Collection");
+    buffer->lines[0] = (ddog_Line) {
+      .function = (ddog_Function) {.name = function_name, .filename = function_filename},
+      .line = 0
+    };
+    // To avoid changing sample_thread_internal, we just prepare a new buffer struct that uses the same underlying storage as the
+    // original buffer, but has capacity one less, so that we can keep the above Garbage Collection frame untouched.
+    sampling_buffer thread_in_gc_buffer = (struct sampling_buffer) {
+      .max_frames = buffer->max_frames - 1,
+      .stack_buffer = buffer->stack_buffer + 1,
+      .lines_buffer = buffer->lines_buffer + 1,
+      .is_ruby_frame = buffer->is_ruby_frame + 1,
+      .locations = buffer->locations + 1,
+      .lines = buffer->lines + 1
+    };
+    sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
+    int extra_frames_in_record_buffer = 1;
+    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+    return;
+  }
+
+  rb_raise(rb_eArgError, "Unexpected value for sample_type: %d", type);
+}
+
+// Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads
+// could continue making progress while the sample was ingested into the profile.
+//
+// Other things to take into consideration if we go in that direction:
+// * Is it safe to call `rb_profile_frame_...` methods on things from the `stack_buffer` without the GVL acquired?
+// * We need to make `VALUE` references in the `stack_buffer` visible to the Ruby GC
+// * Should we move this into a different thread entirely?
+// * If we don't move it into a different thread, does releasing the GVL on a Ruby thread mean that we're introducing
+//   a new thread switch point where there previously was none?
+//
+// ---
+//
+// Why the weird extra record_buffer and extra_frames_in_record_buffer?
+// The answer is: to support both sample_thread() and sample_thread_in_gc().
+//
+// For sample_thread(), buffer == record_buffer and extra_frames_in_record_buffer == 0, so it's a no-op.
+// For sample_thread_in_gc(), the buffer is a special buffer that is the same as the record_buffer, but with every
+// pointer shifted forward extra_frames_in_record_buffer elements, so that the caller can actually inject those extra
+// frames, and this function doesn't have to care about it.
+static void sample_thread_internal(
+  VALUE thread,
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  ddog_Slice_i64 metric_values,
+  ddog_Slice_label labels,
+  sampling_buffer *record_buffer,
+  int extra_frames_in_record_buffer
+) {
   int captured_frames = ddtrace_rb_profile_frames(
     thread,
     0 /* stack starting depth */,
@@ -103,15 +206,17 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
     buffer->is_ruby_frame
   );
 
-  // Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads
-  // could continue making progress while the sample was ingested into the profile.
-  //
-  // Other things to take into consideration if we go in that direction:
-  // * Is it safe to call `rb_profile_frame_...` methods on things from the `stack_buffer` without the GVL acquired?
-  // * We need to make `VALUE` references in the `stack_buffer` visible to the Ruby GC
-  // * Should we move this into a different thread entirely?
-  // * If we don't move it into a different thread, does releasing the GVL on a Ruby thread mean that we're introducing
-  //   a new thread switch point where there previously was none?
+  if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
+    record_placeholder_stack_in_native_code(
+      buffer,
+      recorder_instance,
+      metric_values,
+      labels,
+      record_buffer,
+      extra_frames_in_record_buffer
+    );
+    return;
+  }
 
   // Ruby does not give us path and line number for methods implemented using native code.
   // The convention in Kernel#caller_locations is to instead use the path and line number of the first Ruby frame
@@ -120,11 +225,6 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
   // (This is why we also iterate the sampling buffers backwards below -- so that it's easier to keep the last_ruby_frame)
   VALUE last_ruby_frame = Qnil;
   int last_ruby_line = 0;
-
-  if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
-    record_placeholder_stack_in_native_code(recorder_instance, metric_values, labels);
-    return;
-  }
 
   for (int i = captured_frames - 1; i >= 0; i--) {
     VALUE name, filename;
@@ -157,15 +257,13 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
     name = NIL_P(name) ? missing_string : name;
     filename = NIL_P(filename) ? missing_string : filename;
 
-    buffer->lines[i] = (ddprof_ffi_Line) {
-      .function = (ddprof_ffi_Function) {
+    buffer->lines[i] = (ddog_Line) {
+      .function = (ddog_Function) {
         .name = char_slice_from_ruby_string(name),
         .filename = char_slice_from_ruby_string(filename)
       },
       .line = line,
     };
-
-    buffer->locations[i] = (ddprof_ffi_Location) {.lines = (ddprof_ffi_Slice_line) {.ptr = &buffer->lines[i], .len = 1}};
   }
 
   // Used below; since we want to stack-allocate this, we must do it here rather than in maybe_add_placeholder_frames_omitted
@@ -180,8 +278,8 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
 
   record_sample(
     recorder_instance,
-    (ddprof_ffi_Sample) {
-      .locations = (ddprof_ffi_Slice_location) {.ptr = buffer->locations, .len = captured_frames},
+    (ddog_Sample) {
+      .locations = (ddog_Slice_location) {.ptr = record_buffer->locations, .len = captured_frames + extra_frames_in_record_buffer},
       .values = metric_values,
       .labels = labels,
     }
@@ -201,11 +299,10 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 
   // Important note: `frames_omitted_message` MUST have a lifetime that is at least as long as the call to
   // `record_sample`. So be careful where it gets allocated. (We do have tests for this, at least!)
-  buffer->lines[buffer->max_frames - 1] = (ddprof_ffi_Line) {
-    .function = (ddprof_ffi_Function) {
-      .name = DDPROF_FFI_CHARSLICE_C(""),
-      .filename = ((ddprof_ffi_CharSlice) {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)})
-    },
+  ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
+  ddog_CharSlice function_filename = {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)};
+  buffer->lines[buffer->max_frames - 1] = (ddog_Line) {
+    .function = (ddog_Function) {.name = function_name, .filename = function_filename},
     .line = 0,
   };
 }
@@ -230,21 +327,25 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 //
 // To give customers visibility into these threads, rather than reporting an empty stack, we replace the empty stack
 // with one containing a placeholder frame, so that these threads are properly represented in the UX.
-static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
-  ddprof_ffi_Line placeholder_stack_in_native_code_line = {
-    .function = (ddprof_ffi_Function) {
-      .name = DDPROF_FFI_CHARSLICE_C(""),
-      .filename = DDPROF_FFI_CHARSLICE_C("In native code")
-    },
+static void record_placeholder_stack_in_native_code(
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  ddog_Slice_i64 metric_values,
+  ddog_Slice_label labels,
+  sampling_buffer *record_buffer,
+  int extra_frames_in_record_buffer
+) {
+  ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
+  ddog_CharSlice function_filename = DDOG_CHARSLICE_C("In native code");
+  buffer->lines[0] = (ddog_Line) {
+    .function = (ddog_Function) {.name = function_name, .filename = function_filename},
     .line = 0
   };
-  ddprof_ffi_Location placeholder_stack_in_native_code_location =
-    {.lines = (ddprof_ffi_Slice_line) {.ptr = &placeholder_stack_in_native_code_line, .len = 1}};
 
   record_sample(
     recorder_instance,
-    (ddprof_ffi_Sample) {
-      .locations = (ddprof_ffi_Slice_location) {.ptr = &placeholder_stack_in_native_code_location, .len = 1},
+    (ddog_Sample) {
+      .locations = (ddog_Slice_location) {.ptr = record_buffer->locations, .len = 1 + extra_frames_in_record_buffer},
       .values = metric_values,
       .labels = labels,
     }
@@ -263,8 +364,15 @@ sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
   buffer->stack_buffer  = ruby_xcalloc(max_frames, sizeof(VALUE));
   buffer->lines_buffer  = ruby_xcalloc(max_frames, sizeof(int));
   buffer->is_ruby_frame = ruby_xcalloc(max_frames, sizeof(bool));
-  buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddprof_ffi_Location));
-  buffer->lines         = ruby_xcalloc(max_frames, sizeof(ddprof_ffi_Line));
+  buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddog_Location));
+  buffer->lines         = ruby_xcalloc(max_frames, sizeof(ddog_Line));
+
+  // Currently we have a 1-to-1 correspondence between lines and locations, so we just initialize the locations once
+  // here and then only mutate the contents of the lines.
+  for (unsigned int i = 0; i < max_frames; i++) {
+    ddog_Slice_line lines = (ddog_Slice_line) {.ptr = &buffer->lines[i], .len = 1};
+    buffer->locations[i] = (ddog_Location) {.lines = lines};
+  }
 
   return buffer;
 }

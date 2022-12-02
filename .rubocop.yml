@@ -21,6 +21,7 @@ AllCops:
     - 'lib/datadog/**/vendor/**/*.rb'
     - 'integration/apps/*/bin/*'
     - 'integration/apps/*/Gemfile'
+    - 'integration/apps/hanami/Rakefile'
     - 'lib/datadog/profiling/pprof/pprof_pb.rb'
     - 'spec/**/**/interesting_backtrace_helper.rb' # This file needs quite a few bizarre code patterns by design
   NewCops: disable # Don't allow new cops to be enabled implicitly.
@@ -61,7 +62,7 @@ Style/NumericLiterals:
   Enabled: false
 
 Metrics/ClassLength:
-  Max: 140
+  Enabled: false
 
 Metrics/BlockLength:
   Max: 42
@@ -70,8 +71,7 @@ Metrics/BlockLength:
     - spec/**/*
 
 Metrics/ModuleLength:
-  Exclude:
-    - spec/**/*
+  Enabled: false
 
 Metrics/ParameterLists:
   Enabled: false
@@ -104,6 +104,11 @@ Style/GuardClause:
 # Case equality is not intrinsically problematic.
 Style/CaseEquality:
   Enabled: false
+
+# Tests don't need strict string concatenation rules.
+Style/StringConcatenation:
+  Exclude:
+    - spec/**/*
 
 # New cops since Rubocop 1.0.
 # We have to explicitly opt-in for new cops to apply

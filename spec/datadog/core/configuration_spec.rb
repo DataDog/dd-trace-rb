@@ -372,7 +372,7 @@ RSpec.describe Datadog::Core::Configuration do
       subject(:configure_onto) { test_class.configure_onto(object, **options) }
 
       let(:object) { Object.new }
-      let(:options) { {} }
+      let(:options) { { any: :thing } }
 
       it 'attaches a pin to the object' do
         expect(Datadog::Core::Pin)

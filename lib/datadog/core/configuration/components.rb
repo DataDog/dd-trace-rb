@@ -18,7 +18,6 @@ module Datadog
   module Core
     module Configuration
       # Global components for the trace library.
-      # rubocop:disable Metrics/ClassLength
       class Components
         class << self
           def build_health_metrics(settings)
@@ -184,7 +183,7 @@ module Datadog
 
               Datadog.logger.debug { "Agent service rates updated:#{response.service_rates}" }
 
-              sampler.update(response.service_rates)
+              sampler.update(response.service_rates, decision: Tracing::Sampling::Ext::Decision::AGENT_RATE)
             end
           end
 
@@ -251,10 +250,14 @@ module Datadog
             # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
             if settings.profiling.advanced.force_enable_new_profiler
+              print_new_profiler_warnings
+
               recorder = Datadog::Profiling::StackRecorder.new
               collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
                 recorder: recorder,
-                max_frames: settings.profiling.advanced.max_frames
+                max_frames: settings.profiling.advanced.max_frames,
+                tracer: tracer,
+                gc_profiling_enabled: should_enable_gc_profiling?(settings)
               )
             else
               trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
@@ -323,24 +326,45 @@ module Datadog
 
           def build_profiler_transport(settings, agent_settings)
             settings.profiling.exporter.transport ||
-              if settings.profiling.advanced.legacy_transport_enabled
-                require_relative '../../profiling/transport/http'
-
-                Datadog.logger.warn('Using legacy profiling transport. Do not use unless instructed to by support.')
-
-                Profiling::Transport::HTTP.default(
-                  agent_settings: agent_settings,
-                  site: settings.site,
-                  api_key: settings.api_key,
-                  profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds
-                )
-              end ||
               Profiling::HttpTransport.new(
                 agent_settings: agent_settings,
                 site: settings.site,
                 api_key: settings.api_key,
                 upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
               )
+          end
+
+          def should_enable_gc_profiling?(settings)
+            return true if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3')
+
+            # See comments on the setting definition for more context on why it exists.
+            if settings.profiling.advanced.force_enable_gc_profiling
+              Datadog.logger.debug(
+                'Profiling time/resources spent in Garbage Collection force enabled. Do not use Ractors in combination ' \
+                'with this option as profiles will be incomplete.'
+              )
+
+              true
+            else
+              false
+            end
+          end
+
+          def print_new_profiler_warnings
+            if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+              Datadog.logger.warn(
+                'New Ruby profiler has been force-enabled. This feature is in alpha state. Please report any issues ' \
+                'you run into via <https://github.com/datadog/dd-trace-rb/issues/new>!'
+              )
+            else
+              # For more details on the issue, see the "BIG Issue" comment on `gvl_owner` function in
+              # `private_vm_api_access.c`.
+              Datadog.logger.warn(
+                'New Ruby profiler has been force-enabled on a legacy Ruby version (< 2.6). This is not recommended in ' \
+                'production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes in very ' \
+                'rare situations. Please report any issues you run into via <https://github.com/datadog/dd-trace-rb/issues/new>!'
+              )
+            end
           end
         end
 
@@ -433,7 +457,6 @@ module Datadog
           telemetry.emit_closing! unless replacement
         end
       end
-      # rubocop:enable Metrics/ClassLength
     end
   end
 end

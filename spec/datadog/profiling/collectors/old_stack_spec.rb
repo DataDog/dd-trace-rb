@@ -764,4 +764,14 @@ RSpec.describe Datadog::Profiling::Collectors::OldStack do
       end
     end
   end
+
+  describe '#reset_after_fork' do
+    subject(:reset_after_fork) { collector.reset_after_fork }
+
+    it 'resets the recorder' do
+      expect(recorder).to receive(:reset_after_fork)
+
+      reset_after_fork
+    end
+  end
 end

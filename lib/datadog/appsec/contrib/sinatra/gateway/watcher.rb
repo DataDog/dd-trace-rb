@@ -11,11 +11,11 @@ module Datadog
     module Contrib
       module Sinatra
         module Gateway
-          # Watcher for Rails gateway events
+          # Watcher for Sinatra gateway events
           module Watcher
             # rubocop:disable Metrics/MethodLength
             def self.watch
-              Instrumentation.gateway.watch('sinatra.request.dispatch') do |stack, request|
+              Instrumentation.gateway.watch('sinatra.request.dispatch', :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
@@ -24,23 +24,24 @@ module Datadog
                   trace = active_trace
                   span = active_span
 
-                  Rack::Reactive::RequestBody.subscribe(op, waf_context) do |action, result, _block|
-                    record = [:block, :monitor].include?(action)
-                    if record
+                  Rack::Reactive::RequestBody.subscribe(op, waf_context) do |result, _block|
+                    if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
                         trace: trace,
                         span: span,
                         request: request,
-                        action: action
+                        actions: result.actions
                       }
+
+                      span.set_tag('appsec.event', 'true') if span
 
                       waf_context.events << event
                     end
                   end
 
-                  _action, _result, block = Rack::Reactive::RequestBody.publish(op, request)
+                  _result, block = Rack::Reactive::RequestBody.publish(op, request)
                 end
 
                 next [nil, [[:block, event]]] if block
@@ -55,7 +56,7 @@ module Datadog
                 [ret, res]
               end
 
-              Instrumentation.gateway.watch('sinatra.request.routed') do |stack, (request, route_params)|
+              Instrumentation.gateway.watch('sinatra.request.routed', :appsec) do |stack, (request, route_params)|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
@@ -64,23 +65,24 @@ module Datadog
                   trace = active_trace
                   span = active_span
 
-                  Sinatra::Reactive::Routed.subscribe(op, waf_context) do |action, result, _block|
-                    record = [:block, :monitor].include?(action)
-                    if record
+                  Sinatra::Reactive::Routed.subscribe(op, waf_context) do |result, _block|
+                    if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
                         trace: trace,
                         span: span,
                         request: request,
-                        action: action
+                        actions: result.actions
                       }
+
+                      span.set_tag('appsec.event', 'true') if span
 
                       waf_context.events << event
                     end
                   end
 
-                  _action, _result, block = Sinatra::Reactive::Routed.publish(op, [request, route_params])
+                  _result, block = Sinatra::Reactive::Routed.publish(op, [request, route_params])
                 end
 
                 next [nil, [[:block, event]]] if block

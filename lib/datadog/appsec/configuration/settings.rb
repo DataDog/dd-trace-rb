@@ -5,7 +5,6 @@ module Datadog
     module Configuration
       # Configuration settings, acting as an integration registry
       # TODO: as with Configuration, this is a trivial implementation
-      # rubocop:disable Metrics/ClassLength
       class Settings
         class << self
           def boolean
@@ -129,6 +128,12 @@ module Datadog
           @options[:ruleset]
         end
 
+        # EXPERIMENTAL: This configurable is not meant to be publicly used, but
+        #               is very useful for testing. It may change at any point in time.
+        def ip_denylist
+          @options[:ip_denylist]
+        end
+
         def waf_timeout
           @options[:waf_timeout]
         end
@@ -188,7 +193,6 @@ module Datadog
           initialize
         end
       end
-      # rubocop:enable Metrics/ClassLength
     end
   end
 end

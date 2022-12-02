@@ -3,6 +3,7 @@
 require 'logger'
 
 require_relative 'base'
+require_relative 'ext'
 require_relative '../environment/ext'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
@@ -15,7 +16,6 @@ module Datadog
       # Global configuration settings for the trace library.
       # @public_api
       # rubocop:disable Metrics/BlockLength
-      # rubocop:disable Metrics/ClassLength
       # rubocop:disable Layout/LineLength
       class Settings
         include Base
@@ -100,7 +100,7 @@ module Datadog
           # @default `DD_TRACE_DEBUG` environment variable, otherwise `false`
           # @return [Boolean]
           option :debug do |o|
-            o.default { env_to_bool(Datadog::Core::Diagnostics::Ext::DD_TRACE_DEBUG, false) }
+            o.default { env_to_bool(Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED, false) }
             o.lazy
             o.on_set do |enabled|
               # Enable rich debug print statements.
@@ -111,7 +111,6 @@ module Datadog
 
           # Internal {Datadog::Statsd} metrics collection.
           #
-          # The list of metrics collected can be found in {Datadog::Core::Diagnostics::Ext::Health::Metrics}.
           # @public_api
           settings :health_metrics do
             # Enable health metrics collection.
@@ -119,7 +118,7 @@ module Datadog
             # @default `DD_HEALTH_METRICS_ENABLED` environment variable, otherwise `false`
             # @return [Boolean]
             option :enabled do |o|
-              o.default { env_to_bool(Datadog::Core::Diagnostics::Ext::Health::Metrics::ENV_ENABLED, false) }
+              o.default { env_to_bool(Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED, false) }
               o.lazy
             end
 
@@ -145,7 +144,7 @@ module Datadog
             # @return [Boolean,nil]
             option :enabled do |o|
               # Defaults to nil as we want to know when the default value is being used
-              o.default { env_to_bool(Datadog::Core::Diagnostics::Ext::DD_TRACE_STARTUP_LOGS, nil) }
+              o.default { env_to_bool(Datadog::Core::Configuration::Ext::Diagnostics::ENV_STARTUP_LOGS_ENABLED, nil) }
               o.lazy
             end
           end
@@ -235,11 +234,17 @@ module Datadog
             # categorization of stack traces.
             option :code_provenance_enabled, default: true
 
-            # Use legacy transport code instead of HttpTransport. Temporarily added for migration to HttpTransport,
-            # and will be removed soon. Do not use unless instructed to by support.
+            # No longer does anything, and will be removed on dd-trace-rb 2.0.
+            #
+            # This was added as a temporary support option in case of issues with the new `Profiling::HttpTransport` class
+            # but we're now confident it's working nicely so we've removed the old code path.
             option :legacy_transport_enabled do |o|
-              o.default { env_to_bool('DD_PROFILING_LEGACY_TRANSPORT_ENABLED', false) }
-              o.lazy
+              o.on_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.legacy_transport_enabled setting has been deprecated for removal and no ' \
+                  'longer does anything. Please remove it from your Datadog.configure block.'
+                )
+              end
             end
 
             # Forces enabling the new profiler. We do not yet recommend turning on this option.
@@ -249,6 +254,25 @@ module Datadog
             # This option will be deprecated for removal once the new profiler gets enabled by default for all customers.
             option :force_enable_new_profiler do |o|
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_NEW', false) }
+              o.lazy
+            end
+
+            # Forces enabling of profiling of time/resources spent in Garbage Collection.
+            #
+            # Note that setting this to "false" (or not setting it) will not prevent the feature from being
+            # being automatically enabled in the future.
+            #
+            # This toggle was added because, although this feature is safe and enabled by default on Ruby 2.x,
+            # on Ruby 3.x it can break in applications that make use of Ractors due to two Ruby VM bugs:
+            # https://bugs.ruby-lang.org/issues/19112 AND https://bugs.ruby-lang.org/issues/18464.
+            #
+            # If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
+            # feature is fully safe to enable and this toggle can be used to do so.
+            #
+            # We expect that once the above issue is patched, we'll automatically re-enable the feature on fixed Ruby
+            # versions.
+            option :force_enable_gc_profiling do |o|
+              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
               o.lazy
             end
           end
@@ -324,8 +348,8 @@ module Datadog
 
             # Parse tags from environment
             env_to_list(Core::Environment::Ext::ENV_TAGS, comma_separated_only: false).each do |tag|
-              pair = tag.split(':')
-              tags[pair.first] = pair.last if pair.length == 2
+              key, value = tag.split(':', 2)
+              tags[key] = value if value && !value.empty?
             end
 
             # Override tags if defined
@@ -407,8 +431,8 @@ module Datadog
           #
           # The supported formats are:
           # * `Datadog`: Datadog propagation format, described by [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing).
-          # * `B3`: B3 Propagation using multiple headers, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#multiple-headers).
-          # * `B3 single header`: B3 Propagation using a single header, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#single-header).
+          # * `b3multi`: B3 Propagation using multiple headers, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#multiple-headers).
+          # * `b3`: B3 Propagation using a single header, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#single-header).
           #
           # @public_api
           settings :distributed_tracing do
@@ -418,21 +442,38 @@ module Datadog
             # The tracer will try to find distributed headers in the order they are present in the list provided to this option.
             # The first format to have valid data present will be used.
             #
-            # @default `DD_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
-            #   otherwise `['Datadog','B3','B3 single header']`.
+            # @default `DD_TRACE_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
+            #   otherwise `['Datadog','b3multi','b3']`.
             # @return [Array<String>]
             option :propagation_extract_style do |o|
               o.default do
+                # DEV-2.0: Change default value to `tracecontext, Datadog`.
                 # Look for all headers by default
                 env_to_list(
-                  Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT,
+                  [Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT,
+                   Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT_OLD],
                   [
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                   ],
                   comma_separated_only: true
                 )
+              end
+
+              o.on_set do |styles|
+                # Modernize B3 options
+                # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
+                styles.map! do |style|
+                  case style
+                  when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
+                  when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                  else
+                    style
+                  end
+                end
               end
 
               o.lazy
@@ -443,15 +484,32 @@ module Datadog
             #
             # The tracer will inject data from all styles specified in this option.
             #
-            # @default `DD_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
+            # @default `DD_TRACE_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
             # @return [Array<String>]
             option :propagation_inject_style do |o|
               o.default do
+                # DEV-2.0: Change default value to `tracecontext, Datadog`.
                 env_to_list(
-                  Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT,
+                  [Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT,
+                   Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD],
                   [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG],
                   comma_separated_only: true # Only inject Datadog headers by default
                 )
+              end
+
+              o.on_set do |styles|
+                # Modernize B3 options
+                # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
+                styles.map! do |style|
+                  case style
+                  when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
+                  when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                  else
+                    style
+                  end
+                end
               end
 
               o.lazy
@@ -466,7 +524,7 @@ module Datadog
           # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Datadog::Core::Diagnostics::Ext::DD_TRACE_ENABLED, true) }
+            o.default { env_to_bool(Tracing::Configuration::Ext::ENV_ENABLED, true) }
             o.lazy
           end
 
@@ -668,13 +726,27 @@ module Datadog
             # Whether client IP collection is enabled. When enabled client IPs from HTTP requests will
             #   be reported in traces.
             #
+            # Usage of the DD_TRACE_CLIENT_IP_HEADER_DISABLED environment variable is deprecated.
+            #
             # @see https://docs.datadoghq.com/tracing/configure_data_security#configuring-a-client-ip-header
             #
-            # @default The negated value of the `DD_TRACE_CLIENT_IP_HEADER_DISABLED` environment
-            #   variable or `true` if it doesn't exist.
+            # @default `DD_TRACE_CLIENT_IP_ENABLED` environment variable, otherwise `false`.
             # @return [Boolean]
             option :enabled do |o|
-              o.default { !env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED, false) }
+              o.default do
+                disabled = env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED)
+
+                enabled = if disabled.nil?
+                            false
+                          else
+                            Datadog.logger.warn { "#{Tracing::Configuration::Ext::ClientIp::ENV_DISABLED} environment variable is deprecated, found set to #{disabled}, use #{Tracing::Configuration::Ext::ClientIp::ENV_ENABLED}=#{!disabled}" }
+
+                            !disabled
+                          end
+
+                # ENABLED env var takes precedence over deprecated DISABLED
+                env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_ENABLED, enabled)
+              end
               o.lazy
             end
 
@@ -686,6 +758,19 @@ module Datadog
               o.default { ENV.fetch(Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME, nil) }
               o.lazy
             end
+          end
+
+          # Maximum size for the `x-datadog-tags` distributed trace tags header.
+          #
+          # If the serialized size of distributed trace tags is larger than this value, it will
+          # not be parsed if incoming, nor exported if outgoing. An error message will be logged
+          # in this case.
+          #
+          # @default `DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH` environment variable, otherwise `512`
+          # @return [Integer]
+          option :x_datadog_tags_max_length do |o|
+            o.default { env_to_int(Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH, 512) }
+            o.lazy
           end
         end
 
@@ -713,9 +798,7 @@ module Datadog
           end
         end
       end
-
       # rubocop:enable Metrics/BlockLength
-      # rubocop:enable Metrics/ClassLength
       # rubocop:enable Layout/LineLength
     end
   end

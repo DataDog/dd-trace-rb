@@ -201,7 +201,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
       end
 
       context ':process_id' do
-        let(:options) { { tags: { Datadog::Core::Runtime::Ext::TAG_PID => process_id } } }
+        let(:options) { { tags: { Datadog::Core::Runtime::Ext::TAG_PROCESS_ID => process_id } } }
         let(:process_id) { Datadog::Core::Environment::Identity.pid }
 
         it { is_expected.to have_attributes(process_id: process_id) }
@@ -244,6 +244,13 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:sample_rate) { rand }
 
         it { is_expected.to have_attributes(sample_rate: sample_rate) }
+      end
+
+      context ':sampling_decision_maker' do
+        let(:options) { { tags: { '_dd.p.dm' => sampling_decision_maker } } }
+        let(:sampling_decision_maker) { '-1' }
+
+        it { is_expected.to have_attributes(sampling_decision_maker: sampling_decision_maker) }
       end
 
       context ':sampling_priority' do

@@ -255,10 +255,10 @@ RSpec.describe Datadog::Tracing::Tracer do
 
       let(:distributed_tracing_headers) do
         {
-          rack_header(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID) => trace_id.to_s,
-          rack_header(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID) => parent_id.to_s,
-          rack_header(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY) => sampling_priority.to_s,
-          rack_header(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN) => origin
+          rack_header('x-datadog-trace-id') => trace_id.to_s,
+          rack_header('x-datadog-parent-id') => parent_id.to_s,
+          rack_header('x-datadog-sampling-priority') => sampling_priority.to_s,
+          rack_header('x-datadog-origin') => origin
         }
       end
 
@@ -301,6 +301,64 @@ RSpec.describe Datadog::Tracing::Tracer do
         let(:origin) { 'synthetics-browser' }
 
         it_behaves_like 'a synthetics-sourced trace'
+      end
+    end
+  end
+
+  describe 'distributed trace' do
+    context 'with distributed datadog headers' do
+      let(:extract) { Datadog::Tracing::Propagation::HTTP.extract(rack_headers) }
+      let(:trace) { Datadog::Tracing.continue_trace!(extract) }
+      let(:inject) { {}.tap { |env| Datadog::Tracing::Propagation::HTTP.inject!(trace.to_digest, env) } }
+
+      let(:headers) do
+        {
+          'x-datadog-trace-id' => trace_id.to_s,
+          'x-datadog-parent-id' => parent_id.to_s,
+          'x-datadog-origin' => origin,
+          'x-datadog-sampling-priority' => sampling_priority.to_s,
+          'x-datadog-tags' => distributed_tags,
+        }
+      end
+      let(:rack_headers) do
+        headers.map { |key, value| [rack_header(key), value] }.to_h
+      end
+
+      let(:trace_id) { 123 }
+      let(:parent_id) { 456 }
+      let(:origin) { 'outer-space' }
+      let(:sampling_priority) { 1 }
+      let(:distributed_tags) { '_dd.p.test=value' }
+
+      after { Datadog::Tracing.continue_trace!(nil) }
+
+      # TODO: Consolidate all `rack_header`s in a single place
+      def rack_header(header)
+        "http-#{header}".upcase!.tr('-', '_')
+      end
+
+      it 'populates active trace' do
+        expect(trace.id).to eq(trace_id)
+        expect(trace.parent_span_id).to eq(parent_id)
+        expect(trace.origin).to eq(origin)
+        expect(trace.sampling_priority).to eq(sampling_priority)
+        expect(trace.send(:distributed_tags)).to eq('_dd.p.test' => 'value')
+      end
+
+      it 'populates injected request headers' do
+        expect(inject).to include(headers)
+      end
+
+      it 'populates injected request headers when values are modified' do
+        trace.origin = 'other-origin'
+        trace.sampling_priority = 9
+        trace.set_tag('_dd.p.test', 'changed')
+
+        expect(inject).to include(
+          'x-datadog-origin' => 'other-origin',
+          'x-datadog-sampling-priority' => '9',
+          'x-datadog-tags' => '_dd.p.test=changed',
+        )
       end
     end
   end

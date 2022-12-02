@@ -1,5 +1,8 @@
 # typed: true
 
+require_relative '../../../tracing/client_ip'
+require_relative '../../../tracing/contrib/rack/header_collection'
+
 module Datadog
   module AppSec
     module Contrib
@@ -47,9 +50,26 @@ module Datadog
           end
 
           def self.form_hash(request)
+            # force form data processing
+            request.POST if request.form_data?
+
             # usually Hash<String,String> but can be a more complex
             # Hash<String,String||Array||Hash> when e.g coming from JSON
             request.env['rack.request.form_hash']
+          end
+
+          def self.client_ip(request)
+            remote_ip = request.env['REMOTE_ADDR']
+            headers = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(request.env)
+
+            result = Datadog::Tracing::ClientIp.raw_ip_from_request(headers, remote_ip)
+
+            if result.raw_ip
+              ip = Datadog::Tracing::ClientIp.strip_decorations(result.raw_ip)
+              return unless Datadog::Tracing::ClientIp.valid_ip?(ip)
+
+              ip
+            end
           end
         end
       end

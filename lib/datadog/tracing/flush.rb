@@ -48,7 +48,7 @@ module Datadog
         # Single Span Sampling has chosen to keep this span
         # regardless of the trace-level sampling decision
         def single_sampled?(span)
-          span.get_metric(Sampling::Span::Ext::TAG_MECHANISM) == Sampling::Span::Ext::MECHANISM_SPAN_SAMPLING_RATE
+          span.get_metric(Sampling::Span::Ext::TAG_MECHANISM) == Sampling::Ext::Mechanism::SPAN_SAMPLING_RATE
         end
       end
 

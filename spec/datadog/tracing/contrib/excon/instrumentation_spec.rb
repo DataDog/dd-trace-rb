@@ -102,6 +102,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
 
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('excon')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
+      expect(request_span.get_tag('span.kind')).to eq('client')
     end
 
     it_behaves_like 'a peer service span' do
@@ -121,6 +122,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq('example.com')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(80)
+      expect(request_span.get_tag('span.kind')).to eq('client')
       expect(request_span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to have_error
       expect(request_span).to have_error_type('Error 500')
@@ -222,12 +224,12 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             span = datum[:datadog_span]
             headers = datum[:headers]
             expect(headers).to include(
-              Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => span.trace_id.to_s,
-              Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => span.span_id.to_s
+              'x-datadog-trace-id' => span.trace_id.to_s,
+              'x-datadog-parent-id' => span.span_id.to_s
             )
 
             expect(headers).to include(
-              Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY
+              'x-datadog-sampling-priority'
             )
           end
         end
@@ -254,9 +256,9 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             # Assert request headers
             headers = datum[:headers]
             expect(headers).to_not include(
-              Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID,
-              Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID,
-              Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY
+              'x-datadog-trace-id',
+              'x-datadog-parent-id',
+              'x-datadog-sampling-priority'
             )
           end
         end
@@ -280,9 +282,9 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             m.call(*args).tap do |datum|
               # Assert request headers
               headers = datum[:headers]
-              expect(headers).to_not include(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID)
-              expect(headers).to_not include(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID)
-              expect(headers).to_not include(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY)
+              expect(headers).to_not include('x-datadog-trace-id')
+              expect(headers).to_not include('x-datadog-parent-id')
+              expect(headers).to_not include('x-datadog-sampling-priority')
             end
           end
 

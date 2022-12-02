@@ -15,7 +15,7 @@ module Datadog
       # Runs on its own background thread.
       #
       # This class has the prefix "Old" because it will be deprecated by the new native CPU Profiler
-      class OldStack < Core::Worker # rubocop:disable Metrics/ClassLength
+      class OldStack < Core::Worker
         include Core::Workers::Polling
 
         DEFAULT_MAX_TIME_USAGE_PCT = 2.0
@@ -216,6 +216,13 @@ module Datadog
             lineno,
             string_table.fetch_string(path)
           )
+        end
+
+        def reset_after_fork
+          recorder.reset_after_fork
+
+          # NOTE: We could perhaps also call #reset_cpu_time_tracking here, although it's not needed because we always
+          # call in in #start.
         end
 
         private

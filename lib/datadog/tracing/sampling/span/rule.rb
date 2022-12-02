@@ -59,7 +59,7 @@ module Datadog
             return :not_matched unless @matcher.match?(span_op)
 
             if @sampler.sample?(span_op) && @rate_limiter.allow?(1)
-              span_op.set_metric(Span::Ext::TAG_MECHANISM, Span::Ext::MECHANISM_SPAN_SAMPLING_RATE)
+              span_op.set_metric(Span::Ext::TAG_MECHANISM, Sampling::Ext::Mechanism::SPAN_SAMPLING_RATE)
               span_op.set_metric(Span::Ext::TAG_RULE_RATE, @sample_rate)
               span_op.set_metric(Span::Ext::TAG_MAX_PER_SECOND, @rate_limit)
               :kept

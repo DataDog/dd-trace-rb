@@ -2,6 +2,7 @@
 
 require_relative '../analytics'
 require_relative 'ext'
+require_relative '../ext'
 require_relative 'parsers'
 require_relative '../../metadata/ext'
 
@@ -30,6 +31,10 @@ module Datadog
             query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
             serialized_query = query.to_s
 
+            span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
+
+            span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
 
@@ -44,6 +49,7 @@ module Datadog
             # since it has been quantized and reduced
             span.set_tag(Ext::TAG_DB, query['database'])
             span.set_tag(Ext::TAG_COLLECTION, query['collection'])
+            span.set_tag(Ext::DB::TAG_COLLECTION, query['collection'])
             span.set_tag(Ext::TAG_OPERATION, query['operation'])
             span.set_tag(Ext::TAG_QUERY, serialized_query)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, event.address.host)

@@ -4,7 +4,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'time'
 require 'redis'
-require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis integration test' do
@@ -22,8 +21,8 @@ RSpec.describe 'Redis integration test' do
     Datadog.registry[:redis].reset_configuration!
     without_warnings { Datadog.configuration.reset! }
   end
-
-  let(:redis) { Redis.new(host: host, port: port) }
+  let(:redis_options) { { host: host, port: port } }
+  let(:redis) { Redis.new(redis_options.freeze) }
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 

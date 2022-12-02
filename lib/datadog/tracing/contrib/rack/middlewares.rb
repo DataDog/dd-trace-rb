@@ -45,6 +45,7 @@ module Datadog
             # Tag this span as belonging to Rack
             frontend_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             frontend_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
+            frontend_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
 
             # Set peer service (so its not believed to belong to this app)
             frontend_span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
@@ -56,16 +57,18 @@ module Datadog
             # Find out if this is rack within rack
             previous_request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
 
+            return @app.call(env) if previous_request_span
+
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
-            if configuration[:distributed_tracing] && previous_request_span.nil?
+            if configuration[:distributed_tracing]
               trace_digest = Tracing::Propagation::HTTP.extract(env)
               Tracing.continue_trace!(trace_digest)
             end
 
             # Create a root Span to keep track of frontend web servers
             # (i.e. Apache, nginx) if the header is properly set
-            frontend_span = compute_queue_time(env) if previous_request_span.nil?
+            frontend_span = compute_queue_time(env)
 
             trace_options = { span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
             trace_options[:service] = configuration[:service_name] if configuration[:service_name]
@@ -123,21 +126,13 @@ module Datadog
           # rubocop:disable Metrics/PerceivedComplexity
           # rubocop:disable Metrics/MethodLength
           def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
-            # http://www.rubydoc.info/github/rack/rack/file/SPEC
-            # The source of truth in Rack is the PATH_INFO key that holds the
-            # URL for the current request; but some frameworks may override that
-            # value, especially during exception handling.
-            #
-            # Because of this, we prefer to use REQUEST_URI, if available, which is the
-            # relative path + query string, and doesn't mutate.
-            #
-            # REQUEST_URI is only available depending on what web server is running though.
-            # So when its not available, we want the original, unmutated PATH_INFO, which
-            # is just the relative path without query strings.
-            url = env['REQUEST_URI'] || original_env['PATH_INFO']
             request_header_collection = Header::RequestHeaderCollection.new(env)
             request_headers_tags = parse_request_headers(request_header_collection)
             response_headers_tags = parse_response_headers(headers || {})
+
+            # Since it could be mutated, it would be more accurate to fetch from the original env,
+            # e.g. ActionDispatch::ShowExceptions middleware with Rails exceptions_app configuration
+            original_request_method = original_env['REQUEST_METHOD']
 
             # request_headers is subject to filtering and configuration so we
             # get the user agent separately
@@ -150,11 +145,11 @@ module Datadog
             # 4. Fallback with verb + status, eq `GET 200`
             request_span.resource ||=
               if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
-                "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
+                "#{env['RESPONSE_MIDDLEWARE']}##{original_request_method}"
               elsif trace.resource_override?
                 trace.resource
               else
-                "#{env['REQUEST_METHOD']} #{status}".strip
+                "#{original_request_method} #{status}".strip
               end
 
             # Overrides the trace resource if it never been set
@@ -163,6 +158,7 @@ module Datadog
 
             request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+            request_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -173,15 +169,36 @@ module Datadog
             Contrib::Analytics.set_measured(request_span)
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD).nil?
-              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, env['REQUEST_METHOD'])
+              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, original_request_method)
             end
 
+            url = parse_url(env, original_env)
+
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_URL).nil?
-              options = configuration[:quantize]
+              options = configuration[:quantize] || {}
+
+              # Quantization::HTTP.url base defaults to :show, but we are transitioning
+              options[:base] ||= :exclude
+
               request_span.set_tag(
                 Tracing::Metadata::Ext::HTTP::TAG_URL,
                 Contrib::Utils::Quantization::HTTP.url(url, options)
               )
+            end
+
+            if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_BASE_URL).nil?
+              options = configuration[:quantize]
+
+              unless options[:base] == :show
+                base_url = Contrib::Utils::Quantization::HTTP.base_url(url)
+
+                unless base_url.empty?
+                  request_span.set_tag(
+                    Tracing::Metadata::Ext::HTTP::TAG_BASE_URL,
+                    base_url
+                  )
+                end
+              end
             end
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
@@ -190,19 +207,6 @@ module Datadog
                 headers: request_header_collection,
                 remote_ip: env['REMOTE_ADDR']
               )
-            end
-
-            if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_BASE_URL).nil?
-              request_obj = ::Rack::Request.new(env)
-
-              base_url = if request_obj.respond_to?(:base_url)
-                           request_obj.base_url
-                         else
-                           # Compatibility for older Rack versions
-                           request_obj.url.chomp(request_obj.fullpath)
-                         end
-
-              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_BASE_URL, base_url)
             end
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE).nil? && status
@@ -236,6 +240,48 @@ module Datadog
 
           def configuration
             Datadog.configuration.tracing[:rack]
+          end
+
+          def parse_url(env, original_env)
+            request_obj = ::Rack::Request.new(env)
+
+            # scheme, host, and port
+            base_url = if request_obj.respond_to?(:base_url)
+                         request_obj.base_url
+                       else
+                         # Compatibility for older Rack versions
+                         request_obj.url.chomp(request_obj.fullpath)
+                       end
+
+            # https://github.com/rack/rack/blob/main/SPEC.rdoc
+            #
+            # The source of truth in Rack is the PATH_INFO key that holds the
+            # URL for the current request; but some frameworks may override that
+            # value, especially during exception handling.
+            #
+            # Because of this, we prefer to use REQUEST_URI, if available, which is the
+            # relative path + query string, and doesn't mutate.
+            #
+            # REQUEST_URI is only available depending on what web server is running though.
+            # So when its not available, we want the original, unmutated PATH_INFO, which
+            # is just the relative path without query strings.
+            #
+            # SCRIPT_NAME is the first part of the request URL path, so that
+            # the application can know its virtual location. It should be
+            # prepended to PATH_INFO to reflect the correct user visible path.
+            request_uri = env['REQUEST_URI'].to_s
+            fullpath = if request_uri.empty?
+                         query_string = original_env['QUERY_STRING'].to_s
+                         path = original_env['SCRIPT_NAME'].to_s + original_env['PATH_INFO'].to_s
+
+                         query_string.empty? ? path : "#{path}?#{query_string}"
+                       else
+                         # normally REQUEST_URI starts at the path, but it
+                         # might contain the full URL in some cases (e.g WEBrick)
+                         request_uri.sub(/^#{base_url}/, '')
+                       end
+
+            base_url + fullpath
           end
 
           def parse_user_agent_header(headers)

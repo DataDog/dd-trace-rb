@@ -18,9 +18,11 @@ module Datadog
         def initialize(
           recorder:,
           max_frames:,
-          cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames)
+          tracer:,
+          gc_profiling_enabled:,
+          cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames, tracer: tracer)
         )
-          self.class._native_initialize(self, cpu_and_wall_time_collector)
+          self.class._native_initialize(self, cpu_and_wall_time_collector, gc_profiling_enabled)
           @worker_thread = nil
           @failure_exception = nil
           @start_stop_mutex = Mutex.new
@@ -28,7 +30,7 @@ module Datadog
 
         def start
           @start_stop_mutex.synchronize do
-            return if @worker_thread
+            return if @worker_thread && @worker_thread.alive?
 
             Datadog.logger.debug { "Starting thread for: #{self}" }
             @worker_thread = Thread.new do
@@ -60,13 +62,20 @@ module Datadog
 
             return unless @worker_thread
 
-            @worker_thread.kill
             self.class._native_stop(self)
 
             @worker_thread.join
             @worker_thread = nil
             @failure_exception = nil
           end
+        end
+
+        def reset_after_fork
+          self.class._native_reset_after_fork(self)
+        end
+
+        def stats
+          self.class._native_stats(self)
         end
       end
     end

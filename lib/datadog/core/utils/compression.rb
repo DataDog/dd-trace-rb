@@ -6,10 +6,13 @@ require 'zlib'
 module Datadog
   module Core
     module Utils
-      # Common database-related utility functions.
+      # Compression/decompression utility functions.
+      #
+      # @deprecated This is no longer used by ddtrace and will be removed in 2.0.
       module Compression
         module_function
 
+        # @deprecated This is no longer used by ddtrace and will be removed in 2.0.
         def gzip(string, level: nil, strategy: nil)
           sio = StringIO.new
           sio.binmode
@@ -19,6 +22,7 @@ module Datadog
           sio.string
         end
 
+        # @deprecated This is no longer used by ddtrace and will be removed in 2.0.
         def gunzip(string, encoding = ::Encoding::ASCII_8BIT)
           sio = StringIO.new(string)
           gz = Zlib::GzipReader.new(sio, encoding: encoding)

@@ -6,7 +6,6 @@ require 'securerandom'
 require 'logger'
 
 require 'datadog/core/configuration/settings'
-require 'datadog/core/diagnostics/ext'
 require 'datadog/core/environment/ext'
 require 'datadog/core/runtime/ext'
 require 'datadog/core/utils/time'
@@ -64,9 +63,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       it { is_expected.to be false }
 
-      context "when #{Datadog::Core::Diagnostics::Ext::DD_TRACE_DEBUG}" do
+      context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED}" do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Diagnostics::Ext::DD_TRACE_DEBUG => environment) do
+          ClimateControl.modify(Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => environment) do
             example.run
           end
         end
@@ -121,9 +120,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#enabled' do
         subject(:enabled) { settings.diagnostics.health_metrics.enabled }
 
-        context "when #{Datadog::Core::Diagnostics::Ext::Health::Metrics::ENV_ENABLED}" do
+        context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED}" do
           around do |example|
-            ClimateControl.modify(Datadog::Core::Diagnostics::Ext::Health::Metrics::ENV_ENABLED => environment) do
+            ClimateControl.modify(
+              Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED => environment
+            ) do
               example.run
             end
           end
@@ -465,6 +466,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(true)
         end
       end
+
+      describe '#force_enable_gc_profiling' do
+        subject(:force_enable_gc_profiling) { settings.profiling.advanced.force_enable_gc_profiling }
+
+        context 'when DD_PROFILING_FORCE_ENABLE_GC' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_FORCE_ENABLE_GC' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          { 'true' => true, 'false' => false }.each do |string, value|
+            context "is defined as #{string}" do
+              let(:environment) { string }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#force_enable_gc_profiling=' do
+        it 'updates the #force_enable_gc_profiling setting' do
+          expect { settings.profiling.advanced.force_enable_gc_profiling = true }
+            .to change { settings.profiling.advanced.force_enable_gc_profiling }
+            .from(false)
+            .to(true)
+        end
+      end
     end
 
     describe '#upload' do
@@ -735,6 +771,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
         end
 
+        context 'with multiple colons' do
+          let(:env_tags) { 'key:va:lue' }
+
+          it 'allows for colons in value' do
+            is_expected.to eq('key' => 'va:lue')
+          end
+        end
+
         context 'and when #env' do
           let(:options) { { **super(), env: env } }
 
@@ -954,23 +998,23 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#propagation_extract_style' do
         subject(:propagation_extract_style) { settings.tracing.distributed_tracing.propagation_extract_style }
 
-        context "when #{Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT}" do
-          around do |example|
-            ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT => environment
-            ) do
-              example.run
-            end
+        around do |example|
+          ClimateControl.modify(var_name => var_value) do
+            example.run
           end
+        end
+
+        context 'when DD_TRACE_PROPAGATION_STYLE_EXTRACT' do
+          let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE_EXTRACT' }
 
           context 'is not defined' do
-            let(:environment) { nil }
+            let(:var_value) { nil }
 
             it do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
@@ -978,16 +1022,48 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
 
           context 'is defined' do
-            let(:environment) { 'B3,B3 single header' }
+            let(:var_value) { 'b3multi,b3' }
 
             it do
               is_expected.to eq(
                 [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
             end
+          end
+
+          context 'is set to deprecated style names' do
+            let(:var_value) { 'B3,B3 single header' }
+
+            it 'translates to new names' do
+              is_expected.to eq(
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                ]
+              )
+            end
+          end
+        end
+
+        context 'with deprecated DD_PROPAGATION_STYLE_EXTRACT' do
+          let(:var_name) { 'DD_PROPAGATION_STYLE_EXTRACT' }
+
+          context 'is defined' do
+            let(:var_value) { 'b3multi,b3' }
+
+            it do
+              is_expected.to eq(
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                ]
+              )
+            end
+
+            include_examples 'records deprecated action', 'DD_PROPAGATION_STYLE_EXTRACT environment variable is deprecated'
           end
         end
       end
@@ -995,32 +1071,64 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#propagation_inject_style' do
         subject(:propagation_inject_style) { settings.tracing.distributed_tracing.propagation_inject_style }
 
-        context "when #{Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT}" do
-          around do |example|
-            ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT => environment
-            ) do
-              example.run
-            end
+        around do |example|
+          ClimateControl.modify(var_name => var_value) do
+            example.run
           end
+        end
+
+        context 'with DD_TRACE_PROPAGATION_STYLE_INJECT' do
+          let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE_INJECT' }
 
           context 'is not defined' do
-            let(:environment) { nil }
+            let(:var_value) { nil }
 
             it { is_expected.to eq([Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG]) }
           end
 
           context 'is defined' do
-            let(:environment) { 'Datadog,B3' }
+            let(:var_value) { 'Datadog,b3' }
 
             it do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
             end
+          end
+
+          context 'is set to deprecated style names' do
+            let(:var_value) { 'B3,B3 single header' }
+
+            it 'translates to new names' do
+              is_expected.to eq(
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                ]
+              )
+            end
+          end
+        end
+
+        context 'with deprecated DD_PROPAGATION_STYLE_INJECT' do
+          let(:var_name) { 'DD_PROPAGATION_STYLE_INJECT' }
+
+          context 'is defined' do
+            let(:var_value) { 'Datadog,b3' }
+
+            it do
+              is_expected.to eq(
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                ]
+              )
+            end
+
+            include_examples 'records deprecated action', 'DD_PROPAGATION_STYLE_INJECT environment variable is deprecated'
           end
         end
       end
@@ -1031,9 +1139,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       it { is_expected.to be true }
 
-      context "when #{Datadog::Core::Diagnostics::Ext::DD_TRACE_ENABLED}" do
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_ENABLED}" do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Diagnostics::Ext::DD_TRACE_ENABLED => enable) do
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_ENABLED => enable) do
             example.run
           end
         end
@@ -1442,6 +1550,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.tracing.writer_options }
           .from({})
           .to(options)
+      end
+    end
+
+    describe '#x_datadog_tags_max_length' do
+      subject { settings.tracing.x_datadog_tags_max_length }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH}" do
+        around do |example|
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH => env_var
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var) { nil }
+
+          it { is_expected.to eq(512) }
+        end
+
+        context 'is defined' do
+          let(:env_var) { '123' }
+
+          it { is_expected.to eq(123) }
+        end
+      end
+    end
+
+    describe '#x_datadog_tags_max_length=' do
+      it 'updates the #x_datadog_tags_max_length setting' do
+        expect { settings.tracing.x_datadog_tags_max_length = 123 }
+          .to change { settings.tracing.x_datadog_tags_max_length }
+          .from(512)
+          .to(123)
       end
     end
   end

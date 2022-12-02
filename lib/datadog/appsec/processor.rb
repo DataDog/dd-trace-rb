@@ -31,7 +31,7 @@ module Datadog
         def run(*args)
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
-          ret, res = @context.run(*args)
+          _code, res = @context.run(*args)
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
@@ -39,7 +39,11 @@ module Datadog
           @time_ext_ns += (stop_ns - start_ns)
           @timeouts += 1 if res.timeout
 
-          [ret, res]
+          res
+        end
+
+        def finalize
+          @context.finalize
         end
       end
 
@@ -53,7 +57,11 @@ module Datadog
 
         unless load_libddwaf && load_ruleset && create_waf_handle
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
+
+          return
         end
+
+        update_ip_denylist
       end
 
       def ready?
@@ -62,6 +70,32 @@ module Datadog
 
       def new_context
         Context.new(self)
+      end
+
+      def update_rule_data(data)
+        @handle.update_rule_data(data)
+      end
+
+      def toggle_rules(map)
+        @handle.toggle_rules(map)
+      end
+
+      def update_ip_denylist(denylist = Datadog::AppSec.settings.ip_denylist, id: 'blocked_ips')
+        denylist ||= []
+
+        ruledata_setting = [
+          {
+            'id' => id,
+            'type' => 'data_with_expiration',
+            'data' => denylist.map { |ip| { 'value' => ip.to_s, 'expiration' => 2**63 } }
+          }
+        ]
+
+        update_rule_data(ruledata_setting)
+      end
+
+      def finalize
+        @handle.finalize
       end
 
       protected

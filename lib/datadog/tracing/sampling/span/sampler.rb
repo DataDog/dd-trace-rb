@@ -50,9 +50,20 @@ module Datadog
           def sample!(trace_op, span_op)
             return if trace_op.sampled? && trace_op.priority_sampled?
 
-            # Return as soon as one rule matches
-            @rules.any? do |rule|
-              rule.sample!(span_op) != :not_matched
+            # Applies the first matching rule
+            @rules.each do |rule|
+              decision = rule.sample!(span_op)
+
+              next if decision == :not_matched # Iterate until we find a matching decision
+
+              if decision == :kept
+                trace_op.set_tag(
+                  Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                  Sampling::Ext::Decision::SPAN_SAMPLING_RATE
+                )
+              end
+
+              break # Found either a `kept` or `rejected` decision
             end
 
             nil

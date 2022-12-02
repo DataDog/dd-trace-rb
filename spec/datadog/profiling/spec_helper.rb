@@ -65,7 +65,7 @@ module ProfileHelpers
         labels: sample.label.map do |it|
           [
             string_table[it.key].to_sym,
-            it.str != 0 ? string_table[it.str] : raise('Unexpected: label encoded as number instead of string'),
+            it.num == 0 ? string_table[it.str] : raise('Unexpected: label encoded as number instead of string'),
           ]
         end.to_h,
       }
@@ -81,6 +81,14 @@ module ProfileHelpers
     function = decoded_profile.function.find { |func| func.id == line_entry.function_id }
 
     { base_label: strings[function.name], path: strings[function.filename], lineno: line_entry.line }
+  end
+
+  def object_id_from(thread_id)
+    Integer(thread_id.match(/\d+ \((?<object_id>\d+)\)/)[:object_id])
+  end
+
+  def samples_for_thread(samples, thread)
+    samples.select { |sample| object_id_from(sample.fetch(:labels).fetch(:'thread id')) == thread.object_id }
   end
 end
 
