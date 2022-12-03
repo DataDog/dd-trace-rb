@@ -268,6 +268,33 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
     let(:digest) { extract }
 
+    context 'with traceparent fields with incorrect sizes' do
+      context 'version with incorrect size' do
+        let(:traceparent) { '0-00000000000000000000000000c0ffee-0000000000000bee-01' }
+        it { is_expected.to be_nil }
+      end
+
+      context 'trace_id with incorrect size' do
+        let(:traceparent) { '00-fee-0000000000000bee-01' }
+        it { is_expected.to be_nil }
+      end
+
+      context 'parent_id with incorrect size' do
+        let(:traceparent) { '00-00000000000000000000000000c0ffee-bee-01' }
+        it { is_expected.to be_nil }
+      end
+
+      context 'trace flags with incorrect size' do
+        let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-0' }
+        it { is_expected.to be_nil }
+      end
+
+      context 'more fields than expected' do
+        let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-01-FFFFF' }
+        it { is_expected.to be_nil }
+      end
+    end
+
     context 'without data' do
       let(:data) { {} }
       it { is_expected.to be nil }
@@ -364,6 +391,14 @@ RSpec.shared_examples 'Trace Context distributed format' do
       context 'but version not 00' do
         let(:traceparent) { '01-00000000000000000000000000c0ffee-0000000000000bee-00' }
         it { is_expected.to be nil }
+      end
+
+      context 'trailing whitespace' do
+        let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-00 ' }
+
+        it { expect(digest.trace_id).to eq(0xC0FFEE) }
+        it { expect(digest.span_id).to eq(0xBEE) }
+        it { expect(digest.trace_sampling_priority).to eq(0) }
       end
     end
 
