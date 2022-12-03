@@ -341,8 +341,8 @@ module Datadog
         private_constant :TRACESTATE_VALUE_SIZE_LIMIT
 
         # Replace all characters with `_`, except ASCII characters 0x20-0x7E.
-        # Additionally, `,` and `=` must also be replaced by `_`.
-        INVALID_ORIGIN_CHARS = /[\u0000-\u0019,=\u007F-\u{10FFFF}]/.freeze
+        # Additionally, `,`, ';', and `=` must also be replaced by `_`.
+        INVALID_ORIGIN_CHARS = /[\u0000-\u0019,;=\u007F-\u{10FFFF}]/.freeze
         private_constant :INVALID_ORIGIN_CHARS
 
         # Replace all characters with `_`, except ASCII characters 0x21-0x7E.
