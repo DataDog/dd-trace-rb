@@ -2,6 +2,7 @@
 # typed: true
 
 require_relative '../sampling/ext'
+require_relative '../utils'
 
 module Datadog
   module Tracing
@@ -47,7 +48,7 @@ module Datadog
           return if id.nil?
 
           # Zero or greater than max allowed value of 2**64
-          return if id.zero? || id > Span::EXTERNAL_MAX_ID
+          return if id.zero? || id > Tracing::Utils::EXTERNAL_MAX_ID
 
           id < 0 ? id + (2**64) : id
         end

@@ -4,12 +4,13 @@ require_relative '../core'
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
 
-require_relative 'sampling/ext'
 require_relative 'event'
-require_relative 'span_operation'
-require_relative 'trace_segment'
-require_relative 'trace_digest'
 require_relative 'metadata/tagging'
+require_relative 'sampling/ext'
+require_relative 'span_operation'
+require_relative 'trace_digest'
+require_relative 'trace_segment'
+require_relative 'utils'
 
 module Datadog
   module Tracing
@@ -70,7 +71,7 @@ module Datadog
         metrics: nil
       )
         # Attributes
-        @id = id || Core::Utils.next_id
+        @id = id || Tracing::Utils.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? ? true : sampled

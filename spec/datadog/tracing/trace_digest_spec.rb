@@ -3,9 +3,10 @@
 require 'spec_helper'
 
 require 'datadog/core/environment/identity'
-require 'datadog/core/utils'
+
 require 'datadog/tracing/sampling/ext'
 require 'datadog/tracing/trace_digest'
+require 'datadog/tracing/utils'
 
 RSpec.describe Datadog::Tracing::TraceDigest do
   subject(:trace_digest) { described_class.new(**options) }
@@ -42,7 +43,7 @@ RSpec.describe Datadog::Tracing::TraceDigest do
     context 'given' do
       context ':span_id' do
         let(:options) { { span_id: span_id } }
-        let(:span_id) { Datadog::Core::Utils.next_id }
+        let(:span_id) { Datadog::Tracing::Utils.next_id }
 
         it { is_expected.to have_attributes(span_id: span_id) }
       end
@@ -91,7 +92,7 @@ RSpec.describe Datadog::Tracing::TraceDigest do
 
       context ':trace_id' do
         let(:options) { { trace_id: trace_id } }
-        let(:trace_id) { Datadog::Core::Utils.next_id }
+        let(:trace_id) { Datadog::Tracing::Utils.next_id }
 
         it { is_expected.to have_attributes(trace_id: trace_id) }
       end

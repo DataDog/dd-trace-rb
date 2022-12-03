@@ -3,7 +3,7 @@
 require_relative '../../core'
 
 require_relative 'sampler'
-require_relative '../span'
+require_relative '../utils'
 
 module Datadog
   module Tracing
@@ -49,11 +49,11 @@ module Datadog
 
         def sample_rate=(sample_rate)
           @sample_rate = sample_rate
-          @sampling_id_threshold = sample_rate * Tracing::Span::EXTERNAL_MAX_ID
+          @sampling_id_threshold = sample_rate * Tracing::Utils::EXTERNAL_MAX_ID
         end
 
         def sample?(trace)
-          ((trace.id * KNUTH_FACTOR) % Tracing::Span::EXTERNAL_MAX_ID) <= @sampling_id_threshold
+          ((trace.id * KNUTH_FACTOR) % Tracing::Utils::EXTERNAL_MAX_ID) <= @sampling_id_threshold
         end
 
         def sample!(trace)

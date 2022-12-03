@@ -7,7 +7,7 @@ require 'time'
 require 'datadog/core'
 require 'datadog/core/environment/identity'
 require 'datadog/core/environment/socket'
-require 'datadog/core/utils'
+
 require 'datadog/tracing'
 require 'datadog/tracing/context'
 require 'datadog/tracing/correlation'
@@ -16,6 +16,7 @@ require 'datadog/tracing/sampling/ext'
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_operation'
 require 'datadog/tracing/tracer'
+require 'datadog/tracing/utils'
 require 'datadog/tracing/writer'
 
 RSpec.describe Datadog::Tracing::Tracer do
@@ -799,9 +800,9 @@ RSpec.describe Datadog::Tracing::Tracer do
     context 'given a TraceDigest' do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
-          span_id: Datadog::Core::Utils.next_id,
+          span_id: Datadog::Tracing::Utils.next_id,
           trace_distributed_tags: { '_dd.p.test' => 'value' },
-          trace_id: Datadog::Core::Utils.next_id,
+          trace_id: Datadog::Tracing::Utils.next_id,
           trace_origin: 'synthetics',
           trace_sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
         )
