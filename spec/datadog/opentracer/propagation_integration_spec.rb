@@ -2,6 +2,8 @@
 
 require 'spec_helper'
 
+require_relative '../tracing/contrib/rack/rack_support'
+
 require 'datadog/tracing/span'
 require 'datadog/opentracer'
 
@@ -205,7 +207,7 @@ RSpec.describe 'OpenTracer context propagation' do
 
   describe 'via OpenTracing::FORMAT_RACK' do
     def carrier_to_rack_format(carrier)
-      carrier.map { |k, v| ["http-#{k}".upcase!.tr('-', '_'), v] }.to_h
+      carrier.map { |k, v| [RackSupport.header_to_rack(k), v] }.to_h
     end
 
     def baggage_to_carrier_format(baggage)

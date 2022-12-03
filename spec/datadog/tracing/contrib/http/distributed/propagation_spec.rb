@@ -3,6 +3,9 @@
 require 'spec_helper'
 
 require 'datadog/tracing/contrib/http/distributed/propagation'
+
+require_relative '../../rack/rack_support'
+
 require_relative '../../../distributed/b3_single_spec'
 require_relative '../../../distributed/b3_multi_spec'
 require_relative '../../../distributed/datadog_spec'
@@ -10,7 +13,7 @@ require_relative '../../../distributed/propagation_spec'
 require_relative '../../../distributed/trace_context_spec'
 
 RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Propagation do
-  let(:prepare_key) { proc { |key| "http-#{key}".upcase!.tr('-', '_') } }
+  let(:prepare_key) { RackSupport.method(:header_to_rack) }
 
   it_behaves_like 'Distributed tracing propagator' do
     subject(:propagation) { described_class.new }
