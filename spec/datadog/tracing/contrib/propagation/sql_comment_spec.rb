@@ -5,9 +5,10 @@ require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
 RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
   let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
-  let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span', service: 'database_service') }
 
   describe '.annotate!' do
+    let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span', service: 'database_service') }
+
     context 'when `disabled` mode' do
       let(:mode) { 'disabled' }
 
@@ -28,7 +29,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
     end
 
-    context 'when `full` mode', pending: 'until `traceparent` implement with `full` mode' do
+    context 'when `full` mode' do
       let(:mode) { 'full' }
 
       it do
@@ -55,8 +56,16 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
     end
 
     let(:sql_statement) { 'SELECT 1' }
+    let(:digest) do
+      Datadog::Tracing::TraceDigest.new(
+        span_service: 'database_service',
+        trace_id: 0xC0FFEE,
+        span_id: 0xBEE,
+        trace_flags: 0xFE
+      )
+    end
 
-    subject { described_class.prepend_comment(sql_statement, span_op, propagation_mode) }
+    subject { described_class.prepend_comment(sql_statement, digest, propagation_mode) }
 
     context 'when `disabled` mode' do
       let(:mode) { 'disabled' }
@@ -74,10 +83,20 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
     end
 
-    context 'when `full` mode', pending: 'until `traceparent` implement with `full` mode' do
+    context 'when `full` mode' do
       let(:mode) { 'full' }
+      let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-fe' }
 
-      it { is_expected.to eq(sql_statement) }
+      it {
+        is_expected.to eq(
+          "/*dddbs='database_service',"\
+          "dde='production',"\
+          "ddps='Traders%27%20Joe',"\
+          "ddpv='1.0.0',"\
+          "traceparent='#{traceparent}'*/ "\
+          "#{sql_statement}"
+        )
+      }
     end
   end
 end

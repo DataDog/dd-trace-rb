@@ -80,7 +80,12 @@ module Datadog
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
               resource = statement_name || sql
 
-              Tracing.trace(name, service: service, resource: resource, type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
+              Tracing.trace(
+                name,
+                service: service,
+                resource: resource,
+                type: Tracing::Metadata::Ext::SQL::TYPE
+              ) do |span, trace_op|
                 annotate_span_with_query!(span, service)
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -88,7 +93,11 @@ module Datadog
                 if sql
                   propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
                   Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
-                  propagated_sql_statement = Contrib::Propagation::SqlComment.prepend_comment(sql, span, propagation_mode)
+                  propagated_sql_statement = Contrib::Propagation::SqlComment.prepend_comment(
+                    sql,
+                    trace_op.to_digest,
+                    propagation_mode
+                  )
                 end
 
                 result = yield(propagated_sql_statement)

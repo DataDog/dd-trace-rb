@@ -22,7 +22,7 @@ module Datadog
             def query(sql, options = {})
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
-              Tracing.trace(Ext::SPAN_QUERY, service: service) do |span|
+              Tracing.trace(Ext::SPAN_QUERY, service: service) do |span, trace_op|
                 span.resource = sql
                 span.span_type = Tracing::Metadata::Ext::SQL::TYPE
 
@@ -46,7 +46,7 @@ module Datadog
                 propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
 
                 Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
-                sql = Contrib::Propagation::SqlComment.prepend_comment(sql, span, propagation_mode)
+                sql = Contrib::Propagation::SqlComment.prepend_comment(sql, trace_op.to_digest, propagation_mode)
 
                 super(sql, options)
               end
