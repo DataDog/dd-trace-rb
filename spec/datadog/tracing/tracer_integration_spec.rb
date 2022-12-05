@@ -3,11 +3,12 @@
 require 'spec_helper'
 
 require 'datadog/core/runtime/ext'
-require 'datadog/core/utils'
+
 require 'datadog/tracing/propagation/http'
 require 'datadog/tracing/sampling/ext'
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/tracer'
+require 'datadog/tracing/utils'
 
 RSpec.describe Datadog::Tracing::Tracer do
   subject(:tracer) { described_class.new(writer: FauxWriter.new) }
@@ -218,8 +219,8 @@ RSpec.describe Datadog::Tracing::Tracer do
         context 'with state' do
           let(:digest) do
             Datadog::Tracing::TraceDigest.new(
-              span_id: Datadog::Core::Utils.next_id,
-              trace_id: Datadog::Core::Utils.next_id,
+              span_id: Datadog::Tracing::Utils.next_id,
+              trace_id: Datadog::Tracing::Utils.next_id,
               trace_origin: 'synthetics',
               trace_sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
             )

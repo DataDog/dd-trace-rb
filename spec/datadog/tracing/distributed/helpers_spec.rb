@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 require 'datadog/tracing/distributed/helpers'
-require 'datadog/tracing/span'
+require 'datadog/tracing/utils'
 
 RSpec.describe Datadog::Tracing::Distributed::Helpers do
   describe '#clamp_sampling_priority' do
@@ -45,10 +45,10 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
       [((2**64) - 1).to_s(16), 'ffffffffffffffff'],
 
       # Our max generated id
-      [Datadog::Tracing::Span::RUBY_MAX_ID.to_s(16), '3fffffffffffffff'],
+      [Datadog::Tracing::Utils::RUBY_MAX_ID.to_s(16), '3fffffffffffffff'],
       # Our max external id
       # DEV: This is the same as (2**64) above, but use the constant to be sure
-      [Datadog::Tracing::Span::EXTERNAL_MAX_ID.to_s(16), '0'],
+      [Datadog::Tracing::Utils::EXTERNAL_MAX_ID.to_s(16), '0'],
 
       # 128-bit max, which is 32 characters long, so we truncate to the last 16, which is all zeros
       [(2**128).to_s(16), '0'],
@@ -79,14 +79,14 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
         ['', nil],
 
         # Larger than we allow
-        [(Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1).to_s, nil],
+        [(Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1).to_s, nil],
 
         # Negative number
         ['-100', -100 + (2**64)],
 
         # Allowed values
-        [Datadog::Tracing::Span::RUBY_MAX_ID.to_s, Datadog::Tracing::Span::RUBY_MAX_ID],
-        [Datadog::Tracing::Span::EXTERNAL_MAX_ID.to_s, Datadog::Tracing::Span::EXTERNAL_MAX_ID],
+        [Datadog::Tracing::Utils::RUBY_MAX_ID.to_s, Datadog::Tracing::Utils::RUBY_MAX_ID],
+        [Datadog::Tracing::Utils::EXTERNAL_MAX_ID.to_s, Datadog::Tracing::Utils::EXTERNAL_MAX_ID],
         ['1', 1],
         ['123456789', 123456789]
       ].each do |value, expected|
@@ -99,11 +99,11 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
       [
         # Larger than we allow
         # DEV: We truncate to 64-bit for base16
-        [(Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1).to_s(16), 1],
-        [Datadog::Tracing::Span::EXTERNAL_MAX_ID.to_s(16), nil],
+        [(Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1).to_s(16), 1],
+        [Datadog::Tracing::Utils::EXTERNAL_MAX_ID.to_s(16), nil],
 
-        [Datadog::Tracing::Span::RUBY_MAX_ID.to_s(16), Datadog::Tracing::Span::RUBY_MAX_ID],
-        [(Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1).to_s(16), Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1],
+        [Datadog::Tracing::Utils::RUBY_MAX_ID.to_s(16), Datadog::Tracing::Utils::RUBY_MAX_ID],
+        [(Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 1).to_s(16), Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 1],
 
         ['3e8', 1000],
         ['3E8', 1000],
@@ -138,10 +138,10 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
         ['2', 2],
 
         # Allowed values
-        [Datadog::Tracing::Span::RUBY_MAX_ID.to_s, Datadog::Tracing::Span::RUBY_MAX_ID],
-        [(Datadog::Tracing::Span::RUBY_MAX_ID + 1).to_s, Datadog::Tracing::Span::RUBY_MAX_ID + 1],
-        [Datadog::Tracing::Span::EXTERNAL_MAX_ID.to_s, Datadog::Tracing::Span::EXTERNAL_MAX_ID],
-        [(Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1).to_s, Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1],
+        [Datadog::Tracing::Utils::RUBY_MAX_ID.to_s, Datadog::Tracing::Utils::RUBY_MAX_ID],
+        [(Datadog::Tracing::Utils::RUBY_MAX_ID + 1).to_s, Datadog::Tracing::Utils::RUBY_MAX_ID + 1],
+        [Datadog::Tracing::Utils::EXTERNAL_MAX_ID.to_s, Datadog::Tracing::Utils::EXTERNAL_MAX_ID],
+        [(Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1).to_s, Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1],
         ['-100', -100],
         ['100', 100],
       ].each do |value, expected|
@@ -156,11 +156,11 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
       [
         # Larger than we allow
         # DEV: We truncate to 64-bit for base16, so the
-        [Datadog::Tracing::Span::EXTERNAL_MAX_ID.to_s(16), 0],
-        [(Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1).to_s(16), 1],
+        [Datadog::Tracing::Utils::EXTERNAL_MAX_ID.to_s(16), 0],
+        [(Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1).to_s(16), 1],
 
-        [Datadog::Tracing::Span::RUBY_MAX_ID.to_s(16), Datadog::Tracing::Span::RUBY_MAX_ID],
-        [(Datadog::Tracing::Span::RUBY_MAX_ID + 1).to_s(16), Datadog::Tracing::Span::RUBY_MAX_ID + 1],
+        [Datadog::Tracing::Utils::RUBY_MAX_ID.to_s(16), Datadog::Tracing::Utils::RUBY_MAX_ID],
+        [(Datadog::Tracing::Utils::RUBY_MAX_ID + 1).to_s(16), Datadog::Tracing::Utils::RUBY_MAX_ID + 1],
 
         ['3e8', 1000],
         ['3E8', 1000],

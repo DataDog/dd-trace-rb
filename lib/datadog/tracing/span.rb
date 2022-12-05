@@ -2,8 +2,8 @@
 
 # typed: true
 
-require_relative '../core/utils'
 require_relative '../core/utils/safe_dup'
+require_relative 'utils'
 
 require_relative 'metadata/ext'
 require_relative 'metadata'
@@ -18,22 +18,6 @@ module Datadog
     # @public_api
     class Span
       include Metadata
-
-      # The max value for a {Datadog::Tracing::Span} identifier.
-      # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
-      #
-      # Limited to +2<<62-1+ positive integers, as Ruby is able to represent such numbers "inline",
-      # inside a +VALUE+ scalar, thus not requiring memory allocation.
-      #
-      # The range of IDs also has to consider portability across different languages and platforms.
-      RUBY_MAX_ID = (1 << 62) - 1
-
-      # Excludes zero from possible values
-      RUBY_ID_RANGE = (1..RUBY_MAX_ID).freeze
-
-      # While we only generate 63-bit integers due to limitations in other languages, we support
-      # parsing 64-bit integers for distributed tracing since an upstream system may generate one
-      EXTERNAL_MAX_ID = 1 << 64
 
       attr_accessor \
         :end_time,
@@ -90,9 +74,9 @@ module Datadog
         @resource = Core::Utils::SafeDup.frozen_or_dup(resource)
         @type = Core::Utils::SafeDup.frozen_or_dup(type)
 
-        @id = id || Core::Utils.next_id
+        @id = id || Tracing::Utils.next_id
         @parent_id = parent_id || 0
-        @trace_id = trace_id || Core::Utils.next_id
+        @trace_id = trace_id || Tracing::Utils.next_id
 
         @meta = meta || {}
         @metrics = metrics || {}
