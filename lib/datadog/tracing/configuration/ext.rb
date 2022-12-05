@@ -3,6 +3,8 @@
 module Datadog
   module Tracing
     module Configuration
+      # Constants for configuration settings
+      # e.g. Env vars, default values, enums, etc...
       module Ext
         ENV_ENABLED = 'DD_TRACE_ENABLED'.freeze
 
