@@ -24,11 +24,12 @@ RSpec.describe 'gem release process' do
           CONTRIBUTING.md
           Gemfile
           Rakefile
+          Steepfile
           ddtrace.gemspec
           docker-compose.yml
         ]
 
-        directories_excluded = %r{^(spec|docs|\.circleci|\.github|benchmarks|gemfiles|integration|tasks|sorbet|yard)/}
+        directories_excluded = %r{^(sig|spec|docs|\.circleci|\.github|benchmarks|gemfiles|integration|tasks|sorbet|yard)/}
 
         expect(files)
           .to match_array(
