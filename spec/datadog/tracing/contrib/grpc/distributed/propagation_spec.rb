@@ -7,6 +7,7 @@ require_relative '../../../distributed/b3_single_spec'
 require_relative '../../../distributed/b3_multi_spec'
 require_relative '../../../distributed/datadog_spec'
 require_relative '../../../distributed/propagation_spec'
+require_relative '../../../distributed/trace_context_spec'
 
 RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
   it_behaves_like 'Distributed tracing propagator' do
@@ -53,6 +54,13 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
   context 'for Datadog' do
     it_behaves_like 'Datadog distributed format' do
       let(:datadog) { Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class) }
+      let(:fetcher_class) { Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher }
+    end
+  end
+
+  context 'for Trace Context' do
+    it_behaves_like 'Trace Context distributed format' do
+      let(:datadog) { Datadog::Tracing::Distributed::TraceContext.new(fetcher: fetcher_class) }
       let(:fetcher_class) { Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher }
     end
   end

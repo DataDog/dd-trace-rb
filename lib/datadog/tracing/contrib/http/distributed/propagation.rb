@@ -23,7 +23,9 @@ module Datadog
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER =>
                     Tracing::Distributed::B3Single.new(fetcher: Fetcher),
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG =>
-                    Tracing::Distributed::Datadog.new(fetcher: Fetcher)
+                    Tracing::Distributed::Datadog.new(fetcher: Fetcher),
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT =>
+                    Tracing::Distributed::TraceContext.new(fetcher: Fetcher)
                 })
             end
           end
