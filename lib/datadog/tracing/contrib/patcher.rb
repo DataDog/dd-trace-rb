@@ -71,6 +71,7 @@ module Datadog
           def default_tags
             ["patcher:#{patch_name}"].tap do |tags|
               tags << "target_version:#{target_version}" if respond_to?(:target_version) && !target_version.nil?
+              tags += super if defined?(super)
             end
           end
 
