@@ -236,8 +236,11 @@ module Datadog
         def parse_traceparent_string(traceparent)
           return unless traceparent
 
-          version, trace_id, parent_id, trace_flags = traceparent.split('-')
-          return unless version == SPEC_VERSION
+          version, trace_id, parent_id, trace_flags, extra = traceparent.strip.split('-')
+
+          return if extra # Extra fields are not valid
+          return unless version == SPEC_VERSION # Different version
+          return if trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2 # Invalid field sizes
 
           [Integer(trace_id, 16), Integer(parent_id, 16), Integer(trace_flags, 16)]
         rescue ArgumentError # Conversion to integer failed
