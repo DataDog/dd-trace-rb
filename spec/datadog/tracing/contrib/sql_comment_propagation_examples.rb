@@ -34,6 +34,15 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
 end
 
 RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:, error: nil|
+  RSpec::Matchers.define :a_trace_digest_with do |expected|
+    match do |actual|
+      actual.instance_of?(Datadog::Tracing::TraceDigest) &&
+        expected.all? do |key, value|
+          actual.__send__(key) == value
+        end
+    end
+  end
+
   it "propagates with mode: #{mode}" do
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode)
       .to receive(:new).with(mode).and_return(propagation_mode)
@@ -58,16 +67,23 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
   end
 
   it 'prepends sql comment to the sql statement' do
-    expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:prepend_comment).with(
-      sql_statement,
-      a_span_operation_with(name: span_op_name, service: service_name),
-      propagation_mode
-    ).and_call_original
+    allow(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:prepend_comment).and_call_original
 
     if error
       expect { subject }.to raise_error(error)
     else
       subject
     end
+
+    expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to have_received(:prepend_comment).with(
+      sql_statement,
+      a_trace_digest_with(
+        span_service: service_name,
+        trace_id: trace.id,
+        span_id: span.id,
+        trace_sampling_priority: 1
+      ),
+      propagation_mode
+    )
   end
 end
