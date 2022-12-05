@@ -121,6 +121,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
             "\u0000", # First unicode character
             "\u0019", # Last lower invalid character
             ',',
+            ';',
             '=',
             "\u007F", # First upper invalid character
             "\u{10FFFF}" # Last unicode character
