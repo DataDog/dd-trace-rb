@@ -381,6 +381,16 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe '#stop' do
     subject(:stop) { cpu_and_wall_time_worker.stop }
 
+    context 'when called immediately after start' do
+      it 'stops the CpuAndWallTimeWorker' do
+        cpu_and_wall_time_worker.start
+
+        stop
+
+        expect(described_class::Testing._native_is_running?(cpu_and_wall_time_worker)).to be false
+      end
+    end
+
     context 'after starting' do
       before do
         cpu_and_wall_time_worker.start
