@@ -34,15 +34,6 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
 end
 
 RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:, error: nil|
-  RSpec::Matchers.define :a_trace_digest_with do |expected|
-    match do |actual|
-      actual.instance_of?(Datadog::Tracing::TraceDigest) &&
-        expected.all? do |key, value|
-          actual.__send__(key) == value
-        end
-    end
-  end
-
   it "propagates with mode: #{mode}" do
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode)
       .to receive(:new).with(mode).and_return(propagation_mode)
@@ -77,12 +68,8 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
 
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to have_received(:prepend_comment).with(
       sql_statement,
-      a_trace_digest_with(
-        span_service: service_name,
-        trace_id: trace.id,
-        span_id: span.id,
-        trace_sampling_priority: 1
-      ),
+      a_span_operation_with(service: service_name),
+      duck_type(:to_digest),
       propagation_mode
     )
   end

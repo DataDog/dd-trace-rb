@@ -17,11 +17,13 @@ module Datadog
             span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
           end
 
-          def self.prepend_comment(sql, digest, mode)
+          # Inject span_op and trace_op instead of TraceDigest to improve memory usage
+          # for `disabled` and `service` mode
+          def self.prepend_comment(sql, span_op, trace_op, mode)
             return sql unless mode.enabled?
 
             tags = {
-              Ext::KEY_DATABASE_SERVICE => digest.span_service,
+              Ext::KEY_DATABASE_SERVICE => span_op.service,
               Ext::KEY_ENVIRONMENT => datadog_configuration.env,
               Ext::KEY_PARENT_SERVICE => datadog_configuration.service,
               Ext::KEY_VERSION => datadog_configuration.version
@@ -29,7 +31,7 @@ module Datadog
 
             if mode.full?
               tags[Ext::KEY_TRACEPARENT] =
-                Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_traceparent, digest)
+                Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_traceparent, trace_op.to_digest)
             end
 
             "#{Comment.new(tags)} #{sql}"

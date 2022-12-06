@@ -56,16 +56,19 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
     end
 
     let(:sql_statement) { 'SELECT 1' }
-    let(:digest) do
-      Datadog::Tracing::TraceDigest.new(
-        span_service: 'database_service',
-        trace_id: 0xC0FFEE,
-        span_id: 0xBEE,
-        trace_flags: 0xFE
+
+    let(:span_op) { double(service: 'database_service') }
+    let(:trace_op) do
+      double(
+        to_digest: Datadog::Tracing::TraceDigest.new(
+          trace_id: 0xC0FFEE,
+          span_id: 0xBEE,
+          trace_flags: 0xFE
+        )
       )
     end
 
-    subject { described_class.prepend_comment(sql_statement, digest, propagation_mode) }
+    subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode) }
 
     context 'when `disabled` mode' do
       let(:mode) { 'disabled' }

@@ -95,7 +95,8 @@ module Datadog
                   Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
                   propagated_sql_statement = Contrib::Propagation::SqlComment.prepend_comment(
                     sql,
-                    trace_op.to_digest,
+                    span,
+                    trace_op,
                     propagation_mode
                   )
                 end
