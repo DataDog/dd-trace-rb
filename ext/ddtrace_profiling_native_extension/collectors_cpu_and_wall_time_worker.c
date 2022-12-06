@@ -4,6 +4,7 @@
 #include <ruby/debug.h>
 #include <stdbool.h>
 #include <signal.h>
+
 #include "helpers.h"
 #include "ruby_helpers.h"
 #include "collectors_cpu_and_wall_time.h"
@@ -190,7 +191,7 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
   .function = {
     .dmark = cpu_and_wall_time_worker_typed_data_mark,
     .dfree = RUBY_DEFAULT_FREE,
-    .dsize = NULL, // We don't track profile memory usage (although it'd be cool if we did!)
+    .dsize = NULL, // We don't track memory usage (although it'd be cool if we did!)
     //.dcompact = NULL, // FIXME: Add support for compaction
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY

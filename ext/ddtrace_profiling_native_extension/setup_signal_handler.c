@@ -7,6 +7,8 @@
 #include "setup_signal_handler.h"
 #include "ruby_helpers.h"
 
+// Used by Collectors::CpuAndWallTimeWorker to setup SIGPROF signal handlers used for cpu/wall-time profiling.
+
 static void install_sigprof_signal_handler_internal(
   void (*signal_handler_function)(int, siginfo_t *, void *),
   const char *handler_pretty_name,
