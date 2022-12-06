@@ -35,6 +35,7 @@ require 'support/network_helpers'
 require 'support/object_helpers'
 require 'support/object_space_helper'
 require 'support/platform_helpers'
+require 'support/rack_support'
 require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
@@ -67,6 +68,7 @@ RSpec.configure do |config|
   config.include MetricHelpers
   config.include NetworkHelpers
   config.include ObjectHelpers
+  config.include RackSupport
   config.include SpanHelpers
   config.include SynchronizationHelpers
   config.include TestHelpers

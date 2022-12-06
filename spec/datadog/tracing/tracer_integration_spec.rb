@@ -256,15 +256,11 @@ RSpec.describe Datadog::Tracing::Tracer do
 
       let(:distributed_tracing_headers) do
         {
-          rack_header('x-datadog-trace-id') => trace_id.to_s,
-          rack_header('x-datadog-parent-id') => parent_id.to_s,
-          rack_header('x-datadog-sampling-priority') => sampling_priority.to_s,
-          rack_header('x-datadog-origin') => origin
+          RackSupport.header_to_rack('x-datadog-trace-id') => trace_id.to_s,
+          RackSupport.header_to_rack('x-datadog-parent-id') => parent_id.to_s,
+          RackSupport.header_to_rack('x-datadog-sampling-priority') => sampling_priority.to_s,
+          RackSupport.header_to_rack('x-datadog-origin') => origin
         }
-      end
-
-      def rack_header(header)
-        "http-#{header}".upcase!.tr('-', '_')
       end
 
       before do
@@ -307,11 +303,15 @@ RSpec.describe Datadog::Tracing::Tracer do
   end
 
   describe 'distributed trace' do
-    context 'with distributed datadog headers' do
-      let(:extract) { Datadog::Tracing::Propagation::HTTP.extract(rack_headers) }
-      let(:trace) { Datadog::Tracing.continue_trace!(extract) }
-      let(:inject) { {}.tap { |env| Datadog::Tracing::Propagation::HTTP.inject!(trace.to_digest, env) } }
+    let(:extract) { Datadog::Tracing::Propagation::HTTP.extract(rack_headers) }
+    let(:trace) { Datadog::Tracing.continue_trace!(extract) }
+    let(:inject) { {}.tap { |env| Datadog::Tracing::Propagation::HTTP.inject!(trace.to_digest, env) } }
 
+    let(:rack_headers) { headers.map { |k, v| [RackSupport.header_to_rack(k), v] }.to_h }
+
+    after { Datadog::Tracing.continue_trace!(nil) }
+
+    context 'with distributed datadog headers' do
       let(:headers) do
         {
           'x-datadog-trace-id' => trace_id.to_s,
@@ -321,22 +321,12 @@ RSpec.describe Datadog::Tracing::Tracer do
           'x-datadog-tags' => distributed_tags,
         }
       end
-      let(:rack_headers) do
-        headers.map { |key, value| [rack_header(key), value] }.to_h
-      end
 
       let(:trace_id) { 123 }
       let(:parent_id) { 456 }
       let(:origin) { 'outer-space' }
       let(:sampling_priority) { 1 }
       let(:distributed_tags) { '_dd.p.test=value' }
-
-      after { Datadog::Tracing.continue_trace!(nil) }
-
-      # TODO: Consolidate all `rack_header`s in a single place
-      def rack_header(header)
-        "http-#{header}".upcase!.tr('-', '_')
-      end
 
       it 'populates active trace' do
         expect(trace.id).to eq(trace_id)
@@ -359,6 +349,45 @@ RSpec.describe Datadog::Tracing::Tracer do
           'x-datadog-origin' => 'other-origin',
           'x-datadog-sampling-priority' => '9',
           'x-datadog-tags' => '_dd.p.test=changed',
+        )
+      end
+    end
+
+    context 'with distributed Trace Context headers' do
+      before do
+        Datadog.configure do |c|
+          c.tracing.distributed_tracing.propagation_extract_style = ['tracecontext']
+          c.tracing.distributed_tracing.propagation_inject_style = ['tracecontext']
+        end
+      end
+
+      let(:headers) do
+        {
+          'traceparent' => '00-0000000000000000000000000000007b-00000000000001c8-01',
+          'tracestate' => 'dd=s:1;o:orig;t.test:value',
+        }
+      end
+
+      it 'populates active trace' do
+        expect(trace.id).to eq(0x7b)
+        expect(trace.parent_span_id).to eq(0x1c8)
+        expect(trace.origin).to eq('orig')
+        expect(trace.sampling_priority).to eq(1)
+        expect(trace.send(:distributed_tags)).to eq('_dd.p.test' => 'value')
+      end
+
+      it 'populates injected request headers' do
+        expect(inject).to include(headers)
+      end
+
+      it 'populates injected request headers when values are modified' do
+        trace.origin = 'other-origin'
+        trace.sampling_priority = 9
+        trace.set_tag('_dd.p.test', 'changed')
+
+        expect(inject).to eq(
+          'traceparent' => '00-0000000000000000000000000000007b-00000000000001c8-01',
+          'tracestate' => 'dd=s:9;o:other-origin;t.test:changed'
         )
       end
     end
