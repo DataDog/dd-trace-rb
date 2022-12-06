@@ -37,7 +37,7 @@ module Datadog
           # Sets both extract and inject propagation style tho the provided value.
           # Has lower precedence than `DD_TRACE_PROPAGATION_STYLE_INJECT` or
           # `DD_TRACE_PROPAGATION_STYLE_EXTRACT`.
-          ENV_PROPAGATION_STYLE_EXTRACT = 'DD_TRACE_PROPAGATION_STYLE'.freeze
+          ENV_PROPAGATION_STYLE = 'DD_TRACE_PROPAGATION_STYLE'.freeze
 
           ENV_PROPAGATION_STYLE_INJECT = 'DD_TRACE_PROPAGATION_STYLE_INJECT'.freeze
           # @deprecated Use `DD_TRACE_PROPAGATION_STYLE_INJECT` instead.
