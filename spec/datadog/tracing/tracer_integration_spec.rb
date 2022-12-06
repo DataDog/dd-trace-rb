@@ -2,8 +2,6 @@
 
 require 'spec_helper'
 
-require_relative 'contrib/rack/rack_support'
-
 require 'datadog/core/runtime/ext'
 require 'datadog/core/utils'
 require 'datadog/tracing/propagation/http'

@@ -4,8 +4,6 @@ require 'spec_helper'
 
 require 'datadog/tracing/contrib/http/distributed/propagation'
 
-require_relative '../../rack/rack_support'
-
 require_relative '../../../distributed/b3_single_spec'
 require_relative '../../../distributed/b3_multi_spec'
 require_relative '../../../distributed/datadog_spec'

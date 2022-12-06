@@ -2,8 +2,6 @@
 
 require 'spec_helper'
 
-require_relative '../tracing/contrib/rack/rack_support'
-
 require 'datadog/tracing/span'
 require 'datadog/opentracer'
 
