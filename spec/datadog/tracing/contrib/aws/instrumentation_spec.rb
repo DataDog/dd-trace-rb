@@ -3,6 +3,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'aws-sdk'
 
@@ -43,6 +44,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'measured span for integration'
       it_behaves_like 'a peer service span'
+      it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -90,6 +92,7 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       it_behaves_like 'measured span for integration'
+      it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
