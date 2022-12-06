@@ -279,7 +279,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample)
-        signal_handler_wrong_thread = stats.fetch(:signal_handler_wrong_thread)
 
         expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.8), \
           "Expected at least 80% of signals to be delivered to correct thread (#{stats})"
@@ -290,11 +289,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # will not cause flakiness
         expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
-        # It's possible that we stop in between trigger_sample_attempts being incremented and the other values
-        # actually being updated, so this is why we allow both values
-        expect(
-          [trigger_sample_attempts, trigger_sample_attempts - 1]
-        ).to include(signal_handler_enqueued_sample + signal_handler_wrong_thread)
       end
     end
 
@@ -313,8 +307,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         stats = cpu_and_wall_time_worker.stats
 
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
-        signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample)
-        signal_handler_wrong_thread = stats.fetch(:signal_handler_wrong_thread)
 
         simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
 
@@ -327,11 +319,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # will not cause flakiness
         expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
-        # It's possible that we stop in between trigger_sample_attempts being incremented and the other values
-        # actually being updated, so this is why we allow both values
-        expect(
-          [trigger_sample_attempts, trigger_sample_attempts - 1]
-        ).to include(signal_handler_enqueued_sample + signal_handler_wrong_thread)
       end
     end
   end
