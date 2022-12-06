@@ -5,6 +5,7 @@
 
 #include "helpers.h"
 #include "ruby_helpers.h"
+#include "collectors_idle_sampling_helper.h"
 
 // Used by the Collectors::CpuAndWallTimeWorker to gather samples when the Ruby process is idle.
 //
@@ -34,10 +35,9 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static void *run_idle_sampling_loop(void *state_ptr);
 static void interrupt_idle_sampling_loop(void *state_ptr);
 static VALUE _native_reset(DDTRACE_UNUSED VALUE self, VALUE self_instance);
-void idle_sampling_helper_request_action(VALUE self_instance, void (*run_action_function)(void));
 static VALUE _native_idle_sampling_helper_request_action(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static void *request_testing_action(void *self_instance_ptr);
-void grab_gvl_and_run_testing_action(void);
+static void grab_gvl_and_run_testing_action(void);
 static void *run_testing_action(DDTRACE_UNUSED void *unused);
 
 void collectors_idle_sampling_helper_init(VALUE profiling_module) {
@@ -230,7 +230,7 @@ static void *request_testing_action(void *self_instance_ptr) {
 
 // This gets called by the worker thread, which is not holding the global VM lock. To be able to actually run the action,
 // we need to acquire it
-void grab_gvl_and_run_testing_action(void) {
+static void grab_gvl_and_run_testing_action(void) {
   rb_thread_call_with_gvl(run_testing_action, NULL);
 }
 

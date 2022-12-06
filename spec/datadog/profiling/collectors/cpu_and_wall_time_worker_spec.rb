@@ -68,6 +68,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       exception = try_wait_until(backoff: 0.01) { another_instance.send(:failure_exception) }
 
       expect(exception.message).to include 'another instance'
+
+      another_instance.stop
     end
 
     it 'installs the profiling SIGPROF signal handler' do
@@ -285,10 +287,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # Sanity checking
 
         # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
-        # will not cause flakyness
+        # will not cause flakiness
         expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
-        # It's possible that we stop in between trigger_sample_attempts being incrementing and the other values
+        # It's possible that we stop in between trigger_sample_attempts being incremented and the other values
         # actually being updated, so this is why we allow both values
         expect(
           [trigger_sample_attempts, trigger_sample_attempts - 1]
@@ -322,10 +324,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # Sanity checking
 
         # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
-        # will not cause flakyness
+        # will not cause flakiness
         expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
-        # It's possible that we stop in between trigger_sample_attempts being incrementing and the other values
+        # It's possible that we stop in between trigger_sample_attempts being incremented and the other values
         # actually being updated, so this is why we allow both values
         expect(
           [trigger_sample_attempts, trigger_sample_attempts - 1]
