@@ -9,6 +9,7 @@ module Datadog
       # @public_api
       # rubocop:disable Metrics/AbcSize
       # rubocop:disable Metrics/BlockLength
+      # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Layout/LineLength
       module Settings
@@ -120,6 +121,42 @@ module Datadog
                         style
                       end
                     end
+                  end
+
+                  o.lazy
+                end
+
+                # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
+                # data from incoming requests and inject into outgoing requests.
+                #
+                # This configuration is the equivalent of configuring both {propagation_extract_style}
+                # {propagation_inject_style} to value set to {propagation_style}.
+                #
+                # @default `DD_TRACE_PROPAGATION_STYLE` environment variable (comma-separated list).
+                # @return [Array<String>]
+                option :propagation_style do |o|
+                  o.default do
+                    env_to_list(Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE, nil, comma_separated_only: true)
+                  end
+
+                  o.on_set do |styles|
+                    next unless styles
+
+                    # Modernize B3 options
+                    # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
+                    styles.map! do |style|
+                      case style
+                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
+                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
+                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                      else
+                        style
+                      end
+                    end
+
+                    set_option(:propagation_extract_style, styles)
+                    set_option(:propagation_inject_style, styles)
                   end
 
                   o.lazy
@@ -388,6 +425,7 @@ module Datadog
       end
       # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/BlockLength
+      # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/MethodLength
       # rubocop:enable Layout/LineLength
     end

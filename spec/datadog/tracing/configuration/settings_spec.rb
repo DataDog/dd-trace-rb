@@ -60,14 +60,14 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     end
 
     describe '#distributed_tracing' do
+      around do |example|
+        ClimateControl.modify(var_name => var_value) do
+          example.run
+        end
+      end
+
       describe '#propagation_extract_style' do
         subject(:propagation_extract_style) { settings.tracing.distributed_tracing.propagation_extract_style }
-
-        around do |example|
-          ClimateControl.modify(var_name => var_value) do
-            example.run
-          end
-        end
 
         context 'when DD_TRACE_PROPAGATION_STYLE_EXTRACT' do
           let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE_EXTRACT' }
@@ -136,12 +136,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       describe '#propagation_inject_style' do
         subject(:propagation_inject_style) { settings.tracing.distributed_tracing.propagation_inject_style }
 
-        around do |example|
-          ClimateControl.modify(var_name => var_value) do
-            example.run
-          end
-        end
-
         context 'with DD_TRACE_PROPAGATION_STYLE_INJECT' do
           let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE_INJECT' }
 
@@ -194,6 +188,52 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             end
 
             include_examples 'records deprecated action', 'DD_PROPAGATION_STYLE_INJECT environment variable is deprecated'
+          end
+        end
+      end
+
+      describe '#propagation_style' do
+        subject(:propagation_style) { settings.tracing.distributed_tracing.propagation_style }
+
+        def propagation_extract_style
+          settings.tracing.distributed_tracing.propagation_extract_style
+        end
+
+        def propagation_inject_style
+          settings.tracing.distributed_tracing.propagation_inject_style
+        end
+
+        context 'with DD_TRACE_PROPAGATION_STYLE' do
+          let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE' }
+
+          context 'is not defined' do
+            let(:var_value) { nil }
+
+            it { is_expected.to be_nil }
+
+            it 'does not change propagation_extract_style' do
+              expect { propagation_style }.to_not change { propagation_extract_style }
+                .from(%w[Datadog b3multi b3])
+            end
+
+            it 'does not change propagation_inject_style' do
+              expect { propagation_style }.to_not change { propagation_inject_style }.from(['Datadog'])
+            end
+          end
+
+          context 'is defined' do
+            let(:var_value) { 'Datadog,b3' }
+
+            it { is_expected.to contain_exactly('Datadog', 'b3') }
+
+            it 'sets propagation_extract_style' do
+              expect { propagation_style }.to change { propagation_extract_style }
+                .from(%w[Datadog b3multi b3]).to(%w[Datadog b3])
+            end
+
+            it 'sets propagation_inject_style' do
+              expect { propagation_style }.to change { propagation_inject_style }.from(['Datadog']).to(%w[Datadog b3])
+            end
           end
         end
       end
