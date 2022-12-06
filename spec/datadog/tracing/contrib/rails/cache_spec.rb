@@ -306,7 +306,7 @@ RSpec.describe 'Rails cache' do
         expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
         expect(span.get_tag('rails.cache.key')).to eq('exception')
         expect(span.get_tag('error.type')).to eq('RuntimeError')
-        expect(span.get_tag('error.msg')).to eq('oops')
+        expect(span.get_tag('error.message')).to eq('oops')
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
           .to eq('active_support')
@@ -349,7 +349,7 @@ RSpec.describe 'Rails cache' do
           expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
           expect(span.get_tag('rails.cache.keys')).to eq('["exception", "another", "one"]')
           expect(span.get_tag('error.type')).to eq('RuntimeError')
-          expect(span.get_tag('error.msg')).to eq('oops')
+          expect(span.get_tag('error.message')).to eq('oops')
 
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq('active_support')

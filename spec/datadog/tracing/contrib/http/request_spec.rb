@@ -95,7 +95,7 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('span.kind')).to eq('client')
         expect(span.status).to eq(1)
         expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
-        expect(span.get_tag('error.msg')).to be nil
+        expect(span.get_tag('error.message')).to be nil
       end
 
       it_behaves_like 'a peer service span' do
@@ -136,7 +136,7 @@ RSpec.describe 'net/http requests' do
             expect(response.code).to eq('404')
             expect(span.status).to eq(1)
             expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
-            expect(span.get_tag('error.msg')).to eq(body)
+            expect(span.get_tag('error.message')).to eq(body)
           end
         end
       end

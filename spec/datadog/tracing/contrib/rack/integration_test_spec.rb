@@ -449,7 +449,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.url')).to eq('/exception/')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.get_tag('error.type')).to eq('StandardError')
-            expect(span.get_tag('error.msg')).to eq('Unable to process the request')
+            expect(span.get_tag('error.message')).to eq('Unable to process the request')
             expect(span.get_tag('error.stack')).to_not be nil
             expect(span.status).to eq(1)
             expect(span).to be_root_span
@@ -490,7 +490,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.url')).to eq('/exception/')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.get_tag('error.type')).to eq('NoMemoryError')
-            expect(span.get_tag('error.msg')).to eq('Non-standard error')
+            expect(span.get_tag('error.message')).to eq('Non-standard error')
             expect(span.get_tag('error.stack')).to_not be nil
             expect(span.status).to eq(1)
             expect(span).to be_root_span

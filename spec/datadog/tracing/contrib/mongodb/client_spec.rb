@@ -483,7 +483,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
         expect(span.get_tag('mongodb.rows')).to be nil
         expect(span.status).to eq(1)
-        expect(span.get_tag('error.msg')).to eq('ns not found (26)')
+        expect(span.get_tag('error.message')).to eq('ns not found (26)')
       end
 
       context 'that triggers #failed before #started' do
@@ -536,7 +536,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
             expect(insert_span.resource).to match(/"operation"\s*=>\s*:insert/)
             expect(insert_span.status).to eq(1)
             expect(insert_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
-            expect(insert_span.get_tag('error.msg')).to match(/.*is not authorized to access.*/)
+            expect(insert_span.get_tag('error.message')).to match(/.*is not authorized to access.*/)
             expect(insert_span.get_tag('db.system')).to eq('mongodb')
           end
 
@@ -544,7 +544,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           expect(auth_span.resource).to match(/"operation"\s*=>\s*[:"]saslStart/)
           expect(auth_span.status).to eq(1)
           expect(auth_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
-          expect(auth_span.get_tag('error.msg')).to eq('Unsupported mechanism PLAIN (2)')
+          expect(auth_span.get_tag('error.message')).to eq('Unsupported mechanism PLAIN (2)')
           expect(auth_span.get_tag('db.system')).to eq('mongodb')
         end
       end

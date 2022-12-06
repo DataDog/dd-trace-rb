@@ -237,7 +237,7 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
 
         end
         expect(span.status).to eq(1)
-        expect(span.get_tag('error.msg')).to match(/ERR unknown command/)
+        expect(span.get_tag('error.message')).to match(/ERR unknown command/)
         expect(span.get_tag('error.type')).to match(/CommandError/)
         expect(span.get_tag('error.stack').length).to be >= 3
       end
