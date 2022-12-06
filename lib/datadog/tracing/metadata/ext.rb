@@ -60,7 +60,7 @@ module Datadog
         # @public_api
         module Errors
           STATUS = 1
-          TAG_MSG = 'error.msg'
+          TAG_MSG = 'error.message'
           TAG_STACK = 'error.stack'
           TAG_TYPE = 'error.type'
         end
