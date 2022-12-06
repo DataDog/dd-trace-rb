@@ -6,6 +6,7 @@ require_relative '../../../distributed/propagation'
 require_relative '../../../distributed/b3_multi'
 require_relative '../../../distributed/b3_single'
 require_relative '../../../distributed/datadog'
+require_relative '../../../distributed/none'
 require_relative '../../../distributed/trace_context'
 
 module Datadog
@@ -25,7 +26,8 @@ module Datadog
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG =>
                     Tracing::Distributed::Datadog.new(fetcher: Fetcher),
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT =>
-                    Tracing::Distributed::TraceContext.new(fetcher: Fetcher)
+                    Tracing::Distributed::TraceContext.new(fetcher: Fetcher),
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_NONE => Tracing::Distributed::None.new
                 })
             end
           end
