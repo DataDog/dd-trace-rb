@@ -3,6 +3,7 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'grpc'
 require 'ddtrace'
@@ -91,6 +92,9 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     it_behaves_like 'measured span for integration', false
+    it_behaves_like 'environment service name', 'DD_TRACE_GRPC_SERVICE_NAME' do
+      let(:configuration_options) { {} }
+    end
   end
 
   shared_examples 'inject distributed tracing metadata' do
