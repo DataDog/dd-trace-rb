@@ -6,6 +6,7 @@ require 'redis'
 require 'ddtrace'
 
 require_relative './shared_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 RSpec.describe 'Redis test' do
   let(:configuration_options) { {} }
@@ -32,6 +33,10 @@ RSpec.describe 'Redis test' do
     context 'with standard configuration' do
       let(:redis_options) { default_redis_options }
       let(:redis) { Redis.new(redis_options.freeze) }
+
+      it_behaves_like 'environment service name', 'DD_TRACE_REDIS_SERVICE_NAME' do
+        subject { redis.ping }
+      end
 
       context 'with default settings' do
         let(:configuration_options) { {} }
