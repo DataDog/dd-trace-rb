@@ -280,8 +280,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample)
 
-        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.8), \
-          "Expected at least 80% of signals to be delivered to correct thread (#{stats})"
+        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.6), \
+          "Expected at least 60% of signals to be delivered to correct thread (#{stats})"
 
         # Sanity checking
 
