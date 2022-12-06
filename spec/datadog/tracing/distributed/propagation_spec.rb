@@ -5,7 +5,7 @@ require 'spec_helper'
 require 'datadog/tracing/distributed/propagation'
 
 RSpec.shared_examples 'Distributed tracing propagator' do
-  subject(:propagation) { described_class.new(propagation_styles: propagation_styles) }
+  subject(:propagator) { described_class.new(propagation_styles: propagation_styles) }
 
   let(:propagation_styles) do
     {
@@ -19,7 +19,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '::inject!' do
-    subject(:inject!) { propagation.inject!(trace, data) }
+    subject(:inject!) { propagator.inject!(trace, data) }
     let(:data) { {} }
 
     shared_examples_for 'trace injection' do
@@ -124,7 +124,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   end
 
   describe '.extract' do
-    subject(:extract) { propagation.extract(data) }
+    subject(:extract) { propagator.extract(data) }
     let(:trace_digest) { extract }
 
     context 'given empty data' do

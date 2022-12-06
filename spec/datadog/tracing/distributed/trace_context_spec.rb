@@ -12,11 +12,11 @@ RSpec.shared_examples 'Trace Context distributed format' do
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '#inject!' do
-    subject(:inject!) { datadog.inject!(digest, data) }
+    subject!(:inject!) { datadog.inject!(digest, data) }
     let(:data) { {} }
 
-    let(:traceparent) { inject!['traceparent'] }
-    let(:tracestate) { inject!['tracestate'] }
+    let(:traceparent) { data['traceparent'] }
+    let(:tracestate) { data['tracestate'] }
     let(:trace_flags) { traceparent[53..54] }
 
     context 'with a nil digest' do

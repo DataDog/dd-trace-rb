@@ -30,7 +30,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
         )
       end
 
-      it { is_expected.to eq(b3_single_header => '2710-4e20') }
+      it { expect(data).to eq(b3_single_header => '2710-4e20') }
 
       [
         [-1, 0],
@@ -47,9 +47,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
             )
           end
 
-          it {
-            is_expected.to eq(b3_single_header => "c350-ea60-#{expected}")
-          }
+          it { expect(data).to eq(b3_single_header => "c350-ea60-#{expected}") }
         end
       end
 
@@ -62,7 +60,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
           )
         end
 
-        it { is_expected.to eq(b3_single_header => '15f90-186a0') }
+        it { expect(data).to eq(b3_single_header => '15f90-186a0') }
       end
     end
   end

@@ -10,8 +10,10 @@ require_relative '../../../distributed/propagation_spec'
 require_relative '../../../distributed/trace_context_spec'
 
 RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
+  subject(:propagation) { described_class.new }
+
   it_behaves_like 'Distributed tracing propagator' do
-    subject(:propagation) { described_class.new }
+    subject(:propagator) { propagation }
 
     describe '.extract' do
       subject(:extract) { propagation.extract(data) }
@@ -39,29 +41,29 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
 
   context 'for B3 Multi' do
     it_behaves_like 'B3 Multi distributed format' do
-      let(:b3) { Datadog::Tracing::Distributed::B3Multi.new(fetcher: fetcher_class) }
-      let(:fetcher_class) { Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher }
+      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['b3multi'] } }
+      let(:b3) { propagation }
     end
   end
 
   context 'for B3 Single' do
     it_behaves_like 'B3 Single distributed format' do
-      let(:b3_single) { Datadog::Tracing::Distributed::B3Single.new(fetcher: fetcher_class) }
-      let(:fetcher_class) { Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher }
+      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['b3'] } }
+      let(:b3_single) { propagation }
     end
   end
 
   context 'for Datadog' do
     it_behaves_like 'Datadog distributed format' do
-      let(:datadog) { Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class) }
-      let(:fetcher_class) { Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher }
+      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['Datadog'] } }
+      let(:datadog) { propagation }
     end
   end
 
   context 'for Trace Context' do
     it_behaves_like 'Trace Context distributed format' do
-      let(:datadog) { Datadog::Tracing::Distributed::TraceContext.new(fetcher: fetcher_class) }
-      let(:fetcher_class) { Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher }
+      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['tracecontext'] } }
+      let(:datadog) { propagation }
     end
   end
 end
