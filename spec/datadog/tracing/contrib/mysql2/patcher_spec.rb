@@ -5,6 +5,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/propagation/sql_comment'
 require 'datadog/tracing/contrib/sql_comment_propagation_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'ddtrace'
 require 'mysql2'
@@ -108,6 +109,10 @@ RSpec.describe 'Mysql2::Client patcher' do
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
+
+        it_behaves_like 'environment service name', 'DD_TRACE_MYSQL2_SERVICE_NAME' do
+          let(:configuration_options) { {} }
+        end
       end
 
       context 'when a failed query is made' do
@@ -125,6 +130,10 @@ RSpec.describe 'Mysql2::Client patcher' do
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query', error: Mysql2::Error
+
+        it_behaves_like 'environment service name', 'DD_TRACE_MYSQL2_SERVICE_NAME', error: Mysql2::Error do
+          let(:configuration_options) { {} }
+        end
       end
     end
   end
