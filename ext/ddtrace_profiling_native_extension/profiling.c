@@ -192,7 +192,7 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 
   rb_nativethread_id_t thread = pthread_id_for(background_thread);
 
-  pthread_mutex_lock(&holding_the_gvl_signal_handler_mutex);
+  ENFORCE_SUCCESS_GVL(pthread_mutex_lock(&holding_the_gvl_signal_handler_mutex));
 
   // We keep trying for ~5 seconds (500 x 10ms) to try to avoid any flakiness if the test machine is a bit slow
   for (int tries = 0; holding_the_gvl_signal_handler_result[0] == Qfalse && tries < 500; tries++) {
@@ -214,12 +214,10 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
     }
 
     int error = pthread_cond_timedwait(&holding_the_gvl_signal_handler_executed, &holding_the_gvl_signal_handler_mutex, &deadline);
-    if (error && error != ETIMEDOUT) {
-      rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in _native_trigger_holding_the_gvl_signal_handler_on")));
-    }
+    if (error && error != ETIMEDOUT) ENFORCE_SUCCESS_GVL(error);
   }
 
-  pthread_mutex_unlock(&holding_the_gvl_signal_handler_mutex);
+  ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(&holding_the_gvl_signal_handler_mutex));
 
   replace_sigprof_signal_handler_with_empty_handler(holding_the_gvl_signal_handler);
 
