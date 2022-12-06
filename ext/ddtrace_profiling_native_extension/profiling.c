@@ -87,7 +87,7 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
     grab_gvl_and_raise(args.exception_class, "%s", args.test_message);
   }
 
-  rb_raise(rb_eRuntimeError, "This should never happen");
+  rb_raise(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise; this should never happen");
 }
 
 static void *trigger_grab_gvl_and_raise(void *trigger_args) {
@@ -123,7 +123,7 @@ static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE
     grab_gvl_and_raise_syserr(args.syserr_errno, "%s", args.test_message);
   }
 
-  rb_raise(rb_eRuntimeError, "This should never happen");
+  rb_raise(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_syserr; this should never happen");
 }
 
 static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
