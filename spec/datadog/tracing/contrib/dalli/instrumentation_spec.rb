@@ -3,6 +3,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'dalli'
 require 'ddtrace'
@@ -27,6 +28,13 @@ RSpec.describe 'Dalli instrumentation' do
     Datadog.registry[:dalli].reset_configuration!
     example.run
     Datadog.registry[:dalli].reset_configuration!
+  end
+
+  it_behaves_like 'environment service name', 'DD_TRACE_DALLI_SERVICE_NAME' do
+    subject do
+      client.set('abc', 123)
+      try_wait_until { fetch_spans.any? }
+    end
   end
 
   describe 'when a client calls #set' do
