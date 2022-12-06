@@ -57,7 +57,7 @@ Non-exhaustive list of APIs that cause exceptions to be raised:
 
 * `Check_TypedStruct`, `Check_Type`, `ENFORCE_TYPE`
 * `rb_funcall`
-* `rb_thread_call_without_gvl`, `rb_thread_call_without_gvl2`
+* `rb_thread_call_without_gvl`
 * [Numeric conversion APIs, e.g. `NUM2LONG`, `NUM2INT`, etc.](https://silverhammermba.github.io/emberb/c/?#translation)
 * Our `char_slice_from_ruby_string` helper
 

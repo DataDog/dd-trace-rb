@@ -5,6 +5,7 @@
 #include "clock_id.h"
 #include "helpers.h"
 #include "private_vm_api_access.h"
+#include "ruby_helpers.h"
 #include "setup_signal_handler.h"
 
 // Each class/module here is implemented in their separate file
@@ -15,6 +16,10 @@ void http_transport_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
 
 static VALUE native_working_p(VALUE self);
+static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl);
+static void *trigger_grab_gvl_and_raise(void *trigger_args);
+static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE test_message, VALUE test_message_arg, VALUE release_gvl);
+static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args);
 static VALUE _native_ddtrace_rb_ractor_main_p(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_is_current_thread_holding_the_gvl(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_release_gvl_and_call_is_current_thread_holding_the_gvl(DDTRACE_UNUSED VALUE _self);
@@ -41,6 +46,8 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
 
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(native_extension_module, "Testing");
+  rb_define_singleton_method(testing_module, "_native_grab_gvl_and_raise", _native_grab_gvl_and_raise, 4);
+  rb_define_singleton_method(testing_module, "_native_grab_gvl_and_raise_syserr", _native_grab_gvl_and_raise_syserr, 4);
   rb_define_singleton_method(testing_module, "_native_ddtrace_rb_ractor_main_p", _native_ddtrace_rb_ractor_main_p, 0);
   rb_define_singleton_method(testing_module, "_native_is_current_thread_holding_the_gvl", _native_is_current_thread_holding_the_gvl, 0);
   rb_define_singleton_method(
@@ -57,6 +64,78 @@ static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
   self_test_clock_id();
 
   return Qtrue;
+}
+
+struct trigger_grab_gvl_and_raise_arguments {
+  VALUE exception_class;
+  char *test_message;
+  int test_message_arg;
+};
+
+static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
+  ENFORCE_TYPE(test_message, T_STRING);
+
+  struct trigger_grab_gvl_and_raise_arguments args;
+
+  args.exception_class = exception_class;
+  args.test_message = StringValueCStr(test_message);
+  args.test_message_arg = test_message_arg != Qnil ? NUM2INT(test_message_arg) : -1;
+
+  if (RTEST(release_gvl)) {
+    rb_thread_call_without_gvl(trigger_grab_gvl_and_raise, &args, NULL, NULL);
+  } else {
+    grab_gvl_and_raise(args.exception_class, "%s", args.test_message);
+  }
+
+  rb_raise(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise; this should never happen");
+}
+
+static void *trigger_grab_gvl_and_raise(void *trigger_args) {
+  struct trigger_grab_gvl_and_raise_arguments *args = (struct trigger_grab_gvl_and_raise_arguments *) trigger_args;
+
+  if (args->test_message_arg >= 0) {
+    grab_gvl_and_raise(args->exception_class, "%s%d", args->test_message, args->test_message_arg);
+  } else {
+    grab_gvl_and_raise(args->exception_class, "%s", args->test_message);
+  }
+
+  return NULL;
+}
+
+struct trigger_grab_gvl_and_raise_syserr_arguments {
+  int syserr_errno;
+  char *test_message;
+  int test_message_arg;
+};
+
+static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
+  ENFORCE_TYPE(test_message, T_STRING);
+
+  struct trigger_grab_gvl_and_raise_syserr_arguments args;
+
+  args.syserr_errno = NUM2INT(syserr_errno);
+  args.test_message = StringValueCStr(test_message);
+  args.test_message_arg = test_message_arg != Qnil ? NUM2INT(test_message_arg) : -1;
+
+  if (RTEST(release_gvl)) {
+    rb_thread_call_without_gvl(trigger_grab_gvl_and_raise_syserr, &args, NULL, NULL);
+  } else {
+    grab_gvl_and_raise_syserr(args.syserr_errno, "%s", args.test_message);
+  }
+
+  rb_raise(rb_eRuntimeError, "Failed to raise exception in _native_grab_gvl_and_raise_syserr; this should never happen");
+}
+
+static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
+  struct trigger_grab_gvl_and_raise_syserr_arguments *args = (struct trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
+
+  if (args->test_message_arg >= 0) {
+    grab_gvl_and_raise_syserr(args->syserr_errno, "%s%d", args->test_message, args->test_message_arg);
+  } else {
+    grab_gvl_and_raise_syserr(args->syserr_errno, "%s", args->test_message);
+  }
+
+  return NULL;
 }
 
 static VALUE _native_ddtrace_rb_ractor_main_p(DDTRACE_UNUSED VALUE _self) {
