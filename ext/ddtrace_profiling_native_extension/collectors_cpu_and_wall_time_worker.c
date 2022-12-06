@@ -84,6 +84,8 @@ struct cpu_and_wall_time_worker_state {
   // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
   // the CpuAndWallTimeWorker thread
   VALUE failure_exception;
+  // Used by `_native_stop` to flag the worker thread to start (see comment on `_native_sampling_loop`)
+  VALUE stop_thread;
 
   // Used to get gc start/finish information
   VALUE gc_tracepoint;
@@ -107,7 +109,7 @@ static VALUE _native_initialize(
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
-static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance);
+static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread);
 static VALUE stop(VALUE self_instance, VALUE optional_exception);
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static void *run_sampling_trigger_loop(void *state_ptr);
@@ -162,7 +164,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
 
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 3);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
   rb_define_singleton_method(testing_module, "_native_current_sigprof_signal_handler", _native_current_sigprof_signal_handler, 0);
@@ -197,6 +199,7 @@ static VALUE _native_new(VALUE klass) {
   state->cpu_and_wall_time_collector_instance = Qnil;
   state->owner_thread = Qnil;
   state->failure_exception = Qnil;
+  state->stop_thread = Qnil;
   state->gc_tracepoint = Qnil;
 
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
@@ -227,6 +230,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->cpu_and_wall_time_collector_instance);
   rb_gc_mark(state->owner_thread);
   rb_gc_mark(state->failure_exception);
+  rb_gc_mark(state->stop_thread);
   rb_gc_mark(state->gc_tracepoint);
 }
 
@@ -254,6 +258,10 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
       rb_tracepoint_disable(old_state->gc_tracepoint);
     }
   }
+
+  // We use `stop_thread` to distinguish when `_native_stop` was called before we actually had a chance to start. In this
+  // situation we stop immediately and never even start the sampling trigger loop.
+  if (state->stop_thread == rb_thread_current()) return Qnil;
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance_state = state;
@@ -306,7 +314,12 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   return Qnil;
 }
 
-static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance) {
+static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  state->stop_thread = worker_thread;
+
   return stop(self_instance, /* optional_exception: */ Qnil);
 }
 
