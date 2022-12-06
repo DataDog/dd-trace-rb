@@ -179,6 +179,7 @@ services:
       - mongodb
       - mysql
       - postgres
+      - presto
       - redis
       - redis_old
     env_file: ./.env
