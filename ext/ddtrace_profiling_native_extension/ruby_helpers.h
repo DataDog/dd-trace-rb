@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ruby.h>
+#include <stdbool.h>
 
 #include "helpers.h"
 
@@ -70,3 +71,19 @@ NORETURN(
   void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
+
+#define ENFORCE_SUCCESS_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, true)
+#define ENFORCE_SUCCESS_NO_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, false)
+
+#define ENFORCE_SUCCESS_HELPER(expression, have_gvl) \
+  { int result_syserr_errno = expression; if (RB_UNLIKELY(result_syserr_errno)) raise_syserr(result_syserr_errno, have_gvl, ADD_QUOTES(expression), __FILE__, __LINE__, __func__); }
+
+// Called by ENFORCE_SUCCESS_HELPER; should not be used directly
+NORETURN(void raise_syserr(
+  int syserr_errno,
+  bool have_gvl,
+  const char *expression,
+  const char *file,
+  int line,
+  const char *function_name
+));
