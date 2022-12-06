@@ -28,8 +28,16 @@ module Datadog
 
             option :distributed_tracing, default: true
             option :error_handler
-            option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
             option :split_by_domain, default: false
+
+            option :service_name do |o|
+              o.default do
+                ENV.fetch(Ext::ENV_SERVICE_NAME) do
+                  Ext::DEFAULT_PEER_SERVICE_NAME
+                end
+              end
+              o.lazy
+            end
           end
         end
       end
