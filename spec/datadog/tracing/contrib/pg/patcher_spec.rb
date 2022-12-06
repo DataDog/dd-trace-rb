@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/sql_comment_propagation_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
@@ -124,6 +125,10 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { exec }
         end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+          let(:configuration_options) { {} }
+        end
       end
 
       context 'when a failed query is made' do
@@ -137,6 +142,10 @@ RSpec.describe 'PG::Connection patcher' do
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
+        end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME', error: PG::Error do
+          let(:configuration_options) { {} }
         end
       end
     end
@@ -217,6 +226,10 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { exec_params }
         end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+          let(:configuration_options) { {} }
+        end
       end
 
       context 'when a failed query is made' do
@@ -232,6 +245,10 @@ RSpec.describe 'PG::Connection patcher' do
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
+        end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME', error: PG::Error do
+          let(:configuration_options) { {} }
         end
       end
     end
@@ -305,6 +322,10 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { exec_prepared }
         end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+          let(:configuration_options) { {} }
+        end
       end
 
       context 'when a failed query is made' do
@@ -315,6 +336,11 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span).to have_error_message(
             include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
           )
+        end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME', error: PG::Error do
+          let(:configuration_options) { {} }
+          subject { conn.exec_prepared('invalid prepared select 1', ['INVALID']) }
         end
       end
     end
@@ -395,6 +421,10 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { async_exec }
         end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+          let(:configuration_options) { {} }
+        end
       end
 
       context 'when a failed query is made' do
@@ -409,6 +439,10 @@ RSpec.describe 'PG::Connection patcher' do
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
+        end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME', error: PG::Error do
+          let(:configuration_options) { {} }
         end
       end
     end
@@ -493,6 +527,10 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { async_exec_params }
         end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+          let(:configuration_options) { {} }
+        end
       end
 
       context 'when a failed query is made' do
@@ -507,6 +545,10 @@ RSpec.describe 'PG::Connection patcher' do
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
+        end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME', error: PG::Error do
+          let(:configuration_options) { {} }
         end
       end
     end
@@ -585,6 +627,10 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { async_exec_prepared }
         end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+          let(:configuration_options) { {} }
+        end
       end
 
       context 'when a failed query is made' do
@@ -595,6 +641,11 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span).to have_error_message(
             include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
           )
+        end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME', error: PG::Error do
+          let(:configuration_options) { {} }
+          subject { conn.async_exec_prepared('invalid prepared select 1', ['INVALID']) }
         end
       end
     end
@@ -681,6 +732,10 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { sync_exec }
         end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+          let(:configuration_options) { {} }
+        end
       end
 
       context 'when a failed query is made' do
@@ -693,6 +748,10 @@ RSpec.describe 'PG::Connection patcher' do
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
+        end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME', error: PG::Error do
+          let(:configuration_options) { {} }
         end
       end
     end
@@ -774,6 +833,10 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { sync_exec_params }
         end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+          let(:configuration_options) { {} }
+        end
       end
 
       context 'when a failed query is made' do
@@ -789,6 +852,10 @@ RSpec.describe 'PG::Connection patcher' do
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
+        end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME', error: PG::Error do
+          let(:configuration_options) { {} }
         end
       end
     end
@@ -865,6 +932,10 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { sync_exec_prepared }
         end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+          let(:configuration_options) { {} }
+        end
       end
 
       context 'when a failed query is made' do
@@ -875,6 +946,11 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span).to have_error_message(
             include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
           )
+        end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME', error: PG::Error do
+          let(:configuration_options) { {} }
+          subject { conn.sync_exec_prepared('invalid prepared select 1', ['INVALID']) }
         end
       end
     end
