@@ -256,6 +256,24 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
   end
 
+  describe '#serialize!' do
+    subject(:serialize!) { stack_recorder.serialize! }
+
+    context 'when serialization succeeds' do
+      before do
+        expect(described_class).to receive(:_native_serialize).and_return([:ok, %w[start finish serialized-data]])
+      end
+
+      it { is_expected.to eq('serialized-data') }
+    end
+
+    context 'when serialization fails' do
+      before { expect(described_class).to receive(:_native_serialize).and_return([:error, 'test error message']) }
+
+      it { expect { serialize! }.to raise_error(RuntimeError, /test error message/) }
+    end
+  end
+
   describe '#reset_after_fork' do
     subject(:reset_after_fork) { stack_recorder.reset_after_fork }
 

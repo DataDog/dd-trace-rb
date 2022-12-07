@@ -4,9 +4,11 @@
 #include <ruby/debug.h>
 #include <stdbool.h>
 #include <signal.h>
+
 #include "helpers.h"
 #include "ruby_helpers.h"
 #include "collectors_cpu_and_wall_time.h"
+#include "collectors_idle_sampling_helper.h"
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
 
@@ -79,6 +81,7 @@ struct cpu_and_wall_time_worker_state {
   bool gc_profiling_enabled;
   VALUE self_instance;
   VALUE cpu_and_wall_time_collector_instance;
+  VALUE idle_sampling_helper_instance;
   VALUE owner_thread;
 
   // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
@@ -93,10 +96,16 @@ struct cpu_and_wall_time_worker_state {
   struct stats {
     // How many times we tried to trigger a sample
     unsigned int trigger_sample_attempts;
+    // How many times we tried to simulate signal delivery
+    unsigned int trigger_simulated_signal_delivery_attempts;
+    // How many times we actually simulated signal delivery
+    unsigned int simulated_signal_delivery;
     // How many times we actually called rb_postponed_job_register_one from a signal handler
     unsigned int signal_handler_enqueued_sample;
     // How many times the signal handler was called from the wrong thread
     unsigned int signal_handler_wrong_thread;
+    // How many times we actually sampled (except GC samples)
+    unsigned int sampled;
   } stats;
 };
 
@@ -105,7 +114,8 @@ static VALUE _native_initialize(
   DDTRACE_UNUSED VALUE _self,
   VALUE self_instance,
   VALUE cpu_and_wall_time_collector_instance,
-  VALUE gc_profiling_enabled
+  VALUE gc_profiling_enabled,
+  VALUE idle_sampling_helper_instance
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
@@ -132,6 +142,8 @@ static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE sel
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
+void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused);
+static void grab_gvl_and_sample(void);
 
 // Note on sampler global state safety:
 //
@@ -162,7 +174,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 3);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 4);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -185,7 +197,7 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
   .function = {
     .dmark = cpu_and_wall_time_worker_typed_data_mark,
     .dfree = RUBY_DEFAULT_FREE,
-    .dsize = NULL, // We don't track profile memory usage (although it'd be cool if we did!)
+    .dsize = NULL, // We don't track memory usage (although it'd be cool if we did!)
     //.dcompact = NULL, // FIXME: Add support for compaction
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
@@ -197,6 +209,7 @@ static VALUE _native_new(VALUE klass) {
   state->should_run = false;
   state->gc_profiling_enabled = false;
   state->cpu_and_wall_time_collector_instance = Qnil;
+  state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
   state->failure_exception = Qnil;
   state->stop_thread = Qnil;
@@ -209,7 +222,8 @@ static VALUE _native_initialize(
   DDTRACE_UNUSED VALUE _self,
   VALUE self_instance,
   VALUE cpu_and_wall_time_collector_instance,
-  VALUE gc_profiling_enabled
+  VALUE gc_profiling_enabled,
+  VALUE idle_sampling_helper_instance
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
 
@@ -218,6 +232,7 @@ static VALUE _native_initialize(
 
   state->gc_profiling_enabled = (gc_profiling_enabled == Qtrue);
   state->cpu_and_wall_time_collector_instance = enforce_cpu_and_wall_time_collector_instance(cpu_and_wall_time_collector_instance);
+  state->idle_sampling_helper_instance = idle_sampling_helper_instance;
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
 
   return Qtrue;
@@ -228,6 +243,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
   rb_gc_mark(state->cpu_and_wall_time_collector_instance);
+  rb_gc_mark(state->idle_sampling_helper_instance);
   rb_gc_mark(state->owner_thread);
   rb_gc_mark(state->failure_exception);
   rb_gc_mark(state->stop_thread);
@@ -379,7 +395,6 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
     state->stats.trigger_sample_attempts++;
 
     // TODO: This is still a placeholder for a more complex mechanism. In particular:
-    // * We want to track if a signal landed on the thread holding the global VM lock and do something about it
     // * We want to do more than having a fixed sampling rate
 
     current_gvl_owner owner = gvl_owner();
@@ -389,8 +404,15 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       // includes a check to see if it got called in the right thread
       pthread_kill(owner.owner, SIGPROF);
     } else {
-      // TODO: This is not a great "plan B", will be improved on a later PR
-      kill(getpid(), SIGPROF);
+      // If no thread owns the Global VM Lock, the application is probably idle at the moment. We still want to sample
+      // so we "ask a friend" (the IdleSamplingHelper component) to grab the GVL and simulate getting a SIGPROF.
+      //
+      // In a previous version of the code, we called `grab_gvl_and_sample` directly BUT this was problematic because
+      // Ruby may concurrently get busy and so the CpuAndWallTimeWorker would be blocked in line to acquire the GVL
+      // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
+      // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
+      state->stats.trigger_simulated_signal_delivery_attempts++;
+      idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
     }
 
     nanosleep(&time_between_signals, NULL);
@@ -417,6 +439,8 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   if (!ddtrace_rb_ractor_main_p()) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
+
+  state->stats.sampled++;
 
   // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
   safely_call(cpu_and_wall_time_collector_sample, state->cpu_and_wall_time_collector_instance, state->self_instance);
@@ -631,10 +655,30 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
 
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
-    ID2SYM(rb_intern("trigger_sample_attempts")),        /* => */ UINT2NUM(state->stats.trigger_sample_attempts),
-    ID2SYM(rb_intern("signal_handler_enqueued_sample")), /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
-    ID2SYM(rb_intern("signal_handler_wrong_thread")),    /* => */ UINT2NUM(state->stats.signal_handler_wrong_thread),
+    ID2SYM(rb_intern("trigger_sample_attempts")),                    /* => */ UINT2NUM(state->stats.trigger_sample_attempts),
+    ID2SYM(rb_intern("trigger_simulated_signal_delivery_attempts")), /* => */ UINT2NUM(state->stats.trigger_simulated_signal_delivery_attempts),
+    ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
+    ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
+    ID2SYM(rb_intern("signal_handler_wrong_thread")),                /* => */ UINT2NUM(state->stats.signal_handler_wrong_thread),
+    ID2SYM(rb_intern("sampled")),                                    /* => */ UINT2NUM(state->stats.sampled),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
 }
+
+void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused) {
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the IdleSamplingHelper was trying to execute this action
+  if (state == NULL) return NULL;
+
+  state->stats.simulated_signal_delivery++;
+
+  // @ivoanjo: We could instead directly call sample_from_postponed_job, but I chose to go through the signal handler
+  // so that the simulated case is as close to the original one as well (including any metrics increases, etc).
+  handle_sampling_signal(0, NULL, NULL);
+
+  return NULL; // Unused
+}
+
+static void grab_gvl_and_sample(void) { rb_thread_call_with_gvl(simulate_sampling_signal_delivery, NULL); }

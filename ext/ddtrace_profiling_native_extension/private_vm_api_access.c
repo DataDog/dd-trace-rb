@@ -383,9 +383,6 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
 //   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
 //   absent from `rb_profile_frames`. Oversight?
-// * Distinguish between `end_cfp == NULL` (dead thread or some other error, returns 0) and `end_cfp <= cfp`
-//   (alive thread which may just be executing native code and has not pushed anything on the Ruby stack, returns
-//   PLACEHOLDER_STACK_IN_NATIVE_CODE). See comments on `record_placeholder_stack_in_native_code` for more details.
 // * Skip frames where `cfp->iseq && !cfp->pc`. These seem to be internal and are skipped by `backtrace_each` in
 //   `vm_backtrace.c`.
 // * Check thread status and do not sample if thread has been killed.
@@ -439,12 +436,12 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     const rb_callable_method_entry_t *cme;
 
-    // `vm_backtrace.c` includes this check in several methods, and I think this happens on either dead or newly-created
-    // threads, but I'm not entirely sure
-    if (end_cfp == NULL) return 0;
-
     // Avoid sampling dead threads
     if (th->status == THREAD_KILLED) return 0;
+
+    // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
+    // also (not entirely sure) happen on dead threads
+    if (end_cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
     // Fix: Skip dummy frame that shows up in main thread.
     //
@@ -749,9 +746,6 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
 //   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
 //   absent from `rb_profile_frames`. Oversight?
-// * Distinguish between `end_cfp == NULL` (dead thread or some other error, returns 0) and `end_cfp <= cfp`
-//   (alive thread which may just be executing native code and has not pushed anything on the Ruby stack, returns
-//   PLACEHOLDER_STACK_IN_NATIVE_CODE). See comments on `record_placeholder_stack_in_native_code` for more details.
 // * Check thread status and do not sample if thread has been killed.
 //
 // The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
@@ -766,12 +760,12 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     rb_thread_t *th = thread_struct_from_object(thread);
     rb_control_frame_t *cfp = th->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(th);
 
-    // `vm_backtrace.c` includes this check in several methods, and I think this happens on either dead or newly-created
-    // threads, but I'm not entirely sure
-    if (end_cfp == NULL) return 0;
-
     // Avoid sampling dead threads
     if (th->status == THREAD_KILLED) return 0;
+
+    // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
+    // also (not entirely sure) happen on dead threads
+    if (end_cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
     // Fix: Skip dummy frame that shows up in main thread.
     //

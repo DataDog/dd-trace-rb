@@ -34,6 +34,20 @@ module Datadog
         end
       end
 
+      def serialize!
+        status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_serialize(self) }
+
+        if status == :ok
+          _start, _finish, encoded_pprof = result
+
+          encoded_pprof
+        else
+          error_message = result
+
+          raise("Failed to serialize profiling data: #{error_message}")
+        end
+      end
+
       def clear
         status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_clear(self) }
 

@@ -3,11 +3,7 @@
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/cpu_and_wall_time_worker'
 
-# The changes in #2415 exposed a few bugs that cause this spec to be flaky. I've temporarily disabled it until I finish
-# the full patch series so that I can keep merging to master but not affecting other developers.
-# (Reminder: This component is part of the new profiler, which is not on by default and is considered to be in alpha
-# state)
-RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
+RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   before { skip_if_profiling_not_supported(self) }
 
   let(:recorder) { Datadog::Profiling::StackRecorder.new }
@@ -72,6 +68,8 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       exception = try_wait_until(backoff: 0.01) { another_instance.send(:failure_exception) }
 
       expect(exception.message).to include 'another instance'
+
+      another_instance.stop
     end
 
     it 'installs the profiling SIGPROF signal handler' do
@@ -133,13 +131,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       all_samples = try_wait_until do
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
-        samples =
-          samples_from_pprof(serialization_result.last)
-            .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
-
+        samples = samples_from_pprof_without_gc(recorder.serialize!)
         samples if samples.any?
       end
 
@@ -153,13 +145,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       all_samples = try_wait_until do
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
-        samples =
-          samples_from_pprof(serialization_result.last)
-            .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
-
+        samples = samples_from_pprof_without_gc(recorder.serialize!)
         samples if samples.any?
       end
 
@@ -198,10 +184,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       cpu_and_wall_time_worker.stop
 
-      serialization_result = recorder.serialize
-      raise 'Unexpected: Serialization failed' unless serialization_result
-
-      all_samples = samples_from_pprof(serialization_result.last)
+      all_samples = samples_from_pprof(recorder.serialize!)
 
       current_thread_gc_samples =
         samples_for_thread(all_samples, Thread.current)
@@ -262,7 +245,7 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
-    describe 'SIGPROF signal delivery' do
+    context 'when main thread is sleeping but a background thread is working' do
       let(:ready_queue) { Queue.new }
       let(:background_thread) do
         Thread.new do
@@ -282,34 +265,60 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         ready_queue.pop
 
         start
+        wait_until_running
 
         sleep 0.1
 
         cpu_and_wall_time_worker.stop
         background_thread.kill
 
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
-        result = samples_for_thread(samples_from_pprof(serialization_result.last), Thread.current)
+        result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
         sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
 
-        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts).to_f
-        signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample).to_f
-        signal_handler_wrong_thread = stats.fetch(:signal_handler_wrong_thread).to_f
+        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
+        signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample)
 
-        expect(signal_handler_enqueued_sample / trigger_sample_attempts).to (be >= 0.8), \
-          "Expected at least 80% of signals to be delivered to correct thread (#{stats})"
+        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.6), \
+          "Expected at least 60% of signals to be delivered to correct thread (#{stats})"
 
         # Sanity checking
 
         # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
-        # will not cause flakyness
-        expect(sample_count).to be >= 5
+        # will not cause flakiness
+        expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
-        expect(trigger_sample_attempts).to be signal_handler_enqueued_sample + signal_handler_wrong_thread
+      end
+    end
+
+    context 'when all threads are sleeping (no thread holds the Global VM Lock)' do
+      it 'is able to sample even when all threads are sleeping' do
+        start
+        wait_until_running
+
+        sleep 0.1
+
+        cpu_and_wall_time_worker.stop
+
+        result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
+        sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+
+        stats = cpu_and_wall_time_worker.stats
+
+        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
+
+        simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
+
+        expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8), \
+          "Expected at least 80% of signals to be simulated (#{stats})"
+
+        # Sanity checking
+
+        # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
+        # will not cause flakiness
+        expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
+        expect(trigger_sample_attempts).to be >= sample_count
       end
     end
   end
@@ -331,11 +340,8 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
         samples_from_ractor =
-          samples_from_pprof(serialization_result.last)
+          samples_from_pprof(recorder.serialize!)
             .select { |it| it.fetch(:labels)[:'thread name'] == 'background ractor' }
 
         expect(samples_from_ractor).to be_empty
@@ -498,5 +504,13 @@ RSpec.xdescribe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   def wait_until_running
     try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(cpu_and_wall_time_worker) }
+  end
+
+  # This is useful because in a bunch of tests above we want to assert on properties of the period sampling, and having
+  # a random GC in the middle of the spec contribute a sample can throw off the expected values and counts.
+  #
+  # We have separate specs that assert on the GC behaviors.
+  def samples_from_pprof_without_gc(pprof_data)
+    samples_from_pprof(pprof_data).reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
   end
 end
