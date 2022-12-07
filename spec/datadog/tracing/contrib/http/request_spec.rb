@@ -76,7 +76,7 @@ RSpec.describe 'net/http requests' do
         let(:peer_hostname) { host }
       end
 
-      it_behaves_like 'environment service name', 'DD_TRACE_HTTP_SERVICE_NAME'
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
     end
 
     context 'that returns 404' do
@@ -105,7 +105,7 @@ RSpec.describe 'net/http requests' do
         let(:peer_hostname) { host }
       end
 
-      it_behaves_like 'environment service name', 'DD_TRACE_HTTP_SERVICE_NAME'
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
 
       context 'when configured with #after_request hook' do
         before { Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request(&callback) }
@@ -176,7 +176,7 @@ RSpec.describe 'net/http requests' do
         let(:peer_hostname) { host }
       end
 
-      it_behaves_like 'environment service name', 'DD_TRACE_HTTP_SERVICE_NAME'
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
     end
   end
 
@@ -211,7 +211,7 @@ RSpec.describe 'net/http requests' do
         let(:peer_hostname) { host }
       end
 
-      it_behaves_like 'environment service name', 'DD_TRACE_HTTP_SERVICE_NAME'
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
     end
   end
 
@@ -447,7 +447,7 @@ RSpec.describe 'net/http requests' do
         expect(span).to have_error_message(timeout_error.message)
       end
 
-      it_behaves_like 'environment service name', 'DD_TRACE_HTTP_SERVICE_NAME', error: Net::OpenTimeout
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME', error: Net::OpenTimeout
     end
 
     context 'that raises an error' do
@@ -472,7 +472,7 @@ RSpec.describe 'net/http requests' do
         expect(span).to have_error_message(custom_error.message)
       end
 
-      it_behaves_like 'environment service name', 'DD_TRACE_HTTP_SERVICE_NAME', error: StandardError
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME', error: StandardError
     end
   end
 end
