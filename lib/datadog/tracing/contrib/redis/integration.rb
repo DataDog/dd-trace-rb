@@ -51,7 +51,7 @@ module Datadog
           end
 
           def self.compatible?
-            redis_compatible? || redis_client_compatible?
+            super && (redis_compatible? || redis_client_compatible?)
           end
 
           def self.redis_compatible?
