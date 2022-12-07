@@ -313,4 +313,29 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
     end
   end
+
+  describe 'enforce_success' do
+    context 'when there is no error' do
+      it 'does nothing' do
+        expect { described_class::Testing._native_enforce_success(0, true) }.to_not raise_error
+      end
+    end
+
+    context 'when there is an error' do
+      let(:have_gvl) { true }
+
+      it 'raises an exception with the passed in errno' do
+        expect { described_class::Testing._native_enforce_success(Errno::EINTR::Errno, have_gvl) }
+          .to raise_exception(Errno::EINTR, /#{Errno::EINTR.exception.message}.+profiling\.c/)
+      end
+
+      context 'when called without the gvl' do
+        let(:have_gvl) { false }
+        it 'raises an exception with the passed in errno' do
+          expect { described_class::Testing._native_enforce_success(Errno::EINTR::Errno, have_gvl) }
+            .to raise_exception(Errno::EINTR, /#{Errno::EINTR.exception.message}.+profiling\.c/)
+        end
+      end
+    end
+  end
 end

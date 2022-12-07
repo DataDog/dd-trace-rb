@@ -93,3 +93,18 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
 
   rb_bug("[DDTRACE] Unexpected: Reached the end of grab_gvl_and_raise_syserr while raising '%s'\n", args.exception_message);
 }
+
+void raise_syserr(
+  int syserr_errno,
+  bool have_gvl,
+  const char *expression,
+  const char *file,
+  int line,
+  const char *function_name
+) {
+  if (have_gvl) {
+    rb_exc_raise(rb_syserr_new_str(syserr_errno, rb_sprintf("Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name)));
+  } else {
+    grab_gvl_and_raise_syserr(syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
+  }
+}

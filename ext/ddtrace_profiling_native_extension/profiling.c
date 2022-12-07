@@ -27,6 +27,8 @@ static void *testing_is_current_thread_holding_the_gvl(DDTRACE_UNUSED void *_unu
 static VALUE _native_install_holding_the_gvl_signal_handler(DDTRACE_UNUSED VALUE _self);
 static void holding_the_gvl_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VALUE _self, VALUE background_thread);
+static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE with_gvl);
+static void *trigger_enforce_success(void *trigger_args);
 
 void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -58,6 +60,7 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
   );
   rb_define_singleton_method(testing_module, "_native_install_holding_the_gvl_signal_handler", _native_install_holding_the_gvl_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_trigger_holding_the_gvl_signal_handler_on", _native_trigger_holding_the_gvl_signal_handler_on, 1);
+  rb_define_singleton_method(testing_module, "_native_enforce_success", _native_enforce_success, 2);
 }
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
@@ -189,7 +192,7 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 
   rb_nativethread_id_t thread = pthread_id_for(background_thread);
 
-  pthread_mutex_lock(&holding_the_gvl_signal_handler_mutex);
+  ENFORCE_SUCCESS_GVL(pthread_mutex_lock(&holding_the_gvl_signal_handler_mutex));
 
   // We keep trying for ~5 seconds (500 x 10ms) to try to avoid any flakiness if the test machine is a bit slow
   for (int tries = 0; holding_the_gvl_signal_handler_result[0] == Qfalse && tries < 500; tries++) {
@@ -211,12 +214,10 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
     }
 
     int error = pthread_cond_timedwait(&holding_the_gvl_signal_handler_executed, &holding_the_gvl_signal_handler_mutex, &deadline);
-    if (error && error != ETIMEDOUT) {
-      rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in _native_trigger_holding_the_gvl_signal_handler_on")));
-    }
+    if (error && error != ETIMEDOUT) ENFORCE_SUCCESS_GVL(error);
   }
 
-  pthread_mutex_unlock(&holding_the_gvl_signal_handler_mutex);
+  ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(&holding_the_gvl_signal_handler_mutex));
 
   replace_sigprof_signal_handler_with_empty_handler(holding_the_gvl_signal_handler);
 
@@ -226,4 +227,20 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
   rb_hash_aset(result, ID2SYM(rb_intern("ruby_thread_has_gvl_p")), holding_the_gvl_signal_handler_result[1]);
   rb_hash_aset(result, ID2SYM(rb_intern("is_current_thread_holding_the_gvl")), holding_the_gvl_signal_handler_result[2]);
   return result;
+}
+
+static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE with_gvl) {
+  if (RTEST(with_gvl)) {
+    ENFORCE_SUCCESS_GVL(NUM2INT(syserr_errno));
+  } else {
+    rb_thread_call_without_gvl(trigger_enforce_success, (void *) (intptr_t) NUM2INT(syserr_errno), NULL, NULL);
+  }
+
+  return Qtrue;
+}
+
+static void *trigger_enforce_success(void *trigger_args) {
+  intptr_t syserr_errno = (intptr_t) trigger_args;
+  ENFORCE_SUCCESS_NO_GVL(syserr_errno);
+  return NULL;
 }

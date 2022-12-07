@@ -5,6 +5,7 @@
 
 #include "helpers.h"
 #include "setup_signal_handler.h"
+#include "ruby_helpers.h"
 
 static void install_sigprof_signal_handler_internal(
   void (*signal_handler_function)(int, siginfo_t *, void *),
@@ -107,7 +108,6 @@ void unblock_sigprof_signal_handler_from_running_in_current_thread(void) {
 VALUE is_sigprof_blocked_in_current_thread(void) {
   sigset_t current_signals;
   sigemptyset(&current_signals);
-  int error = pthread_sigmask(0, NULL, &current_signals);
-  if (error) rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in is_sigprof_blocked_in_current_thread")));
+  ENFORCE_SUCCESS_GVL(pthread_sigmask(0, NULL, &current_signals));
   return sigismember(&current_signals, SIGPROF) ? Qtrue : Qfalse;
 }
