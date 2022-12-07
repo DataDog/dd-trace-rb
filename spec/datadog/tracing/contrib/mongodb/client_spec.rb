@@ -3,6 +3,7 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'ddtrace'
 require 'mongo'
@@ -167,6 +168,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
 
       it_behaves_like 'measured span for integration', false
+      it_behaves_like 'environment service name', 'DD_TRACE_MONGO_SERVICE_NAME'
     end
 
     # Expects every value (except for keys) to be quantized.
