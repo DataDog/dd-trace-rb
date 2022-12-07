@@ -65,7 +65,7 @@ module ProfileHelpers
         labels: sample.label.map do |it|
           [
             string_table[it.key].to_sym,
-            it.num == 0 ? string_table[it.str] : raise('Unexpected: label encoded as number instead of string'),
+            it.num == 0 ? string_table[it.str] : it.num,
           ]
         end.to_h,
       }
