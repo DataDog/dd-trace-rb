@@ -391,17 +391,42 @@ RSpec.shared_examples 'Trace Context distributed format' do
         it { expect(digest.trace_sampling_priority).to eq(0) }
       end
 
-      context 'but version not 00' do
-        let(:version) { '01' }
-        it { is_expected.to be nil }
-      end
-
       context 'trailing whitespace' do
         let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-00 ' }
 
         it { expect(digest.trace_id).to eq(0xC0FFEE) }
         it { expect(digest.span_id).to eq(0xBEE) }
         it { expect(digest.trace_sampling_priority).to eq(0) }
+      end
+
+      context 'with a future version' do
+        let(:version) { '57' }
+        let(:trace_flags) { '01' }
+
+        shared_examples 'parses tracestate using version 00 logic' do
+          it { expect(digest.trace_id).to eq(0xC0FFEE) }
+          it { expect(digest.span_id).to eq(0xBEE) }
+          it { expect(digest.trace_sampling_priority).to eq(1) }
+        end
+
+        include_examples 'parses tracestate using version 00 logic'
+
+        context 'traceparent ending in dash' do
+          let(:traceparent) { super() + '-' }
+
+          include_examples 'parses tracestate using version 00 logic'
+        end
+
+        context 'traceparent with extra unknown fields' do
+          let(:traceparent) { super() + '-fff-aaa' }
+
+          include_examples 'parses tracestate using version 00 logic'
+        end
+      end
+
+      context 'with an invalid version' do
+        let(:version) { 'ff' }
+        it { is_expected.to be_nil }
       end
     end
 
