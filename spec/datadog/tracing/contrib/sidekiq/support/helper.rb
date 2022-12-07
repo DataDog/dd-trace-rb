@@ -48,7 +48,7 @@ end
 module SidekiqServerExpectations
   include SidekiqTestingConfiguration
 
-  def expect_in_sidekiq_server(duration: 2)
+  def expect_in_sidekiq_server(wait_until: nil)
     app_tempfile = Tempfile.new(['sidekiq-server-app', '.rb'])
 
     expect_in_fork do
@@ -69,7 +69,7 @@ module SidekiqServerExpectations
         cli.run
       end
 
-      sleep duration
+      try_wait_until{ wait_until.call } if wait_until
 
       Thread.kill(t)
 
