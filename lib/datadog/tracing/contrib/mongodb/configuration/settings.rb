@@ -31,11 +31,7 @@ module Datadog
             option :quantize, default: DEFAULT_QUANTIZE
 
             option :service_name do |o|
-              o.default do
-                ENV.fetch(Ext::ENV_SERVICE_NAME) do
-                  Ext::DEFAULT_PEER_SERVICE_NAME
-                end
-              end
+              o.default { ENV.fetch(Ext::ENV_SERVICE_NAME, Ext::DEFAULT_PEER_SERVICE_NAME) }
               o.lazy
             end
           end
