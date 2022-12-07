@@ -238,9 +238,13 @@ module Datadog
 
           version, trace_id, parent_id, trace_flags, extra = traceparent.strip.split('-')
 
-          return if extra # Extra fields are not valid
-          return unless version == SPEC_VERSION # Different version
-          return if trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2 # Invalid field sizes
+          return if version == INVALID_VERSION
+
+          # Extra fields are not allowed in version 00, but we have to be lenient for future versions.
+          return if version == SPEC_VERSION && extra
+
+          # Invalid field sizes
+          return if version.size != 2 || trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
 
           [Integer(trace_id, 16), Integer(parent_id, 16), Integer(trace_flags, 16)]
         rescue ArgumentError # Conversion to integer failed
@@ -324,6 +328,11 @@ module Datadog
         def split_tracestate(tracestate)
           tracestate.split(/[ \t]*,[ \t]*/)[0..31]
         end
+
+        # Version 0xFF is invalid as per spec
+        # @see https://www.w3.org/TR/trace-context/#version
+        INVALID_VERSION = 'ff'
+        private_constant :INVALID_VERSION
 
         # Empty 8-bit `trace-flags`.
         # @see https://www.w3.org/TR/trace-context/#trace-flags
