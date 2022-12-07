@@ -25,7 +25,6 @@ module SynchronizationHelpers
 
       # Wait for fork to finish, retrieve its status.
       Process.wait(pid)
-
       status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
 
       # Capture forked execution information
