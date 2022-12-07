@@ -317,8 +317,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
   describe 'enforce_success' do
     context 'when there is no error' do
       it 'does nothing' do
-        described_class::Testing._native_enforce_success(0, true)
-        # Nothing is raised
+        expect { described_class::Testing._native_enforce_success(0, true) }.to_not raise_error
       end
     end
 
