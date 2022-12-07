@@ -3,6 +3,8 @@
 require_relative 'sql_comment/comment'
 require_relative 'sql_comment/ext'
 
+require_relative '../../distributed/trace_context'
+
 module Datadog
   module Tracing
     module Contrib
@@ -12,11 +14,12 @@ module Datadog
           def self.annotate!(span_op, mode)
             return unless mode.enabled?
 
-            # PENDING: Until `traceparent`` implementation in `full` mode
-            # span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
+            span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
           end
 
-          def self.prepend_comment(sql, span_op, mode)
+          # Inject span_op and trace_op instead of TraceDigest to improve memory usage
+          # for `disabled` and `service` mode
+          def self.prepend_comment(sql, span_op, trace_op, mode)
             return sql unless mode.enabled?
 
             tags = {
@@ -26,21 +29,16 @@ module Datadog
               Ext::KEY_VERSION => datadog_configuration.version
             }
 
-            # PENDING: Until `traceparent`` implementation in `full` mode
-            # tags.merge!(trace_context(span_op)) if mode.full?
+            if mode.full?
+              tags[Ext::KEY_TRACEPARENT] =
+                Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_traceparent, trace_op.to_digest)
+            end
 
             "#{Comment.new(tags)} #{sql}"
           end
 
           def self.datadog_configuration
             Datadog.configuration
-          end
-
-          # TODO: Derive from trace
-          def self.trace_context(_)
-            {
-              # traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
-            }.freeze
           end
         end
       end

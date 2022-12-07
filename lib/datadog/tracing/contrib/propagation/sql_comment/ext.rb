@@ -24,6 +24,7 @@ module Datadog
             KEY_ENVIRONMENT = 'dde'.freeze
             KEY_PARENT_SERVICE = 'ddps'.freeze
             KEY_VERSION = 'ddpv'.freeze
+            KEY_TRACEPARENT = 'traceparent'.freeze
           end
         end
       end
