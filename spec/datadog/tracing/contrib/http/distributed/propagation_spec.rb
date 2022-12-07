@@ -7,6 +7,7 @@ require 'datadog/tracing/contrib/http/distributed/propagation'
 require_relative '../../../distributed/b3_single_spec'
 require_relative '../../../distributed/b3_multi_spec'
 require_relative '../../../distributed/datadog_spec'
+require_relative '../../../distributed/none_spec'
 require_relative '../../../distributed/propagation_spec'
 require_relative '../../../distributed/trace_context_spec'
 
@@ -43,6 +44,13 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Propagation do
   context 'for Trace Context' do
     it_behaves_like 'Trace Context distributed format' do
       before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['tracecontext'] } }
+      let(:datadog) { propagation }
+    end
+  end
+
+  context 'for None' do
+    it_behaves_like 'None distributed format' do
+      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['none'] } }
       let(:datadog) { propagation }
     end
   end

@@ -2349,26 +2349,21 @@ Service C:
 
 Tracing supports the following distributed trace formats:
 
- - `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG` (Default)
- - `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3`
- - `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER`
+ - `Datadog`: **Default**
+ - `b3multi`: [B3 multiple-headers](https://github.com/openzipkin/b3-propagation#multiple-headers)
+ - `b3`: [B3 single-header](https://github.com/openzipkin/b3-propagation#single-header)
+ - `tracecontext`: [W3C Trace Context](https://www.w3.org/TR/trace-context/)
+ - `none`: No-op.
 
 You can enable/disable the use of these formats via `Datadog.configure`:
 
 ```ruby
 Datadog.configure do |c|
   # List of header formats that should be extracted
-  c.tracing.distributed_tracing.propagation_extract_style = [
-    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
-    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-
-  ]
+  c.tracing.distributed_tracing.propagation_extract_style = [ 'tracecontext', 'Datadog', 'b3' ]
 
   # List of header formats that should be injected
-  c.tracing.distributed_tracing.propagation_inject_style = [
-    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG
-  ]
+  c.tracing.distributed_tracing.propagation_inject_style = [ 'tracecontext', 'Datadog' ]
 end
 ```
 
