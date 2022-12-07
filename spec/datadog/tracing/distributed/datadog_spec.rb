@@ -29,7 +29,8 @@ RSpec.shared_examples 'Datadog distributed format' do
       end
 
       it do
-        is_expected.to eq(
+        inject!
+        expect(data).to eq(
           'x-datadog-trace-id' => '10000',
           'x-datadog-parent-id' => '20000'
         )
@@ -45,7 +46,8 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
 
         it do
-          is_expected.to eq(
+          inject!
+          expect(data).to eq(
             'x-datadog-trace-id' => '50000',
             'x-datadog-parent-id' => '60000',
             'x-datadog-sampling-priority' => '1'
@@ -63,7 +65,8 @@ RSpec.shared_examples 'Datadog distributed format' do
           end
 
           it do
-            is_expected.to eq(
+            inject!
+            expect(data).to eq(
               'x-datadog-trace-id' => '70000',
               'x-datadog-parent-id' => '80000',
               'x-datadog-sampling-priority' => '1',
@@ -83,7 +86,8 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
 
         it do
-          is_expected.to eq(
+          inject!
+          expect(data).to eq(
             'x-datadog-trace-id' => '90000',
             'x-datadog-parent-id' => '100000',
             'x-datadog-origin' => 'synthetics'
@@ -96,22 +100,34 @@ RSpec.shared_examples 'Datadog distributed format' do
 
         context 'nil' do
           let(:tags) { nil }
-          it { is_expected.to_not include('x-datadog-tags') }
+          it do
+            inject!
+            expect(data).to_not include('x-datadog-tags')
+          end
         end
 
         context '{}' do
           let(:tags) { {} }
-          it { is_expected.to_not include('x-datadog-tags') }
+          it do
+            inject!
+            expect(data).to_not include('x-datadog-tags')
+          end
         end
 
         context "{ key: 'value' }" do
           let(:tags) { { key: 'value' } }
-          it { is_expected.to include('x-datadog-tags' => 'key=value') }
+          it do
+            inject!
+            expect(data).to include('x-datadog-tags' => 'key=value')
+          end
         end
 
         context '{ _dd.p.dm: "-1" }' do
           let(:tags) { { '_dd.p.dm' => '-1' } }
-          it { is_expected.to include('x-datadog-tags' => '_dd.p.dm=-1') }
+          it do
+            inject!
+            expect(data).to include('x-datadog-tags' => '_dd.p.dm=-1')
+          end
         end
 
         context 'within an active trace' do
@@ -125,7 +141,10 @@ RSpec.shared_examples 'Datadog distributed format' do
           context 'with tags too large' do
             let(:tags) { { key: 'very large value' * 32 } }
 
-            it { is_expected.to_not include('x-datadog-tags') }
+            it do
+              inject!
+              expect(data).to_not include('x-datadog-tags')
+            end
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'inject_max_size')
@@ -141,7 +160,10 @@ RSpec.shared_examples 'Datadog distributed format' do
 
             let(:tags) { { key: 'value' } }
 
-            it { is_expected.to_not include('x-datadog-tags') }
+            it do
+              inject!
+              expect(data).to_not include('x-datadog-tags')
+            end
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'disabled')
