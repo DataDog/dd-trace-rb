@@ -41,7 +41,7 @@ RSpec.describe 'Presto::Client instrumentation' do
   # rubocop:disable Style/GlobalVars
   before do
     unless $presto_is_online
-      try_wait_until(attempts: 100, backoff: 0.1) { presto_online? }
+      try_wait_until(seconds: 10) { presto_online? }
       $presto_is_online = true
     end
   end
