@@ -15,8 +15,8 @@ RSpec.describe 'Server internal tracer' do
   end
 
   it 'traces the redis info command' do
-    expect_in_sidekiq_server do
-      span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.redis_info' }
+    expect_in_sidekiq_server(wait_until: -> { fetch_spans.any? { |s| s.name == 'sidekiq.redis_info' } }) do
+      span = spans.find { |s| s.name == 'sidekiq.redis_info' }
 
       expect(span.service).to eq(tracer.default_service)
       expect(span.name).to eq('sidekiq.redis_info')

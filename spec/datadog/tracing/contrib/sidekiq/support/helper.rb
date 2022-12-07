@@ -48,26 +48,10 @@ end
 module SidekiqServerExpectations
   include SidekiqTestingConfiguration
 
-  def expect_in_sidekiq_server(duration: 2, &expectations)
+  def expect_in_sidekiq_server(wait_until: nil)
     app_tempfile = Tempfile.new(['sidekiq-server-app', '.rb'])
 
-    expect_in_fork(
-      # Due to the expectations being run in an `at_exit` hook, to have visibility into the
-      # spans created in the forked process, the exit status will be 0 even if our expectations fail.
-      # Instead, look at `STDERR`, ignoring warnings.
-      fork_expectations: proc do |status:, stdout:, stderr:|
-        stdout = Datadog::Core::Utils.utf8_encode(stdout) if stdout
-        stderr = Datadog::Core::Utils.utf8_encode(stderr) if stderr
-
-        expect(status).to be_success, "STDOUT:`#{stdout}` STDERR:`#{stderr}"
-
-        non_warning_testing_stderr = stderr.split("\n").reject { |line| line.include?(': warning:') }
-
-        expect(non_warning_testing_stderr).to be_empty, "STDOUT:`#{stdout}` STDERR:`#{stderr}"
-      end
-    ) do
-      at_exit(&expectations)
-
+    expect_in_fork do
       # NB: This is needed because we want to patch within a forked process.
       if Datadog::Tracing::Contrib::Sidekiq::Patcher.instance_variable_get(:@patch_only_once)
         Datadog::Tracing::Contrib::Sidekiq::Patcher
@@ -79,14 +63,18 @@ module SidekiqServerExpectations
 
       configure_sidekiq
 
-      Thread.new do
+      t = Thread.new do
         cli = Sidekiq::CLI.instance
         cli.parse(['--require', app_tempfile.path]) # boot the "app"
         cli.run
       end
 
-      sleep duration
-      exit
+      # 10 second wait time
+      try_wait_until(attempts: 100) { wait_until.call } if wait_until
+
+      Thread.kill(t)
+
+      yield
     end
   ensure
     app_tempfile.close
