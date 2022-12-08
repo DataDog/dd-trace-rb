@@ -573,6 +573,7 @@ workflows:
       - orb/lint:
           <<: *config-2_7-small
           name: lint
+          bundle_with: check
           requires:
             - build-lint
       - orb/sorbet_type_checker:
