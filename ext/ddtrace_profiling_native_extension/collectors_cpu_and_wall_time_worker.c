@@ -106,6 +106,10 @@ struct cpu_and_wall_time_worker_state {
     unsigned int signal_handler_wrong_thread;
     // How many times we actually sampled (except GC samples)
     unsigned int sampled;
+    // Min/max/total wall-time spent sampling (except GC samples)
+    uint64_t sampling_time_ns_min;
+    uint64_t sampling_time_ns_max;
+    uint64_t sampling_time_ns_total;
   } stats;
 };
 
@@ -136,7 +140,7 @@ static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self);
 static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance);
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
-static void safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance);
+static VALUE safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance);
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
 static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE self);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance);
@@ -144,6 +148,7 @@ static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE s
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused);
 static void grab_gvl_and_sample(void);
+static void reset_stats(struct cpu_and_wall_time_worker_state *state);
 
 // Note on sampler global state safety:
 //
@@ -214,6 +219,7 @@ static VALUE _native_new(VALUE klass) {
   state->failure_exception = Qnil;
   state->stop_thread = Qnil;
   state->gc_tracepoint = Qnil;
+  reset_stats(state);
 
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
 }
@@ -443,10 +449,25 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   state->stats.sampled++;
 
   // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
-  safely_call(cpu_and_wall_time_collector_sample, state->cpu_and_wall_time_collector_instance, state->self_instance);
+  VALUE sampling_time_ns_or_failure =
+    safely_call(cpu_and_wall_time_collector_sample, state->cpu_and_wall_time_collector_instance, state->self_instance);
+
+  // This happens when where was an exception during the call above; we already report the exception separately
+  if (sampling_time_ns_or_failure == Qnil) return;
+
+  long sampling_time_ns_or_failure_as_long = NUM2LONG(sampling_time_ns_or_failure);
+  // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
+  uint64_t sampling_time_ns = sampling_time_ns_or_failure_as_long < 0 ? 0 : sampling_time_ns_or_failure_as_long;
+
+  state->stats.sampling_time_ns_min = sampling_time_ns < state->stats.sampling_time_ns_min ? sampling_time_ns : state->stats.sampling_time_ns_min;
+  state->stats.sampling_time_ns_max = sampling_time_ns > state->stats.sampling_time_ns_max ? sampling_time_ns : state->stats.sampling_time_ns_max;
+  state->stats.sampling_time_ns_total += sampling_time_ns;
 }
 
-static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) { return stop(self_instance, exception); }
+static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception);
+  return Qnil;
+}
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
@@ -596,9 +617,9 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 
 // Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
 // exception gets raised within
-static void safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance) {
+static VALUE safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance) {
   VALUE exception_handler_function_arg = instance;
-  rb_rescue2(
+  return rb_rescue2(
     function_to_call_safely,
     function_to_call_safely_arg,
     handle_sampling_failure,
@@ -637,7 +658,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
   // Disable all tracepoints, so that there are no more attempts to mutate the profile
   rb_tracepoint_disable(state->gc_tracepoint);
 
-  state->stats = (struct stats) {}; // Resets all stats back to zero
+  reset_stats(state);
 
   // Remove all state from the `Collectors::CpuAndWallTime` and connected downstream components
   rb_funcall(state->cpu_and_wall_time_collector_instance, rb_intern("reset_after_fork"), 0);
@@ -653,6 +674,12 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
+  VALUE pretty_sampling_time_ns_min = state->stats.sampling_time_ns_min == UINT64_MAX ? Qnil : ULL2NUM(state->stats.sampling_time_ns_min);
+  VALUE pretty_sampling_time_ns_max = state->stats.sampling_time_ns_max == 0 ? Qnil : ULL2NUM(state->stats.sampling_time_ns_max);
+  VALUE pretty_sampling_time_ns_total = state->stats.sampling_time_ns_total == 0 ? Qnil : ULL2NUM(state->stats.sampling_time_ns_total);
+  VALUE pretty_sampling_time_ns_avg =
+    state->stats.sampled == 0 ? Qnil : DBL2NUM(((double) state->stats.sampling_time_ns_total) / state->stats.sampled);
+
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("trigger_sample_attempts")),                    /* => */ UINT2NUM(state->stats.trigger_sample_attempts),
@@ -661,6 +688,10 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
     ID2SYM(rb_intern("signal_handler_wrong_thread")),                /* => */ UINT2NUM(state->stats.signal_handler_wrong_thread),
     ID2SYM(rb_intern("sampled")),                                    /* => */ UINT2NUM(state->stats.sampled),
+    ID2SYM(rb_intern("sampling_time_ns_min")),                       /* => */ pretty_sampling_time_ns_min,
+    ID2SYM(rb_intern("sampling_time_ns_max")),                       /* => */ pretty_sampling_time_ns_max,
+    ID2SYM(rb_intern("sampling_time_ns_total")),                     /* => */ pretty_sampling_time_ns_total,
+    ID2SYM(rb_intern("sampling_time_ns_avg")),                       /* => */ pretty_sampling_time_ns_avg,
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -682,3 +713,8 @@ void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused) {
 }
 
 static void grab_gvl_and_sample(void) { rb_thread_call_with_gvl(simulate_sampling_signal_delivery, NULL); }
+
+static void reset_stats(struct cpu_and_wall_time_worker_state *state) {
+  state->stats = (struct stats) {}; // Resets all stats back to zero
+  state->stats.sampling_time_ns_min = UINT64_MAX; // Since we always take the min between existing and latest sample
+}

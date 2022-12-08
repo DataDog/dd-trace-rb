@@ -161,6 +161,30 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(stats.fetch(:trigger_sample_attempts)).to be >= stats.fetch(:signal_handler_enqueued_sample)
     end
 
+    it 'keeps statistics on how long sampling is taking' do
+      start
+
+      try_wait_until do
+        samples = samples_from_pprof_without_gc(recorder.serialize!)
+        samples if samples.any?
+      end
+
+      cpu_and_wall_time_worker.stop
+
+      stats = cpu_and_wall_time_worker.stats
+
+      sampling_time_ns_min = stats.fetch(:sampling_time_ns_min)
+      sampling_time_ns_max = stats.fetch(:sampling_time_ns_max)
+      sampling_time_ns_total = stats.fetch(:sampling_time_ns_total)
+      sampling_time_ns_avg = stats.fetch(:sampling_time_ns_avg)
+
+      expect(sampling_time_ns_min).to be <= sampling_time_ns_max
+      expect(sampling_time_ns_max).to be <= sampling_time_ns_total
+      expect(sampling_time_ns_avg).to be >= sampling_time_ns_min
+      one_second_in_ns = 1_000_000_000
+      expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
+    end
+
     it 'records garbage collection cycles' do
       if RUBY_VERSION.start_with?('3.')
         skip(
@@ -307,7 +331,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         stats = cpu_and_wall_time_worker.stats
 
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
-
         simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
 
         expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8), \
@@ -498,7 +521,18 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       reset_after_fork
 
-      expect(cpu_and_wall_time_worker.stats.values).to all be 0
+      expect(cpu_and_wall_time_worker.stats).to eq(
+        trigger_sample_attempts: 0,
+        trigger_simulated_signal_delivery_attempts: 0,
+        simulated_signal_delivery: 0,
+        signal_handler_enqueued_sample: 0,
+        signal_handler_wrong_thread: 0,
+        sampled: 0,
+        sampling_time_ns_min: nil,
+        sampling_time_ns_max: nil,
+        sampling_time_ns_total: nil,
+        sampling_time_ns_avg: nil,
+      )
     end
   end
 
