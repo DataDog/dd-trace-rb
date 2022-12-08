@@ -95,9 +95,30 @@ module SidekiqServerExpectations
 
       cli = Sidekiq::CLI.instance
 
-      # `timeout` is the deadline that waits up for all jobs to complete.
-      # Default is 25, the reason for `stop` command to take so long.
-      launcher = Sidekiq::Launcher.new(cli.send(:options).merge(timeout: 1))
+      # Change options and constants for Sidekiq to stop faster:
+      # Reduce number of threads and shutdown timeout.
+      options = cli.send(:options).merge(concurrency: 1, timeout: 0)
+
+      # `Sidekiq::Launcher#stop` sleeps before actually starting to shutting down Sidekiq.
+      # Settings `Manager::PAUSE_TIME` to zero removes that wait.
+      stub_const('Sidekiq::Manager::PAUSE_TIME', 0)
+
+      # `Sidekiq::Launcher#stop` ultimately class `Sidekiq::Manager#hard_shutdown` as a final
+      # shutdown step. `#hard_shutdown` has a hard-coded minimum timeout of 3 seconds when checking
+      # if workers have finished, using the `Util#wait_for` method.
+      #
+      # `Util::PAUSE_TIME` controls how frequently `Util#wait_for` checks that workers have finished.
+      # Setting `Util::PAUSE_TIME` to less than the timeout (3 seconds) actually makes the
+      # shutdown process slower: `Util#wait_for` behaves like a busy-wait loop if `Util::PAUSE_TIME` is less than
+      # the timeout. Sidekiq defaults are actually such case: The default value for `PAUSE_TIME` is
+      # `$stdout.tty? ? 0.1 : 0.5` which is less than 3. This ensures a busy-wait loop, which makes shutdown
+      # slower as worker threads don't the opportunity to process their shutdown instructions.
+      #
+      # Setting this value to 3 seconds or higher makes the shutdown process almost immediate, as
+      # `Util#wait_for` checks immediately if workers have shut down, which is normally the case at this point.
+      stub_const('Sidekiq::Util::PAUSE_TIME', 3)
+
+      launcher = Sidekiq::Launcher.new(options)
       launcher.stop
 
       yield
