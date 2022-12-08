@@ -4,7 +4,6 @@ require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
 require 'appraisal'
-require 'yard'
 require 'os'
 
 Dir.glob('tasks/*.rake').each { |r| import r }
@@ -212,15 +211,21 @@ if defined?(RuboCop::RakeTask)
   end
 end
 
-YARD::Rake::YardocTask.new(:docs) do |t|
-  # Options defined in `.yardopts` are read first, then merged with
-  # options defined here.
-  #
-  # It's recommended to define options in `.yardopts` instead of here,
-  # as `.yardopts` can be read by external YARD tools, like the
-  # hot-reload YARD server `yard server --reload`.
+begin
+  require 'yard'
 
-  t.options += ['--title', "ddtrace #{DDTrace::VERSION::STRING} documentation"]
+  YARD::Rake::YardocTask.new(:docs) do |t|
+    # Options defined in `.yardopts` are read first, then merged with
+    # options defined here.
+    #
+    # It's recommended to define options in `.yardopts` instead of here,
+    # as `.yardopts` can be read by external YARD tools, like the
+    # hot-reload YARD server `yard server --reload`.
+
+    t.options += ['--title', "ddtrace #{DDTrace::VERSION::STRING} documentation"]
+  end
+rescue LoadError => e
+  # raise unless ENV['BUNDLE_WITH'] # TODO use bundler API
 end
 
 # Deploy tasks
