@@ -49,12 +49,12 @@ jobs:
     name: System Tests (${{ matrix.weblog-variant }})
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'DataDog/system-tests'
 
       - name: Checkout dd-trace-rb
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: 'binaries/dd-trace-rb'
 
@@ -76,7 +76,7 @@ jobs:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
 
       - name: Archive logs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
           name: system-tests-${{ matrix.library }}-${{ matrix.weblog-variant }}-logs-${{ github.run_id }}-${{ github.sha }}

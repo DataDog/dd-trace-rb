@@ -3,7 +3,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'redis'
-require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis instrumentation test' do

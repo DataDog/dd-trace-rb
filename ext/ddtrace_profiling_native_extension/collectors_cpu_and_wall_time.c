@@ -128,9 +128,8 @@ struct trace_identifiers {
 
   bool valid;
   ddog_CharSlice local_root_span_id;
-  ddog_CharSlice span_id;
+  uint64_t span_id;
   char local_root_span_id_buffer[MAXIMUM_LENGTH_64_BIT_IDENTIFIER];
-  char span_id_buffer[MAXIMUM_LENGTH_64_BIT_IDENTIFIER];
   VALUE trace_endpoint;
 };
 
@@ -583,7 +582,7 @@ static void trigger_sample_for_thread(
 
   if (trace_identifiers_result.valid) {
     labels[label_pos++] = (ddog_Label) {.key = DDOG_CHARSLICE_C("local root span id"), .str = trace_identifiers_result.local_root_span_id};
-    labels[label_pos++] = (ddog_Label) {.key = DDOG_CHARSLICE_C("span id"), .str = trace_identifiers_result.span_id};
+    labels[label_pos++] = (ddog_Label) {.key = DDOG_CHARSLICE_C("span id"), .num = trace_identifiers_result.span_id};
 
     if (trace_identifiers_result.trace_endpoint != Qnil) {
       // The endpoint gets recorded in a different way because it is mutable in the tracer and can change during a
@@ -693,8 +692,6 @@ static VALUE per_thread_context_st_table_as_ruby_hash(struct cpu_and_wall_time_c
   return result;
 }
 
-#define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
-
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash) {
   VALUE thread = (VALUE) key_thread;
   struct per_thread_context *thread_context = (struct per_thread_context*) value_context;
@@ -723,8 +720,8 @@ static VALUE stats_as_ruby_hash(struct cpu_and_wall_time_collector_state *state)
   // Update this when modifying state struct (stats inner struct)
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
-    ID2SYM(rb_intern("gc_samples")),                               /* => */ INT2NUM(state->stats.gc_samples),
-    ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")), /* => */ INT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
+    ID2SYM(rb_intern("gc_samples")),                               /* => */ UINT2NUM(state->stats.gc_samples),
+    ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")), /* => */ UINT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -872,19 +869,13 @@ static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *stat
   if (numeric_local_root_span_id == Qnil || numeric_span_id == Qnil) return;
 
   unsigned long long local_root_span_id = NUM2ULL(numeric_local_root_span_id);
-  unsigned long long span_id = NUM2ULL(numeric_span_id);
-
   snprintf(trace_identifiers_result->local_root_span_id_buffer, MAXIMUM_LENGTH_64_BIT_IDENTIFIER, "%llu", local_root_span_id);
-  snprintf(trace_identifiers_result->span_id_buffer, MAXIMUM_LENGTH_64_BIT_IDENTIFIER, "%llu", span_id);
 
   trace_identifiers_result->local_root_span_id = (ddog_CharSlice) {
     .ptr = trace_identifiers_result->local_root_span_id_buffer,
     .len = strlen(trace_identifiers_result->local_root_span_id_buffer)
   };
-  trace_identifiers_result->span_id = (ddog_CharSlice) {
-    .ptr = trace_identifiers_result->span_id_buffer,
-    .len = strlen(trace_identifiers_result->span_id_buffer)
-  };
+  trace_identifiers_result->span_id = NUM2ULL(numeric_span_id);
 
   trace_identifiers_result->valid = true;
 

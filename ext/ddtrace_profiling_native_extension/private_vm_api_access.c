@@ -50,6 +50,100 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   #endif
 }
 
+// Queries if the current thread is the owner of the global VM lock.
+//
+// @ivoanjo: Ruby has a similarly-named `ruby_thread_has_gvl_p` but that API is insufficient for our needs because it can
+// still return `true` even when a thread DOES NOT HAVE the global VM lock.
+// In particular, looking at the implementation, that API assumes that if a thread is not in a "blocking region" then it
+// will have the GVL which is probably true for the situations that API was designed to be called from BUT this assumption
+// does not hold true when calling `ruby_thread_has_gvl_p` from a signal handler. (Because the thread may have lost the
+// GVL due to a scheduler decision, not because it decided to block.)
+// I have also submitted https://bugs.ruby-lang.org/issues/19172 to discuss this with upstream Ruby developers.
+//
+// Thus we need our own gvl-checking method which actually looks at the gvl structure to determine if it is the owner.
+bool is_current_thread_holding_the_gvl(void) {
+  current_gvl_owner owner = gvl_owner();
+  return owner.valid && pthread_equal(pthread_self(), owner.owner);
+}
+
+#ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
+  // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
+  //
+  // While we could potentially grab this lock, I (@ivoanjo) think we actually don't need it because:
+  // * In the case where a thread owns the GVL and calls `gvl_owner`, it will always see the correct value. That's
+  //   because every thread sets itself as the owner when it grabs the GVL and unsets itself at the end.
+  //   That means that `is_current_thread_holding_the_gvl` is always accurate.
+  // * In a case where we observe a different thread, then this may change by the time we do something with this value
+  //   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
+  current_gvl_owner gvl_owner(void) {
+    const rb_thread_t *current_owner =
+      #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
+        GET_RACTOR()->threads.sched.running;
+      #elif HAVE_RUBY_RACTOR_H
+        GET_RACTOR()->threads.gvl.owner;
+      #else
+        GET_VM()->gvl.owner;
+      #endif
+
+    if (current_owner == NULL) return (current_gvl_owner) {.valid = false};
+
+    return (current_gvl_owner) {
+      .valid = true,
+      .owner =
+        #ifndef NO_RB_NATIVE_THREAD
+          current_owner->nt->thread_id
+        #else
+          current_owner->thread_id
+        #endif
+    };
+  }
+#else
+  current_gvl_owner gvl_owner(void) {
+    rb_vm_t *vm =
+      #ifndef NO_GET_VM
+        GET_VM();
+      #else
+        thread_struct_from_object(rb_thread_current())->vm;
+      #endif
+
+    // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
+    // "atomic" -- when a thread sets it, it "declares" two things in a single step
+    // * Declaration 1: Someone has the GVL
+    // * Declaration 2: That someone is the specific thread
+    //
+    // Observation 1: On older versions of Ruby, this ownership concept is actually split. Specifically, `gvl.acquired`
+    // is a boolean that represents declaration 1 above, and `vm->running_thread` (or `ruby_current_thread`/
+    // `ruby_current_execution_context_ptr`) represents declaration 2.
+    //
+    // Observation 2: In addition, when a thread releases the GVL, it only sets `gvl.acquired` back to 0 **BUT CRUCIALLY
+    // DOES NOT CHANGE THE OTHER global variables**.
+    //
+    // Observation 1+2 above lead to the following possible race:
+    // * Thread A grabs the GVL (`gvl.acquired == 1`)
+    // * Thread A sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread A`)
+    // * Thread A releases the GVL (`gvl.acquired == 0` + `running_thread == Thread A`)
+    // * Thread B grabs the GVL (`gvl.acquired == 1` + `running_thread == Thread A`)
+    // * Thread A calls gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
+    //   function returns an incorrect result.
+    // * Thread B finally sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread B`)
+    //
+    // This is especially problematic because we use `gvl_owner` to implement `is_current_thread_holding_the_gvl` which
+    // is called in a signal handler to decide "is it safe for me to call `rb_postponed_job_register_one` or not".
+    // (See constraints in `collectors_cpu_and_wall_time_worker.c` comments for why).
+    //
+    // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
+    //
+    // For this reason we currently do not enable the new Ruby profiler on Ruby 2.5 and below by default, and we print a
+    // warning when customers force-enable it.
+    bool gvl_acquired = vm->gvl.acquired != 0;
+    rb_thread_t *current_owner = vm->running_thread;
+
+    if (!gvl_acquired || current_owner == NULL) return (current_gvl_owner) {.valid = false};
+
+    return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+  }
+#endif // NO_GVL_OWNER
+
 // Taken from upstream vm_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
 // Copyright (C) 2004-2007 Koichi Sasada
 // to support tid_for (see below)
@@ -128,7 +222,12 @@ VALUE ddtrace_thread_list(void) {
     rb_ractor_t *current_ractor = GET_RACTOR();
     ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
   #else
-    rb_vm_t *vm = thread_struct_from_object(rb_thread_current())->vm;
+    rb_vm_t *vm =
+      #ifndef NO_GET_VM
+        GET_VM();
+      #else
+        thread_struct_from_object(rb_thread_current())->vm;
+      #endif
     list_for_each(&vm->living_threads, thread, vmlt_node) {
   #endif
       switch (thread->status) {
@@ -284,9 +383,6 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
 //   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
 //   absent from `rb_profile_frames`. Oversight?
-// * Distinguish between `end_cfp == NULL` (dead thread or some other error, returns 0) and `end_cfp <= cfp`
-//   (alive thread which may just be executing native code and has not pushed anything on the Ruby stack, returns
-//   PLACEHOLDER_STACK_IN_NATIVE_CODE). See comments on `record_placeholder_stack_in_native_code` for more details.
 // * Skip frames where `cfp->iseq && !cfp->pc`. These seem to be internal and are skipped by `backtrace_each` in
 //   `vm_backtrace.c`.
 // * Check thread status and do not sample if thread has been killed.
@@ -340,12 +436,12 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     const rb_callable_method_entry_t *cme;
 
-    // `vm_backtrace.c` includes this check in several methods, and I think this happens on either dead or newly-created
-    // threads, but I'm not entirely sure
-    if (end_cfp == NULL) return 0;
-
     // Avoid sampling dead threads
     if (th->status == THREAD_KILLED) return 0;
+
+    // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
+    // also (not entirely sure) happen on dead threads
+    if (end_cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
     // Fix: Skip dummy frame that shows up in main thread.
     //
@@ -650,9 +746,6 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
 //   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
 //   absent from `rb_profile_frames`. Oversight?
-// * Distinguish between `end_cfp == NULL` (dead thread or some other error, returns 0) and `end_cfp <= cfp`
-//   (alive thread which may just be executing native code and has not pushed anything on the Ruby stack, returns
-//   PLACEHOLDER_STACK_IN_NATIVE_CODE). See comments on `record_placeholder_stack_in_native_code` for more details.
 // * Check thread status and do not sample if thread has been killed.
 //
 // The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
@@ -667,12 +760,12 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     rb_thread_t *th = thread_struct_from_object(thread);
     rb_control_frame_t *cfp = th->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(th);
 
-    // `vm_backtrace.c` includes this check in several methods, and I think this happens on either dead or newly-created
-    // threads, but I'm not entirely sure
-    if (end_cfp == NULL) return 0;
-
     // Avoid sampling dead threads
     if (th->status == THREAD_KILLED) return 0;
+
+    // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
+    // also (not entirely sure) happen on dead threads
+    if (end_cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
     // Fix: Skip dummy frame that shows up in main thread.
     //
@@ -716,15 +809,6 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
 }
 
 #endif // USE_LEGACY_RB_PROFILE_FRAMES
-
-#ifdef NO_THREAD_HAS_GVL
-int ruby_thread_has_gvl_p(void) {
-  // TODO: The CpuAndWallTimeWorker needs this function, but Ruby 2.2 doesn't expose it... For now this placeholder
-  // will enable the profiling native extension to continue to compile on Ruby 2.2, but the CpuAndWallTimeWorker will
-  // not work properly on 2.2. Will be addressed later.
-  return 0;
-}
-#endif // NO_THREAD_HAS_GVL
 
 #ifndef NO_RACTORS
   // This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we

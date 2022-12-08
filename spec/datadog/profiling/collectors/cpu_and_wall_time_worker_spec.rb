@@ -68,6 +68,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       exception = try_wait_until(backoff: 0.01) { another_instance.send(:failure_exception) }
 
       expect(exception.message).to include 'another instance'
+
+      another_instance.stop
     end
 
     it 'installs the profiling SIGPROF signal handler' do
@@ -114,7 +116,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         exception = try_wait_until(backoff: 0.01) { cpu_and_wall_time_worker.send(:failure_exception) }
 
         expect(exception.message).to include 'pre-existing SIGPROF'
-        expect(exception.message).to include 'handle_sampling_signal' # validate that handler name is included
       end
 
       it 'leaves the existing signal handler in place' do
@@ -127,23 +128,37 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     it 'triggers sampling and records the results' do
-      pending 'Currently broken on Ruby 2.2 due to missing ruby_thread_has_gvl_p API' if RUBY_VERSION.start_with?('2.2.')
-
       start
 
       all_samples = try_wait_until do
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
-        samples = samples_from_pprof(serialization_result.last)
+        samples = samples_from_pprof_without_gc(recorder.serialize!)
         samples if samples.any?
       end
 
-      current_thread_gc_samples =
-        samples_for_thread(all_samples, Thread.current)
-          .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
+      expect(samples_for_thread(all_samples, Thread.current)).to_not be_empty
+    end
 
-      expect(current_thread_gc_samples).to_not be_empty
+    it(
+      'keeps statistics on how many samples were triggered by the background thread, ' \
+      'as well as how many samples were requested from the VM'
+    ) do
+      start
+
+      all_samples = try_wait_until do
+        samples = samples_from_pprof_without_gc(recorder.serialize!)
+        samples if samples.any?
+      end
+
+      cpu_and_wall_time_worker.stop
+
+      sample_count =
+        samples_for_thread(all_samples, Thread.current).map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+
+      stats = cpu_and_wall_time_worker.stats
+
+      expect(sample_count).to be > 0
+      expect(stats.fetch(:signal_handler_enqueued_sample)).to be >= sample_count
+      expect(stats.fetch(:trigger_sample_attempts)).to be >= stats.fetch(:signal_handler_enqueued_sample)
     end
 
     it 'records garbage collection cycles' do
@@ -169,10 +184,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       cpu_and_wall_time_worker.stop
 
-      serialization_result = recorder.serialize
-      raise 'Unexpected: Serialization failed' unless serialization_result
-
-      all_samples = samples_from_pprof(serialization_result.last)
+      all_samples = samples_from_pprof(recorder.serialize!)
 
       current_thread_gc_samples =
         samples_for_thread(all_samples, Thread.current)
@@ -232,6 +244,83 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
       end
     end
+
+    context 'when main thread is sleeping but a background thread is working' do
+      let(:ready_queue) { Queue.new }
+      let(:background_thread) do
+        Thread.new do
+          ready_queue << true
+          i = 0
+          loop { (i = (i + 1) % 2) }
+        end
+      end
+
+      after do
+        background_thread.kill
+        background_thread.join
+      end
+
+      it 'is able to sample even when the main thread is sleeping' do
+        background_thread
+        ready_queue.pop
+
+        start
+        wait_until_running
+
+        sleep 0.1
+
+        cpu_and_wall_time_worker.stop
+        background_thread.kill
+
+        result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
+        sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+
+        stats = cpu_and_wall_time_worker.stats
+
+        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
+        signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample)
+
+        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.6), \
+          "Expected at least 60% of signals to be delivered to correct thread (#{stats})"
+
+        # Sanity checking
+
+        # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
+        # will not cause flakiness
+        expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
+        expect(trigger_sample_attempts).to be >= sample_count
+      end
+    end
+
+    context 'when all threads are sleeping (no thread holds the Global VM Lock)' do
+      it 'is able to sample even when all threads are sleeping' do
+        start
+        wait_until_running
+
+        sleep 0.1
+
+        cpu_and_wall_time_worker.stop
+
+        result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
+        sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+
+        stats = cpu_and_wall_time_worker.stats
+
+        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
+
+        simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
+
+        expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8), \
+          "Expected at least 80% of signals to be simulated (#{stats})"
+
+        # Sanity checking
+
+        # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
+        # will not cause flakiness
+        expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
+        expect(trigger_sample_attempts).to be >= sample_count
+      end
+    end
   end
 
   describe 'Ractor safety' do
@@ -251,11 +340,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        serialization_result = recorder.serialize
-        raise 'Unexpected: Serialization failed' unless serialization_result
-
         samples_from_ractor =
-          samples_from_pprof(serialization_result.last)
+          samples_from_pprof(recorder.serialize!)
             .select { |it| it.fetch(:labels)[:'thread name'] == 'background ractor' }
 
         expect(samples_from_ractor).to be_empty
@@ -301,29 +387,68 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe '#stop' do
     subject(:stop) { cpu_and_wall_time_worker.stop }
 
-    before do
+    context 'when called immediately after start' do
+      it 'stops the CpuAndWallTimeWorker' do
+        cpu_and_wall_time_worker.start
+
+        stop
+
+        expect(described_class::Testing._native_is_running?(cpu_and_wall_time_worker)).to be false
+      end
+    end
+
+    context 'after starting' do
+      before do
+        cpu_and_wall_time_worker.start
+        wait_until_running
+      end
+
+      it 'shuts down the background thread' do
+        stop
+
+        skip 'Spec not compatible with Ruby 2.2' if RUBY_VERSION.start_with?('2.2.')
+
+        expect(Thread.list.map(&:name)).to_not include(described_class.name)
+      end
+
+      it 'replaces the profiling sigprof signal handler with an empty one' do
+        stop
+
+        expect(described_class::Testing._native_current_sigprof_signal_handler).to be :empty
+      end
+
+      it 'disables the garbage collection tracepoint' do
+        stop
+
+        expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+      end
+
+      it 'leaves behind an empty SIGPROF signal handler' do
+        stop
+
+        # Without an empty SIGPROF signal handler (e.g. with no signal handler) the following command will make the VM
+        # instantly terminate with a confusing "Profiling timer expired" message left behind. (This message doesn't
+        # come from us -- it's the default message for an unhandled SIGPROF. Pretty confusing UNIX/POSIX behavior...)
+        Process.kill('SIGPROF', Process.pid)
+      end
+    end
+
+    it 'unblocks SIGPROF signal handling from the worker thread' do
+      inner_ran = false
+
+      expect(described_class).to receive(:_native_sampling_loop).and_wrap_original do |native, *args|
+        native.call(*args)
+
+        expect(described_class::Testing._native_is_sigprof_blocked_in_current_thread).to be false
+        inner_ran = true
+      end
+
       cpu_and_wall_time_worker.start
       wait_until_running
-    end
 
-    it 'shuts down the background thread' do
       stop
 
-      skip 'Spec not compatible with Ruby 2.2' if RUBY_VERSION.start_with?('2.2.')
-
-      expect(Thread.list.map(&:name)).to_not include(described_class.name)
-    end
-
-    it 'removes the profiling sigprof signal handler' do
-      stop
-
-      expect(described_class::Testing._native_current_sigprof_signal_handler).to be nil
-    end
-
-    it 'disables the garbage collection tracepoint' do
-      stop
-
-      expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+      expect(inner_ran).to be true
     end
   end
 
@@ -367,9 +492,25 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       reset_after_fork
     end
+
+    it 'resets all stats' do
+      cpu_and_wall_time_worker.stop
+
+      reset_after_fork
+
+      expect(cpu_and_wall_time_worker.stats.values).to all be 0
+    end
   end
 
   def wait_until_running
     try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(cpu_and_wall_time_worker) }
+  end
+
+  # This is useful because in a bunch of tests above we want to assert on properties of the period sampling, and having
+  # a random GC in the middle of the spec contribute a sample can throw off the expected values and counts.
+  #
+  # We have separate specs that assert on the GC behaviors.
+  def samples_from_pprof_without_gc(pprof_data)
+    samples_from_pprof(pprof_data).reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
   end
 end

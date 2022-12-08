@@ -135,6 +135,7 @@ module IbhMoreGlobals
 end
 
 def ibh_method_with_complex_parameters(a, b = nil, *c, (d), f:, g: nil, **h, &i)
+  d.to_s # Dummy call to avoid warning on legacy Rubies
   $ibh_anonymous_module.hello
 end
 

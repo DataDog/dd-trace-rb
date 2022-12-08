@@ -3,6 +3,7 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'ddtrace'
 require 'net/http'
@@ -74,6 +75,8 @@ RSpec.describe 'net/http requests' do
       it_behaves_like 'a peer service span' do
         let(:peer_hostname) { host }
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
     end
 
     context 'that returns 404' do
@@ -95,12 +98,14 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('span.kind')).to eq('client')
         expect(span.status).to eq(1)
         expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
-        expect(span.get_tag('error.msg')).to be nil
+        expect(span.get_tag('error.message')).to be nil
       end
 
       it_behaves_like 'a peer service span' do
         let(:peer_hostname) { host }
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
 
       context 'when configured with #after_request hook' do
         before { Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request(&callback) }
@@ -136,7 +141,7 @@ RSpec.describe 'net/http requests' do
             expect(response.code).to eq('404')
             expect(span.status).to eq(1)
             expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
-            expect(span.get_tag('error.msg')).to eq(body)
+            expect(span.get_tag('error.message')).to eq(body)
           end
         end
       end
@@ -170,6 +175,8 @@ RSpec.describe 'net/http requests' do
       it_behaves_like 'a peer service span' do
         let(:peer_hostname) { host }
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
     end
   end
 
@@ -203,6 +210,8 @@ RSpec.describe 'net/http requests' do
       it_behaves_like 'a peer service span' do
         let(:peer_hostname) { host }
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
     end
   end
 
@@ -437,6 +446,8 @@ RSpec.describe 'net/http requests' do
         expect(span).to have_error_type(timeout_error.class.to_s)
         expect(span).to have_error_message(timeout_error.message)
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME', error: Net::OpenTimeout
     end
 
     context 'that raises an error' do
@@ -460,6 +471,8 @@ RSpec.describe 'net/http requests' do
         expect(span).to have_error_type(custom_error.class.to_s)
         expect(span).to have_error_message(custom_error.message)
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME', error: StandardError
     end
   end
 end

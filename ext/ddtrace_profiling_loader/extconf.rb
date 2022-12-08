@@ -34,7 +34,7 @@ add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true'
 #   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
 add_compiler_flag '-std=gnu99'
 
-# Gets really noisy when we include the MJIT header, let's omit it
+# Gets really noisy when we include the MJIT header, let's omit it (TODO: Use #pragma GCC diagnostic instead?)
 add_compiler_flag '-Wno-unused-function'
 
 # Allow defining variables at any point in a function
@@ -54,6 +54,9 @@ add_compiler_flag '-Wunused-parameter'
 # By setting this compiler flag, we tell it to assume that everything is private unless explicitly stated.
 # For more details see https://gcc.gnu.org/wiki/Visibility
 add_compiler_flag '-fvisibility=hidden'
+
+# Avoid legacy C definitions
+add_compiler_flag '-Wold-style-definition'
 
 # Enable all other compiler warnings
 add_compiler_flag '-Wall'

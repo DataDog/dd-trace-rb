@@ -33,12 +33,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
   end
   let(:max_frames) { 123 }
 
-  let(:pprof_result) do
-    serialization_result = recorder.serialize
-    raise 'Unexpected: Serialization failed' unless serialization_result
-
-    serialization_result.last
-  end
+  let(:pprof_result) { recorder.serialize! }
   let(:samples) { samples_from_pprof(pprof_result) }
   let(:invalid_time) { -1 }
   let(:tracer) { nil }
@@ -362,7 +357,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
             expect(t1_sample.fetch(:labels)).to include(
               :'local root span id' => @t1_local_root_span_id.to_s,
-              :'span id' => @t1_span_id.to_s,
+              :'span id' => @t1_span_id.to_i,
             )
           end
 

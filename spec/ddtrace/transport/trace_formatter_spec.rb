@@ -4,11 +4,12 @@ require 'spec_helper'
 
 require 'datadog/core/environment/identity'
 require 'datadog/core/runtime/ext'
-require 'datadog/core/utils'
+
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/sampling/ext'
 require 'datadog/tracing/span'
 require 'datadog/tracing/trace_segment'
+require 'datadog/tracing/utils'
 require 'ddtrace/transport/trace_formatter'
 
 RSpec.describe Datadog::Transport::TraceFormatter do
@@ -69,7 +70,13 @@ RSpec.describe Datadog::Transport::TraceFormatter do
   end
 
   shared_context 'missing root span' do
-    let(:trace) { Datadog::Tracing::TraceSegment.new(spans, root_span_id: Datadog::Core::Utils.next_id, **trace_options) }
+    let(:trace) do
+      Datadog::Tracing::TraceSegment.new(
+        spans,
+        root_span_id: Datadog::Tracing::Utils.next_id,
+        **trace_options
+      )
+    end
     let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
     let(:root_span) { spans.last }
   end

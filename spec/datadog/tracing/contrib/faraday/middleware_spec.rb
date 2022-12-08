@@ -3,6 +3,7 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'faraday'
 
@@ -43,6 +44,8 @@ RSpec.describe 'Faraday middleware' do
     subject(:response) { client.get('/success') }
 
     let(:use_middleware) { false }
+
+    it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
 
     it 'uses default configuration' do
       expect(response.status).to eq(200)
@@ -86,6 +89,8 @@ RSpec.describe 'Faraday middleware' do
 
       after { WebMock.disable! }
 
+      it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+
       it 'uses default configuration' do
         expect(response.status).to eq(200)
 
@@ -114,6 +119,8 @@ RSpec.describe 'Faraday middleware' do
   context 'when there is no interference' do
     subject!(:response) { client.get('/success') }
 
+    it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+
     it do
       expect(response).to be_a_kind_of(::Faraday::Response)
       expect(response.body).to eq('OK')
@@ -123,6 +130,8 @@ RSpec.describe 'Faraday middleware' do
 
   context 'when there is successful request' do
     subject!(:response) { client.get('/success') }
+
+    it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Faraday::Ext::ENV_ANALYTICS_ENABLED }
@@ -157,6 +166,8 @@ RSpec.describe 'Faraday middleware' do
   context 'when there is a failing request' do
     subject!(:response) { client.post('/failure') }
 
+    it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+
     it do
       expect(span.service).to eq(Datadog::Tracing::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(span.name).to eq(Datadog::Tracing::Contrib::Faraday::Ext::SPAN_REQUEST)
@@ -183,6 +194,8 @@ RSpec.describe 'Faraday middleware' do
 
   context 'with library error' do
     subject(:response) { client.get('/error') }
+
+    it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME', error: Faraday::ConnectionFailed
 
     it do
       expect { response }.to raise_error(Faraday::ConnectionFailed)
@@ -221,6 +234,8 @@ RSpec.describe 'Faraday middleware' do
     subject!(:response) { client.get('/not_found') }
 
     it { expect(span).to_not have_error }
+
+    it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
   end
 
   context 'when there is custom error handling' do
@@ -230,6 +245,8 @@ RSpec.describe 'Faraday middleware' do
     let(:custom_handler) { ->(env) { (400...600).cover?(env[:status]) } }
 
     it { expect(span).to have_error }
+
+    it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
   end
 
   context 'when split by domain' do

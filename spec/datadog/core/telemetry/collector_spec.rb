@@ -1,3 +1,5 @@
+# typed: ignore
+
 require 'spec_helper'
 
 require 'datadog/core/configuration'

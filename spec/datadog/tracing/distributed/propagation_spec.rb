@@ -5,13 +5,13 @@ require 'spec_helper'
 require 'datadog/tracing/distributed/propagation'
 
 RSpec.shared_examples 'Distributed tracing propagator' do
-  subject(:propagation) { described_class.new(propagation_styles: propagation_styles) }
+  subject(:propagator) { described_class.new(propagation_styles: propagation_styles) }
 
   let(:propagation_styles) do
     {
       'Datadog' => Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class),
-      'B3' => Datadog::Tracing::Distributed::B3.new(fetcher: fetcher_class),
-      'B3 single header' => Datadog::Tracing::Distributed::B3Single.new(fetcher: fetcher_class),
+      'b3multi' => Datadog::Tracing::Distributed::B3Multi.new(fetcher: fetcher_class),
+      'b3' => Datadog::Tracing::Distributed::B3Single.new(fetcher: fetcher_class),
     }
   end
   let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
@@ -19,7 +19,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '::inject!' do
-    subject(:inject!) { propagation.inject!(trace, data) }
+    subject(:inject!) { propagator.inject!(trace, data) }
     let(:data) { {} }
 
     shared_examples_for 'trace injection' do
@@ -124,7 +124,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   end
 
   describe '.extract' do
-    subject(:extract) { propagation.extract(data) }
+    subject(:extract) { propagator.extract(data) }
     let(:trace_digest) { extract }
 
     context 'given empty data' do
@@ -205,7 +205,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         end
       end
 
-      context 'B3 trace id and parent id' do
+      context 'B3 Multi trace id and parent id' do
         let(:data) do
           {
             prepare_key['x-b3-traceid'] => '00ef01',
@@ -238,7 +238,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         end
       end
 
-      context 'B3 single trace id and parent id' do
+      context 'B3 Single trace id and parent id' do
         let(:data) do
           {
             prepare_key['b3'] => '00ef01-011ef0'

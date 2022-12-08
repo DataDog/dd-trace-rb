@@ -158,7 +158,7 @@ RSpec.describe 'Rails middleware' do
           expect(span.get_tag('http.method')).to eq('GET')
           expect(span.get_tag('http.status_code')).to eq('500')
           expect(span.get_tag('error.type')).to eq('NotImplementedError')
-          expect(span.get_tag('error.msg')).to eq('NotImplementedError')
+          expect(span.get_tag('error.message')).to eq('NotImplementedError')
           expect(span).to have_error
           expect(span.get_tag('error.stack')).to_not be nil
         end
@@ -205,7 +205,7 @@ RSpec.describe 'Rails middleware' do
           expect(span.get_tag('http.status_code')).to eq('404')
 
           expect(span.get_tag('error.type')).to be nil
-          expect(span.get_tag('error.msg')).to be nil
+          expect(span.get_tag('error.message')).to be nil
           expect(span).to_not have_error
           expect(span.get_tag('error.stack')).to be nil
         end
@@ -266,7 +266,7 @@ RSpec.describe 'Rails middleware' do
           expect(span.get_tag('http.method')).to eq('GET')
           expect(span.get_tag('http.status_code')).to eq('500')
           expect(span.get_tag('error.type')).to eq('CustomError')
-          expect(span.get_tag('error.msg')).to eq('Custom error message!')
+          expect(span.get_tag('error.message')).to eq('Custom error message!')
           expect(span).to have_error
           expect(span.get_tag('error.stack')).to_not be nil
         end
@@ -312,7 +312,7 @@ RSpec.describe 'Rails middleware' do
             expect(span.get_tag('http.method')).to eq('GET')
             expect(span.get_tag('http.status_code')).to eq('404')
             expect(span.get_tag('error.type')).to be nil
-            expect(span.get_tag('error.msg')).to be nil
+            expect(span.get_tag('error.message')).to be nil
             expect(span).to_not have_error
             expect(span.get_tag('error.stack')).to be nil
           end

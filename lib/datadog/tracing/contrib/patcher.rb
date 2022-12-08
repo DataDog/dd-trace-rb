@@ -66,13 +66,14 @@ module Datadog
             Datadog.health_metrics.error_instrumentation_patch(1, tags: tags)
           end
 
-          private
-
           def default_tags
             ["patcher:#{patch_name}"].tap do |tags|
               tags << "target_version:#{target_version}" if respond_to?(:target_version) && !target_version.nil?
+              super.each { |t| tags << t } if defined?(super)
             end
           end
+
+          private
 
           def patch_only_once
             # NOTE: This is not thread-safe

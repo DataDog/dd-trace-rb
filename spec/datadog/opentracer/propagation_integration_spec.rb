@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/span'
+require 'datadog/tracing/utils'
 require 'datadog/opentracer'
 
 RSpec.describe 'OpenTracer context propagation' do
@@ -80,8 +80,8 @@ RSpec.describe 'OpenTracer context propagation' do
           )
         end
 
-        let(:trace_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1 }
-        let(:parent_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 2 }
+        let(:trace_id) { Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 1 }
+        let(:parent_id) { Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 2 }
         let(:sampling_priority) { 2 }
         let(:origin) { 'synthetics' }
 
@@ -205,7 +205,7 @@ RSpec.describe 'OpenTracer context propagation' do
 
   describe 'via OpenTracing::FORMAT_RACK' do
     def carrier_to_rack_format(carrier)
-      carrier.map { |k, v| ["http-#{k}".upcase!.tr('-', '_'), v] }.to_h
+      carrier.map { |k, v| [RackSupport.header_to_rack(k), v] }.to_h
     end
 
     def baggage_to_carrier_format(baggage)
@@ -272,8 +272,8 @@ RSpec.describe 'OpenTracer context propagation' do
           )
         end
 
-        let(:trace_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1 }
-        let(:parent_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 2 }
+        let(:trace_id) { Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 1 }
+        let(:parent_id) { Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 2 }
         let(:sampling_priority) { 2 }
         let(:origin) { 'synthetics' }
 

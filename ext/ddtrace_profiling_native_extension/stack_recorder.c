@@ -175,7 +175,7 @@ static VALUE _native_active_slot(DDTRACE_UNUSED VALUE _self, VALUE recorder_inst
 static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
-static ddog_Timespec time_now();
+static ddog_Timespec time_now(void);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec timestamp);
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
@@ -239,8 +239,7 @@ static void initialize_slot_concurrency_control(struct stack_recorder_state *sta
   state->slot_two_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
 
   // A newly-created StackRecorder starts with slot one being active for samples, so let's lock slot two
-  int error = pthread_mutex_lock(&state->slot_two_mutex);
-  if (error) rb_syserr_fail(error, "Unexpected failure during pthread_mutex_lock");
+  ENFORCE_SUCCESS_GVL(pthread_mutex_lock(&state->slot_two_mutex));
 
   state->active_slot = 1;
 }
@@ -361,7 +360,7 @@ static struct active_slot_pair sampler_lock_active_profile(struct stack_recorder
 
   for (int attempts = 0; attempts < 2; attempts++) {
     error = pthread_mutex_trylock(&state->slot_one_mutex);
-    if (error && error != EBUSY) rb_syserr_fail(error, "Unexpected failure during sampler_lock_active_profile for slot_one_mutex");
+    if (error && error != EBUSY) ENFORCE_SUCCESS_GVL(error);
 
     // Slot one is active
     if (!error) return (struct active_slot_pair) {.mutex = &state->slot_one_mutex, .profile = state->slot_one_profile};
@@ -369,7 +368,7 @@ static struct active_slot_pair sampler_lock_active_profile(struct stack_recorder
     // If we got here, slot one was not active, let's try slot two
 
     error = pthread_mutex_trylock(&state->slot_two_mutex);
-    if (error && error != EBUSY) rb_syserr_fail(error, "Unexpected failure during sampler_lock_active_profile for slot_two_mutex");
+    if (error && error != EBUSY) ENFORCE_SUCCESS_GVL(error);
 
     // Slot two is active
     if (!error) return (struct active_slot_pair) {.mutex = &state->slot_two_mutex, .profile = state->slot_two_profile};
@@ -380,28 +379,24 @@ static struct active_slot_pair sampler_lock_active_profile(struct stack_recorder
 }
 
 static void sampler_unlock_active_profile(struct active_slot_pair active_slot) {
-  int error = pthread_mutex_unlock(active_slot.mutex);
-  if (error != 0) rb_syserr_fail(error, "Unexpected failure in sampler_unlock_active_profile");
+  ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(active_slot.mutex));
 }
 
 static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state) {
-  int error;
   int previously_active_slot = state->active_slot;
 
   if (previously_active_slot != 1 && previously_active_slot != 2) {
-    rb_raise(rb_eRuntimeError, "Unexpected active_slot state %d in serializer_flip_active_and_inactive_slots", previously_active_slot);
+    grab_gvl_and_raise(rb_eRuntimeError, "Unexpected active_slot state %d in serializer_flip_active_and_inactive_slots", previously_active_slot);
   }
 
   pthread_mutex_t *previously_active = (previously_active_slot == 1) ? &state->slot_one_mutex : &state->slot_two_mutex;
   pthread_mutex_t *previously_inactive = (previously_active_slot == 1) ? &state->slot_two_mutex : &state->slot_one_mutex;
 
   // Release the lock, thus making this slot active
-  error = pthread_mutex_unlock(previously_inactive);
-  if (error) rb_syserr_fail(error, "Unexpected failure during serializer_flip_active_and_inactive_slots for previously_inactive");
+  ENFORCE_SUCCESS_NO_GVL(pthread_mutex_unlock(previously_inactive));
 
   // Grab the lock, thus making this slot inactive
-  error = pthread_mutex_lock(previously_active);
-  if (error) rb_syserr_fail(error, "Unexpected failure during serializer_flip_active_and_inactive_slots for previously_active");
+  ENFORCE_SUCCESS_NO_GVL(pthread_mutex_lock(previously_active));
 
   // Update active_slot
   state->active_slot = (previously_active_slot == 1) ? 2 : 1;
@@ -438,18 +433,19 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
 
   if (error == 0) {
     // Mutex was unlocked
-    pthread_mutex_unlock(slot_mutex);
+    ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(slot_mutex));
     return Qfalse;
   } else if (error == EBUSY) {
     // Mutex was locked
     return Qtrue;
   } else {
-    rb_syserr_fail(error, "Unexpected failure when checking mutex state");
+    ENFORCE_SUCCESS_GVL(error);
+    rb_raise(rb_eRuntimeError, "Failed to raise exception in test_slot_mutex_state; this should never happen");
   }
 }
 
 // Note that this is using CLOCK_REALTIME (e.g. actual time since unix epoch) and not the CLOCK_MONOTONIC as we use in other parts of the codebase
-static ddog_Timespec time_now() {
+static ddog_Timespec time_now(void) {
   struct timespec current_time;
 
   if (clock_gettime(CLOCK_REALTIME, &current_time) != 0) rb_sys_fail("Failed to read CLOCK_REALTIME");

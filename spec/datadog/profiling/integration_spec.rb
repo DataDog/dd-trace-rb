@@ -114,14 +114,19 @@ RSpec.describe 'profiling integration test' do
 
     context 'with tracing' do
       around do |example|
-        Datadog.configuration.diagnostics.startup_logs.enabled = false
+        Datadog.configure do |c|
+          c.diagnostics.startup_logs.enabled = false
+          c.tracing.transport_options = proc { |t| t.adapter :test }
+        end
 
         Datadog::Tracing.trace('profiler.test') do |span, trace|
           @current_span = span
           @current_root_span = trace.send(:root_span)
           example.run
         end
+
         Datadog::Tracing.shutdown!
+        Datadog.configuration.reset!
       end
 
       let(:tracer) { Datadog::Tracing.send(:tracer) }

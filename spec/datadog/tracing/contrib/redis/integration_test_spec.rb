@@ -4,7 +4,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'time'
 require 'redis'
-require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis integration test' do

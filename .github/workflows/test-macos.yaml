@@ -1,18 +1,31 @@
-name: macOS testing
+name: Test macOS
 on: [push]
 jobs:
   test-macos:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
-        ruby: [2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, '3.0', 3.1] # ADD NEW RUBIES HERE
+        os:
+          - macos-11
+          - macos-12
+        ruby:
+          - '2.1'
+          - '2.2'
+          - '2.3'
+          - '2.4'
+          - '2.5'
+          - '2.6'
+          - '2.7'
+          - '3.0'
+          - '3.1'
+          # ADD NEW RUBIES HERE
+    name: Test (${{ matrix.os }}, ${{ matrix.ruby }})
     runs-on: ${{ matrix.os }}
     env:
       SKIP_SIMPLECOV: 1
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       # bundler appears to match both prerelease and release rubies when we
       # want the former only. relax the constraint to allow any version for
       # head rubies

@@ -1,7 +1,6 @@
 # typed: true
 
 require_relative 'utils/forking'
-require_relative '../tracing/span'
 
 module Datadog
   module Core
@@ -11,26 +10,6 @@ module Datadog
       extend Forking
 
       EMPTY_STRING = ''.encode(::Encoding::UTF_8).freeze
-      # We use a custom random number generator because we want no interference
-      # with the default one. Using the default prng, we could break code that
-      # would rely on srand/rand sequences.
-
-      # Return a randomly generated integer, valid as a Span ID or Trace ID.
-      # This method is thread-safe and fork-safe.
-      def self.next_id
-        after_fork! { reset! }
-        id_rng.rand(Tracing::Span::RUBY_ID_RANGE)
-      end
-
-      def self.id_rng
-        @id_rng ||= Random.new
-      end
-
-      def self.reset!
-        @id_rng = Random.new
-      end
-
-      private_class_method :id_rng, :reset!
 
       # Stringifies `value` and ensures the outcome is
       # string is no longer than `size`.

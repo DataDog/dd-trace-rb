@@ -1,6 +1,7 @@
 # typed: ignore
 
 require 'datadog/tracing/contrib/integration_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'time'
 require 'elasticsearch'
@@ -102,6 +103,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
         end
 
         it_behaves_like 'a peer service span'
+        it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
       end
 
       context 'PUT request' do
@@ -133,6 +135,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
           end
 
           it_behaves_like 'a peer service span'
+          it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
         end
 
         context 'with Hash params' do

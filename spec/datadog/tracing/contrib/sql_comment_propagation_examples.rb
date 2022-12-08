@@ -58,16 +58,19 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
   end
 
   it 'prepends sql comment to the sql statement' do
-    expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:prepend_comment).with(
-      sql_statement,
-      a_span_operation_with(name: span_op_name, service: service_name),
-      propagation_mode
-    ).and_call_original
+    allow(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:prepend_comment).and_call_original
 
     if error
       expect { subject }.to raise_error(error)
     else
       subject
     end
+
+    expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to have_received(:prepend_comment).with(
+      sql_statement,
+      a_span_operation_with(service: service_name),
+      duck_type(:to_digest),
+      propagation_mode
+    )
   end
 end

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ruby.h>
+#include <stdbool.h>
 
 #include "helpers.h"
 
@@ -57,11 +58,32 @@ NORETURN(void raise_unexpected_type(
   const char *type_name,
   const char *file,
   int line,
-  const char* function_name
+  const char *function_name
 ));
 
-// This API is exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
-// repeat it here to be able to use in our code.
-//
-// Queries if the current thread is the owner of the global VM lock.
-int ruby_thread_has_gvl_p(void);
+#define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
+
+NORETURN(
+  void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...)
+  __attribute__ ((format (printf, 2, 3)));
+);
+NORETURN(
+  void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
+  __attribute__ ((format (printf, 2, 3)));
+);
+
+#define ENFORCE_SUCCESS_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, true)
+#define ENFORCE_SUCCESS_NO_GVL(expression) ENFORCE_SUCCESS_HELPER(expression, false)
+
+#define ENFORCE_SUCCESS_HELPER(expression, have_gvl) \
+  { int result_syserr_errno = expression; if (RB_UNLIKELY(result_syserr_errno)) raise_syserr(result_syserr_errno, have_gvl, ADD_QUOTES(expression), __FILE__, __LINE__, __func__); }
+
+// Called by ENFORCE_SUCCESS_HELPER; should not be used directly
+NORETURN(void raise_syserr(
+  int syserr_errno,
+  bool have_gvl,
+  const char *expression,
+  const char *file,
+  int line,
+  const char *function_name
+));

@@ -1,6 +1,7 @@
 # typed: false
 
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'ethon'
 require 'datadog/tracing/contrib/ethon/easy_patch'
@@ -111,6 +112,10 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
     it_behaves_like 'measured span for integration', false do
       let(:span) { span_op }
       before { subject }
+    end
+
+    it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME' do
+      let(:span) { span_op }
     end
   end
 

@@ -60,6 +60,9 @@ jobs:
           - engine: jruby
             version: 9.3.9.0
             dockerfile: Dockerfile-jruby-9.3.9.0
+          - engine: jruby
+            version: 9.4.0.0
+            dockerfile: Dockerfile-jruby-9.4.0.0
           - engine: truffleruby
             version: 22.3.0
             dockerfile: Dockerfile-truffleruby-22.3.0
@@ -67,7 +70,7 @@ jobs:
     name: Build (${{ matrix.engine }} ${{ matrix.version }})
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # Using docker-container engine enables advanced buildx features
       - name: Set up Docker container engine
