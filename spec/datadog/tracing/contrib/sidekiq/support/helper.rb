@@ -80,22 +80,31 @@ module SidekiqServerExpectations
     app_tempfile.unlink
   end
 
-  def after_stopping_sidekiq_server
+  def expect_after_stopping_sidekiq_server
     app_tempfile = Tempfile.new(['sidekiq-server-app', '.rb'])
 
-    require 'sidekiq/cli'
+    expect_in_fork do
+      # NB: This is needed because we want to patch within a forked process.
+      if Datadog::Tracing::Contrib::Sidekiq::Patcher.instance_variable_get(:@patch_only_once)
+        Datadog::Tracing::Contrib::Sidekiq::Patcher
+          .instance_variable_get(:@patch_only_once)
+          .send(:reset_ran_once_state_for_tests)
+      end
 
-    configure_sidekiq
+      require 'sidekiq/cli'
 
-    cli = Sidekiq::CLI.instance
-    cli.parse(['--require', app_tempfile.path]) # boot the "app"
+      configure_sidekiq
 
-    # `timeout` is the deadline that waits up for all jobs to complete.
-    # Default is 25, the reason for `stop` command to take so long.
-    launcher = Sidekiq::Launcher.new(cli.send(:options).merge(timeout: 1))
-    launcher.stop
+      cli = Sidekiq::CLI.instance
+      cli.parse(['--require', app_tempfile.path]) # boot the "app"
 
-    yield
+      # `timeout` is the deadline that waits up for all jobs to complete.
+      # Default is 25, the reason for `stop` command to take so long.
+      launcher = Sidekiq::Launcher.new(cli.send(:options).merge(timeout: 1))
+      launcher.stop
+
+      yield
+    end
   ensure
     app_tempfile.close
     app_tempfile.unlink

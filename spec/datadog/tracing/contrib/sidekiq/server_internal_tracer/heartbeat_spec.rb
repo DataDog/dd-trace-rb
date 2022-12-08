@@ -30,7 +30,7 @@ RSpec.describe 'Server internal tracer heartbeat' do
 
   context 'traces the stop command' do
     it do
-      after_stopping_sidekiq_server do
+      expect_after_stopping_sidekiq_server do
         span = spans.find { |s| s.name == 'sidekiq.stop' }
 
         expect(span.service).to eq(tracer.default_service)
