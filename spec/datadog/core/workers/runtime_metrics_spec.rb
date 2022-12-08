@@ -344,7 +344,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
 
               # Restart worker & wait
               worker.perform
-              try_wait_until(attempts: 30) { @flushed }
+              try_wait_until(seconds: 3) { @flushed }
 
               # Verify state of the worker
               expect(worker.error?).to be false

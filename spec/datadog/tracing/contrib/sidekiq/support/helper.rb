@@ -69,8 +69,7 @@ module SidekiqServerExpectations
         cli.run
       end
 
-      # 10 second wait time
-      try_wait_until(attempts: 100) { wait_until.call } if wait_until
+      try_wait_until(seconds: 10) { wait_until.call } if wait_until
 
       Thread.kill(t)
 

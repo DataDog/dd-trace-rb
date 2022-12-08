@@ -617,7 +617,7 @@ RSpec.describe 'Tracer integration tests' do
           end
         end
 
-        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
+        try_wait_until(seconds: 2) { tracer.writer.stats[:traces_flushed] >= 1 }
         stats = tracer.writer.stats
 
         expect(stats[:traces_flushed]).to eq(1)
@@ -640,7 +640,7 @@ RSpec.describe 'Tracer integration tests' do
       let(:set_agent_rates!) do
         # Send span to receive response from "agent" with mocked service rates above.
         tracer.trace('send_trace_to_fetch_service_rates') {}
-        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
+        try_wait_until(seconds: 2) { tracer.writer.stats[:traces_flushed] >= 1 }
 
         # Reset stats and collected segments before test starts
         tracer.writer.send(:reset_stats!)
@@ -870,7 +870,7 @@ RSpec.describe 'Tracer integration tests' do
           end
         end
 
-        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
+        try_wait_until(seconds: 2) { tracer.writer.stats[:traces_flushed] >= 1 }
         stats = tracer.writer.stats
 
         expect(stats[:traces_flushed]).to eq(1)
@@ -1046,7 +1046,7 @@ RSpec.describe 'Tracer integration tests' do
 
           tracer.trace('name') {}
 
-          try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
+          try_wait_until(seconds: 2) { tracer.writer.stats[:traces_flushed] >= 1 }
 
           stats = tracer.writer.stats
           expect(stats[:traces_flushed]).to eq(1)

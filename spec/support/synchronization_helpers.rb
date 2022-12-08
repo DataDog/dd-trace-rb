@@ -40,8 +40,30 @@ module SynchronizationHelpers
     end
   end
 
-  # Defaults to 5 second timeout
-  def try_wait_until(attempts: 50, backoff: 0.1)
+  # Waits for the condition provided by the block argument to return truthy.
+  #
+  # Waits for 5 seconds by default.
+  #
+  # Can be configured by setting either:
+  #   * `seconds`, or
+  #   * `attempts` and `backoff`
+  #
+  # @yieldreturn [Boolean] block executed until it returns truthy
+  # @param [Numeric] seconds number of seconds to wait
+  # @param [Integer] attempts number of attempts at checking the condition
+  # @param [Numeric] backoff wait time between condition checking attempts
+  def try_wait_until(seconds: nil, attempts: nil, backoff: nil)
+    raise 'Provider either `seconds` or `attempts` & `backoff`, not both' if seconds && (attempts || backoff)
+
+    if seconds
+      attempts = seconds * 10
+      backoff = 0.1
+    else
+      # 5 seconds by default, but respect the provide values if any.
+      attempts ||= 50
+      backoff ||= 0.1
+    end
+
     # It's common for tests to want to run simple tasks in a background thread
     # but call this method without the thread having even time to start.
     #
