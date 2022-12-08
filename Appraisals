@@ -123,6 +123,7 @@ if ruby_version?('2.1')
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '< 2.5'
     gem 'mysql2', '0.3.21'
+    gem 'opentracing', '>= 0.4.1'
     gem 'pg', '>= 0.18.4', '< 1.0'
     gem 'rack', '1.4.7'
     gem 'rack-contrib'
@@ -307,6 +308,7 @@ elsif ruby_version?('2.2')
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '< 0.5'
+    gem 'opentracing', '>= 0.4.1'
     gem 'pg', '>= 0.18.4'
     gem 'presto-client', '>=  0.5.14'
     gem 'racecar', '>= 0.3.5'
@@ -506,6 +508,7 @@ elsif ruby_version?('2.3')
     gem 'makara'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 0.5'
+    gem 'opentracing', '>= 0.4.1'
     gem 'pg', '>= 0.18.4'
     gem 'racecar', '>= 0.3.5'
     gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
@@ -638,6 +641,7 @@ elsif ruby_version?('2.4')
     gem 'makara'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 0.5'
+    gem 'opentracing', '>= 0.4.1'
     gem 'pg', '>= 0.18.4'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
@@ -901,6 +905,7 @@ elsif ruby_version?('2.5')
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
     gem 'pg', '>= 0.18.4', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
+    gem 'opentracing', '>= 0.4.1'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-contrib'
@@ -1148,6 +1153,7 @@ elsif ruby_version?('2.6')
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'pg', '>= 0.18.4', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+      gem 'opentracing', '>= 0.4.1'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-contrib'
@@ -1376,6 +1382,7 @@ elsif ruby_version?('2.7')
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', '>= 0.18.4', platform: :ruby
+      gem 'opentracing', '>= 0.4.1'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-contrib'
@@ -1507,6 +1514,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'activerecord-jdbcmysql-adapter', platform: :jruby
     gem 'pg', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+    gem 'opentracing', '>= 0.4.1'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-contrib'
@@ -1638,6 +1646,7 @@ elsif ruby_version?('3.2')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     # gem 'mysql2', '>= 0.5.3', platform: :ruby # broken on Ruby 3.2.0-preview1
     gem 'pg', '>= 1.1', platform: :ruby
+    gem 'opentracing', '>= 0.4.1'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-contrib'
