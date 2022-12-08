@@ -228,8 +228,10 @@ orbs:
                 - *step_appraisal_update # Run on latest version of all gems we integrate with
           - when:
               condition:
-                not:
-                  equal: [ << parameters.edge >>, true ]
+                and:
+                  - not: << parameters.bundle_with >>
+                  - not:
+                      equal: [ << parameters.edge >>, true ]
               steps:
                 - *step_appraisal_install # Run on a stable set of gems we integrate with
           - *save_bundle_checksum
