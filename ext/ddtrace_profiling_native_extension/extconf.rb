@@ -67,6 +67,10 @@ $stderr.puts(
 # that may fail on an environment not properly setup for building Ruby extensions.
 require 'mkmf'
 
+Logging.message(" [ddtrace] Using compiler:\n")
+xsystem("#{CONFIG['CC']} -v")
+Logging.message(" [ddtrace] End of compiler information\n")
+
 # mkmf on modern Rubies actually has an append_cflags that does something similar
 # (see https://github.com/ruby/ruby/pull/5760), but as usual we need a bit more boilerplate to deal with legacy Rubies
 def add_compiler_flag(flag)
@@ -190,10 +194,6 @@ $LDFLAGS += \
   ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/' \
   "#{Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder}"
 Logging.message(" [ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
-
-Logging.message(" [ddtrace] Using compiler:\n")
-xsystem("#{CONFIG['CC']} --version")
-Logging.message(" [ddtrace] End of compiler information\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
