@@ -33,7 +33,8 @@ RSpec.describe Datadog::Tracing::TraceDigest do
           trace_service: nil,
           trace_distributed_id: nil,
           trace_flags: nil,
-          trace_state: nil
+          trace_state: nil,
+          trace_state_unknown_fields: nil
         )
       end
 
@@ -162,9 +163,16 @@ RSpec.describe Datadog::Tracing::TraceDigest do
 
       context ':trace_state' do
         let(:options) { { trace_state: trace_state } }
-        let(:trace_state) { 'dd=o:origin,vendor=value' }
+        let(:trace_state) { 'vendor1=value,v2=v' }
 
-        it { is_expected.to have_attributes(trace_state: be_a_frozen_copy_of('dd=o:origin,vendor=value')) }
+        it { is_expected.to have_attributes(trace_state: be_a_frozen_copy_of('vendor=value,v2=v')) }
+      end
+
+      context 'trace_state_unknown_fields' do
+        let(:options) { { trace_state_unknown_fields: trace_state_unknown_fields } }
+        let(:trace_state_unknown_fields) { 'unknown1:field1;unknown2:field2;' }
+
+        it { is_expected.to have_attributes(trace_state_unknown_fields: be_a_frozen_copy_of(trace_state_unknown_fields)) }
       end
     end
   end

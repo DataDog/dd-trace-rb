@@ -242,7 +242,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
             let(:upstream_tracestate) { 'dd=old_value,other=vendor,dd=oops_forgot_to_remove_this' }
 
             it 'removes existing `dd=` values, prepending new `dd=` value' do
-              expect(tracestate).to eq('dd=o:origin,other=vendor')
+              expect(tracestate).to eq('dd=o:origin;future=field,other=vendor')
             end
           end
 
@@ -251,6 +251,14 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
             it 'removes 1 trailing value, prepending new `dd=` value' do
               expect(tracestate).to eq('dd=o:origin,' + Array.new(31) { |i| "other=vendor#{i}" }.join(','))
+            end
+          end
+
+          context 'and unknown `dd=` tracestate values' do
+            let(:options) { super().merge(trace_origin: 'origin', trace_state_unknown_fields: 'future=field;') }
+
+            it 'joins known and unknown `dd=` fields' do
+              expect(tracestate).to eq('dd=o:origin;future=field,other=vendor')
             end
           end
         end
@@ -383,12 +391,22 @@ RSpec.shared_examples 'Trace Context distributed format' do
       end
 
       context 'with unknown tracestate fields' do
-        let(:tracestate) { "dd=i_don't_know_this:field;o:origin;s:0" }
+        let(:tracestate) { "dd=i_don't_know_this:field;o:origin" }
+
+        it { expect(digest.trace_state_unknown_fields).to eq("i_don't_know_this:field;") }
 
         it { expect(digest.trace_id).to eq(0xC0FFEE) }
         it { expect(digest.span_id).to eq(0xBEE) }
         it { expect(digest.trace_origin).to eq('origin') }
-        it { expect(digest.trace_sampling_priority).to eq(0) }
+      end
+
+      context 'with multiple tracestate vendors' do
+        let(:tracestate) { 'dd=o:origin,v1=1,v2=2' }
+
+        it { expect(digest.trace_id).to eq(0xC0FFEE) }
+        it { expect(digest.span_id).to eq(0xBEE) }
+        it { expect(digest.trace_state).to eq('v1=1,v2=2') }
+        it { expect(digest.trace_origin).to eq('origin') }
       end
 
       context 'trailing whitespace' do
