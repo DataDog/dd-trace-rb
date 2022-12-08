@@ -1062,8 +1062,20 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
         end
 
-        context 'on Ruby 2.x' do
-          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3.0' }
+        it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to false' do
+          expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+            gc_profiling_enabled: false,
+          )
+
+          build_profiler
+        end
+
+        context 'when force_enable_gc_profiling is enabled' do
+          before do
+            settings.profiling.advanced.force_enable_gc_profiling = true
+
+            allow(Datadog.logger).to receive(:debug)
+          end
 
           it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to true' do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
@@ -1072,33 +1084,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
             build_profiler
           end
-        end
 
-        context 'on Ruby 3.x' do
-          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3.0' }
-
-          it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to false' do
-            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-              gc_profiling_enabled: false,
-            )
-
-            build_profiler
-          end
-
-          context 'when force_enable_gc_profiling is enabled' do
-            before do
-              settings.profiling.advanced.force_enable_gc_profiling = true
-
-              allow(Datadog.logger).to receive(:debug)
-            end
-
-            it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to true' do
-              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-                gc_profiling_enabled: true,
-              )
-
-              build_profiler
-            end
+          context 'on Ruby 3.x' do
+            before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3.0' }
 
             it 'logs a debug message' do
               expect(Datadog.logger).to receive(:debug).with(/Garbage Collection force enabled/)

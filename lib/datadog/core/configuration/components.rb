@@ -333,14 +333,14 @@ module Datadog
           end
 
           def should_enable_gc_profiling?(settings)
-            return true if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3')
-
             # See comments on the setting definition for more context on why it exists.
             if settings.profiling.advanced.force_enable_gc_profiling
-              Datadog.logger.debug(
-                'Profiling time/resources spent in Garbage Collection force enabled. Do not use Ractors in combination ' \
-                'with this option as profiles will be incomplete.'
-              )
+              if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3')
+                Datadog.logger.debug(
+                  'Profiling time/resources spent in Garbage Collection force enabled. Do not use Ractors in combination ' \
+                  'with this option as profiles will be incomplete.'
+                )
+              end
 
               true
             else
