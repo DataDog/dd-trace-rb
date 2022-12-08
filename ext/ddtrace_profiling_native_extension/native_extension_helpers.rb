@@ -179,6 +179,14 @@ module Datadog
           suggested: CONTACT_SUPPORT,
         )
 
+        # Validation for this check is done in extconf.rb because it relies on mkmf
+        COMPILER_ATOMIC_MISSING = explain_issue(
+          'your C compiler is missing support for the <stdatomic.h> header.',
+          'This issue can usually be fixed by upgrading to a later version of your',
+          'operating system image or compiler.',
+          suggested: CONTACT_SUPPORT,
+        )
+
         private_class_method def self.disabled_via_env?
           disabled_via_env = explain_issue(
             'the `DD_PROFILING_NO_EXTENSION` environment variable is/was set to',

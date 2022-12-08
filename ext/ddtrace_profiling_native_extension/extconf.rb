@@ -187,6 +187,10 @@ unless pkg_config('datadog_profiling_with_rpath')
   )
 end
 
+unless have_type("atomic_int", ['stdatomic.h'])
+  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILER_ATOMIC_MISSING)
+end
+
 # See comments on the helper method being used for why we need to additionally set this.
 # The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
 # experimentation. We need to get these special characters across a lot of tools untouched...
