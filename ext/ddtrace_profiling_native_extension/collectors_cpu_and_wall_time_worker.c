@@ -3,6 +3,7 @@
 #include <ruby/thread_native.h>
 #include <ruby/debug.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 #include <signal.h>
 
 #include "helpers.h"
@@ -73,10 +74,7 @@
 
 // Contains state for a single CpuAndWallTimeWorker instance
 struct cpu_and_wall_time_worker_state {
-  // Important: This is not atomic nor is it guaranteed to replace memory barriers and the like. Aka this works for
-  // telling the sampling trigger loop to stop, but if we ever need to communicate more, we should move to actual
-  // atomic operations. stdatomic.h seems a nice thing to reach out for.
-  volatile bool should_run;
+  atomic_bool should_run;
 
   bool gc_profiling_enabled;
   VALUE self_instance;
@@ -206,7 +204,7 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
 static VALUE _native_new(VALUE klass) {
   struct cpu_and_wall_time_worker_state *state = ruby_xcalloc(1, sizeof(struct cpu_and_wall_time_worker_state));
 
-  state->should_run = false;
+  atomic_init(&state->should_run, false);
   state->gc_profiling_enabled = false;
   state->cpu_and_wall_time_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
@@ -284,7 +282,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   active_sampler_instance = instance;
   state->owner_thread = rb_thread_current();
 
-  state->should_run = true;
+  atomic_store(&state->should_run, true);
 
   block_sigprof_signal_handler_from_running_in_current_thread(); // We want to interrupt the thread with the global VM lock, never this one
 
@@ -343,7 +341,7 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  state->should_run = false;
+  atomic_store(&state->should_run, false);
   state->failure_exception = optional_exception;
 
   // Disable the GC tracepoint as soon as possible, so the VM doesn't keep on calling it
@@ -391,7 +389,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
 
   struct timespec time_between_signals = {.tv_nsec = 10 * 1000 * 1000 /* 10ms */};
 
-  while (state->should_run) {
+  while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
 
     // TODO: This is still a placeholder for a more complex mechanism. In particular:
@@ -425,7 +423,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
 static void interrupt_sampling_trigger_loop(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
-  state->should_run = false;
+  atomic_store(&state->should_run, false);
 }
 
 static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
