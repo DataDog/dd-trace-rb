@@ -80,7 +80,7 @@ module SidekiqServerExpectations
     app_tempfile.unlink
   end
 
-  def run_sidekiq_server
+  def after_stopping_sidekiq_server
     app_tempfile = Tempfile.new(['sidekiq-server-app', '.rb'])
 
     require 'sidekiq/cli'
@@ -89,9 +89,13 @@ module SidekiqServerExpectations
 
     cli = Sidekiq::CLI.instance
     cli.parse(['--require', app_tempfile.path]) # boot the "app"
-    launcher = Sidekiq::Launcher.new(cli.send(:options))
+
+    # `timeout` is the deadline that waits up for all jobs to complete.
+    # Default is 25, the reason for `stop` command to take so long.
+    launcher = Sidekiq::Launcher.new(cli.send(:options).merge(timeout: 1))
     launcher.stop
-    exit
+
+    yield
   ensure
     app_tempfile.close
     app_tempfile.unlink
