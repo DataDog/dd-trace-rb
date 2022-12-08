@@ -15,7 +15,7 @@ RSpec.describe 'Server internal tracer heartbeat' do
   end
 
   it 'traces the looping heartbeat' do
-    expect_in_sidekiq_server(wait_until: -> { fetch_spans.any? { |s| s.name == 'sidekiq.job_fetch' } }) do
+    expect_in_sidekiq_server(wait_until: -> { fetch_spans.any? { |s| s.name == 'sidekiq.heartbeat' } }) do
       span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.heartbeat' }
 
       expect(span.service).to eq(tracer.default_service)
