@@ -187,7 +187,7 @@ unless pkg_config('datadog_profiling_with_rpath')
   )
 end
 
-unless have_type("atomic_int", ['stdatomic.h'])
+unless have_type('atomic_int', ['stdatomic.h'])
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILER_ATOMIC_MISSING)
 end
 
