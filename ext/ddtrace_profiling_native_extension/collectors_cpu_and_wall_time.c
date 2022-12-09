@@ -330,7 +330,7 @@ static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_
 // Assumption 3: This function IS NOT called from a signal handler. This function is not async-signal-safe.
 // Assumption 4: This function IS NOT called in a reentrant way.
 // Assumption 5: This function is called from the main Ractor (if Ruby has support for Ractors).
-VALUE cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns) {
+void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
@@ -376,10 +376,6 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monot
   // TODO: This seems somewhat overkill and inefficient to do often; right now we just do it every few samples
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
-
-  long sampling_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE) - current_monotonic_wall_time_ns;
-
-  return LONG2NUM(sampling_time_ns);
 }
 
 // This function gets called when Ruby is about to start running the Garbage Collector on the current thread.

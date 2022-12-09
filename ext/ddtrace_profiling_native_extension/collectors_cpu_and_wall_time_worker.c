@@ -456,15 +456,17 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
+  long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+
   state->stats.sampled++;
 
-  // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
-  VALUE sampling_time_ns_or_failure =
-    cpu_and_wall_time_collector_sample(state->cpu_and_wall_time_collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
+  cpu_and_wall_time_collector_sample(state->cpu_and_wall_time_collector_instance, wall_time_ns_before_sample);
 
-  long sampling_time_ns_or_failure_as_long = NUM2LONG(sampling_time_ns_or_failure);
+  long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
+
   // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
-  uint64_t sampling_time_ns = sampling_time_ns_or_failure_as_long < 0 ? 0 : sampling_time_ns_or_failure_as_long;
+  uint64_t sampling_time_ns = delta_ns < 0 ? 0 : delta_ns;
 
   state->stats.sampling_time_ns_min = sampling_time_ns < state->stats.sampling_time_ns_min ? sampling_time_ns : state->stats.sampling_time_ns_min;
   state->stats.sampling_time_ns_max = sampling_time_ns > state->stats.sampling_time_ns_max ? sampling_time_ns : state->stats.sampling_time_ns_max;
