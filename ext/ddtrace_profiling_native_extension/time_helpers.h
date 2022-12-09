@@ -1,7 +1,7 @@
 #pragma once
 
-#define SECONDS_AS_NS(value) (value * 1000 * 1000 * 1000)
-#define MILLIS_AS_NS(value) (value * 1000 * 1000)
+#define SECONDS_AS_NS(value) (value * 1000 * 1000 * 1000L)
+#define MILLIS_AS_NS(value) (value * 1000 * 1000L)
 
 #define RAISE_ON_FAILURE true
 #define DO_NOT_RAISE_ON_FAILURE false
