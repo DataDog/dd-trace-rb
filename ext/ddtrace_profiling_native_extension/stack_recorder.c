@@ -444,7 +444,8 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
   }
 }
 
-// Note that this is using CLOCK_REALTIME (e.g. actual time since unix epoch) and not the CLOCK_MONOTONIC as we use in other parts of the codebase
+// Note that this is using CLOCK_REALTIME (e.g. actual time since unix epoch) and not the CLOCK_MONOTONIC as we use in
+// monotonic_wall_time_now_ns (used in other parts of the codebase)
 static ddog_Timespec time_now(void) {
   struct timespec current_time;
 
