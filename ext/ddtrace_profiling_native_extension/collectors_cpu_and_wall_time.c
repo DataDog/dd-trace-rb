@@ -375,12 +375,13 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
 
   state->sample_count++;
 
-  // TODO: This seems somewhat overkill and inefficient to do often; right now we just doing every few samples
+  // TODO: This seems somewhat overkill and inefficient to do often; right now we just do it every few samples
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
 
-  // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
-  return Qnil;
+  long sampling_time_ns = wall_time_now_ns(RAISE_ON_FAILURE) - current_wall_time_ns;
+
+  return LONG2NUM(sampling_time_ns);
 }
 
 // This function gets called when Ruby is about to start running the Garbage Collector on the current thread.
