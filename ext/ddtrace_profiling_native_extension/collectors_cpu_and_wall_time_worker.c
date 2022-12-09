@@ -734,7 +734,7 @@ static void reset_stats(struct cpu_and_wall_time_worker_state *state) {
 static void sleep_for(uint64_t time_ns) {
   // As a simplification, we currently only support setting .tv_nsec
   if (time_ns >= SECONDS_AS_NS(1)) {
-    grab_gvl_and_raise(rb_eArgError, "sleep_for can only sleep for less than 1 second, time_ns: %llu", time_ns);
+    grab_gvl_and_raise(rb_eArgError, "sleep_for can only sleep for less than 1 second, time_ns: %"PRIu64, time_ns);
   }
 
   struct timespec time_to_sleep = {.tv_nsec = time_ns};
