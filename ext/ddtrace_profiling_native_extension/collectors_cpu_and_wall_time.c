@@ -1,11 +1,12 @@
 #include <ruby.h>
-#include "helpers.h"
+
 #include "clock_id.h"
+#include "collectors_cpu_and_wall_time.h"
 #include "collectors_stack.h"
+#include "helpers.h"
 #include "libdatadog_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
-#include "collectors_cpu_and_wall_time.h"
 
 // Used to periodically sample threads, recording elapsed CPU-time and Wall-time between samples.
 //
