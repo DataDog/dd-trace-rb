@@ -128,6 +128,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
 static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused);
+static VALUE rescued_sample_from_postponed_job(VALUE self_instance);
 static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception);
 static VALUE _native_current_sigprof_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance);
@@ -446,14 +447,19 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
+  // Rescue against any exceptions that happen during sampling
+  safely_call(rescued_sample_from_postponed_job, state->self_instance, state->self_instance);
+}
+
+static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
   state->stats.sampled++;
 
   // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
   VALUE sampling_time_ns_or_failure =
-    safely_call(cpu_and_wall_time_collector_sample, state->cpu_and_wall_time_collector_instance, state->self_instance);
-
-  // This happens when where was an exception during the call above; we already report the exception separately
-  if (sampling_time_ns_or_failure == Qnil) return;
+    cpu_and_wall_time_collector_sample(state->cpu_and_wall_time_collector_instance);
 
   long sampling_time_ns_or_failure_as_long = NUM2LONG(sampling_time_ns_or_failure);
   // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
@@ -462,6 +468,9 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   state->stats.sampling_time_ns_min = sampling_time_ns < state->stats.sampling_time_ns_min ? sampling_time_ns : state->stats.sampling_time_ns_min;
   state->stats.sampling_time_ns_max = sampling_time_ns > state->stats.sampling_time_ns_max ? sampling_time_ns : state->stats.sampling_time_ns_max;
   state->stats.sampling_time_ns_total += sampling_time_ns;
+
+  // Return a dummy VALUE because we're called from rb_rescue2 which requires it
+  return Qnil;
 }
 
 static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
