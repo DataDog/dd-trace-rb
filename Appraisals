@@ -1694,3 +1694,5 @@ ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
 appraisals.each do |appraisal|
   appraisal.name.prepend("#{ruby_runtime}-")
 end
+
+# vim: ft=ruby
