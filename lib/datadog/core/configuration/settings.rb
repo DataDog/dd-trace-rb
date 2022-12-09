@@ -273,7 +273,9 @@ module Datadog
             # If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
             # feature is fully safe to enable and this toggle can be used to do so.
             #
-            # We expect that once the above issue is patched, we'll automatically re-enable the feature on fixed Ruby
+            # Furthermore, currently this feature can add a lot of overhead for GC-heavy workloads.
+            #
+            # We expect the once the above issues are overcome, we'll automatically enable the feature on fixed Ruby
             # versions.
             option :force_enable_gc_profiling do |o|
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
