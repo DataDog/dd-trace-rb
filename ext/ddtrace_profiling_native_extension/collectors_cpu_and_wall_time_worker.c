@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "helpers.h"
 #include "ruby_helpers.h"
@@ -147,6 +148,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused);
 static void grab_gvl_and_sample(void);
 static void reset_stats(struct cpu_and_wall_time_worker_state *state);
+static void sleep_for(uint64_t time_ns);
 
 // Note on sampler global state safety:
 //
@@ -393,7 +395,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
-  struct timespec time_between_signals = {.tv_nsec = 10 * 1000 * 1000 /* 10ms */};
+  uint64_t minimum_time_between_signals = 10 * 1000 * 1000 /* 10ms */;
 
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
@@ -419,7 +421,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
     }
 
-    nanosleep(&time_between_signals, NULL);
+    sleep_for(minimum_time_between_signals);
   }
 
   return NULL; // Unused
@@ -715,4 +717,22 @@ static void grab_gvl_and_sample(void) { rb_thread_call_with_gvl(simulate_samplin
 static void reset_stats(struct cpu_and_wall_time_worker_state *state) {
   state->stats = (struct stats) {}; // Resets all stats back to zero
   state->stats.sampling_time_ns_min = UINT64_MAX; // Since we always take the min between existing and latest sample
+}
+
+static void sleep_for(uint64_t time_ns) {
+  // As a simplification, we currently only support setting .tv_nsec
+  if (time_ns >= 1 * 1000 * 1000 * 1000) {
+    grab_gvl_and_raise(rb_eArgError, "sleep_for can only sleep for less than 1 second, time_ns: %llu", time_ns);
+  }
+
+  struct timespec time_to_sleep = {.tv_nsec = time_ns};
+
+  while (nanosleep(&time_to_sleep, &time_to_sleep) != 0) {
+    if (errno == EINTR) {
+      // We were interrupted. nanosleep updates "time_to_sleep" to contain only the remaining time, so we just let the
+      // loop keep going.
+    } else {
+      ENFORCE_SUCCESS_NO_GVL(errno);
+    }
+  }
 }
