@@ -7,11 +7,12 @@
 #include <pthread.h>
 #include <time.h>
 #include <errno.h>
-
 #include <ruby.h>
+
 #include "helpers.h"
 #include "private_vm_api_access.h"
 #include "clock_id.h"
+#include "time_helpers.h"
 
 // Validate that our home-cooked pthread_id_for() matches pthread_self() for the current thread
 void self_test_clock_id(void) {
@@ -68,7 +69,7 @@ thread_cpu_time thread_cpu_time_for(thread_cpu_time_id time_id) {
   // TODO: Include the error code in some way in the output?
   if (clock_gettime(time_id.clock_id, &current_cpu) != 0) return error;
 
-  return (thread_cpu_time) {.valid = true, .result_ns = current_cpu.tv_nsec + (current_cpu.tv_sec * 1000 * 1000 * 1000)};
+  return (thread_cpu_time) {.valid = true, .result_ns = current_cpu.tv_nsec + SECONDS_AS_NS(current_cpu.tv_sec)};
 }
 
 #endif

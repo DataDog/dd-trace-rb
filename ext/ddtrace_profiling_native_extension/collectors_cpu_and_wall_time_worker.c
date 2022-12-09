@@ -397,7 +397,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
-  uint64_t minimum_time_between_signals = 10 * 1000 * 1000 /* 10ms */;
+  uint64_t minimum_time_between_signals = MILLIS_AS_NS(10);
 
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
@@ -733,7 +733,7 @@ static void reset_stats(struct cpu_and_wall_time_worker_state *state) {
 
 static void sleep_for(uint64_t time_ns) {
   // As a simplification, we currently only support setting .tv_nsec
-  if (time_ns >= 1 * 1000 * 1000 * 1000) {
+  if (time_ns >= SECONDS_AS_NS(1)) {
     grab_gvl_and_raise(rb_eArgError, "sleep_for can only sleep for less than 1 second, time_ns: %llu", time_ns);
   }
 

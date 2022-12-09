@@ -13,5 +13,5 @@ long monotonic_wall_time_now_ns(bool raise_on_failure) {
     return 0;
   }
 
-  return current_monotonic.tv_nsec + (current_monotonic.tv_sec * 1000 * 1000 * 1000);
+  return current_monotonic.tv_nsec + SECONDS_AS_NS(current_monotonic.tv_sec);
 }
