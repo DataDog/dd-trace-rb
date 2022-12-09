@@ -298,7 +298,7 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_inst
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
-  cpu_and_wall_time_collector_sample(collector_instance);
+  cpu_and_wall_time_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
   return Qtrue;
 }
 
@@ -330,12 +330,11 @@ static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_
 // Assumption 3: This function IS NOT called from a signal handler. This function is not async-signal-safe.
 // Assumption 4: This function IS NOT called in a reentrant way.
 // Assumption 5: This function is called from the main Ractor (if Ruby has support for Ractors).
-VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
+VALUE cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   VALUE threads = ddtrace_thread_list();
-  long current_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
@@ -352,7 +351,7 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
     );
     long wall_time_elapsed_ns = update_time_since_previous_sample(
       &thread_context->wall_time_at_previous_sample_ns,
-      current_wall_time_ns,
+      current_monotonic_wall_time_ns,
       thread_context->gc_tracking.wall_time_at_start_ns,
       IS_WALL_TIME
     );
@@ -378,7 +377,7 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
 
-  long sampling_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE) - current_wall_time_ns;
+  long sampling_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE) - current_monotonic_wall_time_ns;
 
   return LONG2NUM(sampling_time_ns);
 }
