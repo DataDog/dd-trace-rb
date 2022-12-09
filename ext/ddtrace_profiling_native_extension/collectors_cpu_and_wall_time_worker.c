@@ -468,8 +468,8 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
   uint64_t sampling_time_ns = delta_ns < 0 ? 0 : delta_ns;
 
-  state->stats.sampling_time_ns_min = sampling_time_ns < state->stats.sampling_time_ns_min ? sampling_time_ns : state->stats.sampling_time_ns_min;
-  state->stats.sampling_time_ns_max = sampling_time_ns > state->stats.sampling_time_ns_max ? sampling_time_ns : state->stats.sampling_time_ns_max;
+  state->stats.sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.sampling_time_ns_min);
+  state->stats.sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.sampling_time_ns_max);
   state->stats.sampling_time_ns_total += sampling_time_ns;
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
