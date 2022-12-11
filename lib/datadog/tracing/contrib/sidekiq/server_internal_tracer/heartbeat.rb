@@ -27,7 +27,7 @@ module Datadog
 
             private
 
-            def heartbeat
+            def beat
               configuration = Datadog.configuration.tracing[:sidekiq]
 
               Datadog::Tracing.trace(Ext::SPAN_HEARTBEAT, service: configuration[:service_name]) do |span|
@@ -44,6 +44,10 @@ module Datadog
                 super
               end
             end
+
+            # Provides an alias for the pre-v7.0.1 heartbeat method, which does the same thing as
+            # the current Sidekiq::Launcher#beat method.
+            alias heartbeat beat
           end
         end
       end
