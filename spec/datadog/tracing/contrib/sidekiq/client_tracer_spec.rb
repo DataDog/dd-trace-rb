@@ -60,27 +60,25 @@ RSpec.describe 'ClientTracerTest' do
     end
   end
 
-  if Sidekiq::VERSION > '5.0.0' && Sidekiq::VERSION < '7.0.0'
-    context 'with delayed extensions' do
-      subject(:do_work) { DelayableClass.delay.do_work }
+  context 'with delayed extensions', skip: Sidekiq::VERSION > '5.0.0' && Sidekiq::VERSION < '7.0.0' do
+    subject(:do_work) { DelayableClass.delay.do_work }
 
-      before do
-        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1.0')
-          pending 'Broken in Ruby 3.1.0-preview1, see https://github.com/mperham/sidekiq/issues/5064'
+    before do
+      if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1.0')
+        pending 'Broken in Ruby 3.1.0-preview1, see https://github.com/mperham/sidekiq/issues/5064'
+      end
+
+      stub_const(
+        'DelayableClass',
+        Class.new do
+          def self.do_work; end
         end
+      )
+    end
 
-        stub_const(
-          'DelayableClass',
-          Class.new do
-            def self.do_work; end
-          end
-        )
-      end
-
-      it 'traces with correct resource' do
-        do_work
-        expect(spans.first.resource).to eq('DelayableClass.do_work')
-      end
+    it 'traces with correct resource' do
+      do_work
+      expect(spans.first.resource).to eq('DelayableClass.do_work')
     end
   end
 end

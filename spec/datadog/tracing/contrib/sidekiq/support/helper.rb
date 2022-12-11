@@ -97,6 +97,8 @@ module SidekiqServerExpectations
 
       # Change options and constants for Sidekiq to stop faster:
       # Reduce number of threads and shutdown timeout.
+
+      binding.pry
       options = cli.send(:options).merge(concurrency: 1, timeout: 0)
 
       # `Sidekiq::Launcher#stop` sleeps before actually starting to shutting down Sidekiq.

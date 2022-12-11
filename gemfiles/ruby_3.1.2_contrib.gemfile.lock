@@ -1526,6 +1526,8 @@ GEM
       rake (> 12)
     redcarpet (3.5.1)
     redis (4.8.0)
+    redis-client (0.11.2)
+      connection_pool
     redis-namespace (1.8.2)
       redis (>= 3.0.4)
     regexp_parser (2.2.1)
@@ -1712,7 +1714,7 @@ DEPENDENCIES
   semantic_logger (~> 4.0)
   sequel (~> 5.54.0)
   shoryuken
-  sidekiq (~> 6)
+  sidekiq (~> 7)
   simplecov!
   sneakers (>= 2.12.0)
   sqlite3 (>= 1.4.2)

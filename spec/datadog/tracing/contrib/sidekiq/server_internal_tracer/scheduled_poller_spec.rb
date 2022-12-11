@@ -4,8 +4,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require_relative '../support/helper'
 
 RSpec.describe 'Server internal tracer' do
-  include SidekiqServerExpectations
-
   before do
     unless Datadog::Tracing::Contrib::Sidekiq::Integration.compatible_with_server_internal_tracing?
       skip 'Sidekiq internal server tracing is not supported on this version.'
@@ -15,12 +13,12 @@ RSpec.describe 'Server internal tracer' do
   end
 
   around do |example|
-    original_poll_interval_average = Sidekiq.options[:poll_interval_average]
-    Sidekiq.options[:poll_interval_average] = 0
+    original_poll_interval_average = Sidekiq.default_configuration[:poll_interval_average]
+    Sidekiq.default_configuration[:poll_interval_average] = 0
 
     example.run
 
-    Sidekiq.options[:poll_interval_average] = original_poll_interval_average
+    Sidekiq.default_configuration[:poll_interval_average] = original_poll_interval_average
   end
 
   it 'traces the looping scheduled push' do
