@@ -12,6 +12,7 @@
 // Each class/module here is implemented in their separate file
 void collectors_cpu_and_wall_time_init(VALUE profiling_module);
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module);
+void collectors_dynamic_sampling_rate_init(VALUE profiling_module);
 void collectors_idle_sampling_helper_init(VALUE profiling_module);
 void collectors_stack_init(VALUE profiling_module);
 void http_transport_init(VALUE profiling_module);
@@ -44,6 +45,7 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
 
   collectors_cpu_and_wall_time_init(profiling_module);
   collectors_cpu_and_wall_time_worker_init(profiling_module);
+  collectors_dynamic_sampling_rate_init(profiling_module);
   collectors_idle_sampling_helper_init(profiling_module);
   collectors_stack_init(profiling_module);
   http_transport_init(profiling_module);

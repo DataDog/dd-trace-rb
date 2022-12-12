@@ -6,7 +6,7 @@ module Datadog
       # Used by the Collectors::CpuAndWallTimeWorker to gather samples when the Ruby process is idle.
       # Almost all of this class is implemented as native code.
       #
-      # Methods prefixed with _native_ are implemented in `collecetors_idle_sampling_helper.c`
+      # Methods prefixed with _native_ are implemented in `collectors_idle_sampling_helper.c`
       class IdleSamplingHelper
         private
 
