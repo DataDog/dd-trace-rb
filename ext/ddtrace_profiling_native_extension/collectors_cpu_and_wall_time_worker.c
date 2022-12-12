@@ -10,6 +10,7 @@
 #include "helpers.h"
 #include "ruby_helpers.h"
 #include "collectors_cpu_and_wall_time.h"
+#include "collectors_dynamic_sampling_rate.h"
 #include "collectors_idle_sampling_helper.h"
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
@@ -83,6 +84,7 @@ struct cpu_and_wall_time_worker_state {
   VALUE cpu_and_wall_time_collector_instance;
   VALUE idle_sampling_helper_instance;
   VALUE owner_thread;
+  dynamic_sampling_rate_state dynamic_sampling_rate;
 
   // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
   // the CpuAndWallTimeWorker thread
@@ -218,6 +220,7 @@ static VALUE _native_new(VALUE klass) {
   state->cpu_and_wall_time_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
+  dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
   state->failure_exception = Qnil;
   state->stop_thread = Qnil;
   state->gc_tracepoint = Qnil;
@@ -286,6 +289,9 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // We use `stop_thread` to distinguish when `_native_stop` was called before we actually had a chance to start. In this
   // situation we stop immediately and never even start the sampling trigger loop.
   if (state->stop_thread == rb_thread_current()) return Qnil;
+
+  // Reset the dynamic sampling rate state, if any (reminder: the monotonic clock reference may change after a fork)
+  dynamic_sampling_rate_reset(&state->dynamic_sampling_rate);
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance_state = state;
@@ -424,6 +430,14 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
     }
 
     sleep_for(minimum_time_between_signals);
+
+    // The dynamic sampling rate module keeps track of how long samples are taking, and in here we extend our sleep time
+    // to take that into account.
+    // Note that we deliberately should NOT combine this sleep_for with the one above because the result of
+    // `dynamic_sampling_rate_get_sleep` may have changed while the above sleep was ongoing.
+    uint64_t extra_sleep =
+      dynamic_sampling_rate_get_sleep(&state->dynamic_sampling_rate, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE));
+    if (extra_sleep > 0) sleep_for(extra_sleep);
   }
 
   return NULL; // Unused
@@ -458,6 +472,11 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
 
   long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
 
+  if (!dynamic_sampling_rate_should_sample(&state->dynamic_sampling_rate, wall_time_ns_before_sample)) {
+    // TODO: Add a counter for this
+    return Qnil;
+  }
+
   state->stats.sampled++;
 
   cpu_and_wall_time_collector_sample(state->cpu_and_wall_time_collector_instance, wall_time_ns_before_sample);
@@ -471,6 +490,8 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   state->stats.sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.sampling_time_ns_min);
   state->stats.sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.sampling_time_ns_max);
   state->stats.sampling_time_ns_total += sampling_time_ns;
+
+  dynamic_sampling_rate_after_sample(&state->dynamic_sampling_rate, wall_time_ns_after_sample, sampling_time_ns);
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;
