@@ -395,8 +395,10 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 
   state->stats.signal_handler_enqueued_sample++;
 
-  // TODO: Do something with result (potentially update tracking counters?)
+  // Note: If we ever want to get rid of rb_postponed_job_register_one, remember not to clobber Ruby exceptions, as
+  // this function does this helpful job for us now -- https://github.com/ruby/ruby/commit/a98e343d39c4d7bf1e2190b076720f32d9f298b3.
   /*int result =*/ rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
+  // TODO: Do something with result (potentially update tracking counters?)
 }
 
 // The actual sampling trigger loop always runs **without** the global vm lock.
@@ -628,6 +630,9 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
     cpu_and_wall_time_collector_on_gc_finish(state->cpu_and_wall_time_collector_instance);
     // We use rb_postponed_job_register_one to ask Ruby to run cpu_and_wall_time_collector_sample_after_gc after if
     // fully finishes the garbage collection, so that one is allowed to do allocations and throw exceptions as usual.
+    //
+    // Note: If we ever want to get rid of rb_postponed_job_register_one, remember not to clobber Ruby exceptions, as
+    // this function does this helpful job for us now -- https://github.com/ruby/ruby/commit/a98e343d39c4d7bf1e2190b076720f32d9f298b3.
     rb_postponed_job_register_one(0, after_gc_from_postponed_job, NULL);
   }
 }
