@@ -1,5 +1,3 @@
-**We've recently released the 1.x version series. If you're upgrading from a 0.x version, check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10).**
-
 # Datadog Trace Client
 
 [![Gem](https://img.shields.io/gem/v/ddtrace)](https://rubygems.org/gems/ddtrace/)
@@ -11,6 +9,8 @@
 databases and microservices so that developers have great visiblity into bottlenecks and troublesome requests.
 
 ## Getting started
+
+**If you're upgrading from a 0.x version, check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10).**
 
 For a basic product overview, check out our [setup documentation][setup docs].
 

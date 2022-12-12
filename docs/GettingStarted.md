@@ -1,11 +1,11 @@
-**We've recently released the 1.x version series. If you're upgrading from a 0.x version, check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10).**
-
 # Datadog Ruby Trace Client
 
 `ddtrace` is Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
 databases and microservices so that developers have high visibility into bottlenecks and troublesome requests.
 
 ## Getting started
+
+**If you're upgrading from a 0.x version, check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10).**
 
 For the general APM documentation, see our [setup documentation][setup docs].
 
