@@ -1,11 +1,13 @@
 #include <ruby.h>
-#include "helpers.h"
+
 #include "clock_id.h"
+#include "collectors_cpu_and_wall_time.h"
 #include "collectors_stack.h"
+#include "helpers.h"
 #include "libdatadog_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
-#include "collectors_cpu_and_wall_time.h"
+#include "time_helpers.h"
 
 // Used to periodically sample threads, recording elapsed CPU-time and Wall-time between samples.
 //
@@ -60,8 +62,6 @@
 
 #define INVALID_TIME -1
 #define THREAD_ID_LIMIT_CHARS 44 // Why 44? "#{2**64} (#{2**64})".size + 1 for \0
-#define RAISE_ON_FAILURE true
-#define DO_NOT_RAISE_ON_FAILURE false
 #define IS_WALL_TIME true
 #define IS_NOT_WALL_TIME false
 #define MISSING_TRACER_CONTEXT_KEY 0
@@ -163,7 +163,6 @@ static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, 
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
 static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns, bool is_wall_time);
 static long cpu_time_now_ns(struct per_thread_context *thread_context);
-static long wall_time_now_ns(bool raise_on_failure);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
 static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
@@ -299,7 +298,7 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_inst
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
-  cpu_and_wall_time_collector_sample(collector_instance);
+  cpu_and_wall_time_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
   return Qtrue;
 }
 
@@ -331,12 +330,11 @@ static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_
 // Assumption 3: This function IS NOT called from a signal handler. This function is not async-signal-safe.
 // Assumption 4: This function IS NOT called in a reentrant way.
 // Assumption 5: This function is called from the main Ractor (if Ruby has support for Ractors).
-VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
+void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   VALUE threads = ddtrace_thread_list();
-  long current_wall_time_ns = wall_time_now_ns(RAISE_ON_FAILURE);
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
@@ -353,7 +351,7 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
     );
     long wall_time_elapsed_ns = update_time_since_previous_sample(
       &thread_context->wall_time_at_previous_sample_ns,
-      current_wall_time_ns,
+      current_monotonic_wall_time_ns,
       thread_context->gc_tracking.wall_time_at_start_ns,
       IS_WALL_TIME
     );
@@ -378,10 +376,6 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
   // TODO: This seems somewhat overkill and inefficient to do often; right now we just do it every few samples
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
-
-  long sampling_time_ns = wall_time_now_ns(RAISE_ON_FAILURE) - current_wall_time_ns;
-
-  return LONG2NUM(sampling_time_ns);
 }
 
 // This function gets called when Ruby is about to start running the Garbage Collector on the current thread.
@@ -425,7 +419,7 @@ void cpu_and_wall_time_collector_on_gc_start(VALUE self_instance) {
     thread_context->gc_tracking.wall_time_at_finish_ns != INVALID_TIME) return;
 
   // Here we record the wall-time first and in on_gc_finish we record it second to avoid having wall-time be slightly < cpu-time
-  thread_context->gc_tracking.wall_time_at_start_ns = wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  thread_context->gc_tracking.wall_time_at_start_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   thread_context->gc_tracking.cpu_time_at_start_ns = cpu_time_now_ns(thread_context);
 }
 
@@ -461,7 +455,7 @@ void cpu_and_wall_time_collector_on_gc_finish(VALUE self_instance) {
 
   // Here we record the wall-time second and in on_gc_start we record it first to avoid having wall-time be slightly < cpu-time
   thread_context->gc_tracking.cpu_time_at_finish_ns = cpu_time_now_ns(thread_context);
-  thread_context->gc_tracking.wall_time_at_finish_ns = wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  thread_context->gc_tracking.wall_time_at_finish_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
 }
 
 // This function gets called shortly after Ruby has finished running the Garbage Collector.
@@ -790,18 +784,6 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
   }
 
   return elapsed_time_ns;
-}
-
-// Safety: This function is assumed never to raise exceptions by callers when raise_on_failure == false
-static long wall_time_now_ns(bool raise_on_failure) {
-  struct timespec current_monotonic;
-
-  if (clock_gettime(CLOCK_MONOTONIC, &current_monotonic) != 0) {
-    if (raise_on_failure) rb_sys_fail("Failed to read CLOCK_MONOTONIC");
-    else return 0;
-  }
-
-  return current_monotonic.tv_nsec + (current_monotonic.tv_sec * 1000 * 1000 * 1000);
 }
 
 // Safety: This function is assumed never to raise exceptions by callers

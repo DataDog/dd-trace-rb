@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "helpers.h"
 #include "ruby_helpers.h"
@@ -12,6 +13,7 @@
 #include "collectors_idle_sampling_helper.h"
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
+#include "time_helpers.h"
 
 // Used to trigger the periodic execution of Collectors::CpuAndWallTime, which implements all of the sampling logic
 // itself; this class only implements the "doing it periodically" part.
@@ -127,6 +129,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
 static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused);
+static VALUE rescued_sample_from_postponed_job(VALUE self_instance);
 static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception);
 static VALUE _native_current_sigprof_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance);
@@ -147,6 +150,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused);
 static void grab_gvl_and_sample(void);
 static void reset_stats(struct cpu_and_wall_time_worker_state *state);
+static void sleep_for(uint64_t time_ns);
 
 // Note on sampler global state safety:
 //
@@ -393,7 +397,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
-  struct timespec time_between_signals = {.tv_nsec = 10 * 1000 * 1000 /* 10ms */};
+  uint64_t minimum_time_between_signals = MILLIS_AS_NS(10);
 
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
@@ -419,7 +423,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
     }
 
-    nanosleep(&time_between_signals, NULL);
+    sleep_for(minimum_time_between_signals);
   }
 
   return NULL; // Unused
@@ -444,22 +448,32 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
+  // Rescue against any exceptions that happen during sampling
+  safely_call(rescued_sample_from_postponed_job, state->self_instance, state->self_instance);
+}
+
+static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+
   state->stats.sampled++;
 
-  // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
-  VALUE sampling_time_ns_or_failure =
-    safely_call(cpu_and_wall_time_collector_sample, state->cpu_and_wall_time_collector_instance, state->self_instance);
+  cpu_and_wall_time_collector_sample(state->cpu_and_wall_time_collector_instance, wall_time_ns_before_sample);
 
-  // This happens when where was an exception during the call above; we already report the exception separately
-  if (sampling_time_ns_or_failure == Qnil) return;
+  long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
 
-  long sampling_time_ns_or_failure_as_long = NUM2LONG(sampling_time_ns_or_failure);
   // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
-  uint64_t sampling_time_ns = sampling_time_ns_or_failure_as_long < 0 ? 0 : sampling_time_ns_or_failure_as_long;
+  uint64_t sampling_time_ns = delta_ns < 0 ? 0 : delta_ns;
 
-  state->stats.sampling_time_ns_min = sampling_time_ns < state->stats.sampling_time_ns_min ? sampling_time_ns : state->stats.sampling_time_ns_min;
-  state->stats.sampling_time_ns_max = sampling_time_ns > state->stats.sampling_time_ns_max ? sampling_time_ns : state->stats.sampling_time_ns_max;
+  state->stats.sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.sampling_time_ns_min);
+  state->stats.sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.sampling_time_ns_max);
   state->stats.sampling_time_ns_total += sampling_time_ns;
+
+  // Return a dummy VALUE because we're called from rb_rescue2 which requires it
+  return Qnil;
 }
 
 static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
@@ -715,4 +729,22 @@ static void grab_gvl_and_sample(void) { rb_thread_call_with_gvl(simulate_samplin
 static void reset_stats(struct cpu_and_wall_time_worker_state *state) {
   state->stats = (struct stats) {}; // Resets all stats back to zero
   state->stats.sampling_time_ns_min = UINT64_MAX; // Since we always take the min between existing and latest sample
+}
+
+static void sleep_for(uint64_t time_ns) {
+  // As a simplification, we currently only support setting .tv_nsec
+  if (time_ns >= SECONDS_AS_NS(1)) {
+    grab_gvl_and_raise(rb_eArgError, "sleep_for can only sleep for less than 1 second, time_ns: %"PRIu64, time_ns);
+  }
+
+  struct timespec time_to_sleep = {.tv_nsec = time_ns};
+
+  while (nanosleep(&time_to_sleep, &time_to_sleep) != 0) {
+    if (errno == EINTR) {
+      // We were interrupted. nanosleep updates "time_to_sleep" to contain only the remaining time, so we just let the
+      // loop keep going.
+    } else {
+      ENFORCE_SUCCESS_NO_GVL(errno);
+    }
+  }
 }

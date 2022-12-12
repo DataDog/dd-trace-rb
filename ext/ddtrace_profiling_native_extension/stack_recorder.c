@@ -444,11 +444,12 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
   }
 }
 
-// Note that this is using CLOCK_REALTIME (e.g. actual time since unix epoch) and not the CLOCK_MONOTONIC as we use in other parts of the codebase
+// Note that this is using CLOCK_REALTIME (e.g. actual time since unix epoch) and not the CLOCK_MONOTONIC as we use in
+// monotonic_wall_time_now_ns (used in other parts of the codebase)
 static ddog_Timespec time_now(void) {
   struct timespec current_time;
 
-  if (clock_gettime(CLOCK_REALTIME, &current_time) != 0) rb_sys_fail("Failed to read CLOCK_REALTIME");
+  if (clock_gettime(CLOCK_REALTIME, &current_time) != 0) ENFORCE_SUCCESS_GVL(errno);
 
   return (ddog_Timespec) {.seconds = current_time.tv_sec, .nanoseconds = (uint32_t) current_time.tv_nsec};
 }
