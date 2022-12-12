@@ -1043,7 +1043,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           it 'logs a warning message mentioning that profiler has been force-enabled' do
             expect(Datadog.logger).to receive(:warn).with(
-              /New Ruby profiler has been force-enabled. This feature is in alpha state/
+              /New Ruby profiler has been force-enabled. This feature is in beta state/
             )
 
             build_profiler
