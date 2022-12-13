@@ -45,9 +45,18 @@ module Datadog
               Contrib::Analytics.set_measured(span)
 
               ensure
-                response = yield
+                begin
+                  response = yield
+                rescue => e
+                  # The status code is unknown to Roda and decided by the upstream web runner.
+                  # In this case, spans default to status code 500 rather than a blank status code.
+                  default_error_status = '500'
+                  span.resource = "#{request_method} #{default_error_status}"
+                  span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, default_error_status)
+                  raise
+                end
               end
-              
+
               status_code = response[0]
 
               # Adds status code to the resource name once the resource comes back

@@ -1,4 +1,5 @@
 require 'ddtrace'
+require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'rack/test'
 require 'roda'
@@ -48,13 +49,19 @@ RSpec.describe 'Roda instrumentation' do
     end
   end
 
-  shared_context 'Roda app with server error' do
+  shared_context 'Roda app with errors' do
     let(:app) do
       Class.new(Roda) do
         route do |r|
           r.root do
             r.get do
               r.halt([500, { 'content-type' => 'text/html' }, ['test']])
+            end
+          end
+
+          r.is 'accident' do
+            r.get do
+              undefined_variable
             end
           end
         end
@@ -112,14 +119,32 @@ RSpec.describe 'Roda instrumentation' do
           end
         end
 
-        context 'with a 500' do
-          include_context 'Roda app with server error'
+        context 'with a 500 from halt' do
+          include_context 'Roda app with errors'
           subject(:response) { get '/' }
           it do
             expect(response.status).to eq(500)
             expect(response.header.keys).to eq(["content-type"])
+
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
+            expect(span.status).to eq(1)
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq ('500')
+          end
+        end
+
+        context 'with a 500 from user thrown errors' do
+          include_context 'Roda app with errors'
+          subject(:response) { get '/accident' }
+          it do
+            begin
+              expect(response.status).to eq(500)
+            rescue
+              expect(spans).to have(1).items
+              expect(span.name).to eq('roda.request')
+              expect(span.status).to eq(1)
+              expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq ('500')
+            end
           end
         end
       end
