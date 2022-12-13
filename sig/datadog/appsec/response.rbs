@@ -1,26 +1,20 @@
 module Datadog
   module AppSec
-    # AppSec response
     class Response
-      attr_reader status: untyped
+      attr_reader status: ::Integer
+      attr_reader headers: ::Hash[::String, ::String]
+      attr_reader body: ::Array[untyped]
 
-      attr_reader headers: untyped
-
-      attr_reader body: untyped
-
-      def initialize: (status: untyped, ?headers: ::Hash[untyped, untyped], ?body: untyped) -> void
-
+      def initialize: (status: ::Integer, ?headers: ::Hash[::String, ::String], ?body: ::Array[untyped]) -> void
       def to_rack: () -> ::Array[untyped]
+      def to_sinatra_response: () -> ::Sinatra::Response
+      def to_action_dispatch_response: () -> ::ActionDispatch::Response
 
-      def to_sinatra_response: () -> untyped
-
-      def to_action_dispatch_response: () -> untyped
-
-      def self.negotiate: (untyped env) -> untyped
+      def self.negotiate: (::Hash[untyped, untyped] env) -> Response
 
       private
 
-      def self.format: (untyped env) -> untyped
+      def self.format: (::Hash[untyped, untyped] env) -> ::Symbol
     end
   end
 end

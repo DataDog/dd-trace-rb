@@ -126,37 +126,45 @@ module Datadog
         end
 
         def enabled
-          @options[:enabled]
+          # Cast for Steep
+          _ = @options[:enabled]
         end
 
         def ruleset
-          @options[:ruleset]
+          # Cast for Steep
+          _ = @options[:ruleset]
         end
 
         # EXPERIMENTAL: This configurable is not meant to be publicly used, but
         #               is very useful for testing. It may change at any point in time.
         def ip_denylist
-          @options[:ip_denylist]
+          # Cast for Steep
+          _ = @options[:ip_denylist]
         end
 
         def waf_timeout
-          @options[:waf_timeout]
+          # Cast for Steep
+          _ = @options[:waf_timeout]
         end
 
         def waf_debug
-          @options[:waf_debug]
+          # Cast for Steep
+          _ = @options[:waf_debug]
         end
 
         def trace_rate_limit
-          @options[:trace_rate_limit]
+          # Cast for Steep
+          _ = @options[:trace_rate_limit]
         end
 
         def obfuscator_key_regex
-          @options[:obfuscator_key_regex]
+          # Cast for Steep
+          _ = @options[:obfuscator_key_regex]
         end
 
         def obfuscator_value_regex
-          @options[:obfuscator_value_regex]
+          # Cast for Steep
+          _ = @options[:obfuscator_value_regex]
         end
 
         def [](integration_name)

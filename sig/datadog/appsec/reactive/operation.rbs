@@ -2,23 +2,17 @@ module Datadog
   module AppSec
     module Reactive
       class Operation
-        attr_reader reactive: untyped
+        attr_reader reactive: Engine
+        attr_reader parent: Operation?
+        attr_reader name: ::String
 
-        attr_reader parent: untyped
+        def initialize: (::String name, ?Operation? parent, ?Engine? reactive_engine) { (untyped) -> untyped } -> untyped
+        def logger: () -> ::Logger
+        def subscribe: (*::String addresses) { (*untyped values) -> void } -> void
+        def publish: (::String address, untyped data) -> untyped
+        def finalize: () -> void
 
-        attr_reader name: untyped
-
-        def logger: () -> untyped
-
-        def initialize: (untyped name, ?untyped? parent, ?untyped? reactive_engine) { (untyped) -> untyped } -> untyped
-
-        def subscribe: (*untyped addresses) { (untyped) -> untyped } -> untyped
-
-        def publish: (untyped address, untyped data) -> untyped
-
-        def finalize: () -> untyped
-
-        def self.active: () -> untyped
+        def self.active: () -> Operation?
       end
     end
   end

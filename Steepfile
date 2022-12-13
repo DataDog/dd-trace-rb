@@ -10,5 +10,12 @@ target :appsec do
   library "tsort"
   library "json"
 
-  #gem 'libddwaf'
+  # TODO: gem 'libddwaf'
+
+  repo_path "vendor/rbs"
+  library "ffi"
+  library "jruby"
+  library "gem"
+  library "rails"
+  library "sinatra"
 end

@@ -1,12 +1,14 @@
 module Datadog
   module AppSec
     module Reactive
-      class AddressHash < Hash[String, untyped]
-        def []=: (String key, untyped value) -> untyped
+      class AddressHash < ::Hash[::Array[::String], ::Array[Subscriber]]
+        type key = ::Array[::String]
 
-        def addresses: () -> untyped
+        def []=: (key key, Subscriber value) -> Subscriber
 
-        def with: (untyped address) -> untyped
+        def addresses: () -> ::Array[::String]
+
+        def with: (::String address) -> ::Array[key]
       end
     end
   end

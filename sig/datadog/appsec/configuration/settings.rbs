@@ -27,7 +27,7 @@ module Datadog
         @integrations: ::Array[Integration]
 
         def enabled: () -> bool
-        def ruleset: () -> (::Symbol | ::String)
+        def ruleset: () -> (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO)
         def ip_denylist: () -> ::Array[::String]
         def waf_timeout: () -> ::Integer
         def waf_debug: () -> bool

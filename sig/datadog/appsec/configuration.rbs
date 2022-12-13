@@ -4,8 +4,8 @@ module Datadog
       def self.included: (::Module base) -> void
 
       class DSL
-        type option_value = ::Integer | bool | ::Symbol | ::String | ::StringIO | ::Regexp | ::Hash[::Symbol, option_value] | ::Array[option_value]
-        type options = ::Hash[::Symbol, option_value]
+        type option = ::Integer | bool | ::Symbol | ::String | ::StringIO | ::File | ::Regexp | ::Hash[::Symbol | ::String, option] | ::Array[option]
+        type options = ::Hash[::Symbol, option]
 
         class Instrument < ::Struct[untyped]
           def initialize: (::Symbol name, options options) -> void
@@ -25,7 +25,7 @@ module Datadog
         def instruments: () -> ::Array[Instrument]
 
         def enabled=: (bool) -> void
-        def ruleset=: (::Symbol | ::String | ::StringIO) -> void
+        def ruleset=: (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO) -> void
         def ip_denylist=: (::Array[::String]) -> void
         def waf_timeout=: (::Integer) -> void
         def waf_debug=: (bool) -> void
