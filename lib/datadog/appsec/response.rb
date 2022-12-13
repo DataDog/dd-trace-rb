@@ -38,26 +38,21 @@ module Datadog
 
         private
 
+        FORMAT_MAP = {
+          'text/html' => :html,
+          'application/json' => :json,
+          'text/plain' => :text,
+        }.freeze
+
         def format(env)
-          formats = ['text/html', 'application/json']
           accepted = env['HTTP_ACCEPT'].split(',').map { |m| Utils::HTTP::MediaRange.new(m) }.sort
 
-          format = nil
-          accepted.each do |range|
-            # @type break: nil
+          accepted.reduce(:text) do |default, range|
+            format = FORMAT_MAP.keys.find { |type, _format| range === type }
 
-            format = formats.find { |f| range === f }
+            return FORMAT_MAP[format] if format
 
-            break if format
-          end
-
-          case format
-          when 'text/html'
-            :html
-          when 'application/json'
-            :json
-          else
-            :text
+            default
           end
         end
       end
