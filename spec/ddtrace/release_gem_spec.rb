@@ -29,7 +29,9 @@ RSpec.describe 'gem release process' do
           docker-compose.yml
         ]
 
-        directories_excluded = %r{^(sig|spec|docs|\.circleci|\.github|benchmarks|gemfiles|integration|tasks|sorbet|yard)/}
+        directories_excluded = %r{
+          ^(sig|spec|docs|\.circleci|\.github|benchmarks|gemfiles|integration|tasks|sorbet|yard|vendor/rbs)/
+        }x
 
         expect(files)
           .to match_array(
