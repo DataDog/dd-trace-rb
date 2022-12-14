@@ -2,6 +2,106 @@
 
 ## [Unreleased]
 
+## [1.8.0] - 2022-12-14
+
+Happy holidays! This release includes two big items we're pretty excited about and want to call out explicitly:
+
+* CPU Profiling 2.0 is now in beta!
+* `redis` 5 instrumentation upgrade notes
+
+### CPU Profiling 2.0 is now in beta!
+
+As of ddtrace 1.8.0, CPU Profiling 2.0 is now in opt-in (that is, disabled by default) public beta.
+
+You can enable it:
+
+* Using an environment variable by setting `DD_PROFILING_FORCE_ENABLE_NEW=true`
+* Or via code by adding to your `Datadog.configure` block:
+
+```ruby
+Datadog.configure do |c|
+  # … existing configuration …
+
+  c.profiling.advanced.force_enable_new_profiler = true
+end
+```
+
+What to expect from Ruby CPU Profiling 2.0 beta?
+
+* **Finer-grained profiling data due to our sampling engine rewritten in C+Rust**. The profiler will be able to run more often and get more information while keeping the same 2% overhead target you’re used to, and with a lower impact on latency. Especially when looking at the “Code Hotspots” panel for a distributed trace, expect more and finer grained profiles.
+* Thread id information now includes the operating system thread id for Ruby 3.1+, so you’ll be able to correlate your thread information when looking at other system monitoring tools
+* Thread names are now collected and you’ll be able to filter your profiles by these names
+* Experimental support for capturing CPU and Wall-time spent doing Garbage Collection. This is disabled by default as we’re still improving the performance of this feature and fixing a few incompatibilities with Ruby Ractors. You can enable it by adding `DD_PROFILING_FORCE_ENABLE_GC=true` or `c.profiling.advancedforce_enable_gc_profiling = true` to the instructions seen above.
+
+…with more and faster improvements to come in early 2023!
+
+Give it a try, and we’d love to hear your feedback. Do note that while in beta, we don’t recommend using Ruby CPU Profiling 2.0 in production environments. Below, you’ll find a list of known issues that we’re still looking into.
+
+Known issues:
+* Profiling CPU-time overhead is not shown in flamegraphs (unlike with the existing profiler). We will be fixing this soon!
+* Rare incompatibilities with native extensions/libraries.
+
+    Ruby CPU Profiling 2.0 gathers profiling data by sending SIGPROF unix signals to Ruby applications. This is a common approach used by many other profilers, and it may cause system calls performed by native extensions/libraries to be interrupted with an EINTR error code ([reference](https://man7.org/linux/man-pages/man7/signal.7.html#:~:text=Interruption%20of%20system%20calls%20and%20library%20functions%20by%20signal%20handlers)).
+
+    Most native extensions/libraries are unaffected by this issue, but we know of at least one case: when using the `mysql2` gem together with versions of libmysqlclient older than 8.0.0 this can lead to failed database requests ([reference](https://bugs.mysql.com/bug.php?id=83109)). The affected libmysqlclient version is known to be present on Ubuntu 18.04, but not 20.04 and later releases.
+
+    We expect these occurrences to be rare, and will be working to both improve the ecosystem as well as to deploy countermeasures in the profiler itself to avoid triggering these issues.
+* Ruby 2.5 and below are missing an API that allows the profiler to detect the currently-active Ruby thread. We have deployed a workaround, but suspect that it may lead to crashes in extremely rare situations. We are still researching a solution for this issue and do not plan on rolling out CPU Profiling 2.0 automatically to Ruby 2.5 and below applications until it is fixed.
+* The disabled-by-default experimental support for capturing CPU and Wall-time spent doing Garbage Collection is incompatible with Ractors due to Ruby upstream bugs (<https://bugs.ruby-lang.org/issues/18464> and <https://bugs.ruby-lang.org/issues/19112>). We plan to work with the Ruby developers to incorporate fixes for these issues.
+* The disabled-by-default experimental support for capturing CPU and Wall-time spent doing Garbage Collection can cause a lot of overhead in Ruby applications with high object allocation rates. We will be fixing this soon!
+
+### `redis` 5 instrumentation upgrade notes
+
+dd-trace-rb officially supports `redis` 5 instrumentation. When upgrading `redis` gem to 5.x and with configuration per instance, change your code by passing `{custom: datadog: { … }}` tags during redis instantiation.
+
+Before redis 5
+
+```ruby
+customer_cache = Redis.new
+invoice_cache = Redis.new
+
+Datadog.configure_onto(customer_cache, service_name: 'customer-cache')
+Datadog.configure_onto(invoice_cache, service_name: 'invoice-cache')
+
+customer_cache.get(...)
+invoice_cache.get(...)
+```
+
+After upgrading to redis 5.x
+
+```ruby
+customer_cache = Redis.new(custom: { datadog: { service_name: 'custom-cache' } })
+invoice_cache = Redis.new(custom: { datadog: { service_name: 'invoice-cache' } })
+
+customer_cache.get(...)
+invoice_cache.get(...)
+```
+
+### Added
+
+* Core: Profiling: [PROF-6559] Mark Ruby CPU Profiling 2.0 as being in beta ([#2489][])
+* Tracing: Attempt to parse future version of TraceContext ([#2473][])
+* Tracing: Add DD_TRACE_PROPAGATION_STYLE option ([#2466][])
+* Integrations: Tracing: SQL comment propagation full mode with traceparent ([#2464][])
+* Integrations: Tracing: Wire W3C propagator to HTTP & gRPC propagation ([#2458][])
+* Integrations: Tracing: Auto-instrumentation with service_name from environmental variable ([#2455][])
+* Core: Integrations: Tracing: Deprecation notice for B3 propagation configuration ([#2454][])
+* Tracing: Add W3C Trace Context propagator ([#2451][])
+* Integrations: Tracing: Redis 5 Instrumentation ([#2428][])
+
+### Changed
+
+* Tracing: Changes `error.msg` to `error.message` for UNC ([#2469][])
+* Tracing: Semicolons not allowed in 'origin' ([#2461][])
+* Core: Dev/refactor: Tracing: Dev/internal: Move Utils#next_id and constants to Tracing::Utils ([#2463][])
+* Core: Dev/refactor: Tracing: Dev/internal: Move Tracing config settings from Core to Tracing ([#2459][])
+* Core: Dev/refactor: Tracing: Dev/internal: Move Tracing diagnostic code from Core to Tracing ([#2453][])
+
+### Fixed
+
+* Integrations: Tracing: Improve redis integration patching ([#2470][])
+* Tracing: Extra testing from W3C spec ([#2460][])
+
 ## [1.7.0] - 2022-11-29
 
 ### Added
@@ -2218,7 +2318,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.7.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.8.0...master
+[1.8.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.2...v1.6.0
@@ -3161,7 +3262,23 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2413]: https://github.com/DataDog/dd-trace-rb/issues/2413
 [#2419]: https://github.com/DataDog/dd-trace-rb/issues/2419
 [#2420]: https://github.com/DataDog/dd-trace-rb/issues/2420
+[#2428]: https://github.com/DataDog/dd-trace-rb/issues/2428
 [#2435]: https://github.com/DataDog/dd-trace-rb/issues/2435
+[#2451]: https://github.com/DataDog/dd-trace-rb/issues/2451
+[#2453]: https://github.com/DataDog/dd-trace-rb/issues/2453
+[#2454]: https://github.com/DataDog/dd-trace-rb/issues/2454
+[#2455]: https://github.com/DataDog/dd-trace-rb/issues/2455
+[#2458]: https://github.com/DataDog/dd-trace-rb/issues/2458
+[#2459]: https://github.com/DataDog/dd-trace-rb/issues/2459
+[#2460]: https://github.com/DataDog/dd-trace-rb/issues/2460
+[#2461]: https://github.com/DataDog/dd-trace-rb/issues/2461
+[#2463]: https://github.com/DataDog/dd-trace-rb/issues/2463
+[#2464]: https://github.com/DataDog/dd-trace-rb/issues/2464
+[#2466]: https://github.com/DataDog/dd-trace-rb/issues/2466
+[#2469]: https://github.com/DataDog/dd-trace-rb/issues/2469
+[#2470]: https://github.com/DataDog/dd-trace-rb/issues/2470
+[#2473]: https://github.com/DataDog/dd-trace-rb/issues/2473
+[#2489]: https://github.com/DataDog/dd-trace-rb/issues/2489
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
