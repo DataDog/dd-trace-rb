@@ -15,7 +15,7 @@ module Datadog
       # Configuration DSL implementation
       class DSL
         # Struct constant whisker cast for Steep
-        Instrument = _ = Struct.new(:name, :options)
+        Instrument = _ = Struct.new(:name, :options) # rubocop:disable Naming/ConstantName
 
         def initialize
           @instruments = []

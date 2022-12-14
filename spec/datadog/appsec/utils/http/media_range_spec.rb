@@ -5,6 +5,7 @@ require 'datadog/appsec/utils/http/media_range'
 RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
   describe '.new' do
     context 'with valid input' do
+      # rubocop:disable Layout/LineLength
       expectations = {
         '*/*' => { type: '*', subtype: '*', quality: 1.0, parameters: {}, accept_ext: {} },
         'text/*' => { type: 'text', subtype: '*', parameters: {}, accept_ext: {} },
@@ -41,6 +42,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
         'text/html;foo=bar;q=0.5;baz=qux' => { type: 'text', subtype: 'html', quality: 0.5, parameters: { 'foo' => 'bar' }, accept_ext: { 'baz' => 'qux' } },
         'text/html;foo="bar";q=0.5;baz="qux"' => { type: 'text', subtype: 'html', quality: 0.5, parameters: { 'foo' => 'bar' }, accept_ext: { 'baz' => 'qux' } },
       }
+      # rubocop:enable Layout/LineLength
 
       expectations.each do |str, expected|
         it "parses #{str.inspect} to #{expected.inspect}" do
