@@ -19,16 +19,3 @@ module Datadog::Transport::IO
   def self.default(options = nil); end
   def self.new(out, encoder); end
 end
-module Datadog::AppSec
-  extend Datadog::AppSec::Configuration::ClassMethods
-  include Datadog::AppSec::Configuration
-end
-module Datadog::AppSec::Contrib
-end
-module Datadog::AppSec::Contrib::Rack
-end
-module Datadog::AppSec::Contrib::Rack::Request
-end
-class Datadog::Core::Configuration::Settings
-  include Datadog::AppSec::Extensions::Settings
-end
