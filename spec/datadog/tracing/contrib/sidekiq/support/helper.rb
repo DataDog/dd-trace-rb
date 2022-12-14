@@ -81,7 +81,7 @@ module SidekiqServerExpectations
   end
 
   def expect_after_stopping_sidekiq_server
-    expect_in_fork do
+    # expect_in_fork do
       # NB: This is needed because we want to patch within a forked process.
       if Datadog::Tracing::Contrib::Sidekiq::Patcher.instance_variable_get(:@patch_only_once)
         Datadog::Tracing::Contrib::Sidekiq::Patcher
@@ -98,8 +98,20 @@ module SidekiqServerExpectations
       # Change options and constants for Sidekiq to stop faster:
       # Reduce number of threads and shutdown timeout.
 
-      binding.pry
-      options = cli.send(:options).merge(concurrency: 1, timeout: 0)
+      # binding.pry
+      puts Sidekiq::VERSION
+
+      options = if Sidekiq.respond_to? :default_configuration
+        Sidekiq.default_configuration.tap do |c|
+          c[:concurrency] = 1
+          c[:timeout] = 0
+        end
+      else
+        Sidekiq.options.tap do |c|
+          c[:concurrency] = 1
+          c[:timeout] = 0
+        end
+      end
 
       # `Sidekiq::Launcher#stop` sleeps before actually starting to shutting down Sidekiq.
       # Settings `Manager::PAUSE_TIME` to zero removes that wait.
@@ -119,11 +131,10 @@ module SidekiqServerExpectations
       # Setting this value to 3 seconds or higher makes the shutdown process almost immediate, as
       # `Util#wait_for` checks immediately if workers have shut down, which is normally the case at this point.
       stub_const('Sidekiq::Util::PAUSE_TIME', 3)
-
       launcher = Sidekiq::Launcher.new(options)
       launcher.stop
 
       yield
-    end
+    # end
   end
 end

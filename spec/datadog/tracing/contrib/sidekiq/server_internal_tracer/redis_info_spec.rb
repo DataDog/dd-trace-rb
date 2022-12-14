@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require_relative '../support/helper'
 
 RSpec.describe 'Server internal tracer' do
+  include SidekiqServerExpectations
   before do
     unless Datadog::Tracing::Contrib::Sidekiq::Integration.compatible_with_server_internal_tracing?
       skip 'Sidekiq internal server tracing is not supported on this version.'

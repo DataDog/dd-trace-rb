@@ -1535,6 +1535,12 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     end
   end
 
+  [5,6,7].each do |n|
+    appraise "sidekiq-#{n}" do
+      gem 'sidekiq', "~> #{n}"
+    end
+  end
+
   appraise 'sinatra' do
     gem 'sinatra', '>= 3'
     gem 'rack-test'
