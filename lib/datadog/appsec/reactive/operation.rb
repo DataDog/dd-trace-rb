@@ -15,7 +15,7 @@ module Datadog
           Datadog.logger.debug { "operation: #{name} initialize" }
           @name = name
           @parent = parent
-          @reactive = reactive_engine || parent && parent.reactive || Reactive::Engine.new
+          @reactive = reactive_engine || (parent.reactive unless parent.nil?) || Reactive::Engine.new
 
           # TODO: concurrent store
           # TODO: constant
