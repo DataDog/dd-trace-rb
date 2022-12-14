@@ -44,15 +44,17 @@ module Datadog
           'text/plain' => :text,
         }.freeze
 
+        DEFAULT_FORMAT = :text
+
         def format(env)
+          return DEFAULT_FORMAT unless env.key?('HTTP_ACCEPT')
+
           accepted = env['HTTP_ACCEPT'].split(',').map { |m| Utils::HTTP::MediaRange.new(m) }.sort
 
-          accepted.reduce(:text) do |default, range|
+          accepted.each_with_object(DEFAULT_FORMAT) do |_default, range|
             format = FORMAT_MAP.keys.find { |type, _format| range === type }
 
             return FORMAT_MAP[format] if format
-
-            default
           end
         end
       end

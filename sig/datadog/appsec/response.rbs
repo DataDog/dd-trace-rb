@@ -15,6 +15,7 @@ module Datadog
       private
 
       FORMAT_MAP: ::Hash[::String, ::Symbol]
+      DEFAULT_FORMAT: ::Symbol
 
       def self.format: (::Hash[untyped, untyped] env) -> ::Symbol
     end
