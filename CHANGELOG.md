@@ -20,7 +20,7 @@ You can enable it:
 
 ```ruby
 Datadog.configure do |c|
-  # … existing configuration …
+  # ... existing configuration ...
 
   c.profiling.advanced.force_enable_new_profiler = true
 end
@@ -28,14 +28,14 @@ end
 
 What to expect from Ruby CPU Profiling 2.0 beta?
 
-* **Finer-grained profiling data due to our sampling engine rewritten in C+Rust**. The profiler will be able to run more often and get more information while keeping the same 2% overhead target you’re used to, and with a lower impact on latency. Especially when looking at the “Code Hotspots” panel for a distributed trace, expect more and finer grained profiles.
-* Thread id information now includes the operating system thread id for Ruby 3.1+, so you’ll be able to correlate your thread information when looking at other system monitoring tools
-* Thread names are now collected and you’ll be able to filter your profiles by these names
-* Experimental support for capturing CPU and Wall-time spent doing Garbage Collection. This is disabled by default as we’re still improving the performance of this feature and fixing a few incompatibilities with Ruby Ractors. You can enable it by adding `DD_PROFILING_FORCE_ENABLE_GC=true` or `c.profiling.advancedforce_enable_gc_profiling = true` to the instructions seen above.
+* **Finer-grained profiling data due to our sampling engine rewritten in C+Rust**. The profiler will be able to run more often and get more information while keeping the same 2% overhead target you're used to, and with a lower impact on latency. Especially when looking at the "Code Hotspots" panel for a distributed trace, expect more and finer grained profiles.
+* Thread id information now includes the operating system thread id for Ruby 3.1+, so you'll be able to correlate your thread information when looking at other system monitoring tools
+* Thread names are now collected and you'll be able to filter your profiles by these names
+* Experimental support for capturing CPU and Wall-time spent doing Garbage Collection. This is disabled by default as we're still improving the performance of this feature and fixing a few incompatibilities with Ruby Ractors. You can enable it by adding `DD_PROFILING_FORCE_ENABLE_GC=true` or `c.profiling.advancedforce_enable_gc_profiling = true` to the instructions seen above.
 
-…with more and faster improvements to come in early 2023!
+...with more and faster improvements to come in early 2023!
 
-Give it a try, and we’d love to hear your feedback. Do note that while in beta, we don’t recommend using Ruby CPU Profiling 2.0 in production environments. Below, you’ll find a list of known issues that we’re still looking into.
+Give it a try, and we'd love to hear your feedback. Do note that while in beta, we don't recommend using Ruby CPU Profiling 2.0 in production environments. Below, you'll find a list of known issues that we're still looking into.
 
 Known issues:
 * Profiling CPU-time overhead is not shown in flamegraphs (unlike with the existing profiler). We will be fixing this soon!
@@ -52,7 +52,7 @@ Known issues:
 
 ### `redis` 5 instrumentation upgrade notes
 
-dd-trace-rb officially supports `redis` 5 instrumentation. When upgrading `redis` gem to 5.x and with configuration per instance, change your code by passing `{custom: datadog: { … }}` tags during redis instantiation.
+dd-trace-rb officially supports `redis` 5 instrumentation. When upgrading `redis` gem to 5.x and with configuration per instance, change your code by passing `{custom: datadog: { ... }}` tags during redis instantiation.
 
 Before redis 5
 
