@@ -4,78 +4,10 @@
 
 ## [1.8.0] - 2022-12-14
 
-Happy holidays! This release includes two big items we're pretty excited about and want to call out explicitly:
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.8.0
 
-* CPU Profiling 2.0 is now in beta!
-* `redis` 5 instrumentation upgrade notes
-
-### CPU Profiling 2.0 is now in beta!
-
-As of ddtrace 1.8.0, CPU Profiling 2.0 is now in opt-in (that is, disabled by default) public beta.
-
-You can enable it:
-
-* Using an environment variable by setting `DD_PROFILING_FORCE_ENABLE_NEW=true`
-* Or via code by adding to your `Datadog.configure` block:
-
-```ruby
-Datadog.configure do |c|
-  # ... existing configuration ...
-
-  c.profiling.advanced.force_enable_new_profiler = true
-end
-```
-
-What to expect from Ruby CPU Profiling 2.0 beta?
-
-* **Finer-grained profiling data due to our sampling engine rewritten in C+Rust**. The profiler will be able to run more often and get more information while keeping the same 2% overhead target you're used to, and with a lower impact on latency. Especially when looking at the "Code Hotspots" panel for a distributed trace, expect more and finer grained profiles.
-* Thread id information now includes the operating system thread id for Ruby 3.1+, so you'll be able to correlate your thread information when looking at other system monitoring tools
-* Thread names are now collected and you'll be able to filter your profiles by these names
-* Experimental support for capturing CPU and Wall-time spent doing Garbage Collection. This is disabled by default as we're still improving the performance of this feature and fixing a few incompatibilities with Ruby Ractors. You can enable it by adding `DD_PROFILING_FORCE_ENABLE_GC=true` or `c.profiling.advancedforce_enable_gc_profiling = true` to the instructions seen above.
-
-...with more and faster improvements to come in early 2023!
-
-Give it a try, and we'd love to hear your feedback. Do note that while in beta, we don't recommend using Ruby CPU Profiling 2.0 in production environments. Below, you'll find a list of known issues that we're still looking into.
-
-Known issues:
-* Profiling CPU-time overhead is not shown in flamegraphs (unlike with the existing profiler). We will be fixing this soon!
-* Rare incompatibilities with native extensions/libraries.
-
-    Ruby CPU Profiling 2.0 gathers profiling data by sending SIGPROF unix signals to Ruby applications. This is a common approach used by many other profilers, and it may cause system calls performed by native extensions/libraries to be interrupted with an EINTR error code ([reference](https://man7.org/linux/man-pages/man7/signal.7.html#:~:text=Interruption%20of%20system%20calls%20and%20library%20functions%20by%20signal%20handlers)).
-
-    Most native extensions/libraries are unaffected by this issue, but we know of at least one case: when using the `mysql2` gem together with versions of libmysqlclient older than 8.0.0 this can lead to failed database requests ([reference](https://bugs.mysql.com/bug.php?id=83109)). The affected libmysqlclient version is known to be present on Ubuntu 18.04, but not 20.04 and later releases.
-
-    We expect these occurrences to be rare, and will be working to both improve the ecosystem as well as to deploy countermeasures in the profiler itself to avoid triggering these issues.
-* Ruby 2.5 and below are missing an API that allows the profiler to detect the currently-active Ruby thread. We have deployed a workaround, but suspect that it may lead to crashes in extremely rare situations. We are still researching a solution for this issue and do not plan on rolling out CPU Profiling 2.0 automatically to Ruby 2.5 and below applications until it is fixed.
-* The disabled-by-default experimental support for capturing CPU and Wall-time spent doing Garbage Collection is incompatible with Ractors due to Ruby upstream bugs (<https://bugs.ruby-lang.org/issues/18464> and <https://bugs.ruby-lang.org/issues/19112>). We plan to work with the Ruby developers to incorporate fixes for these issues.
-* The disabled-by-default experimental support for capturing CPU and Wall-time spent doing Garbage Collection can cause a lot of overhead in Ruby applications with high object allocation rates. We will be fixing this soon!
-
-### `redis` 5 instrumentation upgrade notes
-
-dd-trace-rb officially supports `redis` 5 instrumentation. When upgrading `redis` gem to 5.x and with configuration per instance, change your code by passing `{custom: datadog: { ... }}` tags during redis instantiation.
-
-Before redis 5
-
-```ruby
-customer_cache = Redis.new
-invoice_cache = Redis.new
-
-Datadog.configure_onto(customer_cache, service_name: 'customer-cache')
-Datadog.configure_onto(invoice_cache, service_name: 'invoice-cache')
-
-customer_cache.get(...)
-invoice_cache.get(...)
-```
-
-After upgrading to redis 5.x
-
-```ruby
-customer_cache = Redis.new(custom: { datadog: { service_name: 'custom-cache' } })
-invoice_cache = Redis.new(custom: { datadog: { service_name: 'invoice-cache' } })
-
-customer_cache.get(...)
-invoice_cache.get(...)
-```
+As of ddtrace 1.8.0, CPU Profiling 2.0 is now in opt-in (that is, disabled by default) public beta. For more details,
+check the release notes.
 
 ### Added
 
