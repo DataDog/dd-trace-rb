@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+## [1.8.0] - 2022-12-14
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.8.0
+
+As of ddtrace 1.8.0, CPU Profiling 2.0 is now in opt-in (that is, disabled by default) public beta. For more details,
+check the release notes.
+
+### Added
+
+* Core: Profiling: [PROF-6559] Mark Ruby CPU Profiling 2.0 as being in beta ([#2489][])
+* Tracing: Attempt to parse future version of TraceContext ([#2473][])
+* Tracing: Add DD_TRACE_PROPAGATION_STYLE option ([#2466][])
+* Integrations: Tracing: SQL comment propagation full mode with traceparent ([#2464][])
+* Integrations: Tracing: Wire W3C propagator to HTTP & gRPC propagation ([#2458][])
+* Integrations: Tracing: Auto-instrumentation with service_name from environmental variable ([#2455][])
+* Core: Integrations: Tracing: Deprecation notice for B3 propagation configuration ([#2454][])
+* Tracing: Add W3C Trace Context propagator ([#2451][])
+* Integrations: Tracing: Redis 5 Instrumentation ([#2428][])
+
+### Changed
+
+* Tracing: Changes `error.msg` to `error.message` for UNC ([#2469][])
+* Tracing: Semicolons not allowed in 'origin' ([#2461][])
+* Core: Dev/refactor: Tracing: Dev/internal: Move Utils#next_id and constants to Tracing::Utils ([#2463][])
+* Core: Dev/refactor: Tracing: Dev/internal: Move Tracing config settings from Core to Tracing ([#2459][])
+* Core: Dev/refactor: Tracing: Dev/internal: Move Tracing diagnostic code from Core to Tracing ([#2453][])
+
+### Fixed
+
+* Integrations: Tracing: Improve redis integration patching ([#2470][])
+* Tracing: Extra testing from W3C spec ([#2460][])
+
 ## [1.7.0] - 2022-11-29
 
 ### Added
@@ -2218,7 +2250,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.7.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.8.0...master
+[1.8.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.2...v1.6.0
@@ -3161,7 +3194,23 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2413]: https://github.com/DataDog/dd-trace-rb/issues/2413
 [#2419]: https://github.com/DataDog/dd-trace-rb/issues/2419
 [#2420]: https://github.com/DataDog/dd-trace-rb/issues/2420
+[#2428]: https://github.com/DataDog/dd-trace-rb/issues/2428
 [#2435]: https://github.com/DataDog/dd-trace-rb/issues/2435
+[#2451]: https://github.com/DataDog/dd-trace-rb/issues/2451
+[#2453]: https://github.com/DataDog/dd-trace-rb/issues/2453
+[#2454]: https://github.com/DataDog/dd-trace-rb/issues/2454
+[#2455]: https://github.com/DataDog/dd-trace-rb/issues/2455
+[#2458]: https://github.com/DataDog/dd-trace-rb/issues/2458
+[#2459]: https://github.com/DataDog/dd-trace-rb/issues/2459
+[#2460]: https://github.com/DataDog/dd-trace-rb/issues/2460
+[#2461]: https://github.com/DataDog/dd-trace-rb/issues/2461
+[#2463]: https://github.com/DataDog/dd-trace-rb/issues/2463
+[#2464]: https://github.com/DataDog/dd-trace-rb/issues/2464
+[#2466]: https://github.com/DataDog/dd-trace-rb/issues/2466
+[#2469]: https://github.com/DataDog/dd-trace-rb/issues/2469
+[#2470]: https://github.com/DataDog/dd-trace-rb/issues/2470
+[#2473]: https://github.com/DataDog/dd-trace-rb/issues/2473
+[#2489]: https://github.com/DataDog/dd-trace-rb/issues/2489
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
