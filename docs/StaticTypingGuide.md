@@ -1,4 +1,4 @@
-# Stating Typing Guide
+# Static Typing Guide
 
 Static typing description is achieved via Ruby core [RBS](https://github.com/ruby/rbs).
 
@@ -150,7 +150,7 @@ class Object
 end
 ```
 
-One quick hackish way to type a class is to add a bunch of calls all the way down the file defining that class and run `typeprof` on it exploring the most interesting codepaths. This can also be achieved with a separate file requiring the one we want to type and performing calls there. In theory typeprof could be run on unit test files having 100% coverage and output precise type information for the tested code.
+One quick hackish way to type a class is to add a bunch of calls all the way down the file defining that class and run `typeprof` on it exploring the most interesting codepaths. This can also be achieved with a separate file requiring the one we want to type and performing calls there. In theory `typeprof` could be run on unit test files having 100% coverage and output precise type information for the tested code.
 
 See the [demo doc](https://github.com/ruby/typeprof/blob/26ab9108860d9a4ce050acb3422ee7721d4d50b0/doc/demo.md) for more examples and features.
 
