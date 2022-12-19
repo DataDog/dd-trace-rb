@@ -2,7 +2,6 @@ module Datadog
   module AppSec
     module Contrib
       module Sinatra
-        # Rack middleware for AppSec on Sinatra
         class RequestMiddleware
           def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> void
 

@@ -2,7 +2,6 @@ module Datadog
   module Tracing
     module Contrib
       module Utils
-        # Common database-related utility functions.
         module Database
           VENDOR_DEFAULT: untyped
 

@@ -3,7 +3,6 @@ module Datadog
     module Contrib
       module Rack
         module Reactive
-          # Dispatch data from a Rack request to the WAF context
           module RequestBody
             def self.publish: (untyped op, untyped request) -> untyped
 

@@ -1,7 +1,6 @@
 module Datadog
   module Core
     module Environment
-      # For container environments
       module Container
         UUID_PATTERN: untyped
 

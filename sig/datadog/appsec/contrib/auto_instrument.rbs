@@ -1,8 +1,6 @@
 module Datadog
   module AppSec
     module Contrib
-      # Auto-instrumentation for security integrations
-      # TODO: this implementation is trivial, check for shareable code with tracer
       module AutoInstrument
         def self.patch_all: () -> untyped
       end

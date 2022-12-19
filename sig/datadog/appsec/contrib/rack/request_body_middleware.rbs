@@ -2,9 +2,6 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
-        # Rack request body middleware for AppSec
-        # This should be inserted just below Rack::JSONBodyParser or
-        # legacy Rack::PostBodyContentTypeParser from rack-contrib
         class RequestBodyMiddleware
           def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> void
 

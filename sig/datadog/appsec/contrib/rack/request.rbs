@@ -2,7 +2,6 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
-        # Normalized extration of data from Rack::Request
         module Request
           def self.query: (untyped request) -> untyped
 

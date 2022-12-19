@@ -5,7 +5,6 @@ module Datadog
         class Integration
           include Datadog::AppSec::Contrib::Integration
 
-          # through Datadog::AppSec::Contrib::Integration
           extend Datadog::AppSec::Contrib::Integration::ClassMethods
 
           MINIMUM_VERSION: untyped

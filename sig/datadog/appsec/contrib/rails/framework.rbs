@@ -2,13 +2,11 @@ module Datadog
   module AppSec
     module Contrib
       module Rails
-        # Rails specific framework tie
         module Framework
           def self.setup: () -> untyped
 
           def self.config_with_defaults: (untyped datadog_config) -> untyped
 
-          # Apply relevant configuration from Sinatra to Rack
           def self.activate_rack!: (untyped datadog_config, untyped sinatra_config) -> untyped
         end
       end

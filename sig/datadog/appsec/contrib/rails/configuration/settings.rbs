@@ -3,7 +3,6 @@ module Datadog
     module Contrib
       module Rails
         module Configuration
-          # Custom settings for the Rack integration
           class Settings < Datadog::AppSec::Contrib::Configuration::Settings
           end
         end

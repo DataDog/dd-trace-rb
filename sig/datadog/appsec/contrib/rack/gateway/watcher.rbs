@@ -3,12 +3,7 @@ module Datadog
     module Contrib
       module Rack
         module Gateway
-          # Watcher for Rack gateway events
           module Watcher
-            # rubocop:disable Metrics/AbcSize
-            # rubocop:disable Metrics/MethodLength
-            # rubocop:disable Metrics/CyclomaticComplexity
-            # rubocop:disable Metrics/PerceivedComplexity
             def self.watch: () -> untyped
 
             private

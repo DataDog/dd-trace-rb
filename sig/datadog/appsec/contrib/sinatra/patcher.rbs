@@ -2,29 +2,22 @@ module Datadog
   module AppSec
     module Contrib
       module Sinatra
-        # Set tracer configuration at a late enough time
         module AppSecSetupPatch
           def setup_middleware: (*untyped args) ?{ () -> untyped } -> untyped
         end
 
-        # Hook into builder before the middleware list gets frozen
         module DefaultMiddlewarePatch
           def setup_middleware: (*untyped args) ?{ () -> untyped } -> untyped
         end
 
-        # Hook into Base#dispatch!, which encompasses route filters
         module DispatchPatch
           def dispatch!: () -> untyped
         end
 
-        # Hook into Base#route_eval, which
-        # path params are returned by pattern.params in process_route, then
-        # merged with normal params, so we get both
         module RoutePatch
           def process_route: () { (untyped) -> untyped } -> untyped
         end
 
-        # Patcher for AppSec on Sinatra
         module Patcher
           include Datadog::AppSec::Contrib::Patcher
 

@@ -3,7 +3,6 @@ module Datadog
     module Contrib
       module Sinatra
         module Reactive
-          # Dispatch data from a Rack request to the WAF context
           module Routed
             def self.publish: (untyped op, untyped data) -> untyped
 

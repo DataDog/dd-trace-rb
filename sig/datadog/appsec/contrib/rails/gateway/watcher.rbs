@@ -3,7 +3,6 @@ module Datadog
     module Contrib
       module Rails
         module Gateway
-          # Watcher for Rails gateway events
           module Watcher
             def self.watch: () -> untyped
 

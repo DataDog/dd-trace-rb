@@ -2,7 +2,6 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
-        # Normalized extration of data from Rack::Response
         module Response
           def self.headers: (untyped response) -> untyped
 

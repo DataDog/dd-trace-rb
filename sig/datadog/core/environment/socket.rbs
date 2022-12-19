@@ -1,7 +1,6 @@
 module Datadog
   module Core
     module Environment
-      # For runtime identity
       module Socket
         def self?.hostname: () -> untyped
       end

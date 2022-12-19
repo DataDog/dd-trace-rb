@@ -3,7 +3,6 @@ module Datadog
     module Contrib
       module Rails
         module Reactive
-          # Dispatch data from a Rails request to the WAF context
           module Action
             def self.publish: (untyped op, untyped request) -> untyped
 

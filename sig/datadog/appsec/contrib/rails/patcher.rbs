@@ -2,7 +2,6 @@ module Datadog
   module AppSec
     module Contrib
       module Rails
-        # Patcher for AppSec on Rails
         module Patcher
           include Datadog::AppSec::Contrib::Patcher
 
@@ -22,7 +21,6 @@ module Datadog
 
           def self?.add_middleware: (untyped app) -> untyped
 
-          # Hook into ActionController::Instrumentation#process_action, which encompasses action filters
           module ProcessActionPatch
             def process_action: (*untyped args) -> untyped
           end

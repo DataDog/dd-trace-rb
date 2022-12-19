@@ -1,7 +1,6 @@
 module Datadog
   module Core
     module Environment
-      # Retrieves number of classes from runtime
       module ClassCount
         def self?.value: () -> untyped
 

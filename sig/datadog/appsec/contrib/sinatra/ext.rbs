@@ -2,7 +2,6 @@ module Datadog
   module AppSec
     module Contrib
       module Sinatra
-        # Sinatra integration constants
         module Ext
           APP: "sinatra"
 

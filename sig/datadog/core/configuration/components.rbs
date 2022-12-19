@@ -44,7 +44,6 @@ module Datadog
 
         def initialize: (untyped settings) -> untyped
 
-        # Starts up components
         def startup!: (untyped settings) -> untyped
 
         def shutdown!: (?untyped? replacement) -> untyped
