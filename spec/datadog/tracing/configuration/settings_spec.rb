@@ -786,6 +786,23 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           it { is_expected.to eq(false) }
         end
       end
+
+      context 'when generation is enabled but not propagation' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED' => 'true',
+            'DD_TRACE_128_BIT_TRACEID_PROPAGATION_ENABLED' => 'false'
+          ) do
+            example.run
+          end
+        end
+
+        it 'logs a warning message to enable propagation' do
+          expect(Datadog.logger).to receive(:warn).with(/to enable option `trace_id_128_bit_propagation_enabled`/)
+
+          expect(settings.tracing.trace_id_128_bit_propagation_enabled).to eq(false)
+        end
+      end
     end
 
     describe '#trace_id_128_bit_propagation_enabled=' do
@@ -795,6 +812,23 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end.to change { settings.tracing.trace_id_128_bit_propagation_enabled }
           .from(false)
           .to(true)
+      end
+
+      context 'when generation is enabled but not propagation' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED' => 'true',
+            'DD_TRACE_128_BIT_TRACEID_PROPAGATION_ENABLED' => 'false'
+          ) do
+            example.run
+          end
+        end
+
+        it 'logs a warning message to enable propagation' do
+          expect(Datadog.logger).to receive(:warn).with(/to enable option `trace_id_128_bit_propagation_enabled`/)
+
+          settings.tracing.trace_id_128_bit_propagation_enabled = false
+        end
       end
     end
 
