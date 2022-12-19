@@ -928,26 +928,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to(host)
       end
     end
-
-    # TODO: Migrate this to Tracing
-    describe '#tracer' do
-      describe '#port' do
-        subject(:port) { settings.agent.port }
-
-        it { is_expected.to be nil }
-      end
-
-      describe '#port=' do
-        let(:port) { 1234 }
-
-        it 'updates the #port setting' do
-          expect { settings.agent.port = port }
-            .to change { settings.agent.port }
-            .from(nil)
-            .to(port)
-        end
-      end
-    end
   end
 
   describe '#version' do

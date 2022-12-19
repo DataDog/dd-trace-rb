@@ -14,10 +14,31 @@ require 'datadog/tracing/writer'
 RSpec.describe Datadog::Tracing::Configuration::Settings do
   # TODO: Core::Configuration::Settings directly extends Tracing::Configuration::Settings
   #       In the future, have tracing add this behavior itself. For now,
-  #       just use the core metrics class to drive the tests.
+  #       just use the core settings class to drive the tests.
   subject(:settings) { Datadog::Core::Configuration::Settings.new(options) }
 
   let(:options) { {} }
+
+  describe '#agent' do
+    describe '#tracer' do
+      describe '#port' do
+        subject(:port) { settings.agent.port }
+
+        it { is_expected.to be nil }
+      end
+
+      describe '#port=' do
+        let(:port) { 1234 }
+
+        it 'updates the #port setting' do
+          expect { settings.agent.port = port }
+            .to change { settings.agent.port }
+            .from(nil)
+            .to(port)
+        end
+      end
+    end
+  end
 
   describe '#tracing' do
     describe '#analytics' do
