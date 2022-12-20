@@ -187,10 +187,10 @@ module Datadog
 
               # Enable 128 bit trace id propagation for distributed tracing.
               #
-              # @default `DD_TRACE_128_BIT_TRACEID_PROPAGATION_ENABLED` environment variable, otherwise `false`
+              # @default `DD_TRACE_128_BIT_TRACEID_PROPAGATION_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :trace_id_128_bit_propagation_enabled do |o|
-                o.default { env_to_bool(Tracing::Configuration::Ext::Distributed::ENV_TRACE_ID_128_BIT_PROPAGATION_ENABLED, false) }
+                o.default { env_to_bool(Tracing::Configuration::Ext::Distributed::ENV_TRACE_ID_128_BIT_PROPAGATION_ENABLED, true) }
                 o.lazy
                 o.depends_on [:trace_id_128_bit_generation_enabled]
 

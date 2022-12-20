@@ -771,7 +771,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         context 'is not defined' do
           let(:env_var) { nil }
 
-          it { is_expected.to eq(false) }
+          it { is_expected.to eq(true) }
         end
 
         context 'is `true`' do
@@ -808,10 +808,10 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     describe '#trace_id_128_bit_propagation_enabled=' do
       it 'updates the #trace_id_128_bit_propagation_enabled setting' do
         expect do
-          settings.tracing.trace_id_128_bit_propagation_enabled = true
+          settings.tracing.trace_id_128_bit_propagation_enabled = false
         end.to change { settings.tracing.trace_id_128_bit_propagation_enabled }
-          .from(false)
-          .to(true)
+          .from(true)
+          .to(false)
       end
 
       context 'when generation is enabled but not propagation' do
