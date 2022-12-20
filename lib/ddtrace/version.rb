@@ -19,9 +19,9 @@ module DDTrace
     # Now Ruby 3.2.0-preview1 is out and `ruby2_keywords` are still there, and there's even a recent change for it
     # in https://github.com/ruby/ruby/pull/5684 that is documented as "ruby2_keywords needed in 3.2+".
     #
-    # So for now let's bump the maximum version to < 3.3 to allow the Ruby 3.2 series to be supported and we can keep
-    # an eye on the Ruby 3.2 test releases to see if anything changes. (Otherwise, once Ruby 3.2.0 stable is out, we
-    # should probably bump this to 3.4, and so on...)
-    MAXIMUM_RUBY_VERSION = '3.3'.freeze
+    # So for now let's bump the maximum version to < 3.4 to allow the Ruby 3.3 series to be supported and we can keep
+    # an eye on the Ruby 3.3 test releases to see if anything changes. (Otherwise, once Ruby 3.3.0 stable is out, we
+    # should probably bump this to 3.5, and so on...)
+    MAXIMUM_RUBY_VERSION = '3.4'.freeze
   end
 end

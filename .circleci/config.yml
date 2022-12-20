@@ -529,8 +529,8 @@ job_configuration:
     resource_class_to_use: medium+
   - &config-3_2
     <<: *filters_all_branches_and_tags
-    ruby_version: 'ruby-3.2.0-preview3'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-preview3-dd
+    ruby_version: 'ruby-3.2.0-rc1'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-rc1-dd
     resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
   - &config-jruby-9_2_8_0 # Test with older 9.2 release because 9.2.9.0 changed behavior, see https://github.com/DataDog/dd-trace-rb/pull/1409
@@ -581,8 +581,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
-            # TODO: Re-enable once 3.2 testing is green!
-            #- test-3.2
+            - test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
             - test-jruby-9.2
@@ -730,12 +729,11 @@ workflows:
       - orb/build:
           <<: *config-3_2
           name: build-3.2
-      # TODO: Re-enable once 3.2 testing is green!
-      # - orb/test:
-      #     <<: *config-3_2
-      #     name: test-3.2
-      #     requires:
-      #       - build-3.2
+      - orb/test:
+          <<: *config-3_2
+          name: test-3.2
+          requires:
+            - build-3.2
       # ADD NEW RUBIES HERE
       - orb/build:
           <<: *config-jruby-9_2_8_0
@@ -786,8 +784,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
-            # TODO: Re-enable once 3.2 testing is green!
-            #- test-3.2
+            - test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
             - test-jruby-9.2
@@ -807,8 +804,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
-            # TODO: Re-enable once 3.2 testing is green!
-            #- test-3.2
+            - test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
             - test-jruby-9.2
@@ -968,12 +964,11 @@ workflows:
           <<: *config-3_2
           name: build-3.2
           edge: true
-      # TODO: Re-enable once 3.2 testing is green!
-      # - orb/test:
-      #     <<: *config-3_2
-      #     name: test-3.2
-      #     requires:
-      #       - build-3.2
+      - orb/test:
+          <<: *config-3_2
+          name: test-3.2
+          requires:
+            - build-3.2
       # ADD NEW RUBIES HERE
       - orb/build:
           <<: *config-jruby-9_2_8_0
