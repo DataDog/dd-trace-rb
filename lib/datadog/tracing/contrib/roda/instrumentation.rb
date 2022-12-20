@@ -1,7 +1,6 @@
 require_relative '../../metadata/ext'
 require_relative 'ext'
 require_relative '../analytics'
-
 module Datadog
   module Tracing
     module Contrib
@@ -48,18 +47,19 @@ module Datadog
                 Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
               end
 
-            # Measure service stats
-            Contrib::Analytics.set_measured(span)
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
 
-            response = yield
+              response = yield
 
-            status_code = response[0]
+              status_code = response[0]
 
-            # Adds status code to the resource name once the resource comes back
-            span.resource = "#{request_method} #{status_code}"
-            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, status_code)
-            span.status = 1 if status_code.to_s.start_with?('5')
-            response
+              # Adds status code to the resource name once the resource comes back
+              span.resource = "#{request_method} #{status_code}"
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, status_code)
+              span.status = 1 if status_code.to_s.start_with?('5')
+              response
+            end
           end
 
           def configuration
