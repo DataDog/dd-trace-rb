@@ -101,6 +101,17 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('error.message')).to be nil
       end
 
+      context 'with custom response error codes' do
+        let(:configuration_options) { { response_code_errors: 500...599 } }
+
+        it 'does not mark the span as an error' do
+          expect(response.code).to eq('404')
+          expect(span.status).to eq(0)
+          expect(span.get_tag('error.type')).to be_nil
+          expect(span.get_tag('error.message')).to be_nil
+        end
+      end
+
       it_behaves_like 'a peer service span' do
         let(:peer_hostname) { host }
       end
