@@ -2,6 +2,7 @@
 
 require_relative '../utils/time'
 require_relative '../utils/only_once'
+require_relative '../configuration/ext'
 
 require_relative 'ext'
 require_relative 'options'
@@ -50,11 +51,11 @@ module Datadog
         end
 
         def default_hostname
-          ENV.fetch(Ext::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
+          ENV.fetch(Configuration::Ext::Transport::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
         end
 
         def default_port
-          ENV.fetch(Ext::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT).to_i
+          ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT).to_i
         end
 
         def default_statsd_client

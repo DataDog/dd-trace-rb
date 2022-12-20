@@ -246,7 +246,7 @@ require 'socket'
 # agent process in the system.
 #
 # It finds a locally available port to listen on, and updates the value of
-# {Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} accordingly.
+# {Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} accordingly.
 RSpec.shared_context 'minimal agent' do
   let(:agent_server) { TCPServer.new '127.0.0.1', agent_port }
   let(:agent_port) { ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT].to_i }
