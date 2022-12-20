@@ -88,6 +88,68 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       it do
         expect(trace_op.send(:metrics)).to eq({})
       end
+
+      context 'when 128 bit trace id generation enabled' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED' => 'true'
+          ) do
+            example.run
+          end
+        end
+
+        it '128 bits trace_id' do
+          expect(trace_op.id.to_s(2).length).to be <= 128
+        end
+
+        it do
+          allow(Datadog::Tracing::Utils).to receive(:next_id).and_return(
+            700846779308066302, # high_order
+            230828285073546607, # low_order
+            729068622763299748, # Prevent rspec mock to return previous values
+          )
+
+          # high_order + low_order
+          expect(trace_op.id).to eq(12928341172779498062566790137492790639)
+
+          # 700846779308066302.to_s(16) => '9b9e86ebaa245fe'
+          expect(trace_op.get_tag('_dd.p.tid')).to eq('9b9e86ebaa245fe')
+        end
+
+        context do
+          around do |example|
+            ClimateControl.modify(
+              'DD_TRACE_128_BIT_TRACEID_PROPAGATION_ENABLED' => 'false'
+            ) do
+              example.run
+            end
+          end
+
+          it do
+            expect(trace_op.has_tag?('_dd.p.tid')).to eq false
+          end
+        end
+      end
+
+      context 'when 128 bit trace id generation disabled' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED' => 'false'
+          ) do
+            example.run
+          end
+        end
+
+        it '64 bits trace_id' do
+          expect(trace_op.id.to_s(2).length).to be <= 64
+        end
+
+        it do
+          exepcted_trace_id = 700846779308066302
+          allow(Datadog::Tracing::Utils).to receive(:next_id).and_return(exepcted_trace_id)
+          expect(trace_op.id).to eq(exepcted_trace_id)
+        end
+      end
     end
 
     context 'given' do
