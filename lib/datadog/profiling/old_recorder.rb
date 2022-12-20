@@ -73,6 +73,14 @@ module Datadog
         [start, finish, encoded_pprof]
       end
 
+      def reset_after_fork
+        Datadog.logger.debug('Resetting OldRecorder in child process after fork')
+
+        # NOTE: A bit of a heavy-handed approach, but it doesn't happen often and this class will be removed soon anyway
+        serialize
+        nil
+      end
+
       # Error when event of an unknown type is used with the OldRecorder
       class UnknownEventError < StandardError
         attr_reader :event_class

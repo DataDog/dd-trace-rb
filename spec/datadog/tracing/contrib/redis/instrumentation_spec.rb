@@ -3,7 +3,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'redis'
-require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis instrumentation test' do
@@ -60,7 +59,8 @@ RSpec.describe 'Redis instrumentation test' do
     let(:default_service_name) { 'default-service' }
     let(:service_name) { 'multiplex-service' }
     let(:redis_url) { "redis://#{test_host}:#{test_port}/#{test_database}" }
-    let(:client) { Redis.new(url: redis_url) }
+    let(:redis_options) { { url: redis_url } }
+    let(:client) { Redis.new(redis_options.freeze) }
 
     before do
       Datadog.configure do |c|
@@ -98,6 +98,8 @@ RSpec.describe 'Redis instrumentation test' do
           port: test_port,
           db: test_database
         )
+
+        expect(span.get_tag('span.kind')).to eq('client')
       end
     end
   end
@@ -105,7 +107,8 @@ RSpec.describe 'Redis instrumentation test' do
   describe 'when multiplexed configuration is provided via hash' do
     let(:default_service_name) { 'default-service' }
     let(:service_name) { 'multiplex-service' }
-    let(:client) { Redis.new(host: test_host, port: test_port, db: test_database) }
+    let(:redis_options) { { host: test_host, port: test_port, db: test_database } }
+    let(:client) { Redis.new(redis_options.freeze) }
 
     before do
       Datadog.configure do |c|
@@ -145,6 +148,8 @@ RSpec.describe 'Redis instrumentation test' do
           port: test_port,
           db: test_database
         )
+
+        expect(span.get_tag('span.kind')).to eq('client')
       end
     end
   end

@@ -51,7 +51,8 @@ module Datadog
         end
       end
 
-      def self.record_via_span(*events)
+      # rubocop:disable Metrics/MethodLength
+      def self.record_via_span(*events) # rubocop:disable Metrics/AbcSize
         events.group_by { |e| e[:trace] }.each do |trace, event_group|
           unless trace
             Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
@@ -59,6 +60,10 @@ module Datadog
           end
 
           trace.keep!
+          trace.set_tag(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+            Datadog::Tracing::Sampling::Ext::Decision::ASM
+          )
 
           # prepare and gather tags to apply
           trace_tags = event_group.each_with_object({}) do |event, tags|
@@ -75,9 +80,7 @@ module Datadog
 
               tags['http.host'] = request.host
               tags['http.useragent'] = request.user_agent
-              tags['network.client.ip'] = request.ip
-
-              # tags['actor.ip'] = request.ip # TODO: uses client IP resolution algorithm
+              tags['network.client.ip'] = request.env['REMOTE_ADDR'] if request.env['REMOTE_ADDR']
             end
 
             if (response = event[:response])
@@ -108,6 +111,7 @@ module Datadog
           end
         end
       end
+      # rubocop:enable Metrics/MethodLength
     end
   end
 end

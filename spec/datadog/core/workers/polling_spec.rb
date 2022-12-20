@@ -25,6 +25,8 @@ RSpec.describe Datadog::Core::Workers::Polling do
       before { allow(worker_spy).to receive(:perform) { sleep 5 } }
 
       context 'by default' do
+        before { skip('TODO: This test sometimes hangs forever and other times flakes. Requires further investigation.') }
+
         it do
           perform
           try_wait_until { worker.running? && worker.run_loop? }

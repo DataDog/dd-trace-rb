@@ -266,7 +266,10 @@ RSpec.describe 'Grape instrumentation' do
           expect(spans[0].status).to eq(1)
           expect(spans[0].get_tag('error.stack')).to_not be_nil
           expect(spans[0].get_tag('error.type')).to_not be_nil
-          expect(spans[0].get_tag('error.msg')).to_not be_nil
+          expect(spans[0].get_tag('error.message')).to_not be_nil,
+            "DEV: 🚧 Flaky test! Please send the maintainers a link for this CI failure. Thank you! 🚧\n" \
+            "response=#{response.inspect}\n" \
+            "spans=#{spans.inspect}\n"
           expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run')
@@ -284,7 +287,7 @@ RSpec.describe 'Grape instrumentation' do
             expect(spans[0].status).to eq(1)
             expect(spans[0].get_tag('error.stack')).to_not be_nil
             expect(spans[0].get_tag('error.type')).to_not be_nil
-            expect(spans[0].get_tag('error.msg')).to_not be_nil
+            expect(spans[0].get_tag('error.message')).to_not be_nil
             expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
             expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
@@ -303,7 +306,7 @@ RSpec.describe 'Grape instrumentation' do
             expect(spans[0].status).to eq(1)
             expect(spans[0].get_tag('error.stack')).to_not be_nil
             expect(spans[0].get_tag('error.type')).to_not be_nil
-            expect(spans[0].get_tag('error.msg')).to_not be_nil
+            expect(spans[0].get_tag('error.message')).to_not be_nil
             expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
             expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
@@ -322,7 +325,7 @@ RSpec.describe 'Grape instrumentation' do
             expect(spans[0]).to_not have_error
             expect(spans[0].get_tag('error.stack')).to be_nil
             expect(spans[0].get_tag('error.type')).to be_nil
-            expect(spans[0].get_tag('error.msg')).to be_nil
+            expect(spans[0].get_tag('error.message')).to be_nil
             expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
             expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
@@ -341,7 +344,7 @@ RSpec.describe 'Grape instrumentation' do
             expect(spans[0].status).to eq(0)
             expect(spans[0].get_tag('error.stack')).to be_nil
             expect(spans[0].get_tag('error.type')).to be_nil
-            expect(spans[0].get_tag('error.msg')).to be_nil
+            expect(spans[0].get_tag('error.message')).to be_nil
             expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
             expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')

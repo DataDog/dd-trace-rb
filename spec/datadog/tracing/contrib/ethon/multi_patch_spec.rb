@@ -6,6 +6,7 @@ require 'ethon'
 require 'datadog/tracing/contrib/ethon/multi_patch'
 require 'datadog/tracing/contrib/ethon/shared_examples'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
 
@@ -93,6 +94,11 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
           expect(multi_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('multi.request')
         end
 
+        it 'have `client` as `span.kind`' do
+          expect(multi_span.get_tag('span.kind')).to eq('client')
+          expect(easy_span.get_tag('span.kind')).to eq('client')
+        end
+
         it 'makes multi span a parent for easy span' do
           expect(easy_span.parent_id).to eq(multi_span.span_id)
         end
@@ -108,6 +114,10 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
           let(:span) { multi_span }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Ethon::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Ethon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        end
+
+        it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME' do
+          let(:span) { multi_span }
         end
       end
 

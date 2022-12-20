@@ -32,10 +32,13 @@ module Datadog
             option(name) do |o|
               o.default { settings_class.new }
               o.lazy
+
               o.resetter do |value|
                 value.reset! if value.respond_to?(:reset!)
                 value
               end
+
+              o.type settings_class
             end
           end
 

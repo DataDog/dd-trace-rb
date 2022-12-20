@@ -8,6 +8,7 @@ module Datadog
         # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
         module Ext
           ENV_ENABLED = 'DD_TRACE_REDIS_ENABLED'.freeze
+          ENV_SERVICE_NAME = 'DD_TRACE_REDIS_SERVICE_NAME'.freeze
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_REDIS_ANALYTICS_ENABLED'.freeze
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_REDIS_ANALYTICS_SAMPLE_RATE'.freeze
           ENV_COMMAND_ARGS = 'DD_REDIS_COMMAND_ARGS'.freeze

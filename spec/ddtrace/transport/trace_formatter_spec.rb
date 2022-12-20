@@ -4,11 +4,12 @@ require 'spec_helper'
 
 require 'datadog/core/environment/identity'
 require 'datadog/core/runtime/ext'
-require 'datadog/core/utils'
+
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/sampling/ext'
 require 'datadog/tracing/span'
 require 'datadog/tracing/trace_segment'
+require 'datadog/tracing/utils'
 require 'ddtrace/transport/trace_formatter'
 
 RSpec.describe Datadog::Transport::TraceFormatter do
@@ -56,7 +57,8 @@ RSpec.describe Datadog::Transport::TraceFormatter do
     let(:trace_tags) do
       {
         'foo' => 'bar',
-        'baz' => 42
+        'baz' => 42,
+        '_dd.p.dm' => '-1',
       }
     end
   end
@@ -68,7 +70,13 @@ RSpec.describe Datadog::Transport::TraceFormatter do
   end
 
   shared_context 'missing root span' do
-    let(:trace) { Datadog::Tracing::TraceSegment.new(spans, root_span_id: Datadog::Core::Utils.next_id, **trace_options) }
+    let(:trace) do
+      Datadog::Tracing::TraceSegment.new(
+        spans,
+        root_span_id: Datadog::Tracing::Utils.next_id,
+        **trace_options
+      )
+    end
     let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
     let(:root_span) { spans.last }
   end
@@ -119,7 +127,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::NET::TAG_HOSTNAME => nil,
             Datadog::Core::Runtime::Ext::TAG_LANG => nil,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN => nil,
-            Datadog::Core::Runtime::Ext::TAG_PID => nil,
+            Datadog::Core::Runtime::Ext::TAG_PROCESS_ID => nil,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE => nil,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => nil,
             Datadog::Core::Runtime::Ext::TAG_ID => nil,
@@ -137,27 +145,13 @@ RSpec.describe Datadog::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::NET::TAG_HOSTNAME => hostname,
             Datadog::Core::Runtime::Ext::TAG_LANG => lang,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN => origin,
-            Datadog::Core::Runtime::Ext::TAG_PID => process_id,
+            'process_id' => process_id,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE => rate_limiter_rate,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => rule_sample_rate,
             Datadog::Core::Runtime::Ext::TAG_ID => runtime_id,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority,
           )
-        end
-
-        context 'but peer.service is set' do
-          before do
-            allow(root_span).to receive(:get_tag).and_call_original
-            allow(root_span).to receive(:get_tag)
-              .with(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)
-              .and_return('a-peer-service')
-          end
-
-          it 'does not set language tag' do
-            format!
-            expect(root_span).to have_metadata(Datadog::Core::Runtime::Ext::TAG_LANG => nil)
-          end
         end
       end
 
@@ -172,7 +166,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         context 'meta' do
           it 'sets root span tags from trace tags' do
             format!
-            expect(root_span.meta).to include({ 'foo' => 'bar' })
+            expect(root_span.meta).to include({ 'foo' => 'bar', '_dd.p.dm' => '-1' })
           end
         end
       end
@@ -183,7 +177,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         end
 
         context 'meta' do
-          it { expect(root_span.meta).to_not include({ 'foo' => 'bar' }) }
+          it { expect(root_span.meta).to_not include({ 'foo' => 'bar', '_dd.p.dm' => '-1' }) }
         end
       end
 

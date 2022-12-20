@@ -4,7 +4,15 @@
 
 typedef struct sampling_buffer sampling_buffer;
 
-void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddog_Slice_i64 metric_values, ddog_Slice_label labels);
-void sample_thread_in_gc(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddog_Slice_i64 metric_values, ddog_Slice_label labels);
+typedef enum { SAMPLE_REGULAR, SAMPLE_IN_GC } sample_type;
+
+void sample_thread(
+  VALUE thread,
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  ddog_Slice_i64 metric_values,
+  ddog_Slice_label labels,
+  sample_type type
+);
 sampling_buffer *sampling_buffer_new(unsigned int max_frames);
 void sampling_buffer_free(sampling_buffer *buffer);

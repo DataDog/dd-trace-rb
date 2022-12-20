@@ -70,6 +70,11 @@ module Datadog
         !duration_below_threshold?(last_flush_finish_at || created_at, time_provider.now.utc)
       end
 
+      def reset_after_fork
+        @last_flush_finish_at = time_provider.now.utc
+        nil
+      end
+
       private
 
       def duration_below_threshold?(start, finish)

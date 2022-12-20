@@ -45,6 +45,7 @@ module Datadog
             # Tag this span as belonging to Rack
             frontend_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             frontend_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
+            frontend_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
 
             # Set peer service (so its not believed to belong to this app)
             frontend_span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
@@ -56,16 +57,18 @@ module Datadog
             # Find out if this is rack within rack
             previous_request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
 
+            return @app.call(env) if previous_request_span
+
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
-            if configuration[:distributed_tracing] && previous_request_span.nil?
+            if configuration[:distributed_tracing]
               trace_digest = Tracing::Propagation::HTTP.extract(env)
               Tracing.continue_trace!(trace_digest)
             end
 
             # Create a root Span to keep track of frontend web servers
             # (i.e. Apache, nginx) if the header is properly set
-            frontend_span = compute_queue_time(env) if previous_request_span.nil?
+            frontend_span = compute_queue_time(env)
 
             trace_options = { span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
             trace_options[:service] = configuration[:service_name] if configuration[:service_name]
@@ -155,6 +158,7 @@ module Datadog
 
             request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+            request_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -272,10 +276,12 @@ module Datadog
 
                          query_string.empty? ? path : "#{path}?#{query_string}"
                        else
-                         request_uri
+                         # normally REQUEST_URI starts at the path, but it
+                         # might contain the full URL in some cases (e.g WEBrick)
+                         request_uri.sub(/^#{base_url}/, '')
                        end
 
-            ::URI.join(base_url, fullpath).to_s
+            base_url + fullpath
           end
 
           def parse_user_agent_header(headers)

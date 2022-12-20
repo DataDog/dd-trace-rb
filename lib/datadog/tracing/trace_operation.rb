@@ -4,12 +4,13 @@ require_relative '../core'
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
 
-require_relative 'sampling/ext'
 require_relative 'event'
-require_relative 'span_operation'
-require_relative 'trace_segment'
-require_relative 'trace_digest'
 require_relative 'metadata/tagging'
+require_relative 'sampling/ext'
+require_relative 'span_operation'
+require_relative 'trace_digest'
+require_relative 'trace_segment'
+require_relative 'utils'
 
 module Datadog
   module Tracing
@@ -70,7 +71,7 @@ module Datadog
         metrics: nil
       )
         # Attributes
-        @id = id || Core::Utils.next_id
+        @id = id || Tracing::Utils.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? ? true : sampled
@@ -133,11 +134,13 @@ module Datadog
       def keep!
         self.sampled = true
         self.sampling_priority = Sampling::Ext::Priority::USER_KEEP
+        set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
       end
 
       def reject!
         self.sampled = false
         self.sampling_priority = Sampling::Ext::Priority::USER_REJECT
+        set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
       end
 
       def name
@@ -278,6 +281,7 @@ module Datadog
           span_resource: (@active_span && @active_span.resource),
           span_service: (@active_span && @active_span.service),
           span_type: (@active_span && @active_span.type),
+          trace_distributed_tags: distributed_tags,
           trace_hostname: @hostname,
           trace_id: @id,
           trace_name: name,
@@ -451,6 +455,13 @@ module Datadog
           metrics: metrics,
           root_span_id: !partial ? root_span && root_span.id : nil
         )
+      end
+
+      # Returns tracer tags that will be propagated if this span's context
+      # is exported through {.to_digest}.
+      # @return [Hash] key value pairs of distributed tags
+      def distributed_tags
+        meta.select { |name, _| name.start_with?(Metadata::Ext::Distributed::TAGS_PREFIX) }
       end
     end
   end

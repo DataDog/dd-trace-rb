@@ -128,6 +128,12 @@ module Datadog
           @options[:ruleset]
         end
 
+        # EXPERIMENTAL: This configurable is not meant to be publicly used, but
+        #               is very useful for testing. It may change at any point in time.
+        def ip_denylist
+          @options[:ip_denylist]
+        end
+
         def waf_timeout
           @options[:waf_timeout]
         end

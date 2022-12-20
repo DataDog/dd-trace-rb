@@ -7,10 +7,11 @@ require_relative '../core/environment/identity'
 require_relative '../core/utils'
 require_relative '../core/utils/time'
 
-require_relative 'metadata/ext'
 require_relative 'event'
-require_relative 'span'
 require_relative 'metadata'
+require_relative 'metadata/ext'
+require_relative 'span'
+require_relative 'utils'
 
 module Datadog
   module Tracing
@@ -61,9 +62,9 @@ module Datadog
         self.type = type
         self.resource = resource
 
-        @id = Core::Utils.next_id
+        @id = Tracing::Utils.next_id
         @parent_id = parent_id || 0
-        @trace_id = trace_id || Core::Utils.next_id
+        @trace_id = trace_id || Tracing::Utils.next_id
 
         @status = 0
 

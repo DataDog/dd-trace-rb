@@ -5,28 +5,20 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'time'
 require 'redis'
-require 'hiredis'
 require 'ddtrace'
 
-RSpec.describe 'Redis mini app test' do
+RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0') do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   before do
     Datadog.configure { |c| c.tracing.instrument :redis }
 
-    # Configure client instance with custom options
-    Datadog.configure_onto(client, service_name: 'test-service')
+    # Configure redis instance with custom options
+    Datadog.configure_onto(redis, service_name: 'test-service')
   end
 
-  let(:client) do
-    if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('4.0.0')
-      redis._client
-    else
-      redis.client
-    end
-  end
-
-  let(:redis) { Redis.new(host: host, port: port) }
+  let(:redis_options) { { host: host, port: port } }
+  let(:redis) { Redis.new(redis_options.freeze) }
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
@@ -89,12 +81,14 @@ RSpec.describe 'Redis mini app test' do
         expect(redis_cmd1_span.parent_id).to eq(process_span.span_id)
         expect(redis_cmd1_span.trace_id).to eq(publish_span.trace_id)
         expect(redis_cmd1_span.get_tag('db.system')).to eq('redis')
+        expect(redis_cmd2_span.get_tag('span.kind')).to eq('client')
 
         expect(redis_cmd2_span.name).to eq('redis.command')
         expect(redis_cmd2_span.service).to eq('test-service')
         expect(redis_cmd2_span.parent_id).to eq(process_span.span_id)
         expect(redis_cmd2_span.trace_id).to eq(publish_span.trace_id)
         expect(redis_cmd2_span.get_tag('db.system')).to eq('redis')
+        expect(redis_cmd2_span.get_tag('span.kind')).to eq('client')
       end
 
       it_behaves_like 'a peer service span' do

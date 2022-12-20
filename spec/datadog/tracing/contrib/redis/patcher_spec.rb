@@ -1,15 +1,23 @@
-# typed: false
+# typed: ignore
 
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+
+require 'datadog/tracing/contrib/redis/patcher'
 
 RSpec.describe Datadog::Tracing::Contrib::Redis::Patcher do
-  describe '.patch' do
-    it 'adds Instrumentation methods to ancestors of Redis class' do
-      described_class.patch
+  describe '.default_tags' do
+    it do
+      result = described_class.default_tags
 
-      expect(Redis::Client.ancestors).to include(Datadog::Tracing::Contrib::Redis::Instrumentation)
-      expect(Redis::Client.ancestors).to include(Datadog::Tracing::Contrib::Redis::Instrumentation)
+      expect(result).to include(start_with('patcher:'))
+
+      if Datadog::Tracing::Contrib::Redis::Integration.redis_version
+        expect(result).to include(start_with('target_redis_version:'))
+      end
+
+      if Datadog::Tracing::Contrib::Redis::Integration.redis_client_version
+        expect(result).to include(start_with('target_redis_client_version:'))
+      end
     end
   end
 end

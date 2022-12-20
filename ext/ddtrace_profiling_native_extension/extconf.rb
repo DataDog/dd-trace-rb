@@ -67,6 +67,10 @@ $stderr.puts(
 # that may fail on an environment not properly setup for building Ruby extensions.
 require 'mkmf'
 
+Logging.message(" [ddtrace] Using compiler:\n")
+xsystem("#{CONFIG['CC']} -v")
+Logging.message(" [ddtrace] End of compiler information\n")
+
 # mkmf on modern Rubies actually has an append_cflags that does something similar
 # (see https://github.com/ruby/ruby/pull/5760), but as usual we need a bit more boilerplate to deal with legacy Rubies
 def add_compiler_flag(flag)
@@ -77,13 +81,17 @@ def add_compiler_flag(flag)
   end
 end
 
+# Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
+# But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
+add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true'
+
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase
 # * by msgpack, another ddtrace dependency
 #   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
 add_compiler_flag '-std=gnu99'
 
-# Gets really noisy when we include the MJIT header, let's omit it
+# Gets really noisy when we include the MJIT header, let's omit it (TODO: Use #pragma GCC diagnostic instead?)
 add_compiler_flag '-Wno-unused-function'
 
 # Allow defining variables at any point in a function
@@ -104,6 +112,9 @@ add_compiler_flag '-Wunused-parameter'
 # For more details see https://gcc.gnu.org/wiki/Visibility
 add_compiler_flag '-fvisibility=hidden'
 
+# Avoid legacy C definitions
+add_compiler_flag '-Wold-style-definition'
+
 # Enable all other compiler warnings
 add_compiler_flag '-Wall'
 add_compiler_flag '-Wextra'
@@ -122,11 +133,26 @@ end
 # On older Rubies, there was no struct rb_native_thread. See private_vm_api_acccess.c for details.
 $defs << '-DNO_RB_NATIVE_THREAD' if RUBY_VERSION < '3.2'
 
+# On older Rubies, there was no struct rb_thread_sched (it was struct rb_global_vm_lock_struct)
+$defs << '-DNO_RB_THREAD_SCHED' if RUBY_VERSION < '3.2'
+
+# On older Rubies, there was no tid member in the internal thread structure
+$defs << '-DNO_THREAD_TID' if RUBY_VERSION < '3.1'
+
 # On older Rubies, we need to use a backported version of this function. See private_vm_api_access.h for details.
 $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
 
+# On older Rubies, there are no Ractors
+$defs << '-DNO_RACTORS' if RUBY_VERSION < '3'
+
+# On older Rubies, rb_global_vm_lock_struct did not include the owner field
+$defs << '-DNO_GVL_OWNER' if RUBY_VERSION < '2.6'
+
 # On older Rubies, we need to use rb_thread_t instead of rb_execution_context_t
 $defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT' if RUBY_VERSION < '2.5'
+
+# On older Rubies, extensions can't use GET_VM()
+$defs << '-DNO_GET_VM' if RUBY_VERSION < '2.5'
 
 # On older Rubies...
 if RUBY_VERSION < '2.4'
@@ -144,8 +170,6 @@ if RUBY_VERSION < '2.3'
   $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
   # ... you couldn't name threads
   $defs << '-DNO_THREAD_NAMES'
-  # ...the ruby_thread_has_gvl_p function was not exposed to users outside of the VM
-  $defs << '-DNO_THREAD_HAS_GVL'
 end
 
 # If we got here, libdatadog is available and loaded
@@ -163,6 +187,10 @@ unless pkg_config('datadog_profiling_with_rpath')
   )
 end
 
+unless have_type('atomic_int', ['stdatomic.h'])
+  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILER_ATOMIC_MISSING)
+end
+
 # See comments on the helper method being used for why we need to additionally set this.
 # The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
 # experimentation. We need to get these special characters across a lot of tools untouched...
@@ -170,10 +198,6 @@ $LDFLAGS += \
   ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/' \
   "#{Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder}"
 Logging.message(" [ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
-
-Logging.message(" [ddtrace] Using compiler:\n")
-xsystem("#{CONFIG['CC']} --version")
-Logging.message(" [ddtrace] End of compiler information\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that

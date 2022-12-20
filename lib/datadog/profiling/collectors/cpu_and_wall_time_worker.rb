@@ -18,19 +18,26 @@ module Datadog
         def initialize(
           recorder:,
           max_frames:,
-          cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames)
+          tracer:,
+          gc_profiling_enabled:,
+          cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames, tracer: tracer),
+          idle_sampling_helper: IdleSamplingHelper.new
         )
-          self.class._native_initialize(self, cpu_and_wall_time_collector)
+          self.class._native_initialize(self, cpu_and_wall_time_collector, gc_profiling_enabled, idle_sampling_helper)
           @worker_thread = nil
           @failure_exception = nil
           @start_stop_mutex = Mutex.new
+          @idle_sampling_helper = idle_sampling_helper
         end
 
         def start
           @start_stop_mutex.synchronize do
-            return if @worker_thread
+            return if @worker_thread && @worker_thread.alive?
 
             Datadog.logger.debug { "Starting thread for: #{self}" }
+
+            @idle_sampling_helper.start
+
             @worker_thread = Thread.new do
               begin
                 Thread.current.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
@@ -41,7 +48,8 @@ module Datadog
               rescue Exception => e # rubocop:disable Lint/RescueException
                 @failure_exception = e
                 Datadog.logger.warn(
-                  "Worker thread error. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+                  'CpuAndWallTimeWorker thread error. ' \
+                  "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
                 )
               end
             end
@@ -58,15 +66,24 @@ module Datadog
           @start_stop_mutex.synchronize do
             Datadog.logger.debug('Requesting CpuAndWallTimeWorker thread shut down')
 
+            @idle_sampling_helper.stop
+
             return unless @worker_thread
 
-            @worker_thread.kill
-            self.class._native_stop(self)
+            self.class._native_stop(self, @worker_thread)
 
             @worker_thread.join
             @worker_thread = nil
             @failure_exception = nil
           end
+        end
+
+        def reset_after_fork
+          self.class._native_reset_after_fork(self)
+        end
+
+        def stats
+          self.class._native_stats(self)
         end
       end
     end

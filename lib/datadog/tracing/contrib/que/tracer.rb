@@ -33,6 +33,8 @@ module Datadog
               request_span.set_tag(Ext::TAG_JOB_ARGS, job.que_attrs[:args]) if configuration[:tag_args]
               request_span.set_tag(Ext::TAG_JOB_DATA, job.que_attrs[:data]) if configuration[:tag_data]
 
+              request_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER)
+
               set_sample_rate(request_span)
               Contrib::Analytics.set_measured(request_span)
 

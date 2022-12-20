@@ -914,8 +914,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'with service rates returned by response' do
           let(:service_rates) { double('service rates') }
 
-          it 'updates sampler with service rates' do
-            expect(sampler).to receive(:update).with(service_rates)
+          it 'updates sampler with service rates and set decision to AGENT_RATE' do
+            expect(sampler).to receive(:update).with(service_rates, decision: '-1')
             call
           end
         end
@@ -1012,6 +1012,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       context 'when force_enable_new_profiler is enabled' do
         before do
           settings.profiling.advanced.force_enable_new_profiler = true
+          allow(Datadog.logger).to receive(:warn)
         end
 
         it 'does not initialize the OldStack collector' do
@@ -1030,9 +1031,69 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             recorder: instance_of(Datadog::Profiling::StackRecorder),
             max_frames: settings.profiling.advanced.max_frames,
+            tracer: tracer,
+            gc_profiling_enabled: anything,
           )
 
           build_profiler
+        end
+
+        context 'on Ruby 2.6 and above' do
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '2.6.' }
+
+          it 'logs a warning message mentioning that profiler has been force-enabled' do
+            expect(Datadog.logger).to receive(:warn).with(
+              /New Ruby profiler has been force-enabled. This feature is in beta state/
+            )
+
+            build_profiler
+          end
+        end
+
+        context 'on Ruby 2.5 and below' do
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '2.6.' }
+
+          it 'logs a warning message mentioning that profiler has been force-enabled AND that it may cause issues' do
+            expect(Datadog.logger).to receive(:warn).with(
+              /New Ruby profiler has been force-enabled on a legacy Ruby version \(< 2.6\). This is not recommended/
+            )
+
+            build_profiler
+          end
+        end
+
+        it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to false' do
+          expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+            gc_profiling_enabled: false,
+          )
+
+          build_profiler
+        end
+
+        context 'when force_enable_gc_profiling is enabled' do
+          before do
+            settings.profiling.advanced.force_enable_gc_profiling = true
+
+            allow(Datadog.logger).to receive(:debug)
+          end
+
+          it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to true' do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+              gc_profiling_enabled: true,
+            )
+
+            build_profiler
+          end
+
+          context 'on Ruby 3.x' do
+            before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3.0' }
+
+            it 'logs a debug message' do
+              expect(Datadog.logger).to receive(:debug).with(/Garbage Collection force enabled/)
+
+              build_profiler
+            end
+          end
         end
 
         it 'sets up the Profiler with the CpuAndWallTimeWorker collector' do

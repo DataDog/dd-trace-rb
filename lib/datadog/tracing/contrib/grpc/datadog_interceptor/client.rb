@@ -2,6 +2,7 @@
 
 require_relative '../../../../tracing'
 require_relative '../../../metadata/ext'
+require_relative '../distributed/propagation'
 require_relative '../../analytics'
 require_relative '../ext'
 require_relative '../../ext'
@@ -39,6 +40,8 @@ module Datadog
 
               span.set_tag(Contrib::Ext::RPC::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
+              span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CLIENT)
 
@@ -53,7 +56,7 @@ module Datadog
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-              Tracing::Propagation::GRPC.inject!(trace, metadata) if distributed_tracing?
+              Distributed::Propagation::INSTANCE.inject!(trace, metadata) if distributed_tracing?
             rescue StandardError => e
               Datadog.logger.debug("GRPC client trace failed: #{e}")
             end

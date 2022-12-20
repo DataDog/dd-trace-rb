@@ -67,11 +67,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect { serialize }.to change { active_slot }.from(1).to(2)
         end
 
-        it 'locks the slot one mutex and keeps it locked' do
+        it 'locks the slot one mutex' do
           expect { serialize }.to change { slot_one_mutex_locked? }.from(false).to(true)
         end
 
-        it 'unlocks the slot two mutex and keeps it unlocked' do
+        it 'unlocks the slot two mutex' do
           expect { serialize }.to change { slot_two_mutex_locked? }.from(true).to(false)
         end
       end
@@ -86,11 +86,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect { serialize }.to change { active_slot }.from(2).to(1)
         end
 
-        it 'unlocks the slot one mutex and keeps it unlocked' do
+        it 'unlocks the slot one mutex' do
           expect { serialize }.to change { slot_one_mutex_locked? }.from(true).to(false)
         end
 
-        it 'locks the slow two mutex and keeps it locked' do
+        it 'locks the slot two mutex' do
           expect { serialize }.to change { slot_two_mutex_locked? }.from(false).to(true)
         end
       end
@@ -98,9 +98,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     context 'when the profile is empty' do
       it 'uses the current time as the start and finish time' do
-        before_serialize = Time.now
+        before_serialize = Time.now.utc
         serialize
-        after_serialize = Time.now
+        after_serialize = Time.now.utc
 
         expect(start).to be_between(before_serialize, after_serialize)
         expect(finish).to be_between(before_serialize, after_serialize)
@@ -137,8 +137,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
 
     context 'when profile has a sample' do
-      let(:collectors_stack) { Datadog::Profiling::Collectors::Stack.new }
-
       let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
 
@@ -176,6 +174,44 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
+    describe 'trace endpoint behavior' do
+      let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 1, 'wall-time' => 789 } }
+      let(:samples) { samples_from_pprof(encoded_pprof) }
+
+      it 'includes the endpoint for all matching samples taken before and after recording the endpoint' do
+        local_root_span_id_with_endpoint = { 'local root span id' => '123' }
+        local_root_span_id_without_endpoint = { 'local root span id' => '456' }
+
+        sample = proc do |labels = {}|
+          Datadog::Profiling::Collectors::Stack::Testing
+            ._native_sample(Thread.current, stack_recorder, metric_values, labels.to_a, 400, false)
+        end
+
+        sample.call
+        sample.call(local_root_span_id_without_endpoint)
+        sample.call(local_root_span_id_with_endpoint)
+
+        described_class::Testing._native_record_endpoint(stack_recorder, '123', 'recorded-endpoint')
+
+        sample.call
+        sample.call(local_root_span_id_without_endpoint)
+        sample.call(local_root_span_id_with_endpoint)
+
+        expect(samples).to have(6).items
+
+        # Other samples have not been changed
+        expect(samples.select { |it| it[:labels].empty? }).to have(2).items
+        expect(samples.select { |it| it[:labels] == { :'local root span id' => '456' } }).to have(2).items
+
+        # Matching samples taken before and after recording the endpoint have been changed
+        expect(
+          samples.select do |it|
+            it[:labels] == { :'local root span id' => '123', :'trace endpoint' => 'recorded-endpoint' }
+          end
+        ).to have(2).items
+      end
+    end
+
     context 'when there is a failure during serialization' do
       before do
         allow(Datadog.logger).to receive(:error)
@@ -191,6 +227,118 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         serialize
       end
+    end
+
+    context 'when serializing multiple times in a row' do
+      it 'sets the start time of a profile to be >= the finish time of the previous profile' do
+        start1, finish1, = stack_recorder.serialize
+        start2, finish2, = stack_recorder.serialize
+        start3, finish3, = stack_recorder.serialize
+        start4, finish4, = stack_recorder.serialize
+
+        expect(start1).to be <= finish1
+        expect(finish1).to be <= start2
+        expect(finish2).to be <= start3
+        expect(finish3).to be <= start4
+        expect(start4).to be <= finish4
+      end
+
+      it 'sets the start time of the next profile to be >= the previous serialization call' do
+        stack_recorder
+
+        before_serialize = Time.now.utc
+
+        stack_recorder.serialize
+        start, = stack_recorder.serialize
+
+        expect(start).to be >= before_serialize
+      end
+    end
+  end
+
+  describe '#serialize!' do
+    subject(:serialize!) { stack_recorder.serialize! }
+
+    context 'when serialization succeeds' do
+      before do
+        expect(described_class).to receive(:_native_serialize).and_return([:ok, %w[start finish serialized-data]])
+      end
+
+      it { is_expected.to eq('serialized-data') }
+    end
+
+    context 'when serialization fails' do
+      before { expect(described_class).to receive(:_native_serialize).and_return([:error, 'test error message']) }
+
+      it { expect { serialize! }.to raise_error(RuntimeError, /test error message/) }
+    end
+  end
+
+  describe '#reset_after_fork' do
+    subject(:reset_after_fork) { stack_recorder.reset_after_fork }
+
+    context 'when slot one was the active slot' do
+      it 'keeps slot one as the active slot' do
+        expect(active_slot).to be 1
+      end
+
+      it 'keeps the slot one mutex unlocked' do
+        expect(slot_one_mutex_locked?).to be false
+      end
+
+      it 'keeps the slot two mutex locked' do
+        expect(slot_two_mutex_locked?).to be true
+      end
+    end
+
+    context 'when slot two was the active slot' do
+      before { stack_recorder.serialize }
+
+      it 'sets slot one as the active slot' do
+        expect { reset_after_fork }.to change { active_slot }.from(2).to(1)
+      end
+
+      it 'unlocks the slot one mutex' do
+        expect { reset_after_fork }.to change { slot_one_mutex_locked? }.from(true).to(false)
+      end
+
+      it 'locks the slot two mutex' do
+        expect { reset_after_fork }.to change { slot_two_mutex_locked? }.from(false).to(true)
+      end
+    end
+
+    context 'when profile has a sample' do
+      let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
+
+      it 'makes the next calls to serialize return no data' do
+        # Add some data
+        Datadog::Profiling::Collectors::Stack::Testing
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, 400, false)
+
+        # Sanity check: validate that data is there, to avoid the test passing because of other issues
+        sanity_check_samples = samples_from_pprof(stack_recorder.serialize.last)
+        expect(sanity_check_samples.size).to be 1
+
+        # Add some data, again
+        Datadog::Profiling::Collectors::Stack::Testing
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, 400, false)
+
+        reset_after_fork
+
+        # Test twice in a row to validate that both profile slots are empty
+        expect(samples_from_pprof(stack_recorder.serialize.last)).to be_empty
+        expect(samples_from_pprof(stack_recorder.serialize.last)).to be_empty
+      end
+    end
+
+    it 'sets the start_time of the active profile to the time of the reset_after_fork' do
+      stack_recorder # Initialize instance
+
+      now = Time.now
+      reset_after_fork
+
+      expect(stack_recorder.serialize.first).to be >= now
     end
   end
 end

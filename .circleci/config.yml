@@ -7,8 +7,6 @@ job_defaults: &job_defaults
   # TODO: Changing this requires rebuilding all docker images.
   working_directory: /app
   shell: /bin/bash --login
-  environment:
-    - SPEC_OPTS: --format documentation # Ensures it's possible to debug hung tests in CI
 
 test_containers:
   - &job_parameters
@@ -36,6 +34,8 @@ test_containers:
     # issue when you connect to the testing container via ssh, then try lowering this file a notch.
     GRPC_RUBY_BUILD_PROCS: 6
     DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+    TEST_REDIS_OLD_HOST: redis_old
+    DDTRACE_CI: true
   - &container_parameters_environment
     - *container_base_environment
     - TEST_DATADOG_INTEGRATION: 1
@@ -76,8 +76,12 @@ test_containers:
       - ES_JAVA_OPTS=-Xms750m -Xmx750m
   - &elasticsearch_port 9200
   - &container_redis
-    image: redis:3.0
+    image: redis:6.2
   - &redis_port 6379
+  - &container_redis_old # `qless` is still using this older version of redis
+    image: redis:3.0
+    name: redis_old
+  - &redis_old_port 6379
   - &container_mongo
     image: mongo:3.5
   - &mongo_port 27017
@@ -90,6 +94,7 @@ test_containers:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
       - DD_API_KEY=00000000000000000000000000000000
+      - DD_HOSTNAME=dd-trace-rb-ci
   - &agent_port 8126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
@@ -161,11 +166,15 @@ step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests
     command: |
+        # Ensures it's possible to debug hung tests in CI
+        echo "--format=documentation" >> .rspec-local
+
+        # Configure RSpec metadata exporter
         echo "
-        --format=progress
         --format=RspecJunitFormatter
         --out='/tmp/rspec/-<%= ARGV.join.gsub('/', '-') %>.xml'
-        " > .rspec-local # Configure RSpec metadata exporter
+        " >> .rspec-local
+
         bundle exec rake ci
 step_release_docs: &step_release_docs
   run:
@@ -197,9 +206,9 @@ orbs:
           - *step_compute_bundle_checksum
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}
           - *check_exact_bundle_cache_hit
           - *step_bundle_install
           - when:
@@ -219,7 +228,7 @@ orbs:
               paths:
                 - /app
           - save_cache:
-              key: bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+              key: bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
               paths:
                 - /usr/local/bundle
       build_and_test_integration:
@@ -260,6 +269,7 @@ orbs:
           - *container_mysql
           - *container_elasticsearch
           - *container_redis
+          - *container_redis_old
           - *container_mongo
           - *container_memcached
           - *container_agent
@@ -270,7 +280,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - run:
               name: Set coverage report directory
               command: |
@@ -287,6 +297,8 @@ orbs:
               port: *elasticsearch_port
           - docker-wait:
               port: *redis_port
+          - docker-wait:
+              port: *redis_old_port
           - docker-wait:
               port: *mongo_port
           - docker-wait:
@@ -313,7 +325,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - run:
               name: Run Benchmark
               command: bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
@@ -328,7 +340,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - *step_rubocop
       sorbet_type_checker:
         <<: *test_job_default
@@ -338,7 +350,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - *step_sorbet_type_checker
       coverage:
         <<: *test_job_default
@@ -348,7 +360,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - attach_workspace:
               at: /tmp/workspace
           - run:
@@ -371,7 +383,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - attach_workspace:
               at: /tmp/workspace
           - run:
@@ -409,7 +421,7 @@ jobs:
     docker:
       - environment:
           *container_base_environment
-        image: ivoanjo/docker-library:ddtrace_rb_2_5_9
+        image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
     resource_class: small
     steps:
       - checkout
@@ -431,7 +443,7 @@ jobs:
     docker:
       - environment:
           *container_base_environment
-        image: ivoanjo/docker-library:ddtrace_rb_2_5_9
+        image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
     resource_class: small
     steps:
       - run:
@@ -469,77 +481,77 @@ job_configuration:
   # MRI
   - &config-2_1
     <<: *filters_all_branches_and_tags
-    ruby_version: '2.1'
-    image: ivoanjo/docker-library:ddtrace_rb_2_1_10
+    ruby_version: 'ruby-2.1.10'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.1.10-dd
     resource_class_to_use: medium+
   - &config-2_2
     <<: *filters_all_branches_and_tags
-    ruby_version: '2.2'
-    image: ivoanjo/docker-library:ddtrace_rb_2_2_10
+    ruby_version: 'ruby-2.2.10'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.2.10-dd
     resource_class_to_use: medium+
   - &config-2_3
     <<: *filters_all_branches_and_tags
-    ruby_version: '2.3'
-    image: ivoanjo/docker-library:ddtrace_rb_2_3_8
+    ruby_version: 'ruby-2.3.8'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.3.8-dd
     resource_class_to_use: medium+
   - &config-2_4
     <<: *filters_all_branches_and_tags
-    ruby_version: '2.4'
-    image: ivoanjo/docker-library:ddtrace_rb_2_4_10
+    ruby_version: 'ruby-2.4.10'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.4.10-dd
     resource_class_to_use: medium+
   - &config-2_5
     <<: *filters_all_branches_and_tags
-    ruby_version: '2.5'
-    image: ivoanjo/docker-library:ddtrace_rb_2_5_9
+    ruby_version: 'ruby-2.5.9'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
     resource_class_to_use: medium+
   - &config-2_6
     <<: *filters_all_branches_and_tags
-    ruby_version: '2.6'
-    image: ivoanjo/docker-library:ddtrace_rb_2_6_7
+    ruby_version: 'ruby-2.6.10'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.10-dd
     resource_class_to_use: medium+
   - &config-2_7
     <<: *filters_all_branches_and_tags
-    ruby_version: '2.7'
-    image: ivoanjo/docker-library:ddtrace_rb_2_7_3
+    ruby_version: 'ruby-2.7.6'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.6-dd
     resource_class_to_use: medium+
   - &config-2_7-small
     <<: *config-2_7
     resource_class_to_use: small
   - &config-3_0
     <<: *filters_all_branches_and_tags
-    ruby_version: '3.0'
-    image: ivoanjo/docker-library:ddtrace_rb_3_0_3
+    ruby_version: 'ruby-3.0.4'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.4-dd
     resource_class_to_use: medium+
   - &config-3_1
     <<: *filters_all_branches_and_tags
-    ruby_version: '3.1'
-    image: ivoanjo/docker-library:ddtrace_rb_3_1_1
+    ruby_version: 'ruby-3.1.2'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.2-dd
     resource_class_to_use: medium+
   - &config-3_2
     <<: *filters_all_branches_and_tags
-    ruby_version: '3.2'
-    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview2
+    ruby_version: 'ruby-3.2.0-preview3'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-preview3-dd
     resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
   - &config-jruby-9_2_8_0 # Test with older 9.2 release because 9.2.9.0 changed behavior, see https://github.com/DataDog/dd-trace-rb/pull/1409
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2.8.0'
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_8_0
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.8.0-dd
     resource_class_to_use: medium+
-  - &config-jruby-9_2-latest # More recent release of 9.2
+  - &config-jruby-9_2 # More recent release of 9.2
     <<: *filters_all_branches_and_tags
-    ruby_version: 'jruby-9.2-latest'
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_18_0
+    ruby_version: 'jruby-9.2.21.0'
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
     resource_class_to_use: medium+
-  - &config-jruby-9_3-latest
+  - &config-jruby-9_3
     <<: *filters_all_branches_and_tags
-    ruby_version: 'jruby-9.3-latest'
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_3_4_0
+    ruby_version: 'jruby-9.3.9.0'
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.9.0-dd
     resource_class_to_use: medium+
-  - &config-truffleruby-21_0_0
+  - &config-truffleruby-22_3_0
     <<: *filters_all_branches_and_tags
-    ruby_version: 'truffleruby-21.0.0'
-    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_0_0
+    ruby_version: 'truffleruby-22.3.0'
+    image: ghcr.io/datadog/dd-trace-rb/truffleruby:22.3.0-dd
     resource_class_to_use: medium+
 
 workflows:
@@ -573,9 +585,9 @@ workflows:
             #- test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
-            - test-jruby-9.2-latest
-            - test-jruby-9.3-latest
-            # soon™️ - test-truffleruby-21.0.0
+            - test-jruby-9.2
+            - test-jruby-9.3
+            # soon™️ - test-truffleruby-22.3.0
       - orb/changelog:
           <<: *config-2_7-small
           name: changelog
@@ -734,31 +746,31 @@ workflows:
           requires:
             - build-jruby-9.2.8.0
       - orb/build:
-          <<: *config-jruby-9_2-latest
-          name: build-jruby-9.2-latest
+          <<: *config-jruby-9_2
+          name: build-jruby-9.2
       - orb/test:
-          <<: *config-jruby-9_2-latest
-          name: test-jruby-9.2-latest
+          <<: *config-jruby-9_2
+          name: test-jruby-9.2
           requires:
-            - build-jruby-9.2-latest
+            - build-jruby-9.2
       - orb/build:
-          <<: *config-jruby-9_3-latest
-          name: build-jruby-9.3-latest
+          <<: *config-jruby-9_3
+          name: build-jruby-9.3
       - orb/test:
-          <<: *config-jruby-9_3-latest
-          name: test-jruby-9.3-latest
+          <<: *config-jruby-9_3
+          name: test-jruby-9.3
           requires:
-            - build-jruby-9.3-latest
+            - build-jruby-9.3
       # TruffleRuby
       # soon™️
       # - orb/build:
-      #     <<: *config-truffleruby-21_0_0
-      #     name: build-truffleruby-21.0.0
+      #     <<: *config-truffleruby-22_3_0
+      #     name: build-truffleruby-22.3.0
       # - orb/test:
-      #     <<: *config-truffleruby-21_0_0
-      #     name: test-truffleruby-21.0.0
+      #     <<: *config-truffleruby-22_3_0
+      #     name: test-truffleruby-22.3.0
       #     requires:
-      #       - build-truffleruby-21.0.0
+      #       - build-truffleruby-22.3.0
       # Release jobs
       - "deploy prerelease Gem":
           <<: *filters_all_branches_and_tags
@@ -778,9 +790,9 @@ workflows:
             #- test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
-            - test-jruby-9.2-latest
-            - test-jruby-9.3-latest
-            # soon™️ - test-truffleruby-21.0.0
+            - test-jruby-9.2
+            - test-jruby-9.3
+            # soon™️ - test-truffleruby-22.3.0
       - "deploy release":
           <<: *filters_only_release_tags
           requires:
@@ -799,9 +811,9 @@ workflows:
             #- test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
-            - test-jruby-9.2-latest
-            - test-jruby-9.3-latest
-            # soon™️ - test-truffleruby-21.0.0
+            - test-jruby-9.2
+            - test-jruby-9.3
+            # soon™️ - test-truffleruby-22.3.0
   # This workflow runs the same `build` and `test` jobs as above on a schedule.
   # Tasks related to housekeeping (e.g. prerelease) are not relevant
   # to this daily check, as they are not expected to be impacted here.
@@ -869,6 +881,7 @@ workflows:
       - orb/build:
           <<: *config-2_1
           name: build-2.1
+          edge: true
       - orb/test:
           <<: *config-2_1
           name: test-2.1
@@ -877,6 +890,7 @@ workflows:
       - orb/build:
           <<: *config-2_2
           name: build-2.2
+          edge: true
       - orb/test:
           <<: *config-2_2
           name: test-2.2
@@ -885,6 +899,7 @@ workflows:
       - orb/build:
           <<: *config-2_3
           name: build-2.3
+          edge: true
       - orb/test:
           <<: *config-2_3
           name: test-2.3
@@ -898,6 +913,7 @@ workflows:
       - orb/build:
           <<: *config-2_4
           name: build-2.4
+          edge: true
       - orb/test:
           <<: *config-2_4
           name: test-2.4
@@ -906,6 +922,7 @@ workflows:
       - orb/build:
           <<: *config-2_5
           name: build-2.5
+          edge: true
       - orb/test:
           <<: *config-2_5
           name: test-2.5
@@ -914,6 +931,7 @@ workflows:
       - orb/build:
           <<: *config-2_6
           name: build-2.6
+          edge: true
       - orb/test:
           <<: *config-2_6
           name: test-2.6
@@ -922,6 +940,7 @@ workflows:
       - orb/build:
           <<: *config-2_7
           name: build-2.7
+          edge: true
       - orb/test:
           <<: *config-2_7
           name: test-2.7
@@ -930,6 +949,7 @@ workflows:
       - orb/build:
           <<: *config-3_0
           name: build-3.0
+          edge: true
       - orb/test:
           <<: *config-3_0
           name: test-3.0
@@ -938,6 +958,7 @@ workflows:
       - orb/build:
           <<: *config-3_1
           name: build-3.1
+          edge: true
       - orb/test:
           <<: *config-3_1
           name: test-3.1
@@ -946,6 +967,7 @@ workflows:
       - orb/build:
           <<: *config-3_2
           name: build-3.2
+          edge: true
       # TODO: Re-enable once 3.2 testing is green!
       # - orb/test:
       #     <<: *config-3_2
@@ -956,34 +978,38 @@ workflows:
       - orb/build:
           <<: *config-jruby-9_2_8_0
           name: build-jruby-9.2.8.0
+          edge: true
       - orb/test:
           <<: *config-jruby-9_2_8_0
           name: test-jruby-9.2.8.0
           requires:
             - build-jruby-9.2.8.0
       - orb/build:
-          <<: *config-jruby-9_2-latest
-          name: build-jruby-9.2-latest
+          <<: *config-jruby-9_2
+          name: build-jruby-9.2
+          edge: true
       - orb/test:
-          <<: *config-jruby-9_2-latest
-          name: test-jruby-9.2-latest
+          <<: *config-jruby-9_2
+          name: test-jruby-9.2
           requires:
-            - build-jruby-9.2-latest
+            - build-jruby-9.2
       - orb/build:
-          <<: *config-jruby-9_3-latest
-          name: build-jruby-9.3-latest
+          <<: *config-jruby-9_3
+          name: build-jruby-9.3
+          edge: true
       - orb/test:
-          <<: *config-jruby-9_3-latest
-          name: test-jruby-9.3-latest
+          <<: *config-jruby-9_3
+          name: test-jruby-9.3
           requires:
-            - build-jruby-9.3-latest
+            - build-jruby-9.3
       # TruffleRuby
       # soon™️
       # - orb/build:
-      #     <<: *config-truffleruby-21_0_0
-      #     name: build-truffleruby-21.0.0
+      #     <<: *config-truffleruby-22_3_0
+      #     name: build-truffleruby-22.3.0
+      #     edge: true
       # - orb/test:
-      #     <<: *config-truffleruby-21_0_0
-      #     name: test-truffleruby-21.0.0
+      #     <<: *config-truffleruby-22_3_0
+      #     name: test-truffleruby-22.3.0
       #     requires:
-      #       - build-truffleruby-21.0.0
+      #       - build-truffleruby-22.3.0

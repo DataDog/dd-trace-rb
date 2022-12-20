@@ -1,7 +1,6 @@
 # typed: false
 
 require 'spec_helper'
-require 'spec/support/language_helpers'
 
 require 'datadog/core/encoding'
 

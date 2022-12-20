@@ -3,6 +3,7 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'ddtrace'
 require 'mongo'
@@ -154,6 +155,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(span.get_tag('out.port')).to eq(port)
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('mongodb')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
+        expect(span.get_tag('span.kind')).to eq('client')
       end
 
       it_behaves_like 'analytics for integration' do
@@ -166,6 +168,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
 
       it_behaves_like 'measured span for integration', false
+      it_behaves_like 'environment service name', 'DD_TRACE_MONGO_SERVICE_NAME'
     end
 
     # Expects every value (except for keys) to be quantized.
@@ -482,7 +485,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
         expect(span.get_tag('mongodb.rows')).to be nil
         expect(span.status).to eq(1)
-        expect(span.get_tag('error.msg')).to eq('ns not found (26)')
+        expect(span.get_tag('error.message')).to eq('ns not found (26)')
       end
 
       context 'that triggers #failed before #started' do
@@ -535,7 +538,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
             expect(insert_span.resource).to match(/"operation"\s*=>\s*:insert/)
             expect(insert_span.status).to eq(1)
             expect(insert_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
-            expect(insert_span.get_tag('error.msg')).to match(/.*is not authorized to access.*/)
+            expect(insert_span.get_tag('error.message')).to match(/.*is not authorized to access.*/)
             expect(insert_span.get_tag('db.system')).to eq('mongodb')
           end
 
@@ -543,7 +546,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           expect(auth_span.resource).to match(/"operation"\s*=>\s*[:"]saslStart/)
           expect(auth_span.status).to eq(1)
           expect(auth_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
-          expect(auth_span.get_tag('error.msg')).to eq('Unsupported mechanism PLAIN (2)')
+          expect(auth_span.get_tag('error.message')).to eq('Unsupported mechanism PLAIN (2)')
           expect(auth_span.get_tag('db.system')).to eq('mongodb')
         end
       end

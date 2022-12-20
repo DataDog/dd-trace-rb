@@ -21,6 +21,55 @@ RSpec.describe 'Rack integration tests' do
 
   let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
+  let(:appsec_ip_denylist) { nil }
+  let(:appsec_ruleset) { :recommended }
+
+  let(:crs_942_100) do
+    {
+      'version' => '2.2',
+      'metadata' => {
+        'rules_version' => '1.4.1'
+      },
+      'rules' => [
+        {
+          'id' => 'crs-942-100',
+          'name' => 'SQL Injection Attack Detected via libinjection',
+          'tags' => {
+            'type' => 'sql_injection',
+            'crs_id' => '942100',
+            'category' => 'attack_attempt'
+          },
+          'conditions' => [
+            {
+              'parameters' => {
+                'inputs' => [
+                  {
+                    'address' => 'server.request.query'
+                  },
+                  {
+                    'address' => 'server.request.body'
+                  },
+                  {
+                    'address' => 'server.request.path_params'
+                  },
+                  {
+                    'address' => 'grpc.server.request.message'
+                  }
+                ]
+              },
+              'operator' => 'is_sqli'
+            }
+          ],
+          'transformers' => [
+            'removeNulls'
+          ],
+          'on_match' => [
+            'block'
+          ]
+        },
+      ]
+    }
+  end
 
   before do
     Datadog.configure do |c|
@@ -29,6 +78,8 @@ RSpec.describe 'Rack integration tests' do
 
       c.appsec.enabled = appsec_enabled
       c.appsec.instrument :rack
+      c.appsec.ip_denylist = appsec_ip_denylist
+      c.appsec.ruleset = appsec_ruleset
     end
   end
 
@@ -60,6 +111,9 @@ RSpec.describe 'Rack integration tests' do
       JSON.parse(json).fetch('triggers', []) if json
     end
 
+    let(:remote_addr) { '127.0.0.1' }
+    let(:client_ip) { remote_addr }
+
     shared_examples 'a GET 200 span' do
       it { expect(span.get_tag('http.method')).to eq('GET') }
       it { expect(span.get_tag('http.status_code')).to eq('200') }
@@ -83,7 +137,7 @@ RSpec.describe 'Rack integration tests' do
         let(:appsec_enabled) { false }
 
         it { expect(span.get_tag('http.method')).to eq('GET') }
-        it { expect(span.get_tag('http.status_code')).to eq('403') }
+        it { expect(span.get_tag('http.status_code')).to eq('200') }
         it { expect(span.status).to eq(0) }
       end
     end
@@ -116,16 +170,32 @@ RSpec.describe 'Rack integration tests' do
       end
     end
 
+    shared_examples 'a POST 403 span' do
+      it { expect(span.get_tag('http.method')).to eq('POST') }
+      it { expect(span.get_tag('http.status_code')).to eq('403') }
+      it { expect(span.status).to eq(0) }
+
+      context 'with appsec disabled' do
+        let(:appsec_enabled) { false }
+
+        it { expect(span.get_tag('http.method')).to eq('POST') }
+        it { expect(span.get_tag('http.status_code')).to eq('200') }
+        it { expect(span.status).to eq(0) }
+      end
+    end
+
     shared_examples 'a trace without AppSec tags' do
       it { expect(trace.send(:metrics)['_dd.appsec.enabled']).to be_nil }
       it { expect(trace.send(:meta)['_dd.runtime_family']).to be_nil }
       it { expect(trace.send(:meta)['_dd.appsec.waf.version']).to be_nil }
+      it { expect(span.send(:meta)['http.client_ip']).to eq nil }
     end
 
     shared_examples 'a trace with AppSec tags' do
       it { expect(trace.send(:metrics)['_dd.appsec.enabled']).to eq(1.0) }
       it { expect(trace.send(:meta)['_dd.runtime_family']).to eq('ruby') }
       it { expect(trace.send(:meta)['_dd.appsec.waf.version']).to match(/^\d+\.\d+\.\d+/) }
+      it { expect(span.send(:meta)['http.client_ip']).to eq client_ip }
 
       context 'with appsec disabled' do
         let(:appsec_enabled) { false }
@@ -165,11 +235,12 @@ RSpec.describe 'Rack integration tests' do
       end
 
       describe 'GET request' do
-        subject(:response) { get url, params, headers }
+        subject(:response) { get url, params, env }
 
         let(:url) { '/success' }
         let(:params) { {} }
         let(:headers) { {} }
+        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
 
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
@@ -198,19 +269,28 @@ RSpec.describe 'Rack integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+
+          context 'and a blocking rule' do
+            let(:appsec_ruleset) { crs_942_100 }
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a GET 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
         end
 
         context 'with an event-triggering request in IP' do
-          skip 'TODO: config not implemented'
+          let(:client_ip) { '1.2.3.4' }
+          let(:appsec_ip_denylist) { [client_ip] }
+          let(:headers) { { 'HTTP_X_FORWARDED_FOR' => client_ip } }
 
-          # TODO: let(:config) { { ip_denylist: ['1.2.3.4'] } }
-          let(:headers) { { 'HTTP_X_FORWARDED_FOR' => '1.2.3.4' } }
+          it { is_expected.to be_forbidden }
 
-          it { is_expected.to be_ok }
-
-          # TODO: it_behaves_like 'a GET 403 span'
+          it_behaves_like 'a GET 403 span'
           it_behaves_like 'a trace with AppSec tags'
-          # TODO: it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec events'
         end
 
         context 'with an event-triggering response' do
@@ -226,11 +306,12 @@ RSpec.describe 'Rack integration tests' do
       end
 
       describe 'POST request' do
-        subject(:response) { post url, params, headers }
+        subject(:response) { post url, params, env }
 
         let(:url) { '/success' }
         let(:params) { {} }
         let(:headers) { {} }
+        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
 
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
@@ -256,6 +337,16 @@ RSpec.describe 'Rack integration tests' do
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+
+          context 'and a blocking rule' do
+            let(:appsec_ruleset) { crs_942_100 }
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a POST 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
         end
 
         unless Gem.loaded_specs['rack-test'].version.to_s < '0.7'
@@ -276,6 +367,16 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'a POST 200 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
+
+            context 'and a blocking rule' do
+              let(:appsec_ruleset) { crs_942_100 }
+
+              it { is_expected.to be_forbidden }
+
+              it_behaves_like 'a POST 403 span'
+              it_behaves_like 'a trace with AppSec tags'
+              it_behaves_like 'a trace with AppSec events'
+            end
           end
         end
 
@@ -306,6 +407,16 @@ RSpec.describe 'Rack integration tests' do
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+
+          context 'and a blocking rule' do
+            let(:appsec_ruleset) { crs_942_100 }
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a POST 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
         end
       end
     end

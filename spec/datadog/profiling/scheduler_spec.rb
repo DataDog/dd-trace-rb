@@ -86,15 +86,6 @@ RSpec.describe Datadog::Profiling::Scheduler do
     end
   end
 
-  describe '#after_fork' do
-    subject(:after_fork) { scheduler.after_fork }
-
-    it 'clears the buffer' do
-      expect(exporter).to receive(:flush)
-      after_fork
-    end
-  end
-
   describe '#flush_and_wait' do
     subject(:flush_and_wait) { scheduler.send(:flush_and_wait) }
 
@@ -209,6 +200,16 @@ RSpec.describe Datadog::Profiling::Scheduler do
       before { expect(exporter).to receive(:can_flush?).and_return(false) }
 
       it { is_expected.to be false }
+    end
+  end
+
+  describe '#reset_after_fork' do
+    subject(:reset_after_fork) { scheduler.reset_after_fork }
+
+    it 'resets the exporter' do
+      expect(exporter).to receive(:reset_after_fork)
+
+      reset_after_fork
     end
   end
 end

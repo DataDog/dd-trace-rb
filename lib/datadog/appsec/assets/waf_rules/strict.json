@@ -1,7 +1,7 @@
 {
   "version": "2.2",
   "metadata": {
-    "rules_version": "1.4.1"
+    "rules_version": "1.4.2"
   },
   "rules": [
     {
@@ -854,6 +854,51 @@
         }
       ],
       "transformers": []
+    },
+    {
+      "id": "crs-941-100",
+      "name": "XSS Attack Detected via libinjection",
+      "tags": {
+        "type": "xss",
+        "crs_id": "941100",
+        "category": "attack_attempt"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.headers.no_cookies",
+                "key_path": [
+                  "user-agent"
+                ]
+              },
+              {
+                "address": "server.request.headers.no_cookies",
+                "key_path": [
+                  "referer"
+                ]
+              },
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "grpc.server.request.message"
+              }
+            ]
+          },
+          "operator": "is_xss"
+        }
+      ],
+      "transformers": [
+        "removeNulls"
+      ]
     },
     {
       "id": "crs-941-130",

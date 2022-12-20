@@ -12,6 +12,7 @@ require 'datadog/tracing/contrib/rest_client/request_patch'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
   let(:configuration_options) { {} }
@@ -53,6 +54,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
       it 'returns response' do
         expect(request.body).to eq(response)
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_REST_CLIENT_SERVICE_NAME'
 
       describe 'created span' do
         context 'response is successfull' do
@@ -98,6 +101,10 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
           it 'has correct component and operation tags' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rest_client')
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
+          end
+
+          it 'has `client` as `span.kind`' do
+            expect(span.get_tag('span.kind')).to eq('client')
           end
 
           it_behaves_like 'a peer service span' do
@@ -224,6 +231,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
             it_behaves_like 'a peer service span' do
               let(:peer_hostname) { host }
             end
+
+            it_behaves_like 'environment service name', 'DD_TRACE_REST_CLIENT_SERVICE_NAME'
           end
         end
       end

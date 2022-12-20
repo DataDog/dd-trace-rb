@@ -25,8 +25,9 @@ end
 RSpec.shared_context 'Qless job' do
   include Qless::WorkerHelpers
 
-  let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
-  let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379) }
+  let(:host) { ENV.fetch('TEST_REDIS_OLD_HOST', '127.0.0.1') }
+  let(:port) { ENV.fetch('TEST_REDIS_OLD_PORT', '6379') }
+
   let(:client) { Qless::Client.new(host: host, port: port) }
   let(:queue) { client.queues['main'] }
   let(:reserver) { Qless::JobReservers::Ordered.new([queue]) }

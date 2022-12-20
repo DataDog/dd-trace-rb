@@ -34,9 +34,45 @@ module Datadog
         end
       end
 
+      def serialize!
+        status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_serialize(self) }
+
+        if status == :ok
+          _start, _finish, encoded_pprof = result
+
+          encoded_pprof
+        else
+          error_message = result
+
+          raise("Failed to serialize profiling data: #{error_message}")
+        end
+      end
+
+      def clear
+        status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_clear(self) }
+
+        if status == :ok
+          finish_timestamp = result
+
+          Datadog.logger.debug { "Cleared profile at #{finish_timestamp}" }
+
+          finish_timestamp
+        else
+          error_message = result
+
+          Datadog.logger.error("Failed to clear profiling data: #{error_message}")
+
+          nil
+        end
+      end
+
       # Used only for Ruby 2.2 which doesn't have the native `rb_time_timespec_new` API; called from native code
       def self.ruby_time_from(timespec_seconds, timespec_nanoseconds)
         Time.at(0).utc + timespec_seconds + (timespec_nanoseconds.to_r / 1_000_000_000)
+      end
+
+      def reset_after_fork
+        self.class._native_reset_after_fork(self)
       end
     end
   end

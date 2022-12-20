@@ -15,7 +15,7 @@ RSpec.describe 'Server internal tracer heartbeat' do
   end
 
   it 'traces the looping heartbeat' do
-    expect_in_sidekiq_server do
+    expect_in_sidekiq_server(wait_until: -> { fetch_spans.any? { |s| s.name == 'sidekiq.heartbeat' } }) do
       span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.heartbeat' }
 
       expect(span.service).to eq(tracer.default_service)
@@ -29,20 +29,18 @@ RSpec.describe 'Server internal tracer heartbeat' do
   end
 
   context 'traces the stop command' do
-    before do
-      run_sidekiq_server
-    end
-
     it do
-      span = spans.find { |s| s.name == 'sidekiq.stop' }
+      expect_after_stopping_sidekiq_server do
+        span = spans.find { |s| s.name == 'sidekiq.stop' }
 
-      expect(span.service).to eq(tracer.default_service)
-      expect(span.name).to eq('sidekiq.stop')
-      expect(span.span_type).to eq('worker')
-      expect(span.resource).to eq('sidekiq.stop')
-      expect(span).to_not have_error
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('stop')
+        expect(span.service).to eq(tracer.default_service)
+        expect(span.name).to eq('sidekiq.stop')
+        expect(span.span_type).to eq('worker')
+        expect(span.resource).to eq('sidekiq.stop')
+        expect(span).to_not have_error
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('stop')
+      end
     end
   end
 end

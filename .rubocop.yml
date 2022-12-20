@@ -105,6 +105,11 @@ Style/GuardClause:
 Style/CaseEquality:
   Enabled: false
 
+# Tests don't need strict string concatenation rules.
+Style/StringConcatenation:
+  Exclude:
+    - spec/**/*
+
 # New cops since Rubocop 1.0.
 # We have to explicitly opt-in for new cops to apply
 # before the next major release.

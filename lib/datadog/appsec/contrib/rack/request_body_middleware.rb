@@ -1,7 +1,7 @@
 # typed: ignore
 
 require_relative '../../instrumentation/gateway'
-require_relative '../../assets'
+require_relative '../../response'
 
 module Datadog
   module AppSec
@@ -29,7 +29,7 @@ module Datadog
             end
 
             if request_response && request_response.any? { |action, _event| action == :block }
-              request_return = [403, { 'Content-Type' => 'text/html' }, [Datadog::AppSec::Assets.blocked]]
+              request_return = AppSec::Response.negotiate(env).to_rack
             end
 
             request_return

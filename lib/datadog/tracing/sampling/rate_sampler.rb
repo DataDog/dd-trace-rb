@@ -3,7 +3,7 @@
 require_relative '../../core'
 
 require_relative 'sampler'
-require_relative '../span'
+require_relative '../utils'
 
 module Datadog
   module Tracing
@@ -30,7 +30,7 @@ module Datadog
         # DEV-2.0: sampler = RateSampler.new
         # DEV-2.0: sampler.sample_rate = sample_rate
         # DEV-2.0: ```
-        def initialize(sample_rate = 1.0)
+        def initialize(sample_rate = 1.0, decision: nil)
           super()
 
           unless sample_rate > 0.0 && sample_rate <= 1.0
@@ -39,6 +39,8 @@ module Datadog
           end
 
           self.sample_rate = sample_rate
+
+          @decision = decision
         end
 
         def sample_rate(*_)
@@ -47,17 +49,22 @@ module Datadog
 
         def sample_rate=(sample_rate)
           @sample_rate = sample_rate
-          @sampling_id_threshold = sample_rate * Tracing::Span::EXTERNAL_MAX_ID
+          @sampling_id_threshold = sample_rate * Tracing::Utils::EXTERNAL_MAX_ID
         end
 
         def sample?(trace)
-          ((trace.id * KNUTH_FACTOR) % Tracing::Span::EXTERNAL_MAX_ID) <= @sampling_id_threshold
+          ((trace.id * KNUTH_FACTOR) % Tracing::Utils::EXTERNAL_MAX_ID) <= @sampling_id_threshold
         end
 
         def sample!(trace)
           sampled = trace.sampled = sample?(trace)
-          trace.sample_rate = @sample_rate if sampled
-          sampled
+
+          return false unless sampled
+
+          trace.sample_rate = @sample_rate
+          trace.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, @decision) if @decision
+
+          true
         end
       end
     end

@@ -25,9 +25,11 @@ module Datadog
           def call(env)
             # Set the trace context (e.g. distributed tracing)
             if configuration[:distributed_tracing] && Tracing.active_trace.nil?
-              original_trace = Propagation::HTTP.extract(env)
+              original_trace = Tracing::Propagation::HTTP.extract(env)
               Tracing.continue_trace!(original_trace)
             end
+
+            return @app.call(env) if Sinatra::Env.datadog_span(env)
 
             Tracing.trace(
               Ext::SPAN_REQUEST,
@@ -39,7 +41,7 @@ module Datadog
                 # the nil signals that there's no good one yet and is also seen by profiler, when sampling the resource
                 span.resource = nil
 
-                Sinatra::Env.set_datadog_span(env, @app_instance, span)
+                Sinatra::Env.set_datadog_span(env, span)
 
                 response = @app.call(env)
               ensure
@@ -51,13 +53,17 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
                 request = ::Sinatra::Request.new(env)
+
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, request.path)
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request.request_method)
+
+                datadog_route = Sinatra::Env.route_path(env)
+
+                span.set_tag(Ext::TAG_ROUTE_PATH, datadog_route) if datadog_route
+
                 if request.script_name && !request.script_name.empty?
                   span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name)
                 end
-
-                span.set_tag(Ext::TAG_APP_NAME, @app_instance.settings.name)
 
                 # If this app handled the request, then Contrib::Sinatra::Tracer OR Contrib::Sinatra::Base set the
                 # resource; if no resource was set, let's use a fallback
@@ -79,7 +85,10 @@ module Datadog
                   end
 
                   if (headers = response[1])
-                    Sinatra::Headers.response_header_tags(headers, configuration[:headers][:response]).each do |name, value|
+                    Sinatra::Headers.response_header_tags(
+                      headers,
+                      configuration[:headers][:response]
+                    ).each do |name, value|
                       span.set_tag(name, value) if span.get_tag(name).nil?
                     end
                   end
@@ -110,10 +119,6 @@ module Datadog
 
           def configuration
             Datadog.configuration.tracing[:sinatra]
-          end
-
-          def header_to_rack_header(name)
-            "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
           end
         end
       end

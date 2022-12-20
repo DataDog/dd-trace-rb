@@ -48,26 +48,10 @@ end
 module SidekiqServerExpectations
   include SidekiqTestingConfiguration
 
-  def expect_in_sidekiq_server(duration: 2, &expectations)
+  def expect_in_sidekiq_server(wait_until: nil)
     app_tempfile = Tempfile.new(['sidekiq-server-app', '.rb'])
 
-    expect_in_fork(
-      # Due to the expectations being run in an `at_exit` hook, to have visibility into the
-      # spans created in the forked process, the exit status will be 0 even if our expectations fail.
-      # Instead, look at `STDERR`, ignoring warnings.
-      fork_expectations: proc do |status:, stdout:, stderr:|
-        stdout = Datadog::Core::Utils.utf8_encode(stdout) if stdout
-        stderr = Datadog::Core::Utils.utf8_encode(stderr) if stderr
-
-        expect(status).to be_success, "STDOUT:`#{stdout}` STDERR:`#{stderr}"
-
-        non_warning_testing_stderr = stderr.split("\n").reject { |line| line.include?(': warning:') }
-
-        expect(non_warning_testing_stderr).to be_empty, "STDOUT:`#{stdout}` STDERR:`#{stderr}"
-      end
-    ) do
-      at_exit(&expectations)
-
+    expect_in_fork do
       # NB: This is needed because we want to patch within a forked process.
       if Datadog::Tracing::Contrib::Sidekiq::Patcher.instance_variable_get(:@patch_only_once)
         Datadog::Tracing::Contrib::Sidekiq::Patcher
@@ -79,34 +63,65 @@ module SidekiqServerExpectations
 
       configure_sidekiq
 
-      Thread.new do
+      t = Thread.new do
         cli = Sidekiq::CLI.instance
         cli.parse(['--require', app_tempfile.path]) # boot the "app"
         cli.run
       end
 
-      sleep duration
-      exit
+      try_wait_until(seconds: 10) { wait_until.call } if wait_until
+
+      Thread.kill(t)
+
+      yield
     end
   ensure
     app_tempfile.close
     app_tempfile.unlink
   end
 
-  def run_sidekiq_server
-    app_tempfile = Tempfile.new(['sidekiq-server-app', '.rb'])
+  def expect_after_stopping_sidekiq_server
+    expect_in_fork do
+      # NB: This is needed because we want to patch within a forked process.
+      if Datadog::Tracing::Contrib::Sidekiq::Patcher.instance_variable_get(:@patch_only_once)
+        Datadog::Tracing::Contrib::Sidekiq::Patcher
+          .instance_variable_get(:@patch_only_once)
+          .send(:reset_ran_once_state_for_tests)
+      end
 
-    require 'sidekiq/cli'
+      require 'sidekiq/cli'
 
-    configure_sidekiq
+      configure_sidekiq
 
-    cli = Sidekiq::CLI.instance
-    cli.parse(['--require', app_tempfile.path]) # boot the "app"
-    launcher = Sidekiq::Launcher.new(cli.send(:options))
-    launcher.stop
-    exit
-  ensure
-    app_tempfile.close
-    app_tempfile.unlink
+      cli = Sidekiq::CLI.instance
+
+      # Change options and constants for Sidekiq to stop faster:
+      # Reduce number of threads and shutdown timeout.
+      options = cli.send(:options).merge(concurrency: 1, timeout: 0)
+
+      # `Sidekiq::Launcher#stop` sleeps before actually starting to shutting down Sidekiq.
+      # Settings `Manager::PAUSE_TIME` to zero removes that wait.
+      stub_const('Sidekiq::Manager::PAUSE_TIME', 0)
+
+      # `Sidekiq::Launcher#stop` ultimately class `Sidekiq::Manager#hard_shutdown` as a final
+      # shutdown step. `#hard_shutdown` has a hard-coded minimum timeout of 3 seconds when checking
+      # if workers have finished, using the `Util#wait_for` method.
+      #
+      # `Util::PAUSE_TIME` controls how frequently `Util#wait_for` checks that workers have finished.
+      # Setting `Util::PAUSE_TIME` to less than the timeout (3 seconds) actually makes the
+      # shutdown process slower: `Util#wait_for` behaves like a busy-wait loop if `Util::PAUSE_TIME` is less than
+      # the timeout. Sidekiq defaults are actually such case: The default value for `PAUSE_TIME` is
+      # `$stdout.tty? ? 0.1 : 0.5` which is less than 3. This ensures a busy-wait loop, which makes shutdown
+      # slower as worker threads don't the opportunity to process their shutdown instructions.
+      #
+      # Setting this value to 3 seconds or higher makes the shutdown process almost immediate, as
+      # `Util#wait_for` checks immediately if workers have shut down, which is normally the case at this point.
+      stub_const('Sidekiq::Util::PAUSE_TIME', 3)
+
+      launcher = Sidekiq::Launcher.new(options)
+      launcher.stop
+
+      yield
+    end
   end
 end

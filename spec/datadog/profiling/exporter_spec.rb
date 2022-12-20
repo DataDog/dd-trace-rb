@@ -74,6 +74,20 @@ RSpec.describe Datadog::Profiling::Exporter do
     end
   end
 
+  describe '#reset_after_fork' do
+    let(:dummy_current_time) { Time.new(2022) }
+    let(:time_provider) { class_double(Time, now: dummy_current_time) }
+    let(:options) { { **super(), time_provider: class_double(Time, now: dummy_current_time) } }
+
+    subject(:reset_after_fork) { exporter.reset_after_fork }
+
+    it { is_expected.to be nil }
+
+    it 'sets the last_flush_finish_at to be the current time' do
+      expect { reset_after_fork }.to change { exporter.send(:last_flush_finish_at) }.from(nil).to(dummy_current_time)
+    end
+  end
+
   describe '#can_flush?' do
     let(:time_provider) { class_double(Time) }
     let(:created_at) { start - 60 }

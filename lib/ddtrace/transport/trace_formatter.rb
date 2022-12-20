@@ -48,6 +48,7 @@ module Datadog
         tag_runtime_id!
         tag_rate_limiter_rate!
         tag_sample_rate!
+        tag_sampling_decision_maker!
         tag_sampling_priority!
 
         trace
@@ -93,7 +94,7 @@ module Datadog
       end
 
       def tag_lang!
-        return if trace.lang.nil? || root_span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+        return if trace.lang.nil?
 
         root_span.set_tag(
           Core::Runtime::Ext::TAG_LANG,
@@ -113,10 +114,7 @@ module Datadog
       def tag_process_id!
         return unless trace.process_id
 
-        root_span.set_tag(
-          Core::Runtime::Ext::TAG_PID,
-          trace.process_id
-        )
+        root_span.set_tag(Core::Runtime::Ext::TAG_PROCESS_ID, trace.process_id)
       end
 
       def tag_rate_limiter_rate!
@@ -153,6 +151,12 @@ module Datadog
           Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE,
           trace.sample_rate
         )
+      end
+
+      def tag_sampling_decision_maker!
+        return unless (decision = trace.sampling_decision_maker)
+
+        root_span.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, decision)
       end
 
       def tag_sampling_priority!

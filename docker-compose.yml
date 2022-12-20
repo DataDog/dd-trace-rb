@@ -2,8 +2,7 @@ version: '3.2'
 services:
   # MRI
   tracer-2.1:
-    image: ivoanjo/docker-library:ddtrace_rb_2_1_10
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.1.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -14,8 +13,9 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
+    environment: &common-environment
       - BUNDLE_GEMFILE=/app/Gemfile
       - DD_AGENT_HOST=ddagent
       - TEST_DATADOG_INTEGRATION=1
@@ -27,6 +27,9 @@ services:
       - TEST_PRESTO_HOST=presto
       - TEST_PRESTO_PORT=8080
       - TEST_REDIS_HOST=redis
+      - TEST_REDIS_OLD_HOST=redis_old
+      - TEST_REDIS_OLD_PORT=6379
+      - DDTRACE_CI=true
     stdin_open: true
     tty: true
     volumes:
@@ -35,8 +38,7 @@ services:
       - bundle-2.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.2:
-    image: ivoanjo/docker-library:ddtrace_rb_2_2_10
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.2.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -47,19 +49,9 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -68,8 +60,7 @@ services:
       - bundle-2.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.3:
-    image: ivoanjo/docker-library:ddtrace_rb_2_3_8
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.3.8-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -80,19 +71,9 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -101,8 +82,7 @@ services:
       - bundle-2.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.4:
-    image: ivoanjo/docker-library:ddtrace_rb_2_4_10
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.4.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -113,19 +93,9 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -134,8 +104,7 @@ services:
       - bundle-2.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.5:
-    image: ivoanjo/docker-library:ddtrace_rb_2_5_9
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -146,19 +115,9 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -167,8 +126,7 @@ services:
       - bundle-2.5:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.6:
-    image: ivoanjo/docker-library:ddtrace_rb_2_6_7
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -179,19 +137,9 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -200,8 +148,7 @@ services:
       - bundle-2.6:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.7:
-    image: ivoanjo/docker-library:ddtrace_rb_2_7_3
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.6-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -212,19 +159,9 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -233,8 +170,7 @@ services:
       - bundle-2.7:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.0:
-    image: ivoanjo/docker-library:ddtrace_rb_3_0_3
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.4-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -243,9 +179,11 @@ services:
       - mongodb
       - mysql
       - postgres
+      - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
+    environment: &common-environment-3x
       - BUNDLE_GEMFILE=/app/Gemfile
       - DD_AGENT_HOST=ddagent
       - TEST_DATADOG_INTEGRATION=1
@@ -255,6 +193,9 @@ services:
       - TEST_MYSQL_HOST=mysql
       - TEST_POSTGRES_HOST=postgres
       - TEST_REDIS_HOST=redis
+      - TEST_REDIS_OLD_HOST=redis_old
+      - TEST_REDIS_OLD_PORT=6379
+      - DDTRACE_CI=true
     stdin_open: true
     tty: true
     volumes:
@@ -262,38 +203,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-3.0-arm64:
-    image: ivoanjo/docker-library:ddtrace_rb_3_0_3_arm64
-    command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - postgres
-      - redis
-    env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - extension-build-tmp:/app/tmp
-      - bundle-3.0-arm64:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.1:
-    image: ivoanjo/docker-library:ddtrace_rb_3_1_1
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.2-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -303,17 +214,9 @@ services:
       - mysql
       - postgres
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment-3x
     stdin_open: true
     tty: true
     volumes:
@@ -321,38 +224,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-3.1-arm64:
-    image: ivoanjo/docker-library:ddtrace_rb_3_1_1_arm64
-    command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - postgres
-      - redis
-    env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - extension-build-tmp:/app/tmp
-      - bundle-3.1-arm64:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.2:
-    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview2
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-preview3-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -362,17 +235,9 @@ services:
       - mysql
       - postgres
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment-3x
     stdin_open: true
     tty: true
     volumes:
@@ -380,40 +245,10 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-3.2-arm64:
-    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview2_arm64
-    command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - postgres
-      - redis
-    env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - extension-build-tmp:/app/tmp
-      - bundle-3.2-arm64:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
   # JRuby
   tracer-jruby-9.2.8.0:
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_8_0
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.8.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -424,28 +259,17 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
       - .:/app
       - bundle-jruby-9.2.8.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-jruby-9.2-latest:
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_18_0
-    platform: linux/x86_64
+  tracer-jruby-9.2:
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -456,28 +280,17 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
       - .:/app
-      - bundle-jruby-9.2-latest:/usr/local/bundle
+      - bundle-jruby-9.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-jruby-9.3-latest:
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_3_4_0
-    platform: linux/x86_64
+  tracer-jruby-9.3:
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.9.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -488,29 +301,39 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
       - .:/app
-      - bundle-jruby-9.3-latest:/usr/local/bundle
+      - bundle-jruby-9.3:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-jruby-9.4:
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.4.0.0-dd
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - presto
+      - redis
+      - redis_old
+    env_file: ./.env
+    environment: *common-environment
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-jruby-9.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # TruffleRuby
-  tracer-truffleruby-21.3.0:
-    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_3_0
-    platform: linux/x86_64
+  tracer-truffleruby-22.3.0:
+    image: ghcr.io/datadog/dd-trace-rb/truffleruby:22.3.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -521,24 +344,14 @@ services:
       - postgres
       - presto
       - redis
+      - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
       - .:/app
-      - bundle-truffleruby-21.3.0:/usr/local/bundle
+      - bundle-truffleruby-22.3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   ddagent:
     image: datadog/agent
@@ -546,6 +359,7 @@ services:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
       - "DD_API_KEY=${DD_API_KEY}"
+      - DD_HOSTNAME=dd-trace-rb-ci
       - DD_APM_RECEIVER_SOCKET=/var/run/datadog/apm.socket
     expose:
       - "8125/udp"
@@ -587,6 +401,8 @@ services:
       - MYSQL_ROOT_PASSWORD=$TEST_MYSQL_ROOT_PASSWORD
       - MYSQL_PASSWORD=$TEST_MYSQL_PASSWORD
       - MYSQL_USER=$TEST_MYSQL_USER
+    command:
+      - '--default-authentication-plugin=mysql_native_password'
     expose:
       - "3306"
     ports:
@@ -604,17 +420,23 @@ services:
   presto:
     # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
     image: starburstdata/presto:332-e.9
-    platform: linux/x86_64
     expose:
       - "8080"
     ports:
       - "${TEST_PRESTO_PORT}:8080"
   redis:
-    image: redis:3.2
+    image: redis:6.2
     expose:
       - "6379"
     ports:
       - "${TEST_REDIS_PORT}:6379"
+  # `qless` is still using this older version of redis
+  redis_old:
+    image: redis:3.0
+    expose:
+      - "6379"
+    ports:
+      - "${TEST_REDIS_OLD_PORT}:6379"
 volumes:
   bundle-2.1:
   bundle-2.2:
@@ -624,16 +446,14 @@ volumes:
   bundle-2.6:
   bundle-2.7:
   bundle-3.0:
-  bundle-3.0-arm64:
   bundle-3.1:
-  bundle-3.1-arm64:
   bundle-3.2:
-  bundle-3.2-arm64:
   # ADD NEW RUBIES HERE
   bundle-jruby-9.2.8.0:
-  bundle-jruby-9.2-latest:
-  bundle-jruby-9.3-latest:
-  bundle-truffleruby-21.3.0:
+  bundle-jruby-9.2:
+  bundle-jruby-9.3:
+  bundle-jruby-9.4:
+  bundle-truffleruby-22.3.0:
   ddagent_var_run:
   # Temporary folder used while compiling the profiling native extension. We place this in a volume to avoid the
   # massive performance hit (seconds to minutes) that we get when the tmp folder is shared with the host on macOS.

@@ -15,9 +15,7 @@ module Datadog
                 op.publish('request.headers', Rack::Request.headers(request))
                 op.publish('request.uri.raw', Rack::Request.url(request))
                 op.publish('request.cookies', Rack::Request.cookies(request))
-                # op.publish('request.body.raw', Rack::Request.body(request))
-                # TODO: op.publish('request.path_params', { k: v }) # route params only?
-                # TODO: op.publish('request.path', request.script_name + request.path) # unused for now
+                op.publish('request.client_ip', Rack::Request.client_ip(request))
 
                 nil
               end
@@ -30,8 +28,7 @@ module Datadog
                 'request.uri.raw',
                 'request.query',
                 'request.cookies',
-                # 'request.body.raw',
-                # TODO: 'request.path_params',
+                'request.client_ip',
               ]
 
               op.subscribe(*addresses) do |*values|
@@ -41,16 +38,15 @@ module Datadog
                 uri_raw = values[1]
                 query = values[2]
                 cookies = values[3]
-                # body = values[4]
+                client_ip = values[4]
 
                 waf_args = {
                   'server.request.cookies' => cookies,
-                  # 'server.request.body.raw' => body,
                   'server.request.query' => query,
                   'server.request.uri.raw' => uri_raw,
                   'server.request.headers' => headers,
                   'server.request.headers.no_cookies' => headers_no_cookies,
-                  # TODO: 'server.request.path_params' => path_params,
+                  'http.client_ip' => client_ip,
                 }
 
                 waf_timeout = Datadog::AppSec.settings.waf_timeout

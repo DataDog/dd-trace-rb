@@ -97,8 +97,14 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
 
         let(:max_size) { 1 }
 
+        before do
+          Datadog.configuration.diagnostics.debug = true
+          allow(Datadog.logger).to receive(:debug)
+        end
+
         it 'drops all traces except the smallest' do
           is_expected.to eq([['1', 1]])
+          expect(Datadog.logger).to have_lazy_debug_logged(/Payload too large/)
           expect(health_metrics).to have_received(:transport_trace_too_large).with(1).twice
         end
       end

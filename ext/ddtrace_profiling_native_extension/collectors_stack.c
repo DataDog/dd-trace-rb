@@ -112,58 +112,61 @@ static VALUE _native_sample(
 
   sampling_buffer *buffer = sampling_buffer_new(max_frames_requested);
 
-  if (!RTEST(in_gc)) {
-    sample_thread(
-      thread,
-      buffer,
-      recorder_instance,
-      (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddog_Slice_label) {.ptr = labels, .len = labels_count}
-    );
-  } else {
-    sample_thread_in_gc(
-      thread,
-      buffer,
-      recorder_instance,
-      (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddog_Slice_label) {.ptr = labels, .len = labels_count}
-    );
-  }
+  sample_thread(
+    thread,
+    buffer,
+    recorder_instance,
+    (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+    (ddog_Slice_label) {.ptr = labels, .len = labels_count},
+    RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
+  );
 
   sampling_buffer_free(buffer);
 
   return Qtrue;
 }
 
-// Samples thread into recorder
-void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddog_Slice_i64 metric_values, ddog_Slice_label labels) {
-  sampling_buffer *record_buffer = buffer;
-  int extra_frames_in_record_buffer = 0;
-  sample_thread_internal(thread, buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
-}
+void sample_thread(
+  VALUE thread,
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  ddog_Slice_i64 metric_values,
+  ddog_Slice_label labels,
+  sample_type type
+) {
+  // Samples thread into recorder
+  if (type == SAMPLE_REGULAR) {
+    sampling_buffer *record_buffer = buffer;
+    int extra_frames_in_record_buffer = 0;
+    sample_thread_internal(thread, buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+    return;
+  }
 
-// Samples thread into recorder, including as a top frame in the stack a frame named "Garbage Collection"
-void sample_thread_in_gc(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddog_Slice_i64 metric_values, ddog_Slice_label labels) {
-  buffer->lines[0] = (ddog_Line) {
-    .function = (ddog_Function) {
-      .name = DDOG_CHARSLICE_C(""),
-      .filename = DDOG_CHARSLICE_C("Garbage Collection")
-    },
-    .line = 0
-  };
-  // To avoid changing sample_thread_internal, we just prepare a new buffer struct that uses the same underlying storage as the
-  // original buffer, but has capacity one less, so that we can keep the above Garbage Collection frame untouched.
-  sampling_buffer thread_in_gc_buffer = (struct sampling_buffer) {
-    .max_frames = buffer->max_frames - 1,
-    .stack_buffer = buffer->stack_buffer + 1,
-    .lines_buffer = buffer->lines_buffer + 1,
-    .is_ruby_frame = buffer->is_ruby_frame + 1,
-    .locations = buffer->locations + 1,
-    .lines = buffer->lines + 1
-  };
-  sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
-  int extra_frames_in_record_buffer = 1;
-  sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+  // Samples thread into recorder, including as a top frame in the stack a frame named "Garbage Collection"
+  if (type == SAMPLE_IN_GC) {
+    ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
+    ddog_CharSlice function_filename = DDOG_CHARSLICE_C("Garbage Collection");
+    buffer->lines[0] = (ddog_Line) {
+      .function = (ddog_Function) {.name = function_name, .filename = function_filename},
+      .line = 0
+    };
+    // To avoid changing sample_thread_internal, we just prepare a new buffer struct that uses the same underlying storage as the
+    // original buffer, but has capacity one less, so that we can keep the above Garbage Collection frame untouched.
+    sampling_buffer thread_in_gc_buffer = (struct sampling_buffer) {
+      .max_frames = buffer->max_frames - 1,
+      .stack_buffer = buffer->stack_buffer + 1,
+      .lines_buffer = buffer->lines_buffer + 1,
+      .is_ruby_frame = buffer->is_ruby_frame + 1,
+      .locations = buffer->locations + 1,
+      .lines = buffer->lines + 1
+    };
+    sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
+    int extra_frames_in_record_buffer = 1;
+    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+    return;
+  }
+
+  rb_raise(rb_eArgError, "Unexpected value for sample_type: %d", type);
 }
 
 // Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads
@@ -296,11 +299,10 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 
   // Important note: `frames_omitted_message` MUST have a lifetime that is at least as long as the call to
   // `record_sample`. So be careful where it gets allocated. (We do have tests for this, at least!)
+  ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
+  ddog_CharSlice function_filename = {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)};
   buffer->lines[buffer->max_frames - 1] = (ddog_Line) {
-    .function = (ddog_Function) {
-      .name = DDOG_CHARSLICE_C(""),
-      .filename = ((ddog_CharSlice) {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)})
-    },
+    .function = (ddog_Function) {.name = function_name, .filename = function_filename},
     .line = 0,
   };
 }
@@ -333,11 +335,10 @@ static void record_placeholder_stack_in_native_code(
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
 ) {
+  ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
+  ddog_CharSlice function_filename = DDOG_CHARSLICE_C("In native code");
   buffer->lines[0] = (ddog_Line) {
-    .function = (ddog_Function) {
-      .name = DDOG_CHARSLICE_C(""),
-      .filename = DDOG_CHARSLICE_C("In native code")
-    },
+    .function = (ddog_Function) {.name = function_name, .filename = function_filename},
     .line = 0
   };
 
@@ -369,7 +370,8 @@ sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
   // Currently we have a 1-to-1 correspondence between lines and locations, so we just initialize the locations once
   // here and then only mutate the contents of the lines.
   for (unsigned int i = 0; i < max_frames; i++) {
-    buffer->locations[i] = (ddog_Location) {.lines = (ddog_Slice_line) {.ptr = &buffer->lines[i], .len = 1}};
+    ddog_Slice_line lines = (ddog_Slice_line) {.ptr = &buffer->lines[i], .len = 1};
+    buffer->locations[i] = (ddog_Location) {.lines = lines};
   }
 
   return buffer;

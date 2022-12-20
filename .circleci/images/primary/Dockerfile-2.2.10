@@ -1,9 +1,88 @@
-# Last version: https://github.com/docker-library/ruby/blob/395cce4eba52917eb9a40c72d50703a1ce9e1acd/2.2/jessie/Dockerfile
-FROM ruby:2.2.10
+# ruby:2.2.10-jessie was based on jessie, and had a aarch64 image
+# aarch64 used to be supported upon release but is not part of LTS,
+# so archive.debian.org does not contain aarch64: https://www.debian.org/releases/jessie/
+#
+# taken from https://github.com/docker-library/ruby/blob/b5ef401d348ca9b1d9f6a5cb4b25f32bf013daca/2.2/jessie/Dockerfile
+FROM buildpack-deps:stretch AS ruby-2.2.10-stretch
 
-# Add Jessie repos
-# Fixes https://superuser.com/questions/1423486/issue-with-fetching-http-deb-debian-org-debian-dists-jessie-updates-inrelease
-RUN printf "deb http://archive.debian.org/debian/ jessie main\ndeb-src http://archive.debian.org/debian/ jessie main\ndeb http://security.debian.org jessie/updates main\ndeb-src http://security.debian.org jessie/updates main" > /etc/apt/sources.list
+# skip installing gem documentation
+RUN mkdir -p /usr/local/etc \
+  && { \
+    echo 'install: --no-document'; \
+    echo 'update: --no-document'; \
+  } >> /usr/local/etc/gemrc
+
+ENV RUBY_MAJOR 2.2
+ENV RUBY_VERSION 2.2.10
+ENV RUBY_DOWNLOAD_SHA256 bf77bcb7e6666ccae8d0882ea12b05f382f963f0a9a5285a328760c06a9ab650
+ENV RUBYGEMS_VERSION 2.7.11
+ENV BUNDLER_VERSION 1.17.3
+
+# some of ruby's build scripts are written in ruby
+#   we purge system ruby later to make sure our final image uses what we just built
+RUN set -ex \
+  \
+  && buildDeps=' \
+    bison \
+    dpkg-dev \
+    libgdbm-dev \
+    # ruby 2.3 on stretch can only support libssl1.0-dev (libssl dev from buildpack-deps is 1.1.x)
+    libssl1.0-dev \
+    ruby \
+  ' \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends $buildDeps \
+  && rm -rf /var/lib/apt/lists/* \
+  \
+  && wget -O ruby.tar.xz "https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR%-rc}/ruby-$RUBY_VERSION.tar.xz" \
+  && echo "$RUBY_DOWNLOAD_SHA256 *ruby.tar.xz" | sha256sum -c - \
+  \
+  && mkdir -p /usr/src/ruby \
+  && tar -xJf ruby.tar.xz -C /usr/src/ruby --strip-components=1 \
+  && rm ruby.tar.xz \
+  \
+  && cd /usr/src/ruby \
+  \
+# hack in "ENABLE_PATH_CHECK" disabling to suppress:
+#   warning: Insecure world writable dir
+  && { \
+    echo '#define ENABLE_PATH_CHECK 0'; \
+    echo; \
+    cat file.c; \
+  } > file.c.new \
+  && mv file.c.new file.c \
+  \
+  && autoconf \
+  && gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
+  && ./configure \
+    --build="$gnuArch" \
+    --disable-install-doc \
+    --enable-shared \
+  && make -j "$(nproc)" \
+  && make install \
+  \
+  && apt-get purge -y --auto-remove $buildDeps \
+  && cd / \
+  && rm -r /usr/src/ruby \
+  \
+  && gem update --system "$RUBYGEMS_VERSION" \
+  && gem install bundler --version "$BUNDLER_VERSION" --force \
+  && rm -r /root/.gem/
+
+# install things globally, for great justice
+# and don't create ".bundle" in all our apps
+ENV GEM_HOME /usr/local/bundle
+ENV BUNDLE_PATH="$GEM_HOME" \
+    BUNDLE_BIN="$GEM_HOME/bin" \
+    BUNDLE_SILENCE_ROOT_WARNING=1 \
+    BUNDLE_APP_CONFIG="$GEM_HOME"
+ENV PATH $BUNDLE_BIN:$PATH
+RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
+  && chmod 777 "$GEM_HOME" "$BUNDLE_BIN"
+
+CMD [ "irb" ]
+
+FROM ruby-2.2.10-stretch
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -19,7 +98,7 @@ RUN set -ex; \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
-            tzdata rsync vim less; \
+            tzdata rsync vim less jq; \
         rm -rf /var/lib/apt/lists/*;
 
 # Set timezone to UTC by default
@@ -30,16 +109,10 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
-# Install jq
-RUN JQ_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/jq-latest" \
-  && curl --silent --show-error --location --fail --retry 3 --output /usr/bin/jq $JQ_URL \
-  && chmod +x /usr/bin/jq \
-  && jq --version
-
 # Install Docker
 RUN set -ex \
-  && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/x86_64/ | grep -o -e 'docker-[.0-9]*-ce\.tgz' | sort -r | head -n 1) \
-  && DOCKER_URL="https://download.docker.com/linux/static/stable/x86_64/${DOCKER_VERSION}" \
+  && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/$(arch)/ | grep -o -e 'docker-[.0-9]*-ce\.tgz' | sort -r | head -n 1) \
+  && DOCKER_URL="https://download.docker.com/linux/static/stable/$(arch)/${DOCKER_VERSION}" \
   && echo Docker URL: $DOCKER_URL \
   && curl --silent --show-error --location --fail --retry 3 --output /tmp/docker.tgz "${DOCKER_URL}" \
   && ls -lha /tmp/docker.tgz \
@@ -50,32 +123,16 @@ RUN set -ex \
   && (docker version || true)
 
 # Install Docker Compose
-RUN COMPOSE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/docker-compose-latest" \
-  && curl --silent --show-error --location --fail --retry 3 --output /usr/bin/docker-compose $COMPOSE_URL \
-  && chmod +x /usr/bin/docker-compose \
-  && docker-compose version
+# Releases over there don't work as they need a more recent glibc than Stretch has: https://github.com/linuxserver/docker-docker-compose/releases/download/1.29.2-ls51
+# So we fall back to using stretch-backports which has 1.21
+RUN echo 'deb http://ftp.debian.org/debian stretch-backports main\ndeb-src http://ftp.debian.org/debian stretch-backports main' > /etc/apt/sources.list.d/stretch-backports.list \
+  && apt-get update \
+  && apt-get install -y docker-compose \
+  && docker-compose version \
+  && rm -rf /var/lib/apt/lists/*
 
 # Install Dockerize
-RUN DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/dockerize-latest.tar.gz" \
-  && curl --silent --show-error --location --fail --retry 3 --output /tmp/dockerize-linux-amd64.tar.gz $DOCKERIZE_URL \
-  && tar -C /usr/local/bin -xzvf /tmp/dockerize-linux-amd64.tar.gz \
-  && rm -rf /tmp/dockerize-linux-amd64.tar.gz \
-  && dockerize --version
-
-# Install Protobuf compiler
-RUN export PROTOC_URL="https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip" \
-  && echo Protoc URL: $PROTOC_URL \
-  && curl --silent --show-error --location --fail --retry 3 --output /tmp/protoc.zip "${PROTOC_URL}" \
-  && ls -lha /tmp/protoc.zip \
-  && unzip /tmp/protoc.zip -d /tmp/protoc \
-  && mv /tmp/protoc/bin/* /usr/bin \
-  && rm -rf /tmp/protoc /tmp/protoc.zip \
-  && protoc --version
-
-# Install RubyGems
-RUN gem update --system 2.7.9
-RUN gem install bundler -v '1.17.3'
-ENV BUNDLE_SILENCE_ROOT_WARNING 1
+RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
 
 RUN mkdir /app
 WORKDIR /app

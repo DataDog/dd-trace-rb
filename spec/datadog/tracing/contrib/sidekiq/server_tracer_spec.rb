@@ -36,6 +36,7 @@ RSpec.describe 'Server tracer' do
     expect(span.get_metric('_dd.measured')).to eq(1.0)
     expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
     expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
+    expect(span.get_tag('span.kind')).to eq('consumer')
   end
 
   context 'with job run failing' do
@@ -69,6 +70,7 @@ RSpec.describe 'Server tracer' do
       expect(span).to be_root_span
       expect(span.get_tag('sidekiq.job.args')).to be_nil
       expect(span.get_metric('_dd.measured')).to eq(1.0)
+      expect(span.get_tag('span.kind')).to eq('consumer')
     end
   end
 
@@ -101,6 +103,7 @@ RSpec.describe 'Server tracer' do
       expect(empty.status).to eq(0)
       expect(empty).to be_root_span
       expect(empty.get_metric('_dd.measured')).to eq(1.0)
+      expect(empty.get_tag('span.kind')).to eq('consumer')
 
       expect(custom.service).to eq(tracer.default_service)
       expect(custom.resource).to eq('CustomWorker')
@@ -109,6 +112,7 @@ RSpec.describe 'Server tracer' do
       expect(custom).to be_root_span
       expect(custom.get_tag('sidekiq.job.args')).to eq(['?'].to_s)
       expect(custom.get_metric('_dd.measured')).to eq(1.0)
+      expect(custom.get_tag('span.kind')).to eq('consumer')
     end
 
     context 'with tag_args' do
@@ -158,6 +162,7 @@ RSpec.describe 'Server tracer' do
         expect(empty.status).to eq(0)
         expect(empty).to be_root_span
         expect(empty.get_metric('_dd.measured')).to eq(1.0)
+        expect(empty.get_tag('span.kind')).to eq('consumer')
 
         expect(custom.service).to eq('sidekiq-slow')
         expect(custom.resource).to eq('CustomWorker')
@@ -166,6 +171,7 @@ RSpec.describe 'Server tracer' do
         expect(custom).to be_root_span
         expect(custom.get_tag('sidekiq.job.args')).to eq(['random_id'].to_s)
         expect(custom.get_metric('_dd.measured')).to eq(1.0)
+        expect(custom.get_tag('span.kind')).to eq('consumer')
       end
     end
   end

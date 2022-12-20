@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/span'
+require 'datadog/tracing/utils'
 require 'datadog/opentracer'
 
 RSpec.describe 'OpenTracer context propagation' do
@@ -42,13 +42,13 @@ RSpec.describe 'OpenTracer context propagation' do
 
       it do
         expect(carrier).to include(
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(Integer),
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(Integer),
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(Integer),
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String)
+          'x-datadog-trace-id' => a_kind_of(Integer),
+          'x-datadog-parent-id' => a_kind_of(Integer),
+          'x-datadog-sampling-priority' => a_kind_of(Integer),
+          'x-datadog-origin' => a_kind_of(String)
         )
 
-        expect(carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID]).to be > 0
+        expect(carrier['x-datadog-parent-id']).to be > 0
 
         baggage.each do |k, v|
           expect(carrier).to include(Datadog::OpenTracer::TextMapPropagator::BAGGAGE_PREFIX + k => v)
@@ -73,15 +73,15 @@ RSpec.describe 'OpenTracer context propagation' do
       context 'a carrier with valid headers' do
         let(:carrier) do
           super().merge(
-            Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => trace_id.to_s,
-            Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => parent_id.to_s,
-            Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority.to_s,
-            Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => origin.to_s
+            'x-datadog-trace-id' => trace_id.to_s,
+            'x-datadog-parent-id' => parent_id.to_s,
+            'x-datadog-sampling-priority' => sampling_priority.to_s,
+            'x-datadog-origin' => origin.to_s
           )
         end
 
-        let(:trace_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1 }
-        let(:parent_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 2 }
+        let(:trace_id) { Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 1 }
+        let(:parent_id) { Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 2 }
         let(:sampling_priority) { 2 }
         let(:origin) { 'synthetics' }
 
@@ -183,20 +183,20 @@ RSpec.describe 'OpenTracer context propagation' do
 
       it do
         expect(@origin_carrier).to include(
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => origin_datadog_span.trace_id,
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => origin_datadog_span.span_id,
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => 1,
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => 'synthetics',
+          'x-datadog-trace-id' => origin_datadog_span.trace_id,
+          'x-datadog-parent-id' => origin_datadog_span.span_id,
+          'x-datadog-sampling-priority' => 1,
+          'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
         )
       end
 
       it do
         expect(@intermediate_carrier).to include(
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => intermediate_datadog_span.trace_id,
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => intermediate_datadog_span.span_id,
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => 1,
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => 'synthetics',
+          'x-datadog-trace-id' => intermediate_datadog_span.trace_id,
+          'x-datadog-parent-id' => intermediate_datadog_span.span_id,
+          'x-datadog-sampling-priority' => 1,
+          'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
         )
       end
@@ -205,7 +205,7 @@ RSpec.describe 'OpenTracer context propagation' do
 
   describe 'via OpenTracing::FORMAT_RACK' do
     def carrier_to_rack_format(carrier)
-      carrier.map { |k, v| ["http-#{k}".upcase!.tr('-', '_'), v] }.to_h
+      carrier.map { |k, v| [RackSupport.header_to_rack(k), v] }.to_h
     end
 
     def baggage_to_carrier_format(baggage)
@@ -232,13 +232,13 @@ RSpec.describe 'OpenTracer context propagation' do
 
       it do
         expect(carrier).to include(
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(String),
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(String),
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(String),
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String)
+          'x-datadog-trace-id' => a_kind_of(String),
+          'x-datadog-parent-id' => a_kind_of(String),
+          'x-datadog-sampling-priority' => a_kind_of(String),
+          'x-datadog-origin' => a_kind_of(String)
         )
 
-        expect(carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID].to_i).to be > 0
+        expect(carrier['x-datadog-parent-id'].to_i).to be > 0
 
         baggage.each do |k, v|
           expect(carrier).to include(Datadog::OpenTracer::RackPropagator::BAGGAGE_PREFIX + k => v)
@@ -264,16 +264,16 @@ RSpec.describe 'OpenTracer context propagation' do
         let(:carrier) do
           super().merge(
             carrier_to_rack_format(
-              Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => trace_id.to_s,
-              Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => parent_id.to_s,
-              Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority.to_s,
-              Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => origin.to_s
+              'x-datadog-trace-id' => trace_id.to_s,
+              'x-datadog-parent-id' => parent_id.to_s,
+              'x-datadog-sampling-priority' => sampling_priority.to_s,
+              'x-datadog-origin' => origin.to_s
             )
           )
         end
 
-        let(:trace_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1 }
-        let(:parent_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 2 }
+        let(:trace_id) { Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 1 }
+        let(:parent_id) { Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 2 }
         let(:sampling_priority) { 2 }
         let(:origin) { 'synthetics' }
 
@@ -379,20 +379,20 @@ RSpec.describe 'OpenTracer context propagation' do
 
       it do
         expect(@origin_carrier).to include(
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => origin_datadog_span.trace_id.to_s,
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => origin_datadog_span.span_id.to_s,
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => '1',
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => 'synthetics',
+          'x-datadog-trace-id' => origin_datadog_span.trace_id.to_s,
+          'x-datadog-parent-id' => origin_datadog_span.span_id.to_s,
+          'x-datadog-sampling-priority' => '1',
+          'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
         )
       end
 
       it do
         expect(@intermediate_carrier).to include(
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => intermediate_datadog_span.trace_id.to_s,
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => intermediate_datadog_span.span_id.to_s,
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => '1',
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => 'synthetics',
+          'x-datadog-trace-id' => intermediate_datadog_span.trace_id.to_s,
+          'x-datadog-parent-id' => intermediate_datadog_span.span_id.to_s,
+          'x-datadog-sampling-priority' => '1',
+          'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
         )
       end

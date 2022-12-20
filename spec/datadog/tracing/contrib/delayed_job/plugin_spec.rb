@@ -184,6 +184,10 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq(Datadog::Tracing::Contrib::DelayedJob::Ext::TAG_OPERATION_JOB)
       end
+
+      it 'has span.kind tag with value consumer' do
+        expect(span.get_tag('span.kind')).to eq('consumer')
+      end
     end
 
     describe 'enqueue span' do
@@ -210,6 +214,10 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq(Datadog::Tracing::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
+      end
+
+      it 'has span.kind tag with value producer' do
+        expect(span.get_tag('span.kind')).to eq('producer')
       end
     end
 

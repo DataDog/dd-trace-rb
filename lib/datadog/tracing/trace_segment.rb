@@ -30,6 +30,7 @@ module Datadog
         :rule_sample_rate,
         :runtime_id,
         :sample_rate,
+        :sampling_decision_maker,
         :sampling_priority,
         :service
 
@@ -77,6 +78,7 @@ module Datadog
         @rule_sample_rate = rule_sample_rate_tag || rule_sample_rate
         @runtime_id = runtime_id || runtime_id_tag
         @sample_rate = sample_rate || sample_rate_tag
+        @sampling_decision_maker = sampling_decision_maker_tag
         @sampling_priority = sampling_priority || sampling_priority_tag
         @service = Core::Utils::SafeDup.frozen_or_dup(service || service_tag)
       end
@@ -171,7 +173,7 @@ module Datadog
       end
 
       def process_id_tag
-        meta[Core::Runtime::Ext::TAG_PID]
+        meta[Core::Runtime::Ext::TAG_PROCESS_ID]
       end
 
       def rate_limiter_rate_tag
@@ -192,6 +194,10 @@ module Datadog
 
       def sample_rate_tag
         metrics[Metadata::Ext::Sampling::TAG_SAMPLE_RATE]
+      end
+
+      def sampling_decision_maker_tag
+        meta[Metadata::Ext::Distributed::TAG_DECISION_MAKER]
       end
 
       def sampling_priority_tag

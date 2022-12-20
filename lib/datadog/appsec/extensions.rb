@@ -53,6 +53,12 @@ module Datadog
           @settings.merge(dsl)
         end
 
+        def ip_denylist=(arg)
+          dsl = AppSec::Configuration::DSL.new
+          dsl.ip_denylist = arg
+          @settings.merge(dsl)
+        end
+
         def instrument(*args)
           dsl = AppSec::Configuration::DSL.new
           dsl.instrument(*args)
@@ -84,6 +90,10 @@ module Datadog
 
         def ruleset
           @settings.ruleset
+        end
+
+        def ruledata
+          @settings.ruledata
         end
 
         def waf_timeout

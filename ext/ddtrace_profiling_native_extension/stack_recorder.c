@@ -152,6 +152,7 @@ struct active_slot_pair {
 struct call_serialize_without_gvl_arguments {
   // Set by caller
   struct stack_recorder_state *state;
+  ddog_Timespec finish_timestamp;
 
   // Set by callee
   ddog_Profile *profile;
@@ -162,6 +163,7 @@ struct call_serialize_without_gvl_arguments {
 };
 
 static VALUE _native_new(VALUE klass);
+static void initialize_slot_concurrency_control(struct stack_recorder_state *state);
 static void stack_recorder_typed_data_free(void *data);
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
 static VALUE ruby_time_from(ddog_Timespec ddprof_time);
@@ -173,6 +175,10 @@ static VALUE _native_active_slot(DDTRACE_UNUSED VALUE _self, VALUE recorder_inst
 static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
+static ddog_Timespec time_now(void);
+static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
+static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec timestamp);
+static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
 
 void stack_recorder_init(VALUE profiling_module) {
   stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -190,9 +196,11 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
+  rb_define_singleton_method(stack_recorder_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
   rb_define_singleton_method(testing_module, "_native_slot_one_mutex_locked?", _native_is_slot_one_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
+  rb_define_singleton_method(testing_module, "_native_record_endpoint", _native_record_endpoint, 3);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -216,14 +224,7 @@ static VALUE _native_new(VALUE klass) {
 
   ddog_Slice_value_type sample_types = {.ptr = enabled_value_types, .len = ENABLED_VALUE_TYPES_COUNT};
 
-  state->slot_one_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
-  state->slot_two_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
-
-  // A newly-created StackRecorder starts with slot one being active for samples, so let's lock slot two
-  int error = pthread_mutex_lock(&state->slot_two_mutex);
-  if (error) rb_syserr_fail(error, "Unexpected failure during pthread_mutex_lock");
-
-  state->active_slot = 1;
+  initialize_slot_concurrency_control(state);
 
   // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
 
@@ -231,6 +232,16 @@ static VALUE _native_new(VALUE klass) {
   state->slot_two_profile = ddog_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
 
   return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
+}
+
+static void initialize_slot_concurrency_control(struct stack_recorder_state *state) {
+  state->slot_one_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+  state->slot_two_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+
+  // A newly-created StackRecorder starts with slot one being active for samples, so let's lock slot two
+  ENFORCE_SUCCESS_GVL(pthread_mutex_lock(&state->slot_two_mutex));
+
+  state->active_slot = 1;
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -249,9 +260,13 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
+  ddog_Timespec finish_timestamp = time_now();
+  // Need to do this while still holding on to the Global VM Lock; see comments on method for why
+  serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
+
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
-  struct call_serialize_without_gvl_arguments args = {.state = state, .serialize_ran = false};
+  struct call_serialize_without_gvl_arguments args = {.state = state, .finish_timestamp = finish_timestamp, .serialize_ran = false};
 
   while (!args.serialize_ran) {
     // Give the Ruby VM an opportunity to process any pending interruptions (including raising exceptions).
@@ -314,11 +329,22 @@ void record_sample(VALUE recorder_instance, ddog_Sample sample) {
   sampler_unlock_active_profile(active_slot);
 }
 
+void record_endpoint(VALUE recorder_instance, ddog_CharSlice local_root_span_id, ddog_CharSlice endpoint) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  struct active_slot_pair active_slot = sampler_lock_active_profile(state);
+
+  ddog_Profile_set_endpoint(active_slot.profile, local_root_span_id, endpoint);
+
+  sampler_unlock_active_profile(active_slot);
+}
+
 static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
   args->profile = serializer_flip_active_and_inactive_slots(args->state);
-  args->result = ddog_Profile_serialize(args->profile, NULL /* end_time is optional */, NULL /* duration_nanos is optional */);
+  args->result = ddog_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */);
   args->serialize_ran = true;
 
   return NULL; // Unused
@@ -334,7 +360,7 @@ static struct active_slot_pair sampler_lock_active_profile(struct stack_recorder
 
   for (int attempts = 0; attempts < 2; attempts++) {
     error = pthread_mutex_trylock(&state->slot_one_mutex);
-    if (error && error != EBUSY) rb_syserr_fail(error, "Unexpected failure during sampler_lock_active_profile for slot_one_mutex");
+    if (error && error != EBUSY) ENFORCE_SUCCESS_GVL(error);
 
     // Slot one is active
     if (!error) return (struct active_slot_pair) {.mutex = &state->slot_one_mutex, .profile = state->slot_one_profile};
@@ -342,7 +368,7 @@ static struct active_slot_pair sampler_lock_active_profile(struct stack_recorder
     // If we got here, slot one was not active, let's try slot two
 
     error = pthread_mutex_trylock(&state->slot_two_mutex);
-    if (error && error != EBUSY) rb_syserr_fail(error, "Unexpected failure during sampler_lock_active_profile for slot_two_mutex");
+    if (error && error != EBUSY) ENFORCE_SUCCESS_GVL(error);
 
     // Slot two is active
     if (!error) return (struct active_slot_pair) {.mutex = &state->slot_two_mutex, .profile = state->slot_two_profile};
@@ -353,28 +379,24 @@ static struct active_slot_pair sampler_lock_active_profile(struct stack_recorder
 }
 
 static void sampler_unlock_active_profile(struct active_slot_pair active_slot) {
-  int error = pthread_mutex_unlock(active_slot.mutex);
-  if (error != 0) rb_syserr_fail(error, "Unexpected failure in sampler_unlock_active_profile");
+  ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(active_slot.mutex));
 }
 
 static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state) {
-  int error;
   int previously_active_slot = state->active_slot;
 
   if (previously_active_slot != 1 && previously_active_slot != 2) {
-    rb_raise(rb_eRuntimeError, "Unexpected active_slot state %d in serializer_flip_active_and_inactive_slots", previously_active_slot);
+    grab_gvl_and_raise(rb_eRuntimeError, "Unexpected active_slot state %d in serializer_flip_active_and_inactive_slots", previously_active_slot);
   }
 
   pthread_mutex_t *previously_active = (previously_active_slot == 1) ? &state->slot_one_mutex : &state->slot_two_mutex;
   pthread_mutex_t *previously_inactive = (previously_active_slot == 1) ? &state->slot_two_mutex : &state->slot_one_mutex;
 
   // Release the lock, thus making this slot active
-  error = pthread_mutex_unlock(previously_inactive);
-  if (error) rb_syserr_fail(error, "Unexpected failure during serializer_flip_active_and_inactive_slots for previously_inactive");
+  ENFORCE_SUCCESS_NO_GVL(pthread_mutex_unlock(previously_inactive));
 
   // Grab the lock, thus making this slot inactive
-  error = pthread_mutex_lock(previously_active);
-  if (error) rb_syserr_fail(error, "Unexpected failure during serializer_flip_active_and_inactive_slots for previously_active");
+  ENFORCE_SUCCESS_NO_GVL(pthread_mutex_lock(previously_active));
 
   // Update active_slot
   state->active_slot = (previously_active_slot == 1) ? 2 : 1;
@@ -411,12 +433,55 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
 
   if (error == 0) {
     // Mutex was unlocked
-    pthread_mutex_unlock(slot_mutex);
+    ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(slot_mutex));
     return Qfalse;
   } else if (error == EBUSY) {
     // Mutex was locked
     return Qtrue;
   } else {
-    rb_syserr_fail(error, "Unexpected failure when checking mutex state");
+    ENFORCE_SUCCESS_GVL(error);
+    rb_raise(rb_eRuntimeError, "Failed to raise exception in test_slot_mutex_state; this should never happen");
   }
+}
+
+// Note that this is using CLOCK_REALTIME (e.g. actual time since unix epoch) and not the CLOCK_MONOTONIC as we use in
+// monotonic_wall_time_now_ns (used in other parts of the codebase)
+static ddog_Timespec time_now(void) {
+  struct timespec current_time;
+
+  if (clock_gettime(CLOCK_REALTIME, &current_time) != 0) ENFORCE_SUCCESS_GVL(errno);
+
+  return (ddog_Timespec) {.seconds = current_time.tv_sec, .nanoseconds = (uint32_t) current_time.tv_nsec};
+}
+
+// After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
+//
+// Assumption: This method gets called BEFORE restarting profiling -- e.g. there are no components attempting to
+// trigger samples at the same time.
+static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  // In case the fork happened halfway through `serializer_flip_active_and_inactive_slots` execution and the
+  // resulting state is inconsistent, we make sure to reset it back to the initial state.
+  initialize_slot_concurrency_control(state);
+
+  ddog_Profile_reset(state->slot_one_profile, /* start_time: */ NULL);
+  ddog_Profile_reset(state->slot_two_profile, /* start_time: */ NULL);
+
+  return Qtrue;
+}
+
+// Assumption 1: This method is called with the GVL being held, because `ddog_Profile_reset` mutates the profile and should
+// not be interrupted part-way through by a VM fork.
+static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec timestamp) {
+  // Before making this profile active, we reset it so that it uses the correct timestamp for its start
+  ddog_Profile *next_profile = (state->active_slot == 1) ? state->slot_two_profile : state->slot_one_profile;
+
+  if (!ddog_Profile_reset(next_profile, &timestamp)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
+}
+
+static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint) {
+  record_endpoint(recorder_instance, char_slice_from_ruby_string(local_root_span_id), char_slice_from_ruby_string(endpoint));
+  return Qtrue;
 }

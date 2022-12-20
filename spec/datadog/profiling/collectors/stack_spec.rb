@@ -418,12 +418,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   def sample_and_decode(thread, max_frames: 400, recorder: Datadog::Profiling::StackRecorder.new, in_gc: false)
     sample(thread, recorder, metric_values, labels, max_frames: max_frames, in_gc: in_gc)
 
-    serialization_result = recorder.serialize
-    raise 'Unexpected: Serialization failed' unless serialization_result
-
-    pprof_data = serialization_result.last
-
-    samples = samples_from_pprof(pprof_data)
+    samples = samples_from_pprof(recorder.serialize!)
 
     expect(samples.size).to be 1
     samples.first.fetch(:locations)

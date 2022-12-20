@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/span'
+require 'datadog/tracing/utils'
 require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::DistributedHeaders do
@@ -15,31 +15,31 @@ RSpec.describe Datadog::OpenTracer::DistributedHeaders do
 
     before do
       allow(carrier).to receive(:[])
-        .with(described_class::HTTP_HEADER_TRACE_ID)
+        .with('x-datadog-trace-id')
         .and_return(trace_id)
 
       allow(carrier).to receive(:[])
-        .with(described_class::HTTP_HEADER_PARENT_ID)
+        .with('x-datadog-parent-id')
         .and_return(parent_id)
     end
 
     context 'when #trace_id is missing' do
       let(:trace_id) { nil }
-      let(:parent_id) { (Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1).to_s }
+      let(:parent_id) { (Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1).to_s }
 
       it { is_expected.to be false }
     end
 
     context 'when #parent_id is missing' do
-      let(:trace_id) { (Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1).to_s }
+      let(:trace_id) { (Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1).to_s }
       let(:parent_id) { nil }
 
       it { is_expected.to be false }
     end
 
     context 'when both #trace_id and #parent_id are present' do
-      let(:trace_id) { (Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1).to_s }
-      let(:parent_id) { (Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1).to_s }
+      let(:trace_id) { (Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 1).to_s }
+      let(:parent_id) { (Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 1).to_s }
 
       it { is_expected.to be true }
     end
@@ -50,7 +50,7 @@ RSpec.describe Datadog::OpenTracer::DistributedHeaders do
 
     before do
       allow(carrier).to receive(:[])
-        .with(described_class::HTTP_HEADER_TRACE_ID)
+        .with('x-datadog-trace-id')
         .and_return(value)
     end
 
@@ -60,13 +60,13 @@ RSpec.describe Datadog::OpenTracer::DistributedHeaders do
 
     context 'when the header is present' do
       context 'but the value is out of range' do
-        let(:value) { (Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1).to_s }
+        let(:value) { (Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1).to_s }
 
         it { is_expected.to be nil }
       end
 
       context 'and the value is in range' do
-        let(:value) { (Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1).to_s }
+        let(:value) { (Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 1).to_s }
 
         it { is_expected.to eq value.to_i }
 
@@ -85,7 +85,7 @@ RSpec.describe Datadog::OpenTracer::DistributedHeaders do
 
     before do
       allow(carrier).to receive(:[])
-        .with(described_class::HTTP_HEADER_PARENT_ID)
+        .with('x-datadog-parent-id')
         .and_return(value)
     end
 
@@ -95,13 +95,13 @@ RSpec.describe Datadog::OpenTracer::DistributedHeaders do
 
     context 'when the header is present' do
       context 'but the value is out of range' do
-        let(:value) { (Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1).to_s }
+        let(:value) { (Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1).to_s }
 
         it { is_expected.to be nil }
       end
 
       context 'and the value is in range' do
-        let(:value) { (Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1).to_s }
+        let(:value) { (Datadog::Tracing::Utils::EXTERNAL_MAX_ID - 1).to_s }
 
         it { is_expected.to eq value.to_i }
 
@@ -120,7 +120,7 @@ RSpec.describe Datadog::OpenTracer::DistributedHeaders do
 
     before do
       allow(carrier).to receive(:[])
-        .with(described_class::HTTP_HEADER_SAMPLING_PRIORITY)
+        .with('x-datadog-sampling-priority')
         .and_return(value)
     end
 

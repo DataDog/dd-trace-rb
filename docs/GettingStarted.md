@@ -1,11 +1,11 @@
-**We've recently released the 1.x version series. If you're upgrading from a 0.x version, check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10).**
-
 # Datadog Ruby Trace Client
 
 `ddtrace` is Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
 databases and microservices so that developers have high visibility into bottlenecks and troublesome requests.
 
 ## Getting started
+
+**If you're upgrading from a 0.x version, check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10).**
 
 For the general APM documentation, see our [setup documentation][setup docs].
 
@@ -508,7 +508,7 @@ For a list of available integrations, and their configuration options, please re
 | Rack                       | `rack`                     | `>= 1.1`                 | `>= 1.1`                  | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
 | Rails                      | `rails`                    | `>= 3.2`                 | `>= 3.2`                  | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
 | Rake                       | `rake`                     | `>= 12.0`                | `>= 12.0`                 | *[Link](#rake)*                     | *[Link](https://github.com/ruby/rake)*                                         |
-| Redis                      | `redis`                    | `>= 3.2`                 | `>= 3.2`                  | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
+| Redis                      | `redis`                    | `>= 3.2`                 | `>= 3.2`                 | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
 | Resque                     | `resque`                   | `>= 1.0`                 | `>= 1.0`                  | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
 | Rest Client                | `rest-client`              | `>= 1.8`                 | `>= 1.8`                  | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
 | Roda                | `roda`              | `>= 2.1`                 | `>= 2.1`                  | *[Link](#roda)*              | *[Link](https://github.com/jeremyevans/roda)*                           |
@@ -1334,6 +1334,7 @@ client.query("SELECT * FROM users WHERE group='x'")
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `mysql2` instrumentation | `'mysql2'` |
+| `comment_propagation` | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
 
 ### Net/HTTP
 
@@ -1396,6 +1397,7 @@ end
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `pg` instrumentation | `'pg'` |
+| `comment_propagation` | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
 
 ### Presto
 
@@ -1722,7 +1724,28 @@ redis.set 'foo', 'bar'
 | `service_name` | Service name used for `redis` instrumentation | `'redis'` |
 | `command_args` | Show the command arguments (e.g. `key` in `GET key`) as resource name and tag | true |
 
-You can also set *per-instance* configuration as it follows:
+**Configuring trace settings per instance**
+
+With Redis version >= 5:
+
+```ruby
+require 'redis'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.tracing.instrument :redis # Enabling integration instrumentation is still required
+end
+
+customer_cache = Redis.new(custom: { datadog: { service_name: 'custom-cache' } })
+invoice_cache = Redis.new(custom: { datadog: { service_name: 'invoice-cache' } })
+
+# Traced call will belong to `customer-cache` service
+customer_cache.get(...)
+# Traced call will belong to `invoice-cache` service
+invoice_cache.get(...)
+```
+
+With Redis version < 5:
 
 ```ruby
 require 'redis'
@@ -1958,7 +1981,7 @@ end
 
 The Sinatra integration traces requests and template rendering.
 
-To start using the tracing client, make sure you import `ddtrace` and `use :sinatra` after either `sinatra` or `sinatra/base`, and before you define your application/routes:
+To start using the tracing client, make sure you import `ddtrace` and `instrument :sinatra` after either `sinatra` or `sinatra/base`, and before you define your application/routes:
 
 #### Classic application
 
@@ -1986,16 +2009,12 @@ Datadog.configure do |c|
 end
 
 class NestedApp < Sinatra::Base
-  register Datadog::Tracing::Contrib::Sinatra::Tracer
-
   get '/nested' do
     'Hello from nested app!'
   end
 end
 
 class App < Sinatra::Base
-  register Datadog::Tracing::Contrib::Sinatra::Tracer
-
   use NestedApp
 
   get '/' do
@@ -2003,8 +2022,6 @@ class App < Sinatra::Base
   end
 end
 ```
-
-Ensure you register `Datadog::Tracing::Contrib::Sinatra::Tracer` as a middleware before you mount your nested applications.
 
 #### Instrumentation options
 
@@ -2085,8 +2102,9 @@ end
 | `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED` | `false`                                                             | Allows you to enable sending telemetry data to Datadog. In a future release, we will be setting this to  `true` by default, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                          |
 | **Tracing**                                             |                                |                                                                   |                                                                                                                                                                                                                                           |
 | `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`   | `nil`                                                             | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                          |
-| `tracing.distributed_tracing.propagation_extract_style` | `DD_PROPAGATION_STYLE_EXTRACT` | `['Datadog','B3','B3 single header']`                             | Distributed tracing header formats to extract. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                          |
-| `tracing.distributed_tracing.propagation_inject_style`  | `DD_PROPAGATION_STYLE_INJECT`  | `['Datadog']`                                                     | Distributed tracing header formats to inject. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                           |
+| `tracing.distributed_tracing.propagation_extract_style` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT` | `['Datadog','b3multi','b3']` | Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                             |
+| `tracing.distributed_tracing.propagation_inject_style`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`  | `['Datadog']`                                                     | Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                              |
+| `tracing.distributed_tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE` | `nil` | Distributed tracing propagation formats to extract and inject. See [Distributed Tracing](#distributed-tracing) for more details. |
 | `tracing.enabled`                                       | `DD_TRACE_ENABLED`             | `true`                                                            | Enables or disables tracing. If set to `false` instrumentation will still run, but no traces are sent to the trace agent.                                                                                                                 |
 | `tracing.instrument(<integration-name>, <options...>)`  |                                |                                                                   | Activates instrumentation for a specific library. See [Integration instrumentation](#integration-instrumentation) for more details.                                                                                                       |
 | `tracing.log_injection`                                 | `DD_LOGS_INJECTION`            | `true`                                                            | Injects [Trace Correlation](#trace-correlation) information into Rails logs if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`.                                                   |
@@ -2355,26 +2373,21 @@ Service C:
 
 Tracing supports the following distributed trace formats:
 
- - `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG` (Default)
- - `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3`
- - `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER`
+ - `Datadog`: **Default**
+ - `b3multi`: [B3 multiple-headers](https://github.com/openzipkin/b3-propagation#multiple-headers)
+ - `b3`: [B3 single-header](https://github.com/openzipkin/b3-propagation#single-header)
+ - `tracecontext`: [W3C Trace Context](https://www.w3.org/TR/trace-context/)
+ - `none`: No-op.
 
 You can enable/disable the use of these formats via `Datadog.configure`:
 
 ```ruby
 Datadog.configure do |c|
   # List of header formats that should be extracted
-  c.tracing.distributed_tracing.propagation_extract_style = [
-    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
-    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-
-  ]
+  c.tracing.distributed_tracing.propagation_extract_style = [ 'tracecontext', 'Datadog', 'b3' ]
 
   # List of header formats that should be injected
-  c.tracing.distributed_tracing.propagation_inject_style = [
-    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG
-  ]
+  c.tracing.distributed_tracing.propagation_inject_style = [ 'tracecontext', 'Datadog' ]
 end
 ```
 

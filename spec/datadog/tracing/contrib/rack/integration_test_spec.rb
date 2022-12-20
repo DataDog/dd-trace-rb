@@ -20,6 +20,21 @@ RSpec.describe 'Rack integration tests' do
 
   after { Datadog.registry[:rack].reset_configuration! }
 
+  shared_examples 'a rack GET 200 span' do
+    it do
+      expect(span.name).to eq('rack.request')
+      expect(span.span_type).to eq('web')
+      expect(span.service).to eq(tracer.default_service)
+      expect(span.resource).to eq('GET 200')
+      expect(span.get_tag('http.method')).to eq('GET')
+      expect(span.get_tag('http.status_code')).to eq('200')
+      expect(span.status).to eq(0)
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
+      expect(span.get_tag('span.kind')).to eq('server')
+    end
+  end
+
   context 'for an application' do
     let(:app) do
       app_routes = routes
@@ -28,20 +43,6 @@ RSpec.describe 'Rack integration tests' do
         use Datadog::Tracing::Contrib::Rack::TraceMiddleware
         instance_eval(&app_routes)
       end.to_app
-    end
-
-    shared_examples 'a rack GET 200 span' do
-      it do
-        expect(span.name).to eq('rack.request')
-        expect(span.span_type).to eq('web')
-        expect(span.service).to eq(tracer.default_service)
-        expect(span.resource).to eq('GET 200')
-        expect(span.get_tag('http.method')).to eq('GET')
-        expect(span.get_tag('http.status_code')).to eq('200')
-        expect(span.status).to eq(0)
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
-      end
     end
 
     context 'with no routes' do
@@ -77,6 +78,8 @@ RSpec.describe 'Rack integration tests' do
             .to eq('rack')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('request')
+          expect(span.get_tag('span.kind'))
+            .to eq('server')
         end
       end
     end
@@ -286,6 +289,8 @@ RSpec.describe 'Rack integration tests' do
               .to eq('rack')
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('request')
+            expect(span.get_tag('span.kind'))
+              .to eq('server')
           end
         end
       end
@@ -322,6 +327,8 @@ RSpec.describe 'Rack integration tests' do
           expect(web_server_span.get_tag('operation')).to eq('queue')
           expect(web_server_span.get_tag('peer.service')).to eq('web-server')
           expect(web_server_span.status).to eq(0)
+          expect(web_server_span.get_tag('span.kind'))
+            .to eq('server')
 
           expect(rack_span.span_type).to eq('web')
           expect(rack_span.service).to eq(tracer.default_service)
@@ -331,6 +338,8 @@ RSpec.describe 'Rack integration tests' do
           expect(rack_span.status).to eq(0)
           expect(rack_span.get_tag('component')).to eq('rack')
           expect(rack_span.get_tag('operation')).to eq('request')
+          expect(rack_span.get_tag('span.kind'))
+            .to eq('server')
         end
       end
     end
@@ -367,6 +376,8 @@ RSpec.describe 'Rack integration tests' do
             .to eq('rack')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('request')
+          expect(span.get_tag('span.kind'))
+            .to eq('server')
         end
       end
     end
@@ -404,6 +415,8 @@ RSpec.describe 'Rack integration tests' do
             .to eq('rack')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('request')
+          expect(span.get_tag('span.kind'))
+            .to eq('server')
         end
       end
     end
@@ -436,7 +449,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.url')).to eq('/exception/')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.get_tag('error.type')).to eq('StandardError')
-            expect(span.get_tag('error.msg')).to eq('Unable to process the request')
+            expect(span.get_tag('error.message')).to eq('Unable to process the request')
             expect(span.get_tag('error.stack')).to_not be nil
             expect(span.status).to eq(1)
             expect(span).to be_root_span
@@ -444,6 +457,8 @@ RSpec.describe 'Rack integration tests' do
               .to eq('rack')
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('request')
+            expect(span.get_tag('span.kind'))
+              .to eq('server')
           end
         end
       end
@@ -475,7 +490,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.url')).to eq('/exception/')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.get_tag('error.type')).to eq('NoMemoryError')
-            expect(span.get_tag('error.msg')).to eq('Non-standard error')
+            expect(span.get_tag('error.message')).to eq('Non-standard error')
             expect(span.get_tag('error.stack')).to_not be nil
             expect(span.status).to eq(1)
             expect(span).to be_root_span
@@ -483,6 +498,8 @@ RSpec.describe 'Rack integration tests' do
               .to eq('rack')
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('request')
+            expect(span.get_tag('span.kind'))
+              .to eq('server')
           end
         end
       end
@@ -538,6 +555,8 @@ RSpec.describe 'Rack integration tests' do
                 .to eq('rack')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
                 .to eq('request')
+              expect(span.get_tag('span.kind'))
+                .to eq('server')
             end
           end
         end
@@ -582,6 +601,7 @@ RSpec.describe 'Rack integration tests' do
           expect(web_server_span.get_tag('operation')).to eq('queue')
           expect(web_server_span.get_tag('peer.service')).to eq('web-server')
           expect(web_server_span.status).to eq(0)
+          expect(web_server_span.get_tag('span.kind')).to eq('server')
 
           expect(rack_span.span_type).to eq('web')
           expect(rack_span.service).to eq(tracer.default_service)
@@ -591,6 +611,7 @@ RSpec.describe 'Rack integration tests' do
           expect(rack_span.status).to eq(0)
           expect(rack_span.get_tag('component')).to eq('rack')
           expect(rack_span.get_tag('operation')).to eq('request')
+          expect(rack_span.get_tag('span.kind')).to eq('server')
 
           expect(nested_app_span.resource).to eq('UserController#show')
         end
@@ -640,6 +661,8 @@ RSpec.describe 'Rack integration tests' do
                 .to eq('rack')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
                 .to eq('request')
+              expect(span.get_tag('span.kind'))
+                .to eq('server')
             end
           end
         end
@@ -681,6 +704,8 @@ RSpec.describe 'Rack integration tests' do
                 .to eq('rack')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
                 .to eq('request')
+              expect(span.get_tag('span.kind'))
+                .to eq('server')
             end
           end
         end
@@ -891,7 +916,43 @@ RSpec.describe 'Rack integration tests' do
         expect(span.status).to eq(0)
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
+        expect(span.get_tag('span.kind')).to eq('server')
       end
     end
+  end
+
+  context 'for a nested instrumentation' do
+    let(:another) do
+      Rack::Builder.new do
+        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+
+        map '/success' do
+          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+        end
+      end.to_app
+    end
+
+    let(:app) do
+      nested_app = another
+
+      Rack::Builder.new do
+        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+
+        map '/nested' do
+          use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+
+          run nested_app
+        end
+      end.to_app
+    end
+
+    subject(:response) { get 'nested/success' }
+
+    before do
+      is_expected.to be_ok
+      expect(spans).to have(1).items
+    end
+
+    it_behaves_like 'a rack GET 200 span'
   end
 end

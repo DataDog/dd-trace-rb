@@ -4,6 +4,8 @@ module Datadog
   module Profiling
     # Profiling entry point, which coordinates collectors and a scheduler
     class Profiler
+      include Datadog::Core::Utils::Forking
+
       attr_reader \
         :collectors,
         :scheduler
@@ -14,6 +16,11 @@ module Datadog
       end
 
       def start
+        after_fork! do
+          collectors.each(&:reset_after_fork)
+          scheduler.reset_after_fork
+        end
+
         collectors.each(&:start)
         scheduler.start
       end

@@ -3,6 +3,7 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'grpc'
 require 'ddtrace'
@@ -35,6 +36,7 @@ RSpec.describe 'tracing on the server connection' do
     it { expect(span.get_tag('rpc.system')).to eq 'grpc' }
     it { expect(span.get_tag('rpc.service')).to eq 'My::Server' }
     it { expect(span.get_tag('rpc.method')).to eq 'endpoint' }
+    it { expect(span.get_tag('span.kind')).to eq('server') }
 
     it 'has component and operation tags' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grpc')
@@ -49,6 +51,9 @@ RSpec.describe 'tracing on the server connection' do
     it_behaves_like 'a non-peer service span'
 
     it_behaves_like 'measured span for integration', true
+    it_behaves_like 'environment service name', 'DD_TRACE_GRPC_SERVICE_NAME' do
+      let(:configuration_options) { {} }
+    end
   end
 
   describe '#request_response' do
@@ -80,6 +85,7 @@ RSpec.describe 'tracing on the server connection' do
           expect(span).to have_error_type('TestError')
           expect(span).to have_error_stack(include('server_spec.rb'))
           expect(span.get_tag('rpc.system')).to eq 'grpc'
+          expect(span.get_tag('span.kind')).to eq('server')
         end
       end
 
@@ -97,6 +103,7 @@ RSpec.describe 'tracing on the server connection' do
           expect(span).to_not have_error
           expect(span.get_tag('custom.handler')).to eq('Got error test error, but ignored it')
           expect(span.get_tag('rpc.system')).to eq('grpc')
+          expect(span.get_tag('span.kind')).to eq('server')
         end
       end
     end

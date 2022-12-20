@@ -13,6 +13,7 @@ require 'datadog/tracing/contrib/httprb/instrumentation'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'spec/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
@@ -134,6 +135,10 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
           end
 
+          it 'has `client` as `span.kind`' do
+            expect(span.get_tag('span.kind')).to eq('client')
+          end
+
           it_behaves_like 'a peer service span' do
             let(:peer_hostname) { host }
           end
@@ -142,6 +147,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
             let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Httprb::Ext::ENV_ANALYTICS_ENABLED }
             let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Httprb::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
+
+          it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
         end
 
         context 'response has internal server error status' do
@@ -166,6 +173,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           it 'has error message' do
             expect(span).to have_error_message('Error')
           end
+
+          it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
         end
 
         context 'response has not found status' do
@@ -190,6 +199,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           it 'has error message' do
             expect(span).to have_error_message('Error')
           end
+
+          it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
         end
 
         context 'distributed tracing default' do
