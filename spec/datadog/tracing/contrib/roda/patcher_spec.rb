@@ -78,7 +78,6 @@ RSpec.describe 'Roda instrumentation' do
         context 'for a basic GET endpoint' do
           it do
             expect(response.status).to eq(200)
-            expect(response.header.keys).to eq(["content-type", "content-length"])
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
           end
@@ -89,7 +88,6 @@ RSpec.describe 'Roda instrumentation' do
 
           it do
             expect(response.status).to eq(200)
-            expect(response.header.keys).to eq(["content-type", "content-length"])
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
           end
@@ -100,7 +98,6 @@ RSpec.describe 'Roda instrumentation' do
 
           it do
             expect(response.status).to eq(200)
-            expect(response.header.keys).to eq(["content-type", "content-length"])
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
           end
@@ -113,7 +110,6 @@ RSpec.describe 'Roda instrumentation' do
           subject(:response) { get '/unsuccessful_endpoint' }
           it do
             expect(response.status).to eq(404)
-            expect(response.header.keys).to eq(["content-type", "content-length"])
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
           end

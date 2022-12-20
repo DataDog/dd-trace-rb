@@ -10,6 +10,9 @@ module Datadog
         class Integration
           include Contrib::Integration
 
+          MINIMUM_VERSION = Gem::Version.new('2.0.0')
+          MAXIMUM_VERSION = Gem::Version.new('4.0.0')
+
           register_as :roda
 
           def self.version
@@ -21,7 +24,7 @@ module Datadog
           end
 
           def self.compatible?
-            super && version >= Gem::Version.new('2.0.0')
+            super && version >= MINIMUM_VERSION && version < MAXIMUM_VERSION
           end
 
           def new_configuration
