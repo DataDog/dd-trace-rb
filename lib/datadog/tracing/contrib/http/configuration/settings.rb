@@ -33,6 +33,8 @@ module Datadog
               o.lazy
             end
 
+            option :response_code_errors, default: 400...599
+
             option :split_by_domain, default: false
           end
         end

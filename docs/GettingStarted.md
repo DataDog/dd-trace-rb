@@ -1367,6 +1367,7 @@ content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name used for `http` instrumentation | `'net/http'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+| `response_code_errors` | Range or Array of HTTP status codes that should be traced as errors. | `400...599` |
 
 If you wish to configure each connection object individually, you may use the `Datadog.configure_onto` as it follows:
 

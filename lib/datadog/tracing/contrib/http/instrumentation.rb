@@ -58,7 +58,7 @@ module Datadog
                 end
 
                 # Add additional response specific tags to the span.
-                annotate_span_with_response!(span, response)
+                annotate_span_with_response!(span, response, request_options)
 
                 # Invoke hook, if set.
                 unless Contrib::HTTP::Instrumentation.after_request.nil?
@@ -90,13 +90,12 @@ module Datadog
               set_analytics_sample_rate(span, request_options)
             end
 
-            def annotate_span_with_response!(span, response)
+            def annotate_span_with_response!(span, response, request_options)
               return unless response && response.code
 
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.code)
 
-              case response.code.to_i
-              when 400...599
+              if request_options[:response_code_errors].include? response.code.to_i
                 span.set_error(response)
               end
             end
