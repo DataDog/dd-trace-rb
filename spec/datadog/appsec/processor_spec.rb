@@ -74,6 +74,8 @@ RSpec.describe Datadog::AppSec::Processor do
       before do
         allow(Object).to receive(:require).with('libddwaf').and_return(true)
         stub_const('Datadog::AppSec::WAF', Module.new)
+        stub_const('Datadog::AppSec::WAF::LibDDWAF', Module.new)
+        stub_const('Datadog::AppSec::WAF::LibDDWAF::Error', Class.new(StandardError))
       end
 
       it { expect(described_class.new.send(:load_libddwaf)).to be true }

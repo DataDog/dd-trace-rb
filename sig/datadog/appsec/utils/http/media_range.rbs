@@ -1,0 +1,33 @@
+module Datadog
+  module AppSec
+    module Utils
+      module HTTP
+        class MediaRange
+          class ParseError < ::StandardError
+          end
+
+          WILDCARD: ::String
+          WILDCARD_RE: ::String
+          TOKEN_RE: ::Regexp
+          PARAMETER_RE: ::Regexp
+          ACCEPT_EXT_RE: ::Regexp
+          QVALUE_RE: ::Regexp
+          MEDIA_RANGE_RE: ::Regexp
+
+          attr_reader type: ::String
+          attr_reader subtype: ::String
+          attr_reader quality: ::Float
+          attr_reader parameters: ::Hash[::String, ::String]
+          attr_reader accept_ext: ::Hash[::String, ::String]
+
+          def initialize: (::String) -> void
+          def specificity: () -> ::Integer
+          def wildcard?: (?::Symbol?) -> bool
+          def <=>: (MediaRange) -> ::Integer
+          def ===: (MediaType | ::String) -> bool
+          def to_s: () -> ::String
+        end
+      end
+    end
+  end
+end

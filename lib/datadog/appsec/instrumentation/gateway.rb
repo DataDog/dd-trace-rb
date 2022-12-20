@@ -1,4 +1,4 @@
-# typed: true
+# typed: ignore
 
 module Datadog
   module AppSec
@@ -15,8 +15,8 @@ module Datadog
             @block = block
           end
 
-          def call(*args, **kwargs, &block)
-            @block.call(*args, **kwargs, &block)
+          def call(stack, env)
+            @block.call(stack, env)
           end
         end
 

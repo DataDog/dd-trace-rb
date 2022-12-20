@@ -1,0 +1,12 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        module Configuration
+          class Settings < Datadog::AppSec::Contrib::Configuration::Settings
+          end
+        end
+      end
+    end
+  end
+end
