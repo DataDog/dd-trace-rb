@@ -198,8 +198,8 @@ module Datadog
                   if get_option(:trace_id_128_bit_generation_enabled) && v != true
                     Datadog.logger.warn(
                       '128 bit trace_id is generated but not propagated. '\
-                      "Enable environment variable `#{Tracing::Configuration::Ext::Distributed::ENV_TRACE_ID_128_BIT_PROPAGATION_ENABLED}` with `true` "\
-                      "to enable option `#{o.instance_variable_get(:@name)}`"
+                      "Set environment variable `#{Tracing::Configuration::Ext::Distributed::ENV_TRACE_ID_128_BIT_PROPAGATION_ENABLED}` to `true` "\
+                      "to enable propagation"
                     )
                   end
                 end

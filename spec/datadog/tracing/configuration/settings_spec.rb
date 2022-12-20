@@ -798,7 +798,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
 
         it 'logs a warning message to enable propagation' do
-          expect(Datadog.logger).to receive(:warn).with(/to enable option `trace_id_128_bit_propagation_enabled`/)
+          expect(Datadog.logger).to receive(:warn).with(/to enable propagation/)
 
           expect(settings.tracing.trace_id_128_bit_propagation_enabled).to eq(false)
         end
@@ -825,7 +825,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
 
         it 'logs a warning message to enable propagation' do
-          expect(Datadog.logger).to receive(:warn).with(/to enable option `trace_id_128_bit_propagation_enabled`/)
+          expect(Datadog.logger).to receive(:warn).with(/to enable propagation/)
 
           settings.tracing.trace_id_128_bit_propagation_enabled = false
         end
