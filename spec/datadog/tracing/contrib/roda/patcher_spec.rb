@@ -120,7 +120,6 @@ RSpec.describe 'Roda instrumentation' do
           subject(:response) { get '/' }
           it do
             expect(response.status).to eq(500)
-            expect(response.header.keys).to eq(["content-type"])
 
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
