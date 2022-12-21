@@ -1,6 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'lograge'
 require 'datadog/tracing/contrib/lograge/instrumentation'
+require 'datadog/tracing/utils'
 
 RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
   let(:instrumented) { Lograge::LogSubscribers::Base.new }
@@ -25,8 +26,8 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
         version: version,
       )
     end
-    let(:trace_id) { 'trace_id' }
-    let(:span_id) { 'span_id' }
+    let(:trace_id) { Datadog::Tracing::Utils.next_id }
+    let(:span_id) { Datadog::Tracing::Utils.next_id }
     let(:env) { 'env' }
     let(:service) { 'service' }
     let(:version) { 'version' }
@@ -41,8 +42,8 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
           dd: {
             env: 'env',
             service: 'service',
-            span_id: 'span_id',
-            trace_id: 'trace_id',
+            span_id: span_id.to_s,
+            trace_id: trace_id.to_s,
             version: 'version'
           },
           ddsource: 'ruby' }
