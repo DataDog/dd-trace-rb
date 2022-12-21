@@ -231,12 +231,75 @@ RSpec.describe Datadog::Tracing::Correlation do
 
       context 'when #trace_id' do
         context 'is defined' do
-          it_behaves_like 'a log format string' do
-            let(:trace_id) { Datadog::Tracing::Utils.next_id }
-            it do
-              is_expected.to have_attribute(
-                "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{trace_id}"
-              )
+          context 'when 128 bit trace id logging is not enabled' do
+            before do
+              allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_logging_enabled).and_return(false)
+            end
+
+            context 'when given <= 64 bit trace id' do
+              it_behaves_like 'a log format string' do
+                let(:trace_id) { 0xaaaaaaaaaaaaaaaa }
+                let(:expected_trace_id) { trace_id }
+                it do
+                  is_expected.to have_attribute(
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                  )
+                end
+              end
+            end
+
+            context 'when given > 64 bit trace id' do
+              it_behaves_like 'a log format string' do
+                let(:trace_id) { 0xffffffffffffffffaaaaaaaaaaaaaaaa }
+                let(:expected_trace_id) { 0xaaaaaaaaaaaaaaaa }
+                it do
+                  is_expected.to have_attribute(
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                  )
+                end
+              end
+            end
+          end
+
+          context 'when 128 bit trace id logging is enabled' do
+            before do
+              allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_logging_enabled).and_return(true)
+            end
+
+            context 'when given <= 64 bit trace id' do
+              it_behaves_like 'a log format string' do
+                let(:trace_id) { 0xffffffffffffffff }
+                let(:expected_trace_id) { trace_id }
+                it do
+                  is_expected.to have_attribute(
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                  )
+                end
+              end
+            end
+
+            context 'when given > 64 bit trace id' do
+              it_behaves_like 'a log format string' do
+                let(:trace_id) { 0xffffffffffffffffaaaaaaaaaaaaaaaa }
+                let(:expected_trace_id) { trace_id }
+                it do
+                  is_expected.to have_attribute(
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                  )
+                end
+              end
+            end
+
+            context 'when given > 64 bit trace id and high order == 0' do
+              it_behaves_like 'a log format string' do
+                let(:trace_id) { 0x0000000000000000aaaaaaaaaaaaaaaa }
+                let(:expected_trace_id) { 0xaaaaaaaaaaaaaaaa }
+                it do
+                  is_expected.to have_attribute(
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                  )
+                end
+              end
             end
           end
         end

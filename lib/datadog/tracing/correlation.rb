@@ -1,6 +1,7 @@
 # typed: true
 
 require_relative '../core'
+require_relative 'trace_id_conversion'
 
 module Datadog
   module Tracing
@@ -24,7 +25,6 @@ module Datadog
           :span_resource,
           :span_service,
           :span_type,
-          :trace_id,
           :trace_name,
           :trace_resource,
           :trace_service,
@@ -70,6 +70,15 @@ module Datadog
             attributes << "#{LOG_ATTR_SPAN_ID}=#{span_id}"
             attributes.join(' ')
           end
+        end
+
+        def trace_id
+          if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
+              Tracing::TraceIdConversion.to_high_order(@trace_id) != 0
+            return @trace_id
+          end
+
+          Tracing::TraceIdConversion.to_low_order(@trace_id)
         end
       end
 
