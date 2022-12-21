@@ -11,6 +11,7 @@ module Datadog
           ENV_SERVICE_NAME = 'DD_TRACE_NET_HTTP_SERVICE_NAME'.freeze
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_HTTP_ANALYTICS_ENABLED'.freeze
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE'.freeze
+          ENV_RESPONSE_CODE_ERRORS = 'DD_TRACE_HTTP_RESPONSE_CODE_ERRORS'.freeze
           DEFAULT_PEER_SERVICE_NAME = 'net/http'.freeze
           SPAN_REQUEST = 'http.request'.freeze
           TAG_COMPONENT = 'net/http'.freeze

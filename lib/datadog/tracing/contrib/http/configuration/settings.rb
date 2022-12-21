@@ -33,7 +33,10 @@ module Datadog
               o.lazy
             end
 
-            option :response_code_errors, default: 400...599
+            option :response_code_errors do |o|
+              o.default { env_to_list(Ext::ENV_RESPONSE_CODE_ERRORS, 400...599, comma_separated_only: false)}
+              o.lazy
+            end
 
             option :split_by_domain, default: false
           end
