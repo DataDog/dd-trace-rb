@@ -5,6 +5,7 @@
 require_relative 'utils'
 require_relative 'metadata/tagging'
 require_relative 'metadata/ext'
+require_relative 'trace_id_conversion'
 
 module Datadog
   module Tracing
@@ -27,7 +28,7 @@ module Datadog
         end
 
         # high_order + low_order
-        high_order << 64 | low_order
+        Tracing::TraceIdConversion.concatenate(high_order, low_order)
       end
     end
   end
