@@ -111,7 +111,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           expect(trace_op.get_tag('_dd.p.tid')).to eq('ffffffffffffffff')
         end
 
-        context do
+        context 'when 128 bit trace id propagation is not enabled' do
           before do
             allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_propagation_enabled).and_return(false)
           end

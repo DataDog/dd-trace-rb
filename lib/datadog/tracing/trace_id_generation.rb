@@ -8,15 +8,15 @@ require_relative 'metadata/ext'
 
 module Datadog
   module Tracing
+    # The module contains logic about how trace id being generated,
+    # it could be 64 bits or 128 bits, based on the configuration.
     module TraceIdGeneration
       def self.included(base)
         base.include Tracing::Metadata::Tagging
       end
 
       def generate_trace_id
-        unless Datadog.configuration.tracing.trace_id_128_bit_generation_enabled
-          return Tracing::Utils.next_id
-        end
+        return Tracing::Utils.next_id unless Datadog.configuration.tracing.trace_id_128_bit_generation_enabled
 
         high_order = Tracing::Utils.next_id
         low_order  = Tracing::Utils.next_id
