@@ -102,13 +102,32 @@ RSpec.describe 'net/http requests' do
       end
 
       context 'with custom response error codes' do
-        let(:configuration_options) { { response_code_errors: 500...599 } }
+        context 'as a range covering 5xx responses' do
+          let(:configuration_options) { { response_code_errors: 500...599 } }
 
-        it 'does not mark the span as an error' do
-          expect(response.code).to eq('404')
-          expect(span.status).to eq(0)
-          expect(span.get_tag('error.type')).to be_nil
-          expect(span.get_tag('error.message')).to be_nil
+          it 'does not mark the span as an error' do
+            expect(response.code).to eq('404')
+            expect(span.status).to eq(0)
+            expect(span.get_tag('error.type')).to be_nil
+          end
+        end
+
+        context 'as an array including 404 responses' do
+          let(:configuration_options) { { response_code_errors: [401, 404] } }
+
+          it 'marks the span as an error' do
+            expect(response.code).to eq('404')
+            expect(span.status).to eq(1)
+            expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
+          end
+        end
+
+        context 'with the default value' do
+          it 'marks the span as an error' do
+            expect(response.code).to eq('404')
+            expect(span.status).to eq(1)
+            expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
+          end
         end
       end
 
