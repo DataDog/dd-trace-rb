@@ -103,7 +103,7 @@ RSpec.describe 'net/http requests' do
 
       context 'with custom response error codes' do
         context 'as a range covering 5xx responses' do
-          let(:configuration_options) { { response_code_errors: 500...599 } }
+          let(:configuration_options) { { error_status_codes: 500...599 } }
 
           it 'does not mark the span as an error' do
             expect(response.code).to eq('404')
@@ -113,7 +113,7 @@ RSpec.describe 'net/http requests' do
         end
 
         context 'as an array including 404 responses' do
-          let(:configuration_options) { { response_code_errors: [401, 404] } }
+          let(:configuration_options) { { error_status_codes: [401, 404] } }
 
           it 'marks the span as an error' do
             expect(response.code).to eq('404')
