@@ -1482,10 +1482,10 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
   (3..5).each { |v| gem_cucumber(v) }
 
   appraise 'contrib' do
-    gem 'actionpack'
-    gem 'actionview'
+    gem 'actionpack', '~> 7'
+    gem 'actionview', '~> 7'
     gem 'active_model_serializers', '>= 0.10.0'
-    gem 'activerecord'
+    gem 'activerecord', '~> 7'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
@@ -1615,10 +1615,10 @@ elsif ruby_version?('3.2')
   (3..5).each { |v| gem_cucumber(v) }
 
   appraise 'contrib' do
-    gem 'actionpack'
-    gem 'actionview'
+    gem 'actionpack', '~> 7'
+    gem 'actionview', '~> 7'
     gem 'active_model_serializers', '>= 0.10.0'
-    gem 'activerecord'
+    gem 'activerecord', '~> 7'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
