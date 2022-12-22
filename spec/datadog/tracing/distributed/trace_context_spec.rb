@@ -242,7 +242,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
             let(:upstream_tracestate) { 'dd=old_value,other=vendor,dd=oops_forgot_to_remove_this' }
 
             it 'removes existing `dd=` values, prepending new `dd=` value' do
-              expect(tracestate).to eq('dd=o:origin;future=field,other=vendor')
+              expect(tracestate).to eq('dd=o:origin,other=vendor')
             end
           end
 
