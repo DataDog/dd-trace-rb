@@ -43,7 +43,7 @@ module Datadog
 
           return unless trace_id # Could not parse traceparent
 
-          tracestate, sampling_priority, origin, tags = extract_tracestate(fetcher[@tracestate_key])
+          tracestate, sampling_priority, origin, tags, unknown_fields = extract_tracestate(fetcher[@tracestate_key])
 
           sampling_priority = parse_priority_sampling(sampled, sampling_priority)
 
@@ -54,8 +54,9 @@ module Datadog
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: tags,
             trace_distributed_id: trace_id,
+            trace_flags: trace_flags,
             trace_state: tracestate,
-            trace_flags: trace_flags
+            trace_state_unknown_fields: unknown_fields,
           )
         end
 
@@ -151,6 +152,8 @@ module Datadog
               tracestate << tag
             end
           end
+
+          tracestate << digest.trace_state_unknown_fields if digest.trace_state_unknown_fields
 
           # Is there any Datadog-specific information to propagate.
           # Check for > 3 size because the empty prefix `dd=` has 3 characters.
@@ -268,21 +271,23 @@ module Datadog
           vendors = split_tracestate(tracestate)
 
           # Find Datadog's `dd=` tracestate field.
-          dd_tracestate = vendors.find { |v| v.start_with?('dd=') }
-          return tracestate unless dd_tracestate
+          idx = vendors.index { |v| v.start_with?('dd=') }
+          return tracestate unless idx
 
           # Delete `dd=` prefix
+          dd_tracestate = vendors.delete_at(idx)
           dd_tracestate.slice!(0..2)
 
-          origin, sampling_priority, tags = extract_datadog_fields(dd_tracestate)
+          origin, sampling_priority, tags, unknown_fields = extract_datadog_fields(dd_tracestate)
 
-          [tracestate, sampling_priority, origin, tags]
+          [vendors.join(','), sampling_priority, origin, tags, unknown_fields]
         end
 
         def extract_datadog_fields(dd_tracestate)
           sampling_priority = nil
           origin = nil
           tags = nil
+          unknown_fields = nil
 
           # DEV: Since Ruby 2.6 `split` can receive a block, so `each` can be removed then.
           dd_tracestate.split(';').each do |pair|
@@ -299,10 +304,14 @@ module Datadog
 
               tags ||= {}
               tags["#{Tracing::Metadata::Ext::Distributed::TAGS_PREFIX}#{key}"] = value
+            else
+              unknown_fields ||= String.new
+              unknown_fields << pair
+              unknown_fields << ';'
             end
           end
 
-          [origin, sampling_priority, tags]
+          [origin, sampling_priority, tags, unknown_fields]
         end
 
         # Restore `:` back to `=`.
