@@ -1500,7 +1500,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
     gem 'http'
     gem 'httpclient'
-    # gem 'lograge', '~> 0.11'  # creates conflict with qless dependancy on thor ~0.19.1
+    gem 'lograge'
     gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '>= 0.5.3', platform: :ruby
@@ -1633,7 +1633,7 @@ elsif ruby_version?('3.2')
     gem 'grpc', '>= 1.38.0' # Minimum version with Ruby 3.0 support
     gem 'http'
     gem 'httpclient'
-    # gem 'lograge', '~> 0.11'  # creates conflict with qless dependancy on thor ~0.19.1
+    gem 'lograge'
     gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     # gem 'mysql2', '>= 0.5.3', platform: :ruby # broken on Ruby 3.2.0-preview1
