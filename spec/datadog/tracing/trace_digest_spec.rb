@@ -165,7 +165,7 @@ RSpec.describe Datadog::Tracing::TraceDigest do
         let(:options) { { trace_state: trace_state } }
         let(:trace_state) { 'vendor1=value,v2=v' }
 
-        it { is_expected.to have_attributes(trace_state: be_a_frozen_copy_of('vendor=value,v2=v')) }
+        it { is_expected.to have_attributes(trace_state: be_a_frozen_copy_of('vendor1=value,v2=v')) }
       end
 
       context 'trace_state_unknown_fields' do
