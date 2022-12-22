@@ -26,8 +26,7 @@ module Datadog
           set_tags(Tracing::Metadata::Ext::Distributed::TAG_TID => high_order.to_s(16))
         end
 
-        # high_order + low_order
-        high_order << 64 | low_order
+        Tracing::Utils::TraceId.concatenate(high_order, low_order)
       end
     end
   end

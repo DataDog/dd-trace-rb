@@ -106,8 +106,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           )
           # high_order + low_order
           expect(trace_op.id).to eq(0xffffffffffffffffaaaaaaaaaaaaaaaa)
-
-          # 700846779308066302.to_s(16) => '9b9e86ebaa245fe'
           expect(trace_op.get_tag('_dd.p.tid')).to eq('ffffffffffffffff')
         end
 
