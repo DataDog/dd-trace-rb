@@ -1,7 +1,7 @@
 # typed: true
 
 require_relative '../core'
-require_relative 'trace_id_conversion'
+require_relative 'utils'
 
 module Datadog
   module Tracing
@@ -74,11 +74,11 @@ module Datadog
 
         def trace_id
           if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
-              Tracing::TraceIdConversion.to_high_order(@trace_id) != 0
+              Tracing::Utils::TraceId.to_high_order(@trace_id) != 0
             return @trace_id
           end
 
-          Tracing::TraceIdConversion.to_low_order(@trace_id)
+          Tracing::Utils::TraceId.to_low_order(@trace_id)
         end
       end
 
