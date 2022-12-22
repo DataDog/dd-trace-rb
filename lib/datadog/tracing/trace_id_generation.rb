@@ -20,7 +20,7 @@ module Datadog
           set_tag(Tracing::Metadata::Ext::Distributed::TAG_TID, Tracing::Utils.next_id.to_s(16))
         end
 
-        Tracing::Utils.next_id
+        Tracing::Utils::TraceId.concatenate(high_order, low_order)
       end
     end
   end
