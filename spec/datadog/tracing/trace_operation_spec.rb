@@ -94,29 +94,18 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_generation_enabled).and_return(true)
         end
 
-        it '128 bits trace_id' do
-          expect(trace_op.id.bit_length).to be <= 128
+        it '64 bits trace_id' do
+          expect(trace_op.id.bit_length).to be <= 64
         end
 
         it do
           allow(Datadog::Tracing::Utils).to receive(:next_id).and_return(
-            0xffffffffffffffff, # high_order
-            0xaaaaaaaaaaaaaaaa, # low_order
+            0xffffffffffffffff, # low_order
+            0xaaaaaaaaaaaaaaaa, # high_order
             0xbbbbbbbbbbbbbbbb, # Prevent rspec mock to return previous values
           )
-          # high_order + low_order
-          expect(trace_op.id).to eq(0xffffffffffffffffaaaaaaaaaaaaaaaa)
-          expect(trace_op.get_tag('_dd.p.tid')).to eq('ffffffffffffffff')
-        end
-
-        context 'when 128 bit trace id propagation is not enabled' do
-          before do
-            allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_propagation_enabled).and_return(false)
-          end
-
-          it do
-            expect(trace_op).not_to have_tag('_dd.p.tid')
-          end
+          expect(trace_op.id).to eq(0xffffffffffffffff)
+          expect(trace_op.get_tag('_dd.p.tid')).to eq('aaaaaaaaaaaaaaaa')
         end
       end
 
@@ -133,6 +122,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           allow(Datadog::Tracing::Utils).to receive(:next_id).and_return(0xffffffffffffffff)
 
           expect(trace_op.id).to eq(0xffffffffffffffff)
+          expect(trace_op).not_to have_tag('_dd.p.tid')
         end
       end
     end
