@@ -6,16 +6,6 @@ module Datadog
   module AppSec
     # Processor integrates libddwaf into datadog/appsec
     class Processor
-      # Interface object to check using case .. when
-      module IOLike
-        def read; end
-        def rewind; end
-
-        def self.===(other)
-          instance_methods.all? { |meth| other.respond_to?(meth) }
-        end
-      end
-
       # Context manages a sequence of runs
       class Context
         attr_reader :time_ns, :time_ext_ns, :timeouts, :events
@@ -28,10 +18,12 @@ module Datadog
           @events = []
         end
 
-        def run(*args)
+        def run(input, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
-          _code, res = @context.run(*args)
+          # TODO: remove multiple assignment
+          _code, res = _ = @context.run(input, timeout)
+          # @type var res: WAF::Result
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
@@ -50,10 +42,8 @@ module Datadog
       attr_reader :ruleset_info, :addresses
 
       def initialize
-        @ruleset = nil
-        @handle = nil
         @ruleset_info = nil
-        @addresses = nil
+        @addresses = []
 
         unless load_libddwaf && load_ruleset && create_waf_handle
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
@@ -117,8 +107,8 @@ module Datadog
                        JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
                      when String
                        JSON.parse(File.read(ruleset_setting))
-                     when IOLike
-                       JSON.parse(ruleset_setting.read).tap { ruleset_setting.rewind }
+                     when File, StringIO
+                       JSON.parse(ruleset_setting.read || '').tap { ruleset_setting.rewind }
                      when Hash
                        ruleset_setting
                      else
@@ -148,12 +138,18 @@ module Datadog
         @addresses = @handle.required_addresses
 
         true
-      rescue StandardError => e
+      rescue WAF::LibDDWAF::Error => e
         Datadog.logger.error do
           "libddwaf failed to initialize, error: #{e.inspect}"
         end
 
-        @ruleset_info = e.ruleset_info if e.respond_to?(:ruleset_info)
+        @ruleset_info = e.ruleset_info if e.ruleset_info
+
+        false
+      rescue StandardError => e
+        Datadog.logger.error do
+          "libddwaf failed to initialize, error: #{e.inspect}"
+        end
 
         false
       end

@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 require 'ddtrace'
 require 'datadog/appsec'

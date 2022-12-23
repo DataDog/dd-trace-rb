@@ -81,7 +81,6 @@ module Datadog
 
         # @public_api
         module Transport
-          ENV_DEFAULT_HOST = 'DD_AGENT_HOST'.freeze
           ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'.freeze
           ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'.freeze
         end
