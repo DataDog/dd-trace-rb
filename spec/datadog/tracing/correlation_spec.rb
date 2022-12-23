@@ -32,6 +32,7 @@ RSpec.describe Datadog::Tracing::Correlation do
     let(:trace_resource) { 'GET /users' }
     let(:trace_service) { 'acme-api' }
     let(:version) { '0.1' }
+    let(:trace_distributed_tags) { nil }
   end
 
   describe '::identifier_from_digest' do
@@ -53,6 +54,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           span_service: nil,
           span_type: nil,
           trace_id: 0,
+          trace_distributed_tags: {},
           trace_name: nil,
           trace_resource: nil,
           trace_service: nil,
@@ -79,6 +81,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           span_service: span_service,
           span_type: span_type,
           trace_id: trace_id,
+          trace_distributed_tags: trace_distributed_tags,
           trace_name: trace_name,
           trace_resource: trace_resource,
           trace_service: trace_service
@@ -95,6 +98,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           span_service: span_service,
           span_type: span_type,
           trace_id: trace_id,
+          trace_distributed_tags: {},
           trace_name: trace_name,
           trace_resource: trace_resource,
           trace_service: trace_service,
@@ -110,6 +114,7 @@ RSpec.describe Datadog::Tracing::Correlation do
         expect(identifier.span_service).to be_a_frozen_copy_of(span_service)
         expect(identifier.span_type).to be_a_frozen_copy_of(span_type)
         expect(identifier.trace_name).to be_a_frozen_copy_of(trace_name)
+        expect(identifier.trace_distributed_tags).to be_a_frozen_copy_of({})
         expect(identifier.trace_resource).to be_a_frozen_copy_of(trace_resource)
         expect(identifier.trace_service).to be_a_frozen_copy_of(trace_service)
         expect(identifier.version).to be_a_frozen_copy_of(default_version)
@@ -159,6 +164,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             span_service: span_service,
             span_type: span_type,
             trace_id: trace_id,
+            trace_distributed_tags: trace_distributed_tags,
             trace_name: trace_name,
             trace_resource: trace_resource,
             trace_service: trace_service,
@@ -176,6 +182,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             span_service: span_service,
             span_type: span_type,
             trace_id: trace_id,
+            trace_distributed_tags: {},
             trace_name: trace_name,
             trace_resource: trace_resource,
             trace_service: trace_service,
@@ -191,6 +198,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           expect(identifier.span_service).to be_a_frozen_copy_of(span_service)
           expect(identifier.span_type).to be_a_frozen_copy_of(span_type)
           expect(identifier.trace_name).to be_a_frozen_copy_of(trace_name)
+          expect(identifier.trace_distributed_tags).to be_a_frozen_copy_of({})
           expect(identifier.trace_resource).to be_a_frozen_copy_of(trace_resource)
           expect(identifier.trace_service).to be_a_frozen_copy_of(trace_service)
           expect(identifier.version).to be_a_frozen_copy_of(version)
@@ -208,7 +216,8 @@ RSpec.describe Datadog::Tracing::Correlation do
             service: service,
             span_id: span_id,
             trace_id: trace_id,
-            version: version
+            version: version,
+            trace_distributed_tags: trace_distributed_tags
           )
         end
 
@@ -217,6 +226,7 @@ RSpec.describe Datadog::Tracing::Correlation do
         let(:env) { 'dev' }
         let(:service) { 'acme-api' }
         let(:version) { '1.0' }
+        let(:trace_distributed_tags) { nil }
 
         it 'doesn\'t have attributes without values' do
           is_expected.to_not match(/.*=(?=\z|\s)/)
@@ -239,6 +249,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             context 'when given <= 64 bit trace id' do
               it_behaves_like 'a log format string' do
                 let(:trace_id) { 0xaaaaaaaaaaaaaaaa }
+                let(:trace_distributed_tags) { {} }
                 let(:expected_trace_id) { trace_id }
                 it do
                   is_expected.to have_attribute(
@@ -250,8 +261,9 @@ RSpec.describe Datadog::Tracing::Correlation do
 
             context 'when given > 64 bit trace id' do
               it_behaves_like 'a log format string' do
-                let(:trace_id) { 0xffffffffffffffffaaaaaaaaaaaaaaaa }
-                let(:expected_trace_id) { 0xaaaaaaaaaaaaaaaa }
+                let(:trace_id) { 0xaaaaaaaaaaaaaaaa }
+                let(:trace_distributed_tags) { { '_dd.p.tid' => 'ffffffffffffffff' } }
+                let(:expected_trace_id) { trace_id }
                 it do
                   is_expected.to have_attribute(
                     "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
@@ -268,7 +280,8 @@ RSpec.describe Datadog::Tracing::Correlation do
 
             context 'when given <= 64 bit trace id' do
               it_behaves_like 'a log format string' do
-                let(:trace_id) { 0xffffffffffffffff }
+                let(:trace_id) { 0xaaaaaaaaaaaaaaaa }
+                let(:trace_distributed_tags) { {} }
                 let(:expected_trace_id) { trace_id }
                 it do
                   is_expected.to have_attribute(
@@ -280,20 +293,9 @@ RSpec.describe Datadog::Tracing::Correlation do
 
             context 'when given > 64 bit trace id' do
               it_behaves_like 'a log format string' do
-                let(:trace_id) { 0xffffffffffffffffaaaaaaaaaaaaaaaa }
-                let(:expected_trace_id) { trace_id }
-                it do
-                  is_expected.to have_attribute(
-                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
-                  )
-                end
-              end
-            end
-
-            context 'when given > 64 bit trace id and high order == 0' do
-              it_behaves_like 'a log format string' do
-                let(:trace_id) { 0x0000000000000000aaaaaaaaaaaaaaaa }
-                let(:expected_trace_id) { 0xaaaaaaaaaaaaaaaa }
+                let(:trace_id) { 0xaaaaaaaaaaaaaaaa }
+                let(:trace_distributed_tags) { { '_dd.p.tid' => 'ffffffffffffffff' } }
+                let(:expected_trace_id) { 0xffffffffffffffffaaaaaaaaaaaaaaaa }
                 it do
                   is_expected.to have_attribute(
                     "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"

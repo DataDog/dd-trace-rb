@@ -2,6 +2,7 @@
 
 require_relative '../core'
 require_relative 'utils'
+require_relative 'metadata/ext'
 
 module Datadog
   module Tracing
@@ -25,6 +26,7 @@ module Datadog
           :span_resource,
           :span_service,
           :span_type,
+          :trace_distributed_tags,
           :trace_name,
           :trace_resource,
           :trace_service,
@@ -40,6 +42,7 @@ module Datadog
           span_service: nil,
           span_type: nil,
           trace_id: nil,
+          trace_distributed_tags: nil,
           trace_name: nil,
           trace_resource: nil,
           trace_service: nil,
@@ -54,6 +57,7 @@ module Datadog
           @span_service = Core::Utils::SafeDup.frozen_or_dup(span_service).freeze
           @span_type = Core::Utils::SafeDup.frozen_or_dup(span_type).freeze
           @trace_id = trace_id || 0
+          @trace_distributed_tags = Core::Utils::SafeDup.frozen_or_dup(trace_distributed_tags || {}).freeze
           @trace_name = Core::Utils::SafeDup.frozen_or_dup(trace_name).freeze
           @trace_resource = Core::Utils::SafeDup.frozen_or_dup(trace_resource).freeze
           @trace_service = Core::Utils::SafeDup.frozen_or_dup(trace_service).freeze
@@ -73,12 +77,12 @@ module Datadog
         end
 
         def trace_id
-          if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
-              Tracing::Utils::TraceId.to_high_order(@trace_id) != 0
-            return @trace_id
-          end
+          return @trace_id unless Datadog.configuration.tracing.trace_id_128_bit_logging_enabled
 
-          Tracing::Utils::TraceId.to_low_order(@trace_id)
+          Tracing::Utils::TraceId.concatenate(
+            (trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID] || '0').hex,
+            @trace_id
+          )
         end
       end
 
@@ -101,7 +105,8 @@ module Datadog
           trace_id: digest.trace_id,
           trace_name: digest.trace_name,
           trace_resource: digest.trace_resource,
-          trace_service: digest.trace_service
+          trace_service: digest.trace_service,
+          trace_distributed_tags: digest.trace_distributed_tags
         )
       end
     end
