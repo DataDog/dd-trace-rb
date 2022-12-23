@@ -16,11 +16,11 @@ module Datadog
       end
 
       def generate_trace_id
-        if Datadog.configuration.tracing.trace_id_128_bit_generation_enabled
-          set_tag(Tracing::Metadata::Ext::Distributed::TAG_TID, Tracing::Utils.next_id.to_s(16))
+        Tracing::Utils.next_id.tap do
+          if Datadog.configuration.tracing.trace_id_128_bit_generation_enabled
+            set_tag(Tracing::Metadata::Ext::Distributed::TAG_TID, Tracing::Utils.next_id.to_s(16))
+          end
         end
-
-        Tracing::Utils::TraceId.concatenate(high_order, low_order)
       end
     end
   end
