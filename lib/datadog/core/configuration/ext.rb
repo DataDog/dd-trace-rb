@@ -12,6 +12,14 @@ module Datadog
           ENV_HEALTH_METRICS_ENABLED = 'DD_HEALTH_METRICS_ENABLED'.freeze
           ENV_STARTUP_LOGS_ENABLED = 'DD_TRACE_STARTUP_LOGS'.freeze
         end
+
+        module Metrics
+          ENV_DEFAULT_PORT = 'DD_METRIC_AGENT_PORT'.freeze
+        end
+
+        module Transport
+          ENV_DEFAULT_HOST = 'DD_AGENT_HOST'.freeze
+        end
       end
     end
   end

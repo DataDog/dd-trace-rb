@@ -1,0 +1,19 @@
+module Datadog
+  module Core
+    module Configuration
+      class Settings
+        include Base
+
+        def initialize: (*untyped _) -> untyped
+
+        def logger=: (untyped logger) -> untyped
+
+        def runtime_metrics: (?untyped? options) -> untyped
+
+        def tracer: (?untyped? options) -> untyped
+
+        def tracer=: (untyped tracer) -> untyped
+      end
+    end
+  end
+end

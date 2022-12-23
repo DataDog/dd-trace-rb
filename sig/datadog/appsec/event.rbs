@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Event
+      ALLOWED_REQUEST_HEADERS: untyped
+
+      ALLOWED_RESPONSE_HEADERS: untyped
+
+      def self.record: (*untyped events) -> (nil | untyped)
+
+      def self.record_via_span: (*untyped events) -> untyped
+    end
+  end
+end

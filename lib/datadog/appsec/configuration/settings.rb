@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 module Datadog
   module AppSec
@@ -8,7 +8,8 @@ module Datadog
       class Settings
         class << self
           def boolean
-            lambda do |v|
+            # @type ^(::String) -> bool
+            ->(v) do # rubocop:disable Style/Lambda
               case v
               when /(1|true)/i
                 true
@@ -22,14 +23,16 @@ module Datadog
 
           # TODO: allow symbols
           def string
+            # @type ^(::String) -> ::String
             ->(v) { v.to_s }
           end
 
           def integer
-            lambda do |v|
+            # @type ^(::String) -> ::Integer
+            ->(v) do # rubocop:disable Style/Lambda
               case v
               when /(\d+)/
-                Integer(Regexp.last_match[1])
+                Regexp.last_match(1).to_i
               else
                 raise ArgumentError, "invalid integer: #{v.inspect}"
               end
@@ -38,7 +41,8 @@ module Datadog
 
           # rubocop:disable Metrics/MethodLength
           def duration(base = :ns, type = :integer)
-            lambda do |v|
+            # @type ^(::String) -> ::Integer | ::Float
+            ->(v) do # rubocop:disable Style/Lambda
               cast = case type
                      when :integer, Integer
                        method(:Integer)
@@ -63,19 +67,19 @@ module Datadog
 
               case v
               when /^(\d+)h$/
-                cast.call(Regexp.last_match[1]) * 1_000_000_000 * 60 * 60 / scale
+                cast.call(Regexp.last_match(1)) * 1_000_000_000 * 60 * 60 / scale
               when /^(\d+)m$/
-                cast.call(Regexp.last_match[1]) * 1_000_000_000 * 60 / scale
+                cast.call(Regexp.last_match(1)) * 1_000_000_000 * 60 / scale
               when /^(\d+)s$/
-                cast.call(Regexp.last_match[1]) * 1_000_000_000 / scale
+                cast.call(Regexp.last_match(1)) * 1_000_000_000 / scale
               when /^(\d+)ms$/
-                cast.call(Regexp.last_match[1]) * 1_000_000 / scale
+                cast.call(Regexp.last_match(1)) * 1_000_000 / scale
               when /^(\d+)us$/
-                cast.call(Regexp.last_match[1]) * 1_000 / scale
+                cast.call(Regexp.last_match(1)) * 1_000 / scale
               when /^(\d+)ns$/
-                cast.call(Regexp.last_match[1]) / scale
+                cast.call(Regexp.last_match(1)) / scale
               when /^(\d+)$/
-                cast.call(Regexp.last_match[1])
+                cast.call(Regexp.last_match(1))
               else
                 raise ArgumentError, "invalid duration: #{v.inspect}"
               end
@@ -109,7 +113,8 @@ module Datadog
           'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP' => [:obfuscator_value_regex, Settings.string],
         }.freeze
 
-        Integration = Struct.new(:integration, :options)
+        # Struct constant whisker cast for Steep
+        Integration = _ = Struct.new(:integration, :options) # rubocop:disable Naming/ConstantName
 
         def initialize
           @integrations = []
@@ -121,37 +126,45 @@ module Datadog
         end
 
         def enabled
-          @options[:enabled]
+          # Cast for Steep
+          _ = @options[:enabled]
         end
 
         def ruleset
-          @options[:ruleset]
+          # Cast for Steep
+          _ = @options[:ruleset]
         end
 
         # EXPERIMENTAL: This configurable is not meant to be publicly used, but
         #               is very useful for testing. It may change at any point in time.
         def ip_denylist
-          @options[:ip_denylist]
+          # Cast for Steep
+          _ = @options[:ip_denylist]
         end
 
         def waf_timeout
-          @options[:waf_timeout]
+          # Cast for Steep
+          _ = @options[:waf_timeout]
         end
 
         def waf_debug
-          @options[:waf_debug]
+          # Cast for Steep
+          _ = @options[:waf_debug]
         end
 
         def trace_rate_limit
-          @options[:trace_rate_limit]
+          # Cast for Steep
+          _ = @options[:trace_rate_limit]
         end
 
         def obfuscator_key_regex
-          @options[:obfuscator_key_regex]
+          # Cast for Steep
+          _ = @options[:obfuscator_key_regex]
         end
 
         def obfuscator_value_regex
-          @options[:obfuscator_value_regex]
+          # Cast for Steep
+          _ = @options[:obfuscator_value_regex]
         end
 
         def [](integration_name)
@@ -159,7 +172,7 @@ module Datadog
 
           raise ArgumentError, "'#{integration_name}' is not a valid integration." unless integration
 
-          integration.options if integration
+          integration.options
         end
 
         def merge(dsl)

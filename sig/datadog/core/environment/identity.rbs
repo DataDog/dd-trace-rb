@@ -1,0 +1,23 @@
+module Datadog
+  module Core
+    module Environment
+      module Identity
+        extend Datadog::Core::Utils::Forking
+
+        def self?.id: () -> untyped
+
+        def self?.lang: () -> untyped
+
+        def self?.lang_engine: () -> untyped
+
+        def self?.lang_interpreter: () -> untyped
+
+        def self?.lang_platform: () -> untyped
+
+        def self?.lang_version: () -> untyped
+
+        def self?.tracer_version: () -> untyped
+      end
+    end
+  end
+end

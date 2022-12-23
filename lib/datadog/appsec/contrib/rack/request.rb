@@ -1,4 +1,4 @@
-# typed: true
+# typed: ignore
 
 require_relative '../../../tracing/client_ip'
 require_relative '../../../tracing/contrib/rack/header_collection'

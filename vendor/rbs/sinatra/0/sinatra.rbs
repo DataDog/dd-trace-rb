@@ -1,0 +1,5 @@
+module Sinatra
+  class Response
+    def initialize: (::Array[::String] body, ::Integer status, ::Hash[::String, ::String] headers) -> void
+  end
+end
