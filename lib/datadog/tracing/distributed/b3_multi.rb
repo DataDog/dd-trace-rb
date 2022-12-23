@@ -3,6 +3,8 @@
 
 require_relative 'helpers'
 require_relative '../trace_digest'
+require_relative '../utils'
+require_relative '../metadata'
 
 module Datadog
   module Tracing
@@ -29,8 +31,13 @@ module Datadog
         def inject!(digest, data = {})
           return if digest.nil?
 
+          trace_id = Tracing::Utils::TraceId.concatenate(
+            (digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID] || "").to_i(16),
+            Tracing::Utils::TraceId.to_low_order(digest.trace_id)
+          )
+
           # DEV: We need these to be hex encoded
-          data[@trace_id_key] = digest.trace_id.to_s(16)
+          data[@trace_id_key] = trace_id.to_s(16)
           data[@span_id_key] = digest.span_id.to_s(16)
 
           if digest.trace_sampling_priority
@@ -54,10 +61,20 @@ module Datadog
           # Return early if this propagation is not valid
           return unless trace_id && span_id
 
+          if Datadog.configuration.tracing.trace_id_128_bit_propagation_enabled
+            high_order = Tracing::Utils::TraceId.to_high_order(trace_id)
+
+            if high_order != 0
+              trace_distributed_tags = {}
+              trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID] = high_order.to_s(16)
+            end
+          end
+
           TraceDigest.new(
             trace_id: trace_id,
             span_id: span_id,
-            trace_sampling_priority: sampling_priority
+            trace_sampling_priority: sampling_priority,
+            trace_distributed_tags: trace_distributed_tags
           )
         end
       end

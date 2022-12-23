@@ -4,6 +4,7 @@
 require_relative '../metadata/ext'
 require_relative '../trace_digest'
 require_relative 'datadog_tags_codec'
+require_relative '../utils'
 
 module Datadog
   module Tracing
@@ -39,7 +40,8 @@ module Datadog
         def inject!(digest, data)
           return if digest.nil?
 
-          data[@trace_id_key] = digest.trace_id.to_s
+          data[@trace_id_key] = Tracing::Utils::TraceId.to_low_order(digest.trace_id).to_s
+
           data[@parent_id_key] = digest.span_id.to_s
           data[@sampling_priority_key] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
           data[@origin_key] = digest.trace_origin.to_s if digest.trace_origin
@@ -63,6 +65,13 @@ module Datadog
           return unless (trace_id && parent_id) || (origin && trace_id)
 
           trace_distributed_tags = extract_tags(fetcher)
+
+          if Datadog.configuration.tracing.trace_id_128_bit_propagation_enabled
+            trace_id = Tracing::Utils::TraceId.concatenate(
+              (trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID] || "").to_i(16),
+              trace_id
+            )
+          end
 
           TraceDigest.new(
             span_id: parent_id,

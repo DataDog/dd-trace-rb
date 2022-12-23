@@ -97,8 +97,11 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
       [0xffffffffffffffff, 0xaaaaaaaaaaaaaaaa] => 0xffffffffffffffffaaaaaaaaaaaaaaaa,
       [0x00000000aaaaaaaa, 0xffffffffffffffff] => 0x00000000aaaaaaaaffffffffffffffff,
       [0xaaaaaaaaaaaaaaaa, 0xffffffff] => 0xaaaaaaaaaaaaaaaa00000000ffffffff,
+      [nil, 0xffffffffffffffff]        => 0xffffffffffffffff,
+      [0,   0xffffffffffffffff]        => 0xffffffffffffffff,
+      ['0', 0xffffffffffffffff]        => 0xffffffffffffffff,
     }.each do |(high_order, low_order), result|
-      context "when given `0x#{high_order.to_s(16)}` and `0x#{low_order.to_s(16)}`" do
+      context "when given `#{high_order}` and `#{low_order}`" do
         it "returns `0x#{result.to_s(16)}`" do
           expect(described_class.concatenate(high_order, low_order)).to eq(result)
         end

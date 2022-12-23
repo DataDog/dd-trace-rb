@@ -77,7 +77,7 @@ module Datadog
         packer.write('parent_id')
         packer.write(span.parent_id)
         packer.write('trace_id')
-        packer.write(span.trace_id)
+        packer.write(span.trace_id) # low order 64 bits
         packer.write('name')
         packer.write(span.name)
         packer.write('service')
