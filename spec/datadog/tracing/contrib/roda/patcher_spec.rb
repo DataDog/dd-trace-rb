@@ -9,7 +9,7 @@ RSpec.describe 'Roda instrumentation' do
   include Rack::Test::Methods
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.tracing.instrument :roda, configuration_options
     end
@@ -124,7 +124,7 @@ RSpec.describe 'Roda instrumentation' do
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
             expect(span.status).to eq(1)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq ('500')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
           end
         end
 
@@ -139,7 +139,7 @@ RSpec.describe 'Roda instrumentation' do
               expect(spans).to have(1).items
               expect(span.name).to eq('roda.request')
               expect(span.status).to eq(1)
-              expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq ('500')
+              expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
             end
           end
         end

@@ -54,11 +54,11 @@ RSpec.describe Datadog::Tracing::Contrib::Roda::Integration do
       end
 
       context 'that exceeds the maximum version' do
-      	unsupported_major_release = described_class::MAXIMUM_VERSION.segments[0] + 1
-      	unsupported_gem = Gem::Version.new(unsupported_major_release.to_s+'.0.0')
+        unsupported_major_release = described_class::MAXIMUM_VERSION.segments[0] + 1
+        unsupported_gem = Gem::Version.new(unsupported_major_release.to_s + '.0.0')
         include_context 'loaded gems', roda: unsupported_gem
         it { is_expected.to be false }
-      end      
+      end
     end
 
     context 'when gem is not loaded' do

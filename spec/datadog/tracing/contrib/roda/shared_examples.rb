@@ -15,13 +15,13 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
   let(:roda) { test_class.new }
   let(:instrumented_method) { roda.send(test_method) }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.tracing.instrument :roda, configuration_options
     end
   end
 
-  after(:each) do
+  after do
     Datadog.registry[:roda].reset_configuration!
   end
 
@@ -99,7 +99,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/unsuccessful_endpoint')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
-     end
+      end
     end
 
     context '500' do

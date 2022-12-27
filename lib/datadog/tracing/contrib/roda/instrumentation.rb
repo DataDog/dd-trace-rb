@@ -8,7 +8,6 @@ module Datadog
       module Roda
         # Instrumentation for Roda
         module Instrumentation
-
           def _roda_handle_main_route
             instrument(Ext::SPAN_REQUEST) { super }
           end
@@ -41,13 +40,12 @@ module Datadog
                   Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
                 end
 
-              # Measure service stats
-              Contrib::Analytics.set_measured(span)
-
+                # Measure service stats
+                Contrib::Analytics.set_measured(span)
               ensure
                 begin
                   response = yield
-                rescue => e
+                rescue
                   # The status code is unknown to Roda and decided by the upstream web runner.
                   # In this case, spans default to status code 500 rather than a blank status code.
                   default_error_status = '500'

@@ -10,13 +10,13 @@ RSpec.describe Datadog::Tracing::Contrib::Roda::Instrumentation do
   describe 'when implemented in Roda' do
     let(:configuration_options) { {} }
 
-    before(:each) do
+    before do
       Datadog.configure do |c|
         c.tracing.instrument :roda, configuration_options
       end
     end
 
-    after(:each) do
+    after do
       Datadog.registry[:roda].reset_configuration!
     end
 
@@ -29,8 +29,9 @@ RSpec.describe Datadog::Tracing::Contrib::Roda::Instrumentation do
           end
 
           it 'uses a default service name' do
+            expected_service_name = Datadog::Tracing::Contrib::Roda::Ext::SERVICE_NAME
             expect(Datadog.configuration.service).to eq('rspec')
-            expect(Datadog.configuration.tracing[:roda].service_name).to eq(Datadog::Tracing::Contrib::Roda::Ext::SERVICE_NAME)
+            expect(Datadog.configuration.tracing[:roda].service_name).to eq(expected_service_name)
           end
 
           context 'with a custom service name' do
@@ -47,10 +48,11 @@ RSpec.describe Datadog::Tracing::Contrib::Roda::Instrumentation do
     end
 
     describe 'when application calls on the instrumented method' do
-      context '#call' do
+      context 'using #call' do
         it_behaves_like 'shared examples for roda', :call
       end
-      context '#_roda_handle_main_route' do
+
+      context 'using #_roda_handle_main_route' do
         it_behaves_like 'shared examples for roda', :_roda_handle_main_route
       end
     end

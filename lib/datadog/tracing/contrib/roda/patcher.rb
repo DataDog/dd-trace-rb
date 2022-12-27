@@ -1,3 +1,5 @@
+# typed: false
+
 require_relative 'patcher'
 require_relative 'ext'
 require_relative 'instrumentation'
@@ -17,9 +19,8 @@ module Datadog
           end
 
           def patch
-            ::Roda::prepend(Instrumentation)
+            ::Roda.prepend(Instrumentation)
           end
-
         end
       end
     end
