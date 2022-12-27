@@ -134,7 +134,8 @@ RSpec.describe 'Roda instrumentation' do
           it do
             begin
               expect(response.status).to eq(500)
-            rescue
+            rescue => e
+              expect(e.class.to_s).to eq('NameError')
               expect(spans).to have(1).items
               expect(span.name).to eq('roda.request')
               expect(span.status).to eq(1)

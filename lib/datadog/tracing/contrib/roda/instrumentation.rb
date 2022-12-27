@@ -1,6 +1,7 @@
 require_relative '../../metadata/ext'
 require_relative 'ext'
 require_relative '../analytics'
+
 module Datadog
   module Tracing
     module Contrib
@@ -9,48 +10,52 @@ module Datadog
         module Instrumentation
 
           def _roda_handle_main_route
-            instrument do
-              super
-            rescue => e
-              ['500'] # [status, headers, body]
-            end
+            instrument(Ext::SPAN_REQUEST) { super }
           end
 
           def call
-            instrument do
-              super
-            rescue => e
-              ['500'] # [status, headers, body]
-            end
+            instrument(Ext::SPAN_REQUEST) { super }
           end
 
           private
 
-          def instrument(&block)
+          def instrument(span_name, &block)
             set_distributed_tracing_context!(request.env)
 
-            Tracing.trace(Ext::SPAN_REQUEST) do |span|
-              request_method = request.request_method.to_s.upcase
+            Tracing.trace(span_name) do |span|
+              begin
+                request_method = request.request_method.to_s.upcase
 
-              span.service = configuration[:service_name]
-              span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
+                span.service = configuration[:service_name]
+                span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
 
-              # Using the http method as a resource, since the URL/path can trigger
-              # a possibly infinite number of resources.
-              span.resource = request_method
+                # Using the http method as a resource, since the URL/path can trigger
+                # a possibly infinite number of resources.
+                span.resource = request_method
 
-              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, request.path)
-              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request_method)
+                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, request.path)
+                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request_method)
 
-              # Add analytics tag to the span
-              if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
-                Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
-              end
+                # Add analytics tag to the span
+                if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+                  Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+                end
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
-              response = yield
+              ensure
+                begin
+                  response = yield
+                rescue => e
+                  # The status code is unknown to Roda and decided by the upstream web runner.
+                  # In this case, spans default to status code 500 rather than a blank status code.
+                  default_error_status = '500'
+                  span.resource = "#{request_method} #{default_error_status}"
+                  span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, default_error_status)
+                  raise
+                end
+              end
 
               status_code = response[0]
 
