@@ -1,3 +1,5 @@
+# typed: ignore
+
 require 'roda'
 require 'ddtrace'
 require 'datadog/tracing/contrib/roda/instrumentation'

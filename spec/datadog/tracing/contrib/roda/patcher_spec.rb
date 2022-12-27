@@ -1,3 +1,5 @@
+# typed: ignore
+
 require 'ddtrace'
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/contrib/analytics_examples'
