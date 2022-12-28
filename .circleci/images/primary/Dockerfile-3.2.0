@@ -1,4 +1,4 @@
-FROM ruby:3.2.0-preview3-bullseye
+FROM ruby:3.2.0-bullseye
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
