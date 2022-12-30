@@ -1,0 +1,10 @@
+module Datadog
+  module Kit
+    module Events
+      def self.track_login: (Datadog::Tracing::TraceOperation trace, id: ::String, success: bool, **::Hash[::String, ::Symbol | ::String] others) -> void
+
+      def self.track: (::String | ::Symbol event, Datadog::Tracing::TraceOperation trace, **::Hash[::String, ::Symbol | ::String] others) -> void
+    end
+  end
+end
+
