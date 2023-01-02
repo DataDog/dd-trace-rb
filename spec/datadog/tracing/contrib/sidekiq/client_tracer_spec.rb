@@ -19,7 +19,6 @@ RSpec.describe 'ClientTracerTest' do
     end
 
     Sidekiq::Testing.server_middleware.clear
-    Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
   end
 
   it 'traces job push' do
@@ -67,6 +66,8 @@ RSpec.describe 'ClientTracerTest' do
       if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1.0')
         pending 'Broken in Ruby 3.1.0-preview1, see https://github.com/mperham/sidekiq/issues/5064'
       end
+
+      Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
 
       stub_const(
         'DelayableClass',
