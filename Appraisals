@@ -1650,7 +1650,7 @@ elsif ruby_version?('3.2')
     gem 'semantic_logger', '~> 4.0'
     gem 'sequel'
     gem 'shoryuken'
-    gem 'sidekiq'
+    gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '>= 1.4.2'
     gem 'sucker_punch'

@@ -5,6 +5,7 @@ require_relative '../analytics'
 require_relative 'ext'
 require_relative 'tracing'
 require_relative '../utils/quantization/hash'
+require_relative 'distributed/propagation'
 
 module Datadog
   module Tracing
@@ -23,6 +24,11 @@ module Datadog
 
           def call(worker, job, queue)
             resource = job_resource(job)
+
+            if configuration[:distributed_tracing]
+              trace_digest = propagation.extract(job)
+              Datadog::Tracing.continue_trace!(trace_digest)
+            end
 
             service = worker_config(resource, :service_name) || @sidekiq_service
             # DEV-2.0: Remove `tag_args`, as `quantize` can fulfill the same contract
@@ -71,6 +77,10 @@ module Datadog
           end
 
           private
+
+          def propagation
+            Sidekiq::Distributed::Propagation::INSTANCE
+          end
 
           def quantize_args(quantize, args)
             quantize_options = quantize && quantize[:args]

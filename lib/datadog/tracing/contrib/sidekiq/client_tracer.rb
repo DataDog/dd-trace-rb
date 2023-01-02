@@ -2,6 +2,7 @@
 
 require_relative '../../metadata/ext'
 require_relative '../analytics'
+require_relative 'distributed/propagation'
 require_relative 'ext'
 require_relative 'tracing'
 
@@ -22,7 +23,11 @@ module Datadog
           def call(worker_class, job, queue, redis_pool)
             resource = job_resource(job)
 
-            Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span|
+            Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span, trace_op|
+              if configuration[:distributed_tracing]
+                propagation.inject!(trace_op, job)
+              end
+
               span.resource = resource
 
               span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -49,6 +54,10 @@ module Datadog
 
           def configuration
             Datadog.configuration.tracing[:sidekiq]
+          end
+
+          def propagation
+            Sidekiq::Distributed::Propagation::INSTANCE
           end
         end
       end
