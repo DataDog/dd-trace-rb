@@ -57,9 +57,9 @@ RSpec.describe 'Sidekiq distributed tracing' do
       expect(span.get_tag('operation')).to eq('push')
       expect(span.get_tag('span.kind')).to eq('producer')
 
-      expect(job["x-datadog-trace-id"]).to eq(span.trace_id.to_s)
-      expect(job["x-datadog-parent-id"]).to eq(span.id.to_s)
-      expect(job["x-datadog-sampling-priority"]).to eq('1')
+      expect(job['x-datadog-trace-id']).to eq(span.trace_id.to_s)
+      expect(job['x-datadog-parent-id']).to eq(span.id.to_s)
+      expect(job['x-datadog-sampling-priority']).to eq('1')
       # expect(job["x-datadog-tags"]).to eq("_dd.p.dm=-0")
     end
   end
@@ -74,13 +74,13 @@ RSpec.describe 'Sidekiq distributed tracing' do
         EmptyWorker.queue,
         EmptyWorker.to_s,
         EmptyWorker.sidekiq_options.merge(
-          "args" => [],
-          "class" => EmptyWorker.to_s,
-          "jid" => jid,
-          "x-datadog-trace-id" => trace_id.to_s,
-          "x-datadog-parent-id" => span_id.to_s,
-          "x-datadog-sampling-priority" => "1",
-          "x-datadog-tags" => "_dd.p.dm=-0",
+          'args' => [],
+          'class' => EmptyWorker.to_s,
+          'jid' => jid,
+          'x-datadog-trace-id' => trace_id.to_s,
+          'x-datadog-parent-id' => span_id.to_s,
+          'x-datadog-sampling-priority' => '1',
+          'x-datadog-tags' => '_dd.p.dm=-0',
         )
       )
 

@@ -22,6 +22,8 @@ module Datadog
             @error_handler = options[:error_handler] || configuration[:error_handler]
           end
 
+          # rubocop:disable Metrics/MethodLength
+          # rubocop:disable Metrics/AbcSize
           def call(worker, job, queue)
             resource = job_resource(job)
 
@@ -74,6 +76,8 @@ module Datadog
 
               yield
             end
+            # rubocop:enable Metrics/MethodLength
+            # rubocop:enable Metrics/AbcSize
           end
 
           private
