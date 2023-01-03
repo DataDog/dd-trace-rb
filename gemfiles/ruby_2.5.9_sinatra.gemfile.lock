@@ -136,14 +136,6 @@ GEM
       rack (~> 2.2)
       rack-protection (= 2.2.2)
       tilt (~> 2.0)
-    sorbet (0.5.9672)
-      sorbet-static (= 0.5.9672)
-    sorbet-runtime (0.5.10461)
-    sorbet-static (0.5.9672-x86_64-linux)
-    spoom (1.1.11)
-      sorbet (>= 0.5.9204)
-      sorbet-runtime (>= 0.5.9204)
-      thor (>= 0.19.2)
     thor (1.2.1)
     tilt (2.0.11)
     unicode-display_width (2.3.0)
@@ -195,8 +187,6 @@ DEPENDENCIES
   ruby-prof (~> 1.4)
   simplecov!
   sinatra
-  sorbet (= 0.5.9672)
-  spoom (~> 1.1)
   warning (~> 1)
   webmock (>= 3.10.0)
   yard (~> 0.9)

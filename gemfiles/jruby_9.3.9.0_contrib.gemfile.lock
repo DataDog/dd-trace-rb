@@ -1534,6 +1534,8 @@ GEM
       mime-types (>= 1.16, < 4.0)
       netrc (~> 0.8)
     rexml (3.2.5)
+    roda (3.63.0)
+      rack
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -1685,6 +1687,7 @@ DEPENDENCIES
   redis (~> 4)
   resque
   rest-client
+  roda (>= 2.0.0)
   rspec (>= 3.0.0)
   rspec-collection_matchers (~> 1.1)
   rspec_junit_formatter (>= 0.5.1)
@@ -1708,4 +1711,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.26
+   2.4.2
