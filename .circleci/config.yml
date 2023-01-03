@@ -559,7 +559,7 @@ workflows:
   build-and-test:
     jobs:
       - orb/lint:
-          <<: *config-2_7-small
+          <<: *config-2_7
           name: lint
           requires:
             - build-2.7
