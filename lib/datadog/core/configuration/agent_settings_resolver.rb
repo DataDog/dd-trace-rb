@@ -138,8 +138,8 @@ module Datadog
               value: parsed_url && parsed_url.hostname
             ),
             DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_HOST} environment variable",
-              value: ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_HOST]
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST} environment variable",
+              value: ENV[Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST]
             )
           )
         end

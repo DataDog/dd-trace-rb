@@ -29,14 +29,29 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Fetcher do
       context 'that is not empty' do
         let(:env) { { 'HTTP_MY_KEY' => 'value' } }
         it { is_expected.to eq('value') }
+
+        context 'and a plain header' do
+          let(:env) { super().merge('my-key' => 'plain-match') }
+
+          it 'prefers the plain header match' do
+            is_expected.to eq('plain-match')
+          end
+        end
       end
     end
 
-    context 'with a header not Rack formatted' do
-      let(:key) { 'my-key' }
-      let(:env) { { key => 'value' } }
+    context 'with a plain header associated' do
+      let(:key) { 'rack.session' }
 
-      it { is_expected.to be_nil }
+      context 'that is empty' do
+        let(:env) { { key => '' } }
+        it { is_expected.to be_nil }
+      end
+
+      context 'that is not empty' do
+        let(:env) { { key => 'value' } }
+        it { is_expected.to eq('value') }
+      end
     end
   end
 end

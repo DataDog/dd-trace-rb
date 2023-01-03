@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        module Reactive
+          module Response
+            def self.publish: (untyped op, untyped response) -> untyped
+
+            def self.subscribe: (untyped op, untyped waf_context) { (untyped) -> untyped } -> untyped
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,12 @@
+module Datadog
+  module AppSec
+    module Reactive
+      class Subscriber
+        @block: ::Proc
+
+        def initialize: () { () -> untyped } -> untyped
+        def call: (*untyped args) -> untyped
+      end
+    end
+  end
+end

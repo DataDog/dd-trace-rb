@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 require_relative 'appsec/configuration'
 require_relative 'appsec/extensions'
