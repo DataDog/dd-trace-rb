@@ -9,7 +9,7 @@ services:
       args:
         BASE_IMAGE: ${APP_IMAGE}
     depends_on:
-      - ddagent
+      # - ddagent
       - redis
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
@@ -34,7 +34,7 @@ services:
       args:
         BASE_IMAGE: ${APP_IMAGE}
     depends_on:
-      - ddagent
+      # - ddagent
       - redis
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
@@ -58,7 +58,7 @@ services:
       args:
         BASE_IMAGE: ${APP_IMAGE}
     depends_on:
-      - ddagent
+      # - ddagent
       - redis
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
@@ -75,19 +75,24 @@ services:
       bin/sidekiq
     stdin_open: true
     tty: true
-  ddagent:
-    image: datadog/dd-apm-demo:agent
-    environment:
-      - DD_APM_ENABLED=true
-      - DD_PROCESS_AGENT_ENABLED=false
-      - DD_BIND_HOST=0.0.0.0
-      - DD_API_KEY=00000000000000000000000000000000
-      - LOG_LEVEL=DEBUG
-      - DD_LOGS_STDOUT=yes
-      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
-    expose:
-      - "8125/udp"
-      - "8126"
+
+  # The agent is not relevant to the result of running integration test on CI.
+  # Since the current integration test suite is mostly about sending a http request
+  # to an app and verified the responsee and run a couple of self-owned test cases.
+  #
+  # ddagent:
+  #   image: datadog/dd-apm-demo:agent
+  #   environment:
+  #     - DD_APM_ENABLED=true
+  #     - DD_PROCESS_AGENT_ENABLED=false
+  #     - DD_BIND_HOST=0.0.0.0
+  #     - DD_API_KEY=00000000000000000000000000000000
+  #     - LOG_LEVEL=DEBUG
+  #     - DD_LOGS_STDOUT=yes
+  #     - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+  #   expose:
+  #     - "8125/udp"
+  #     - "8126"
   # Build at dd-trace-rb level to copy in current code
   # and use it as the `ddtrace` gem.
   integration-tester:
