@@ -133,7 +133,11 @@ step_bundle_install: &step_bundle_install
 step_rubocop: &step_rubocop
   run:
     name: Delint with Rubocop
-    command: bundle exec rake rubocop
+    # There's no straightforward way to get the number of available processors & CPU threads in CircleCI.
+    # Currently it always return 18 physical processors and 36 threads, regardless of executor size.
+    # The workaround is to use `cpu.shares / 1024`:
+    # https://discuss.circleci.com/t/environment-variable-set-to-the-number-of-available-cpus/32670/4
+    command: PARALLEL_PROCESSOR_COUNT=$((`cat /sys/fs/cgroup/cpu/cpu.shares` / 1024)) bundle exec rake rubocop
 step_sorbet_type_checker: &step_sorbet_type_checker
   run:
     name: Run sorbet type checker
