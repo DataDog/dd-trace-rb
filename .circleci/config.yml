@@ -198,6 +198,8 @@ filters_only_release_tags: &filters_only_release_tags
 
 orbs:
   orb:
+    orbs:
+      codecov: codecov/codecov@3.2.3
     jobs:
       build:
         <<: *test_job_default
@@ -368,13 +370,12 @@ orbs:
           - attach_workspace:
               at: /tmp/workspace
           - run:
-              name: Install codecov
-              command: bundle add codecov
-          - run:
-              name: Generate coverage report artifact "coverage/index.html"
+              name: Generate combined coverage report for all tests
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report
+          - codecov/upload:
+              file: /tmp/workspace/coverage/report/coverage.xml
           - run:
-              name: Generate coverage report artifact "coverage/versions/*/index.html"
+              name: Generate individual coverage report for each Ruby version
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report_per_ruby_version
           - store_artifacts:
               path: /tmp/workspace/coverage/report/
