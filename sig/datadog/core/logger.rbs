@@ -1,0 +1,13 @@
+module Datadog
+  module Core
+    class Logger < ::Logger
+      PREFIX: ::String
+
+      def initialize: (*untyped args) ?{ () -> untyped } -> void
+
+      def add: (untyped severity, ?untyped? message, ?untyped? progname) { () -> untyped } -> untyped
+
+      alias log add
+    end
+  end
+end

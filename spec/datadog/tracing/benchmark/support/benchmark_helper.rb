@@ -246,24 +246,23 @@ require 'socket'
 # agent process in the system.
 #
 # It finds a locally available port to listen on, and updates the value of
-# {Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} accordingly.
+# {Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} accordingly.
 RSpec.shared_context 'minimal agent' do
   let(:agent_server) { TCPServer.new '127.0.0.1', agent_port }
   let(:agent_port) { ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT].to_i }
-
-  # Sample agent response, collected from a real agent exchange.
-  AGENT_HTTP_RESPONSE = "HTTP/1.1 200\r\n" \
-    "Content-Length: 40\r\n" \
-    "Content-Type: application/json\r\n" \
-    "Date: Thu, 03 Sep 2020 20:05:54 GMT\r\n" \
-    "\r\n" \
-    "{\"rate_by_service\":{\"service:,env:\":1}}\n".freeze
 
   def server_runner
     previous_conn = nil
     loop do
       conn = agent_server.accept
-      conn.print AGENT_HTTP_RESPONSE
+
+      # Sample agent response, collected from a real agent exchange.
+      conn.print "HTTP/1.1 200\r\n" \
+        "Content-Length: 40\r\n" \
+        "Content-Type: application/json\r\n" \
+        "Date: Thu, 03 Sep 2020 20:05:54 GMT\r\n" \
+        "\r\n" \
+        "{\"rate_by_service\":{\"service:,env:\":1}}\n".freeze
       conn.flush
 
       # Read HTTP request to allow other side to have enough

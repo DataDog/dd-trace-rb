@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Configuration
+      def tracer: () -> Datadog::Tracing::Tracer
+
+      def logger: () -> Datadog::Core::Logger
+    end
+  end
+end
