@@ -46,12 +46,6 @@ Lint/StructNewOverride:
   Exclude:
     - 'lib/datadog/profiling/pprof/converter.rb'
 
-# Offense count: 2
-# Configuration parameters: CheckForMethodsWithNoSideEffects.
-Lint/Void:
-  Exclude:
-    - 'spec/datadog/tracing/contrib/grpc/support/grpc_helper.rb'
-
 # Offense count: 10
 Performance/MethodObjectAsBlock:
   Exclude:
