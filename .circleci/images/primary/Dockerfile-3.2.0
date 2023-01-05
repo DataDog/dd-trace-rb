@@ -1,8 +1,4 @@
-<<<<<<<< HEAD:.circleci/images/primary/Dockerfile-3.2.0-rc1
-FROM ruby:3.2.0-rc1-bullseye
-========
 FROM ruby:3.2.0-bullseye
->>>>>>>> master:.circleci/images/primary/Dockerfile-3.2.0
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
