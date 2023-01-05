@@ -4,7 +4,15 @@ gemspec
 
 # Development dependencies
 gem 'addressable', '~> 2.4.0' # locking transitive dependency of webmock
-gem 'appraisal', '~> 2.2'
+if RUBY_VERSION >= '3.2.0'
+  # A temporary fix until support for Ruby 3.2 is released.
+  # But appraisal 2.4 is not compatible with old rubies, so a separate block is necessary
+  # until the official fix for Ruby 3.2 is released.
+  # TODO: Revert back to `gem 'appraisal', '~> 2.2'` when https://github.com/thoughtbot/appraisal/issues/199 is fixed.
+  gem 'appraisal', '~> 2.4', git: 'https://github.com/toy/appraisal', ref: '7000fb64bfcd872218c18d008ecadbea8055b062'
+else
+  gem 'appraisal', '~> 2.2'
+end
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
 gem 'builder'
