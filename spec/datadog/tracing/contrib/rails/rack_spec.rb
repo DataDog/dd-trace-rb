@@ -29,6 +29,7 @@ RSpec.describe 'Rails Rack' do
   let(:controllers) { [controller, errors_controller] }
   let(:controller) do
     layout_ = layout
+    stub_const('RescuableError', Class.new(StandardError))
     stub_const(
       'TestController',
       Class.new(ActionController::Base) do
@@ -80,8 +81,6 @@ RSpec.describe 'Rails Rack' do
             render nothing: true, status: 520
           end
         end
-
-        RescuableError = Class.new(StandardError)
 
         def error_handled_by_rescue_from
           raise RescuableError
