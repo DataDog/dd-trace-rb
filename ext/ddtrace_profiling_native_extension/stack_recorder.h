@@ -35,5 +35,5 @@ static const ddog_prof_ValueType enabled_value_types[] = {
 #define ENABLED_VALUE_TYPES_COUNT (sizeof(enabled_value_types) / sizeof(ddog_prof_ValueType))
 
 void record_sample(VALUE recorder_instance, ddog_prof_Sample sample);
-void record_endpoint(VALUE recorder_instance, ddog_CharSlice local_root_span_id, ddog_CharSlice endpoint);
+void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint);
 VALUE enforce_recorder_instance(VALUE object);

@@ -322,7 +322,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Sample sample) {
   sampler_unlock_active_profile(active_slot);
 }
 
-void record_endpoint(VALUE recorder_instance, ddog_CharSlice local_root_span_id, ddog_CharSlice endpoint) {
+void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -475,6 +475,7 @@ static void serializer_set_start_timestamp_for_next_profile(struct stack_recorde
 }
 
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint) {
-  record_endpoint(recorder_instance, char_slice_from_ruby_string(local_root_span_id), char_slice_from_ruby_string(endpoint));
+  ENFORCE_TYPE(local_root_span_id, T_FIXNUM);
+  record_endpoint(recorder_instance, NUM2ULL(local_root_span_id), char_slice_from_ruby_string(endpoint));
   return Qtrue;
 }
