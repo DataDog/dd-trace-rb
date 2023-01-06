@@ -204,6 +204,8 @@ module Datadog
 
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
             # produced profiles. Increasing this may increase the overhead of profiling.
+            #
+            # @default `DD_PROFILING_MAX_FRAMES` environment variable, otherwise 400
             option :max_frames do |o|
               o.default { env_to_int(Profiling::Ext::ENV_MAX_FRAMES, 400) }
               o.lazy
