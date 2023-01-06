@@ -34,7 +34,6 @@ if RUBY_PLATFORM != 'java'
 else
   gem 'pry-debugger-jruby'
 end
-gem "debug" # Enables control flow commands in `binding.irb` (e.g. `next`, `step`)
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
