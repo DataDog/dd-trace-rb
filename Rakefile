@@ -414,10 +414,10 @@ namespace :coverage do
     SimpleCov.collate resultset_files do
       coverage_dir "#{ENV.fetch('COVERAGE_DIR', 'coverage')}/report"
       if ENV['CI'] == 'true'
-        require 'codecov'
+        require 'simplecov-cobertura'
         formatter SimpleCov::Formatter::MultiFormatter.new(
           [SimpleCov::Formatter::HTMLFormatter,
-           SimpleCov::Formatter::Codecov]
+           SimpleCov::Formatter::CoberturaFormatter] # Used by codecov
         )
       else
         formatter SimpleCov::Formatter::HTMLFormatter
