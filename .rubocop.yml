@@ -270,9 +270,11 @@ RSpec/EmptyLineAfterSubject:
 RSpec/EmptyLineAfterFinalLet:
   Enabled: false
 
-# TODO: Disabling until we categorize which file are safe to do so.
+# Ensures static strings are not recreated on every invocation.
 Style/FrozenStringLiteralComment:
-  Enabled: false
+  Enabled: true
+  Include:
+    - 'lib/**/*.rb'
 
 # Replaces `x == 0` with `x.zero?` and similar.
 # These methods are ~2x slower than the simple math comparison.

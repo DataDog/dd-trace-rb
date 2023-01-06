@@ -133,7 +133,11 @@ step_bundle_install: &step_bundle_install
 step_rubocop: &step_rubocop
   run:
     name: Delint with Rubocop
-    command: bundle exec rake rubocop
+    # There's no straightforward way to get the number of available processors & CPU threads in CircleCI.
+    # Currently it always return 18 physical processors and 36 threads, regardless of executor size.
+    # The workaround is to use `cpu.shares / 1024`:
+    # https://discuss.circleci.com/t/environment-variable-set-to-the-number-of-available-cpus/32670/4
+    command: PARALLEL_PROCESSOR_COUNT=$((`cat /sys/fs/cgroup/cpu/cpu.shares` / 1024)) bundle exec rake rubocop
 step_sorbet_type_checker: &step_sorbet_type_checker
   run:
     name: Run sorbet type checker
@@ -194,6 +198,8 @@ filters_only_release_tags: &filters_only_release_tags
 
 orbs:
   orb:
+    orbs:
+      codecov: codecov/codecov@3.2.3
     jobs:
       build:
         <<: *test_job_default
@@ -364,13 +370,12 @@ orbs:
           - attach_workspace:
               at: /tmp/workspace
           - run:
-              name: Install codecov
-              command: bundle add codecov
-          - run:
-              name: Generate coverage report artifact "coverage/index.html"
+              name: Generate combined coverage report for all tests
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report
+          - codecov/upload:
+              file: /tmp/workspace/coverage/report/coverage.xml
           - run:
-              name: Generate coverage report artifact "coverage/versions/*/index.html"
+              name: Generate individual coverage report for each Ruby version
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report_per_ruby_version
           - store_artifacts:
               path: /tmp/workspace/coverage/report/
@@ -529,8 +534,8 @@ job_configuration:
     resource_class_to_use: medium+
   - &config-3_2
     <<: *filters_all_branches_and_tags
-    ruby_version: 'ruby-3.2.0-preview3'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-preview3-dd
+    ruby_version: 'ruby-3.2.0'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-dd
     resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
   - &config-jruby-9_2_8_0 # Test with older 9.2 release because 9.2.9.0 changed behavior, see https://github.com/DataDog/dd-trace-rb/pull/1409

@@ -7,7 +7,6 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 
 require 'ddtrace'
 require 'presto-client'
-require 'datadog/tracing/contrib/analytics_examples'
 
 RSpec.describe 'Presto::Client instrumentation' do
   let(:configuration_options) { {} }
