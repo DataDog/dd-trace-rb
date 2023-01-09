@@ -19,7 +19,7 @@ module Datadog
       end
 
       def self.track(event, trace, **others)
-        trace.set_tag("appsec.events.#{event}.track", true)
+        trace.set_tag("appsec.events.#{event}.track", 'true')
 
         others.each do |k, v|
           trace.set_tag("appsec.events.#{event}.#{k}", v) unless v.nil?
