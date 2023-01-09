@@ -38,11 +38,14 @@ module Datadog
       # @param event [String] Mandatory. Event code.
       # @param trace [TraceOperation] Trace to attach data to.
       # @param others [Hash<Symbol, String>] Additional free-form
-      #   event information to attach to the trace.
+      #   event information to attach to the trace. Key must not
+      #   be :track.
       def self.track(event, trace, **others)
         trace.set_tag("appsec.events.#{event}.track", 'true')
 
         others.each do |k, v|
+          raise ArgumentError, 'key cannot be :track' if k.to_sym == :track
+
           trace.set_tag("appsec.events.#{event}.#{k}", v) unless v.nil?
         end
 
