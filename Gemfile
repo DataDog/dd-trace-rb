@@ -44,6 +44,7 @@ if RUBY_VERSION >= '2.5.0'
   # We have a fix up for review, https://github.com/simplecov-ruby/simplecov/pull/972,
   # but given it only affects unsupported version of Ruby, it might not get merged.
   gem 'simplecov', git: 'https://github.com/DataDog/simplecov', ref: '3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db'
+  gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
 else
   # Compatible with older rubies. This version still produces compatible output
   # with a newer version when the reports are merged.
