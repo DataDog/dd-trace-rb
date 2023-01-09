@@ -14,7 +14,7 @@ RSpec.describe Datadog::Kit::Events do
     context 'login success' do
       it 'sets event tracking key on trace' do
         trace_op.measure('root') do
-          described_class.track_login(trace_op, id: '42', success: true)
+          described_class.track_login(trace_op, user: { id: '42' }, success: true)
         end
         trace = trace_op.flush!
         expect(trace.send(:meta)).to include('appsec.events.users.login.success.track' => 'true')
@@ -22,7 +22,7 @@ RSpec.describe Datadog::Kit::Events do
 
       it 'sets user id on trace' do
         trace_op.measure('root') do
-          described_class.track_login(trace_op, id: '42', success: true)
+          described_class.track_login(trace_op, user: { id: '42' }, success: true)
         end
         trace = trace_op.flush!
         expect(trace.send(:meta)).to include('usr.id' => '42')
@@ -30,7 +30,7 @@ RSpec.describe Datadog::Kit::Events do
 
       it 'sets other keys on trace' do
         trace_op.measure('root') do
-          described_class.track_login(trace_op, id: '42', success: true, foo: 'bar')
+          described_class.track_login(trace_op, user: { id: '42' }, success: true, foo: 'bar')
         end
         trace = trace_op.flush!
         expect(trace.send(:meta)).to include('usr.id' => '42', 'appsec.events.users.login.success.foo' => 'bar')
@@ -40,7 +40,7 @@ RSpec.describe Datadog::Kit::Events do
     context 'login failure' do
       it 'sets event tracking key on trace' do
         trace_op.measure('root') do
-          described_class.track_login(trace_op, id: '42', success: false)
+          described_class.track_login(trace_op, user: { id: '42' }, success: false)
         end
         trace = trace_op.flush!
         expect(trace.send(:meta)).to include('appsec.events.users.login.failure.track' => 'true')
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Kit::Events do
 
       it 'sets user id on trace' do
         trace_op.measure('root') do
-          described_class.track_login(trace_op, id: '42', success: false)
+          described_class.track_login(trace_op, user: { id: '42' }, success: false)
         end
         trace = trace_op.flush!
         expect(trace.send(:meta)).to include('appsec.events.users.login.failure.usr.id' => '42')
@@ -56,7 +56,7 @@ RSpec.describe Datadog::Kit::Events do
 
       it 'sets other keys on trace' do
         trace_op.measure('root') do
-          described_class.track_login(trace_op, id: '42', success: false, foo: 'bar')
+          described_class.track_login(trace_op, user: { id: '42' }, success: false, foo: 'bar')
         end
         trace = trace_op.flush!
         expect(trace.send(:meta)).to include('appsec.events.users.login.failure.foo' => 'bar')
