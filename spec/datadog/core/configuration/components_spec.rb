@@ -1283,6 +1283,13 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
     end
+
+    context 'for runtime metrics' do
+      it 'initializes the worker' do
+        expect(components.runtime_metrics).to receive(:perform)
+        startup!
+      end
+    end
   end
 
   describe '#shutdown!' do

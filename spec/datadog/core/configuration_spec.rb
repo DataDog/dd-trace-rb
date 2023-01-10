@@ -362,7 +362,7 @@ RSpec.describe Datadog::Core::Configuration do
             expect(test_class.send(:components).runtime_metrics).to_not be @old_runtime_metrics
 
             expect(test_class.send(:components).runtime_metrics.enabled?).to be true
-            expect(test_class.send(:components).runtime_metrics.running?).to be false
+            expect(test_class.send(:components).runtime_metrics.running?).to be true
           end
         end
       end

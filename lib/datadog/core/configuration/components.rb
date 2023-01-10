@@ -412,6 +412,8 @@ module Datadog
           else
             @logger.debug('Profiling is disabled')
           end
+
+          @runtime_metrics.perform # Starts worker. No-op if disabled.
         end
 
         # Shuts down all the components in use.

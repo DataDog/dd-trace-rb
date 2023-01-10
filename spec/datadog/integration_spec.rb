@@ -161,4 +161,30 @@ RSpec.describe 'Datadog integration' do
       end
     end
   end
+
+  context 'runtime metrics' do
+    context 'enabled' do
+      let(:configure) do
+        Datadog.configure do |c|
+          c.runtime_metrics.enabled = true
+        end
+      end
+
+      it 'starts the runtime metrics worker' do
+        expect { configure }.to change { Datadog.send(:components).runtime_metrics.running? }.from(false).to(true)
+      end
+    end
+
+    context 'disabled' do
+      let(:configure) do
+        Datadog.configure do |c|
+          c.runtime_metrics.enabled = false
+        end
+      end
+
+      it 'starts the runtime metrics worker' do
+        expect { configure }.to_not change { Datadog.send(:components).runtime_metrics.running? }.from(false)
+      end
+    end
+  end
 end
