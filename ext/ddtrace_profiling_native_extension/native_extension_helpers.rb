@@ -2,7 +2,7 @@
 
 # typed: ignore
 
-require 'libdatadog'
+require 'rubygems'
 require 'pathname'
 
 module Datadog
@@ -16,6 +16,8 @@ module Datadog
 
       # Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
       CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
+
+      LIBDATADOG_VERSION = '~> 0.9.0.1.0'
 
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
@@ -88,6 +90,7 @@ module Datadog
             not_on_amd64_or_arm64? ||
             on_ruby_2_1? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
+            libdatadog_not_available? ||
             libdatadog_not_usable?
         end
 
@@ -277,6 +280,25 @@ module Datadog
           )
 
           ruby_without_mjit if CAN_USE_MJIT_HEADER && RbConfig::CONFIG['MJIT_SUPPORT'] != 'yes'
+        end
+
+        private_class_method def self.libdatadog_not_available?
+          begin
+            gem 'libdatadog', LIBDATADOG_VERSION
+            require 'libdatadog'
+            nil
+          # rubocop:disable Lint/RescueException
+          rescue Exception => e
+            explain_issue(
+              'there was an exception during loading of the `libdatadog` gem:',
+              e.class.name,
+              *e.message.split("\n"),
+              *Array(e.backtrace),
+              '.',
+              suggested: CONTACT_SUPPORT,
+            )
+          end
+          # rubocop:enable Lint/RescueException
         end
 
         private_class_method def self.libdatadog_not_usable?
