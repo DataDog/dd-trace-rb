@@ -142,11 +142,6 @@ module Datadog
           '<https://dtdg.co/ruby-profiler-troubleshooting>.'
         ].freeze
 
-        REPORT_ISSUE = [
-          'If you needed to use this, please tell us why on',
-          '<https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :)',
-        ].freeze
-
         GET_IN_TOUCH = [
           "Get in touch with us if you're interested in profiling your app!"
         ].freeze
@@ -188,10 +183,15 @@ module Datadog
         )
 
         private_class_method def self.disabled_via_env?
+          report_disabled = [
+            'If you needed to use this, please tell us why on',
+            '<https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :)',
+          ].freeze
+
           disabled_via_env = explain_issue(
             'the `DD_PROFILING_NO_EXTENSION` environment variable is/was set to',
             '`true` during installation.',
-            suggested: REPORT_ISSUE,
+            suggested: report_disabled,
           )
 
           return unless ENV[ENV_NO_EXTENSION].to_s.strip.downcase == 'true'
