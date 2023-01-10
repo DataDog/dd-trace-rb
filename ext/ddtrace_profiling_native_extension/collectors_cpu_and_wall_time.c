@@ -147,7 +147,7 @@ static void trigger_sample_for_thread(
   struct cpu_and_wall_time_collector_state *state,
   VALUE thread,
   struct per_thread_context *thread_context,
-  ddog_Slice_i64 metric_values_slice,
+  ddog_Slice_I64 metric_values_slice,
   sample_type type
 );
 static VALUE _native_thread_list(VALUE self);
@@ -366,7 +366,7 @@ void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monoto
       state,
       thread,
       thread_context,
-      (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+      (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
       SAMPLE_REGULAR
     );
   }
@@ -520,7 +520,7 @@ VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
       state,
       thread,
       thread_context,
-      (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+      (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
       SAMPLE_IN_GC
     );
 
@@ -549,24 +549,24 @@ static void trigger_sample_for_thread(
   struct cpu_and_wall_time_collector_state *state,
   VALUE thread,
   struct per_thread_context *thread_context,
-  ddog_Slice_i64 metric_values_slice,
+  ddog_Slice_I64 metric_values_slice,
   sample_type type
 ) {
   int max_label_count =
     1 + // thread id
     1 + // thread name
     2;  // local root span id and span id
-  ddog_Label labels[max_label_count];
+  ddog_prof_Label labels[max_label_count];
   int label_pos = 0;
 
-  labels[label_pos++] = (ddog_Label) {
+  labels[label_pos++] = (ddog_prof_Label) {
     .key = DDOG_CHARSLICE_C("thread id"),
     .str = thread_context->thread_id_char_slice
   };
 
   VALUE thread_name = thread_name_for(thread);
   if (thread_name != Qnil) {
-    labels[label_pos++] = (ddog_Label) {
+    labels[label_pos++] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("thread name"),
       .str = char_slice_from_ruby_string(thread_name)
     };
@@ -576,8 +576,8 @@ static void trigger_sample_for_thread(
   trace_identifiers_for(state, thread, &trace_identifiers_result);
 
   if (trace_identifiers_result.valid) {
-    labels[label_pos++] = (ddog_Label) {.key = DDOG_CHARSLICE_C("local root span id"), .str = trace_identifiers_result.local_root_span_id};
-    labels[label_pos++] = (ddog_Label) {.key = DDOG_CHARSLICE_C("span id"), .num = trace_identifiers_result.span_id};
+    labels[label_pos++] = (ddog_prof_Label) {.key = DDOG_CHARSLICE_C("local root span id"), .str = trace_identifiers_result.local_root_span_id};
+    labels[label_pos++] = (ddog_prof_Label) {.key = DDOG_CHARSLICE_C("span id"), .num = trace_identifiers_result.span_id};
 
     if (trace_identifiers_result.trace_endpoint != Qnil) {
       // The endpoint gets recorded in a different way because it is mutable in the tracer and can change during a
@@ -610,7 +610,7 @@ static void trigger_sample_for_thread(
     state->sampling_buffer,
     state->recorder_instance,
     metric_values_slice,
-    (ddog_Slice_label) {.ptr = labels, .len = label_pos},
+    (ddog_prof_Slice_Label) {.ptr = labels, .len = label_pos},
     type
   );
 }

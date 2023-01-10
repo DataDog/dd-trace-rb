@@ -68,7 +68,7 @@ Gem::Specification.new do |spec|
 
   # Used by profiling (and possibly others in the future)
   # When updating the version here, please also update the version in `native_extension_helpers.rb` (and yes we have a test for it)
-  spec.add_dependency 'libdatadog', '~> 0.9.0.1.0'
+  spec.add_dependency 'libdatadog', '~> 1.0.1.1.0'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb', 'ext/ddtrace_profiling_loader/extconf.rb']
 end

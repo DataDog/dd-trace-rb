@@ -17,7 +17,7 @@ module Datadog
       # Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
       CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
 
-      LIBDATADOG_VERSION = '~> 0.9.0.1.0'
+      LIBDATADOG_VERSION = '~> 1.0.1.1.0'
 
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
