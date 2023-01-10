@@ -77,6 +77,27 @@ RSpec.shared_examples 'B3 Multi distributed format' do
         end
       end
     end
+
+    context 'with 128 bit trace id and distributed tag `_dd.p.tid`' do
+      let(:digest) do
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
+          span_id: 0xbbbbbbbbbbbbbbbb,
+          trace_distributed_tags: {
+            '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
+          }
+        )
+      end
+
+      it do
+        inject!
+
+        expect(data).to eq(
+          'x-b3-traceid' => 'aaaaaaaaaaaaaaaaffffffffffffffff',
+          'x-b3-spanid' => 'bbbbbbbbbbbbbbbb',
+        )
+      end
+    end
   end
 
   describe '#extract' do
@@ -143,6 +164,19 @@ RSpec.shared_examples 'B3 Multi distributed format' do
       let(:data) { { prepare_key['x-b3-traceid'] => 10000.to_s(16) } }
 
       it { is_expected.to be nil }
+    end
+
+    context 'with 128 bit trace id' do
+      let(:data) do
+        {
+          prepare_key['x-b3-traceid'] => 'aaaaaaaaaaaaaaaaffffffffffffffff',
+          prepare_key['x-b3-spanid'] => 'bbbbbbbbbbbbbbbb',
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).to include('_dd.p.tid' => 'aaaaaaaaaaaaaaaa') }
     end
   end
 end

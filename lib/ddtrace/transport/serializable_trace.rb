@@ -2,6 +2,7 @@
 
 require 'json'
 require 'msgpack'
+require 'datadog/tracing/utils'
 
 module Datadog
   module Transport
@@ -40,7 +41,9 @@ module Datadog
         :span
 
       def initialize(span)
-        @span = span
+        @span = span.tap do |s|
+          s.trace_id = Tracing::Utils::TraceId.to_low_order(s.trace_id)
+        end
       end
 
       # MessagePack serializer interface. Making this object
@@ -77,7 +80,7 @@ module Datadog
         packer.write('parent_id')
         packer.write(span.parent_id)
         packer.write('trace_id')
-        packer.write(span.trace_id) # low order 64 bits
+        packer.write(span.trace_id)
         packer.write('name')
         packer.write(span.name)
         packer.write('service')

@@ -30,7 +30,7 @@ module Datadog
           # Truncate to trailing 16 characters if length is greater than 16
           # https://github.com/apache/incubator-zipkin/blob/21fe362899fef5c593370466bc5707d3837070c2/zipkin/src/main/java/zipkin2/storage/StorageComponent.java#L49-L53
           # DEV: This ensures we truncate B3 128-bit trace and span ids to 64-bit
-          value = value[value.length - 16, 16] if value.length > 16
+          # value = value[value.length - 16, 16] if value.length > 16
 
           # Remove any leading zeros
           # DEV: When we call `num.to_s(16)` later Ruby will not add leading zeros

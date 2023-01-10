@@ -59,6 +59,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         'foo' => 'bar',
         'baz' => 42,
         '_dd.p.dm' => '-1',
+        '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
       }
     end
   end
@@ -166,18 +167,26 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         context 'meta' do
           it 'sets root span tags from trace tags' do
             format!
-            expect(root_span.meta).to include({ 'foo' => 'bar', '_dd.p.dm' => '-1' })
+            expect(root_span.meta).to include(
+              {
+                'foo' => 'bar',
+                '_dd.p.dm' => '-1',
+                '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
+              }
+            )
           end
         end
       end
 
       shared_examples 'root span without generic tags' do
         context 'metrics' do
-          it { expect(root_span.metrics).to_not include({ 'baz' => 42 }) }
+          it { expect(root_span.metrics).to_not include('baz') }
         end
 
         context 'meta' do
-          it { expect(root_span.meta).to_not include({ 'foo' => 'bar', '_dd.p.dm' => '-1' }) }
+          it { expect(root_span.meta).to_not include('foo') }
+          it { expect(root_span.meta).to_not include('_dd.p.dm') }
+          it { expect(root_span.meta).to_not include('_dd.p.tid') }
         end
       end
 

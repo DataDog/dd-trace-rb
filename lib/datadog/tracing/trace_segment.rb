@@ -6,6 +6,7 @@ require_relative '../core/utils/safe_dup'
 require_relative 'sampling/ext'
 require_relative 'metadata/ext'
 require_relative 'metadata/tagging'
+require_relative 'utils'
 
 module Datadog
   module Tracing
@@ -126,6 +127,12 @@ module Datadog
       def sampled?
         sampling_priority == Sampling::Ext::Priority::AUTO_KEEP \
           || sampling_priority == Sampling::Ext::Priority::USER_KEEP
+      end
+
+      def high_order_tid
+        high_order = Tracing::Utils::TraceId.to_high_order(@id)
+
+        high_order.to_s(16) if high_order != 0
       end
 
       protected

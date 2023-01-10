@@ -12,7 +12,6 @@ module Datadog
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Layout/LineLength
-      # rubocop:disable Metrics/PerceivedComplexity
       module Settings
         def self.extended(base)
           base.class_eval do
@@ -183,26 +182,6 @@ module Datadog
               option :trace_id_128_bit_generation_enabled do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::ENV_TRACE_ID_128_BIT_GENERATION_ENABLED, false) }
                 o.lazy
-              end
-
-              # Enable 128 bit trace id propagation for distributed tracing.
-              #
-              # @default `DD_TRACE_128_BIT_TRACEID_PROPAGATION_ENABLED` environment variable, otherwise `true`
-              # @return [Boolean]
-              option :trace_id_128_bit_propagation_enabled do |o|
-                o.default { env_to_bool(Tracing::Configuration::Ext::Distributed::ENV_TRACE_ID_128_BIT_PROPAGATION_ENABLED, true) }
-                o.lazy
-                o.depends_on [:trace_id_128_bit_generation_enabled]
-
-                o.on_set do |v|
-                  if get_option(:trace_id_128_bit_generation_enabled) && v != true
-                    Datadog.logger.warn(
-                      '128 bit trace_id is generated but not propagated. '\
-                      "Set environment variable `#{Tracing::Configuration::Ext::Distributed::ENV_TRACE_ID_128_BIT_PROPAGATION_ENABLED}` to `true` "\
-                      'to enable propagation'
-                    )
-                  end
-                end
               end
 
               # Enable 128 bit trace id injected for logging.
@@ -476,7 +455,6 @@ module Datadog
       # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/MethodLength
       # rubocop:enable Layout/LineLength
-      # rubocop:enable Metrics/PerceivedComplexity
     end
   end
 end

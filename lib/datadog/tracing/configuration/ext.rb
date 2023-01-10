@@ -54,7 +54,6 @@ module Datadog
           PROPAGATION_STYLE_NONE = 'none'.freeze
 
           ENV_X_DATADOG_TAGS_MAX_LENGTH = 'DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH'.freeze
-          ENV_TRACE_ID_128_BIT_PROPAGATION_ENABLED = 'DD_TRACE_128_BIT_TRACEID_PROPAGATION_ENABLED'.freeze
         end
 
         # @public_api

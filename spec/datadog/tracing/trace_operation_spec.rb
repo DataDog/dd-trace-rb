@@ -95,7 +95,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
 
         it '64 bits trace_id' do
-          expect(trace_op.id.bit_length).to be <= 64
+          expect(trace_op.id.bit_length).to be <= 128
         end
 
         it do
@@ -104,7 +104,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             0xaaaaaaaaaaaaaaaa, # high_order
             0xbbbbbbbbbbbbbbbb, # Prevent rspec mock to return previous values
           )
-          expect(trace_op.id).to eq(0xffffffffffffffff)
+          expect(trace_op.id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff)
           expect(trace_op.get_tag('_dd.p.tid')).to eq('aaaaaaaaaaaaaaaa')
         end
       end

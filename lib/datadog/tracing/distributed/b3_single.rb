@@ -28,13 +28,8 @@ module Datadog
         def inject!(digest, env)
           return if digest.nil?
 
-          trace_id = Tracing::Utils::TraceId.concatenate(
-            (digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID] || "").to_i(16),
-            Tracing::Utils::TraceId.to_low_order(digest.trace_id)
-          )
-
           # DEV: We need these to be hex encoded
-          value = "#{trace_id.to_s(16)}-#{digest.span_id.to_s(16)}"
+          value = "#{digest.trace_id.to_s(16)}-#{digest.span_id.to_s(16)}"
 
           if digest.trace_sampling_priority
             sampling_priority = Helpers.clamp_sampling_priority(
@@ -61,13 +56,11 @@ module Datadog
           # Return if this propagation is not valid
           return unless trace_id && span_id
 
-          if Datadog.configuration.tracing.trace_id_128_bit_propagation_enabled
-            high_order = Tracing::Utils::TraceId.to_high_order(trace_id)
+          high_order = Tracing::Utils::TraceId.to_high_order(trace_id)
 
-            if high_order != 0
-              trace_distributed_tags = {}
-              trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID] = high_order.to_s(16)
-            end
+          if high_order != 0
+            trace_distributed_tags = {}
+            trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID] = high_order.to_s(16)
           end
 
           TraceDigest.new(

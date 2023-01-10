@@ -62,16 +62,15 @@ module Datadog
           # DEV: To be valid we need to have a trace id and a parent id
           #      or when it is a synthetics trace, just the trace id.
           # DEV: `Fetcher#id` will not return 0
+
           return unless (trace_id && parent_id) || (origin && trace_id)
 
           trace_distributed_tags = extract_tags(fetcher)
 
-          if Datadog.configuration.tracing.trace_id_128_bit_propagation_enabled
-            trace_id = Tracing::Utils::TraceId.concatenate(
-              (trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID] || "").to_i(16),
-              trace_id
-            )
-          end
+          trace_id = Tracing::Utils::TraceId.concatenate(
+            ((trace_distributed_tags || {})[Tracing::Metadata::Ext::Distributed::TAG_TID] || '').to_i(16),
+            trace_id
+          )
 
           TraceDigest.new(
             span_id: parent_id,

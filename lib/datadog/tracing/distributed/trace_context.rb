@@ -47,12 +47,11 @@ module Datadog
 
           sampling_priority = parse_priority_sampling(sampled, sampling_priority)
 
-          if Datadog.configuration.tracing.trace_id_128_bit_propagation_enabled
-            high_order = Tracing::Utils::TraceId.to_high_order(trace_id)
+          high_order = Tracing::Utils::TraceId.to_high_order(trace_id)
 
-            if high_order != 0
-              tags[Tracing::Metadata::Ext::Distributed::TAG_TID] = high_order.to_s(16)
-            end
+          if high_order != 0
+            tags ||= {}
+            tags[Tracing::Metadata::Ext::Distributed::TAG_TID] = high_order.to_s(16)
           end
 
           TraceDigest.new(
@@ -100,10 +99,7 @@ module Datadog
         # @see https://www.w3.org/TR/trace-context/#traceparent-header
         def build_traceparent(digest)
           build_traceparent_string(
-            Tracing::Utils::TraceId.concatenate(
-              (digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID] || "").to_i(16),
-              Tracing::Utils::TraceId.to_low_order(digest.trace_id)
-            ),
+            digest.trace_id,
             digest.span_id,
             build_trace_flags(digest)
           )

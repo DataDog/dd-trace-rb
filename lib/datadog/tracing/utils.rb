@@ -53,7 +53,7 @@ module Datadog
         module_function
 
         def to_high_order(trace_id)
-          trace_id >> 64
+          trace_id.to_i >> 64
         end
 
         def to_low_order(trace_id)

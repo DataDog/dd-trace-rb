@@ -75,9 +75,9 @@ module Datadog
 
         def trace_id
           if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled
-            @trace_id
+            @trace_id # 64 bits or 128 bits ? format
           else
-            Tracing::Utils::TraceId.to_lower_order(@trace_id)
+            Tracing::Utils::TraceId.to_low_order(@trace_id)
           end
         end
       end
@@ -101,7 +101,7 @@ module Datadog
           trace_id: digest.trace_id,
           trace_name: digest.trace_name,
           trace_resource: digest.trace_resource,
-          trace_service: digest.trace_service,
+          trace_service: digest.trace_service
         )
       end
     end

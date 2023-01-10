@@ -21,9 +21,7 @@ module Datadog
         low_order  = Tracing::Utils.next_id
         high_order = Tracing::Utils.next_id
 
-        if Datadog.configuration.tracing.trace_id_128_bit_propagation_enabled
-          set_tag(Tracing::Metadata::Ext::Distributed::TAG_TID, high_order.to_s(16))
-        end
+        set_tag(Tracing::Metadata::Ext::Distributed::TAG_TID, high_order.to_s(16))
 
         Tracing::Utils::TraceId.concatenate(high_order, low_order)
       end

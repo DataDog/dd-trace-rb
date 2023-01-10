@@ -42,7 +42,6 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
         0xffffffffffffffff
       ].each do |input|
         it 'returns itself' do
-          expect(input.bit_length).to be <= 64
           expect(described_class.to_low_order(input)).to eq(input)
         end
       end
@@ -55,7 +54,6 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
       }.each do |input, result|
         context "when given `0x#{input.to_s(16)}`" do
           it "returns the lower order 64 bits `0x#{result.to_s(16)}`" do
-            expect(input.bit_length).to be > 64
             expect(described_class.to_low_order(input)).to eq(result)
           end
         end
@@ -67,10 +65,10 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
     context 'when given <= 64 bit' do
       [
         0xaaaaaaaaaaaaaaaa,
-        0xffffffffffffffff
+        0xffffffffffffffff,
+        nil
       ].each do |input|
         it 'returns 0' do
-          expect(input.bit_length).to be <= 64
           expect(described_class.to_high_order(input)).to eq(0)
         end
       end
@@ -83,7 +81,6 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
       }.each do |input, result|
         context "when given `0x#{input.to_s(16)}`" do
           it "returns the lower order 64 bits `0x#{result.to_s(16)}`" do
-            expect(input.bit_length).to be > 64
             expect(described_class.to_high_order(input)).to eq(result)
           end
         end
@@ -97,9 +94,9 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
       [0xffffffffffffffff, 0xaaaaaaaaaaaaaaaa] => 0xffffffffffffffffaaaaaaaaaaaaaaaa,
       [0x00000000aaaaaaaa, 0xffffffffffffffff] => 0x00000000aaaaaaaaffffffffffffffff,
       [0xaaaaaaaaaaaaaaaa, 0xffffffff] => 0xaaaaaaaaaaaaaaaa00000000ffffffff,
-      [nil, 0xffffffffffffffff]        => 0xffffffffffffffff,
-      [0,   0xffffffffffffffff]        => 0xffffffffffffffff,
-      ['0', 0xffffffffffffffff]        => 0xffffffffffffffff,
+      [nil, 0xffffffffffffffff] => 0xffffffffffffffff,
+      [0,   0xffffffffffffffff] => 0xffffffffffffffff,
+      ['0', 0xffffffffffffffff] => 0xffffffffffffffff,
     }.each do |(high_order, low_order), result|
       context "when given `#{high_order}` and `#{low_order}`" do
         it "returns `0x#{result.to_s(16)}`" do
