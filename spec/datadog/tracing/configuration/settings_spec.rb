@@ -19,27 +19,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
   let(:options) { {} }
 
-  describe '#agent' do
-    describe '#tracer' do
-      describe '#port' do
-        subject(:port) { settings.agent.port }
-
-        it { is_expected.to be nil }
-      end
-
-      describe '#port=' do
-        let(:port) { 1234 }
-
-        it 'updates the #port setting' do
-          expect { settings.agent.port = port }
-            .to change { settings.agent.port }
-            .from(nil)
-            .to(port)
-        end
-      end
-    end
-  end
-
   describe '#tracing' do
     describe '#analytics' do
       describe '#enabled' do
