@@ -365,8 +365,8 @@ services:
       - "8125/udp"
       - "8126"
     ports:
-      - "${DD_METRIC_AGENT_PORT}:8125/udp"
-      - "${DD_TRACE_AGENT_PORT}:8126"
+      - "127.0.0.1:${DD_METRIC_AGENT_PORT}:8125/udp"
+      - "127.0.0.1:${DD_TRACE_AGENT_PORT}:8126"
     volumes:
       - ddagent_var_run:/var/run/datadog
   elasticsearch:
@@ -375,8 +375,8 @@ services:
       - "9200"
       - "9300"
     ports:
-      - "${TEST_ELASTICSEARCH_REST_PORT}:9200"
-      - "${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
+      - "127.0.0.1:${TEST_ELASTICSEARCH_REST_PORT}:9200"
+      - "127.0.0.1:${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
     environment:
       # Ensure production cluster requirements are not enforced
       - discovery.type=single-node
@@ -387,13 +387,13 @@ services:
     expose:
       - "11211"
     ports:
-      - "${TEST_MEMCACHED_PORT}:11211"
+      - "127.0.0.1:${TEST_MEMCACHED_PORT}:11211"
   mongodb:
     image: mongo:3.6
     expose:
       - "27017"
     ports:
-      - "${TEST_MONGODB_PORT}:27017"
+      - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
   mysql:
     image: mysql:8
     environment:
@@ -406,7 +406,7 @@ services:
     expose:
       - "3306"
     ports:
-      - "${TEST_MYSQL_PORT}:3306"
+      - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
   postgres:
     image: postgres:9.6
     environment:
@@ -416,27 +416,27 @@ services:
     expose:
       - "5432"
     ports:
-      - "${TEST_POSTGRES_PORT}:5432"
+      - "127.0.0.1:${TEST_POSTGRES_PORT}:5432"
   presto:
     # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
     image: starburstdata/presto:332-e.9
     expose:
       - "8080"
     ports:
-      - "${TEST_PRESTO_PORT}:8080"
+      - "127.0.0.1:${TEST_PRESTO_PORT}:8080"
   redis:
     image: redis:6.2
     expose:
       - "6379"
     ports:
-      - "${TEST_REDIS_PORT}:6379"
+      - "127.0.0.1:${TEST_REDIS_PORT}:6379"
   # `qless` is still using this older version of redis
   redis_old:
     image: redis:3.0
     expose:
       - "6379"
     ports:
-      - "${TEST_REDIS_OLD_PORT}:6379"
+      - "127.0.0.1:${TEST_REDIS_OLD_PORT}:6379"
 volumes:
   bundle-2.1:
   bundle-2.2:
