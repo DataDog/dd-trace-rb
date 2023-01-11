@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/http_examples'
 
 require 'ddtrace'
 require 'net/http'
@@ -21,6 +22,7 @@ RSpec.describe 'net/http requests' do
   let(:host) { '127.0.0.1' }
   let(:port) { 1234 }
   let(:uri) { "http://#{host}:#{port}" }
+  let(:path) { '/my/path' }
 
   let(:client) { Net::HTTP.new(host, port) }
   let(:configuration_options) { {} }
@@ -34,6 +36,13 @@ RSpec.describe 'net/http requests' do
     Datadog.registry[:http].reset_configuration!
     example.run
     Datadog.registry[:http].reset_configuration!
+  end
+
+  context 'with custom error codes' do
+    subject(:response) { client.get(path) }
+    before { stub_request(:any, "#{uri}#{path}").to_return(status: status_code, body: '{}') }
+
+    include_examples 'with error status code configuration'
   end
 
   describe '#get' do
@@ -99,36 +108,6 @@ RSpec.describe 'net/http requests' do
         expect(span.status).to eq(1)
         expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
         expect(span.get_tag('error.message')).to be nil
-      end
-
-      context 'with custom response error codes' do
-        context 'as a range covering 5xx responses' do
-          let(:configuration_options) { { error_status_codes: 500...599 } }
-
-          it 'does not mark the span as an error' do
-            expect(response.code).to eq('404')
-            expect(span.status).to eq(0)
-            expect(span.get_tag('error.type')).to be_nil
-          end
-        end
-
-        context 'as an array including 404 responses' do
-          let(:configuration_options) { { error_status_codes: [401, 404] } }
-
-          it 'marks the span as an error' do
-            expect(response.code).to eq('404')
-            expect(span.status).to eq(1)
-            expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
-          end
-        end
-
-        context 'with the default value' do
-          it 'marks the span as an error' do
-            expect(response.code).to eq('404')
-            expect(span.status).to eq(1)
-            expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
-          end
-        end
       end
 
       it_behaves_like 'a peer service span' do
