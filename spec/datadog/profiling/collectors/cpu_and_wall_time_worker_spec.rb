@@ -321,7 +321,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         start
         wait_until_running
 
-        sleep 0.1
+        sleep 0.2
 
         cpu_and_wall_time_worker.stop
 
@@ -329,18 +329,19 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
+        debug_failures = { thread_list: Thread.list, result: result }
 
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
 
         expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8), \
-          "Expected at least 80% of signals to be simulated (#{stats})"
+          "Expected at least 80% of signals to be simulated, stats: #{stats}, debug_failures: #{debug_failures}"
 
         # Sanity checking
 
-        # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
+        # We're currently targeting 100 samples per second, so this is a conservative approximation that hopefully
         # will not cause flakiness
-        expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
+        expect(sample_count).to be >= 8, "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
         expect(trigger_sample_attempts).to be >= sample_count
       end
     end
