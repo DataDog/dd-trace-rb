@@ -45,7 +45,10 @@ RUN COMPOSE_URL="https://github.com/linuxserver/docker-docker-compose/releases/d
   && docker-compose version
 
 # Install Dockerize
-RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize; dockerize --version
+RUN DOCKERIZE_URL="$(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4)" \
+  && curl --silent --show-error --location --fail --retry 3 --output /usr/local/bin/dockerize $DOCKERIZE_URL \
+  && chmod +x /usr/local/bin/dockerize \
+  && dockerize --version
 
 # Install RubyGems
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
