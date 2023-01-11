@@ -20,10 +20,6 @@ module Datadog
       class Settings
         include Base
 
-        # TODO: Tracing should manage its own settings.
-        #       Keep this extension here for now to keep things working.
-        extend Datadog::Tracing::Configuration::Settings
-
         # @!visibility private
         def initialize(*_)
           super
@@ -214,6 +210,8 @@ module Datadog
 
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
             # produced profiles. Increasing this may increase the overhead of profiling.
+            #
+            # @default `DD_PROFILING_MAX_FRAMES` environment variable, otherwise 400
             option :max_frames do |o|
               o.default { env_to_int(Profiling::Ext::ENV_MAX_FRAMES, 400) }
               o.lazy
@@ -429,14 +427,18 @@ module Datadog
         settings :telemetry do
           # Enable telemetry collection. This allows telemetry events to be emitted to the telemetry API.
           #
-          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `false`. In a future release,
-          #   this value will be changed to `true` by default as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
+          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `true`.
+          #   Can be disabled as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, false) }
+            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, true) }
             o.lazy
           end
         end
+
+        # TODO: Tracing should manage its own settings.
+        #       Keep this extension here for now to keep things working.
+        extend Datadog::Tracing::Configuration::Settings
       end
       # rubocop:enable Metrics/BlockLength
     end

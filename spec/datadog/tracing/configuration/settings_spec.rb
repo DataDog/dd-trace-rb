@@ -14,7 +14,7 @@ require 'datadog/tracing/writer'
 RSpec.describe Datadog::Tracing::Configuration::Settings do
   # TODO: Core::Configuration::Settings directly extends Tracing::Configuration::Settings
   #       In the future, have tracing add this behavior itself. For now,
-  #       just use the core metrics class to drive the tests.
+  #       just use the core settings class to drive the tests.
   subject(:settings) { Datadog::Core::Configuration::Settings.new(options) }
 
   let(:options) { {} }

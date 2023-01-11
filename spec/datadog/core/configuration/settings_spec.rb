@@ -911,6 +911,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
+  # Important note: These settings are used as inputs of the AgentSettingsResolver and are used by all components
+  # that consume its result (e.g. tracing, profiling, and telemetry, as of January 2023).
   describe '#agent' do
     describe '#host' do
       subject(:host) { settings.agent.host }
@@ -929,7 +931,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
-    # TODO: Migrate this to Tracing
     describe '#tracer' do
       describe '#port' do
         subject(:port) { settings.agent.port }
@@ -1025,7 +1026,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:environment) { nil }
 
-          it { is_expected.to be false }
+          it { is_expected.to be true }
         end
 
         { 'true' => true, 'false' => false }.each do |string, value|

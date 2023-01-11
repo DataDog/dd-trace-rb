@@ -44,6 +44,7 @@ if RUBY_VERSION >= '2.5.0'
   # We have a fix up for review, https://github.com/simplecov-ruby/simplecov/pull/972,
   # but given it only affects unsupported version of Ruby, it might not get merged.
   gem 'simplecov', git: 'https://github.com/DataDog/simplecov', ref: '3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db'
+  gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
 else
   # Compatible with older rubies. This version still produces compatible output
   # with a newer version when the reports are merged.
@@ -84,12 +85,20 @@ if RUBY_PLATFORM != 'java'
   end
 end
 
-# For type checking
-# Sorbet releases almost daily, with new checks introduced that can make a
-# previously-passing codebase start failing. Thus, we need to lock to a specific
-# version and bump it from time to time.
-# Also, there's no support for windows
-if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
-  gem 'sorbet', '= 0.5.9672'
-  gem 'spoom', '~> 1.1'
+group :check do
+  # For type checking
+  # Sorbet releases almost daily, with new checks introduced that can make a
+  # previously-passing codebase start failing. Thus, we need to lock to a specific
+  # version and bump it from time to time.
+  # Also, there's no support for windows
+  if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
+    gem 'sorbet', '= 0.5.9672'
+    gem 'spoom', '~> 1.1'
+  end
+
+  # type checking with steep
+  if RUBY_VERSION >= '2.6.0' && RUBY_PLATFORM != 'java'
+    gem 'rbs', '~> 2.8.1', require: false
+    gem 'steep', '~> 1.3.0', require: false
+  end
 end

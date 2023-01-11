@@ -1,0 +1,23 @@
+module Datadog
+  module Core
+    module Environment
+      module Ext
+        LANG: untyped
+
+        LANG_ENGINE: untyped
+
+        LANG_INTERPRETER: untyped
+
+        LANG_PLATFORM: untyped
+
+        LANG_VERSION: untyped
+
+        RUBY_ENGINE: untyped
+
+        TRACER_VERSION: untyped
+
+        ENGINE_VERSION: untyped
+      end
+    end
+  end
+end

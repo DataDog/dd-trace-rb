@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rails
+        module Request
+          def self.parsed_body: (untyped request) -> (nil | untyped)
+
+          def self.route_params: (untyped request) -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,7 @@
+module Datadog
+  module AppSec
+    extend Configuration::ClassMethods
+  end
+end
+
+

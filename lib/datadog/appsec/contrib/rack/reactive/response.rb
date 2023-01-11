@@ -1,4 +1,4 @@
-# typed: true
+# typed: ignore
 
 require_relative '../response'
 

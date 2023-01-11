@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rails
+        module Framework
+          def self.setup: () -> untyped
+
+          def self.config_with_defaults: (untyped datadog_config) -> untyped
+
+          def self.activate_rack!: (untyped datadog_config, untyped sinatra_config) -> untyped
+        end
+      end
+    end
+  end
+end

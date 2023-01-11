@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Environment
+      module Socket
+        def self?.hostname: () -> untyped
+      end
+    end
+  end
+end

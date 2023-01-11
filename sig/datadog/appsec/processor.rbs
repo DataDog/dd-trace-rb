@@ -1,0 +1,50 @@
+module Datadog
+  module AppSec
+    class Processor
+      class Context
+        type event = untyped
+        type data = WAF::data
+
+        attr_reader time_ns: ::Float
+        attr_reader time_ext_ns: ::Float
+        attr_reader timeouts: ::Integer
+        attr_reader events: ::Array[event]
+
+        @context: WAF::Context
+
+        def initialize: (Processor processor) -> void
+        def run: (data input, ?::Integer timeout) -> WAF::Result
+        def finalize: () -> void
+      end
+
+      attr_reader ruleset_info: untyped
+      attr_reader addresses: untyped
+
+      @handle: WAF::Handle
+      @ruleset: ::Hash[::String, untyped]
+      @addresses: ::Array[::String]
+
+      def initialize: () -> void
+      def ready?: () -> bool
+      def new_context: () -> Context
+      def update_rule_data: (untyped data) -> untyped
+      def toggle_rules: (untyped map) -> untyped
+      def update_ip_denylist: (?untyped denylist, ?id: ::String) -> untyped
+      def finalize: () -> void
+
+      attr_reader handle: untyped
+
+      private
+
+      def load_libddwaf: () -> bool
+      def load_ruleset: () -> bool
+      def create_waf_handle: () -> bool
+
+      def self.libddwaf_provides_waf?: () -> bool
+      def self.require_libddwaf: () -> bool
+      def self.libddwaf_spec: () -> ::Gem::BasicSpecification
+      def self.libddwaf_platform: () -> ::String
+      def self.ruby_platforms: () -> ::Array[::String]
+    end
+  end
+end

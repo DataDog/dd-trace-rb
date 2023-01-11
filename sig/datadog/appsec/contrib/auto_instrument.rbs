@@ -1,0 +1,9 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module AutoInstrument
+        def self.patch_all: () -> untyped
+      end
+    end
+  end
+end
