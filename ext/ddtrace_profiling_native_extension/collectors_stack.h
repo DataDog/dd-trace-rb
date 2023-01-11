@@ -10,8 +10,8 @@ void sample_thread(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_i64 metric_values,
-  ddog_Slice_label labels,
+  ddog_Slice_I64 metric_values,
+  ddog_prof_Slice_Label labels,
   sample_type type
 );
 sampling_buffer *sampling_buffer_new(unsigned int max_frames);
