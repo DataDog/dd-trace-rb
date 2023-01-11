@@ -47,12 +47,12 @@ module Datadog
 
           sampling_priority = parse_priority_sampling(sampled, sampling_priority)
 
-          high_order = Tracing::Utils::TraceId.to_high_order(trace_id)
+          # high_order = Tracing::Utils::TraceId.to_high_order(trace_id)
 
-          if high_order != 0
-            tags ||= {}
-            tags[Tracing::Metadata::Ext::Distributed::TAG_TID] = high_order.to_s(16)
-          end
+          # if high_order != 0
+          #   tags ||= {}
+          #   tags[Tracing::Metadata::Ext::Distributed::TAG_TID] = high_order.to_s(16)
+          # end
 
           TraceDigest.new(
             span_id: parent_id,
