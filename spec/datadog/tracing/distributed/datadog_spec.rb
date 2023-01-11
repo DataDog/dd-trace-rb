@@ -197,9 +197,9 @@ RSpec.shared_examples 'Datadog distributed format' do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
             span_id: 0xbbbbbbbbbbbbbbbb,
-            trace_distributed_tags: {
-              '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
-            }
+            # trace_distributed_tags: {
+            #   '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
+            # }
           )
         end
 

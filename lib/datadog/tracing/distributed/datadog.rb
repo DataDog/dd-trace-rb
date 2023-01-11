@@ -89,10 +89,17 @@ module Datadog
         # DEV: This means errors cannot be reported if there's not active span.
         # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
         def inject_tags(digest, data)
-          return if digest.trace_distributed_tags.nil? || digest.trace_distributed_tags.empty?
+          high_order = Tracing::Utils::TraceId.to_high_order(digest.trace_id)
+
+          trace_distributed_tags = digest.trace_distributed_tags || {}
+          trace_distributed_tags = trace_distributed_tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => high_order.to_s(16)) if high_order != 0
+
+          return if trace_distributed_tags.empty?
+
+          # return if digest.trace_distributed_tags.nil? || digest.trace_distributed_tags.empty?
           return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
 
-          tags = DatadogTagsCodec.encode(digest.trace_distributed_tags)
+          tags = DatadogTagsCodec.encode(trace_distributed_tags)
 
           return set_tags_propagation_error(reason: 'inject_max_size') if tags_too_large?(tags.size, scenario: 'inject')
 
