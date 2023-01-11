@@ -48,8 +48,6 @@ RSpec.describe 'net/http requests' do
   describe '#get' do
     subject(:response) { client.get(path) }
 
-    let(:path) { '/my/path' }
-
     context 'that returns 200' do
       before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
 
@@ -160,7 +158,6 @@ RSpec.describe 'net/http requests' do
   describe '#post' do
     subject(:response) { client.post(path, payload) }
 
-    let(:path) { '/my/path' }
     let(:payload) { '{ "foo": "bar" }' }
 
     context 'that returns 201' do
@@ -200,7 +197,6 @@ RSpec.describe 'net/http requests' do
       end
 
       let(:request) { Net::HTTP::Get.new(path) }
-      let(:path) { '/my/path' }
 
       it 'generates a well-formed trace' do
         expect(spans).to have(1).items
@@ -233,7 +229,6 @@ RSpec.describe 'net/http requests' do
         Datadog.configure_onto(client, service_name: service_name)
       end
 
-      let(:path) { '/my/path' }
       let(:service_name) { 'bar' }
 
       it 'generates a well-formed trace' do
@@ -253,7 +248,6 @@ RSpec.describe 'net/http requests' do
   context 'when split by domain' do
     subject(:response) { client.get(path) }
 
-    let(:path) { '/my/path' }
     let(:configuration_options) { super().merge(split_by_domain: true) }
 
     before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
@@ -291,8 +285,6 @@ RSpec.describe 'net/http requests' do
   end
 
   describe 'distributed tracing' do
-    let(:path) { '/my/path' }
-
     before do
       stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
     end
@@ -432,8 +424,6 @@ RSpec.describe 'net/http requests' do
 
   describe 'request exceptions' do
     subject(:response) { client.get(path) }
-
-    let(:path) { '/my/path' }
 
     context 'that raises a timeout' do
       let(:timeout_error) { Net::OpenTimeout.new('execution expired') }
