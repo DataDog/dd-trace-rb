@@ -95,9 +95,7 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.code)
 
-              if request_options[:error_status_codes].include? response.code.to_i
-                span.set_error(response)
-              end
+              span.set_error(response) if request_options[:error_status_codes].include? response.code.to_i
             end
 
             def annotate_span_with_error!(span, error)
