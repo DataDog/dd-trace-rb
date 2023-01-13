@@ -73,6 +73,8 @@ RSpec.shared_examples 'thread-safe buffer' do
         end
       end
 
+      after { threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } }
+
       it 'does not exceed expected maximum size' do
         push
         expect(output).to have_at_most(max_size).items
@@ -80,9 +82,11 @@ RSpec.shared_examples 'thread-safe buffer' do
 
       context 'with #pop operations' do
         let(:barrier) { Concurrent::CyclicBarrier.new(thread_count + 1) }
+        let(:logger) { instance_double(Datadog::Core::Logger) }
 
         before do
-          allow(Datadog).to receive(:logger).and_return(double)
+          allow(Datadog).to receive(:logger).and_return(logger)
+          expect(logger).to_not receive(:debug).with(/Failed/)
         end
 
         it 'executes without error' do
@@ -147,6 +151,8 @@ RSpec.shared_examples 'thread-safe buffer' do
         end
       end
 
+      after { threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } }
+
       it 'does not exceed expected maximum size' do
         concat
         expect(output).to have_at_most(max_size).items
@@ -154,9 +160,11 @@ RSpec.shared_examples 'thread-safe buffer' do
 
       context 'with #pop operations' do
         let(:barrier) { Concurrent::CyclicBarrier.new(thread_count + 1) }
+        let(:logger) { instance_double(Datadog::Core::Logger) }
 
         before do
-          allow(Datadog).to receive(:logger).and_return(double)
+          allow(Datadog).to receive(:logger).and_return(logger)
+          expect(logger).to_not receive(:debug).with(/Failed/)
         end
 
         it 'executes without error' do
