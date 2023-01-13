@@ -975,10 +975,6 @@ elsif ruby_version?('2.5')
     gem 'rack-test'
   end
 
-  appraise 'opentelemetry' do
-    gem 'opentelemetry-sdk', '~> 1'
-  end
-
   [3, 4, 5].each do |n|
     appraise "redis-#{n}" do
       gem 'redis', "~> #{n}"
@@ -1230,7 +1226,7 @@ elsif ruby_version?('2.6')
     end
 
     appraise 'opentelemetry' do
-      gem 'opentelemetry-sdk', '~> 1'
+      gem 'opentelemetry-sdk', '~> 1.1'
     end
 
     [3, 4, 5].each do |n|
@@ -1462,7 +1458,7 @@ elsif ruby_version?('2.7')
     end
 
     appraise 'opentelemetry' do
-      gem 'opentelemetry-sdk', '~> 1'
+      gem 'opentelemetry-sdk', '~> 1.1'
     end
 
     [3, 4, 5].each do |n|
@@ -1607,7 +1603,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
   end
 
   appraise 'opentelemetry' do
-    gem 'opentelemetry-sdk', '~> 1'
+    gem 'opentelemetry-sdk', '~> 1.1'
   end
 
   appraise 'contrib-old' do
@@ -1737,7 +1733,7 @@ elsif ruby_version?('3.2')
   end
 
   appraise 'opentelemetry' do
-    gem 'opentelemetry-sdk', '~> 1'
+    gem 'opentelemetry-sdk', '~> 1.1'
   end
 
   [3, 4, 5].each do |n|

@@ -2,7 +2,7 @@
 
 | Type          | Documentation                                        | Datadog version | Gem version support |
 | ------------- | ---------------------------------------------------- | --------------- | ------------------- |
-| OpenTelemetry | https://github.com/open-telemetry/opentelemetry-ruby | 1.9.0+          | >= 1.0.0            |
+| OpenTelemetry | https://github.com/open-telemetry/opentelemetry-ruby | 1.9.0+          | >= 1.1.0            |
 
 #### Configuring OpenTelemetry
 
