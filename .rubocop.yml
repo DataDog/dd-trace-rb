@@ -24,6 +24,7 @@ AllCops:
     - 'integration/apps/hanami/Rakefile'
     - 'lib/datadog/profiling/pprof/pprof_pb.rb'
     - 'spec/**/**/interesting_backtrace_helper.rb' # This file needs quite a few bizarre code patterns by design
+    - 'vendor/bundle/**/*'
   NewCops: disable # Don't allow new cops to be enabled implicitly.
 
 Layout/LineLength:
