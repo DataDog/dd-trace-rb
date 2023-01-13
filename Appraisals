@@ -975,6 +975,10 @@ elsif ruby_version?('2.5')
     gem 'rack-test'
   end
 
+  appraise 'opentelemetry' do
+    gem 'opentelemetry-sdk', '~> 1'
+  end
+
   [3, 4, 5].each do |n|
     appraise "redis-#{n}" do
       gem 'redis', "~> #{n}"
@@ -1225,6 +1229,10 @@ elsif ruby_version?('2.6')
       gem 'rack-test'
     end
 
+    appraise 'opentelemetry' do
+      gem 'opentelemetry-sdk', '~> 1'
+    end
+
     [3, 4, 5].each do |n|
       appraise "redis-#{n}" do
         gem 'redis', "~> #{n}"
@@ -1453,6 +1461,10 @@ elsif ruby_version?('2.7')
       gem 'rack-test'
     end
 
+    appraise 'opentelemetry' do
+      gem 'opentelemetry-sdk', '~> 1'
+    end
+
     [3, 4, 5].each do |n|
       appraise "redis-#{n}" do
         gem 'redis', "~> #{n}"
@@ -1594,6 +1606,10 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'rack-test'
   end
 
+  appraise 'opentelemetry' do
+    gem 'opentelemetry-sdk', '~> 1'
+  end
+
   appraise 'contrib-old' do
     gem 'dalli', '< 3.0.0'
     gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
@@ -1718,6 +1734,10 @@ elsif ruby_version?('3.2')
   appraise 'sinatra' do
     gem 'sinatra', '>= 3'
     gem 'rack-test'
+  end
+
+  appraise 'opentelemetry' do
+    gem 'opentelemetry-sdk', '~> 1'
   end
 
   [3, 4, 5].each do |n|
