@@ -102,3 +102,5 @@ group :check do
     gem 'steep', '~> 1.3.0', require: false
   end
 end
+
+gem 'ruby_memcheck'

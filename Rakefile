@@ -6,6 +6,8 @@ require 'rake/extensiontask'
 require 'appraisal'
 require 'yard'
 require 'os'
+require "ruby_memcheck"
+require "ruby_memcheck/rspec/rake_task"
 
 Dir.glob('tasks/*.rake').each { |r| import r }
 
@@ -446,6 +448,15 @@ namespace :changelog do
     require 'pimpmychangelog'
 
     PimpMyChangelog::CLI.run!
+  end
+end
+
+RubyMemcheck.config(binary_name: "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}")
+
+namespace :spec do
+  RubyMemcheck::RSpec::RakeTask.new(valgrind: :compile) do |t, args|
+    t.pattern = 'spec/datadog/profiling/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
   end
 end
 
