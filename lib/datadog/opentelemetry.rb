@@ -29,7 +29,7 @@ module Datadog
       @logger ||= ::Datadog.logger
     end
 
-    ::OpenTelemetry.prepend(self)
+    ::OpenTelemetry.singleton_class.prepend(self)
   end
 end
 
