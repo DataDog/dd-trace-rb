@@ -25,6 +25,9 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
     let(:logger) do
       log!
+
+      allow(tracer_logger).to receive(:debug)
+
       tracer_logger
     end
 
@@ -33,6 +36,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
     before do
       allow(Datadog).to receive(:logger).and_return(tracer_logger)
+      allow(tracer_logger).to receive(:debug)
       allow(tracer_logger).to receive(:info)
     end
 
