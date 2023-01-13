@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+# typed: ignore
 
 require_relative 'trace/span'
 require_relative '../../tracing/trace_operation'
