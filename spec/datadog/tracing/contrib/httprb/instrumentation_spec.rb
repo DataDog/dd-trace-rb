@@ -296,5 +296,16 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
     end
 
     it_behaves_like 'instrumented request'
+
+    context 'when basic auth in url' do
+      let(:host) { 'username:password@localhost' }
+
+      it 'does not collect auth info' do
+        response
+
+        expect(span.get_tag('http.url')).to eq('/sample/path')
+        expect(span.get_tag('out.host')).to eq('localhost')
+      end
+    end
   end
 end
