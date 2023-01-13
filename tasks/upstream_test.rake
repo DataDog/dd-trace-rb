@@ -93,9 +93,13 @@ namespace :upstream do
       skipped_tests = [
         'defaults to trace context and baggage', # The defaults are now Datadog-specific defaults
         'returns a logger instance', # The logger is now `Datadog.logger`, not the original OTel logger instance
-        'warns on unsupported otlp transport protocol http/json', # OTel Span processor is not supported currently
-        'warns on unsupported otlp transport protocol grpc', # OTel Span processor is not supported currently
-        'defaults to no processors if no valid exporter is available', # OTel Span processor is not supported currently
+        'warns if called more than once', # Test mocks `OpenTelemetry.logger`, which we override
+
+        # OTel Span processor is not supported currently
+        'warns on unsupported otlp transport protocol http/json',
+        'warns on unsupported otlp transport protocol grpc',
+        'defaults to no processors if no valid exporter is available',
+        'catches and logs exporter exceptions in #on_finish',
 
         # Propagation configuration is overridden by Datadog
         'defaults to no processors if no valid exporter is available',
