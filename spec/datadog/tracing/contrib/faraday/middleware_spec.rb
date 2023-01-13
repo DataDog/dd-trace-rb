@@ -114,7 +114,7 @@ RSpec.describe 'Faraday middleware' do
         expect { response }.to_not output(/WARNING/).to_stderr
       end
 
-      context 'with basica auth' do
+      context 'with basic auth' do
         subject(:response) { client.get('http://username:password@example.com/success') }
 
         it 'does not collect auth info' do
