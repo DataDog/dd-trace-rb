@@ -176,6 +176,21 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
+    context 'when sample is invalid' do
+      context 'because the local root span id is being defined using a string instead of as a number' do
+        let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+
+        it do
+          # We're using `_native_sample` here to test the behavior of `record_sample` in `stack_recorder.c`
+          expect do
+            Datadog::Profiling::Collectors::Stack::Testing._native_sample(
+              Thread.current, stack_recorder, metric_values, { 'local root span id' => 'incorrect' }.to_a, [], 400, false
+            )
+          end.to raise_error(ArgumentError)
+        end
+      end
+    end
+
     describe 'trace endpoint behavior' do
       let(:metric_values) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789 } }
       let(:samples) { samples_from_pprof(encoded_pprof) }

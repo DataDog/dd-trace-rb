@@ -317,9 +317,11 @@ void record_sample(VALUE recorder_instance, ddog_prof_Sample sample) {
 
   struct active_slot_pair active_slot = sampler_lock_active_profile(state);
 
-  ddog_prof_Profile_add(active_slot.profile, sample);
+  uint64_t success = ddog_prof_Profile_add(active_slot.profile, sample);
 
   sampler_unlock_active_profile(active_slot);
+
+  if (!success) rb_raise(rb_eArgError, "Failed to record sample: ddog_prof_Profile_add returned failure status code");
 }
 
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint) {
