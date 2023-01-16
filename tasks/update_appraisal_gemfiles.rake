@@ -178,9 +178,6 @@ FORCE_BUNDLER_VERSION = {
   # Some groups require bundler 1.x https://github.com/DataDog/dd-trace-rb/issues/2444
   '2.3' => '1.17.3',
 
-  # 2.3.26 seems to be broken https://github.com/DataDog/dd-trace-rb/issues/2443
-  'jruby-9.2.8.0' => '2.3.6',
-
   # 2.4.x seems to cause problems with appraisal
   '2.6' => '2.3.26',
   '2.7' => '2.3.26',
