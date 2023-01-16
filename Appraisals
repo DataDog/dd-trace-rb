@@ -2,6 +2,14 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ddtrace/version'
 
+module DisableBundleCheck
+  def check_command
+    ['bundle', 'exec', 'false']
+  end
+end
+
+::Appraisal::Appraisal.prepend(DisableBundleCheck) unless ENV['APPRAISAL_SKIP_BUNDLE_CHECK'].nil?
+
 def ruby_version?(version)
   full_version = "#{version}.0" # Turn 2.1 into 2.1.0 otherwise #bump below doesn't work as expected
 
