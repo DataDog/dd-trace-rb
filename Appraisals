@@ -98,6 +98,7 @@ if ruby_version?('2.1')
     gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
+    gem 'connection_pool', '2.2.3'
   end
 
   appraise 'rails4-mysql2' do
@@ -215,6 +216,7 @@ elsif ruby_version?('2.2')
     gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
+    gem 'connection_pool', '2.2.3'
   end
 
   appraise 'rails4-mysql2' do
@@ -294,7 +296,7 @@ elsif ruby_version?('2.2')
   appraise 'rails5-postgres-sidekiq' do
     gem 'rails', '5.2.3'
     gem 'pg', '< 1.0'
-    gem 'sidekiq'
+    gem 'sidekiq', '~> 5.0'
     gem 'activejob'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -553,7 +555,8 @@ elsif ruby_version?('2.3')
   end
 
   appraise 'sinatra' do
-    gem 'sinatra'
+    gem 'sinatra', '< 3.0'
+    gem 'mustermann', '< 3.0'
     gem 'rack-test'
   end
 
@@ -1682,7 +1685,6 @@ elsif ruby_version?('3.2')
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'
     gem 'net-smtp'
-    gem 'nokogiri', platform: :ruby # TODO: binary gem has max ruby version constraint excluding previews, switch to using minimum version constraint once a non-3.2-excluding binary gem is released
   end
 
   appraise 'sinatra' do
