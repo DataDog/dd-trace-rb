@@ -19,10 +19,27 @@ end
 
 alias original_appraise appraise
 
+REMOVED_GEMS = {
+  :check => [
+    'rbs',
+    'steep',
+  ],
+}
+
 def appraise(group, &block)
   # Specify the environment variable APPRAISAL_GROUP to load only a specific appraisal group.
   if ENV['APPRAISAL_GROUP'].nil? || ENV['APPRAISAL_GROUP'] == group
-    original_appraise(group, &block)
+    original_appraise(group) do
+      instance_exec(&block)
+
+      REMOVED_GEMS.each do |group_name, gems|
+        group(group_name) do
+          gems.each do |gem_name|
+            remove_gem gem_name if respond_to?(:remove_gem)
+          end
+        end
+      end
+    end
   end
 end
 
