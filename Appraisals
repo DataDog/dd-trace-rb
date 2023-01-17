@@ -1189,7 +1189,7 @@ elsif ruby_version?('2.6')
       gem 'semantic_logger', '~> 4.0'
       gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
       gem 'shoryuken'
-      gem 'sidekiq', '~> 6.4.1' # TODO: Support sidekiq 6.5.8
+      gem 'sidekiq', '~> 6.5'
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1', platform: :ruby
       gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
