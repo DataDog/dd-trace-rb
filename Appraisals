@@ -757,7 +757,8 @@ elsif ruby_version?('2.5')
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-    gem 'redis', '>= 4.0.1'
+    gem 'redis'
+    gem 'redis-store', '~> 1.9'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
@@ -816,7 +817,8 @@ elsif ruby_version?('2.5')
     gem 'rails', '~> 6.0.0'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
-    gem 'redis', '>= 4.0.1'
+    gem 'redis'
+    gem 'redis-store', '~> 1.9'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
