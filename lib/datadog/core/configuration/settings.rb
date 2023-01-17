@@ -55,6 +55,12 @@ module Datadog
           # @return [String,nil]
           option :host
 
+          # Agent APM TCP port.
+          # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
+          # @default `DD_TRACE_AGENT_PORT` environment variable, otherwise `8126`
+          # @return [String,nil]
+          option :port
+
           # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
           # @public_api
@@ -204,6 +210,8 @@ module Datadog
 
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
             # produced profiles. Increasing this may increase the overhead of profiling.
+            #
+            # @default `DD_PROFILING_MAX_FRAMES` environment variable, otherwise 400
             option :max_frames do |o|
               o.default { env_to_int(Profiling::Ext::ENV_MAX_FRAMES, 400) }
               o.lazy

@@ -62,6 +62,7 @@ services:
       - DD_PROCESS_AGENT_ENABLED=false
       - DD_BIND_HOST=0.0.0.0
       - DD_API_KEY
+      - "DD_HOSTNAME=${DD_HOSTNAME}"
       - LOG_LEVEL=DEBUG
       - DD_LOGS_STDOUT=yes
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true

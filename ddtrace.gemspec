@@ -61,13 +61,14 @@ Gem::Specification.new do |spec|
   # forward.
   #
   # We're pinning it at the latest available version and will manually bump the dependency as needed.
-  spec.add_dependency 'debase-ruby_core_source', '>= 0.10.16', '<= 0.10.18'
+  spec.add_dependency 'debase-ruby_core_source', '>= 0.10.16', '<= 3.2.0'
 
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.5.1.0.0'
 
   # Used by profiling (and possibly others in the future)
-  spec.add_dependency 'libdatadog', '~> 0.9.0.1.0'
+  # When updating the version here, please also update the version in `native_extension_helpers.rb` (and yes we have a test for it)
+  spec.add_dependency 'libdatadog', '~> 1.0.1.1.0'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb', 'ext/ddtrace_profiling_loader/extconf.rb']
 end

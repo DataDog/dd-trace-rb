@@ -1,7 +1,7 @@
 # typed: ignore
 
 require 'ext/ddtrace_profiling_native_extension/native_extension_helpers'
-
+require 'libdatadog'
 require 'datadog/profiling/spec_helper'
 
 RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
@@ -37,6 +37,16 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
       it do
         expect(described_class.libdatadog_folder_relative_to_native_lib_folder(libdatadog_pkgconfig_folder: nil)).to be nil
       end
+    end
+  end
+
+  describe '::LIBDATADOG_VERSION' do
+    it 'must match the version restriction set on the gemspec' do
+      # This test is expected to break when the libdatadog version on the .gemspec is updated but we forget to update
+      # the version on the `native_extension_helpers.rb` file. Kindly keep them in sync! :)
+      expect(described_class::LIBDATADOG_VERSION).to eq(
+        Gem.loaded_specs['ddtrace'].dependencies.find { |dependency| dependency.name == 'libdatadog' }.requirement.to_s
+      )
     end
   end
 end
@@ -122,6 +132,22 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           context 'when not on Ruby 2.1' do
             before { stub_const('RUBY_VERSION', '2.2.0') }
 
+            shared_examples 'libdatadog available' do
+              context 'when libdatadog fails to activate' do
+                before do
+                  expect(described_class)
+                    .to receive(:gem).with('libdatadog', Datadog::Profiling::NativeExtensionHelpers::LIBDATADOG_VERSION)
+                    .and_raise(LoadError.new('Simulated error activating gem'))
+                end
+
+                it { is_expected.to include 'exception during loading' }
+              end
+
+              context 'when libdatadog successfully activates' do
+                include_examples 'libdatadog usable'
+              end
+            end
+
             shared_examples 'libdatadog usable' do
               context 'when libdatadog DOES NOT HAVE binaries for the current platform' do
                 before do
@@ -142,7 +168,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
             context 'on a Ruby version where we CAN NOT use the MJIT header' do
               before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
 
-              include_examples 'libdatadog usable'
+              include_examples 'libdatadog available'
             end
 
             context 'on a Ruby version where we CAN use the MJIT header' do
@@ -157,7 +183,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
               context 'and DOES have MJIT support' do
                 before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('yes') }
 
-                include_examples 'libdatadog usable'
+                include_examples 'libdatadog available'
               end
             end
           end

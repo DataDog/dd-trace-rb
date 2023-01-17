@@ -72,8 +72,7 @@ RUN set -ex \
 # install things globally, for great justice
 # and don't create ".bundle" in all our apps
 ENV GEM_HOME /usr/local/bundle
-ENV BUNDLE_PATH="$GEM_HOME" \
-    BUNDLE_BIN="$GEM_HOME/bin" \
+ENV BUNDLE_BIN="$GEM_HOME/bin" \
     BUNDLE_SILENCE_ROOT_WARNING=1 \
     BUNDLE_APP_CONFIG="$GEM_HOME"
 ENV PATH $BUNDLE_BIN:$PATH
@@ -113,7 +112,7 @@ ENV LANGUAGE en_US:en
 RUN set -ex \
   && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/$(arch)/ | grep -o -e 'docker-[.0-9]*-ce\.tgz' | sort -r | head -n 1) \
   && DOCKER_URL="https://download.docker.com/linux/static/stable/$(arch)/${DOCKER_VERSION}" \
-  && echo Docker URL: $DOCKER_URL \
+  && echo DOCKER_URL: $DOCKER_URL \
   && curl --silent --show-error --location --fail --retry 3 --output /tmp/docker.tgz "${DOCKER_URL}" \
   && ls -lha /tmp/docker.tgz \
   && tar -xz -C /tmp -f /tmp/docker.tgz \
@@ -132,7 +131,11 @@ RUN echo 'deb http://ftp.debian.org/debian stretch-backports main\ndeb-src http:
   && rm -rf /var/lib/apt/lists/*
 
 # Install Dockerize
-RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
+RUN DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17.0/dockerize-$(uname -s | tr '[:upper:]' '[:lower:]')-$(arch | sed 's/aarch64/arm64/')" \
+  && echo DOCKERIZE_URL: $DOCKERIZE_URL \
+  && curl --silent --show-error --location --fail --retry 3 --output /usr/local/bin/dockerize $DOCKERIZE_URL \
+  && chmod +x /usr/local/bin/dockerize \
+  && dockerize --version
 
 RUN mkdir /app
 WORKDIR /app
