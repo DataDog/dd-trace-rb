@@ -1,3 +1,5 @@
+# typed: false
+
 require_relative './shared_examples'
 require 'roda'
 require 'ddtrace'

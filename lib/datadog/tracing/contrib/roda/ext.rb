@@ -1,4 +1,4 @@
-# typed: ignore
+# frozen_string_literal: true
 
 module Datadog
   module Tracing
@@ -6,13 +6,13 @@ module Datadog
       module Roda
         # Roda integration constants
         module Ext
-          APP = 'roda'.freeze
-          ENV_ENABLED = 'DD_TRACE_RODA_ENABLED'.freeze
-          ENV_ANALYTICS_ENABLED = 'DD_RODA_ANALYTICS_ENABLED'.freeze
-          ENV_ANALYTICS_SAMPLE_RATE = 'DD_RODA_ANALYTICS_SAMPLE_RATE'.freeze
+          APP = 'roda'
+          ENV_ENABLED = 'DD_TRACE_RODA_ENABLED'
+          ENV_ANALYTICS_ENABLED = 'DD_RODA_ANALYTICS_ENABLED'
+          ENV_ANALYTICS_SAMPLE_RATE = 'DD_RODA_ANALYTICS_SAMPLE_RATE'
 
-          SERVICE_NAME = 'roda'.freeze
-          SPAN_REQUEST = 'roda.request'.freeze
+          SERVICE_NAME = 'roda'
+          SPAN_REQUEST = 'roda.request'
         end
       end
     end
