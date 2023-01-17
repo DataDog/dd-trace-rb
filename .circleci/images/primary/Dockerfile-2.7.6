@@ -56,8 +56,8 @@ RUN DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
 # Upgrade RubyGems and Bundler # Upgrading disabled until https://github.com/thoughtbot/appraisal/issues/162 is fixed
-RUN gem update --system
-RUN gem install bundler
+RUN gem update --system 3.3.26
+RUN gem install bundler -v '~> 2.3.26'
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 RUN mkdir /app
