@@ -16,20 +16,20 @@ services:
       - redis_old
     env_file: ./.env
     environment: &common-environment
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
-      - DDTRACE_CI=true
+      BUNDLE_GEMFILE: /app/Gemfile-2.1
+      DD_AGENT_HOST: ddagent
+      TEST_DATADOG_INTEGRATION: 1
+      TEST_ELASTICSEARCH_HOST: elasticsearch
+      TEST_MEMCACHED_HOST: memcached
+      TEST_MONGODB_HOST: mongodb
+      TEST_MYSQL_HOST: mysql
+      TEST_POSTGRES_HOST: postgres
+      TEST_PRESTO_HOST: presto
+      TEST_PRESTO_PORT: 8080
+      TEST_REDIS_HOST: redis
+      TEST_REDIS_OLD_HOST: redis_old
+      TEST_REDIS_OLD_PORT: 6379
+      DDTRACE_CI: true
     stdin_open: true
     tty: true
     volumes:
@@ -51,7 +51,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.2
     stdin_open: true
     tty: true
     volumes:
@@ -73,7 +75,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.3
     stdin_open: true
     tty: true
     volumes:
@@ -95,7 +99,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.4
     stdin_open: true
     tty: true
     volumes:
@@ -117,7 +123,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.5
     stdin_open: true
     tty: true
     volumes:
@@ -139,7 +147,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.6
     stdin_open: true
     tty: true
     volumes:
@@ -161,7 +171,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.7
     stdin_open: true
     tty: true
     volumes:
@@ -184,18 +196,18 @@ services:
       - redis_old
     env_file: ./.env
     environment: &common-environment-3x
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
-      - DDTRACE_CI=true
+      BUNDLE_GEMFILE: /app/Gemfile-3.0
+      DD_AGENT_HOST: ddagent
+      TEST_DATADOG_INTEGRATION: 1
+      TEST_ELASTICSEARCH_HOST: elasticsearch
+      TEST_MEMCACHED_HOST: memcached
+      TEST_MONGODB_HOST: mongodb
+      TEST_MYSQL_HOST: mysql
+      TEST_POSTGRES_HOST: postgres
+      TEST_REDIS_HOST: redis
+      TEST_REDIS_OLD_HOST: redis_old
+      TEST_REDIS_OLD_PORT: 6379
+      DDTRACE_CI: true
     stdin_open: true
     tty: true
     volumes:
@@ -216,7 +228,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment-3x
+    environment:
+      <<: *common-environment-3x
+      BUNDLE_GEMFILE: /app/Gemfile-3.1
     stdin_open: true
     tty: true
     volumes:
@@ -237,7 +251,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment-3x
+    environment:
+      <<: *common-environment-3x
+      BUNDLE_GEMFILE: /app/Gemfile-3.2
     stdin_open: true
     tty: true
     volumes:
@@ -261,7 +277,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-jruby-9.2.8.0
     stdin_open: true
     tty: true
     volumes:
@@ -282,7 +300,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-jruby-9.2
     stdin_open: true
     tty: true
     volumes:
@@ -303,7 +323,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-jruby-9.3
     stdin_open: true
     tty: true
     volumes:
@@ -324,7 +346,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-jruby-9.4
     stdin_open: true
     tty: true
     volumes:
@@ -346,7 +370,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-truffleruby-22.3.0
     stdin_open: true
     tty: true
     volumes:
