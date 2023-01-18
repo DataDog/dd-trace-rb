@@ -35,7 +35,7 @@ docker-compose run --rm tracer-3.0 /bin/bash
 bundle install
 
 # Install build targets
-appraisal install
+bundle exec appraisal install
 ```
 
 Then within this container you can [run tests](#running-tests), or [run code quality checks](#checking-code-quality).
@@ -75,13 +75,18 @@ Integrations which interact with dependencies not listed in the `ddtrace` gemspe
 
 To do so, load the dependencies using [Appraisal](https://github.com/thoughtbot/appraisal). You can see a list of available appraisals with `bundle exec appraisal list`, or examine the `Appraisals` file.
 
-Then to run tests, prefix the test commain with the appraisal. For example:
+Then to run tests, prefix the test commain with the appraisal.
+
+`bundle exec appraisal <appraisal_name> rake <test_comand>`
+
+
+For example:
 
 ```
-# Runs tests for Rails 3.2 + Postgres
-$ bundle exec appraisal rails32-postgres spec:rails
+# Runs tests for Rails 6.1 + Postgres
+$ bundle exec appraisal ruby-3.0.4-rails61-postgres rake spec:rails
 # Runs tests for Redis
-$ bundle exec appraisal contrib rake spec:redis
+$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis
 ```
 
 **Passing arguments to tests**
@@ -90,7 +95,7 @@ When running RSpec tests, you may pass additional args as parameters to the Rake
 
 ```
 # Runs Redis tests with seed 1234
-$ bundle exec appraisal contrib rake spec:redis'[--seed,1234]'
+$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis'[--seed,1234]'
 ```
 
 This can be useful for replicating conditions from CI or isolating certain tests.
@@ -100,7 +105,7 @@ This can be useful for replicating conditions from CI or isolating certain tests
 You can check test code coverage by creating a report _after_ running a test suite:
 ```
 # Run the desired test suite
-$ bundle exec appraisal contrib rake spec:redis
+$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis
 # Generate report for the suite executed
 $ bundle exec rake coverage:report
 ```
@@ -154,7 +159,7 @@ $ bundle exec rake rubocop
 If your changes can have a measurable performance impact, we recommend running our benchmark suite:
 
 ```
-$ bundle exec rake spec:benchmark
+$ bundle exec appraisal ruby-3.0.4-contrib rake spec:benchmark
 ```
 
 Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
