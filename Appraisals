@@ -345,7 +345,7 @@ elsif ruby_version?('2.2')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
@@ -543,7 +543,7 @@ elsif ruby_version?('2.3')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
@@ -676,7 +676,7 @@ elsif ruby_version?('2.4')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
@@ -940,7 +940,7 @@ elsif ruby_version?('2.5')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
@@ -1677,7 +1677,7 @@ elsif ruby_version?('3.2')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'

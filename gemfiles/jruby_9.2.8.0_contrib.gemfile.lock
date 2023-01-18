@@ -1718,7 +1718,7 @@ GEM
     ruby2_keywords (0.0.5)
     semantic_logger (4.12.0)
       concurrent-ruby (~> 1.0)
-    sequel (5.64.0)
+    sequel (5.54.0)
     serverengine (2.1.1)
       sigdump (~> 0.2.2)
     shoryuken (6.0.0)
@@ -1837,7 +1837,7 @@ DEPENDENCIES
   rubocop-rspec (~> 2.2)
   ruby-kafka (>= 0.7.10)
   semantic_logger (~> 4.0)
-  sequel
+  sequel (~> 5.54.0)
   shoryuken
   sidekiq
   simplecov!
