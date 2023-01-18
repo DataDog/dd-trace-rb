@@ -59,6 +59,11 @@ module Datadog
 
             option :middleware, default: true
             option :middleware_names, default: false
+
+            option :runner_service_name do |o|
+              o.delegate_to { Datadog.configuration.tracing[:rails].service_name }
+            end
+
             option :template_base_path do |o|
               o.default 'views/'
               o.on_set do |value|

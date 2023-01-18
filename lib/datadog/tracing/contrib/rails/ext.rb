@@ -12,6 +12,14 @@ module Datadog
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_RAILS_ANALYTICS_ENABLED'.freeze
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_RAILS_ANALYTICS_SAMPLE_RATE'.freeze
           ENV_DISABLE = 'DISABLE_DATADOG_RAILS'.freeze
+          SPAN_RUNNER_FILE = 'rails.runner.file'.freeze
+          SPAN_RUNNER_INLINE = 'rails.runner.inline'.freeze
+          SPAN_RUNNER_STDIN = 'rails.runner.stdin'.freeze
+          TAG_COMPONENT = 'rails'.freeze
+          TAG_OPERATION_FILE = 'runner.file'.freeze
+          TAG_OPERATION_INLINE = 'runner.inline'.freeze
+          TAG_OPERATION_STDIN = 'runner.stdin'.freeze
+          TAG_RUNNER_SOURCE = 'source'.freeze
         end
       end
     end

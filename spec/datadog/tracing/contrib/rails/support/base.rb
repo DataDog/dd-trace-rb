@@ -1,6 +1,8 @@
 # typed: ignore
 
 require 'rails/all'
+require 'rails/command' # Loaded by `bin/rails`
+
 require 'ddtrace'
 
 if ENV['USE_SIDEKIQ']
