@@ -724,6 +724,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
   end
 
   appraise 'rails5-postgres' do
@@ -784,6 +785,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
   end
 
   appraise 'rails6-postgres' do
@@ -844,6 +846,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
   end
 
   appraise 'rails61-postgres' do
