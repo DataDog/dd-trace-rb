@@ -17,7 +17,6 @@ TRACER_VERSIONS = %w[
 
 FORCE_BUNDLER_VERSION = {
   '2.3' => '1.17.3', # Some groups require bundler 1.x https://github.com/DataDog/dd-trace-rb/issues/2444
-  'jruby-9.2.8.0' => '2.3.6', # 2.3.26 seems to be broken https://github.com/DataDog/dd-trace-rb/issues/2443
 }.freeze
 
 desc 'Installs gems based on Appraisals and Gemfile changes, ' \
