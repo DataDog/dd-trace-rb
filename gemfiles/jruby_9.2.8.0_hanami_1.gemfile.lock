@@ -12,8 +12,8 @@ PATH
   remote: ..
   specs:
     ddtrace (1.8.0)
-      debase-ruby_core_source (>= 0.10.16, <= 0.10.18)
-      libdatadog (~> 0.9.0.1.0)
+      debase-ruby_core_source (>= 0.10.16, <= 3.2.0)
+      libdatadog (~> 1.0.1.1.0)
       libddwaf (~> 1.5.1.0.0)
       msgpack
 
@@ -119,7 +119,7 @@ GEM
     inflecto (0.0.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (0.9.0.1.0)
+    libdatadog (1.0.1.1.0)
     libddwaf (1.5.1.0.0-java)
       ffi (~> 1.0)
     mail (2.7.1)
@@ -190,6 +190,9 @@ GEM
       rubocop (~> 1.19)
     ruby-debug-base (0.11.0-java)
     ruby-progressbar (1.11.0)
+    simplecov-cobertura (2.1.0)
+      rexml
+      simplecov (~> 0.19)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
     spoon (0.0.6)
@@ -243,6 +246,7 @@ DEPENDENCIES
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.2)
   simplecov!
+  simplecov-cobertura (~> 2.1.0)
   warning (~> 1)
   webmock (>= 3.10.0)
   yard (~> 0.9)
