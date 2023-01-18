@@ -20,6 +20,12 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
+    activesupport (6.1.7.1)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      i18n (>= 1.6, < 2)
+      minitest (>= 5.1)
+      tzinfo (~> 2.0)
+      zeitwerk (~> 2.3)
     addressable (2.4.0)
     appraisal (2.4.1)
       bundler
@@ -37,12 +43,41 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
+    cucumber (4.0.0)
+      builder (~> 3.2, >= 3.2.3)
+      cucumber-core (~> 7.0, >= 7.0.0)
+      cucumber-cucumber-expressions (~> 10.1, >= 10.1.0)
+      cucumber-gherkin (~> 13.0, >= 13.0.0)
+      cucumber-html-formatter (~> 6.0, >= 6.0.1)
+      cucumber-messages (~> 12.1, >= 12.1.1)
+      cucumber-wire (~> 3.0, >= 3.0.0)
+      diff-lcs (~> 1.3, >= 1.3)
+      multi_test (~> 0.1, >= 0.1.2)
+      sys-uname (~> 1.0, >= 1.0.2)
+    cucumber-core (7.0.0)
+      cucumber-gherkin (~> 13.0, >= 13.0.0)
+      cucumber-messages (~> 12.1, >= 12.1.1)
+      cucumber-tag-expressions (~> 2.0, >= 2.0.4)
+    cucumber-cucumber-expressions (10.3.0)
+    cucumber-gherkin (13.0.0)
+      cucumber-messages (~> 12.0, >= 12.0.0)
+    cucumber-html-formatter (6.0.3)
+      cucumber-messages (~> 12.1, >= 12.1.1)
+    cucumber-messages (12.4.0)
+      protobuf-cucumber (~> 3.10, >= 3.10.8)
+    cucumber-tag-expressions (2.0.4)
+    cucumber-wire (3.0.0)
+      cucumber-core (~> 7.0, >= 7.0.0)
+      cucumber-cucumber-expressions (~> 10.1, >= 10.1.0)
+      cucumber-messages (~> 12.1, >= 12.1.1)
     debase-ruby_core_source (3.2.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.5.0)
     ffi (1.15.5-java)
     hashdiff (1.0.1)
+    i18n (1.12.0)
+      concurrent-ruby (~> 1.0)
     json (2.6.3-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
@@ -51,13 +86,21 @@ GEM
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
+    middleware (0.1.0)
+    minitest (5.17.0)
     msgpack (1.6.0-java)
+    multi_test (0.1.2)
     opentracing (0.5.0)
     os (1.1.4)
     parallel (1.22.1)
     parser (3.2.0.0)
       ast (~> 2.4.1)
     pimpmychangelog (0.1.3)
+    protobuf-cucumber (3.10.8)
+      activesupport (>= 3.2)
+      middleware
+      thor
+      thread_safe
     pry (0.14.2-java)
       coderay (~> 1.1)
       method_source (~> 1.0)
@@ -119,7 +162,12 @@ GEM
     simplecov_json_formatter (0.1.4)
     spoon (0.0.6)
       ffi
+    sys-uname (1.2.2)
+      ffi (~> 1.1)
     thor (1.2.1)
+    thread_safe (0.3.6-java)
+    tzinfo (2.0.5)
+      concurrent-ruby (~> 1.0)
     unicode-display_width (2.4.2)
     warning (1.3.0)
     webmock (3.13.0)
@@ -129,6 +177,7 @@ GEM
     webrick (1.7.0)
     yard (0.9.28)
       webrick (~> 1.7.0)
+    zeitwerk (2.6.6)
 
 PLATFORMS
   universal-java-11
@@ -141,6 +190,7 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
+  cucumber (~> 4)
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   json-schema (< 3)
@@ -148,6 +198,7 @@ DEPENDENCIES
   opentracing (>= 0.4.1)
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
+  protobuf-cucumber (= 3.10.8)
   pry
   pry-debugger-jruby
   rake (>= 10.5)
@@ -167,4 +218,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.4.3
+   2.3.26

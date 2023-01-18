@@ -34,6 +34,7 @@ GEM
     coderay (1.1.3)
     colorize (0.8.1)
     concurrent-ruby (1.1.10)
+    connection_pool (2.3.0)
     crack (0.4.5)
       rexml
     cri (2.15.11)
@@ -69,6 +70,10 @@ GEM
     rake (13.0.6)
     rake-compiler (1.2.1)
       rake
+    redis (5.0.6)
+      redis-client (>= 0.9.0)
+    redis-client (0.12.1)
+      connection_pool
     regexp_parser (2.6.1)
     rexml (3.2.5)
     rspec (3.12.0)
@@ -152,6 +157,7 @@ DEPENDENCIES
   pry-debugger-jruby
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
+  redis (~> 5)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec_junit_formatter (>= 0.5.1)
@@ -168,4 +174,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.4.3
+   2.3.26
