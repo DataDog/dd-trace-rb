@@ -949,6 +949,7 @@ elsif ruby_version?('2.5')
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
+    gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'

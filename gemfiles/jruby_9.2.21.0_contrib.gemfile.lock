@@ -1430,7 +1430,7 @@ GEM
       memory_profiler (~> 0.9)
     bson (4.15.0-java)
     builder (3.2.4)
-    bunny (2.20.2)
+    bunny (2.19.0)
       amq-protocol (~> 2.3, >= 2.3.1)
       sorted_set (~> 1, >= 1.0.2)
     case_transform (0.2)
@@ -1787,6 +1787,7 @@ DEPENDENCIES
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   builder
+  bunny (~> 2.19.0)
   climate_control (~> 0.2.0)
   concurrent-ruby
   cucumber
