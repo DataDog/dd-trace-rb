@@ -141,6 +141,7 @@ if ruby_version?('2.1')
     gem 'delayed_job_active_record'
     gem 'elasticsearch'
     gem 'presto-client', '>=  0.5.14'
+    gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
     gem 'ethon'
     gem 'excon'
     gem 'http'
@@ -324,6 +325,7 @@ elsif ruby_version?('2.2')
     gem 'ethon'
     gem 'excon'
     gem 'faraday'
+    gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
     gem 'grape'
     gem 'graphql'
     gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
