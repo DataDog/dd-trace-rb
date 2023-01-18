@@ -95,10 +95,16 @@ module SidekiqServerExpectations
 
       # Change options and constants for Sidekiq to stop faster:
       # Reduce number of threads and shutdown timeout.
-      options = Sidekiq.tap do |s|
-        s[:concurrency] = 1
-        s[:timeout] = 0
-      end
+
+      # Since the `options` changes across different Sidekiq version.
+      options = if Sidekiq::VERSION.start_with? '6.5'
+                  Sidekiq.tap do |s|
+                    s[:concurrency] = 1
+                    s[:timeout] = 0
+                  end
+                else
+                  Sidekiq.options.merge(concurrency: 1, timeout: 0)
+                end
 
       # `Sidekiq::Launcher#stop` sleeps before actually starting to shutting down Sidekiq.
       # Settings `Manager::PAUSE_TIME` to zero removes that wait.
