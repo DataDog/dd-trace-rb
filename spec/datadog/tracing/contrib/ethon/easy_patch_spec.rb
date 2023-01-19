@@ -242,7 +242,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
   context 'when basic auth in url' do
     it 'does not collect auth info' do
-      easy = EthonSupport.ethon_easy_new(url: "http://username:pasword@example.com/sample/path")
+      easy = EthonSupport.ethon_easy_new(url: 'http://username:pasword@example.com/sample/path')
 
       easy.perform
 
