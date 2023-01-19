@@ -2,6 +2,14 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ddtrace/version'
 
+module DisableBundleCheck
+  def check_command
+    ['bundle', 'exec', 'false']
+  end
+end
+
+::Appraisal::Appraisal.prepend(DisableBundleCheck) unless ENV['APPRAISAL_SKIP_BUNDLE_CHECK'].nil?
+
 def ruby_version?(version)
   full_version = "#{version}.0" # Turn 2.1 into 2.1.0 otherwise #bump below doesn't work as expected
 
@@ -11,17 +19,34 @@ end
 
 alias original_appraise appraise
 
+REMOVED_GEMS = {
+  :check => [
+    'rbs',
+    'steep',
+  ],
+}
+
 def appraise(group, &block)
   # Specify the environment variable APPRAISAL_GROUP to load only a specific appraisal group.
   if ENV['APPRAISAL_GROUP'].nil? || ENV['APPRAISAL_GROUP'] == group
-    original_appraise(group, &block)
+    original_appraise(group) do
+      instance_exec(&block)
+
+      REMOVED_GEMS.each do |group_name, gems|
+        group(group_name) do
+          gems.each do |gem_name|
+            remove_gem gem_name if respond_to?(:remove_gem)
+          end
+        end
+      end
+    end
   end
 end
 
 def self.gem_cucumber(version)
   appraise "cucumber#{version}" do
     gem 'cucumber', "~>#{version}"
-
+    # Locks the profiler's protobuf dependency to avoid conflict with cucumber.
     # Without this, we can get this error:
     # > TypeError:
     # >   superclass mismatch for class FileDescriptorSet
@@ -32,10 +57,9 @@ def self.gem_cucumber(version)
     #
     # DEV: Ideally, the profiler would not be loaded when running cucumber tests as it is unrelated.
     if Gem::Version.new(version) >= Gem::Version.new('4.0.0') &&
-        Gem::Version.new(version) < Gem::Version.new('7.0.0') &&
-        RUBY_PLATFORM != 'java' &&
-        Bundler::VERSION > '2.0.0'
-      gem 'google-protobuf', force_ruby_platform: true
+      Gem::Version.new(version) < Gem::Version.new('7.0.0')
+      gem 'google-protobuf', '3.10.1' if RUBY_PLATFORM != 'java'
+      gem 'protobuf-cucumber', '3.10.8'
     end
   end
 end
@@ -73,6 +97,7 @@ if ruby_version?('2.1')
     gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
+    gem 'connection_pool', '2.2.3'
   end
 
   appraise 'rails4-mysql2' do
@@ -116,6 +141,7 @@ if ruby_version?('2.1')
     gem 'delayed_job_active_record'
     gem 'elasticsearch'
     gem 'presto-client', '>=  0.5.14'
+    gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
     gem 'ethon'
     gem 'excon'
     gem 'http'
@@ -190,6 +216,7 @@ elsif ruby_version?('2.2')
     gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
+    gem 'connection_pool', '2.2.3'
   end
 
   appraise 'rails4-mysql2' do
@@ -269,7 +296,7 @@ elsif ruby_version?('2.2')
   appraise 'rails5-postgres-sidekiq' do
     gem 'rails', '5.2.3'
     gem 'pg', '< 1.0'
-    gem 'sidekiq'
+    gem 'sidekiq', '~> 5.0'
     gem 'activejob'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -298,6 +325,7 @@ elsif ruby_version?('2.2')
     gem 'ethon'
     gem 'excon'
     gem 'faraday'
+    gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
     gem 'grape'
     gem 'graphql'
     gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
@@ -319,7 +347,7 @@ elsif ruby_version?('2.2')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
@@ -517,7 +545,7 @@ elsif ruby_version?('2.3')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
@@ -528,7 +556,8 @@ elsif ruby_version?('2.3')
   end
 
   appraise 'sinatra' do
-    gem 'sinatra'
+    gem 'sinatra', '< 3.0'
+    gem 'mustermann', '< 3.0'
     gem 'rack-test'
   end
 
@@ -649,7 +678,7 @@ elsif ruby_version?('2.4')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
@@ -673,7 +702,7 @@ elsif ruby_version?('2.4')
   appraise 'contrib-old' do
     gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'faraday', '0.17'
-    gem 'graphql', '>= 1.12.0', '< 2.0'
+    gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
     gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   end
 
@@ -695,6 +724,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
   end
 
   appraise 'rails5-postgres' do
@@ -729,7 +759,8 @@ elsif ruby_version?('2.5')
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-    gem 'redis', '>= 4.0.1'
+    gem 'redis'
+    gem 'redis-store', '~> 1.9'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
@@ -754,6 +785,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
   end
 
   appraise 'rails6-postgres' do
@@ -788,7 +820,8 @@ elsif ruby_version?('2.5')
     gem 'rails', '~> 6.0.0'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
-    gem 'redis', '>= 4.0.1'
+    gem 'redis'
+    gem 'redis-store', '~> 1.9'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
@@ -813,6 +846,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
   end
 
   appraise 'rails61-postgres' do
@@ -911,10 +945,11 @@ elsif ruby_version?('2.5')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
+    gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'
@@ -937,7 +972,7 @@ elsif ruby_version?('2.5')
     gem 'dalli', '< 3.0.0'
     gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'faraday', '0.17'
-    gem 'graphql', '>= 1.12.0', '< 2.0'
+    gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
     gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
     if RUBY_PLATFORM == 'java'
@@ -1161,7 +1196,7 @@ elsif ruby_version?('2.6')
       gem 'semantic_logger', '~> 4.0'
       gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
       gem 'shoryuken'
-      gem 'sidekiq', '~> 6.4.1' # TODO: Support sidekiq 6.5.8
+      gem 'sidekiq', '~> 6.5'
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1', platform: :ruby
       gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
@@ -1648,7 +1683,7 @@ elsif ruby_version?('3.2')
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
@@ -1657,7 +1692,6 @@ elsif ruby_version?('3.2')
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'
     gem 'net-smtp'
-    gem 'nokogiri', platform: :ruby # TODO: binary gem has max ruby version constraint excluding previews, switch to using minimum version constraint once a non-3.2-excluding binary gem is released
   end
 
   appraise 'sinatra' do
