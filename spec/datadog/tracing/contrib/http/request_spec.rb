@@ -486,7 +486,8 @@ RSpec.describe 'net/http requests' do
 
     it 'does not collect auth info' do
       uri = URI('http://username:password@example.com/sample/path')
-      res = Net::HTTP.get_response(uri)
+
+      Net::HTTP.get_response(uri)
 
       expect(span.get_tag('http.url')).to eq('/sample/path')
       expect(span.get_tag('out.host')).to eq('example.com')
