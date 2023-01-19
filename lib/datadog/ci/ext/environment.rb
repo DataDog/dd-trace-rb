@@ -303,7 +303,7 @@ module Datadog
             TAG_PIPELINE_ID => env['BUILD_ID'],
             TAG_PIPELINE_NUMBER => env['BUILD_NUMBER'],
             TAG_PIPELINE_URL => (
-              env['SERVER_URL'] && env['BUILD_ID'] ? "#{env['SERVER_URL']}/viewLog.html?buildId=#{env['SERVER_URL']}" : nil
+              env['SERVER_URL'] && env['BUILD_ID'] ? "#{env['SERVER_URL']}/viewLog.html?buildId=#{env['BUILD_ID']}" : nil
             ),
             Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
