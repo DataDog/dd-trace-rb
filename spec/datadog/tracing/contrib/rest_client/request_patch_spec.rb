@@ -178,7 +178,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
         stub_request(:get, /example.com/).to_return(status: status, body: response)
       end
 
-      it 'does not collect auth info'do
+      it 'does not collect auth info' do
         request
 
         expect(span.get_tag('http.url')).to eq('/sample/path')
