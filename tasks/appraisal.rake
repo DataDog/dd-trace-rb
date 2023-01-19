@@ -16,6 +16,10 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   end
 
   def force_gem_version(version)
+    # format first bin script arg to force a gem version
+    #
+    # see https://github.com/rubygems/rubygems/blob/7a144f3374f6a400cc9832f072dc1fc0bca8c724/lib/rubygems/installer.rb#L764-L771
+
     return if version.nil?
 
     "_#{version}_"
@@ -158,7 +162,7 @@ TRACER_VERSIONS = [
   '3.0',
   '3.1',
   '3.2',
-  'jruby-9.2.8.0', # TODO: disabled for possible removal
+  # 'jruby-9.2.8.0', # TODO: disabled for possible removal
   'jruby-9.2',
   'jruby-9.3',
   'jruby-9.4',
