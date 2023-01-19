@@ -1,4 +1,5 @@
 # typed: false
+# frozen_string_literal: true
 
 module Datadog
   module Kit
@@ -22,7 +23,7 @@ module Datadog
       #   currently possesses extracted from token or application security
       #   context. The value would come from the scope associated with an OAuth
       #   2.0 Access Token or an attribute value in a SAML 2.0 Assertion.
-      # @param others [Hash<String || Symbol, String>] Additional free-form
+      # @param others [Hash<Symbol, String>] Additional free-form
       #   user information to attach to the trace.
       #
       # rubocop:disable Metrics/CyclomaticComplexity
@@ -32,12 +33,12 @@ module Datadog
 
         # enforce types
 
-        raise TypeError, 'id must be a String'         unless id.is_a?(String)
-        raise TypeError, 'email must be a String'      unless email.nil? || email.is_a?(String)
-        raise TypeError, 'name must be a String'       unless name.nil? || name.is_a?(String)
-        raise TypeError, 'session_id must be a String' unless session_id.nil? || session_id.is_a?(String)
-        raise TypeError, 'role must be a String'       unless role.nil? || role.is_a?(String)
-        raise TypeError, 'scope must be a String'      unless scope.nil? || scope.is_a?(String)
+        raise TypeError, ':id must be a String'         unless id.is_a?(String)
+        raise TypeError, ':email must be a String'      unless email.nil? || email.is_a?(String)
+        raise TypeError, ':name must be a String'       unless name.nil? || name.is_a?(String)
+        raise TypeError, ':session_id must be a String' unless session_id.nil? || session_id.is_a?(String)
+        raise TypeError, ':role must be a String'       unless role.nil? || role.is_a?(String)
+        raise TypeError, ':scope must be a String'      unless scope.nil? || scope.is_a?(String)
 
         others.each do |k, v|
           raise TypeError, "#{k.inspect} must be a String" unless v.nil? || v.is_a?(String)

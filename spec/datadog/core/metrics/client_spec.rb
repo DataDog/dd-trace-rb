@@ -281,20 +281,9 @@ RSpec.describe Datadog::Core::Metrics::Client do
     end
 
     before do
-      # @ivoanjo: This seems to be a bug in RSpec on Ruby 2.7
-      # <Datadog::Statsd (class)> received :new with unexpected arguments
-      #   expected: ("127.0.0.1", 8125, {})
-      #        got: ("127.0.0.1", 8125)
-      # ...but the workaround is so trivial that I don't think it's worth chasing this down further
-      if options.empty? && RUBY_VERSION.start_with?('2.7.')
-        expect(Datadog::Statsd).to receive(:new)
-          .with(metrics.default_hostname, metrics.default_port)
-          .and_return(statsd_client)
-      else
-        expect(Datadog::Statsd).to receive(:new)
-          .with(metrics.default_hostname, metrics.default_port, **options)
-          .and_return(statsd_client)
-      end
+      expect(Datadog::Statsd).to receive(:new)
+        .with(metrics.default_hostname, metrics.default_port, **options)
+        .and_return(statsd_client)
     end
 
     it { is_expected.to be(statsd_client) }
