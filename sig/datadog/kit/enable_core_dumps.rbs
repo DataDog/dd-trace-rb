@@ -1,0 +1,11 @@
+module Datadog
+  module Kit
+    # This helper is used to enable core dumps for the current Ruby app. This is useful when debugging native-level
+    # crashes.
+    #
+    # It can be enabled simply by adding `require 'datadog/kit/enable_core_dumps'` to start of the app.
+    module EnableCoreDumps
+      def self.call: () -> (nil | untyped)
+    end
+  end
+end
