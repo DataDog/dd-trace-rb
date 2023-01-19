@@ -17,7 +17,6 @@ TRACER_VERSIONS = %w[
 
 FORCE_BUNDLER_VERSION = {
   '2.3' => '1.17.3', # Some groups require bundler 1.x https://github.com/DataDog/dd-trace-rb/issues/2444
-  'jruby-9.2.8.0' => '2.3.6', # 2.3.26 seems to be broken https://github.com/DataDog/dd-trace-rb/issues/2443
 }.freeze
 
 desc 'Installs gems based on Appraisals and Gemfile changes, ' \
@@ -43,7 +42,7 @@ task :install_appraisal_gemfiles do |_task, args|
          # Adding the `--without` option forces Appraisal to skip `bundle check` and always run `bundle install`. \
          # `--without` has a small side-effect of getting saving in the local bundler env, but we do not persist \
          # these changes outside of the current container. \
-         "bundle exec appraisal #{forced_bundler_version} install --without force-appraisal-to-always-run-bundle-install'"
+         "bundle #{forced_bundler_version} exec appraisal install --without force-appraisal-to-always-run-bundle-install'"
        ].join
   end
 end
@@ -64,6 +63,6 @@ task :update_appraisal_gemfiles do |_task, args|
     end
 
     sh "docker-compose run -e APPRAISAL_GROUP --no-deps --rm tracer-#{version} /bin/bash -c " \
-      "'rm -f Gemfile.lock && #{bundler_setup} && bundle #{forced_bundler_version} install && bundle exec appraisal #{forced_bundler_version} update'"
+      "'rm -f Gemfile.lock && #{bundler_setup} && bundle #{forced_bundler_version} install && bundle #{forced_bundler_version} exec appraisal update'"
   end
 end

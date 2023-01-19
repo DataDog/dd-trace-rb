@@ -6,9 +6,10 @@
 # See:
 # - https://github.com/jruby/jruby/issues/7033
 # - https://github.com/DataDog/dd-trace-rb/pull/2380#issuecomment-1320994823
-#
+
+# Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
+
 # taken from https://github.com/jruby/docker-jruby/blob/5de2f8fd4c518cfb621be236fe7e9732c77b6129/9000/jre/Dockerfile
-#
 # openjdk:8-jre image is from https://github.com/docker-library/openjdk/blob/a0c4da867ddd1a11408b7ec5032f12130bdc5476/8/jre/bullseye/Dockerfile
 # note: docker-library/openjdk is deprecated, there is a later move to https://hub.docker.com/_/eclipse-temurin
 FROM openjdk:8-jre-buster AS jruby-9.2.8.0-jre8
@@ -37,8 +38,7 @@ RUN gem install rake net-telnet xmlrpc
 # install things globally, for great justice
 # and don't create ".bundle" in all our apps
 ENV GEM_HOME /usr/local/bundle
-ENV BUNDLE_PATH="$GEM_HOME" \
-    BUNDLE_BIN="$GEM_HOME/bin" \
+ENV BUNDLE_BIN="$GEM_HOME/bin" \
     BUNDLE_SILENCE_ROOT_WARNING=1 \
     BUNDLE_APP_CONFIG="$GEM_HOME"
 ENV PATH $BUNDLE_BIN:$PATH
@@ -106,8 +106,8 @@ RUN DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
 # Upgrade RubyGems and Bundler
-RUN gem update --system 3.3.26
-RUN gem install bundler -v '~> 2.3.26'
+RUN gem update --system 3.3.6
+RUN gem install bundler -v '= 2.3.6' # pinned because of https://github.com/DataDog/dd-trace-rb/issues/2443
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 # Ensure JRuby is available when running "bash --login"

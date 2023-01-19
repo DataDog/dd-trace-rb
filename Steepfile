@@ -2,6 +2,10 @@ target :appsec do
   signature "sig"
 
   check "lib/datadog/appsec"
+
+  # TODO: disabled because of https://github.com/soutaro/steep/issues/701
+  # check "lib/datadog/kit"
+
   ignore "lib/datadog/appsec/contrib"
 
   library "pathname", "set"
