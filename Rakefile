@@ -3,7 +3,6 @@ require 'ddtrace/version'
 require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
-require 'appraisal'
 require 'yard'
 require 'os'
 
