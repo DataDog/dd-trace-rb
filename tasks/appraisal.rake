@@ -64,12 +64,10 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   task :generate do |_task, args|
     ruby_versions(args.to_a).each do |ruby_version|
       cmd = []
-      cmd << ['rm', '-vf', 'Gemfile.lock']
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       cmd << [*bundle(ruby_version), 'install']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'generate']
-      cmd << ['rm', '-vf', 'Gemfile.lock']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
 
@@ -85,13 +83,11 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
 
     ruby_versions(args.to_a).each do |ruby_version|
       cmd = []
-      cmd << ['rm', '-vf', 'Gemfile.lock']
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       cmd << [*bundle(ruby_version), 'install']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'generate']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'install']
-      cmd << ['rm', '-vf', 'Gemfile.lock']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
 
@@ -107,13 +103,11 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   task :update do |_task, args|
     ruby_versions(args.to_a).each do |ruby_version|
       cmd = []
-      cmd << ['rm', '-vf', 'Gemfile.lock']
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       cmd << [*bundle(ruby_version), 'install']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'generate']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'update']
-      cmd << ['rm', '-vf', 'Gemfile.lock']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
 
@@ -129,7 +123,6 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
       next if ruby_version.start_with?('jruby-')
 
       cmd = []
-      cmd << ['rm', '-vf', 'Gemfile.lock']
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       p lockfile_prefix(ruby_version)
@@ -144,7 +137,6 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
                 '--lockfile', lockfile,
                 '--add-platform', 'aarch64-linux']
       end
-      cmd << ['rm', '-vf', 'Gemfile.lock']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
 
