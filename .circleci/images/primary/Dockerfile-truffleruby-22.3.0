@@ -1,3 +1,5 @@
+# Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
+
 FROM ghcr.io/graalvm/truffleruby:debian-22.3.0
 
 # Make apt non-interactive
