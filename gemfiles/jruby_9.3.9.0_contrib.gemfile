@@ -68,7 +68,7 @@ gem "ruby-kafka", ">= 0.7.10"
 gem "semantic_logger", "~> 4.0"
 gem "sequel", "~> 5.54.0"
 gem "shoryuken"
-gem "sidekiq", "~> 6.4.1"
+gem "sidekiq", "~> 6.5"
 gem "sneakers", ">= 2.12.0"
 gem "sqlite3", "~> 1.4.1", platform: :ruby
 gem "jdbc-sqlite3", ">= 3.28", platform: :jruby

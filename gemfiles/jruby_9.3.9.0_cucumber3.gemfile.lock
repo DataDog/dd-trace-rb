@@ -26,6 +26,7 @@ GEM
       rake
       thor (>= 0.14.0)
     ast (2.4.2)
+    backports (3.23.0)
     benchmark-ips (2.10.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -37,11 +38,28 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
+    cucumber (3.2.0)
+      builder (>= 2.1.2)
+      cucumber-core (~> 3.2.0)
+      cucumber-expressions (~> 6.0.1)
+      cucumber-wire (~> 0.0.1)
+      diff-lcs (~> 1.3)
+      gherkin (~> 5.1.0)
+      multi_json (>= 1.7.5, < 2.0)
+      multi_test (>= 0.1.2)
+    cucumber-core (3.2.1)
+      backports (>= 3.8.0)
+      cucumber-tag_expressions (~> 1.1.0)
+      gherkin (~> 5.0)
+    cucumber-expressions (6.0.1)
+    cucumber-tag_expressions (1.1.1)
+    cucumber-wire (0.0.1)
     debase-ruby_core_source (3.2.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.5.0)
     ffi (1.15.5-java)
+    gherkin (5.1.0)
     hashdiff (1.0.1)
     json (2.6.3-java)
     json-schema (2.8.1)
@@ -52,6 +70,8 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.0.0)
     msgpack (1.6.0-java)
+    multi_json (1.15.0)
+    multi_test (1.1.0)
     opentracing (0.5.0)
     os (1.1.4)
     parallel (1.22.1)
@@ -141,6 +161,7 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
+  cucumber (~> 3)
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   json-schema (< 3)
@@ -167,4 +188,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.4.3
+   2.3.26

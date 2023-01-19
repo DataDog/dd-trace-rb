@@ -98,7 +98,6 @@ GEM
     debase-ruby_core_source (3.2.0)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
-    digest (3.1.1)
     docile (1.4.0)
     dogstatsd-ruby (5.5.0)
     erubi (1.12.0)
@@ -111,7 +110,6 @@ GEM
     hashdiff (1.0.1)
     i18n (1.12.0)
       concurrent-ruby (~> 1.0)
-    io-wait (0.3.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (1.0.1.1.0-aarch64-linux)
@@ -128,11 +126,8 @@ GEM
     loofah (2.19.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
-    mail (2.8.0.1)
+    mail (2.7.1)
       mini_mime (>= 0.1.1)
-      net-imap
-      net-pop
-      net-smtp
     marcel (1.0.2)
     memory_profiler (0.9.14)
     method_source (1.0.0)
@@ -141,19 +136,6 @@ GEM
     minitest (5.15.0)
     msgpack (1.6.0)
     mysql2 (0.5.4)
-    net-imap (0.2.2)
-      digest
-      net-protocol
-      strscan
-    net-pop (0.1.2)
-      net-protocol
-    net-protocol (0.1.2)
-      io-wait
-      timeout
-    net-smtp (0.3.0)
-      digest
-      net-protocol
-      timeout
     nio4r (2.5.8)
     nokogiri (1.12.5)
       mini_portile2 (~> 2.6.1)
@@ -265,10 +247,8 @@ GEM
       actionpack (>= 5.2)
       activesupport (>= 5.2)
       sprockets (>= 3.0.0)
-    strscan (3.0.5)
     thor (1.2.1)
     thread_safe (0.3.6)
-    timeout (0.3.1)
     tzinfo (1.2.10)
       thread_safe (~> 0.1)
     unicode-display_width (2.4.2)
@@ -305,6 +285,7 @@ DEPENDENCIES
   i18n (= 1.8.7)
   json-schema (< 3)
   lograge (~> 0.11)
+  mail (~> 2.7.1)
   memory_profiler (~> 0.9)
   mysql2 (< 1)
   opentracing (>= 0.4.1)

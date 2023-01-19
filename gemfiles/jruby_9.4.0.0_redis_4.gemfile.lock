@@ -69,6 +69,7 @@ GEM
     rake (13.0.6)
     rake-compiler (1.2.1)
       rake
+    redis (4.8.0)
     regexp_parser (2.6.1)
     rexml (3.2.5)
     rspec (3.12.0)
@@ -152,6 +153,7 @@ DEPENDENCIES
   pry-debugger-jruby
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
+  redis (~> 4)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec_junit_formatter (>= 0.5.1)
@@ -168,4 +170,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.4.3
+   2.3.26
