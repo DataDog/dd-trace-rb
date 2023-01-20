@@ -63,9 +63,6 @@ jobs:
           - engine: jruby
             version: 9.4.0.0
             dockerfile: Dockerfile-jruby-9.4.0.0
-          - engine: truffleruby
-            version: 22.3.0
-            dockerfile: Dockerfile-truffleruby-22.3.0
     runs-on: ubuntu-latest
     name: Build (${{ matrix.engine }} ${{ matrix.version }})
     steps:
