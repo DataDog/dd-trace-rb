@@ -170,7 +170,6 @@ TRACER_VERSIONS = %w[
   jruby-9.2
   jruby-9.3
   jruby-9.4
-  #truffleruby-22.3.0
 ].freeze
 # ADD NEW RUBIES HERE
 
