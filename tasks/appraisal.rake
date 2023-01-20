@@ -166,11 +166,11 @@ TRACER_VERSIONS = %w[
   3.0
   3.1
   3.2
-  jruby-9.2.8.0
   jruby-9.2
   jruby-9.3
   jruby-9.4
 ].freeze
+# TODO: jruby-9.2.8.0 disabled for possible removal
 # ADD NEW RUBIES HERE
 
 FORCE_BUNDLER_VERSION = {
