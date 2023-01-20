@@ -6,7 +6,7 @@ if local_gem_path = ENV['DD_DEMO_ENV_GEM_LOCAL_DDTRACE']
   else
     puts "\n== Building profiler native extension =="
     success =
-      system("export BUNDLE_GEMFILE=#{local_gem_path}/Gemfile && cd #{local_gem_path} && bundle install && bundle exec rake compile")
+      system("export BUNDLE_GEMFILE=#{local_gem_path}/Gemfile && cd #{local_gem_path} && bundle install && bundle exec rake clean compile")
     raise 'Failure to compile profiler native extension' unless success
   end
 else

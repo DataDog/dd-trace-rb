@@ -475,4 +475,22 @@ RSpec.describe 'net/http requests' do
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME', error: StandardError
     end
   end
+
+  context 'when basic auth in url' do
+    before do
+      WebMock.enable!
+      stub_request(:get, /example.com/).to_return(status: 200)
+    end
+
+    after { WebMock.disable! }
+
+    it 'does not collect auth info' do
+      uri = URI('http://username:password@example.com/sample/path')
+
+      Net::HTTP.get_response(uri)
+
+      expect(span.get_tag('http.url')).to eq('/sample/path')
+      expect(span.get_tag('out.host')).to eq('example.com')
+    end
+  end
 end
