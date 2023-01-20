@@ -14,6 +14,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/http_examples'
 require 'spec/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
@@ -293,6 +294,13 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
         end
       end
+    end
+
+    context 'with custom error codes' do
+      let(:code) { status_code }
+      before { response }
+
+      include_examples 'with error status code configuration'
     end
 
     it_behaves_like 'instrumented request'
