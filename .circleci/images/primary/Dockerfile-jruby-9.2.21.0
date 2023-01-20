@@ -6,7 +6,9 @@
 # See:
 # - https://github.com/jruby/jruby/issues/7033
 # - https://github.com/DataDog/dd-trace-rb/pull/2380#issuecomment-1320994823
-#
+
+# Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
+
 # openjdk:8-jre image is from https://github.com/docker-library/openjdk/blob/a0c4da867ddd1a11408b7ec5032f12130bdc5476/8/jre/buster/Dockerfile
 # note: docker-library/openjdk is deprecated, there is a later move to https://hub.docker.com/_/eclipse-temurin
 FROM openjdk:8-jre-buster AS jruby-9.2.21.0-jre8
@@ -35,8 +37,7 @@ RUN gem install rake net-telnet xmlrpc
 # install things globally, for great justice
 # and don't create ".bundle" in all our apps
 ENV GEM_HOME /usr/local/bundle
-ENV BUNDLE_PATH="$GEM_HOME" \
-    BUNDLE_BIN="$GEM_HOME/bin" \
+ENV BUNDLE_BIN="$GEM_HOME/bin" \
     BUNDLE_SILENCE_ROOT_WARNING=1 \
     BUNDLE_APP_CONFIG="$GEM_HOME"
 ENV PATH $BUNDLE_BIN:$PATH

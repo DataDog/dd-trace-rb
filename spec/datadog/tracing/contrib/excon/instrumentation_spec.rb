@@ -365,4 +365,20 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       end
     end
   end
+
+  context 'when basic auth in url' do
+    before do
+      WebMock.enable!
+      stub_request(:get, /example.com/).to_return(status: 200)
+    end
+
+    after { WebMock.disable! }
+
+    it 'does not collect auth info' do
+      Excon.get('http://username:password@example.com/sample/path')
+
+      expect(span.get_tag('http.url')).to eq('/sample/path')
+      expect(span.get_tag('out.host')).to eq('example.com')
+    end
+  end
 end

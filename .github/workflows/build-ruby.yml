@@ -54,18 +54,16 @@ jobs:
           - engine: jruby
             version: 9.2.21.0
             dockerfile: Dockerfile-jruby-9.2.21.0
-          - engine: jruby
-            version: 9.2.8.0
-            dockerfile: Dockerfile-jruby-9.2.8.0
+          # TODO: Disabled for possible removal
+          # - engine: jruby
+          #   version: 9.2.8.0
+          #   dockerfile: Dockerfile-jruby-9.2.8.0
           - engine: jruby
             version: 9.3.9.0
             dockerfile: Dockerfile-jruby-9.3.9.0
           - engine: jruby
             version: 9.4.0.0
             dockerfile: Dockerfile-jruby-9.4.0.0
-          - engine: truffleruby
-            version: 22.3.0
-            dockerfile: Dockerfile-truffleruby-22.3.0
     runs-on: ubuntu-latest
     name: Build (${{ matrix.engine }} ${{ matrix.version }})
     steps:
