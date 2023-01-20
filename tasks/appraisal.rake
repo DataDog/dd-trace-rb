@@ -155,23 +155,22 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   end
 end
 
-TRACER_VERSIONS = %w[
-  2.1
-  2.2
-  2.3
-  2.4
-  2.5
-  2.6
-  2.7
-  3.0
-  3.1
-  3.2
-  jruby-9.2
-  jruby-9.3
-  jruby-9.4
+TRACER_VERSIONS = [
+  '2.1',
+  '2.2',
+  '2.3',
+  '2.4',
+  '2.5',
+  '2.6',
+  '2.7',
+  '3.0',
+  '3.1',
+  '3.2',
+  'jruby-9.2.8.0', # TODO: disabled for possible removal
+  'jruby-9.2',
+  'jruby-9.3',
+  'jruby-9.4',
 ].freeze
-# TODO: jruby-9.2.8.0 disabled for possible removal
-# ADD NEW RUBIES HERE
 
 FORCE_BUNDLER_VERSION = {
   # Some groups require bundler 1.x https://github.com/DataDog/dd-trace-rb/issues/2444
