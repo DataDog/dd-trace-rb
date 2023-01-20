@@ -1219,6 +1219,7 @@ end
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `httpclient` instrumentation. | `'httpclient'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+| `error_status_codes` | Range or Array of HTTP status codes that should be traced as errors. | `400...599` |
 
 ### httpx
 
