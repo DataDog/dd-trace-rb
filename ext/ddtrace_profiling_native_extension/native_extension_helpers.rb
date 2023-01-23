@@ -170,10 +170,10 @@ module Datadog
         PKG_CONFIG_IS_MISSING = explain_issue(
           #+-----------------------------------------------------------------------------+
           'the `pkg-config` system tool is missing.',
-          'This issue can usually be fixed by installing:',
-          '1. the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
-          '2. the `pkgconf` package on Arch and Alpine-based Linux;',
-          '3. the `pkgconf-pkg-config` package on Fedora/Red Hat-based Linux.',
+          'This issue can usually be fixed by installing one of the following:',
+          'the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
+          'the `pkgconf` package on Arch and Alpine-based Linux;',
+          'the `pkgconf-pkg-config` package on Fedora/Red Hat-based Linux.',
           suggested: CONTACT_SUPPORT,
         )
 
