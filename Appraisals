@@ -8,7 +8,9 @@ module DisableBundleCheck
   end
 end
 
-::Appraisal::Appraisal.prepend(DisableBundleCheck) unless ENV['APPRAISAL_SKIP_BUNDLE_CHECK'].nil?
+if ['true', 'y', 'yes', '1'].include?(ENV['APPRAISAL_SKIP_BUNDLE_CHECK'])
+  ::Appraisal::Appraisal.prepend(DisableBundleCheck)
+end
 
 def ruby_version?(version)
   full_version = "#{version}.0" # Turn 2.1 into 2.1.0 otherwise #bump below doesn't work as expected
@@ -23,6 +25,8 @@ REMOVED_GEMS = {
   :check => [
     'rbs',
     'steep',
+    'spoom',
+    'sorbet',
   ],
 }
 
@@ -35,6 +39,7 @@ def appraise(group, &block)
       REMOVED_GEMS.each do |group_name, gems|
         group(group_name) do
           gems.each do |gem_name|
+            # appraisal 2.2 doesn't have remove_gem, which applies to ruby 2.1 and 2.2
             remove_gem gem_name if respond_to?(:remove_gem)
           end
         end
