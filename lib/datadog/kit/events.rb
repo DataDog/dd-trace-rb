@@ -9,6 +9,8 @@ module Datadog
     module Events
       # Attach login success event information to the trace
       #
+      # This method is experimental and may change in the future.
+      #
       # @param trace [TraceOperation] Trace to attach data to.
       # @param user [Hash<Symbol, String>] User information to pass to
       #   Datadog::Kit::Identity.set_user. Must contain at least :id as key.
@@ -29,6 +31,8 @@ module Datadog
 
       # Attach login failure event information to the trace
       #
+      # This method is experimental and may change in the future.
+      #
       # @param trace [TraceOperation] Trace to attach data to.
       # @param user_id [String] User id that attempted login
       #   Datadog::Kit::Identity.set_user. Must contain at least :id as key.
@@ -47,6 +51,8 @@ module Datadog
       end
 
       # Attach custom event information to the trace
+      #
+      # This method is experimental and may change in the future.
       #
       # @param namespace [Symbol] Mandatory. Event namespace. Only :appsec is supported.
       # @param event [String] Mandatory. Event code.
