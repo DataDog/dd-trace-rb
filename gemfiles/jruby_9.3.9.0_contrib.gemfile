@@ -64,6 +64,7 @@ gem "rack-test"
 gem "redis", "~> 4"
 gem "rest-client"
 gem "resque"
+gem "roda", ">= 2.0.0"
 gem "ruby-kafka", ">= 0.7.10"
 gem "semantic_logger", "~> 4.0"
 gem "sequel", "~> 5.54.0"
@@ -71,8 +72,8 @@ gem "shoryuken"
 gem "sidekiq", "~> 6.5"
 gem "sneakers", ">= 2.12.0"
 gem "sqlite3", "~> 1.4.1", platform: :ruby
-gem "jdbc-sqlite3", ">= 3.28", platform: :jruby
 gem "stripe", "~> 8.0"
+gem "jdbc-sqlite3", ">= 3.28", platform: :jruby
 gem "sucker_punch"
 gem "typhoeus"
 gem "que", ">= 1.0.0", "< 2.0.0"
