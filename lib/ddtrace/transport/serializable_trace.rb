@@ -31,7 +31,7 @@ module Datadog
       # JSON serializer interface.
       # Used by older version of the transport.
       def to_json(*args)
-        trace.spans.map(&:to_hash).to_json(*args)
+        trace.spans.map { |s| SerializableSpan.new(s).to_hash }.to_json(*args)
       end
     end
 
@@ -102,13 +102,17 @@ module Datadog
       # JSON serializer interface.
       # Used by older version of the transport.
       def to_json(*args)
-        span.to_hash.to_json(*args)
+        to_hash.to_json(*args)
       end
 
       # Used for serialization
       # @return [Integer] in nanoseconds since Epoch
       def time_nano(time)
         time.to_i * 1000000000 + time.nsec
+      end
+
+      def to_hash
+        span.to_hash
       end
 
       # Used for serialization

@@ -111,12 +111,11 @@ RSpec.describe Datadog::Transport::SerializableTrace do
         end
       end
 
-      # DEV: confirm?
       context 'when given 128 bits trace id' do
         let(:trace_id) { 0xaaaaaaaaaaaaaaaaffffffffffffffff }
 
-        it 'serializes 128 bits trace id entirely' do
-          expect(unpacked_trace.map { |s| s['trace_id'] }).to all(eq(0xaaaaaaaaaaaaaaaaffffffffffffffff))
+        it 'serializes the low order 64 bits trace id' do
+          expect(unpacked_trace.map { |s| s['trace_id'] }).to all(eq(0xffffffffffffffff))
         end
       end
     end
