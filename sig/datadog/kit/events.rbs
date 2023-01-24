@@ -1,6 +1,9 @@
 module Datadog
   module Kit
     module Events
+      APPSEC_LOGIN_SUCCESS_EVENT: ::String
+      APPSEC_LOGIN_FAILURE_EVENT: ::String
+
       def self.track_login_success: (Datadog::Tracing::TraceOperation trace, user: Hash[::Symbol, ::String | nil], **::Hash[::Symbol, ::String | nil] others) -> void
 
       def self.track_login_failure: (Datadog::Tracing::TraceOperation trace, user_id: ::String, user_exists: bool, **::Hash[::Symbol, ::String | nil] others) -> void

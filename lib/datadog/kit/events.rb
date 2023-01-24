@@ -7,6 +7,9 @@ module Datadog
   module Kit
     # Tracking events
     module Events
+      APPSEC_LOGIN_SUCCESS_EVENT = 'users.login.success'
+      APPSEC_LOGIN_FAILURE_EVENT = 'users.login.failure'
+
       # Attach login success event information to the trace
       #
       # This method is experimental and may change in the future.
@@ -17,9 +20,7 @@ module Datadog
       # @param others [Hash<String || Symbol, String>] Additional free-form
       #   event information to attach to the trace.
       def self.track_login_success(trace, user:, **others)
-        event = 'users.login.success'
-
-        track(:appsec, event, trace, **others)
+        track(:appsec, APPSEC_LOGIN_SUCCESS_EVENT, trace, **others)
 
         user_options = user.dup
         user_id = user.delete(:id)
@@ -40,9 +41,7 @@ module Datadog
       # @param others [Hash<String || Symbol, String>] Additional free-form
       #   event information to attach to the trace.
       def self.track_login_failure(trace, user_id:, user_exists:, **others)
-        event = 'users.login.failure'
-
-        track(:appsec, event, trace, **others)
+        track(:appsec, APPSEC_LOGIN_FAILURE_EVENT, trace, **others)
 
         raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
 
