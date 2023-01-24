@@ -11,7 +11,6 @@ require_relative 'span_operation'
 require_relative 'trace_digest'
 require_relative 'trace_segment'
 require_relative 'utils'
-require_relative 'trace_id_generation'
 
 module Datadog
   module Tracing
@@ -26,7 +25,7 @@ module Datadog
     #
     # @public_api
     class TraceOperation
-      include TraceIdGeneration
+      include Metadata::Tagging
 
       DEFAULT_MAX_LENGTH = 100_000
 
@@ -72,7 +71,7 @@ module Datadog
         metrics: nil
       )
         # Attributes
-        @id = id || generate_trace_id
+        @id = id || Tracing::Utils::TraceId.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? ? true : sampled

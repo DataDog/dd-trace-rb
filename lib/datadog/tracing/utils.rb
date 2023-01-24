@@ -52,6 +52,12 @@ module Datadog
       module TraceId
         module_function
 
+        def next_id
+          return Utils.next_id unless Datadog.configuration.tracing.trace_id_128_bit_generation_enabled
+
+          concatenate(Utils.next_id, Utils.next_id)
+        end
+
         def to_high_order(trace_id)
           trace_id.to_i >> 64
         end

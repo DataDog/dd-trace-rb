@@ -64,7 +64,7 @@ module Datadog
 
         @id = Tracing::Utils.next_id
         @parent_id = parent_id || 0
-        @trace_id = trace_id || Tracing::Utils.next_id
+        @trace_id = trace_id || Tracing::Utils::TraceId.next_id
 
         @status = 0
 

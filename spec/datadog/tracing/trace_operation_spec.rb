@@ -100,12 +100,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         it do
           allow(Datadog::Tracing::Utils).to receive(:next_id).and_return(
-            0xffffffffffffffff, # low_order
-            0xaaaaaaaaaaaaaaaa, # high_order
+            0xffffffffffffffff, # high_order
+            0xaaaaaaaaaaaaaaaa, # low_order
             0xbbbbbbbbbbbbbbbb, # Prevent rspec mock to return previous values
           )
-          expect(trace_op.id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff)
-          # expect(trace_op.get_tag('_dd.p.tid')).to eq('aaaaaaaaaaaaaaaa')
+          expect(trace_op.id).to eq(0xffffffffffffffffaaaaaaaaaaaaaaaa)
         end
       end
 

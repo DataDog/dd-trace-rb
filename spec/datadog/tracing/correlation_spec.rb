@@ -285,9 +285,22 @@ RSpec.describe Datadog::Tracing::Correlation do
 
                 it do
                   is_expected.to have_attribute(
-                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=0xffffffffffffffffaaaaaaaaaaaaaaaa"
                   )
                 end
+              end
+            end
+          end
+
+          context 'when given > 64 bit trace id but high order is 0' do
+            it_behaves_like 'a log format string' do
+              let(:trace_id) { 0x00000000000000000aaaaaaaaaaaaaaaa }
+              let(:expected_trace_id) { trace_id }
+
+              it do
+                is_expected.to have_attribute(
+                  "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=#{expected_trace_id}"
+                )
               end
             end
           end
