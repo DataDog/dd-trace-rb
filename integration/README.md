@@ -31,9 +31,6 @@ See `README.md` in each directory for more information:
 - `apps/sinatra2-classic`: Sinatra classic application
 - `apps/sinatra2-modular`: Sinatra modular application
 
-From the application folder you can control the ruby version image using the RUBY_VERSION env variable in the application `.envrc` file.
-For example: Setting the `RUBY_VERSION` variable to 3.2 on your .envrc file would use the `datadog/dd-apm-demo:rb-3.2` image.
-
 ### Base images
 
 The `images/` folders hosts some images for Ruby applications.

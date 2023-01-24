@@ -43,6 +43,28 @@ Within the container, run `bin/run <process>` where `<process>` is one of the fo
 
  Alternatively, set `DD_DEMO_ENV_PROCESS` to run a particular process by default when `bin/run` is run.
 
+ #### Running a specific version of Ruby
+
+By default it runs Ruby 2.7. You must reconfigure the application env variable `RUBY_VERSION`to use a different Ruby base image.
+
+Setting the `RUBY_VERSION` variable to 3.2 on your .envrc file would use the `datadog/dd-apm-demo:rb-3.2` image.
+
+If you haven't yet built the base image for this version, then you must:
+
+1. Build an appropriate Ruby base image via `./integration/script/build-images -v 3.2`
+
+Then rebuild the application environment with:
+
+    ```
+    # Delete old containers & volumes first
+    docker-compose down -v
+
+    # Rebuild `app` image
+    docker-compose build --no-cache app
+    ```
+
+Finally start the application.
+
 ##### Features
 
 Set `DD_DEMO_ENV_FEATURES` to a comma-delimited list of any of the following values to activate the feature:
