@@ -1,6 +1,8 @@
 # ruby:2.1.10 was based on jessie, but never got a aarch64 image
 # aarch64 used to be supported upon release but is not part of LTS, so archive.debian.org does not contain aarch64: https://www.debian.org/releases/jessie/
 
+# Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
+
 # taken from https://github.com/docker-library/ruby/blob/c5693b25aa865489fee130e572a3f11bccebd21b/2.1/Dockerfile
 FROM buildpack-deps:stretch AS ruby-2.1.10-stretch
 

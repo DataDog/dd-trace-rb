@@ -84,7 +84,7 @@ RSpec.describe 'Faraday middleware' do
         # We mock HTTP requests we we can't configure
         # the test adapter for the default connection
         WebMock.enable!
-        stub_request(:get, 'http://example.com/success').to_return(status: 200)
+        stub_request(:get, /example.com/).to_return(status: 200)
       end
 
       after { WebMock.disable! }
@@ -112,6 +112,20 @@ RSpec.describe 'Faraday middleware' do
 
       it 'executes without warnings' do
         expect { response }.to_not output(/WARNING/).to_stderr
+      end
+
+      context 'with basic auth' do
+        subject(:response) { client.get('http://username:password@example.com/success') }
+
+        it 'does not collect auth info' do
+          expect(response.status).to eq(200)
+
+          expect(span.get_tag('http.url')).to eq('/success')
+        end
+
+        it 'executes without warnings' do
+          expect { response }.to_not output(/WARNING/).to_stderr
+        end
       end
     end
   end
