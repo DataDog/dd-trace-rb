@@ -8,7 +8,9 @@ module DisableBundleCheck
   end
 end
 
-::Appraisal::Appraisal.prepend(DisableBundleCheck) unless ENV['APPRAISAL_SKIP_BUNDLE_CHECK'].nil?
+if ['true', 'y', 'yes', '1'].include?(ENV['APPRAISAL_SKIP_BUNDLE_CHECK'])
+  ::Appraisal::Appraisal.prepend(DisableBundleCheck)
+end
 
 def ruby_version?(version)
   full_version = "#{version}.0" # Turn 2.1 into 2.1.0 otherwise #bump below doesn't work as expected
@@ -23,6 +25,8 @@ REMOVED_GEMS = {
   :check => [
     'rbs',
     'steep',
+    'spoom',
+    'sorbet',
   ],
 }
 
@@ -35,6 +39,7 @@ def appraise(group, &block)
       REMOVED_GEMS.each do |group_name, gems|
         group(group_name) do
           gems.each do |gem_name|
+            # appraisal 2.2 doesn't have remove_gem, which applies to ruby 2.1 and 2.2
             remove_gem gem_name if respond_to?(:remove_gem)
           end
         end
@@ -550,6 +555,7 @@ elsif ruby_version?('2.3')
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
+    gem 'stripe', '~> 5.15'
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0', '< 2.0.0'
@@ -683,6 +689,7 @@ elsif ruby_version?('2.4')
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
+    gem 'stripe', '~> 6.0'
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0', '< 2.0.0'
@@ -951,6 +958,7 @@ elsif ruby_version?('2.5')
     gem 'sneakers', '>= 2.12.0'
     gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
+    gem 'stripe', '~> 7.0'
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'
     gem 'typhoeus'
@@ -1199,6 +1207,7 @@ elsif ruby_version?('2.6')
       gem 'sidekiq', '~> 6.5'
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1', platform: :ruby
+      gem 'stripe', '~> 8.0'
       gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
       gem 'sucker_punch'
       gem 'typhoeus'
@@ -1426,6 +1435,7 @@ elsif ruby_version?('2.7')
       gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1'
+      gem 'stripe'
       gem 'sucker_punch'
       gem 'typhoeus'
       gem 'que', '>= 1.0.0'
@@ -1557,6 +1567,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '>= 1.4.2', platform: :ruby
+    gem 'stripe'
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'
     gem 'typhoeus'
@@ -1688,6 +1699,7 @@ elsif ruby_version?('3.2')
     gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '>= 1.4.2'
+    gem 'stripe'
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'

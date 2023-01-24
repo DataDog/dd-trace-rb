@@ -16,6 +16,10 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   end
 
   def force_gem_version(version)
+    # format first bin script arg to force a gem version
+    #
+    # see https://github.com/rubygems/rubygems/blob/7a144f3374f6a400cc9832f072dc1fc0bca8c724/lib/rubygems/installer.rb#L764-L771
+
     return if version.nil?
 
     "_#{version}_"
@@ -64,12 +68,10 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   task :generate do |_task, args|
     ruby_versions(args.to_a).each do |ruby_version|
       cmd = []
-      cmd << ['rm', '-vf', 'Gemfile.lock']
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       cmd << [*bundle(ruby_version), 'install']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'generate']
-      cmd << ['rm', '-vf', 'Gemfile.lock']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
 
@@ -85,13 +87,11 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
 
     ruby_versions(args.to_a).each do |ruby_version|
       cmd = []
-      cmd << ['rm', '-vf', 'Gemfile.lock']
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       cmd << [*bundle(ruby_version), 'install']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'generate']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'install']
-      cmd << ['rm', '-vf', 'Gemfile.lock']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
 
@@ -107,13 +107,11 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   task :update do |_task, args|
     ruby_versions(args.to_a).each do |ruby_version|
       cmd = []
-      cmd << ['rm', '-vf', 'Gemfile.lock']
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       cmd << [*bundle(ruby_version), 'install']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'generate']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'update']
-      cmd << ['rm', '-vf', 'Gemfile.lock']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
 
@@ -129,7 +127,6 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
       next if ruby_version.start_with?('jruby-')
 
       cmd = []
-      cmd << ['rm', '-vf', 'Gemfile.lock']
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       p lockfile_prefix(ruby_version)
@@ -144,7 +141,6 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
                 '--lockfile', lockfile,
                 '--add-platform', 'aarch64-linux']
       end
-      cmd << ['rm', '-vf', 'Gemfile.lock']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
 
@@ -155,24 +151,22 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   end
 end
 
-TRACER_VERSIONS = %w[
-  2.1
-  2.2
-  2.3
-  2.4
-  2.5
-  2.6
-  2.7
-  3.0
-  3.1
-  3.2
-  jruby-9.2.8.0
-  jruby-9.2
-  jruby-9.3
-  jruby-9.4
-  #truffleruby-22.3.0
+TRACER_VERSIONS = [
+  '2.1',
+  '2.2',
+  '2.3',
+  '2.4',
+  '2.5',
+  '2.6',
+  '2.7',
+  '3.0',
+  '3.1',
+  '3.2',
+  # 'jruby-9.2.8.0', # TODO: disabled for possible removal
+  'jruby-9.2',
+  'jruby-9.3',
+  'jruby-9.4',
 ].freeze
-# ADD NEW RUBIES HERE
 
 FORCE_BUNDLER_VERSION = {
   # Some groups require bundler 1.x https://github.com/DataDog/dd-trace-rb/issues/2444
@@ -185,3 +179,15 @@ FORCE_BUNDLER_VERSION = {
   '3.1' => '2.3.26',
   '3.2' => '2.3.26',
 }.freeze
+
+# TODO: remove with 2.0
+task :install_appraisal_gemfiles do
+  warn 'This task has been removed, please use rake appraisal:install instead'
+  exit 1
+end
+
+# TODO: remove with 2.0
+task :update_appraisal_gemfiles do
+  warn 'This task has been removed, please use rake appraisal:update instead'
+  exit 1
+end

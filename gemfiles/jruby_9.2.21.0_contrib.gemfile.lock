@@ -1749,6 +1749,7 @@ GEM
     sorted_set (1.0.3-java)
     spoon (0.0.6)
       ffi
+    stripe (7.1.0)
     sucker_punch (3.1.0)
       concurrent-ruby (~> 1.0)
     sys-uname (1.2.2)
@@ -1845,6 +1846,7 @@ DEPENDENCIES
   simplecov-cobertura (~> 2.1.0)
   sneakers (>= 2.12.0)
   sqlite3 (~> 1.4.1)
+  stripe (~> 7.0)
   sucker_punch
   typhoeus
   warning (~> 1)

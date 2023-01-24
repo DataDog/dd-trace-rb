@@ -1749,6 +1749,7 @@ GEM
       set (~> 1.0)
     sqlite3 (1.6.0-aarch64-linux)
     sqlite3 (1.6.0-x86_64-linux)
+    stripe (8.1.0)
     sucker_punch (3.1.0)
       concurrent-ruby (~> 1.0)
     sys-uname (1.2.2)
@@ -1852,6 +1853,7 @@ DEPENDENCIES
   simplecov-cobertura (~> 2.1.0)
   sneakers (>= 2.12.0)
   sqlite3 (>= 1.4.2)
+  stripe
   sucker_punch
   typhoeus
   warning (~> 1)
