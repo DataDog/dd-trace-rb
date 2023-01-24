@@ -136,7 +136,6 @@ RSpec.shared_examples 'B3 Single distributed format' do
 
         it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
         it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-        xit { expect(digest.trace_distributed_tags).to include('_dd.p.tid' => 'aaaaaaaaaaaaaaaa') }
       end
     end
   end

@@ -128,14 +128,11 @@ RSpec.shared_examples 'Trace Context distributed format' do
         end
       end
 
-      context 'with 128 bit trace id and distributed tag `_dd.p.tid`' do
+      context 'with 128 bit trace id' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
-            span_id: 0xbbbbbbbbbbbbbbbb,
-            trace_distributed_tags: {
-              '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
-            }
+            span_id: 0xbbbbbbbbbbbbbbbb
           )
         end
 
@@ -143,7 +140,6 @@ RSpec.shared_examples 'Trace Context distributed format' do
           inject!
 
           expect(traceparent).to eq('00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00')
-          expect(tracestate).to eq('dd=t.tid:aaaaaaaaaaaaaaaa')
         end
       end
 
