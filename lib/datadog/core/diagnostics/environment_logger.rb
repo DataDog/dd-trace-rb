@@ -221,9 +221,9 @@ module Datadog
           !!Datadog.configuration.diagnostics.health_metrics.enabled
         end
 
-        # TODO: Populate when profiling is implemented
-        # def profiling_enabled
-        # end
+        def profiling_enabled
+          !!Datadog.configuration.profiling.enabled
+        end
 
         # TODO: Populate when automatic log correlation is implemented
         # def logs_correlation_enabled
@@ -254,6 +254,7 @@ module Datadog
             partial_flushing_enabled: partial_flushing_enabled,
             priority_sampling_enabled: priority_sampling_enabled,
             health_metrics_enabled: health_metrics_enabled,
+            profiling_enabled: profiling_enabled,
             **instrumented_integrations_settings
           }
         end

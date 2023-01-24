@@ -72,6 +72,8 @@ module ::Sinatra::Base; end
 module ::Sinatra::Request; end
 module ::Sinatra::Response; end
 module ::Sneakers; end
+module ::Stripe; end
+module ::Stripe::Instrumentation; end
 module ::SuckerPunch; end
 module ::SuckerPunch::Job::ClassMethods; end
 module ActionController::Metal; end

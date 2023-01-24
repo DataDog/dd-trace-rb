@@ -171,6 +171,21 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
 
     it_behaves_like 'instrumented request'
 
+    context 'when basic auth in url' do
+      let(:host) { 'username:password@example.com' }
+
+      before do
+        stub_request(:get, /example.com/).to_return(status: status, body: response)
+      end
+
+      it 'does not collect auth info' do
+        request
+
+        expect(span.get_tag('http.url')).to eq('/sample/path')
+        expect(span.get_tag('out.host')).to eq('example.com')
+      end
+    end
+
     context 'that returns a custom response object' do
       subject(:request) do
         RestClient::Request.execute(method: :get, url: url) { response }

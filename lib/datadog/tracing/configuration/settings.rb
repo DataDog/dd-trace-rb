@@ -438,15 +438,6 @@ module Datadog
                 o.lazy
               end
             end
-
-            agent_settings = options[:agent].type
-            agent_settings.class_eval do
-              # Agent APM TCP port.
-              # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
-              # @default `DD_TRACE_AGENT_PORT` environment variable, otherwise `8126`
-              # @return [String,nil]
-              option :port
-            end
           end
         end
       end

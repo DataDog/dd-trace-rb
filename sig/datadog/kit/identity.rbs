@@ -1,0 +1,7 @@
+module Datadog
+  module Kit
+    module Identity
+      def self.set_user: (Datadog::Tracing::TraceOperation trace, id: ::String, ?email: ::String?, ?name: ::String?, ?session_id: ::String?, ?role: ::String?, ?scope: ::String?, **::Hash[::Symbol, ::String | nil] others) -> void
+    end
+  end
+end

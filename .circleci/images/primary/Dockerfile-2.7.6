@@ -1,3 +1,5 @@
+# Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
+
 FROM ruby:2.7.6
 
 # Make apt non-interactive
@@ -29,7 +31,7 @@ ENV LANGUAGE en_US:en
 RUN set -ex \
   && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/$(arch)/ | grep -o -e 'docker-[.0-9]*-ce\.tgz' | sort -r | head -n 1) \
   && DOCKER_URL="https://download.docker.com/linux/static/stable/$(arch)/${DOCKER_VERSION}" \
-  && echo Docker URL: $DOCKER_URL \
+  && echo DOCKER_URL: $DOCKER_URL \
   && curl --silent --show-error --location --fail --retry 3 --output /tmp/docker.tgz "${DOCKER_URL}" \
   && ls -lha /tmp/docker.tgz \
   && tar -xz -C /tmp -f /tmp/docker.tgz \
@@ -40,19 +42,24 @@ RUN set -ex \
 
 # Install Docker Compose
 RUN COMPOSE_URL="https://github.com/linuxserver/docker-docker-compose/releases/download/1.29.2-ls51/docker-compose-$(dpkg --print-architecture)" \
+  && echo COMPOSE_URL: $COMPOSE_URL \
   && curl --silent --show-error --location --fail --retry 3 --output /usr/bin/docker-compose $COMPOSE_URL \
   && chmod +x /usr/bin/docker-compose \
   && docker-compose version
 
 # Install Dockerize
-RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
+RUN DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17.0/dockerize-$(uname -s | tr '[:upper:]' '[:lower:]')-$(arch | sed 's/aarch64/arm64/')" \
+  && echo DOCKERIZE_URL: $DOCKERIZE_URL \
+  && curl --silent --show-error --location --fail --retry 3 --output /usr/local/bin/dockerize $DOCKERIZE_URL \
+  && chmod +x /usr/local/bin/dockerize \
+  && dockerize --version
 
 # Install RubyGems
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
 # Upgrade RubyGems and Bundler # Upgrading disabled until https://github.com/thoughtbot/appraisal/issues/162 is fixed
-RUN gem update --system
-RUN gem install bundler
+RUN gem update --system 3.3.26
+RUN gem install bundler -v '~> 2.3.26'
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 RUN mkdir /app
