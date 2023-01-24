@@ -325,17 +325,17 @@ RSpec.shared_examples 'Trace Context distributed format' do
       it { is_expected.to be nil }
     end
 
-    context 'with traceparent and distributed_tag in tracestate' do
+    context 'with traceparent and distributed_tag `t.tid` in tracestate' do
       let(:data) do
         {
           prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
-          prepare_key['tracestate'] => 'dd=t.tid:aaaaaaaaaaaaaaaa'
+          prepare_key['tracestate'] => 'dd=t.tid:cccccccccccccccc'
         }
       end
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      xit { expect(digest.trace_distributed_tags).to include('_dd.p.tid' => 'aaaaaaaaaaaaaaaa') }
+      it { expect(digest.trace_distributed_tags).to be_nil }
     end
 
     context 'with traceparent without tracestate' do
@@ -347,7 +347,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      xit { expect(digest.trace_distributed_tags).to include('_dd.p.tid' => 'aaaaaaaaaaaaaaaa') }
+      it { expect(digest.trace_distributed_tags).to be_nil }
     end
 
     context 'with traceparent and with empty tracestate' do
@@ -360,7 +360,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      xit { expect(digest.trace_distributed_tags).to include('_dd.p.tid' => 'aaaaaaaaaaaaaaaa') }
+      it { expect(digest.trace_distributed_tags).to be_nil }
     end
 
     context 'with valid trace_id and parent_id' do

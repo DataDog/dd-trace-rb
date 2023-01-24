@@ -47,13 +47,6 @@ module Datadog
 
           sampling_priority = parse_priority_sampling(sampled, sampling_priority)
 
-          # high_order = Tracing::Utils::TraceId.to_high_order(trace_id)
-
-          # if high_order != 0
-          #   tags ||= {}
-          #   tags[Tracing::Metadata::Ext::Distributed::TAG_TID] = high_order.to_s(16)
-          # end
-
           TraceDigest.new(
             span_id: parent_id,
             trace_id: trace_id,
@@ -298,6 +291,8 @@ module Datadog
               origin = value
             when /^t\./
               key.slice!(0..1) # Delete `t.` prefix
+
+              next if key == Tracing::Metadata::Ext::Distributed::TID
 
               value = deserialize_tag_value(value)
 

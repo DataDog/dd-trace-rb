@@ -49,14 +49,15 @@ module Datadog
           # @see Datadog::Tracing::Sampling::Ext::Mechanism
           TAG_DECISION_MAKER = '_dd.p.dm'
 
-          TAG_TID = '_dd.p.tid'
-
           TAG_ORIGIN = '_dd.origin'
           TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'
 
           # Trace tags with this prefix will propagate from a trace through distributed tracing.
           # Distributed headers tags with this prefix will be injected into the active trace.
           TAGS_PREFIX = '_dd.p.'
+
+          TID = 'tid'
+          TAG_TID = TAGS_PREFIX + TID
         end
 
         # @public_api

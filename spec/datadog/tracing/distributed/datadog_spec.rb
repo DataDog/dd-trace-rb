@@ -192,14 +192,11 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
       end
 
-      context 'when given a trace digest with 128 bit trace id and distributed tags `_dd.p.tid`' do
+      context 'when given a trace digest with 128 bit trace id' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
-            span_id: 0xbbbbbbbbbbbbbbbb,
-            # trace_distributed_tags: {
-            #   '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
-            # }
+            span_id: 0xbbbbbbbbbbbbbbbb
           )
         end
 
@@ -442,7 +439,7 @@ RSpec.shared_examples 'Datadog distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to include('_dd.p.tid' => 'aaaaaaaaaaaaaaaa') }
+      it { expect(digest.trace_distributed_tags).not_to include('_dd.p.tid') }
     end
   end
 end

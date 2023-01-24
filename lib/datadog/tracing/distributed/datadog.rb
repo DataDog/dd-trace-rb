@@ -67,10 +67,12 @@ module Datadog
 
           trace_distributed_tags = extract_tags(fetcher)
 
-          trace_id = Tracing::Utils::TraceId.concatenate(
-            ((trace_distributed_tags || {})[Tracing::Metadata::Ext::Distributed::TAG_TID] || '').to_i(16),
-            trace_id
-          )
+          if trace_distributed_tags && trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID]
+            trace_id = Tracing::Utils::TraceId.concatenate(
+              trace_distributed_tags.delete(Tracing::Metadata::Ext::Distributed::TAG_TID).to_i(16),
+              trace_id
+            )
+          end
 
           TraceDigest.new(
             span_id: parent_id,
@@ -92,11 +94,13 @@ module Datadog
           high_order = Tracing::Utils::TraceId.to_high_order(digest.trace_id)
 
           trace_distributed_tags = digest.trace_distributed_tags || {}
-          trace_distributed_tags = trace_distributed_tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => high_order.to_s(16)) if high_order != 0
+          if high_order != 0
+            trace_distributed_tags =
+              trace_distributed_tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => high_order.to_s(16))
+          end
 
           return if trace_distributed_tags.empty?
 
-          # return if digest.trace_distributed_tags.nil? || digest.trace_distributed_tags.empty?
           return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
 
           tags = DatadogTagsCodec.encode(trace_distributed_tags)
