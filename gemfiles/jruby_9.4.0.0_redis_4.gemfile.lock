@@ -40,7 +40,7 @@ GEM
     debase-ruby_core_source (3.2.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
-    dogstatsd-ruby (4.8.3)
+    dogstatsd-ruby (5.5.0)
     ffi (1.15.5-java)
     hashdiff (1.0.1)
     json (2.6.3-java)
@@ -69,6 +69,7 @@ GEM
     rake (13.0.6)
     rake-compiler (1.2.1)
       rake
+    redis (4.8.0)
     regexp_parser (2.6.1)
     rexml (3.2.5)
     rspec (3.12.0)
@@ -142,7 +143,7 @@ DEPENDENCIES
   climate_control (~> 0.2.0)
   concurrent-ruby
   ddtrace!
-  dogstatsd-ruby (~> 4)
+  dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   opentracing (>= 0.4.1)
@@ -152,6 +153,7 @@ DEPENDENCIES
   pry-debugger-jruby
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
+  redis (~> 4)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec_junit_formatter (>= 0.5.1)
