@@ -257,7 +257,7 @@ module Datadog
             suggested: GET_IN_TOUCH,
           )
 
-          architecture_not_supported unless RUBY_PLATFORM.start_with?('x86_64', 'aarch64')
+          architecture_not_supported unless RUBY_PLATFORM.start_with?('x86_64', 'aarch64', 'arm64')
         end
 
         private_class_method def self.on_ruby_2_1?
