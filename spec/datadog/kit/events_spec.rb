@@ -19,7 +19,7 @@ RSpec.describe Datadog::Kit::Events do
       expect(trace.send(:meta)).to include('appsec.events.users.login.success.track' => 'true')
     end
 
-    it 'sets user id on trace' do
+    it 'sets successful user id on trace' do
       trace_op.measure('root') do
         described_class.track_login_success(trace_op, user: { id: '42' })
       end
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Kit::Events do
       expect(trace.send(:meta)).to include('appsec.events.users.login.failure.track' => 'true')
     end
 
-    it 'sets user id on trace' do
+    it 'sets failing user id on trace' do
       trace_op.measure('root') do
         described_class.track_login_failure(trace_op, user_id: '42', user_exists: true)
       end
@@ -81,7 +81,7 @@ RSpec.describe Datadog::Kit::Events do
   describe '#track' do
     it 'rejects unexpected namespaces' do
       trace_op.measure('root') do
-        expect { described_class.track(:foo, 'bar', trace_op) }.to raise_error ArgumentError
+        expect { described_class.track(:foo, 'bar', trace_op) }.to raise_error ArgumentError, /namespace cannot be/
       end
 
       trace = trace_op.flush!

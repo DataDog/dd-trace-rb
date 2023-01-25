@@ -36,14 +36,13 @@ module Datadog
       #
       # @param trace [TraceOperation] Trace to attach data to.
       # @param user_id [String] User id that attempted login
-      #   Datadog::Kit::Identity.set_user. Must contain at least :id as key.
       # @param user_exists [bool] Whether the user id that did a login attempt exists.
       # @param others [Hash<String || Symbol, String>] Additional free-form
       #   event information to attach to the trace.
       def self.track_login_failure(trace, user_id:, user_exists:, **others)
         track(:appsec, APPSEC_LOGIN_FAILURE_EVENT, trace, **others)
 
-        raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
+        raise ArgumentError, 'user_id cannot be nil' if user_id.nil?
 
         trace.set_tag('appsec.events.users.login.failure.usr.id', user_id)
         trace.set_tag('appsec.events.users.login.failure.usr.exists', user_exists)
@@ -60,7 +59,9 @@ module Datadog
       #   event information to attach to the trace. Key must not
       #   be :track.
       def self.track(namespace, event, trace, **others)
-        raise ArgumentError, "namespace cannot be #{namespace.inspect}" if namespace.to_sym != :appsec
+        if namespace.to_sym != :appsec
+          raise ArgumentError, "namespace cannot be #{namespace.inspect}, only :appsec is allowed"
+        end
 
         trace.set_tag("#{namespace}.events.#{event}.track", 'true')
 
