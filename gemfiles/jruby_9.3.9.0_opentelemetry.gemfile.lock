@@ -147,7 +147,7 @@ PLATFORMS
 
 DEPENDENCIES
   addressable (~> 2.4.0)
-  appraisal (~> 2.2)
+  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   builder
@@ -157,7 +157,7 @@ DEPENDENCIES
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
-  opentelemetry-sdk (~> 1)
+  opentelemetry-sdk (~> 1.1)
   opentracing (>= 0.4.1)
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
@@ -180,4 +180,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.4.3
+   2.3.26
