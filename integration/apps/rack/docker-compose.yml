@@ -4,7 +4,7 @@ services:
     build:
       context: .
       args:
-        BASE_IMAGE: datadog/dd-apm-demo:rb-2.7
+        BASE_IMAGE: "datadog/dd-apm-demo:rb-${RUBY_VERSION}"
     depends_on:
       - ddagent
       - redis

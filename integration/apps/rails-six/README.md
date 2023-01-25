@@ -38,23 +38,13 @@ The `<process>` argument is optional, and will default to `DD_DEMO_ENV_PROCESS` 
 
 #### Running a specific version of Ruby
 
-By default it runs Ruby 2.7. You must reconfigure the application to use a different Ruby base image.
+By default it runs Ruby 2.7. You must reconfigure the application env variable `RUBY_VERSION`to use a different Ruby base image.
 
-First, update the `docker-compose.yml` to have the target Ruby version:
-
-```
-services:
-  app:
-    build:
-      context: .
-      args:
-        BASE_IMAGE: datadog/dd-apm-demo:rb-<YOUR RUBY VERSION> # e.g. dd-apm-demo:rb-3.1
-```
+Setting the `RUBY_VERSION` variable to 3.2 on your .envrc file would use the `datadog/dd-apm-demo:rb-3.2` image.
 
 If you haven't yet built the base image for this version, then you must:
 
-1. Build an appropriate Ruby base image via `./integration/script/build-images`
-2. Build a Ruby + Rails 6 base image via `./integration/apps/rails-six/script/build-images`
+1. Build an appropriate Ruby base image via `./integration/script/build-images -v 3.2`
 
 Then rebuild the application environment with:
 
