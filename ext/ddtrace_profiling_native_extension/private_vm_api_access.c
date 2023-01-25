@@ -390,6 +390,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   for iseqs created from calls to `eval` and `instance_eval`. This makes it so that `rb_profile_frame_path` on
 //   the `VALUE` returned by rb_profile_frames returns `(eval)` instead of the path of the file where the `eval`
 //   was called from.
+// * Imported fix from https://github.com/ruby/ruby/pull/7116 to avoid sampling threads that are still being created
 //
 // **IMPORTANT: WHEN CHANGING THIS FUNCTION, CONSIDER IF THE SAME CHANGE ALSO NEEDS TO BE MADE TO THE VARIANT FOR
 // RUBY 2.2 AND BELOW WHICH IS ALSO PRESENT ON THIS FILE**
@@ -435,6 +436,10 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
 #endif
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     const rb_callable_method_entry_t *cme;
+
+    // This should not happen for ddtrace (it can only happen when a thread is still being created), but I've imported
+    // it from https://github.com/ruby/ruby/pull/7116 in a "just in case" kind of mindset.
+    if (cfp == NULL) return 0;
 
     // Avoid sampling dead threads
     if (th->status == THREAD_KILLED) return 0;
@@ -747,6 +752,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
 //   absent from `rb_profile_frames`. Oversight?
 // * Check thread status and do not sample if thread has been killed.
+// * Imported fix from https://github.com/ruby/ruby/pull/7116 to avoid sampling threads that are still being created
 //
 // The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
 // I opted not to try to extend support to Ruby 2.2 using the same custom function, and instead I started
@@ -759,6 +765,10 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     int i;
     rb_thread_t *th = thread_struct_from_object(thread);
     rb_control_frame_t *cfp = th->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(th);
+
+    // This should not happen for ddtrace (it can only happen when a thread is still being created), but I've imported
+    // it from https://github.com/ruby/ruby/pull/7116 in a "just in case" kind of mindset.
+    if (cfp == NULL) return 0;
 
     // Avoid sampling dead threads
     if (th->status == THREAD_KILLED) return 0;
