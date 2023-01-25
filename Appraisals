@@ -8,7 +8,9 @@ module DisableBundleCheck
   end
 end
 
-::Appraisal::Appraisal.prepend(DisableBundleCheck) unless ENV['APPRAISAL_SKIP_BUNDLE_CHECK'].nil?
+if ['true', 'y', 'yes', '1'].include?(ENV['APPRAISAL_SKIP_BUNDLE_CHECK'])
+  ::Appraisal::Appraisal.prepend(DisableBundleCheck)
+end
 
 def ruby_version?(version)
   full_version = "#{version}.0" # Turn 2.1 into 2.1.0 otherwise #bump below doesn't work as expected
@@ -23,6 +25,8 @@ REMOVED_GEMS = {
   :check => [
     'rbs',
     'steep',
+    'spoom',
+    'sorbet',
   ],
 }
 
@@ -35,6 +39,7 @@ def appraise(group, &block)
       REMOVED_GEMS.each do |group_name, gems|
         group(group_name) do
           gems.each do |gem_name|
+            # appraisal 2.2 doesn't have remove_gem, which applies to ruby 2.1 and 2.2
             remove_gem gem_name if respond_to?(:remove_gem)
           end
         end
@@ -157,6 +162,7 @@ if ruby_version?('2.1')
     gem 'rake', '< 12.3'
     gem 'rest-client'
     gem 'resque', '< 2.0'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -344,6 +350,7 @@ elsif ruby_version?('2.2')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque', '< 2.0'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -542,6 +549,7 @@ elsif ruby_version?('2.3')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -676,6 +684,7 @@ elsif ruby_version?('2.4')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -944,6 +953,7 @@ elsif ruby_version?('2.5')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -1194,6 +1204,7 @@ elsif ruby_version?('2.6')
       gem 'redis', '~> 4' # TODO: Support redis 5.x
       gem 'rest-client'
       gem 'resque'
+      gem 'roda', '>= 2.0.0'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
       gem 'semantic_logger', '~> 4.0'
@@ -1422,6 +1433,7 @@ elsif ruby_version?('2.7')
       gem 'rake', '>= 12.3'
       gem 'rest-client'
       gem 'resque'
+      gem 'roda', '>= 2.0.0'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
       gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
@@ -1554,6 +1566,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -1686,6 +1699,7 @@ elsif ruby_version?('3.2')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'

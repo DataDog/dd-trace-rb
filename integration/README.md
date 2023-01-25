@@ -10,6 +10,8 @@ Integration tests for `ddtrace` that use a variety of real applications.
     ./script/build-images
     ```
 
+You can specify which ruby version to build using the `-v` option.
+
 2. Choose an application and follow instructions (in corresponding `README.md`.)
 
 ## Demo applications
