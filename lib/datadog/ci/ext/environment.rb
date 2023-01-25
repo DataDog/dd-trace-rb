@@ -5,6 +5,7 @@
 require_relative '../../core/git/ext'
 
 require 'open3'
+require 'json'
 
 module Datadog
   module CI
@@ -22,11 +23,13 @@ module Datadog
         TAG_PROVIDER_NAME = 'ci.provider.name'
         TAG_STAGE_NAME = 'ci.stage.name'
         TAG_WORKSPACE_PATH = 'ci.workspace_path'
+        TAG_CI_ENV_VARS = '_dd.ci.env_vars'
 
         PROVIDERS = [
           ['APPVEYOR', :extract_appveyor],
           ['TF_BUILD', :extract_azure_pipelines],
           ['BITBUCKET_COMMIT', :extract_bitbucket],
+          ['BUDDY', :extract_buddy],
           ['BUILDKITE', :extract_buildkite],
           ['CIRCLECI', :extract_circle_ci],
           ['GITHUB_SHA', :extract_github_actions],
@@ -43,7 +46,6 @@ module Datadog
           # Extract metadata from CI provider environment variables
           _, extractor = PROVIDERS.find { |provider_env_var, _| env.key?(provider_env_var) }
           tags = extractor ? public_send(extractor, env).reject { |_, v| v.nil? || v.strip.empty? } : {}
-          tags.delete(Core::Git::Ext::TAG_BRANCH) unless tags[Core::Git::Ext::TAG_TAG].nil?
 
           # If user defined metadata is defined, overwrite
           tags.merge!(extract_user_defined_git(env))
@@ -156,7 +158,12 @@ module Datadog
             Core::Git::Ext::TAG_TAG => tag,
             Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE'],
+            TAG_CI_ENV_VARS => {
+              'SYSTEM_TEAMPROJECTID' => env['SYSTEM_TEAMPROJECTID'],
+              'BUILD_BUILDID' => env['BUILD_BUILDID'],
+              'SYSTEM_JOBID' => env['SYSTEM_JOBID']
+            }.to_json
           }
         end
 
@@ -181,6 +188,24 @@ module Datadog
           }
         end
 
+        def extract_buddy(env)
+          {
+            TAG_PROVIDER_NAME => 'buddy',
+            TAG_PIPELINE_ID => "#{env['BUDDY_PIPELINE_ID']}/#{env['BUDDY_EXECUTION_ID']}",
+            TAG_PIPELINE_NAME => env['BUDDY_PIPELINE_NAME'],
+            TAG_PIPELINE_NUMBER => env['BUDDY_EXECUTION_ID'],
+            TAG_PIPELINE_URL => env['BUDDY_EXECUTION_URL'],
+            TAG_WORKSPACE_PATH => env['CI_WORKSPACE_PATH'],
+            Core::Git::Ext::TAG_REPOSITORY_URL => env['BUDDY_SCM_URL'],
+            Core::Git::Ext::TAG_COMMIT_SHA => env['BUDDY_EXECUTION_REVISION'],
+            Core::Git::Ext::TAG_BRANCH => env['BUDDY_EXECUTION_BRANCH'],
+            Core::Git::Ext::TAG_TAG => env['BUDDY_EXECUTION_TAG'],
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUDDY_EXECUTION_REVISION_MESSAGE'],
+            Core::Git::Ext::TAG_COMMIT_COMMITTER_NAME => env['BUDDY_EXECUTION_REVISION_COMMITTER_NAME'],
+            Core::Git::Ext::TAG_COMMIT_COMMITTER_EMAIL => env['BUDDY_EXECUTION_REVISION_COMMITTER_EMAIL'],
+          }
+        end
+
         def extract_buildkite(env)
           {
             Core::Git::Ext::TAG_BRANCH => env['BUILDKITE_BRANCH'],
@@ -196,7 +221,11 @@ module Datadog
             TAG_WORKSPACE_PATH => env['BUILDKITE_BUILD_CHECKOUT_PATH'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILDKITE_BUILD_AUTHOR'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILDKITE_BUILD_AUTHOR_EMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILDKITE_MESSAGE']
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILDKITE_MESSAGE'],
+            TAG_CI_ENV_VARS => {
+              'BUILDKITE_BUILD_ID' => env['BUILDKITE_BUILD_ID'],
+              'BUILDKITE_JOB_ID' => env['BUILDKITE_JOB_ID']
+            }.to_json
           }
         end
 
@@ -215,7 +244,11 @@ module Datadog
             TAG_WORKSPACE_PATH => env['CIRCLE_WORKING_DIRECTORY'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE'],
+            TAG_CI_ENV_VARS => {
+              'CIRCLE_WORKFLOW_ID' => env['CIRCLE_WORKFLOW_ID'],
+              'CIRCLE_BUILD_NUM' => env['CIRCLE_BUILD_NUM']
+            }.to_json
           }
         end
 
@@ -233,6 +266,7 @@ module Datadog
             Core::Git::Ext::TAG_REPOSITORY_URL => "#{env['GITHUB_SERVER_URL']}/#{env['GITHUB_REPOSITORY']}.git",
             Core::Git::Ext::TAG_TAG => tag,
             TAG_JOB_URL => "#{env['GITHUB_SERVER_URL']}/#{env['GITHUB_REPOSITORY']}/commit/#{env['GITHUB_SHA']}/checks",
+            TAG_JOB_NAME => env['GITHUB_JOB'],
             TAG_PIPELINE_ID => env['GITHUB_RUN_ID'],
             TAG_PIPELINE_NAME => env['GITHUB_WORKFLOW'],
             TAG_PIPELINE_NUMBER => env['GITHUB_RUN_NUMBER'],
@@ -241,7 +275,13 @@ module Datadog
             TAG_WORKSPACE_PATH => env['GITHUB_WORKSPACE'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE'],
+            TAG_CI_ENV_VARS => {
+              'GITHUB_SERVER_URL' => env['GITHUB_SERVER_URL'],
+              'GITHUB_REPOSITORY' => env['GITHUB_REPOSITORY'],
+              'GITHUB_RUN_ID' => env['GITHUB_RUN_ID'],
+              'GITHUB_RUN_ATTEMPT' => env['GITHUB_RUN_ATTEMPT'],
+            }.reject { |k,v| v.nil? }.to_json
           }
         end
 
@@ -266,7 +306,12 @@ module Datadog
             TAG_PIPELINE_URL => (url.gsub(%r{/-/pipelines/}, '/pipelines/') if url),
             TAG_PROVIDER_NAME => 'gitlab',
             TAG_WORKSPACE_PATH => env['CI_PROJECT_DIR'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['CI_COMMIT_MESSAGE']
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['CI_COMMIT_MESSAGE'],
+            TAG_CI_ENV_VARS => {
+              'CI_PROJECT_URL' => env['CI_PROJECT_URL'],
+              'CI_PIPELINE_ID' => env['CI_PIPELINE_ID'],
+              'CI_JOB_ID' => env['CI_JOB_ID']
+            }.to_json
           }
         end
 
@@ -290,7 +335,10 @@ module Datadog
             TAG_WORKSPACE_PATH => env['WORKSPACE'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE'],
+            TAG_CI_ENV_VARS => {
+              'DD_CUSTOM_TRACE_ID' => env['DD_CUSTOM_TRACE_ID']
+            }.to_json
           }
         end
 
