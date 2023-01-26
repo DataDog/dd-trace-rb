@@ -128,16 +128,12 @@ module Datadog
           if build_id &&
               (team_foundation_server_uri = env['SYSTEM_TEAMFOUNDATIONSERVERURI']) &&
               (team_project_id = env['SYSTEM_TEAMPROJECTID'])
-
             pipeline_url = "#{team_foundation_server_uri}#{team_project_id}/_build/results?buildId=#{build_id}"
-
             job_url = "#{pipeline_url}&view=logs&j=#{env['SYSTEM_JOBID']}&t=#{env['SYSTEM_TASKINSTANCEID']}"
           end
 
           branch, tag = branch_or_tag(
-            env['SYSTEM_PULLREQUEST_SOURCEBRANCH'] ||
-            env['BUILD_SOURCEBRANCH'] ||
-            env['BUILD_SOURCEBRANCHNAME']
+            env['SYSTEM_PULLREQUEST_SOURCEBRANCH'] || env['BUILD_SOURCEBRANCH'] || env['BUILD_SOURCEBRANCHNAME']
           )
 
           {
@@ -281,7 +277,7 @@ module Datadog
               'GITHUB_REPOSITORY' => env['GITHUB_REPOSITORY'],
               'GITHUB_RUN_ID' => env['GITHUB_RUN_ID'],
               'GITHUB_RUN_ATTEMPT' => env['GITHUB_RUN_ATTEMPT'],
-            }.reject { |k,v| v.nil? }.to_json
+            }.reject { |_k, v| v.nil? }.to_json
           }
         end
 
