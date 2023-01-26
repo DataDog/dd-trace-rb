@@ -5,9 +5,9 @@ require 'spec_helper'
 require 'time'
 
 require 'datadog/tracing/trace_operation'
-require 'datadog/kit/events'
+require 'datadog/kit/appsec/events'
 
-RSpec.describe Datadog::Kit::Events do
+RSpec.describe Datadog::Kit::AppSec::Events do
   subject(:trace_op) { Datadog::Tracing::TraceOperation.new }
 
   let(:trace) { trace_op.flush! }
