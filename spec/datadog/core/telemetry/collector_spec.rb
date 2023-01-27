@@ -245,6 +245,14 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       it { is_expected.to include('appsec.enabled' => true) }
     end
+
+    context 'when OpenTelemetry is enabled' do
+      before do
+        stub_const('Datadog::OpenTelemetry::LOADED', true)
+      end
+
+      it { is_expected.to include('tracing.opentelemetry.enabled' => true) }
+    end
   end
 
   describe '#dependencies' do

@@ -2395,7 +2395,7 @@ Service C:
   Priority:  1
 ```
 
-**Distributed header formats**
+#### Distributed header formats
 
 Tracing supports the following distributed trace formats:
 

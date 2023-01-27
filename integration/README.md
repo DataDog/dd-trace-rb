@@ -22,6 +22,7 @@ Ruby demo applications are configured with Datadog APM, which can be used to gen
 
 See `README.md` in each directory for more information:
 
+- `apps/opentelemetry`: Generates OpenTelemetry traces
 - `apps/rack`: Rack application
 - `apps/rails-five`: Rails 5 application
 - `apps/rails-six`: Rails 6 application
