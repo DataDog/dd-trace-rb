@@ -1,4 +1,5 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require_relative '../../../instrumentation/gateway'
 require_relative '../../../reactive/operation'
@@ -6,6 +7,7 @@ require_relative '../reactive/request'
 require_relative '../reactive/request_body'
 require_relative '../reactive/response'
 require_relative '../../../event'
+require_relative '../ext'
 
 module Datadog
   module AppSec
@@ -19,12 +21,12 @@ module Datadog
             # rubocop:disable Metrics/CyclomaticComplexity
             # rubocop:disable Metrics/PerceivedComplexity
             def self.watch
-              Instrumentation.gateway.watch('rack.request', :appsec) do |stack, request|
+              Instrumentation.gateway.watch(Ext::RACK_REQUEST, :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
 
-                AppSec::Reactive::Operation.new('rack.request') do |op|
+                AppSec::Reactive::Operation.new(Ext::RACK_REQUEST) do |op|
                   trace = active_trace
                   span = active_span
 
@@ -60,12 +62,12 @@ module Datadog
                 [ret, res]
               end
 
-              Instrumentation.gateway.watch('rack.response', :appsec) do |stack, response|
+              Instrumentation.gateway.watch(Ext::RACK_RESPONSE, :appsec) do |stack, response|
                 block = false
                 event = nil
                 waf_context = response.instance_eval { @waf_context }
 
-                AppSec::Reactive::Operation.new('rack.response') do |op|
+                AppSec::Reactive::Operation.new(Ext::RACK_RESPONSE) do |op|
                   trace = active_trace
                   span = active_span
 
@@ -101,12 +103,12 @@ module Datadog
                 [ret, res]
               end
 
-              Instrumentation.gateway.watch('rack.request.body', :appsec) do |stack, request|
+              Instrumentation.gateway.watch(Ext::RACK_REQUEST_BODY, :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
 
-                AppSec::Reactive::Operation.new('rack.request.body') do |op|
+                AppSec::Reactive::Operation.new(Ext::RACK_REQUEST_BODY) do |op|
                   trace = active_trace
                   span = active_span
 

@@ -1,4 +1,7 @@
 # typed: ignore
+# frozen_string_literal: true
+
+require_relative 'ext'
 
 require_relative '../../../core/utils/only_once'
 
@@ -79,7 +82,7 @@ module Datadog
 
               # TODO: handle exceptions, except for super
 
-              request_return, request_response = Instrumentation.gateway.push('rails.request.action', request) do
+              request_return, request_response = Instrumentation.gateway.push(Ext::RAILS_REQUEST_ACTION, request) do
                 super
               end
 
@@ -131,7 +134,7 @@ module Datadog
           end
 
           def inspect_middlewares(app)
-            Datadog.logger.debug { 'Rails middlewares: ' << app.middleware.map(&:inspect).inspect }
+            Datadog.logger.debug { "Rails middlewares: #{app.middleware.map(&:inspect).inspect}" }
           end
 
           def patch_after_intialize

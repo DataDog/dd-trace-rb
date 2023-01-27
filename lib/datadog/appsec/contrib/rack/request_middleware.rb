@@ -1,7 +1,9 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require 'json'
 
+require_relative 'ext'
 require_relative '../../instrumentation/gateway'
 require_relative '../../processor'
 require_relative '../../response'
@@ -35,7 +37,7 @@ module Datadog
 
             add_appsec_tags(active_trace, active_span, env)
 
-            request_return, request_response = Instrumentation.gateway.push('rack.request', request) do
+            request_return, request_response = Instrumentation.gateway.push(Ext::RACK_REQUEST, request) do
               @app.call(env)
             end
 
@@ -48,7 +50,7 @@ module Datadog
               @waf_context = context
             end
 
-            _response_return, _response_response = Instrumentation.gateway.push('rack.response', response)
+            _response_return, _response_response = Instrumentation.gateway.push(Ext::RACK_RESPONSE, response)
 
             context.events.each do |e|
               e[:response] ||= response

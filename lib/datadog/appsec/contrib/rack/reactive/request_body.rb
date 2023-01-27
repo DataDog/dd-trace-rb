@@ -1,6 +1,8 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require_relative '../request'
+require_relative '../ext'
 
 module Datadog
   module AppSec
@@ -9,22 +11,23 @@ module Datadog
         module Reactive
           # Dispatch data from a Rack request to the WAF context
           module RequestBody
+            WAF_ADDRESSES = [
+              Ext::RESQUEST_BODY
+            ].freeze
+            private_constant :WAF_ADDRESSES
+
             def self.publish(op, request)
               catch(:block) do
                 # params have been parsed from the request body
-                op.publish('request.body', Rack::Request.form_hash(request))
+                op.publish(Ext::RESQUEST_BODY, Rack::Request.form_hash(request))
 
                 nil
               end
             end
 
             def self.subscribe(op, waf_context)
-              addresses = [
-                'request.body',
-              ]
-
-              op.subscribe(*addresses) do |*values|
-                Datadog.logger.debug { "reacted to #{addresses.inspect}: #{values.inspect}" }
+              op.subscribe(*WAF_ADDRESSES) do |*values|
+                Datadog.logger.debug { "reacted to #{WAF_ADDRESSES.inspect}: #{values.inspect}" }
                 body = values[0]
 
                 waf_args = {

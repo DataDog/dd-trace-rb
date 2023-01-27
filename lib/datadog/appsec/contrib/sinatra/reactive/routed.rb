@@ -1,4 +1,5 @@
 # typed: ignore
+# frozen_string_literal: true
 
 module Datadog
   module AppSec
@@ -7,23 +8,24 @@ module Datadog
         module Reactive
           # Dispatch data from a Rack request to the WAF context
           module Routed
+            WAF_ADDRESSES = [
+              Ext::REQUEST_ROUTE_PARAMS
+            ].freeze
+            private_constant :WAF_ADDRESSES
+
             def self.publish(op, data)
               _request, route_params = data
 
               catch(:block) do
-                op.publish('sinatra.request.route_params', route_params)
+                op.publish(Ext::REQUEST_ROUTE_PARAMS, route_params)
 
                 nil
               end
             end
 
             def self.subscribe(op, waf_context)
-              addresses = [
-                'sinatra.request.route_params',
-              ]
-
-              op.subscribe(*addresses) do |*values|
-                Datadog.logger.debug { "reacted to #{addresses.inspect}: #{values.inspect}" }
+              op.subscribe(*WAF_ADDRESSES) do |*values|
+                Datadog.logger.debug { "reacted to #{WAF_ADDRESSES.inspect}: #{values.inspect}" }
                 path_params = values[0]
 
                 waf_args = {

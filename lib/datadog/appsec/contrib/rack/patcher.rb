@@ -1,4 +1,5 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require_relative '../patcher'
 require_relative 'gateway/watcher'

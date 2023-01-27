@@ -1,5 +1,7 @@
 # typed: ignore
+# frozen_string_literal: true
 
+require_relative 'ext'
 require_relative '../../instrumentation/gateway'
 require_relative '../../response'
 
@@ -24,7 +26,7 @@ module Datadog
 
             request = ::Rack::Request.new(env)
 
-            request_return, request_response = Instrumentation.gateway.push('rack.request.body', request) do
+            request_return, request_response = Instrumentation.gateway.push(Ext::RACK_REQUEST_BODY, request) do
               @app.call(env)
             end
 

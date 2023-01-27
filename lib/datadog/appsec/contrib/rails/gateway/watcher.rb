@@ -1,5 +1,7 @@
 # typed: ignore
+# frozen_string_literal: true
 
+require_relative '../ext'
 require_relative '../../../instrumentation/gateway'
 require_relative '../../../reactive/operation'
 require_relative '../reactive/action'
@@ -13,12 +15,12 @@ module Datadog
           # Watcher for Rails gateway events
           module Watcher
             def self.watch
-              Instrumentation.gateway.watch('rails.request.action', :appsec) do |stack, request|
+              Instrumentation.gateway.watch(Ext::RAILS_REQUEST_ACTION, :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
 
-                AppSec::Reactive::Operation.new('rails.request.action') do |op|
+                AppSec::Reactive::Operation.new(Ext::RAILS_REQUEST_ACTION) do |op|
                   trace = active_trace
                   span = active_span
 

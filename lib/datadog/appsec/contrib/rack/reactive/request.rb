@@ -1,6 +1,8 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require_relative '../request'
+require_relative '../ext'
 
 module Datadog
   module AppSec
@@ -9,30 +11,30 @@ module Datadog
         module Reactive
           # Dispatch data from a Rack request to the WAF context
           module Request
+            WAF_ADDRESSES = [
+              Ext::REQUEST_HEADERS,
+              Ext::REQUEST_URI_RAW,
+              Ext::REQUEST_QUERY,
+              Ext::REQUEST_COOKIES,
+              Ext::REQUEST_CLIENT_IP,
+            ].freeze
+            private_constant :WAF_ADDRESSES
+
             def self.publish(op, request)
               catch(:block) do
-                op.publish('request.query', Rack::Request.query(request))
-                op.publish('request.headers', Rack::Request.headers(request))
-                op.publish('request.uri.raw', Rack::Request.url(request))
-                op.publish('request.cookies', Rack::Request.cookies(request))
-                op.publish('request.client_ip', Rack::Request.client_ip(request))
+                op.publish(Ext::REQUEST_QUERY, Rack::Request.query(request))
+                op.publish(Ext::REQUEST_HEADERS, Rack::Request.headers(request))
+                op.publish(Ext::REQUEST_URI_RAW, Rack::Request.url(request))
+                op.publish(Ext::REQUEST_COOKIES, Rack::Request.cookies(request))
+                op.publish(Ext::REQUEST_CLIENT_IP, Rack::Request.client_ip(request))
 
                 nil
               end
             end
 
-            # rubocop:disable Metrics/MethodLength
             def self.subscribe(op, waf_context)
-              addresses = [
-                'request.headers',
-                'request.uri.raw',
-                'request.query',
-                'request.cookies',
-                'request.client_ip',
-              ]
-
-              op.subscribe(*addresses) do |*values|
-                Datadog.logger.debug { "reacted to #{addresses.inspect}: #{values.inspect}" }
+              op.subscribe(*WAF_ADDRESSES) do |*values|
+                Datadog.logger.debug { "reacted to #{WAF_ADDRESSES.inspect}: #{values.inspect}" }
                 headers = values[0]
                 headers_no_cookies = headers.dup.tap { |h| h.delete('cookie') }
                 uri_raw = values[1]
@@ -74,7 +76,6 @@ module Datadog
                 end
               end
             end
-            # rubocop:enable Metrics/MethodLength
           end
         end
       end

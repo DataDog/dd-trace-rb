@@ -1,10 +1,12 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require_relative '../../../instrumentation/gateway'
 require_relative '../../../reactive/operation'
 require_relative '../../rack/reactive/request_body'
 require_relative '../reactive/routed'
 require_relative '../../../event'
+require_relative '../ext'
 
 module Datadog
   module AppSec
@@ -15,12 +17,12 @@ module Datadog
           module Watcher
             # rubocop:disable Metrics/MethodLength
             def self.watch
-              Instrumentation.gateway.watch('sinatra.request.dispatch', :appsec) do |stack, request|
+              Instrumentation.gateway.watch(Ext::REQUEST_DISPATH, :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
 
-                AppSec::Reactive::Operation.new('sinatra.request.dispatch') do |op|
+                AppSec::Reactive::Operation.new(Ext::REQUEST_DISPATH) do |op|
                   trace = active_trace
                   span = active_span
 
@@ -56,12 +58,12 @@ module Datadog
                 [ret, res]
               end
 
-              Instrumentation.gateway.watch('sinatra.request.routed', :appsec) do |stack, (request, route_params)|
+              Instrumentation.gateway.watch(Ext::REQUEST_ROUTED, :appsec) do |stack, (request, route_params)|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
 
-                AppSec::Reactive::Operation.new('sinatra.request.routed') do |op|
+                AppSec::Reactive::Operation.new(Ext::REQUEST_ROUTED) do |op|
                   trace = active_trace
                   span = active_span
 

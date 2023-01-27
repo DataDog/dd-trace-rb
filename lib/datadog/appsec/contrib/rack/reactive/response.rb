@@ -1,6 +1,8 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require_relative '../response'
+require_relative '../ext'
 
 module Datadog
   module AppSec
@@ -9,21 +11,22 @@ module Datadog
         module Reactive
           # Dispatch data from a Rack response to the WAF context
           module Response
+            WAF_ADDRESSES = [
+              Ext::RESPONSE_STATUS
+            ].freeze
+            private_constant :WAF_ADDRESSES
+
             def self.publish(op, response)
               catch(:block) do
-                op.publish('response.status', Rack::Response.status(response))
+                op.publish(Ext::RESPONSE_STATUS, Rack::Response.status(response))
 
                 nil
               end
             end
 
             def self.subscribe(op, waf_context)
-              addresses = [
-                'response.status',
-              ]
-
-              op.subscribe(*addresses) do |*values|
-                Datadog.logger.debug { "reacted to #{addresses.inspect}: #{values.inspect}" }
+              op.subscribe(*WAF_ADDRESSES) do |*values|
+                Datadog.logger.debug { "reacted to #{WAF_ADDRESSES.inspect}: #{values.inspect}" }
 
                 response_status = values[0]
 

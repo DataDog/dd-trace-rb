@@ -1,10 +1,12 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require_relative '../integration'
 
 require_relative 'configuration/settings'
 require_relative 'patcher'
 require_relative 'request_middleware'
+require_relative 'ext'
 
 module Datadog
   module AppSec
@@ -19,7 +21,7 @@ module Datadog
           register_as :sinatra
 
           def self.version
-            Gem.loaded_specs['sinatra'] && Gem.loaded_specs['sinatra'].version
+            Gem.loaded_specs[Ext::APP] && Gem.loaded_specs[Ext::APP].version
           end
 
           def self.loaded?

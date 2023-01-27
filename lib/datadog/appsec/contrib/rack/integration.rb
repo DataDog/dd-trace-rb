@@ -1,4 +1,5 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require_relative '../integration'
 
@@ -6,6 +7,7 @@ require_relative 'configuration/settings'
 require_relative 'patcher'
 require_relative 'request_middleware'
 require_relative 'request_body_middleware'
+require_relative 'ext'
 
 module Datadog
   module AppSec
@@ -20,7 +22,7 @@ module Datadog
           register_as :rack, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['rack'] && Gem.loaded_specs['rack'].version
+            Gem.loaded_specs[Ext::APP] && Gem.loaded_specs[Ext::APP].version
           end
 
           def self.loaded?
