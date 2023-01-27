@@ -5,9 +5,9 @@ require 'spec_helper'
 require 'time'
 
 require 'datadog/tracing/trace_operation'
-require 'datadog/kit/events'
+require 'datadog/kit/appsec/events'
 
-RSpec.describe Datadog::Kit::Events do
+RSpec.describe Datadog::Kit::AppSec::Events do
   subject(:trace_op) { Datadog::Tracing::TraceOperation.new }
 
   let(:trace) { trace_op.flush! }
@@ -74,23 +74,16 @@ RSpec.describe Datadog::Kit::Events do
   end
 
   describe '#track' do
-    it 'rejects unexpected namespaces' do
-      trace_op.measure('root') do
-        expect { described_class.track(:foo, 'bar', trace_op) }.to raise_error ArgumentError, /namespace cannot be/
-      end
-      expect(meta).to_not include('foo.events.bar.track' => 'true')
-    end
-
     it 'sets event tracking key on trace' do
       trace_op.measure('root') do
-        described_class.track(:appsec, 'foo', trace_op)
+        described_class.track('foo', trace_op)
       end
       expect(meta).to include('appsec.events.foo.track' => 'true')
     end
 
     it 'sets other keys on trace' do
       trace_op.measure('root') do
-        described_class.track(:appsec, 'foo', trace_op, bar: 'baz')
+        described_class.track('foo', trace_op, bar: 'baz')
       end
       expect(meta).to include('appsec.events.foo.bar' => 'baz')
     end
