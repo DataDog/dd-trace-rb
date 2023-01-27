@@ -10,7 +10,7 @@ module Datadog
 
           RESPONSE_STATUS: "response.status"
 
-          RESQUEST_BODY: "request.body"
+          REQUEST_BODY: "request.body"
 
           REQUEST_HEADERS: "request.headers"
 

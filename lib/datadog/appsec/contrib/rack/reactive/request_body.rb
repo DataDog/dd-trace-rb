@@ -12,14 +12,14 @@ module Datadog
           # Dispatch data from a Rack request to the WAF context
           module RequestBody
             ADDRESSES = [
-              Ext::RESQUEST_BODY
+              Ext::REQUEST_BODY
             ].freeze
             private_constant :ADDRESSES
 
             def self.publish(op, request)
               catch(:block) do
                 # params have been parsed from the request body
-                op.publish(Ext::RESQUEST_BODY, Rack::Request.form_hash(request))
+                op.publish(Ext::REQUEST_BODY, Rack::Request.form_hash(request))
 
                 nil
               end

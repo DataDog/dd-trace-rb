@@ -17,12 +17,12 @@ module Datadog
           module Watcher
             # rubocop:disable Metrics/MethodLength
             def self.watch
-              Instrumentation.gateway.watch(Ext::REQUEST_DISPATH, :appsec) do |stack, request|
+              Instrumentation.gateway.watch(Ext::REQUEST_DISPATCH, :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
 
-                AppSec::Reactive::Operation.new(Ext::REQUEST_DISPATH) do |op|
+                AppSec::Reactive::Operation.new(Ext::REQUEST_DISPATCH) do |op|
                   trace = active_trace
                   span = active_span
 

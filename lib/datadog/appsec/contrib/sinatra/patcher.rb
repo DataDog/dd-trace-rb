@@ -60,7 +60,7 @@ module Datadog
 
             # TODO: handle exceptions, except for super
 
-            request_return, request_response = Instrumentation.gateway.push(Ext::REQUEST_DISPATH, request) do
+            request_return, request_response = Instrumentation.gateway.push(Ext::REQUEST_DISPATCH, request) do
               # handle process_route interruption
               catch(Ext::ROUTE_INTERRUPT) { super }
             end

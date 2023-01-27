@@ -11,7 +11,7 @@ module Datadog
           ENV_ENABLED = 'DD_TRACE_RACK_ENABLED' # TODO: DD_APPSEC?
 
           RESPONSE_STATUS = 'response.status'
-          RESQUEST_BODY = 'request.body'
+          REQUEST_BODY = 'request.body'
           REQUEST_HEADERS = 'request.headers'
           REQUEST_URI_RAW = 'request.uri.raw'
           REQUEST_QUERY = 'request.query'
