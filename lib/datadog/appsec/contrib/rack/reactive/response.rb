@@ -11,10 +11,10 @@ module Datadog
         module Reactive
           # Dispatch data from a Rack response to the WAF context
           module Response
-            WAF_ADDRESSES = [
+            ADDRESSES = [
               Ext::RESPONSE_STATUS
             ].freeze
-            private_constant :WAF_ADDRESSES
+            private_constant :ADDRESSES
 
             def self.publish(op, response)
               catch(:block) do
@@ -25,8 +25,8 @@ module Datadog
             end
 
             def self.subscribe(op, waf_context)
-              op.subscribe(*WAF_ADDRESSES) do |*values|
-                Datadog.logger.debug { "reacted to #{WAF_ADDRESSES.inspect}: #{values.inspect}" }
+              op.subscribe(*ADDRESSES) do |*values|
+                Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
 
                 response_status = values[0]
 

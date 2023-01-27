@@ -11,14 +11,14 @@ module Datadog
         module Reactive
           # Dispatch data from a Rack request to the WAF context
           module Request
-            WAF_ADDRESSES = [
+            ADDRESSES = [
               Ext::REQUEST_HEADERS,
               Ext::REQUEST_URI_RAW,
               Ext::REQUEST_QUERY,
               Ext::REQUEST_COOKIES,
               Ext::REQUEST_CLIENT_IP,
             ].freeze
-            private_constant :WAF_ADDRESSES
+            private_constant :ADDRESSES
 
             def self.publish(op, request)
               catch(:block) do
@@ -33,8 +33,8 @@ module Datadog
             end
 
             def self.subscribe(op, waf_context)
-              op.subscribe(*WAF_ADDRESSES) do |*values|
-                Datadog.logger.debug { "reacted to #{WAF_ADDRESSES.inspect}: #{values.inspect}" }
+              op.subscribe(*ADDRESSES) do |*values|
+                Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
                 headers = values[0]
                 headers_no_cookies = headers.dup.tap { |h| h.delete('cookie') }
                 uri_raw = values[1]

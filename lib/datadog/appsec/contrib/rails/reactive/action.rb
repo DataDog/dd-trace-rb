@@ -11,12 +11,12 @@ module Datadog
         module Reactive
           # Dispatch data from a Rails request to the WAF context
           module Action
-            WAF_ADDRESSES = [
+            ADDRESSES = [
               Ext::RAILS_REQUEST_BODY,
               Ext::RAILS_REQUEST_ROUTE_PARMS,
             ].freeze
 
-            private_constant :WAF_ADDRESSES
+            private_constant :ADDRESSES
 
             def self.publish(op, request)
               catch(:block) do
@@ -29,8 +29,8 @@ module Datadog
             end
 
             def self.subscribe(op, waf_context)
-              op.subscribe(*WAF_ADDRESSES) do |*values|
-                Datadog.logger.debug { "reacted to #{WAF_ADDRESSES.inspect}: #{values.inspect}" }
+              op.subscribe(*ADDRESSES) do |*values|
+                Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
                 body = values[0]
                 path_params = values[1]
 

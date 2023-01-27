@@ -8,10 +8,10 @@ module Datadog
         module Reactive
           # Dispatch data from a Rack request to the WAF context
           module Routed
-            WAF_ADDRESSES = [
+            ADDRESSES = [
               Ext::REQUEST_ROUTE_PARAMS
             ].freeze
-            private_constant :WAF_ADDRESSES
+            private_constant :ADDRESSES
 
             def self.publish(op, data)
               _request, route_params = data
@@ -24,8 +24,8 @@ module Datadog
             end
 
             def self.subscribe(op, waf_context)
-              op.subscribe(*WAF_ADDRESSES) do |*values|
-                Datadog.logger.debug { "reacted to #{WAF_ADDRESSES.inspect}: #{values.inspect}" }
+              op.subscribe(*ADDRESSES) do |*values|
+                Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
                 path_params = values[0]
 
                 waf_args = {
