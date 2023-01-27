@@ -1,6 +1,12 @@
+**ATTENTION**:
+
+***OpenTelemetry support is currently "experimental". It may be subject to breaking changes between minor versions, and is not yet recommended for use in production or other sensitive environments.***
+
+If you are interested in using this feature experimentally, please contact the dd-trace-rb maintainers; we would be happy to provide you with more information!
+
 **Supported tracing frameworks**:
 
-| Type          | Documentation                                        | Datadog version | Gem version support |
+| Type          | Documentation                                        | ddtrace version | Gem version support |
 | ------------- | ---------------------------------------------------- | --------------- | ------------------- |
 | OpenTelemetry | https://github.com/open-telemetry/opentelemetry-ruby | 1.9.0+          | >= 1.1.0            |
 
@@ -46,12 +52,13 @@
 
 There are a few limitations to OpenTelemetry Tracing when the APM integration is activated:
 
-make it table
-
-1. [Context Propagation](https://opentelemetry.io/docs/instrumentation/ruby/manual/#context-propagation) configuration is not supported. The Ruby Tracer [Distributed header format](#distributed-header-formats) configuration is used instead.
-1. [Span processors](https://opentelemetry.io/docs/reference/specification/trace/sdk/#span-processor) and [Span Exporters](https://opentelemetry.io/docs/reference/specification/trace/sdk/#span-exporter) are not supported.
-1. The `OpenTelemetry.logger` is set to the same object as `Datadog.logger`, and can be configured through [Custom logging](#custom-logging).
-1. Trace and Span [Id Generators](https://opentelemetry.io/docs/reference/specification/trace/sdk/#id-generators) are handled by the Ruby Tracer.
+| Feature                                                                                                    | Support?    | Explanation                                                                       | Recommendation                                       |   |
+|------------------------------------------------------------------------------------------------------------|-------------|-----------------------------------------------------------------------------------|------------------------------------------------------|---|
+| [Context propagation](https://opentelemetry.io/docs/instrumentation/ruby/manual/#context-propagation)      | Unsupported | Datadog [distributed header format](#distributed-header-formats) is used instead. | N/A                                                  |   |
+| [Span processors](https://opentelemetry.io/docs/reference/specification/trace/sdk/#span-processor)         | Unsupported |                                                                                   | N/A                                                  |   |
+| [Span Exporters](https://opentelemetry.io/docs/reference/specification/trace/sdk/#span-exporter)           | Unsupported |                                                                                   | N/A                                                  |   |
+| `OpenTelemetry.logger`                                                                                     | Special     | `OpenTelemetry.logger` is set to the same object as `Datadog.logger`.             | Configure through [Custom logging](#custom-logging). |   |
+| Trace/span [ID generators](https://opentelemetry.io/docs/reference/specification/trace/sdk/#id-generators) | Special     | ID generation is performed by `ddtrace`.                                          | N/A                                                  |   |
 
 ##### Exporting OpenTelemetry-only traces
 
