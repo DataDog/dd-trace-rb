@@ -58,7 +58,8 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           'runtime_metrics_enabled' => false,
           'version' => DDTrace::VERSION::STRING,
           'vm' => be_a(String),
-          'service' => be_a(String)
+          'service' => be_a(String),
+          'profiling_enabled' => false,
         )
       end
     end
@@ -155,7 +156,8 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           service: be_a(String),
           tags: nil,
           version: DDTrace::VERSION::STRING,
-          vm: be_a(String)
+          vm: be_a(String),
+          profiling_enabled: false,
         )
       end
 
@@ -315,6 +317,12 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
         before { skip unless PlatformHelpers.truffleruby? }
 
         it { is_expected.to include vm: start_with('truffleruby') }
+      end
+
+      context 'with profiling enabled' do
+        before { Datadog.configure { |c| c.profiling.enabled = true } }
+
+        it { is_expected.to include profiling_enabled: true }
       end
     end
   end

@@ -33,6 +33,11 @@ module Datadog
               o.lazy
             end
 
+            option :error_status_codes do |o|
+              o.default { env_to_list(Ext::ENV_ERROR_STATUS_CODES, 400...600, comma_separated_only: false) }
+              o.lazy
+            end
+
             option :split_by_domain, default: false
           end
         end

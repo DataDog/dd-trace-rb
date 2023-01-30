@@ -110,6 +110,12 @@ module Datadog
           metrics.delete(key)
         end
 
+        # Returns a copy of all metadata.
+        # Keys for `@meta` and `@metrics` don't collide, by construction.
+        def tags
+          @meta.merge(@metrics)
+        end
+
         protected
 
         def meta

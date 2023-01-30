@@ -16,20 +16,20 @@ services:
       - redis_old
     env_file: ./.env
     environment: &common-environment
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
-      - DDTRACE_CI=true
+      BUNDLE_GEMFILE: /app/Gemfile-2.1
+      DD_AGENT_HOST: ddagent
+      TEST_DATADOG_INTEGRATION: 1
+      TEST_ELASTICSEARCH_HOST: elasticsearch
+      TEST_MEMCACHED_HOST: memcached
+      TEST_MONGODB_HOST: mongodb
+      TEST_MYSQL_HOST: mysql
+      TEST_POSTGRES_HOST: postgres
+      TEST_PRESTO_HOST: presto
+      TEST_PRESTO_PORT: 8080
+      TEST_REDIS_HOST: redis
+      TEST_REDIS_OLD_HOST: redis_old
+      TEST_REDIS_OLD_PORT: 6379
+      DDTRACE_CI: true
     stdin_open: true
     tty: true
     volumes:
@@ -51,7 +51,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.2
     stdin_open: true
     tty: true
     volumes:
@@ -73,7 +75,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.3
     stdin_open: true
     tty: true
     volumes:
@@ -95,7 +99,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.4
     stdin_open: true
     tty: true
     volumes:
@@ -117,7 +123,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.5
     stdin_open: true
     tty: true
     volumes:
@@ -139,7 +147,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.6
     stdin_open: true
     tty: true
     volumes:
@@ -161,7 +171,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.7
     stdin_open: true
     tty: true
     volumes:
@@ -184,18 +196,18 @@ services:
       - redis_old
     env_file: ./.env
     environment: &common-environment-3x
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
-      - DDTRACE_CI=true
+      BUNDLE_GEMFILE: /app/Gemfile-3.0
+      DD_AGENT_HOST: ddagent
+      TEST_DATADOG_INTEGRATION: 1
+      TEST_ELASTICSEARCH_HOST: elasticsearch
+      TEST_MEMCACHED_HOST: memcached
+      TEST_MONGODB_HOST: mongodb
+      TEST_MYSQL_HOST: mysql
+      TEST_POSTGRES_HOST: postgres
+      TEST_REDIS_HOST: redis
+      TEST_REDIS_OLD_HOST: redis_old
+      TEST_REDIS_OLD_PORT: 6379
+      DDTRACE_CI: true
     stdin_open: true
     tty: true
     volumes:
@@ -216,7 +228,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment-3x
+    environment:
+      <<: *common-environment-3x
+      BUNDLE_GEMFILE: /app/Gemfile-3.1
     stdin_open: true
     tty: true
     volumes:
@@ -237,7 +251,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment-3x
+    environment:
+      <<: *common-environment-3x
+      BUNDLE_GEMFILE: /app/Gemfile-3.2
     stdin_open: true
     tty: true
     volumes:
@@ -247,27 +263,30 @@ services:
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
   # JRuby
-  tracer-jruby-9.2.8.0:
-    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.8.0-dd
-    command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - postgres
-      - presto
-      - redis
-      - redis_old
-    env_file: ./.env
-    environment: *common-environment
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - bundle-jruby-9.2.8.0:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  # TODO: Disabled for possible removal
+  # tracer-jruby-9.2.8.0:
+  #   image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.8.0-dd
+  #   command: /bin/bash
+  #   depends_on:
+  #     - ddagent
+  #     - elasticsearch
+  #     - memcached
+  #     - mongodb
+  #     - mysql
+  #     - postgres
+  #     - presto
+  #     - redis
+  #     - redis_old
+  #   env_file: ./.env
+  #   environment:
+  #     <<: *common-environment
+  #     BUNDLE_GEMFILE: /app/Gemfile-jruby-9.2.8.0
+  #   stdin_open: true
+  #   tty: true
+  #   volumes:
+  #     - .:/app
+  #     - bundle-jruby-9.2.8.0:/usr/local/bundle
+  #     - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-jruby-9.2:
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
     command: /bin/bash
@@ -282,7 +301,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-jruby-9.2
     stdin_open: true
     tty: true
     volumes:
@@ -303,7 +324,9 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-jruby-9.3
     stdin_open: true
     tty: true
     volumes:
@@ -324,34 +347,14 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment: *common-environment
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-jruby-9.4
     stdin_open: true
     tty: true
     volumes:
       - .:/app
       - bundle-jruby-9.4:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  # TruffleRuby
-  tracer-truffleruby-22.3.0:
-    image: ghcr.io/datadog/dd-trace-rb/truffleruby:22.3.0-dd
-    command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - postgres
-      - presto
-      - redis
-      - redis_old
-    env_file: ./.env
-    environment: *common-environment
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - bundle-truffleruby-22.3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   ddagent:
     image: datadog/agent
@@ -365,8 +368,8 @@ services:
       - "8125/udp"
       - "8126"
     ports:
-      - "${DD_METRIC_AGENT_PORT}:8125/udp"
-      - "${DD_TRACE_AGENT_PORT}:8126"
+      - "127.0.0.1:${DD_METRIC_AGENT_PORT}:8125/udp"
+      - "127.0.0.1:${DD_TRACE_AGENT_PORT}:8126"
     volumes:
       - ddagent_var_run:/var/run/datadog
   elasticsearch:
@@ -375,8 +378,8 @@ services:
       - "9200"
       - "9300"
     ports:
-      - "${TEST_ELASTICSEARCH_REST_PORT}:9200"
-      - "${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
+      - "127.0.0.1:${TEST_ELASTICSEARCH_REST_PORT}:9200"
+      - "127.0.0.1:${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
     environment:
       # Ensure production cluster requirements are not enforced
       - discovery.type=single-node
@@ -387,13 +390,13 @@ services:
     expose:
       - "11211"
     ports:
-      - "${TEST_MEMCACHED_PORT}:11211"
+      - "127.0.0.1:${TEST_MEMCACHED_PORT}:11211"
   mongodb:
     image: mongo:3.6
     expose:
       - "27017"
     ports:
-      - "${TEST_MONGODB_PORT}:27017"
+      - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
   mysql:
     image: mysql:8
     environment:
@@ -406,7 +409,7 @@ services:
     expose:
       - "3306"
     ports:
-      - "${TEST_MYSQL_PORT}:3306"
+      - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
   postgres:
     image: postgres:9.6
     environment:
@@ -416,27 +419,27 @@ services:
     expose:
       - "5432"
     ports:
-      - "${TEST_POSTGRES_PORT}:5432"
+      - "127.0.0.1:${TEST_POSTGRES_PORT}:5432"
   presto:
     # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
     image: starburstdata/presto:332-e.9
     expose:
       - "8080"
     ports:
-      - "${TEST_PRESTO_PORT}:8080"
+      - "127.0.0.1:${TEST_PRESTO_PORT}:8080"
   redis:
     image: redis:6.2
     expose:
       - "6379"
     ports:
-      - "${TEST_REDIS_PORT}:6379"
+      - "127.0.0.1:${TEST_REDIS_PORT}:6379"
   # `qless` is still using this older version of redis
   redis_old:
     image: redis:3.0
     expose:
       - "6379"
     ports:
-      - "${TEST_REDIS_OLD_PORT}:6379"
+      - "127.0.0.1:${TEST_REDIS_OLD_PORT}:6379"
 volumes:
   bundle-2.1:
   bundle-2.2:
@@ -449,11 +452,10 @@ volumes:
   bundle-3.1:
   bundle-3.2:
   # ADD NEW RUBIES HERE
-  bundle-jruby-9.2.8.0:
+  #bundle-jruby-9.2.8.0: # TODO: Disabled for possible removal
   bundle-jruby-9.2:
   bundle-jruby-9.3:
   bundle-jruby-9.4:
-  bundle-truffleruby-22.3.0:
   ddagent_var_run:
   # Temporary folder used while compiling the profiling native extension. We place this in a volume to avoid the
   # massive performance hit (seconds to minutes) that we get when the tmp folder is shared with the host on macOS.

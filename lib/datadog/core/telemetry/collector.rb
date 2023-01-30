@@ -135,6 +135,7 @@ module Datadog
             format_configuration_value(configuration.tracing.writer_options[:flush_interval])
           options['logger.instance'] = configuration.logger.instance.class.to_s
           options['appsec.enabled'] = configuration.dig('appsec', 'enabled') if configuration.respond_to?('appsec')
+          options['tracing.opentelemetry.enabled'] = !defined?(Datadog::OpenTelemetry::LOADED).nil?
           compact_hash(options)
         end
 
