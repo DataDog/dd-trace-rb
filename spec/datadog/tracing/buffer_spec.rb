@@ -12,13 +12,13 @@ RSpec.describe Datadog::Tracing::TraceBuffer do
   subject(:buffer_class) { described_class }
 
   context 'with CRuby' do
-    before { skip unless PlatformHelpers.mri? }
+    before { skip('This class is only used on CRuby/MRI') unless PlatformHelpers.mri? }
 
     it { is_expected.to eq Datadog::Tracing::CRubyTraceBuffer }
   end
 
   context 'with JRuby' do
-    before { skip unless PlatformHelpers.jruby? }
+    before { skip('This class is only used on JRuby') unless PlatformHelpers.jruby? }
 
     it { is_expected.to eq Datadog::Tracing::ThreadSafeTraceBuffer }
   end
@@ -73,7 +73,9 @@ RSpec.shared_examples 'thread-safe buffer' do
         end
       end
 
-      after { threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } }
+      after do
+        threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } unless RSpec.current_example.skipped?
+      end
 
       it 'does not exceed expected maximum size' do
         push
@@ -151,7 +153,9 @@ RSpec.shared_examples 'thread-safe buffer' do
         end
       end
 
-      after { threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } }
+      after do
+        threads.each { |t| raise 'Thread wait timeout' unless t.join(5000) } unless RSpec.current_example.skipped?
+      end
 
       it 'does not exceed expected maximum size' do
         concat
@@ -460,7 +464,7 @@ RSpec.describe Datadog::Tracing::ThreadSafeTraceBuffer do
 end
 
 RSpec.describe Datadog::Tracing::CRubyTraceBuffer do
-  before { skip unless PlatformHelpers.mri? }
+  before { skip('This class is only used on CRuby/MRI') unless PlatformHelpers.mri? }
 
   let(:items) { get_test_traces(items_count) }
 
