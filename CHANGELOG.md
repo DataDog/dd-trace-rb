@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+## [1.9.0] - 2023-01-30
+
+As of ddtrace 1.9.0, CPU Profiling 2.0 is now in opt-in (that is, disabled by default) public beta. For more details, check the release notes.
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.9.0
+
+### Added
+
+* Tracing: Add `Stripe` instrumentation ([#2557][])
+* Tracing: Add configurable response codes considered as errors for `Net/HTTP`, `httprb` and `httpclient` ([#2501][], [#2576][])([@caramcc][])
+* Tracing: Flexible header matching for HTTP propagator ([#2504][])
+* Tracing: `OpenTelemetry` Traces support ([#2496][])
+* Tracing: W3C: Propagate unknown values as-is ([#2485][])
+* Appsec: Add event kit API ([#2512][])
+* Profiling: Allow profiler development on arm64 macOS ([#2573][])
+* Core: Add `profiling_enabled` state to environment logger output ([#2541][])
+* Core: Add 'type' to `OptionDefinition` ([#2493][])
+* Allow `debase-ruby_core_source` 3.2.0 to be used ([#2526][])
+
+### Changed
+
+* Profiling: Upgrade to `libdatadog` to `1.0.1.1.0` ([#2530][])
+* Appsec: Update appsec rules `1.4.3` ([#2580][])
+* Ci: Update CI Visibility metadata extraction ([#2586][])
+
+### Fixed
+
+* Profiling: Fix wrong `libdatadog` version being picked during profiler build ([#2531][])
+* Tracing: Support `PG` calls with a block ([#2522][])
+* Ci: Fix error in `teamcity` env vars ([#2562][])
+
 ## [1.8.0] - 2022-12-14
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.8.0
@@ -2250,7 +2281,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.8.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.9.0...master
+[1.9.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.0...v1.6.1
@@ -3210,7 +3242,24 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2469]: https://github.com/DataDog/dd-trace-rb/issues/2469
 [#2470]: https://github.com/DataDog/dd-trace-rb/issues/2470
 [#2473]: https://github.com/DataDog/dd-trace-rb/issues/2473
+[#2485]: https://github.com/DataDog/dd-trace-rb/issues/2485
 [#2489]: https://github.com/DataDog/dd-trace-rb/issues/2489
+[#2493]: https://github.com/DataDog/dd-trace-rb/issues/2493
+[#2496]: https://github.com/DataDog/dd-trace-rb/issues/2496
+[#2501]: https://github.com/DataDog/dd-trace-rb/issues/2501
+[#2504]: https://github.com/DataDog/dd-trace-rb/issues/2504
+[#2512]: https://github.com/DataDog/dd-trace-rb/issues/2512
+[#2522]: https://github.com/DataDog/dd-trace-rb/issues/2522
+[#2526]: https://github.com/DataDog/dd-trace-rb/issues/2526
+[#2530]: https://github.com/DataDog/dd-trace-rb/issues/2530
+[#2531]: https://github.com/DataDog/dd-trace-rb/issues/2531
+[#2541]: https://github.com/DataDog/dd-trace-rb/issues/2541
+[#2557]: https://github.com/DataDog/dd-trace-rb/issues/2557
+[#2562]: https://github.com/DataDog/dd-trace-rb/issues/2562
+[#2573]: https://github.com/DataDog/dd-trace-rb/issues/2573
+[#2576]: https://github.com/DataDog/dd-trace-rb/issues/2576
+[#2580]: https://github.com/DataDog/dd-trace-rb/issues/2580
+[#2586]: https://github.com/DataDog/dd-trace-rb/issues/2586
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -3249,6 +3298,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@brafales]: https://github.com/brafales
 [@bzf]: https://github.com/bzf
 [@callumj]: https://github.com/callumj
+[@caramcc]: https://github.com/caramcc
 [@carlallen]: https://github.com/carlallen
 [@chychkan]: https://github.com/chychkan
 [@cjford]: https://github.com/cjford
