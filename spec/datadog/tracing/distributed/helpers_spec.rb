@@ -110,8 +110,8 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
         ['10000', 65536],
         ['deadbeef', 3735928559],
       ].each do |value, expected|
-        xcontext value.inspect do
-          it { expect(described_class.value_to_id(value, 16)).to eq(expected) }
+        context value.inspect do
+          it { expect(described_class.value_to_id(value, base: 16)).to eq(expected) }
         end
       end
     end
@@ -170,7 +170,7 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
         ['invalid-base16', nil]
       ].each do |value, expected|
         context value.inspect do
-          subject(:subject) { described_class.value_to_number(value, 16) }
+          subject(:subject) { described_class.value_to_number(value, base: 16) }
 
           it { is_expected.to be == expected }
         end
