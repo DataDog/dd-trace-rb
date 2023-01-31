@@ -88,6 +88,10 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
         expect(span.resource).to eq('UnderlyingJobClass')
         expect(enqueue_span.resource).to eq('UnderlyingJobClass')
       end
+
+      it 'has messaging system tag set correctly' do
+        expect(span.get_tag('messaging.system')).to eq('delayed_job')
+      end
     end
 
     context 'when job fails' do
@@ -126,6 +130,10 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
 
       it "span tags doesn't include queue name" do
         expect(span.get_tag('delayed_job.queue')).to be_nil
+      end
+
+      it 'has messaging system tag set correctly' do
+        expect(span.get_tag('messaging.system')).to eq('delayed_job')
       end
 
       context 'when queue name is set' do
@@ -246,6 +254,10 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq(Datadog::Tracing::Contrib::DelayedJob::Ext::TAG_OPERATION_RESERVE_JOB)
+      end
+
+      it 'has messaging system tag set correctly' do
+        expect(span.get_tag('messaging.system')).to eq('delayed_job')
       end
     end
   end

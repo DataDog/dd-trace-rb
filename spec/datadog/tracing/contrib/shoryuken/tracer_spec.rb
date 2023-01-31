@@ -66,6 +66,7 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('shoryuken')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
       expect(span.get_tag('span.kind')).to eq('consumer')
+      expect(span.get_tag('messaging.system')).to eq('amazonsqs')
     end
 
     it_behaves_like 'analytics for integration' do
