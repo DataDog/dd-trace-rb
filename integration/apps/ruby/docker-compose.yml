@@ -4,7 +4,7 @@ services:
     build:
       context: .
       args:
-        BASE_IMAGE: datadog/dd-apm-demo:rb-3.0
+        BASE_IMAGE: "datadog/dd-apm-demo:rb-${RUBY_VERSION}"
     depends_on:
       - ddagent
     environment:

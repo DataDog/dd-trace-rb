@@ -463,6 +463,14 @@ module Datadog
       def distributed_tags
         meta.select { |name, _| name.start_with?(Metadata::Ext::Distributed::TAGS_PREFIX) }
       end
+
+      def reset
+        @root_span = nil
+        @active_span = nil
+        @active_span_count = 0
+        @finished = false
+        @spans = []
+      end
     end
   end
 end

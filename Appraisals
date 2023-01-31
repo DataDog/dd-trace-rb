@@ -162,6 +162,7 @@ if ruby_version?('2.1')
     gem 'rake', '< 12.3'
     gem 'rest-client'
     gem 'resque', '< 2.0'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -349,6 +350,7 @@ elsif ruby_version?('2.2')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque', '< 2.0'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -547,6 +549,7 @@ elsif ruby_version?('2.3')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -681,6 +684,7 @@ elsif ruby_version?('2.4')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -949,6 +953,7 @@ elsif ruby_version?('2.5')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -1199,6 +1204,7 @@ elsif ruby_version?('2.6')
       gem 'redis', '~> 4' # TODO: Support redis 5.x
       gem 'rest-client'
       gem 'resque'
+      gem 'roda', '>= 2.0.0'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
       gem 'semantic_logger', '~> 4.0'
@@ -1217,6 +1223,10 @@ elsif ruby_version?('2.6')
     appraise 'sinatra' do
       gem 'sinatra', '>= 3'
       gem 'rack-test'
+    end
+
+    appraise 'opentelemetry' do
+      gem 'opentelemetry-sdk', '~> 1.1'
     end
 
     [3, 4, 5].each do |n|
@@ -1427,6 +1437,7 @@ elsif ruby_version?('2.7')
       gem 'rake', '>= 12.3'
       gem 'rest-client'
       gem 'resque'
+      gem 'roda', '>= 2.0.0'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
       gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
@@ -1444,6 +1455,10 @@ elsif ruby_version?('2.7')
     appraise 'sinatra' do
       gem 'sinatra', '>= 3'
       gem 'rack-test'
+    end
+
+    appraise 'opentelemetry' do
+      gem 'opentelemetry-sdk', '~> 1.1'
     end
 
     [3, 4, 5].each do |n|
@@ -1559,6 +1574,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -1584,6 +1600,10 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
   appraise 'sinatra' do
     gem 'sinatra', '>= 3'
     gem 'rack-test'
+  end
+
+  appraise 'opentelemetry' do
+    gem 'opentelemetry-sdk', '~> 1.1'
   end
 
   appraise 'contrib-old' do
@@ -1691,6 +1711,7 @@ elsif ruby_version?('3.2')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -1709,6 +1730,10 @@ elsif ruby_version?('3.2')
   appraise 'sinatra' do
     gem 'sinatra', '>= 3'
     gem 'rack-test'
+  end
+
+  appraise 'opentelemetry' do
+    gem 'opentelemetry-sdk', '~> 1.1'
   end
 
   [3, 4, 5].each do |n|

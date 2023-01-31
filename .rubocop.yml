@@ -434,3 +434,6 @@ Naming/VariableNumber:
 # that have already dropped support for our minimum supported Ruby version.
 Gemspec/RequiredRubyVersion:
   Enabled: false
+
+Style/WordArray:
+  Enabled: false
