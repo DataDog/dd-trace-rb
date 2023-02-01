@@ -5,9 +5,9 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/ext/forking'
 
 RSpec.describe Datadog::Profiling::Ext::Forking do
-  describe '::apply!' do
-    before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported(self) }
 
+  describe '::apply!' do
     subject(:apply!) { described_class.apply! }
 
     let(:toplevel_receiver) { TOPLEVEL_BINDING.receiver }
