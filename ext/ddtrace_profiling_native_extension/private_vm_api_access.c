@@ -280,8 +280,6 @@ VALUE thread_name_for(VALUE thread) {
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 // SUCH DAMAGE.
 
-#ifndef USE_LEGACY_RB_PROFILE_FRAMES // Modern Rubies
-
 // Taken from upstream vm_core.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 2004-2007 Koichi Sasada
 // to support our custom rb_profile_frames (see below)
@@ -381,9 +379,6 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   the `VALUE` returned by rb_profile_frames returns `(eval)` instead of the path of the file where the `eval`
 //   was called from.
 // * Imported fix from https://github.com/ruby/ruby/pull/7116 to avoid sampling threads that are still being created
-//
-// **IMPORTANT: WHEN CHANGING THIS FUNCTION, CONSIDER IF THE SAME CHANGE ALSO NEEDS TO BE MADE TO THE VARIANT FOR
-// RUBY 2.2 AND BELOW WHICH IS ALSO PRESENT ON THIS FILE**
 //
 // What is rb_profile_frames?
 // `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
@@ -712,103 +707,7 @@ check_method_entry(VALUE obj, int can_be_svar)
       return check_method_entry(ep[-1], TRUE);
   }
 #endif // USE_LEGACY_RB_VM_FRAME_METHOD_ENTRY
-
 #endif // RUBY_MJIT_HEADER
-
-#else // USE_LEGACY_RB_PROFILE_FRAMES, Ruby < 2.3
-
-// Taken from upstream vm_backtrace.c at commit bbda1a027475bf7ce5e1a9583a7b55d0be71c8fe (March 2018, ruby_2_2 branch)
-// Copyright (C) 1993-2012 Yukihiro Matsumoto
-// to support our custom rb_profile_frames (see below)
-// Modifications: None
-inline static int
-calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
-{
-    return rb_iseq_line_no(iseq, pc - iseq->iseq_encoded);
-}
-
-// Taken from upstream vm_backtrace.c at commit bbda1a027475bf7ce5e1a9583a7b55d0be71c8fe (March 2018, ruby_2_2 branch)
-// Copyright (C) 1993-2012 Yukihiro Matsumoto
-// Modifications:
-// * Renamed rb_profile_frames => ddtrace_rb_profile_frames
-// * Add thread argument
-// * Add is_ruby_frame argument
-// * Removed `if (lines)` tests -- require/assume that like `buff`, `lines` is always specified
-// * Added support for getting the name from native methods by getting inspiration from `backtrace_each` in
-//   `vm_backtrace.c`. Note that unlike the `rb_profile_frames` for modern Rubies, this version actually returns the
-//   method name as as `VALUE` containing a Ruby string in the `buff`.
-// * Skip dummy frame that shows up in main thread
-// * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
-//   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
-//   absent from `rb_profile_frames`. Oversight?
-// * Check thread status and do not sample if thread has been killed.
-// * Imported fix from https://github.com/ruby/ruby/pull/7116 to avoid sampling threads that are still being created
-//
-// The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
-// I opted not to try to extend support to Ruby 2.2 using the same custom function, and instead I started
-// anew from the Ruby 2.2 version of the function, applying some of the same fixes that we have for the modern version.
-int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame)
-{
-    // **IMPORTANT: THIS IS A CUSTOM RB_PROFILE_FRAMES JUST FOR RUBY 2.2;
-    // SEE ABOVE FOR THE FUNCTION THAT GETS USED FOR MODERN RUBIES**
-
-    int i;
-    rb_thread_t *th = thread_struct_from_object(thread);
-    rb_control_frame_t *cfp = th->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(th);
-
-    // This should not happen for ddtrace (it can only happen when a thread is still being created), but I've imported
-    // it from https://github.com/ruby/ruby/pull/7116 in a "just in case" kind of mindset.
-    if (cfp == NULL) return 0;
-
-    // Avoid sampling dead threads
-    if (th->status == THREAD_KILLED) return 0;
-
-    // `vm_backtrace.c` includes this check in several methods. This happens on newly-created threads, and may
-    // also (not entirely sure) happen on dead threads
-    if (end_cfp == NULL) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
-
-    // Fix: Skip dummy frame that shows up in main thread.
-    //
-    // According to a comment in `backtrace_each` (`vm_backtrace.c`), there's two dummy frames that we should ignore
-    // at the base of every thread's stack.
-    // (see https://github.com/ruby/ruby/blob/4bd38e8120f2fdfdd47a34211720e048502377f1/vm_backtrace.c#L890-L914 )
-    //
-    // One is being pointed to by `RUBY_VM_END_CONTROL_FRAME(ec)`, and so we need to advance to the next one, and
-    // reaching it will be used as a condition to break out of the loop below.
-    //
-    // Note that in `backtrace_each` there's two calls to `RUBY_VM_NEXT_CONTROL_FRAME`, but the loop bounds there
-    // are computed in a different way, so the two calls really are equivalent to one here.
-    end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
-
-    // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
-    if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
-
-    for (i=0; i<limit && cfp != end_cfp;) {
-        if (cfp->iseq && cfp->pc) { /* should be NORMAL_ISEQ */
-            if (start > 0) {
-                start--;
-                continue;
-            }
-
-            /* record frame info */
-            buff[i] = cfp->iseq->self;
-            lines[i] = calc_lineno(cfp->iseq, cfp->pc);
-            is_ruby_frame[i] = true;
-            i++;
-        } else if (RUBYVM_CFUNC_FRAME_P(cfp)) {
-            ID mid = cfp->me->def ? cfp->me->def->original_id : cfp->me->called_id;
-            buff[i] = rb_id2str(mid);
-            lines[i] = 0;
-            is_ruby_frame[i] = false;
-            i++;
-        }
-        cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
-    }
-
-    return i;
-}
-
-#endif // USE_LEGACY_RB_PROFILE_FRAMES
 
 #ifndef NO_RACTORS
   // This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we

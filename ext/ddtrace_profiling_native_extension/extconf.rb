@@ -162,12 +162,6 @@ if RUBY_VERSION < '2.4'
   $defs << '-DUSE_LEGACY_RB_VM_FRAME_METHOD_ENTRY'
 end
 
-# For REALLY OLD Rubies...
-if RUBY_VERSION < '2.3'
-  # ...the VM changed enough that we need an alternative legacy rb_profile_frames
-  $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
-end
-
 # If we got here, libdatadog is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
 Logging.message(" [ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
