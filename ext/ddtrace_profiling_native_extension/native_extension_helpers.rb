@@ -87,8 +87,8 @@ module Datadog
             on_windows? ||
             on_macos? ||
             on_unknown_os? ||
-            not_on_amd64_or_arm64? ||
-            on_ruby_2_1_or_2_2? ||
+            on_unsupported_cpu_arch? ||
+            on_unsupported_ruby_version? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
             libdatadog_not_available? ||
             libdatadog_not_usable?
@@ -251,7 +251,7 @@ module Datadog
           unknown_os_not_supported unless RUBY_PLATFORM.include?('darwin') || RUBY_PLATFORM.include?('linux')
         end
 
-        private_class_method def self.not_on_amd64_or_arm64?
+        private_class_method def self.on_unsupported_cpu_arch?
           architecture_not_supported = explain_issue(
             'your CPU architecture is not supported by the Datadog Continuous Profiler.',
             suggested: GET_IN_TOUCH,
@@ -260,7 +260,7 @@ module Datadog
           architecture_not_supported unless RUBY_PLATFORM.start_with?('x86_64', 'aarch64', 'arm64')
         end
 
-        private_class_method def self.on_ruby_2_1_or_2_2?
+        private_class_method def self.on_unsupported_ruby_version?
           ruby_version_not_supported = explain_issue(
             'the profiler only supports Ruby 2.3 or newer.',
             suggested: UPGRADE_RUBY,
