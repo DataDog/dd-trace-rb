@@ -75,9 +75,7 @@ module Datadog
           # Cache this buffer, since it's pretty expensive to keep accessing it
           @stack_sample_event_recorder = recorder[Events::StackSample]
           # See below for details on why this is needed
-          @needs_process_waiter_workaround =
-            Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3') &&
-            Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
+          @needs_process_waiter_workaround = Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
         end
 
         def start

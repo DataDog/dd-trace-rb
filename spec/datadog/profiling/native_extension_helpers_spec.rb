@@ -129,8 +129,8 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         end
 
         shared_examples 'supported ruby validation' do
-          context 'when not on Ruby 2.1' do
-            before { stub_const('RUBY_VERSION', '2.2.0') }
+          context 'when not on Ruby 2.1 or 2.2' do
+            before { stub_const('RUBY_VERSION', '2.3.0') }
 
             shared_examples 'libdatadog available' do
               context 'when libdatadog fails to activate' do
@@ -191,7 +191,13 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           context 'when on Ruby 2.1' do
             before { stub_const('RUBY_VERSION', '2.1.10') }
 
-            it { is_expected.to include 'profiler only supports Ruby 2.2 or newer' }
+            it { is_expected.to include 'profiler only supports Ruby 2.3 or newer' }
+          end
+
+          context 'when on Ruby 2.2' do
+            before { stub_const('RUBY_VERSION', '2.2.10') }
+
+            it { is_expected.to include 'profiler only supports Ruby 2.3 or newer' }
           end
         end
 

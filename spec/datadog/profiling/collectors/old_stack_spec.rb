@@ -736,22 +736,16 @@ RSpec.describe Datadog::Profiling::Collectors::OldStack do
     describe 'the crash' do
       # Let's not get surprised if this shows up in other Ruby versions
 
-      it 'does not affect Ruby < 2.3 nor Ruby >= 2.7' do
-        unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3') ||
-            Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7')
-          skip 'Test case only applies to Ruby < 2.3 or Ruby >= 2.7'
-        end
+      it 'does not affect Ruby >= 2.7' do
+        skip('Test case only applies to Ruby >= 2.7') unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7')
 
         expect_in_fork do
           expect(process_waiter_thread.instance_variable_get(:@hello)).to be nil
         end
       end
 
-      it 'affects Ruby >= 2.3 and < 2.7' do
-        unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3') &&
-            Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
-          skip 'Test case only applies to Ruby >= 2.3 and < 2.7'
-        end
+      it 'affects Ruby < 2.7' do
+        skip('Test case only applies to Ruby < 2.7') unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
 
         expect_in_fork(
           fork_expectations: proc do |status:, stdout:, stderr:|

@@ -37,8 +37,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     it 'creates a new thread' do
-      skip 'Spec not compatible with Ruby 2.2' if RUBY_VERSION.start_with?('2.2.')
-
       start
 
       expect(Thread.list.map(&:name)).to include(described_class.name)
@@ -429,8 +427,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       it 'shuts down the background thread' do
         stop
-
-        skip 'Spec not compatible with Ruby 2.2' if RUBY_VERSION.start_with?('2.2.')
 
         expect(Thread.list.map(&:name)).to_not include(described_class.name)
       end

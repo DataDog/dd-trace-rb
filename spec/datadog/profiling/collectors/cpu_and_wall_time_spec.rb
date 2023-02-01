@@ -93,8 +93,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     end
 
     it 'includes the thread names, if available' do
-      skip 'Thread names not available on Ruby 2.2' if RUBY_VERSION < '2.3'
-
       t1.name = 'thread t1'
       t2.name = nil
       t3.name = 'thread t3'
@@ -108,12 +106,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       expect(t1_sample).to include(labels: include(:'thread name' => 'thread t1'))
       expect(t2_sample.fetch(:labels).keys).to_not include(:'thread name')
       expect(t3_sample).to include(labels: include(:'thread name' => 'thread t3'))
-    end
-
-    it 'does not include thread names on Ruby 2.2' do
-      skip 'Testcase only applies to Ruby 2.2' if RUBY_VERSION >= '2.3'
-
-      expect(samples.flat_map { |it| it.fetch(:labels).keys }).to_not include(':thread name')
     end
 
     it 'includes the wall-time elapsed between samples' do
