@@ -125,7 +125,7 @@ if RUBY_PLATFORM.include?('linux')
   # have_library 'pthread'
   # have_func 'pthread_getcpuclockid'
   # ```
-  # but it broke the build on Windows and on older Ruby versions (2.2)
+  # but a) it broke the build on Windows, b) on older Ruby versions (2.2 and below) and c) It's slower to build
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
