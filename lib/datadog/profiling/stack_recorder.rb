@@ -66,11 +66,6 @@ module Datadog
         end
       end
 
-      # Used only for Ruby 2.2 which doesn't have the native `rb_time_timespec_new` API; called from native code
-      def self.ruby_time_from(timespec_seconds, timespec_nanoseconds)
-        Time.at(0).utc + timespec_seconds + (timespec_nanoseconds.to_r / 1_000_000_000)
-      end
-
       def reset_after_fork
         self.class._native_reset_after_fork(self)
       end

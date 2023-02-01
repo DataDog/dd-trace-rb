@@ -164,8 +164,6 @@ end
 
 # For REALLY OLD Rubies...
 if RUBY_VERSION < '2.3'
-  # ...there was no rb_time_timespec_new function
-  $defs << '-DNO_RB_TIME_TIMESPEC_NEW'
   # ...the VM changed enough that we need an alternative legacy rb_profile_frames
   $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
 end
