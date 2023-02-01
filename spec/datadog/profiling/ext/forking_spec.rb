@@ -108,15 +108,6 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
           fork_result
         end
       end
-
-      before do
-        # TODO: This test breaks other tests when Forking#apply! runs first in Ruby < 2.3
-        #       Unclear whether its the setup from this test, or cleanup elsewhere (e.g. spec_helper.rb)
-        #       Either way, #apply! causes callbacks not to work; Forking patch is
-        #       not hooking in properly. See `fork_class.method(:fork).source_location`
-        #       and `fork.class.ancestors` vs `fork.singleton_class.ancestors`.
-        skip 'Test is unstable for Ruby < 2.3' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
-      end
     end
 
     shared_context 'at_fork callbacks' do

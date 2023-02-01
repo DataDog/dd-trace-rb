@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 if local_gem_path = ENV['DD_DEMO_ENV_GEM_LOCAL_DDTRACE']
-  if (RUBY_VERSION.start_with?('2.1.') || RUBY_VERSION.start_with?('2.2.'))
+  if RUBY_VERSION.start_with?('2.1.', '2.2.')
     puts "\n== Skipping build of profiler native extension on Ruby 2.1/2.2 =="
   else
     puts "\n== Building profiler native extension =="
