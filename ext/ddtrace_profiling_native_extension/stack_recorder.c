@@ -290,8 +290,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   ddog_Timespec ddprof_start = serialized_profile.ok.start;
   ddog_Timespec ddprof_finish = serialized_profile.ok.end;
 
-  // FIXME: Temporarily disabled until a libdatadog crash gets fixed
-  // ddog_prof_EncodedProfile_drop(&serialized_profile.ok);
+  ddog_prof_EncodedProfile_drop(&serialized_profile.ok);
 
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
