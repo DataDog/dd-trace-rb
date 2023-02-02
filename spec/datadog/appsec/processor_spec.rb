@@ -124,16 +124,6 @@ RSpec.describe Datadog::AppSec::Processor do
       it { expect(described_class.new.send(:load_ruleset)).to be true }
     end
 
-    context 'when ruleset is :risky' do
-      let(:ruleset) { :risky }
-
-      before do
-        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:risky).and_call_original.twice
-      end
-
-      it { expect(described_class.new.send(:load_ruleset)).to be true }
-    end
-
     context 'when ruleset is an existing path' do
       let(:ruleset) { "#{__dir__}/../../../lib/datadog/appsec/assets/waf_rules/recommended.json" }
 

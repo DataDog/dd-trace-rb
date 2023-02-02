@@ -48,8 +48,8 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     end
 
     describe '#ruleset=' do
-      subject(:ruleset_) { settings.merge(dsl.tap { |c| c.ruleset = :risky }) }
-      it { expect { ruleset_ }.to change { settings.ruleset }.from(:recommended).to(:risky) }
+      subject(:ruleset_) { settings.merge(dsl.tap { |c| c.ruleset = :strict }) }
+      it { expect { ruleset_ }.to change { settings.ruleset }.from(:recommended).to(:strict) }
     end
 
     describe '#waf_timeout' do
@@ -157,8 +157,8 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
 
         describe '#ruleset=' do
-          subject(:ruleset_) { settings.merge(dsl.tap { |c| c.ruleset = :risky }) }
-          it { expect { ruleset_ }.to change { settings.ruleset }.from('/some/path').to(:risky) }
+          subject(:ruleset_) { settings.merge(dsl.tap { |c| c.ruleset = :strict }) }
+          it { expect { ruleset_ }.to change { settings.ruleset }.from('/some/path').to(:strict) }
         end
       end
 

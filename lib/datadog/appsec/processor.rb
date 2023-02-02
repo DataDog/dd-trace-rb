@@ -103,7 +103,7 @@ module Datadog
 
         begin
           @ruleset = case ruleset_setting
-                     when :recommended, :risky, :strict
+                     when :recommended, :strict
                        JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
                      when String
                        JSON.parse(File.read(ruleset_setting))
