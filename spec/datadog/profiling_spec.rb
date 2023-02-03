@@ -133,6 +133,16 @@ RSpec.describe Datadog::Profiling do
           end
 
           it { is_expected.to be nil }
+
+          context "but it's the protobuf/cucumber-protobuf gem instead of google-protobuf" do
+            include_context 'loaded gems', :'google-protobuf' => nil
+
+            before do
+              stub_const('::Protobuf', Module.new)
+            end
+
+            it { is_expected.to include 'Missing google-protobuf' }
+          end
         end
       end
     end
