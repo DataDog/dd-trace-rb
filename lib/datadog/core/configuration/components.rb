@@ -351,8 +351,7 @@ module Datadog
           def print_new_profiler_warnings
             if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
               Datadog.logger.warn(
-                'New Ruby profiler has been force-enabled. This feature is in beta state. We do not yet recommend ' \
-                'running it in production environments. Please report any issues ' \
+                'New Ruby profiler has been force-enabled. This is a beta feature. Please report any issues ' \
                 'you run into to Datadog support or via <https://github.com/datadog/dd-trace-rb/issues/new>!'
               )
             else
