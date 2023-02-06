@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 require_relative 'agent_settings_resolver'
 require_relative '../diagnostics/environment_logger'
