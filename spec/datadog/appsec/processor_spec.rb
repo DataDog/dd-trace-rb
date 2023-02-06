@@ -128,7 +128,7 @@ RSpec.describe Datadog::AppSec::Processor do
       let(:ruleset) { :risky }
 
       before do
-        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:risky).and_call_original.twice
+        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original.twice
       end
 
       it { expect(described_class.new.send(:load_ruleset)).to be true }

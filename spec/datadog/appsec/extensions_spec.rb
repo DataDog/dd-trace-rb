@@ -69,8 +69,8 @@ RSpec.describe Datadog::AppSec::Extensions do
       end
 
       describe '#ruleset=' do
-        subject(:ruleset_) { settings.ruleset = :risky }
-        it { expect { ruleset_ }.to change { settings.ruleset }.from(:recommended).to(:risky) }
+        subject(:ruleset_) { settings.ruleset = :strict }
+        it { expect { ruleset_ }.to change { settings.ruleset }.from(:recommended).to(:strict) }
       end
 
       describe '#waf_timeout' do

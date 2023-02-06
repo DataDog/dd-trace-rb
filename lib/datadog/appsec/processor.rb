@@ -103,8 +103,15 @@ module Datadog
 
         begin
           @ruleset = case ruleset_setting
-                     when :recommended, :risky, :strict
+                     when :recommended, :strict
                        JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
+                     when :risky
+                       JSON.parse(Datadog::AppSec::Assets.waf_rules(:recommended))
+                       Datadog.logger.warn(
+                         'The :risky Application Security Management ruleset has been deprecated and no longer available.'\
+                         'The `:recommended` ruleset will be used instead.'\
+                         'Please remove the `appsec.ruleset = :risky` setting from your Datadog.configure block.'
+                       )
                      when String
                        JSON.parse(File.read(ruleset_setting))
                      when File, StringIO
