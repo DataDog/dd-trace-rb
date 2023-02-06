@@ -89,6 +89,8 @@ module Datadog
         Profiling::Profiler.new([collector], scheduler)
       end
 
+      private
+
       def build_profiler_old_recorder(settings)
         Profiling::OldRecorder.new([Profiling::Events::StackSample], settings.profiling.advanced.max_events)
       end
