@@ -56,35 +56,6 @@ module Datadog
           def build_telemetry(settings)
             Telemetry::Client.new(enabled: settings.telemetry.enabled)
           end
-
-          private
-
-          def build_tracer_tags(settings)
-            settings.tags.dup.tap do |tags|
-              tags[Core::Environment::Ext::TAG_ENV] = settings.env unless settings.env.nil?
-              tags[Core::Environment::Ext::TAG_VERSION] = settings.version unless settings.version.nil?
-            end
-          end
-
-          def build_test_mode_trace_flush(settings)
-            # If context flush behavior is provided, use it instead.
-            settings.tracing.test_mode.trace_flush || build_trace_flush(settings)
-          end
-
-          def build_test_mode_sampler
-            # Do not sample any spans for tests; all must be preserved.
-            # Set priority sampler to ensure the agent doesn't drop any traces.
-            Tracing::Sampling::PrioritySampler.new(
-              base_sampler: Tracing::Sampling::AllSampler.new,
-              post_sampler: Tracing::Sampling::AllSampler.new
-            )
-          end
-
-          def build_test_mode_writer(settings, agent_settings)
-            # Flush traces synchronously, to guarantee they are written.
-            writer_options = settings.tracing.test_mode.writer_options || {}
-            Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
-          end
         end
 
         attr_reader \
