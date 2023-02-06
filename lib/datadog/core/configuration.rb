@@ -1,4 +1,4 @@
-# typed: ignore
+# typed: true
 
 require_relative 'configuration/components'
 require_relative 'configuration/settings'
