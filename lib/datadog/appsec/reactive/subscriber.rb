@@ -1,4 +1,5 @@
 # typed: ignore
+# frozen_string_literal: true
 
 module Datadog
   module AppSec
@@ -7,6 +8,7 @@ module Datadog
       class Subscriber
         def initialize(&block)
           @block = block
+          freeze
         end
 
         def call(*args)

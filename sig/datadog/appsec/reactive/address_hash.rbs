@@ -4,6 +4,8 @@ module Datadog
       class AddressHash < ::Hash[::Array[::String], ::Array[Subscriber]]
         type key = ::Array[::String]
 
+        def self.new: (*untyped arguments) -> AddressHash
+
         def []=: (key key, Subscriber value) -> Subscriber
 
         def addresses: () -> ::Array[::String]

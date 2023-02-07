@@ -16,7 +16,7 @@ module Datadog
           Datadog.logger.debug { "operation: #{name} initialize" }
           @name = name
           @parent = parent
-          @reactive = reactive_engine || (parent.reactive unless parent.nil?) || Reactive::Engine.new
+          @reactive = select_reactive_engine(reactive_engine, parent)
 
           # TODO: concurrent store
           # TODO: constant
@@ -39,6 +39,16 @@ module Datadog
         def finalize
           Datadog.logger.debug { "operation: #{name} finalize" }
           Thread.current[:datadog_security_active_operation] = parent
+        end
+
+        private
+
+        def select_reactive_engine(reactive, parent)
+          return reactive if reactive
+
+          return parent.reactive unless parent.nil?
+
+          Reactive::Engine.new
         end
 
         class << self

@@ -5,7 +5,7 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/reactive/operation'
 
 RSpec.describe Datadog::AppSec::Reactive::Operation do
-  after(:each) do
+  after do
     Thread.current[:datadog_security_active_operation] = nil
   end
 
@@ -69,15 +69,15 @@ RSpec.describe Datadog::AppSec::Reactive::Operation do
   context 'publish' do
     it 'delegates to reactive engine' do
       operation = described_class.new('test')
-      expect(operation.reactive).to receive(:publish).with(:a, "hello world")
-      operation.publish(:a, "hello world")
+      expect(operation.reactive).to receive(:publish).with(:a, 'hello world')
+      operation.publish(:a, 'hello world')
     end
   end
 
   context 'finalize' do
     it 'set datadog_security_active_operation to parent' do
       parent_operation = described_class.new('parent_test')
-      operation = described_class.new('test', parent_operation)
+      described_class.new('test', parent_operation)
       expect(Thread.current[:datadog_security_active_operation]).to eq(parent_operation)
       parent_operation.finalize
       # The parent of parent_operation is nil because is the top operation
