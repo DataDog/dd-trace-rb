@@ -370,9 +370,9 @@ task :ci do
   declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ jruby' => 'bundle exec appraisal rails6-postgres-redis-activesupport rake spec:railsredis_activesupport'
   declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ jruby' => 'bundle exec appraisal rails6-postgres-sidekiq rake spec:railsactivejob'
   declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ jruby' => 'bundle exec appraisal rails6-semantic-logger rake spec:railssemanticlogger'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ❌ 3.2 / ✅ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:action_cable'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ❌ 3.2 / ✅ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:action_mailer'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ❌ 3.2 / ✅ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:rails'
+  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:action_cable'
+  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:action_mailer'
+  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:rails'
   declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ jruby' => 'bundle exec appraisal rails61-postgres rake spec:rails'
   declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ jruby' => 'bundle exec appraisal rails61-postgres rake spec:railsdisableenv'
   declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ jruby' => 'bundle exec appraisal rails61-postgres-redis rake spec:railsredis'
@@ -408,7 +408,7 @@ task :ci do
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ jruby' => 'bundle exec appraisal rails4-mysql2 rake spec:appsec:rails'
   declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ jruby' => 'bundle exec appraisal rails5-mysql2 rake spec:appsec:rails'
   declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ jruby' => 'bundle exec appraisal rails6-mysql2 rake spec:appsec:rails'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ❌ 3.2 / ❌ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:appsec:rails'
+  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ❌ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:appsec:rails'
 
   # Upstream gem test suite with ddtrace enabled
   declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ❌ jruby' => 'bundle exec rake upstream:opentelemetry'
