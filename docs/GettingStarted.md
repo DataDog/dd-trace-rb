@@ -2732,8 +2732,10 @@ The stats are VM specific and will include:
 | `runtime.ruby.class_count`  | `gauge` | Number of classes in memory space.                       | CRuby        |
 | `runtime.ruby.gc.*`         | `gauge` | Garbage collection statistics: collected from `GC.stat`. | All runtimes |
 | `runtime.ruby.thread_count` | `gauge` | Number of threads.                                       | All runtimes |
-| `runtime.ruby.global_constant_state` | `gauge` | Global constant cache generation.               | CRuby        |
-| `runtime.ruby.global_method_state`   | `gauge` | [Global method cache generation.](https://tenderlovemaking.com/2015/12/23/inline-caching-in-mri.html) | [CRuby < 3.0.0](https://docs.ruby-lang.org/en/3.0.0/NEWS_md.html#label-Implementation+improvements) |
+| `runtime.ruby.global_constant_state`        | `gauge` | Global constant cache generation.                                                                     | CRuby ≤ 3.1                                                                                     |
+| `runtime.ruby.global_method_state`          | `gauge` | [Global method cache generation.](https://tenderlovemaking.com/2015/12/23/inline-caching-in-mri.html) | [CRuby 2.x](https://docs.ruby-lang.org/en/3.0.0/NEWS_md.html#label-Implementation+improvements) |
+| `runtime.ruby.constant_cache_invalidations` | `gauge` | Constant cache invalidations.                                                                         | CRuby ≥ 3.2                                                                                     |
+| `runtime.ruby.constant_cache_misses`        | `gauge` | Constant cache misses.                                                                                | CRuby ≥ 3.2                                                                                     |
 
 In addition, all metrics include the following tags:
 

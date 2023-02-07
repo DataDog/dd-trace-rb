@@ -20,6 +20,9 @@ module Datadog
         # Whenever a constant creation busts the global constant cache
         # this value is incremented. This has a measurable performance impact
         # and thus show be avoided after application warm up.
+        #
+        # This was removed in Ruby 3.2.
+        # @see https://github.com/ruby/ruby/blob/master/doc/NEWS/NEWS-3.2.0.md#implementation-improvements
         def global_constant_state
           ::RubyVM.stat[:global_constant_state]
         end
@@ -36,6 +39,20 @@ module Datadog
         # @see https://bugs.ruby-lang.org/issues/16614
         def global_method_state
           ::RubyVM.stat[:global_method_state]
+        end
+
+        # Introduced in Ruby 3.2 to match an improved cache implementation.
+        #
+        # @see https://bugs.ruby-lang.org/issues/18589
+        def constant_cache_invalidations
+          ::RubyVM.stat[:constant_cache_invalidations]
+        end
+
+        # Introduced in Ruby 3.2 to match an improved cache implementation.
+        #
+        # @see https://bugs.ruby-lang.org/issues/18589
+        def constant_cache_misses
+          ::RubyVM.stat[:constant_cache_misses]
         end
 
         def available?
