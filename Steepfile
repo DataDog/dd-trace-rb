@@ -25,3 +25,5 @@ target :appsec do
   library 'rails'
   library 'sinatra'
 end
+
+# vim: ft=ruby
