@@ -142,6 +142,7 @@ GEM
     mini_mime (1.1.2)
     minitest (5.17.0)
     msgpack (1.6.0)
+    mysql2 (0.5.5)
     net-imap (0.3.4)
       date
       net-protocol
@@ -283,6 +284,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  activerecord-jdbcmysql-adapter
   addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
@@ -297,6 +299,7 @@ DEPENDENCIES
   json-schema (< 3)
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
+  mysql2 (~> 0.5)
   net-smtp
   opentracing (>= 0.4.1)
   os (~> 1.1)
