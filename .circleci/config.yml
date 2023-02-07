@@ -582,8 +582,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
-            # TODO: Re-enable once 3.2 testing is green!
-            #- test-3.2
+            - test-3.2
             # ADD NEW RUBIES HERE
             # TODO: Disabled for possible removal
             #- test-jruby-9.2.8.0
@@ -731,12 +730,11 @@ workflows:
       - orb/build:
           <<: *config-3_2
           name: build-3.2
-      # TODO: Re-enable once 3.2 testing is green!
-      # - orb/test:
-      #     <<: *config-3_2
-      #     name: test-3.2
-      #     requires:
-      #       - build-3.2
+      - orb/test:
+          <<: *config-3_2
+          name: test-3.2
+          requires:
+            - build-3.2
       # ADD NEW RUBIES HERE
       # TODO: Disabled for possible removal
       # - orb/build:
@@ -778,8 +776,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
-            # TODO: Re-enable once 3.2 testing is green!
-            #- test-3.2
+            - test-3.2
             # ADD NEW RUBIES HERE
             # TODO: Disabled for possible removal
             # - test-jruby-9.2.8.0
@@ -799,8 +796,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
-            # TODO: Re-enable once 3.2 testing is green!
-            #- test-3.2
+            - test-3.2
             # ADD NEW RUBIES HERE
             # TODO: Disabled for possible removal
             # - test-jruby-9.2.8.0
@@ -960,12 +956,11 @@ workflows:
           <<: *config-3_2
           name: build-3.2
           edge: true
-      # TODO: Re-enable once 3.2 testing is green!
-      # - orb/test:
-      #     <<: *config-3_2
-      #     name: test-3.2
-      #     requires:
-      #       - build-3.2
+      - orb/test:
+          <<: *config-3_2
+          name: test-3.2
+          requires:
+            - build-3.2
       # ADD NEW RUBIES HERE
       # TODO: Disabled for possible removal
       # - orb/build:
