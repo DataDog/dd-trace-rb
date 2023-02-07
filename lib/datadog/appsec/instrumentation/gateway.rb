@@ -1,4 +1,5 @@
 # typed: ignore
+# frozen_string_literal: true
 
 module Datadog
   module AppSec
@@ -19,6 +20,10 @@ module Datadog
             @block.call(stack, env)
           end
         end
+
+        private_constant :Middleware
+
+        attr_reader :middlewares
 
         def initialize
           @middlewares = Hash.new { |h, k| h[k] = [] }

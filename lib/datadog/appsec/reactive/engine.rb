@@ -1,4 +1,5 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require_relative 'address_hash'
 require_relative 'subscriber'
@@ -8,6 +9,8 @@ module Datadog
     module Reactive
       # Reactive Engine
       class Engine
+        attr_reader :subscribers, :data
+
         def initialize
           @data = {}
           @subscribers = AddressHash.new { |h, k| h[k] = [] } # TODO: move to AddressHash initializer
