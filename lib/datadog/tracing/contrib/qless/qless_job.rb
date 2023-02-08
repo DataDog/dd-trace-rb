@@ -15,6 +15,8 @@ module Datadog
             return super unless datadog_configuration && Tracing.enabled?
 
             Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
+              span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
+
               span.resource = job.klass_name
               span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
               span.set_tag(Ext::TAG_JOB_ID, job.jid)

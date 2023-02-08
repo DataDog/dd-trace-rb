@@ -25,6 +25,8 @@ module Datadog
             Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span|
               span.resource = resource
 
+              span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
+
               span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_PUSH)
 

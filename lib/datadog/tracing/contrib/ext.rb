@@ -19,6 +19,10 @@ module Datadog
           TAG_SERVICE = 'rpc.service'
           TAG_METHOD = 'rpc.method'
         end
+
+        module Messaging
+          TAG_SYSTEM = 'messaging.system'
+        end
       end
     end
   end

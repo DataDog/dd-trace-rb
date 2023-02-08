@@ -56,6 +56,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span).to_not have_error
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('kafka')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('connection.request')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -82,6 +83,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag('kafka.request_size')).to eq(request_size)
           expect(span.get_tag('kafka.response_size')).to eq(response_size)
           expect(span).to have_error
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -138,6 +140,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('kafka')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('consumer.process_batch')
           expect(span.get_tag('span.kind')).to eq('consumer')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -169,6 +172,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag('kafka.offset_lag')).to eq(offset_lag)
           expect(span).to have_error
           expect(span.get_tag('span.kind')).to eq('consumer')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -225,6 +229,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('kafka')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('consumer.process_message')
           expect(span.get_tag('span.kind')).to eq('consumer')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -256,6 +261,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag('kafka.offset_lag')).to eq(offset_lag)
           expect(span).to have_error
           expect(span.get_tag('span.kind')).to eq('consumer')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -305,6 +311,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span).to_not have_error
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('kafka')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('consumer.heartbeat')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -332,6 +339,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag('kafka.topic_partitions.foo')).to eq(topic_partitions['foo'].to_s)
           expect(span.get_tag('kafka.topic_partitions.bar')).to eq(topic_partitions['bar'].to_s)
           expect(span).to have_error
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -372,6 +380,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span).to_not have_error
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('kafka')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('consumer.join_group')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -397,6 +406,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag('kafka.client')).to eq(client_id)
           expect(span.get_tag('kafka.group')).to eq(group_id)
           expect(span).to have_error
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -437,6 +447,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span).to_not have_error
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('kafka')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('consumer.leave_group')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -462,6 +473,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag('kafka.client')).to eq(client_id)
           expect(span.get_tag('kafka.group')).to eq(group_id)
           expect(span).to have_error
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -502,6 +514,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span).to_not have_error
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('kafka')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('consumer.sync_group')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -527,6 +540,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag('kafka.client')).to eq(client_id)
           expect(span.get_tag('kafka.group')).to eq(group_id)
           expect(span).to have_error
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -571,6 +585,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('kafka')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('producer.send_messages')
           expect(span.get_tag('span.kind')).to eq('producer')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -598,6 +613,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag('kafka.sent_message_count')).to eq(sent_message_count)
           expect(span).to have_error
           expect(span.get_tag('span.kind')).to eq('producer')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -645,6 +661,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('kafka')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('producer.deliver_messages')
           expect(span.get_tag('span.kind')).to eq('producer')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
@@ -673,6 +690,7 @@ RSpec.describe 'Kafka patcher' do
           expect(span.get_tag('kafka.delivered_message_count')).to eq(delivered_message_count)
           expect(span).to have_error
           expect(span.get_tag('span.kind')).to eq('producer')
+          expect(span.get_tag('messaging.system')).to eq('kafka')
         end
       end
     end
