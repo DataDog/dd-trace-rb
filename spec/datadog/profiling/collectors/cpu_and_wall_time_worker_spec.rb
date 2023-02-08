@@ -150,7 +150,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       cpu_and_wall_time_worker.stop
 
       sample_count =
-        samples_for_thread(all_samples, Thread.current).map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
+        samples_for_thread(all_samples, Thread.current)
+          .reject { |it| it.locations.find { |frame| frame.base_label == '_native_sampling_loop' } } # Filter out profiler
+          .map { |it| it.values.fetch(:'cpu-samples') }
+          .reduce(:+)
 
       stats = cpu_and_wall_time_worker.stats
 
