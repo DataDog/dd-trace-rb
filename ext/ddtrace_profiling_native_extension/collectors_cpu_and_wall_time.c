@@ -139,13 +139,14 @@ static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _val
 static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument);
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames, VALUE tracer_context_key);
-static VALUE _native_sample(VALUE self, VALUE collector_instance);
+static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
 static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 void update_metrics_and_sample(
   struct cpu_and_wall_time_collector_state *state,
   VALUE thread_being_sampled,
+  VALUE profiler_overhead_stack_thread,
   struct per_thread_context *thread_context,
   long current_cpu_time_ns,
   long current_monotonic_wall_time_ns
@@ -153,6 +154,7 @@ void update_metrics_and_sample(
 static void trigger_sample_for_thread(
   struct cpu_and_wall_time_collector_state *state,
   VALUE thread,
+  VALUE stack_from_thread,
   struct per_thread_context *thread_context,
   ddog_Slice_I64 metric_values_slice,
   sample_type type
@@ -195,7 +197,7 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 4);
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
-  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 1);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_sample_after_gc", _native_sample_after_gc, 1);
@@ -304,8 +306,10 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_inst
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
-  cpu_and_wall_time_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
+static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE profiler_overhead_stack_thread) {
+  if (!is_thread_alive(profiler_overhead_stack_thread)) rb_raise(rb_eArgError, "Unexpected: profiler_overhead_stack_thread is not alive");
+
+  cpu_and_wall_time_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE), profiler_overhead_stack_thread);
   return Qtrue;
 }
 
@@ -337,9 +341,16 @@ static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_
 // Assumption 3: This function IS NOT called from a signal handler. This function is not async-signal-safe.
 // Assumption 4: This function IS NOT called in a reentrant way.
 // Assumption 5: This function is called from the main Ractor (if Ruby has support for Ractors).
-void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns) {
+//
+// The `profiler_overhead_stack_thread` is used to attribute the profiler overhead to a stack borrowed from a different thread
+// (belonging to ddtrace), so that the overhead is visible in the profile rather than blamed on user code.
+void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns, VALUE profiler_overhead_stack_thread) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+
+  VALUE current_thread = rb_thread_current();
+  struct per_thread_context *current_thread_context = get_or_create_context_for(current_thread, state);
+  long cpu_time_at_sample_start_for_current_thread = cpu_time_now_ns(current_thread_context);
 
   VALUE threads = ddtrace_thread_list();
 
@@ -348,9 +359,18 @@ void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monoto
     VALUE thread = RARRAY_AREF(threads, i);
     struct per_thread_context *thread_context = get_or_create_context_for(thread, state);
 
-    long current_cpu_time_ns = cpu_time_now_ns(thread_context);
+    // We account for cpu-time for the current thread in a different way -- we use the cpu-time at sampling start, to avoid
+    // blaming the time the profiler took on whatever's running on the thread right now
+    long current_cpu_time_ns = thread != current_thread ? cpu_time_now_ns(thread_context) : cpu_time_at_sample_start_for_current_thread;
 
-    update_metrics_and_sample(state, thread, thread_context, current_cpu_time_ns, current_monotonic_wall_time_ns);
+    update_metrics_and_sample(
+      state,
+      /* thread_being_sampled: */ thread,
+      /* stack_from_thread: */ thread,
+      thread_context,
+      current_cpu_time_ns,
+      current_monotonic_wall_time_ns
+    );
   }
 
   state->sample_count++;
@@ -358,11 +378,21 @@ void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monoto
   // TODO: This seems somewhat overkill and inefficient to do often; right now we just do it every few samples
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
+
+  update_metrics_and_sample(
+    state,
+    /* thread_being_sampled: */ current_thread,
+    /* stack_from_thread: */ profiler_overhead_stack_thread,
+    current_thread_context,
+    cpu_time_now_ns(current_thread_context),
+    monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
+  );
 }
 
 void update_metrics_and_sample(
   struct cpu_and_wall_time_collector_state *state,
   VALUE thread_being_sampled,
+  VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
   long current_cpu_time_ns,
   long current_monotonic_wall_time_ns
@@ -389,6 +419,7 @@ void update_metrics_and_sample(
   trigger_sample_for_thread(
     state,
     thread_being_sampled,
+    stack_from_thread,
     thread_context,
     (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
     SAMPLE_REGULAR
@@ -535,7 +566,8 @@ VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
 
     trigger_sample_for_thread(
       state,
-      thread,
+      /* thread: */  thread,
+      /* stack_from_thread: */ thread,
       thread_context,
       (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
       SAMPLE_IN_GC
@@ -565,6 +597,7 @@ VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
 static void trigger_sample_for_thread(
   struct cpu_and_wall_time_collector_state *state,
   VALUE thread,
+  VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
   ddog_Slice_I64 metric_values_slice,
   sample_type type
@@ -623,7 +656,7 @@ static void trigger_sample_for_thread(
   }
 
   sample_thread(
-    thread,
+    stack_from_thread,
     state->sampling_buffer,
     state->recorder_instance,
     metric_values_slice,

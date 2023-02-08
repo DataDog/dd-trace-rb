@@ -15,8 +15,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
   let(:ready_queue) { Queue.new }
   let(:t1) do
     Thread.new(ready_queue) do |ready_queue|
-      ready_queue << true
-      sleep
+      inside_t1 do
+        ready_queue << true
+        sleep
+      end
     end
   end
   let(:t2) do
@@ -47,8 +49,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     end
   end
 
-  def sample
-    described_class::Testing._native_sample(cpu_and_wall_time_collector)
+  def sample(profiler_overhead_stack_thread: Thread.current)
+    described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread)
   end
 
   def on_gc_start
@@ -73,6 +75,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
   def stats
     described_class::Testing._native_stats(cpu_and_wall_time_collector)
+  end
+
+  def inside_t1
+    yield
+  end
+
+  # This method exists only so we can look for its name in the stack trace in a few tests
+  def another_way_of_calling_sample(profiler_overhead_stack_thread: Thread.current)
+    sample(profiler_overhead_stack_thread: profiler_overhead_stack_thread)
   end
 
   describe '#sample' do
@@ -148,10 +159,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
           wall_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:'gc_tracking.wall_time_at_start_ns')
 
-          5.times { sample } # Even though we keep sampling, the result only includes the time until we called on_gc_start
+          # Even though we keep calling sample, the result only includes the time until we called on_gc_start
+          5.times { another_way_of_calling_sample }
 
           total_wall_for_rspec_thread =
             samples_for_thread(samples, Thread.current)
+              .select { |it| it.locations.find { |frame| frame.base_label == 'another_way_of_calling_sample' } }
               .map { |it| it.values.fetch(:'wall-time') }
               .reduce(:+)
 
@@ -227,11 +240,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
               cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:'gc_tracking.cpu_time_at_start_ns')
 
-              # Even though we keep sampling, the result only includes the time until we called on_gc_start
-              5.times { sample }
+              # Even though we keep calling sample, the result only includes the time until we called on_gc_start
+              5.times { another_way_of_calling_sample }
 
               total_cpu_for_rspec_thread =
                 samples_for_thread(samples, Thread.current)
+                  .select { |it| it.locations.find { |frame| frame.base_label == 'another_way_of_calling_sample' } }
                   .map { |it| it.values.fetch(:'cpu-time') }
                   .reduce(:+)
 
@@ -454,6 +468,45 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           end
         end
       end
+    end
+
+    # This is a bit weird, but what we're doing here is using the stack from a different thread to represent the
+    # profiler overhead. In practice, the "different thread" will be the Collectors::CpuAndWallTimeWorker thread.
+    #
+    # Thus, what happens is, when we sample _once_, two samples will show up for the thread **that calls sample**:
+    # * The regular stack
+    # * The stack from the other thread
+    #
+    # E.g. if 1s elapsed since the last sample, and sampling takes 500ms:
+    # * The regular stack will have 1s attributed to it
+    # * The stack from the other thread will have 500ms attributed to it.
+    #
+    # This way it's clear what overhead comes from profiling. Without this feature (aka if profiler_overhead_stack_thread
+    # is set to Thread.current), then all 1.5s get attributed to the current stack, and the profiler overhead would be
+    # invisible.
+    it 'attributes the time sampling to the stack of the worker_thread_to_blame' do
+      sample
+      wall_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
+
+      another_way_of_calling_sample(profiler_overhead_stack_thread: t1)
+      wall_time_at_second_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
+
+      second_sample_stack =
+        samples_for_thread(samples, Thread.current)
+          .select { |it| it.locations.find { |frame| frame.base_label == 'another_way_of_calling_sample' } }
+
+      # The stack from the profiler_overhead_stack_thread (t1) above has showed up attributed to Thread.current, as we
+      # are using it to represent the profiler overhead.
+      profiler_overhead_stack =
+        samples_for_thread(samples, Thread.current)
+          .select { |it| it.locations.find { |frame| frame.base_label == 'inside_t1' } }
+
+      expect(second_sample_stack.size).to be 1
+      expect(profiler_overhead_stack.size).to be 1
+
+      expect(
+        second_sample_stack.first.values.fetch(:'wall-time') + profiler_overhead_stack.first.values.fetch(:'wall-time')
+      ).to be wall_time_at_second_sample - wall_time_at_first_sample
     end
   end
 
