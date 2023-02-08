@@ -507,6 +507,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       expect(
         second_sample_stack.first.values.fetch(:'wall-time') + profiler_overhead_stack.first.values.fetch(:'wall-time')
       ).to be wall_time_at_second_sample - wall_time_at_first_sample
+
+      expect(second_sample_stack.first.labels).to_not include(:'profiler overhead' => anything)
+      expect(profiler_overhead_stack.first.labels).to include(:'profiler overhead' => 1)
     end
   end
 

@@ -540,7 +540,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(cpu_and_wall_time_worker) }
   end
 
-  # This is useful because in a bunch of tests above we want to assert on properties of the period sampling, and having
+  # This is useful because in a bunch of tests above we want to assert on properties of the samples, and having
   # a random GC in the middle of the spec contribute a sample can throw off the expected values and counts.
   #
   # We have separate specs that assert on the GC behaviors.

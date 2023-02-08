@@ -605,6 +605,7 @@ static void trigger_sample_for_thread(
   int max_label_count =
     1 + // thread id
     1 + // thread name
+    1 + // profiler overhead
     2;  // local root span id and span id
   ddog_prof_Label labels[max_label_count];
   int label_pos = 0;
@@ -645,6 +646,13 @@ static void trigger_sample_for_thread(
         char_slice_from_ruby_string(trace_identifiers_result.trace_endpoint)
       );
     }
+  }
+
+  if (thread != stack_from_thread) {
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("profiler overhead"),
+      .num = 1
+    };
   }
 
   // The number of times `label_pos++` shows up in this function needs to match `max_label_count`. To avoid "oops I
