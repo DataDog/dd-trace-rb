@@ -364,7 +364,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         samples_from_ractor =
           samples_from_pprof(recorder.serialize!)
-            .select { |it| it.fetch(:labels)[:'thread name'] == 'background ractor' }
+            .select { |it| it.labels[:'thread name'] == 'background ractor' }
 
         expect(samples_from_ractor).to be_empty
       end
