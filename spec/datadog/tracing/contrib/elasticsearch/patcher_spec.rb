@@ -81,6 +81,10 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       }
 
       it {
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq('client')
+      }
+
+      it {
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('query')
       }
@@ -140,6 +144,10 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
 
       it {
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
+      }
+
+      it {
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq('client')
       }
 
       it {
