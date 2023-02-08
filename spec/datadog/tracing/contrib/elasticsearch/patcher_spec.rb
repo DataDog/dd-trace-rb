@@ -77,7 +77,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       }
 
       it {
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
+        expect(span.get_tag('component')).to eq('elasticsearch')
       }
 
       it {
@@ -143,7 +143,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       }
 
       it {
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
+        expect(span.get_tag('component')).to eq('elasticsearch')
       }
 
       it {
