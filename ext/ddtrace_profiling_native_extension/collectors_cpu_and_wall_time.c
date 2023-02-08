@@ -143,6 +143,13 @@ static VALUE _native_sample(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
 static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
+void update_metrics_and_sample(
+  struct cpu_and_wall_time_collector_state *state,
+  VALUE thread_being_sampled,
+  struct per_thread_context *thread_context,
+  long current_cpu_time_ns,
+  long current_monotonic_wall_time_ns
+);
 static void trigger_sample_for_thread(
   struct cpu_and_wall_time_collector_state *state,
   VALUE thread,
@@ -343,32 +350,7 @@ void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monoto
 
     long current_cpu_time_ns = cpu_time_now_ns(thread_context);
 
-    long cpu_time_elapsed_ns = update_time_since_previous_sample(
-      &thread_context->cpu_time_at_previous_sample_ns,
-      current_cpu_time_ns,
-      thread_context->gc_tracking.cpu_time_at_start_ns,
-      IS_NOT_WALL_TIME
-    );
-    long wall_time_elapsed_ns = update_time_since_previous_sample(
-      &thread_context->wall_time_at_previous_sample_ns,
-      current_monotonic_wall_time_ns,
-      thread_context->gc_tracking.wall_time_at_start_ns,
-      IS_WALL_TIME
-    );
-
-    int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
-
-    metric_values[CPU_TIME_VALUE_POS] = cpu_time_elapsed_ns;
-    metric_values[CPU_SAMPLES_VALUE_POS] = 1;
-    metric_values[WALL_TIME_VALUE_POS] = wall_time_elapsed_ns;
-
-    trigger_sample_for_thread(
-      state,
-      thread,
-      thread_context,
-      (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      SAMPLE_REGULAR
-    );
+    update_metrics_and_sample(state, thread, thread_context, current_cpu_time_ns, current_monotonic_wall_time_ns);
   }
 
   state->sample_count++;
@@ -376,6 +358,41 @@ void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monoto
   // TODO: This seems somewhat overkill and inefficient to do often; right now we just do it every few samples
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
+}
+
+void update_metrics_and_sample(
+  struct cpu_and_wall_time_collector_state *state,
+  VALUE thread_being_sampled,
+  struct per_thread_context *thread_context,
+  long current_cpu_time_ns,
+  long current_monotonic_wall_time_ns
+) {
+  long cpu_time_elapsed_ns = update_time_since_previous_sample(
+    &thread_context->cpu_time_at_previous_sample_ns,
+    current_cpu_time_ns,
+    thread_context->gc_tracking.cpu_time_at_start_ns,
+    IS_NOT_WALL_TIME
+  );
+  long wall_time_elapsed_ns = update_time_since_previous_sample(
+    &thread_context->wall_time_at_previous_sample_ns,
+    current_monotonic_wall_time_ns,
+    thread_context->gc_tracking.wall_time_at_start_ns,
+    IS_WALL_TIME
+  );
+
+  int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
+
+  metric_values[CPU_TIME_VALUE_POS] = cpu_time_elapsed_ns;
+  metric_values[CPU_SAMPLES_VALUE_POS] = 1;
+  metric_values[WALL_TIME_VALUE_POS] = wall_time_elapsed_ns;
+
+  trigger_sample_for_thread(
+    state,
+    thread_being_sampled,
+    thread_context,
+    (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+    SAMPLE_REGULAR
+  );
 }
 
 // This function gets called when Ruby is about to start running the Garbage Collector on the current thread.
