@@ -23,8 +23,6 @@ module Datadog
 
         private_constant :Middleware
 
-        attr_reader :middlewares
-
         def initialize
           @middlewares = Hash.new { |h, k| h[k] = [] }
         end
@@ -53,6 +51,10 @@ module Datadog
         def watch(name, key, &block)
           @middlewares[name] << Middleware.new(key, &block) unless middlewares[name].any? { |m| m.key == key }
         end
+
+        private
+
+        attr_reader :middlewares
       end
 
       def self.gateway

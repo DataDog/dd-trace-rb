@@ -6,25 +6,25 @@ require 'datadog/appsec/reactive/operation'
 
 RSpec.describe Datadog::AppSec::Reactive::Operation do
   after do
-    Thread.current[:datadog_security_active_operation] = nil
+    described_class.send(:reset!)
   end
 
-  context 'initialize' do
-    it 'set current datadog_security_active_operation thread variable for the duration of the block' do
-      active_operation = Thread.current[:datadog_security_active_operation]
+  describe '#initialize' do
+    it 'sets active to yield operation for the duration of the block' do
+      active_operation = described_class.active
       expect(active_operation).to be_nil
       described_class.new('test') do |op|
-        expect(Thread.current[:datadog_security_active_operation]).to eq(op)
+        expect(described_class.active).to eq(op)
       end
-      expect(active_operation).to be_nil
+      expect(described_class.active).to be_nil
     end
 
-    it 'set parent attrribute and set datadog_security_active_operation to parent at the end of the block' do
+    it 'sets active to parent' do
       parent_operation = described_class.new('parent_test')
       described_class.new('test', parent_operation) do |op|
-        expect(Thread.current[:datadog_security_active_operation]).to eq(op)
+        expect(described_class.active).to eq(op)
       end
-      expect(Thread.current[:datadog_security_active_operation]).to eq(parent_operation)
+      expect(described_class.active).to eq(parent_operation)
     end
 
     it 'creates a new Reactive instance when no reactive instance provided' do
@@ -56,7 +56,7 @@ RSpec.describe Datadog::AppSec::Reactive::Operation do
     end
   end
 
-  context 'subscribe' do
+  describe '#subscribe' do
     it 'delegates to reactive engine' do
       operation = described_class.new('test')
       expect(operation.reactive).to receive(:subscribe).with([:a, :b, :c])
@@ -66,7 +66,7 @@ RSpec.describe Datadog::AppSec::Reactive::Operation do
     end
   end
 
-  context 'publish' do
+  describe '#publish' do
     it 'delegates to reactive engine' do
       operation = described_class.new('test')
       expect(operation.reactive).to receive(:publish).with(:a, 'hello world')
@@ -74,14 +74,14 @@ RSpec.describe Datadog::AppSec::Reactive::Operation do
     end
   end
 
-  context 'finalize' do
-    it 'set datadog_security_active_operation to parent' do
+  describe '#finalize' do
+    it 'sets active to parent' do
       parent_operation = described_class.new('parent_test')
       described_class.new('test', parent_operation)
-      expect(Thread.current[:datadog_security_active_operation]).to eq(parent_operation)
+      expect(described_class.active).to eq(parent_operation)
       parent_operation.finalize
       # The parent of parent_operation is nil because is the top operation
-      expect(Thread.current[:datadog_security_active_operation]).to be_nil
+      expect(described_class.active).to be_nil
     end
   end
 end

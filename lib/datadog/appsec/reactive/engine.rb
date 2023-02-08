@@ -9,8 +9,6 @@ module Datadog
     module Reactive
       # Reactive Engine
       class Engine
-        attr_reader :subscribers, :data
-
         def initialize
           @data = {}
           @subscribers = AddressHash.new
@@ -20,12 +18,12 @@ module Datadog
           @subscribers[addresses.freeze] << Subscriber.new(&block)
         end
 
-        def publish(address, data)
+        def publish(address, value)
           # check if someone has address subscribed
           if @subscribers.addresses.include?(address)
 
-            # someone will be interested, set data
-            @data[address] = data
+            # someone will be interested, set value
+            @data[address] = value
 
             # find candidates i.e address groups that contain the just posted address
             @subscribers.with(address).each do |addresses|
@@ -40,6 +38,10 @@ module Datadog
             end
           end
         end
+
+        private
+
+        attr_reader :subscribers, :data
       end
     end
   end

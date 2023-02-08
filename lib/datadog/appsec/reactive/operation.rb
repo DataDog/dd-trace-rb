@@ -55,6 +55,13 @@ module Datadog
           def active
             Thread.current[:datadog_security_active_operation]
           end
+
+          private
+
+          # For testing only.
+          def reset!
+            Thread.current[:datadog_security_active_operation] = nil
+          end
         end
       end
     end
