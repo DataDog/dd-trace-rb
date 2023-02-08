@@ -5,7 +5,7 @@ require 'datadog/profiling'
 module ProfileHelpers
   include Kernel
 
-  Sample = Struct.new(:locations, :values, :labels)
+  Sample = Struct.new(:locations, :values, :labels) # rubocop:disable Lint/StructNewOverride
   Frame = Struct.new(:base_label, :path, :lineno)
 
   def build_stack_sample(
