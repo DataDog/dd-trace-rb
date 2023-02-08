@@ -150,7 +150,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       cpu_and_wall_time_worker.stop
 
       sample_count =
-        samples_for_thread(all_samples, Thread.current).map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+        samples_for_thread(all_samples, Thread.current).map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
 
       stats = cpu_and_wall_time_worker.stats
 
@@ -210,14 +210,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       current_thread_gc_samples =
         samples_for_thread(all_samples, Thread.current)
-          .select { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
+          .select { |it| it.locations.first.path == 'Garbage Collection' }
 
       # NOTE: In some cases, Ruby may actually call two GC's back-to-back without us having the possibility to take
       # a sample. I don't expect this to happen for this test (that's what the `Thread.pass` above is trying to avoid)
       # but if this spec turns out to be flaky, that is probably the issue, and that would mean we'd need to relax the
       # check.
       expect(
-        current_thread_gc_samples.inject(0) { |sum, sample| sum + sample.fetch(:values).fetch(:'cpu-samples') }
+        current_thread_gc_samples.inject(0) { |sum, sample| sum + sample.values.fetch(:'cpu-samples') }
       ).to be >= invoke_gc_times
     end
 
@@ -295,7 +295,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         background_thread.kill
 
         result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
-        sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+        sample_count = result.map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
 
@@ -324,7 +324,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         cpu_and_wall_time_worker.stop
 
         result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
-        sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+        sample_count = result.map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
         debug_failures = { thread_list: Thread.list, result: result }
@@ -542,6 +542,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   #
   # We have separate specs that assert on the GC behaviors.
   def samples_from_pprof_without_gc(pprof_data)
-    samples_from_pprof(pprof_data).reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
+    samples_from_pprof(pprof_data).reject { |it| it.locations.first.path == 'Garbage Collection' }
   end
 end

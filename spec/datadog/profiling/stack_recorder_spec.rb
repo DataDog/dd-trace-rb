@@ -149,11 +149,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       it 'encodes the sample with the metrics provided' do
-        expect(samples.first).to include(values: { :'cpu-time' => 123, :'cpu-samples' => 456, :'wall-time' => 789 })
+        expect(samples.first.values).to eq(:'cpu-time' => 123, :'cpu-samples' => 456, :'wall-time' => 789)
       end
 
       it 'encodes the sample with the labels provided' do
-        expect(samples.first).to include(labels: { label_a: 'value_a', label_b: 'value_b' })
+        expect(samples.first.labels).to eq(label_a: 'value_a', label_b: 'value_b')
       end
 
       it 'encodes a single empty mapping' do

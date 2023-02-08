@@ -33,7 +33,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:reference_stack) do
       # To make the stacks comparable we slice off the actual Ruby `Thread#backtrace_locations` frame since that part
       # will necessarily be different
-      expect(super().first).to match(hash_including(base_label: 'backtrace_locations'))
+      expect(super().first.base_label).to eq 'backtrace_locations'
       super()[1..-1]
     end
 
@@ -42,9 +42,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       # also necessarily be different
       expect(super()[0..2]).to match(
         [
-          hash_including(base_label: '_native_sample'),
-          hash_including(base_label: 'sample'),
-          hash_including(base_label: 'sample_and_decode'),
+          have_attributes(base_label: '_native_sample'),
+          have_attributes(base_label: 'sample'),
+          have_attributes(base_label: 'sample_and_decode'),
         ]
       )
       super()[3..-1]
@@ -62,7 +62,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       let(:in_gc) { true }
 
       it 'includes a placeholder frame for garbage collection' do
-        expect(stacks.fetch(:gathered)[0]).to eq({ base_label: '', path: 'Garbage Collection', lineno: 0 })
+        expect(stacks.fetch(:gathered)[0]).to have_attributes(base_label: '', path: 'Garbage Collection', lineno: 0)
       end
 
       it 'matches the Ruby backtrace API' do
@@ -104,7 +104,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       it 'has a sleeping frame at the top of the stack' do
-        expect(reference_stack.first).to match(hash_including(base_label: 'sleep'))
+        expect(reference_stack.first.base_label).to eq 'sleep'
       end
     end
 
@@ -127,9 +127,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       it 'has eval frames on the stack' do
         expect(reference_stack[0..2]).to contain_exactly(
-          hash_including(base_label: 'sleep', path: '(eval)'),
-          hash_including(base_label: '<top (required)>', path: '(eval)'),
-          hash_including(base_label: 'eval', path: end_with('stack_spec.rb')),
+          have_attributes(base_label: 'sleep', path: '(eval)'),
+          have_attributes(base_label: '<top (required)>', path: '(eval)'),
+          have_attributes(base_label: 'eval', path: end_with('stack_spec.rb')),
         )
       end
     end
@@ -171,8 +171,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           # These two frames are the frames that get created with the evaluation of the string, e.g. if instead of
           # `eval("foo")` we did `eval { foo }` then it is the block containing foo; eval with a string works similarly,
           # although you don't see a block there.
-          hash_including(base_label: 'call_eval', path: '(eval)', lineno: 1),
-          hash_including(base_label: 'call_instance_eval', path: '(eval)', lineno: 1),
+          have_attributes(base_label: 'call_eval', path: '(eval)', lineno: 1),
+          have_attributes(base_label: 'call_instance_eval', path: '(eval)', lineno: 1),
         )
       end
     end
@@ -190,7 +190,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       it 'has a frame with the custom file and line provided on the stack' do
         expect(reference_stack).to include(
-          hash_including(path: '/this/is/a/fake_file_.rb', lineno: -123456789),
+          have_attributes(path: '/this/is/a/fake_file_.rb', lineno: -123456789),
         )
       end
     end
@@ -213,7 +213,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       # I opted to join these two expects to avoid running the `load` above more than once
       it 'matches the Ruby backtrace API AND has a sleeping frame at the top of the stack' do
         expect(gathered_stack).to eq reference_stack
-        expect(reference_stack.first).to match(hash_including(base_label: 'sleep'))
+        expect(reference_stack.first.base_label).to eq 'sleep'
       end
     end
   end
@@ -244,8 +244,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       omitted_frames = target_stack_depth - max_frames + placeholder
 
       expect(omitted_frames).to be 96
-      expect(gathered_stack.last)
-        .to match(hash_including({ base_label: '', path: '96 frames omitted', lineno: 0 }))
+      expect(gathered_stack.last).to have_attributes(base_label: '', path: '96 frames omitted', lineno: 0)
     end
 
     context 'when stack is exactly 1 item deeper than the configured max_frames' do
@@ -254,8 +253,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       it 'includes a placeholder frame stating that 2 frames were omitted' do
         # Why 2 frames omitted and not 1? That's because the placeholder takes over 1 space in the buffer, so
         # if there were 6 frames on the stack and the limit is 5, then 4 of those frames will be present in the output
-        expect(gathered_stack.last)
-          .to match(hash_including({ base_label: '', path: '2 frames omitted', lineno: 0 }))
+        expect(gathered_stack.last).to have_attributes(base_label: '', path: '2 frames omitted', lineno: 0)
       end
     end
 
@@ -285,9 +283,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         omitted_frames = target_stack_depth - max_frames + placeholder + garbage_collection
 
         expect(omitted_frames).to be 97
-        expect(gathered_stack.last)
-          .to match(hash_including({ base_label: '', path: '97 frames omitted', lineno: 0 }))
-        expect(gathered_stack.first).to match(hash_including(base_label: '', path: 'Garbage Collection', lineno: 0))
+        expect(gathered_stack.last).to have_attributes(base_label: '', path: '97 frames omitted', lineno: 0)
+        expect(gathered_stack.first).to have_attributes(base_label: '', path: 'Garbage Collection', lineno: 0)
       end
 
       context 'when stack is exactly one item less as deep as the configured max_frames' do
@@ -318,7 +315,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         # @ivoanjo: I... don't think this can happen in practice. It's debatable if we should still have the placeholder
         # frame or not, but for ease of implementation I chose this path, and I added this spec just to get coverage on
         # this corner case.
-        expect(gathered_stack).to contain_exactly({ base_label: '', path: 'Garbage Collection', lineno: 0 })
+        expect(gathered_stack).to contain_exactly(have_attributes(base_label: '', path: 'Garbage Collection', lineno: 0))
       end
     end
   end
@@ -370,7 +367,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     it 'gathers a one-element stack with a "In native code" placeholder' do
-      expect(gathered_stack).to contain_exactly({ base_label: '', path: 'In native code', lineno: 0 })
+      expect(gathered_stack).to contain_exactly(have_attributes(base_label: '', path: 'In native code', lineno: 0))
     end
 
     context 'when marking sample as being in garbage collection' do
@@ -378,8 +375,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       it 'gathers a two-element stack with a placeholder for "In native code" and another for garbage collection' do
         expect(gathered_stack).to contain_exactly(
-          { base_label: '', path: 'Garbage Collection', lineno: 0 },
-          { base_label: '', path: 'In native code', lineno: 0 }
+          have_attributes(base_label: '', path: 'Garbage Collection', lineno: 0),
+          have_attributes(base_label: '', path: 'In native code', lineno: 0),
         )
       end
     end
@@ -411,7 +408,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   def convert_reference_stack(raw_reference_stack)
     raw_reference_stack.map do |location|
-      { base_label: location.base_label, path: location.path, lineno: location.lineno }
+      ProfileHelpers::Frame.new(location.base_label, location.path, location.lineno).freeze
     end
   end
 
@@ -421,7 +418,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     samples = samples_from_pprof(recorder.serialize!)
 
     expect(samples.size).to be 1
-    samples.first.fetch(:locations)
+    samples.first.locations
   end
 end
 
