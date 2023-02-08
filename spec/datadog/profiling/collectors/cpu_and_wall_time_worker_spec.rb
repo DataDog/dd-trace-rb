@@ -129,7 +129,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       all_samples = try_wait_until do
-        samples = samples_from_pprof_without_gc(recorder.serialize!)
+        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
         samples if samples.any?
       end
 
@@ -143,7 +143,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       all_samples = try_wait_until do
-        samples = samples_from_pprof_without_gc(recorder.serialize!)
+        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
         samples if samples.any?
       end
 
@@ -151,7 +151,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       sample_count =
         samples_for_thread(all_samples, Thread.current)
-          .reject { |it| it.locations.find { |frame| frame.base_label == '_native_sampling_loop' } } # Filter out profiler
           .map { |it| it.values.fetch(:'cpu-samples') }
           .reduce(:+)
 
@@ -166,7 +165,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       try_wait_until do
-        samples = samples_from_pprof_without_gc(recorder.serialize!)
+        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
         samples if samples.any?
       end
 
@@ -297,7 +296,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         cpu_and_wall_time_worker.stop
         background_thread.kill
 
-        result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
+        result = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
         sample_count = result.map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
@@ -326,7 +325,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
+        result = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
         sample_count = result.map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
@@ -540,11 +539,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(cpu_and_wall_time_worker) }
   end
 
-  # This is useful because in a bunch of tests above we want to assert on properties of the samples, and having
-  # a random GC in the middle of the spec contribute a sample can throw off the expected values and counts.
+  # This is useful because in a bunch of tests above we want to assert on properties of the samples, and having GC
+  # and profiler overhead samples is a source of randomness which causes flakiness in the assertions.
   #
-  # We have separate specs that assert on the GC behaviors.
-  def samples_from_pprof_without_gc(pprof_data)
-    samples_from_pprof(pprof_data).reject { |it| it.locations.first.path == 'Garbage Collection' }
+  # We have separate specs that assert on these behaviors.
+  def samples_from_pprof_without_gc_and_overhead(pprof_data)
+    samples_from_pprof(pprof_data)
+      .reject { |it| it.locations.first.path == 'Garbage Collection' }
+      .reject { |it| it.labels.include?(:'profiler overhead') }
   end
 end
