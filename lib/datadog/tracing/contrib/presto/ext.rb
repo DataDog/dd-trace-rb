@@ -26,6 +26,7 @@ module Datadog
           TAG_COMPONENT = 'presto'.freeze
           TAG_OPERATION_QUERY = 'query'.freeze
           TAG_OPERATION_KILL = 'kill'.freeze
+          TAG_SYSTEM = 'presto'.freeze
         end
       end
     end
