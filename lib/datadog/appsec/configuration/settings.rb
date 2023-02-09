@@ -142,6 +142,13 @@ module Datadog
           _ = @options[:ip_denylist]
         end
 
+        # EXPERIMENTAL: This configurable is not meant to be publicly used, but
+        #               is very useful for testing. It may change at any point in time.
+        def user_id_denylist
+          # Cast for Steep
+          _ = @options[:user_id_denylist]
+        end
+
         def waf_timeout
           # Cast for Steep
           _ = @options[:waf_timeout]
