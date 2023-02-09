@@ -1033,6 +1033,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
             max_frames: settings.profiling.advanced.max_frames,
             tracer: tracer,
             gc_profiling_enabled: anything,
+            allocation_count_enabled: settings.profiling.advanced.experimental_allocation_count,
+            allocation_sample_every: settings.profiling.advanced.experimental_allocation_sample_every,
           )
 
           build_profiler

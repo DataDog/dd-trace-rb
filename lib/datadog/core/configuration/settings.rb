@@ -279,6 +279,18 @@ module Datadog
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
               o.lazy
             end
+
+            option :experimental_allocation_count do |o|
+              o.default { env_to_bool('DD_PROFILING_EXPERIMENTAL_ALLOCATION_COUNT_ENABLED', false) }
+              o.lazy
+            end
+
+            option :experimental_allocation_sample_every do |o|
+              # Requires allocation count enabled to work;
+              # 0 -> disabled, 1 -> every object, 2 -> every other object, ...
+              o.default { env_to_int('DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_EVERY', 0) }
+              o.lazy
+            end
           end
 
           # @public_api

@@ -20,10 +20,24 @@ module Datadog
           max_frames:,
           tracer:,
           gc_profiling_enabled:,
+          allocation_count_enabled: false,
+          allocation_sample_every: 0,
           cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames, tracer: tracer),
           idle_sampling_helper: IdleSamplingHelper.new
         )
-          self.class._native_initialize(self, cpu_and_wall_time_collector, gc_profiling_enabled, idle_sampling_helper)
+          Datadog.logger.warn(
+            "Enabled experimental profiler allocation features enabled: " \
+            "#{{allocation_count_enabled: true, allocation_sample_every: allocation_sample_every}.to_s}"
+          ) if allocation_count_enabled
+
+          self.class._native_initialize(
+            self,
+            cpu_and_wall_time_collector,
+            gc_profiling_enabled,
+            idle_sampling_helper,
+            allocation_count_enabled,
+            allocation_sample_every
+          )
           @worker_thread = nil
           @failure_exception = nil
           @start_stop_mutex = Mutex.new
