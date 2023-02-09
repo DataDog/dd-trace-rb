@@ -316,7 +316,10 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with profiling enabled' do
-        before { Datadog.configure { |c| c.profiling.enabled = true } }
+        before do
+          allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start)
+          Datadog.configure { |c| c.profiling.enabled = true }
+        end
 
         it { is_expected.to include profiling_enabled: true }
       end
