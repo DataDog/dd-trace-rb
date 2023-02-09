@@ -32,6 +32,7 @@ static VALUE _native_sample(
   VALUE recorder_instance,
   VALUE metric_values_hash,
   VALUE labels_array,
+  VALUE numeric_labels_array,
   VALUE max_frames,
   VALUE in_gc
 );
@@ -60,7 +61,7 @@ void collectors_stack_init(VALUE profiling_module) {
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
 
-  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 6);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 7);
 
   missing_string = rb_str_new2("");
   rb_global_variable(&missing_string);
@@ -74,11 +75,13 @@ static VALUE _native_sample(
   VALUE recorder_instance,
   VALUE metric_values_hash,
   VALUE labels_array,
+  VALUE numeric_labels_array,
   VALUE max_frames,
   VALUE in_gc
 ) {
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
+  ENFORCE_TYPE(numeric_labels_array, T_ARRAY);
 
   if (RHASH_SIZE(metric_values_hash) != ENABLED_VALUE_TYPES_COUNT) {
     rb_raise(
@@ -95,15 +98,23 @@ static VALUE _native_sample(
     metric_values[i] = NUM2LONG(metric_value);
   }
 
-  long labels_count = RARRAY_LEN(labels_array);
+  long labels_count = RARRAY_LEN(labels_array) + RARRAY_LEN(numeric_labels_array);
   ddog_prof_Label labels[labels_count];
 
-  for (int i = 0; i < labels_count; i++) {
+  for (int i = 0; i < RARRAY_LEN(labels_array); i++) {
     VALUE key_str_pair = rb_ary_entry(labels_array, i);
 
     labels[i] = (ddog_prof_Label) {
       .key = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 0)),
       .str = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 1))
+    };
+  }
+  for (int i = 0; i < RARRAY_LEN(numeric_labels_array); i++) {
+    VALUE key_str_pair = rb_ary_entry(numeric_labels_array, i);
+
+    labels[i + RARRAY_LEN(labels_array)] = (ddog_prof_Label) {
+      .key = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 0)),
+      .num = NUM2ULL(rb_ary_entry(key_str_pair, 1))
     };
   }
 

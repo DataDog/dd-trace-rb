@@ -348,7 +348,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
             sample
 
             expect(t1_sample.fetch(:labels)).to include(
-              :'local root span id' => @t1_local_root_span_id.to_s,
+              :'local root span id' => @t1_local_root_span_id.to_i,
               :'span id' => @t1_span_id.to_i,
             )
           end
