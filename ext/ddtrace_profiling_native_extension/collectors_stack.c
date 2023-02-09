@@ -83,7 +83,7 @@ static VALUE _native_sample(
   ENFORCE_TYPE(labels_array, T_ARRAY);
   ENFORCE_TYPE(numeric_labels_array, T_ARRAY);
 
-  if (RHASH_SIZE(metric_values_hash) != ENABLED_VALUE_TYPES_COUNT) {
+  if (RHASH_SIZE(metric_values_hash) > ENABLED_VALUE_TYPES_COUNT || RHASH_SIZE(metric_values_hash) == 0) {
     rb_raise(
       rb_eArgError,
       "Mismatched values for metrics; expected %lu values and got %lu instead",
@@ -92,8 +92,8 @@ static VALUE _native_sample(
     );
   }
 
-  int64_t metric_values[ENABLED_VALUE_TYPES_COUNT];
-  for (unsigned int i = 0; i < ENABLED_VALUE_TYPES_COUNT; i++) {
+  int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
+  for (unsigned int i = 0; i < RHASH_SIZE(metric_values_hash); i++) {
     VALUE metric_value = rb_hash_fetch(metric_values_hash, rb_str_new_cstr(enabled_value_types[i].type_.ptr));
     metric_values[i] = NUM2LONG(metric_value);
   }

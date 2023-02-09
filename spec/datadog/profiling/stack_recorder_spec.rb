@@ -114,6 +114,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           'cpu-time' => 'nanoseconds',
           'cpu-samples' => 'count',
           'wall-time' => 'nanoseconds',
+          'alloc-samples' => 'count',
         )
       end
 
@@ -139,7 +140,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
 
     context 'when profile has a sample' do
-      let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+      let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789, 'alloc-samples' => 4242 } }
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
@@ -151,7 +152,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       it 'encodes the sample with the metrics provided' do
-        expect(samples.first.values).to eq(:'cpu-time' => 123, :'cpu-samples' => 456, :'wall-time' => 789)
+        expect(samples.first.values)
+          .to eq(:'cpu-time' => 123, :'cpu-samples' => 456, :'wall-time' => 789, :'alloc-samples' => 4242)
       end
 
       it 'encodes the sample with the labels provided' do
