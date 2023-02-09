@@ -249,6 +249,36 @@ RSpec.describe Datadog::AppSec::Processor do
       it { is_expected.to_not be_ready }
     end
 
+    context 'when loading static data rule configuration' do
+      before do
+        allow(Datadog::AppSec.settings).to receive(:ip_denylist).and_return(['192.192.1.1'])
+        allow(Datadog::AppSec.settings).to receive(:user_id_denylist).and_return(['user3'])
+      end
+
+      it 'calls #update_rule_data with the right value' do
+        expect_any_instance_of(described_class).to receive(:update_rule_data) do |_, args|
+          expect(args.size).to eq(2)
+
+          blocked_ips = args.find { |hash| hash['id'] == 'blocked_ips' }
+          blocked_users = args.find { |hash| hash['id'] == 'blocked_users' }
+
+          expect(blocked_ips).to_not be_nil
+          expect(blocked_users).to_not be_nil
+          expect(blocked_ips['type']).to eq('data_with_expiration')
+          expect(blocked_users['type']).to eq('data_with_expiration')
+
+          blocked_ips_data = blocked_ips['data']
+          blocked_user_data = blocked_users['data']
+          expect(blocked_ips_data.size).to eq(1)
+          expect(blocked_user_data.size).to eq(1)
+          expect(blocked_ips_data[0]['value']).to eq('192.192.1.1')
+          expect(blocked_user_data[0]['value']).to eq('user3')
+        end
+
+        described_class.new
+      end
+    end
+
     context 'when things are OK' do
       before do
         expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original

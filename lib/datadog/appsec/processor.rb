@@ -51,7 +51,7 @@ module Datadog
           return
         end
 
-        update_ip_denylist
+        update_rules_data_with_static_configured_values
       end
 
       def ready?
@@ -70,20 +70,6 @@ module Datadog
         @handle.toggle_rules(map)
       end
 
-      def update_ip_denylist(denylist = Datadog::AppSec.settings.ip_denylist, id: 'blocked_ips')
-        denylist ||= []
-
-        ruledata_setting = [
-          {
-            'id' => id,
-            'type' => 'data_with_expiration',
-            'data' => denylist.map { |ip| { 'value' => ip.to_s, 'expiration' => 2**63 } }
-          }
-        ]
-
-        update_rule_data(ruledata_setting)
-      end
-
       def finalize
         @handle.finalize
       end
@@ -93,6 +79,30 @@ module Datadog
       attr_reader :handle
 
       private
+
+      def update_rules_data_with_static_configured_values
+        ruledata_setting = []
+        ruledata_setting << ip_denylist_data(Datadog::AppSec.settings.ip_denylist || [])
+        ruledata_setting << user_id_denylist_data(Datadog::AppSec.settings.user_id_denylist || [])
+
+        update_rule_data(ruledata_setting)
+      end
+
+      def ip_denylist_data(denylist, id: 'blocked_ips')
+        {
+          'id' => id,
+          'type' => 'data_with_expiration',
+          'data' => denylist.map { |ip| { 'value' => ip.to_s, 'expiration' => 2**63 } }
+        }
+      end
+
+      def user_id_denylist_data(denylist, id: 'blocked_users')
+        {
+          'id' => id,
+          'type' => 'data_with_expiration',
+          'data' => denylist.map { |ip| { 'value' => ip.to_s, 'expiration' => 2**63 } }
+        }
+      end
 
       def load_libddwaf
         Processor.require_libddwaf && Processor.libddwaf_provides_waf?

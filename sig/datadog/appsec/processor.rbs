@@ -29,7 +29,9 @@ module Datadog
       def new_context: () -> Context
       def update_rule_data: (untyped data) -> untyped
       def toggle_rules: (untyped map) -> untyped
-      def update_ip_denylist: (?untyped denylist, ?id: ::String) -> untyped
+      def update_rules_data_with_static_configured_values: () -> untyped
+      def ip_denylist_data: (::Array[String?] denylist, ?id: ::String) -> ::Hash[::String, untyped]
+      def user_id_denylist_data: (::Array[String?] denylist, ?id: ::String) -> ::Hash[::String, untyped]
       def finalize: () -> void
 
       attr_reader handle: untyped
