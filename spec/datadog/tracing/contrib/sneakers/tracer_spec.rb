@@ -89,6 +89,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sneakers::Tracer do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
       expect(span.get_tag('span.kind')).to eq('consumer')
       expect(span.get_tag('messaging.system')).to eq('rabbitmq')
+      expect(span.get_tag('messaging.rabbitmq.routing_key')).to eq('something')
     end
 
     context 'when the tag_body is true' do
