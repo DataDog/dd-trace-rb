@@ -98,6 +98,9 @@ struct cpu_and_wall_time_worker_state {
 
   VALUE object_allocation_tracepoint;
 
+  // Used to detect nested sampling (usually because the object_allocation_tracepoint gets invoked)
+  bool during_sample;
+
   struct stats {
     // How many times we tried to trigger a sample
     unsigned int trigger_sample_attempts;
@@ -115,6 +118,8 @@ struct cpu_and_wall_time_worker_state {
     uint64_t sampling_time_ns_min;
     uint64_t sampling_time_ns_max;
     uint64_t sampling_time_ns_total;
+    // How many times we saw allocations being done inside a sample
+    unsigned int allocations_during_sample;
   } stats;
 };
 
@@ -241,6 +246,7 @@ static VALUE _native_new(VALUE klass) {
   state->stop_thread = Qnil;
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
+  state->during_sample = false;
   reset_stats(state);
 
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
@@ -437,9 +443,6 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
 
-    // TODO: This is still a placeholder for a more complex mechanism. In particular:
-    // * We want to do more than having a fixed sampling rate
-
     current_gvl_owner owner = gvl_owner();
     if (owner.valid) {
       // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
@@ -491,8 +494,12 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
+  state->during_sample = true;
+
   // Rescue against any exceptions that happen during sampling
   safely_call(rescued_sample_from_postponed_job, state->self_instance, state->self_instance);
+
+  state->during_sample = false;
 }
 
 static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
@@ -616,6 +623,21 @@ static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance) {
 
 static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED void *) {
   allocation_count++;
+
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+  // This should not happen in a normal situation because the tracepoint is always enabled after the instance is set
+  // and disabled before it is cleared, but just in case...
+  if (state == NULL) return;
+
+  // In a few cases, we may actually be allocating an object as part of profiler sampling. We don't want to recursively
+  // sample, so we just return early
+  if (state->during_sample) {
+    state->stats.allocations_during_sample++;
+    return;
+  }
+
+  // WIP: Take a sample?
 }
 
 // Implements tracking of cpu-time and wall-time spent doing GC. This function is called by Ruby from the `gc_tracepoint`
@@ -685,8 +707,12 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
+  state->during_sample = true;
+
   // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
   safely_call(cpu_and_wall_time_collector_sample_after_gc, state->cpu_and_wall_time_collector_instance, state->self_instance);
+
+  state->during_sample = false;
 }
 
 // Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
@@ -767,6 +793,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("sampling_time_ns_max")),                       /* => */ pretty_sampling_time_ns_max,
     ID2SYM(rb_intern("sampling_time_ns_total")),                     /* => */ pretty_sampling_time_ns_total,
     ID2SYM(rb_intern("sampling_time_ns_avg")),                       /* => */ pretty_sampling_time_ns_avg,
+    ID2SYM(rb_intern("allocations_during_sample")),                  /* => */ UINT2NUM(state->stats.allocations_during_sample),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
