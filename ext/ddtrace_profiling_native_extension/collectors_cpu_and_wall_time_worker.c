@@ -572,10 +572,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   // because they may raise exceptions.
   install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
-  if (state->allocation_profiling_enabled) {
-    fprintf(stderr, "[Allocation profiling enabled]\n");
-    rb_tracepoint_enable(state->object_allocation_tracepoint);
-  }
+  if (state->allocation_profiling_enabled) rb_tracepoint_enable(state->object_allocation_tracepoint);
 
   rb_thread_call_without_gvl(run_sampling_trigger_loop, state, interrupt_sampling_trigger_loop, state);
 

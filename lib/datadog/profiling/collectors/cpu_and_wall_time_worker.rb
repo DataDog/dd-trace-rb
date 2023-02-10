@@ -26,7 +26,7 @@ module Datadog
           idle_sampling_helper: IdleSamplingHelper.new
         )
           Datadog.logger.warn(
-            "Enabled experimental profiler allocation features enabled: " \
+            "Enabled experimental profiler allocation features: " \
             "#{{allocation_count_enabled: true, allocation_sample_every: allocation_sample_every}.to_s}"
           ) if allocation_count_enabled
 
