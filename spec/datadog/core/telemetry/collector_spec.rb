@@ -100,7 +100,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         require 'datadog/appsec'
 
         before do
-          allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start)
+          allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start) if PlatformHelpers.mri?
           Datadog.configure do |c|
             c.profiling.enabled = true
             c.appsec.enabled = true
