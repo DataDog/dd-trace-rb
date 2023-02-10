@@ -97,6 +97,7 @@ struct cpu_and_wall_time_worker_state {
   VALUE gc_tracepoint;
 
   VALUE object_allocation_tracepoint;
+  unsigned int allocation_sample_every;
 
   // Used to detect nested sampling (usually because the object_allocation_tracepoint gets invoked)
   bool during_sample;
@@ -246,6 +247,7 @@ static VALUE _native_new(VALUE klass) {
   state->stop_thread = Qnil;
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
+  state->allocation_sample_every = 0;
   state->during_sample = false;
   reset_stats(state);
 
@@ -274,6 +276,10 @@ static VALUE _native_initialize(
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
   state->object_allocation_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_NEWOBJ, on_newobj_event, NULL /* unused */);
   state->allocation_profiling_enabled = (allocation_count_enabled == Qtrue);
+
+  int sample_every = NUM2INT(allocation_sample_every);
+  if (sample_every < 0) rb_raise(rb_eArgError, "Unexpected value for allocation_sample_every: %d. This value must be >= 0.", sample_every);
+  state->allocation_sample_every = sample_every;
 
   return Qtrue;
 }
