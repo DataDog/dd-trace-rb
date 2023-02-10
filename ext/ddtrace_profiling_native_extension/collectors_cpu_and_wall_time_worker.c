@@ -640,7 +640,9 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED
     return;
   }
 
-  // WIP: Take a sample?
+  if (state->allocation_sample_every > 0 && ((allocation_count % state->allocation_sample_every) == 0)) {
+    safely_call(cpu_and_wall_time_worker_sample_allocation, state->cpu_and_wall_time_collector_instance, state->self_instance);
+  }
 }
 
 // Implements tracking of cpu-time and wall-time spent doing GC. This function is called by Ruby from the `gc_tracepoint`

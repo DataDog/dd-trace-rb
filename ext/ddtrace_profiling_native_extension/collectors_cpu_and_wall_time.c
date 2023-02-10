@@ -503,6 +503,26 @@ void cpu_and_wall_time_collector_on_gc_finish(VALUE self_instance) {
   thread_context->gc_tracking.wall_time_at_finish_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
 }
 
+VALUE cpu_and_wall_time_worker_sample_allocation(VALUE self_instance) {
+  struct cpu_and_wall_time_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+
+  // TODO: Overhead tracking?
+
+  VALUE current_thread = rb_thread_current();
+
+  int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
+  metric_values[ALLOC_SAMPLES_VALUE_POS] = 1;
+
+  trigger_sample_for_thread(
+    state,
+    current_thread,
+    get_or_create_context_for(current_thread, state),
+    (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT}, // TODO: Refactor this out so callers won't have to care
+    SAMPLE_REGULAR
+  );
+}
+
 // This function gets called shortly after Ruby has finished running the Garbage Collector.
 // It creates a new sample including the cpu and wall-time spent by the garbage collector work, and resets any
 // GC-related tracking.
