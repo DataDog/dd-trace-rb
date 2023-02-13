@@ -22,6 +22,7 @@ module Datadog
 
         module Messaging
           TAG_SYSTEM = 'messaging.system'
+          TAG_RABBITMQ_ROUTING_KEY = 'messaging.rabbitmq.routing_key'
         end
       end
     end
