@@ -29,18 +29,17 @@ module Datadog
       def new_context: () -> Context
       def update_rule_data: (untyped data) -> untyped
       def toggle_rules: (untyped map) -> untyped
-      def update_rules_data_with_static_configured_values: () -> untyped
-      def ip_denylist_data: (::Array[String?] denylist, ?id: ::String) -> ::Hash[::String, untyped]
-      def user_id_denylist_data: (::Array[String?] denylist, ?id: ::String) -> ::Hash[::String, untyped]
       def finalize: () -> void
 
       attr_reader handle: untyped
 
       private
 
+      def apply_denylist_data: (Configuration::Settings settings) -> untyped
+      def denylist_data: (String id, ::Array[untyped] denylist) -> ::Hash[::String, untyped | "data_with_expiration"]
       def load_libddwaf: () -> bool
-      def load_ruleset: () -> bool
-      def create_waf_handle: () -> bool
+      def load_ruleset: (Configuration::Settings settings) -> bool
+      def create_waf_handle: (Configuration::Settings settings) -> bool
 
       def self.libddwaf_provides_waf?: () -> bool
       def self.require_libddwaf: () -> bool
