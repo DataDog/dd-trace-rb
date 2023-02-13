@@ -84,22 +84,22 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
     describe '#ip_denylist' do
       subject(:ip_denylist) { settings.ip_denylist }
-      it { is_expected.to eq(nil) }
+      it { is_expected.to eq([]) }
     end
 
     describe '#ip_denylist=' do
       subject(:ip_denylist_) { settings.merge(dsl.tap { |c| c.ip_denylist = ['192.192.1.1'] }) }
-      it { expect { ip_denylist_ }.to change { settings.ip_denylist }.from(nil).to(['192.192.1.1']) }
+      it { expect { ip_denylist_ }.to change { settings.ip_denylist }.from([]).to(['192.192.1.1']) }
     end
 
     describe '#user_id_denylist' do
       subject(:user_id_denylist) { settings.user_id_denylist }
-      it { is_expected.to eq(nil) }
+      it { is_expected.to eq([]) }
     end
 
     describe '#user_id_denylist=' do
       subject(:user_id_denylist_) { settings.merge(dsl.tap { |c| c.user_id_denylist = ['8764937902709'] }) }
-      it { expect { user_id_denylist_ }.to change { settings.user_id_denylist }.from(nil).to(['8764937902709']) }
+      it { expect { user_id_denylist_ }.to change { settings.user_id_denylist }.from([]).to(['8764937902709']) }
     end
 
     describe '#obfuscator_key_regex' do
