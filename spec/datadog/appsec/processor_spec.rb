@@ -18,6 +18,8 @@ RSpec.describe Datadog::AppSec::Processor do
     allow(logger).to receive(:error)
 
     allow(Datadog).to receive(:logger).and_return(logger)
+    allow(Datadog::AppSec.settings).to receive(:ip_denylist).and_return([])
+    allow(Datadog::AppSec.settings).to receive(:user_id_denylist).and_return([])
   end
 
   context 'self' do

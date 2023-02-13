@@ -82,8 +82,8 @@ module Datadog
 
       def update_rules_data_with_static_configured_values
         ruledata_setting = []
-        ruledata_setting << ip_denylist_data(Datadog::AppSec.settings.ip_denylist || [])
-        ruledata_setting << user_id_denylist_data(Datadog::AppSec.settings.user_id_denylist || [])
+        ruledata_setting << ip_denylist_data(Datadog::AppSec.settings.ip_denylist)
+        ruledata_setting << user_id_denylist_data(Datadog::AppSec.settings.user_id_denylist)
 
         update_rule_data(ruledata_setting)
       end

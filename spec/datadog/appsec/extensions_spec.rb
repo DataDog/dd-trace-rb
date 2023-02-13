@@ -109,8 +109,15 @@ RSpec.describe Datadog::AppSec::Extensions do
       end
 
       describe '#ip_denylist=' do
-        subject(:ip_denylist_) { settings.ip_denylist = ['192.192.1.1'] }
-        it { expect { ip_denylist_ }.to change { settings.ip_denylist }.from(nil).to(['192.192.1.1']) }
+        context 'with non nil value' do
+          subject(:ip_denylist_) { settings.ip_denylist = ['192.192.1.1'] }
+          it { expect { ip_denylist_ }.to change { settings.ip_denylist }.from(nil).to(['192.192.1.1']) }
+        end
+
+        context 'with nil value' do
+          subject(:ip_denylist_) { settings.ip_denylist = nil }
+          it { expect { ip_denylist_ }.to change { settings.ip_denylist }.from(nil).to([]) }
+        end
       end
 
       describe '#user_id_denylist' do
@@ -119,8 +126,15 @@ RSpec.describe Datadog::AppSec::Extensions do
       end
 
       describe '#user_id_denylist=' do
-        subject(:user_id_denylist_) { settings.user_id_denylist = ['24528736564812'] }
-        it { expect { user_id_denylist_ }.to change { settings.user_id_denylist }.from(nil).to(['24528736564812']) }
+        context 'with non nil value' do
+          subject(:user_id_denylist_) { settings.user_id_denylist = ['24528736564812'] }
+          it { expect { user_id_denylist_ }.to change { settings.user_id_denylist }.from(nil).to(['24528736564812']) }
+        end
+
+        context 'with nil value' do
+          subject(:user_id_denylist_) { settings.user_id_denylist = nil }
+          it { expect { user_id_denylist_ }.to change { settings.user_id_denylist }.from(nil).to([]) }
+        end
       end
 
       describe '#[]' do
