@@ -516,7 +516,8 @@ VALUE cpu_and_wall_time_worker_sample_allocation(VALUE self_instance) {
 
   trigger_sample_for_thread(
     state,
-    current_thread,
+    /* thread: */  current_thread,
+    /* stack_from_thread: */ current_thread,
     get_or_create_context_for(current_thread, state),
     (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT}, // TODO: Refactor this out so callers won't have to care
     SAMPLE_REGULAR
