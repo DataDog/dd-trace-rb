@@ -153,6 +153,7 @@ static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self);
 static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance);
 static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *);
+static VALUE trigger_allocation_sample(VALUE self_instance);
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
 static VALUE safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance);
@@ -641,8 +642,19 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED
   }
 
   if (state->allocation_sample_every > 0 && ((allocation_count % state->allocation_sample_every) == 0)) {
-    safely_call(cpu_and_wall_time_worker_sample_allocation, state->cpu_and_wall_time_collector_instance, state->self_instance);
+    // Rescue against any exceptions that happen during sampling
+    safely_call(trigger_allocation_sample, state->self_instance, state->self_instance);
   }
+}
+
+static VALUE trigger_allocation_sample(VALUE self_instance) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  cpu_and_wall_time_worker_sample_allocation(state->cpu_and_wall_time_collector_instance, state->allocation_sample_every);
+
+  // Return a dummy VALUE because we're called from rb_rescue2 which requires it
+  return Qnil;
 }
 
 // Implements tracking of cpu-time and wall-time spent doing GC. This function is called by Ruby from the `gc_tracepoint`

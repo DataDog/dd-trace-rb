@@ -503,7 +503,7 @@ void cpu_and_wall_time_collector_on_gc_finish(VALUE self_instance) {
   thread_context->gc_tracking.wall_time_at_finish_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
 }
 
-VALUE cpu_and_wall_time_worker_sample_allocation(VALUE self_instance) {
+void cpu_and_wall_time_worker_sample_allocation(VALUE self_instance, unsigned int sample_weight) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
@@ -512,7 +512,7 @@ VALUE cpu_and_wall_time_worker_sample_allocation(VALUE self_instance) {
   VALUE current_thread = rb_thread_current();
 
   int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
-  metric_values[ALLOC_SAMPLES_VALUE_POS] = 1;
+  metric_values[ALLOC_SAMPLES_VALUE_POS] = sample_weight;
 
   trigger_sample_for_thread(
     state,
