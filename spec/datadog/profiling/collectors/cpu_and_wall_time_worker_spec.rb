@@ -521,6 +521,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       reset_after_fork
 
       expect(cpu_and_wall_time_worker.stats).to eq(
+        allocations_during_sample:0,
         trigger_sample_attempts: 0,
         trigger_simulated_signal_delivery_attempts: 0,
         simulated_signal_delivery: 0,
