@@ -12,7 +12,13 @@ module Datadog
         def publish: (::String address, untyped data) -> untyped
         def finalize: () -> void
 
+        private
+
+        def select_reactive_engine: (Engine? reactive, Operation? parent) -> Engine
+
         def self.active: () -> Operation?
+
+        def self.reset!: () -> untyped
       end
     end
   end

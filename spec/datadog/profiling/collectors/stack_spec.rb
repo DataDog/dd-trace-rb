@@ -20,7 +20,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:gathered_stack) { stacks.fetch(:gathered) }
 
   def sample(thread, recorder_instance, metric_values_hash, labels_array, max_frames: 400, in_gc: false)
-    described_class::Testing._native_sample(thread, recorder_instance, metric_values_hash, labels_array, max_frames, in_gc)
+    numeric_labels_array = []
+    described_class::Testing._native_sample(thread, recorder_instance, metric_values_hash, labels_array, numeric_labels_array, max_frames, in_gc)
   end
 
   # This spec explicitly tests the main thread because an unpatched rb_profile_frames returns one more frame in the

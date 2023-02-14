@@ -124,12 +124,9 @@ struct per_thread_context {
 
 // Used to correlate profiles with traces
 struct trace_identifiers {
-  #define MAXIMUM_LENGTH_64_BIT_IDENTIFIER 21 // Why 21? 2^64 => 20 digits + 1 for \0
-
   bool valid;
-  ddog_CharSlice local_root_span_id;
+  uint64_t local_root_span_id;
   uint64_t span_id;
-  char local_root_span_id_buffer[MAXIMUM_LENGTH_64_BIT_IDENTIFIER];
   VALUE trace_endpoint;
 };
 
@@ -627,7 +624,7 @@ static void trigger_sample_for_thread(
   trace_identifiers_for(state, thread, &trace_identifiers_result);
 
   if (trace_identifiers_result.valid) {
-    labels[label_pos++] = (ddog_prof_Label) {.key = DDOG_CHARSLICE_C("local root span id"), .str = trace_identifiers_result.local_root_span_id};
+    labels[label_pos++] = (ddog_prof_Label) {.key = DDOG_CHARSLICE_C("local root span id"), .num = trace_identifiers_result.local_root_span_id};
     labels[label_pos++] = (ddog_prof_Label) {.key = DDOG_CHARSLICE_C("span id"), .num = trace_identifiers_result.span_id};
 
     if (trace_identifiers_result.trace_endpoint != Qnil) {
@@ -909,13 +906,7 @@ static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *stat
   VALUE numeric_span_id = rb_ivar_get(active_span, at_id_id /* @id */);
   if (numeric_local_root_span_id == Qnil || numeric_span_id == Qnil) return;
 
-  unsigned long long local_root_span_id = NUM2ULL(numeric_local_root_span_id);
-  snprintf(trace_identifiers_result->local_root_span_id_buffer, MAXIMUM_LENGTH_64_BIT_IDENTIFIER, "%llu", local_root_span_id);
-
-  trace_identifiers_result->local_root_span_id = (ddog_CharSlice) {
-    .ptr = trace_identifiers_result->local_root_span_id_buffer,
-    .len = strlen(trace_identifiers_result->local_root_span_id_buffer)
-  };
+  trace_identifiers_result->local_root_span_id = NUM2ULL(numeric_local_root_span_id);
   trace_identifiers_result->span_id = NUM2ULL(numeric_span_id);
 
   trace_identifiers_result->valid = true;

@@ -6,6 +6,8 @@ require 'datadog/profiling/stack_recorder'
 RSpec.describe Datadog::Profiling::StackRecorder do
   before { skip_if_profiling_not_supported(self) }
 
+  let(:numeric_labels) { [] }
+
   subject(:stack_recorder) { described_class.new }
 
   # NOTE: A lot of libdatadog integration behaviors are tested in the Collectors::Stack specs, since we need actual
@@ -144,7 +146,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       before do
         Datadog::Profiling::Collectors::Stack::Testing
-          ._native_sample(Thread.current, stack_recorder, metric_values, labels, 400, false)
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
         expect(samples.size).to be 1
       end
 
@@ -174,24 +176,39 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
+    context 'when sample is invalid' do
+      context 'because the local root span id is being defined using a string instead of as a number' do
+        let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+
+        it do
+          # We're using `_native_sample` here to test the behavior of `record_sample` in `stack_recorder.c`
+          expect do
+            Datadog::Profiling::Collectors::Stack::Testing._native_sample(
+              Thread.current, stack_recorder, metric_values, { 'local root span id' => 'incorrect' }.to_a, [], 400, false
+            )
+          end.to raise_error(ArgumentError)
+        end
+      end
+    end
+
     describe 'trace endpoint behavior' do
-      let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 1, 'wall-time' => 789 } }
+      let(:metric_values) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789 } }
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
       it 'includes the endpoint for all matching samples taken before and after recording the endpoint' do
-        local_root_span_id_with_endpoint = { 'local root span id' => '123' }
-        local_root_span_id_without_endpoint = { 'local root span id' => '456' }
+        local_root_span_id_with_endpoint = { 'local root span id' => 123 }
+        local_root_span_id_without_endpoint = { 'local root span id' => 456 }
 
-        sample = proc do |labels = {}|
+        sample = proc do |numeric_labels = {}|
           Datadog::Profiling::Collectors::Stack::Testing
-            ._native_sample(Thread.current, stack_recorder, metric_values, labels.to_a, 400, false)
+            ._native_sample(Thread.current, stack_recorder, metric_values, [], numeric_labels.to_a, 400, false)
         end
 
         sample.call
         sample.call(local_root_span_id_without_endpoint)
         sample.call(local_root_span_id_with_endpoint)
 
-        described_class::Testing._native_record_endpoint(stack_recorder, '123', 'recorded-endpoint')
+        described_class::Testing._native_record_endpoint(stack_recorder, 123, 'recorded-endpoint')
 
         sample.call
         sample.call(local_root_span_id_without_endpoint)
@@ -201,12 +218,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         # Other samples have not been changed
         expect(samples.select { |it| it[:labels].empty? }).to have(2).items
-        expect(samples.select { |it| it[:labels] == { :'local root span id' => '456' } }).to have(2).items
+        expect(samples.select { |it| it[:labels] == { :'local root span id' => 456 } }).to have(2).items
 
         # Matching samples taken before and after recording the endpoint have been changed
         expect(
           samples.select do |it|
-            it[:labels] == { :'local root span id' => '123', :'trace endpoint' => 'recorded-endpoint' }
+            it[:labels] == { :'local root span id' => 123, :'trace endpoint' => 'recorded-endpoint' }
           end
         ).to have(2).items
       end
@@ -314,7 +331,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it 'makes the next calls to serialize return no data' do
         # Add some data
         Datadog::Profiling::Collectors::Stack::Testing
-          ._native_sample(Thread.current, stack_recorder, metric_values, labels, 400, false)
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
 
         # Sanity check: validate that data is there, to avoid the test passing because of other issues
         sanity_check_samples = samples_from_pprof(stack_recorder.serialize.last)
@@ -322,7 +339,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         # Add some data, again
         Datadog::Profiling::Collectors::Stack::Testing
-          ._native_sample(Thread.current, stack_recorder, metric_values, labels, 400, false)
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
 
         reset_after_fork
 

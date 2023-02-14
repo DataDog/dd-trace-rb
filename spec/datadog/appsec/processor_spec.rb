@@ -83,10 +83,7 @@ RSpec.describe Datadog::AppSec::Processor do
   end
 
   describe '#load_ruleset' do
-    before do
-      allow(Datadog::AppSec.settings).to receive(:ruleset).and_return(ruleset)
-    end
-
+    let(:settings) { Datadog::AppSec.settings }
     let(:basic_ruleset) do
       {
         'version' => '1.0',
@@ -104,6 +101,10 @@ RSpec.describe Datadog::AppSec::Processor do
       }
     end
 
+    before do
+      allow(settings).to receive(:ruleset).and_return(ruleset)
+    end
+
     context 'when ruleset is :recommended' do
       let(:ruleset) { :recommended }
 
@@ -111,7 +112,7 @@ RSpec.describe Datadog::AppSec::Processor do
         expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original.twice
       end
 
-      it { expect(described_class.new.send(:load_ruleset)).to be true }
+      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
     end
 
     context 'when ruleset is :strict' do
@@ -121,7 +122,7 @@ RSpec.describe Datadog::AppSec::Processor do
         expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:strict).and_call_original.twice
       end
 
-      it { expect(described_class.new.send(:load_ruleset)).to be true }
+      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
     end
 
     context 'when ruleset is :risky' do
@@ -131,45 +132,46 @@ RSpec.describe Datadog::AppSec::Processor do
         expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original.twice
       end
 
-      it { expect(described_class.new.send(:load_ruleset)).to be true }
+      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
     end
 
     context 'when ruleset is an existing path' do
       let(:ruleset) { "#{__dir__}/../../../lib/datadog/appsec/assets/waf_rules/recommended.json" }
 
-      it { expect(described_class.new.send(:load_ruleset)).to be true }
+      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
     end
 
     context 'when ruleset is a non existing path' do
       let(:ruleset) { '/does/not/exist' }
 
-      it { expect(described_class.new.send(:load_ruleset)).to be false }
+      it { expect(described_class.new.send(:load_ruleset, settings)).to be false }
     end
 
     context 'when ruleset is IO-like' do
       let(:ruleset) { StringIO.new(JSON.dump(basic_ruleset)) }
 
-      it { expect(described_class.new.send(:load_ruleset)).to be true }
+      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
     end
 
     context 'when ruleset is Ruby' do
       let(:ruleset) { basic_ruleset }
 
-      it { expect(described_class.new.send(:load_ruleset)).to be true }
+      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
     end
 
     context 'when ruleset is not parseable' do
       let(:ruleset) { StringIO.new('this is not json') }
 
-      it { expect(described_class.new.send(:load_ruleset)).to be false }
+      it { expect(described_class.new.send(:load_ruleset, settings)).to be false }
     end
   end
 
   describe '#create_waf_handle' do
     let(:ruleset) { :recommended }
+    let(:settings) { Datadog::AppSec.settings }
 
     before do
-      allow(Datadog::AppSec.settings).to receive(:ruleset).and_return(ruleset)
+      allow(settings).to receive(:ruleset).and_return(ruleset)
     end
 
     context 'when ruleset is default' do
@@ -179,13 +181,13 @@ RSpec.describe Datadog::AppSec::Processor do
         expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original
       end
 
-      it { expect(described_class.new.send(:create_waf_handle)).to be true }
+      it { expect(described_class.new.send(:create_waf_handle, settings)).to be true }
     end
 
     context 'when ruleset is invalid' do
       let(:ruleset) { { 'not' => 'valid' } }
 
-      it { expect(described_class.new.send(:create_waf_handle)).to be false }
+      it { expect(described_class.new.send(:create_waf_handle, settings)).to be false }
     end
   end
 
@@ -247,6 +249,36 @@ RSpec.describe Datadog::AppSec::Processor do
       end
 
       it { is_expected.to_not be_ready }
+    end
+
+    context 'when loading static data rule configuration' do
+      before do
+        allow(Datadog::AppSec.settings).to receive(:ip_denylist).and_return(['192.192.1.1'])
+        allow(Datadog::AppSec.settings).to receive(:user_id_denylist).and_return(['user3'])
+      end
+
+      it 'calls #update_rule_data with the right value' do
+        expect_any_instance_of(described_class).to receive(:update_rule_data) do |_, args|
+          expect(args.size).to eq(2)
+
+          blocked_ips = args.find { |hash| hash['id'] == 'blocked_ips' }
+          blocked_users = args.find { |hash| hash['id'] == 'blocked_users' }
+
+          expect(blocked_ips).to_not be_nil
+          expect(blocked_users).to_not be_nil
+          expect(blocked_ips['type']).to eq('data_with_expiration')
+          expect(blocked_users['type']).to eq('data_with_expiration')
+
+          blocked_ips_data = blocked_ips['data']
+          blocked_user_data = blocked_users['data']
+          expect(blocked_ips_data.size).to eq(1)
+          expect(blocked_user_data.size).to eq(1)
+          expect(blocked_ips_data[0]['value']).to eq('192.192.1.1')
+          expect(blocked_user_data[0]['value']).to eq('user3')
+        end
+
+        described_class.new
+      end
     end
 
     context 'when things are OK' do

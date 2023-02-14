@@ -71,6 +71,60 @@ RSpec.describe 'Rack integration tests' do
     }
   end
 
+  let(:nfd_000_002) do
+    {
+      'version' => '2.2',
+      'metadata' => {
+        'rules_version' => '1.4.1'
+      },
+      'rules' => [
+        {
+          id: 'nfd-000-002',
+          name: 'Detect failed attempt to fetch readme files',
+          tags: {
+            type: 'security_scanner',
+            category: 'attack_attempt',
+            confidence: '1'
+          },
+          conditions: [
+            {
+              operator: 'match_regex',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'server.response.status'
+                  }
+                ],
+                regex: '^404$',
+                options: {
+                  case_sensitive: true
+                }
+              }
+            },
+            {
+              operator: 'match_regex',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'server.request.uri.raw'
+                  }
+                ],
+                regex: 'readme\\.[\\.a-z0-9]+$',
+                options: {
+                  case_sensitive: false
+                }
+              }
+            }
+          ],
+          transformers: [],
+          'on_match' => [
+            'block'
+          ]
+        },
+      ]
+    }
+  end
+
   before do
     Datadog.configure do |c|
       c.tracing.enabled = tracing_enabled
@@ -226,6 +280,19 @@ RSpec.describe 'Rack integration tests' do
           map '/success' do
             run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
           end
+
+          map '/readme.md' do
+            run(
+              proc do |env|
+                # When appsec is enabled we want to force the 404 to trigger a rule match
+                if env['datadog.waf.context']
+                  [404, { 'Content-Type' => 'text/html' }, ['NOT FOUND']]
+                else
+                  [200, { 'Content-Type' => 'text/html' }, ['OK']]
+                end
+              end
+            )
+          end
         end
       end
 
@@ -302,6 +369,18 @@ RSpec.describe 'Rack integration tests' do
           it_behaves_like 'a GET 404 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+
+          context 'and a blocking rule' do
+            let(:appsec_ruleset) { nfd_000_002 }
+            let(:url) { '/readme.md' }
+            let(:appsec_enabled) { true }
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a GET 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
         end
       end
 

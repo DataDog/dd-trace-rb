@@ -27,6 +27,7 @@ module Datadog
         def enabled=: (bool) -> void
         def ruleset=: (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO) -> void
         def ip_denylist=: (::Array[::String]) -> void
+        def user_id_denylist=: (::Array[::String]) -> void
         def waf_timeout=: (::Integer) -> void
         def waf_debug=: (bool) -> void
         def trace_rate_limit=: (::Integer) -> void
