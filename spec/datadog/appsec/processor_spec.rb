@@ -50,6 +50,50 @@ RSpec.describe Datadog::AppSec::Processor do
 
       expect(described_class.require_libddwaf).to be true
     end
+
+    describe '.current_context' do
+      it 'return nil if not set earlier' do
+        expect(described_class.current_context).to be_nil
+      end
+
+      it 'return the previously set current context' do
+        processor = described_class.new
+        context = processor.new_context
+
+        described_class.current_context = context
+
+        expect(described_class.current_context).to eq(context)
+
+        context.finalize
+        processor.finalize
+        described_class.reset_current_context
+      end
+
+      describe '.current_context=' do
+        it 'raises InvalidContextError when trying to setup current conetxt to a non Context instance' do
+          expect do
+            described_class.current_context = 'foo'
+          end.to raise_error(described_class::InvalidContextError)
+        end
+      end
+
+      describe '.reset_current_context' do
+        it 'sets current_context to nil' do
+          processor = described_class.new
+          context = processor.new_context
+
+          described_class.current_context = context
+
+          expect(described_class.current_context).to eq(context)
+
+          described_class.reset_current_context
+          expect(described_class.current_context).to be_nil
+
+          context.finalize
+          processor.finalize
+        end
+      end
+    end
   end
 
   describe '#load_libddwaf' do
