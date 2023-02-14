@@ -17,6 +17,13 @@ module Datadog
         def finalize: () -> void
       end
 
+      class InvalidContextError < StandardError
+      end
+
+      def self.current_context: () -> Context?
+      def self.current_context=: (untyped context) -> void
+      def self.reset_current_context: () -> void
+
       attr_reader ruleset_info: untyped
       attr_reader addresses: untyped
 
