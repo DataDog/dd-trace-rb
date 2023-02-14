@@ -39,6 +39,27 @@ module Datadog
         end
       end
 
+      class InvalidContextError < StandardError; end
+
+      class << self
+        def current_context
+          Thread.current[:datadog_current_waf_context]
+        end
+
+        def current_context=(context)
+          unless context.instance_of?(Context)
+            raise InvalidContextError,
+              "The context provide: #{context.inspect} is not a Datadog::AppSec::Processor::Context"
+          end
+
+          Thread.current[:datadog_current_waf_context] = context
+        end
+
+        def reset_current_context
+          Thread.current[:datadog_current_waf_context] = nil
+        end
+      end
+
       attr_reader :ruleset_info, :addresses
 
       def initialize
