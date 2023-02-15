@@ -29,7 +29,9 @@ static const ddog_prof_ValueType enabled_value_types[] = {
   #define CPU_SAMPLES_VALUE_POS 1
   CPU_SAMPLES_VALUE,
   #define WALL_TIME_VALUE_POS 2
-  WALL_TIME_VALUE
+  WALL_TIME_VALUE,
+  #define ALLOC_SAMPLES_VALUE_POS 3
+  ALLOC_SAMPLES_VALUE
 };
 
 #define ENABLED_VALUE_TYPES_COUNT (sizeof(enabled_value_types) / sizeof(ddog_prof_ValueType))
