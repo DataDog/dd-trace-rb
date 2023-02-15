@@ -10,4 +10,5 @@ RUN addgroup -g 10000 -S datadog && \
 USER ${UID}
 WORKDIR /datadog-init
 ADD auto_inject.rb /datadog-init/auto_inject.rb
+RUN sed -i "s~<DD_TRACE_VERSION_TO_BE_REPLACED>~${DDTRACE_RUBY_VERSION}~g"  /datadog-init/auto_inject.rb
 ADD copy-lib.sh /datadog-init/copy-lib.sh
