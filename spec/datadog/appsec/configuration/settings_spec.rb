@@ -48,8 +48,8 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     end
 
     describe '#ruleset=' do
-      subject(:ruleset_) { settings.merge(dsl.tap { |c| c.ruleset = :risky }) }
-      it { expect { ruleset_ }.to change { settings.ruleset }.from(:recommended).to(:risky) }
+      subject(:ruleset_) { settings.merge(dsl.tap { |c| c.ruleset = :strict }) }
+      it { expect { ruleset_ }.to change { settings.ruleset }.from(:recommended).to(:strict) }
     end
 
     describe '#waf_timeout' do
@@ -80,6 +80,26 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe '#trace_rate_limit=' do
       subject(:trace_rate_limit_) { settings.merge(dsl.tap { |c| c.trace_rate_limit = 2 }) }
       it { expect { trace_rate_limit_ }.to change { settings.trace_rate_limit }.from(100).to(2) }
+    end
+
+    describe '#ip_denylist' do
+      subject(:ip_denylist) { settings.ip_denylist }
+      it { is_expected.to eq([]) }
+    end
+
+    describe '#ip_denylist=' do
+      subject(:ip_denylist_) { settings.merge(dsl.tap { |c| c.ip_denylist = ['192.192.1.1'] }) }
+      it { expect { ip_denylist_ }.to change { settings.ip_denylist }.from([]).to(['192.192.1.1']) }
+    end
+
+    describe '#user_id_denylist' do
+      subject(:user_id_denylist) { settings.user_id_denylist }
+      it { is_expected.to eq([]) }
+    end
+
+    describe '#user_id_denylist=' do
+      subject(:user_id_denylist_) { settings.merge(dsl.tap { |c| c.user_id_denylist = ['8764937902709'] }) }
+      it { expect { user_id_denylist_ }.to change { settings.user_id_denylist }.from([]).to(['8764937902709']) }
     end
 
     describe '#obfuscator_key_regex' do
@@ -157,8 +177,8 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
 
         describe '#ruleset=' do
-          subject(:ruleset_) { settings.merge(dsl.tap { |c| c.ruleset = :risky }) }
-          it { expect { ruleset_ }.to change { settings.ruleset }.from('/some/path').to(:risky) }
+          subject(:ruleset_) { settings.merge(dsl.tap { |c| c.ruleset = :strict }) }
+          it { expect { ruleset_ }.to change { settings.ruleset }.from('/some/path').to(:strict) }
         end
       end
 

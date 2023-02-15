@@ -48,7 +48,7 @@ module Datadog
               @waf_context = context
             end
 
-            _response_return, _response_response = Instrumentation.gateway.push('rack.response', response)
+            _response_return, response_response = Instrumentation.gateway.push('rack.response', response)
 
             context.events.each do |e|
               e[:response] ||= response
@@ -56,6 +56,10 @@ module Datadog
             end
 
             AppSec::Event.record(*context.events)
+
+            if response_response && response_response.any? { |action, _event| action == :block }
+              request_return = AppSec::Response.negotiate(env).to_rack
+            end
 
             request_return
           ensure

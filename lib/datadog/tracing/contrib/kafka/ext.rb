@@ -45,6 +45,7 @@ module Datadog
           TAG_OPERATION_PROCESS_BATCH = 'consumer.process_batch'.freeze
           TAG_OPERATION_PROCESS_MESSAGE = 'consumer.process_message'.freeze
           TAG_OPERATION_SEND_MESSAGES = 'producer.send_messages'.freeze
+          TAG_MESSAGING_SYSTEM = 'kafka'.freeze
         end
       end
     end

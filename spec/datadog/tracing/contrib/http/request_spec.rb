@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/http_examples'
 
 require 'ddtrace'
 require 'net/http'
@@ -21,6 +22,7 @@ RSpec.describe 'net/http requests' do
   let(:host) { '127.0.0.1' }
   let(:port) { 1234 }
   let(:uri) { "http://#{host}:#{port}" }
+  let(:path) { '/my/path' }
 
   let(:client) { Net::HTTP.new(host, port) }
   let(:configuration_options) { {} }
@@ -36,10 +38,15 @@ RSpec.describe 'net/http requests' do
     Datadog.registry[:http].reset_configuration!
   end
 
+  context 'with custom error codes' do
+    subject(:response) { client.get(path) }
+    before { stub_request(:any, "#{uri}#{path}").to_return(status: status_code, body: '{}') }
+
+    include_examples 'with error status code configuration'
+  end
+
   describe '#get' do
     subject(:response) { client.get(path) }
-
-    let(:path) { '/my/path' }
 
     context 'that returns 200' do
       before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
@@ -151,7 +158,6 @@ RSpec.describe 'net/http requests' do
   describe '#post' do
     subject(:response) { client.post(path, payload) }
 
-    let(:path) { '/my/path' }
     let(:payload) { '{ "foo": "bar" }' }
 
     context 'that returns 201' do
@@ -191,7 +197,6 @@ RSpec.describe 'net/http requests' do
       end
 
       let(:request) { Net::HTTP::Get.new(path) }
-      let(:path) { '/my/path' }
 
       it 'generates a well-formed trace' do
         expect(spans).to have(1).items
@@ -224,7 +229,6 @@ RSpec.describe 'net/http requests' do
         Datadog.configure_onto(client, service_name: service_name)
       end
 
-      let(:path) { '/my/path' }
       let(:service_name) { 'bar' }
 
       it 'generates a well-formed trace' do
@@ -244,7 +248,6 @@ RSpec.describe 'net/http requests' do
   context 'when split by domain' do
     subject(:response) { client.get(path) }
 
-    let(:path) { '/my/path' }
     let(:configuration_options) { super().merge(split_by_domain: true) }
 
     before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
@@ -282,8 +285,6 @@ RSpec.describe 'net/http requests' do
   end
 
   describe 'distributed tracing' do
-    let(:path) { '/my/path' }
-
     before do
       stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
     end
@@ -424,8 +425,6 @@ RSpec.describe 'net/http requests' do
   describe 'request exceptions' do
     subject(:response) { client.get(path) }
 
-    let(:path) { '/my/path' }
-
     context 'that raises a timeout' do
       let(:timeout_error) { Net::OpenTimeout.new('execution expired') }
 
@@ -473,6 +472,24 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME', error: StandardError
+    end
+  end
+
+  context 'when basic auth in url' do
+    before do
+      WebMock.enable!
+      stub_request(:get, /example.com/).to_return(status: 200)
+    end
+
+    after { WebMock.disable! }
+
+    it 'does not collect auth info' do
+      uri = URI('http://username:password@example.com/sample/path')
+
+      Net::HTTP.get_response(uri)
+
+      expect(span.get_tag('http.url')).to eq('/sample/path')
+      expect(span.get_tag('out.host')).to eq('example.com')
     end
   end
 end

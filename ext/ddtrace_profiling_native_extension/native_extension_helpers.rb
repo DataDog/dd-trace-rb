@@ -2,7 +2,7 @@
 
 # typed: ignore
 
-require 'libdatadog'
+require 'rubygems'
 require 'pathname'
 
 module Datadog
@@ -16,6 +16,8 @@ module Datadog
 
       # Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
       CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
+
+      LIBDATADOG_VERSION = '~> 2.0.0.1.0'
 
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
@@ -85,9 +87,10 @@ module Datadog
             on_windows? ||
             on_macos? ||
             on_unknown_os? ||
-            not_on_amd64_or_arm64? ||
-            on_ruby_2_1? ||
+            on_unsupported_cpu_arch? ||
+            on_unsupported_ruby_version? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
+            libdatadog_not_available? ||
             libdatadog_not_usable?
         end
 
@@ -142,11 +145,6 @@ module Datadog
           '<https://dtdg.co/ruby-profiler-troubleshooting>.'
         ].freeze
 
-        REPORT_ISSUE = [
-          'If you needed to use this, please tell us why on',
-          '<https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :)',
-        ].freeze
-
         GET_IN_TOUCH = [
           "Get in touch with us if you're interested in profiling your app!"
         ].freeze
@@ -172,10 +170,10 @@ module Datadog
         PKG_CONFIG_IS_MISSING = explain_issue(
           #+-----------------------------------------------------------------------------+
           'the `pkg-config` system tool is missing.',
-          'This issue can usually be fixed by installing:',
-          '1. the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
-          '2. the `pkgconf` package on Arch and Alpine-based Linux;',
-          '3. the `pkgconf-pkg-config` package on Fedora/Red Hat-based Linux.',
+          'This issue can usually be fixed by installing one of the following:',
+          'the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
+          'the `pkgconf` package on Arch and Alpine-based Linux;',
+          'the `pkgconf-pkg-config` package on Fedora/Red Hat-based Linux.',
           suggested: CONTACT_SUPPORT,
         )
 
@@ -188,10 +186,15 @@ module Datadog
         )
 
         private_class_method def self.disabled_via_env?
+          report_disabled = [
+            'If you needed to use this, please tell us why on',
+            '<https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :)',
+          ].freeze
+
           disabled_via_env = explain_issue(
             'the `DD_PROFILING_NO_EXTENSION` environment variable is/was set to',
             '`true` during installation.',
-            suggested: REPORT_ISSUE,
+            suggested: report_disabled,
           )
 
           return unless ENV[ENV_NO_EXTENSION].to_s.strip.downcase == 'true'
@@ -248,22 +251,22 @@ module Datadog
           unknown_os_not_supported unless RUBY_PLATFORM.include?('darwin') || RUBY_PLATFORM.include?('linux')
         end
 
-        private_class_method def self.not_on_amd64_or_arm64?
+        private_class_method def self.on_unsupported_cpu_arch?
           architecture_not_supported = explain_issue(
             'your CPU architecture is not supported by the Datadog Continuous Profiler.',
             suggested: GET_IN_TOUCH,
           )
 
-          architecture_not_supported unless RUBY_PLATFORM.start_with?('x86_64', 'aarch64')
+          architecture_not_supported unless RUBY_PLATFORM.start_with?('x86_64', 'aarch64', 'arm64')
         end
 
-        private_class_method def self.on_ruby_2_1?
+        private_class_method def self.on_unsupported_ruby_version?
           ruby_version_not_supported = explain_issue(
-            'the profiler only supports Ruby 2.2 or newer.',
+            'the profiler only supports Ruby 2.3 or newer.',
             suggested: UPGRADE_RUBY,
           )
 
-          ruby_version_not_supported if RUBY_VERSION.start_with?('2.1.')
+          ruby_version_not_supported if RUBY_VERSION.start_with?('2.1.', '2.2.')
         end
 
         # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip
@@ -277,6 +280,25 @@ module Datadog
           )
 
           ruby_without_mjit if CAN_USE_MJIT_HEADER && RbConfig::CONFIG['MJIT_SUPPORT'] != 'yes'
+        end
+
+        private_class_method def self.libdatadog_not_available?
+          begin
+            gem 'libdatadog', LIBDATADOG_VERSION
+            require 'libdatadog'
+            nil
+          # rubocop:disable Lint/RescueException
+          rescue Exception => e
+            explain_issue(
+              'there was an exception during loading of the `libdatadog` gem:',
+              e.class.name,
+              *e.message.split("\n"),
+              *Array(e.backtrace),
+              '.',
+              suggested: CONTACT_SUPPORT,
+            )
+          end
+          # rubocop:enable Lint/RescueException
         end
 
         private_class_method def self.libdatadog_not_usable?

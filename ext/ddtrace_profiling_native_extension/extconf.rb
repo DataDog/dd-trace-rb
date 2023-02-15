@@ -125,7 +125,7 @@ if RUBY_PLATFORM.include?('linux')
   # have_library 'pthread'
   # have_func 'pthread_getcpuclockid'
   # ```
-  # but it broke the build on Windows and on older Ruby versions (2.2)
+  # but a) it broke the build on Windows, b) on older Ruby versions (2.2 and below) and c) It's slower to build
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
@@ -162,19 +162,10 @@ if RUBY_VERSION < '2.4'
   $defs << '-DUSE_LEGACY_RB_VM_FRAME_METHOD_ENTRY'
 end
 
-# For REALLY OLD Rubies...
-if RUBY_VERSION < '2.3'
-  # ...there was no rb_time_timespec_new function
-  $defs << '-DNO_RB_TIME_TIMESPEC_NEW'
-  # ...the VM changed enough that we need an alternative legacy rb_profile_frames
-  $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
-  # ... you couldn't name threads
-  $defs << '-DNO_THREAD_NAMES'
-end
-
 # If we got here, libdatadog is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
 Logging.message(" [ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
+$stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
 unless pkg_config('datadog_profiling_with_rpath')
   skip_building_extension!(

@@ -24,6 +24,10 @@ module Datadog
         def initialize: () -> void
         def push: (::String name, env env) { () -> final_call_result } -> stack_result
         def watch: (::String name, ::Symbol key) { (stack next, env env) -> stack_result } -> void
+
+        private
+
+        attr_reader middlewares: ::Hash[::String, ::Array[Middleware]]
       end
 
       self.@gateway: Gateway

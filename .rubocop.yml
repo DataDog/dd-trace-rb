@@ -24,6 +24,7 @@ AllCops:
     - 'integration/apps/hanami/Rakefile'
     - 'lib/datadog/profiling/pprof/pprof_pb.rb'
     - 'spec/**/**/interesting_backtrace_helper.rb' # This file needs quite a few bizarre code patterns by design
+    - 'vendor/bundle/**/*'
   NewCops: disable # Don't allow new cops to be enabled implicitly.
 
 Layout/LineLength:
@@ -432,4 +433,7 @@ Naming/VariableNumber:
 # This is not currently possible, as we'd like to use updated versions of Rubocop
 # that have already dropped support for our minimum supported Ruby version.
 Gemspec/RequiredRubyVersion:
+  Enabled: false
+
+Style/WordArray:
   Enabled: false

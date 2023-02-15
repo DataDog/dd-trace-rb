@@ -54,7 +54,8 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           'runtime_metrics_enabled' => false,
           'version' => DDTrace::VERSION::STRING,
           'vm' => be_a(String),
-          'service' => be_a(String)
+          'service' => be_a(String),
+          'profiling_enabled' => false,
         )
       end
     end
@@ -151,7 +152,8 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           service: be_a(String),
           tags: nil,
           version: DDTrace::VERSION::STRING,
-          vm: be_a(String)
+          vm: be_a(String),
+          profiling_enabled: false,
         )
       end
 
@@ -296,21 +298,30 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with MRI' do
-        before { skip unless PlatformHelpers.mri? }
+        before { skip('Spec only runs on MRI') unless PlatformHelpers.mri? }
 
         it { is_expected.to include vm: start_with('ruby') }
       end
 
       context 'with JRuby' do
-        before { skip unless PlatformHelpers.jruby? }
+        before { skip('Spec only runs on JRuby') unless PlatformHelpers.jruby? }
 
         it { is_expected.to include vm: start_with('jruby') }
       end
 
       context 'with TruffleRuby' do
-        before { skip unless PlatformHelpers.truffleruby? }
+        before { skip('Spec only runs on TruffleRuby') unless PlatformHelpers.truffleruby? }
 
         it { is_expected.to include vm: start_with('truffleruby') }
+      end
+
+      context 'with profiling enabled' do
+        before do
+          allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start) if PlatformHelpers.mri?
+          Datadog.configure { |c| c.profiling.enabled = true }
+        end
+
+        it { is_expected.to include profiling_enabled: true }
       end
     end
   end

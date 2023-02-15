@@ -1,4 +1,5 @@
 # typed: ignore
+# frozen_string_literal: true
 
 require_relative 'address_hash'
 require_relative 'subscriber'
@@ -10,20 +11,19 @@ module Datadog
       class Engine
         def initialize
           @data = {}
-          @subscribers = AddressHash.new { |h, k| h[k] = [] } # TODO: move to AddressHash initializer
-          @children = []
+          @subscribers = AddressHash.new
         end
 
         def subscribe(*addresses, &block)
-          @subscribers[addresses.freeze] << Subscriber.new(&block).freeze # TODO: move freeze to Subscriber
+          @subscribers[addresses.freeze] << Subscriber.new(&block)
         end
 
-        def publish(address, data)
+        def publish(address, value)
           # check if someone has address subscribed
           if @subscribers.addresses.include?(address)
 
-            # someone will be interested, set data
-            @data[address] = data
+            # someone will be interested, set value
+            @data[address] = value
 
             # find candidates i.e address groups that contain the just posted address
             @subscribers.with(address).each do |addresses|
@@ -38,6 +38,10 @@ module Datadog
             end
           end
         end
+
+        private
+
+        attr_reader :subscribers, :data
       end
     end
   end

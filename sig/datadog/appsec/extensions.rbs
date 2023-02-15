@@ -19,6 +19,7 @@ module Datadog
         def enabled=: (bool arg) -> untyped
         def ruleset=: ((::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO) arg) -> untyped
         def ip_denylist=: (::Array[::String] arg) -> untyped
+        def user_id_denylist=: (::Array[::String] arg) -> untyped
         def waf_timeout=: (::Integer arg) -> untyped
         def waf_debug=: (bool arg) -> untyped
         def trace_rate_limit=: (::Integer arg) -> untyped
@@ -30,6 +31,7 @@ module Datadog
         def enabled: () -> bool
         def ruleset: () -> (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO)
         def ip_denylist: () -> ::Array[::String]
+        def user_id_denylist: () -> ::Array[::String]
         def waf_timeout: () -> ::Integer
         def waf_debug: () -> bool
         def trace_rate_limit: () -> ::Integer

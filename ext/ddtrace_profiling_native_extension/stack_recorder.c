@@ -128,8 +128,6 @@
 static VALUE ok_symbol = Qnil; // :ok in Ruby
 static VALUE error_symbol = Qnil; // :error in Ruby
 
-static ID ruby_time_from_id; // id of :ruby_time_from in Ruby
-
 static VALUE stack_recorder_class = Qnil;
 
 // Contains native state for each instance
@@ -204,7 +202,6 @@ void stack_recorder_init(VALUE profiling_module) {
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
-  ruby_time_from_id = rb_intern_const("ruby_time_from");
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a ddog_prof_Profile instance
@@ -285,18 +282,15 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   ddog_prof_Profile_SerializeResult serialized_profile = args.result;
 
   if (serialized_profile.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
-    VALUE err_details = ruby_string_from_prof_vec_u8(serialized_profile.err);
-    ddog_prof_Profile_SerializeResult_drop(serialized_profile);
-    return rb_ary_new_from_args(2, error_symbol, err_details);
+    return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&serialized_profile.err));
   }
 
-  VALUE encoded_pprof = ruby_string_from_prof_vec_u8(serialized_profile.ok.buffer);
+  VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
 
   ddog_Timespec ddprof_start = serialized_profile.ok.start;
   ddog_Timespec ddprof_finish = serialized_profile.ok.end;
 
-  // Clean up libdatadog object to avoid leaking in case ruby_time_from raises an exception
-  ddog_prof_Profile_SerializeResult_drop(serialized_profile);
+  ddog_prof_EncodedProfile_drop(&serialized_profile.ok);
 
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
@@ -309,13 +303,9 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 }
 
 static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
-  #ifndef NO_RB_TIME_TIMESPEC_NEW // Modern Rubies
-    const int utc = INT_MAX - 1; // From Ruby sources
-    struct timespec time = {.tv_sec = ddprof_time.seconds, .tv_nsec = ddprof_time.nanoseconds};
-    return rb_time_timespec_new(&time, utc);
-  #else // Ruby < 2.3
-    return rb_funcall(stack_recorder_class, ruby_time_from_id, 2, LONG2NUM(ddprof_time.seconds), UINT2NUM(ddprof_time.nanoseconds));
-  #endif
+  const int utc = INT_MAX - 1; // From Ruby sources
+  struct timespec time = {.tv_sec = ddprof_time.seconds, .tv_nsec = ddprof_time.nanoseconds};
+  return rb_time_timespec_new(&time, utc);
 }
 
 void record_sample(VALUE recorder_instance, ddog_prof_Sample sample) {
@@ -324,12 +314,16 @@ void record_sample(VALUE recorder_instance, ddog_prof_Sample sample) {
 
   struct active_slot_pair active_slot = sampler_lock_active_profile(state);
 
-  ddog_prof_Profile_add(active_slot.profile, sample);
+  ddog_prof_Profile_AddResult result = ddog_prof_Profile_add(active_slot.profile, sample);
 
   sampler_unlock_active_profile(active_slot);
+
+  if (result.tag == DDOG_PROF_PROFILE_ADD_RESULT_ERR) {
+    rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
 }
 
-void record_endpoint(VALUE recorder_instance, ddog_CharSlice local_root_span_id, ddog_CharSlice endpoint) {
+void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -482,6 +476,7 @@ static void serializer_set_start_timestamp_for_next_profile(struct stack_recorde
 }
 
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint) {
-  record_endpoint(recorder_instance, char_slice_from_ruby_string(local_root_span_id), char_slice_from_ruby_string(endpoint));
+  ENFORCE_TYPE(local_root_span_id, T_FIXNUM);
+  record_endpoint(recorder_instance, NUM2ULL(local_root_span_id), char_slice_from_ruby_string(endpoint));
   return Qtrue;
 }

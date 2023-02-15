@@ -12,8 +12,6 @@ module Datadog
         class Settings
           include Core::Configuration::Base
 
-          DEPRECATION_WARN_ONLY_ONCE = Core::Utils::OnlyOnce.new
-
           option :analytics_enabled, default: false
           option :analytics_sample_rate, default: 1.0
           option :enabled, default: true
