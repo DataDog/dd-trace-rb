@@ -152,7 +152,7 @@ static VALUE _native_install_testing_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self);
 static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance);
-static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *);
+static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *_unused);
 static VALUE trigger_allocation_sample(VALUE self_instance);
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
@@ -625,7 +625,7 @@ static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance) {
   return state->gc_tracepoint;
 }
 
-static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED void *) {
+static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED void *_unused) {
   allocation_count++;
 
   struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
