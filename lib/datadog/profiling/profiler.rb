@@ -34,7 +34,12 @@ module Datadog
         end
 
         scheduler.enabled = false
-        scheduler.stop(true)
+
+        if ENV['DD_PROFILING_NO_SHUTDOWN_WORKAROUND'] == 'true'
+          scheduler.stop(true)
+        else
+          Datadog.logger.warn('Skipping shutdown of scheduler')
+        end
       end
     end
   end
