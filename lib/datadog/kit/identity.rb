@@ -28,6 +28,7 @@ module Datadog
       #
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
+      # rubocop:disable Metrics/AbcSize
       def self.set_user(trace, id:, email: nil, name: nil, session_id: nil, role: nil, scope: nil, **others)
         raise ArgumentError, 'missing required key: :id' if id.nil?
 
@@ -56,9 +57,17 @@ module Datadog
         others.each do |k, v|
           trace.set_tag("usr.#{k}", v) unless v.nil?
         end
+
+        if ::Datadog::AppSec.settings.enabled
+          _, appsec_response = ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', id)
+          if appsec_response && appsec_response.any? { |action, _event| action == :block }
+            throw(AppSec::Ext::REQUEST_INTERRUPT, [nil, appsec_response])
+          end
+        end
       end
       # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/AbcSize
     end
   end
 end

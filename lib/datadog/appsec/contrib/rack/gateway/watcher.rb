@@ -1,10 +1,12 @@
 # typed: ignore
 
+require_relative '../../../ext'
 require_relative '../../../instrumentation/gateway'
 require_relative '../../../reactive/operation'
 require_relative '../reactive/request'
 require_relative '../reactive/request_body'
 require_relative '../reactive/response'
+require_relative '../reactive/set_user'
 require_relative '../../../event'
 
 module Datadog
@@ -56,7 +58,13 @@ module Datadog
 
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(request)
+                  ret, res = nil
+
+                  _, catched_request = catch(Datadog::AppSec::Ext::REQUEST_INTERRUPT) do
+                    ret, res = stack.call(request)
+                  end
+
+                  next [nil, catched_request] if catched_request
 
                   if event
                     res ||= []
@@ -154,7 +162,7 @@ module Datadog
               end
 
               def watch_user_id(gateway = Instrumentation.gateway)
-                gateway.watch('identity.set_user', :appsec) do |stack, user|
+                gateway.watch('identity.set_user', :appsec) do |stack, user_id|
                   block = false
                   event = nil
                   waf_context = Datadog::AppSec::Processor.current_context
@@ -170,7 +178,7 @@ module Datadog
                           waf_result: result,
                           trace: trace,
                           span: span,
-                          user: user,
+                          user_id: user_id,
                           actions: result.actions
                         }
 
@@ -180,12 +188,12 @@ module Datadog
                       end
                     end
 
-                    _result, block = Rack::Reactive::SetUser.publish(op, user)
+                    _result, block = Rack::Reactive::SetUser.publish(op, user_id)
                   end
 
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(user)
+                  ret, res = stack.call(user_id)
 
                   if event
                     res ||= []

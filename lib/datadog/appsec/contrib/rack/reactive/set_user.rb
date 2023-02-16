@@ -13,9 +13,9 @@ module Datadog
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, user)
+            def self.publish(op, user_id)
               catch(:block) do
-                op.publish('usr.id', user.id)
+                op.publish('usr.id', user_id)
 
                 nil
               end

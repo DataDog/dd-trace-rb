@@ -2,6 +2,7 @@
 
 require 'json'
 
+require_relative '../../ext'
 require_relative '../../instrumentation/gateway'
 require_relative '../../processor'
 require_relative '../../response'

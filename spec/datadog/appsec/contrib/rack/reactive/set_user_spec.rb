@@ -8,13 +8,13 @@ require 'rack'
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
   let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
-  let(:user) { double(:user, id: 1) }
+  let(:user_id) { '1' }
 
   describe '.publish' do
     it 'propagates request body attributes to the operation' do
-      expect(operation).to receive(:publish).with('usr.id', 1)
+      expect(operation).to receive(:publish).with('usr.id', '1')
 
-      described_class.publish(operation, user)
+      described_class.publish(operation, user_id)
     end
   end
 
@@ -33,7 +33,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
       it 'does call the waf context with the right arguments' do
         expect(operation).to receive(:subscribe).and_call_original
 
-        expected_waf_arguments = { 'usr.id' => 1 }
+        expected_waf_arguments = { 'usr.id' => '1' }
 
         waf_result = double(:waf_result, status: :ok, timeout: false)
         expect(waf_context).to receive(:run).with(
@@ -41,7 +41,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
           Datadog::AppSec.settings.waf_timeout
         ).and_return(waf_result)
         described_class.subscribe(operation, waf_context)
-        result = described_class.publish(operation, user)
+        result = described_class.publish(operation, user_id)
         expect(result).to be_nil
       end
     end
@@ -56,7 +56,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
           expect(result).to eq(waf_result)
           expect(block).to eq(false)
         end
-        result = described_class.publish(operation, user)
+        result = described_class.publish(operation, user_id)
         expect(result).to be_nil
       end
 
@@ -69,7 +69,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
           expect(result).to eq(waf_result)
           expect(block).to eq(true)
         end
-        publish_result, publish_block = described_class.publish(operation, user)
+        publish_result, publish_block = described_class.publish(operation, user_id)
         expect(publish_result).to eq(waf_result)
         expect(publish_block).to eq(true)
       end
@@ -82,7 +82,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
         waf_result = double(:waf_result, status: :ok, timeout: false)
         expect(waf_context).to receive(:run).and_return(waf_result)
         expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, user)
+        result = described_class.publish(operation, user_id)
         expect(result).to be_nil
       end
     end
@@ -94,7 +94,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
         waf_result = double(:waf_result, status: :invalid_call, timeout: false)
         expect(waf_context).to receive(:run).and_return(waf_result)
         expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, user)
+        result = described_class.publish(operation, user_id)
         expect(result).to be_nil
       end
     end
@@ -106,7 +106,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
         waf_result = double(:waf_result, status: :invalid_rule, timeout: false)
         expect(waf_context).to receive(:run).and_return(waf_result)
         expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, user)
+        result = described_class.publish(operation, user_id)
         expect(result).to be_nil
       end
     end
@@ -118,7 +118,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
         waf_result = double(:waf_result, status: :invalid_flow, timeout: false)
         expect(waf_context).to receive(:run).and_return(waf_result)
         expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, user)
+        result = described_class.publish(operation, user_id)
         expect(result).to be_nil
       end
     end
@@ -130,7 +130,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
         waf_result = double(:waf_result, status: :no_rule, timeout: false)
         expect(waf_context).to receive(:run).and_return(waf_result)
         expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, user)
+        result = described_class.publish(operation, user_id)
         expect(result).to be_nil
       end
     end
@@ -142,7 +142,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
         waf_result = double(:waf_result, status: :foo, timeout: false)
         expect(waf_context).to receive(:run).and_return(waf_result)
         expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, user)
+        result = described_class.publish(operation, user_id)
         expect(result).to be_nil
       end
     end
