@@ -4,9 +4,19 @@ if !ENV['skip_autoinject']
     puts 'ddtrace already installed... skipping auto-injection'
   else
     version = "<DD_TRACE_VERSION_TO_BE_REPLACED>"
-    puts "ddtrace is not installed... Perform auto-injection... for dd-trace-rb:#{version}"
+    sha = "<DD_TRACE_SHA_TO_BE_REPLACED>"
 
-    if system "skip_autoinject=true bundle add ddtrace --version #{version} --require ddtrace/auto_instrument"
+    condition = if !version.empty?
+      "--version '#{version}'"
+    elsif !sha.empty?
+      "--github 'datadog/dd-trace-rb' --ref '#{sha}'"
+    else
+      puts "NO VERSION"
+    end
+
+    puts "ddtrace is not installed... Perform auto-injection... for dd-trace-rb"
+
+    if system "skip_autoinject=true bundle add ddtrace #{condition} --require ddtrace/auto_instrument"
       puts 'ddtrace added to bundle...'
     else
       puts 'Something went wrong when adding ddtrace to bundle...'
