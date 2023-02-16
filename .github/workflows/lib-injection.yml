@@ -1,0 +1,15 @@
+name: "Library Injection"
+on:
+  # Build each branch for testing
+  push:
+
+jobs:
+  build-and-publish-test-image:
+    uses: ./.github/workflows/build-and-publish-image.yml
+    with:
+      tags: 'ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${{ github.sha }}'
+      platforms: 'linux/amd64,linux/arm64/v8'
+      build-args: 'DDTRACE_RUBY_VERSION=git+https://github.com/Datadog/dd-trace-rb@${{ github.sha }}'
+      context: ./lib-injection
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
