@@ -282,11 +282,9 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
       it 'produces metrics every interval' do
         worker.perform
 
-        sleep(default_flush_interval * 2)
-
         # Metrics are produced once right away
         # and again after an interval.
-        expect(metrics).to have_received(:flush).at_least(2).times
+        wait(default_flush_interval * 2).for(metrics).to have_received(:flush).at_least(2).times
       end
     end
 
