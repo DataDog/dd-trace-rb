@@ -12,8 +12,6 @@ module Datadog
 
             def self.watch_request_body: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> untyped
 
-            def self.watch_user_id: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> untyped
-
             private
 
             def self.active_trace: () -> (nil | untyped)

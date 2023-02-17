@@ -3,10 +3,9 @@
 
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/reactive/operation'
-require 'datadog/appsec/contrib/rack/reactive/set_user'
-require 'rack'
+require 'datadog/appsec/monitor/reactive/set_user'
 
-RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::SetUser do
+RSpec.describe Datadog::AppSec::Monitor::Reactive::SetUser do
   let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
   let(:user) { double(:user, id: 1) }
 

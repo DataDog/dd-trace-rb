@@ -7,6 +7,7 @@ target :appsec do
   # check 'lib/datadog/kit'
 
   ignore 'lib/datadog/appsec/contrib'
+  ignore 'lib/datadog/appsec/monitor'
 
   library 'pathname', 'set'
   library 'cgi'

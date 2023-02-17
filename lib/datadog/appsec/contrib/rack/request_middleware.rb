@@ -68,7 +68,7 @@ module Datadog
           ensure
             if context
               add_waf_runtime_tags(active_trace, context)
-              processor.deactive_context
+              processor.deactivate_context
             end
           end
 
