@@ -44,6 +44,7 @@ RSpec.describe 'Qless instrumentation' do
         expect(span).to_not have_error
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('qless')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
+        expect(span.get_tag('span.kind')).to eq('consumer')
         expect(span.get_tag('messaging.system')).to eq('qless')
       end
 
@@ -83,6 +84,7 @@ RSpec.describe 'Qless instrumentation' do
         expect(span).to have_error_type(error_class_name)
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('qless')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
+        expect(span.get_tag('span.kind')).to eq('consumer')
         expect(span.get_tag('messaging.system')).to eq('qless')
       end
     end
