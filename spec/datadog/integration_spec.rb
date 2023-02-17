@@ -26,9 +26,14 @@ RSpec.describe 'Datadog integration' do
 
     context 'for threads' do
       let!(:original_thread_count) { thread_count }
+      let!(:original_inspect_threads) { inspect_threads }
 
       def thread_count
         Thread.list.count
+      end
+
+      def inspect_threads
+        Thread.list.map.with_index { |t, idx| "#{idx}=#{t.backtrace}" }.join(';')
       end
 
       it 'closes tracer threads' do
@@ -37,7 +42,9 @@ RSpec.describe 'Datadog integration' do
 
         shutdown
 
-        expect(thread_count).to eq(original_thread_count)
+        expect(thread_count).to eq(original_thread_count),
+          "Expected #{original_thread_count} threads (#{original_inspect_threads}), "\
+                  "got #{thread_count} threads (#{inspect_threads})"
       end
     end
 
