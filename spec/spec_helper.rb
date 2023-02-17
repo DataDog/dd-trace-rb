@@ -91,7 +91,10 @@ RSpec.configure do |config|
   config.order = :random
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
+
+  # rspec-wait configuration
   config.wait_timeout = 5 # default timeout for `wait_for(...)`, in seconds
+  config.wait_delay = 0.01 # default retry delay for `wait_for(...)`, in seconds
 
   if config.files_to_run.one?
     # Use the documentation formatter for detailed output,
