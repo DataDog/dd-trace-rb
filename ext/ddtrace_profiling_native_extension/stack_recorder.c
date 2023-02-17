@@ -130,6 +130,40 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 
 static VALUE stack_recorder_class = Qnil;
 
+// Note: Please DO NOT use `VALUE_STRING` anywhere else, instead use `DDOG_CHARSLICE_C`.
+// `VALUE_STRING` is only needed because older versions of gcc (4.9.2, used in our Ruby 2.2 CI test images)
+// tripped when compiling `enabled_value_types` using `-std=gnu99` due to the extra cast that is included in
+// `DDOG_CHARSLICE_C` with the following error:
+//
+// ```
+// compiling ../../../../ext/ddtrace_profiling_native_extension/stack_recorder.c
+// ../../../../ext/ddtrace_profiling_native_extension/stack_recorder.c:23:1: error: initializer element is not constant
+// static const ddog_prof_ValueType enabled_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE};
+// ^
+// ```
+#define VALUE_STRING(string) {.ptr = "" string, .len = sizeof(string) - 1}
+
+#define CPU_TIME_VALUE          {.type_ = VALUE_STRING("cpu-time"),          .unit = VALUE_STRING("nanoseconds")}
+#define CPU_SAMPLES_VALUE       {.type_ = VALUE_STRING("cpu-samples"),       .unit = VALUE_STRING("count")}
+#define WALL_TIME_VALUE         {.type_ = VALUE_STRING("wall-time"),         .unit = VALUE_STRING("nanoseconds")}
+#define ALLOC_SIZE_VALUE        {.type_ = VALUE_STRING("alloc-size"),        .unit = VALUE_STRING("bytes")}
+#define ALLOC_SAMPLES_VALUE     {.type_ = VALUE_STRING("alloc-samples"),     .unit = VALUE_STRING("count")}
+#define HEAP_LIVE_SIZE_VALUE    {.type_ = VALUE_STRING("heap-live-size"),    .unit = VALUE_STRING("bytes")}
+#define HEAP_LIVE_SAMPLES_VALUE {.type_ = VALUE_STRING("heap-live-samples"), .unit = VALUE_STRING("count")}
+
+static const ddog_prof_ValueType enabled_value_types[] = {
+  #define CPU_TIME_VALUE_POS 0
+  CPU_TIME_VALUE,
+  #define CPU_SAMPLES_VALUE_POS 1
+  CPU_SAMPLES_VALUE,
+  #define WALL_TIME_VALUE_POS 2
+  WALL_TIME_VALUE,
+  #define ALLOC_SAMPLES_VALUE_POS 3
+  ALLOC_SAMPLES_VALUE
+};
+
+#define ENABLED_VALUE_TYPES_COUNT (sizeof(enabled_value_types) / sizeof(ddog_prof_ValueType))
+
 // Contains native state for each instance
 struct stack_recorder_state {
   pthread_mutex_t slot_one_mutex;
@@ -308,13 +342,26 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   return rb_time_timespec_new(&time, utc);
 }
 
-void record_sample(VALUE recorder_instance, ddog_prof_Sample sample) {
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, ddog_prof_Slice_Label labels) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
   struct active_slot_pair active_slot = sampler_lock_active_profile(state);
 
-  ddog_prof_Profile_AddResult result = ddog_prof_Profile_add(active_slot.profile, sample);
+  int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
+  metric_values[CPU_TIME_VALUE_POS] = values.cpu_time_ns;
+  metric_values[CPU_SAMPLES_VALUE_POS] = values.cpu_samples;
+  metric_values[WALL_TIME_VALUE_POS] = values.wall_time_ns;
+  metric_values[ALLOC_SAMPLES_VALUE_POS] = values.alloc_samples;
+
+  ddog_prof_Profile_AddResult result = ddog_prof_Profile_add(
+    active_slot.profile,
+    (ddog_prof_Sample) {
+      .locations = locations,
+      .values = (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+      .labels = labels
+    }
+  );
 
   sampler_unlock_active_profile(active_slot);
 
