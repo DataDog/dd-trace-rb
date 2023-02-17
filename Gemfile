@@ -117,7 +117,7 @@ group :check do
   # version and bump it from time to time.
   # Also, there's no support for windows
   if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
-    gem 'sorbet', '= 0.5.9672'
+    gem 'sorbet', '= 0.5.10201'
     gem 'spoom', '~> 1.1'
   end
 
