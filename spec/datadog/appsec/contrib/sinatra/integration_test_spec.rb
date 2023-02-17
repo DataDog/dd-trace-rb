@@ -101,6 +101,7 @@ RSpec.describe 'Sinatra integration tests' do
 
       c.appsec.enabled = appsec_enabled
       c.appsec.instrument :sinatra
+      c.appsec.instrument :datadog
       c.appsec.ip_denylist = appsec_ip_denylist
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset

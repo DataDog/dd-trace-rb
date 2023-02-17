@@ -21,24 +21,26 @@ module Datadog
             @app = app
 
             @oneshot_tags_sent = false
-            @processor = Datadog::AppSec::Processor.new
+            @processor = ::Datadog::AppSec::Processor.new
           end
 
           def call(env)
-            return @app.call(env) unless Datadog.configuration.appsec.enabled && @processor.ready?
+            return @app.call(env) unless ::Datadog.configuration.appsec.enabled && @processor.ready?
 
             # TODO: handle exceptions, except for @app.call
 
             context = @processor.new_context
             env['datadog.waf.context'] = context
-            Datadog::AppSec::Processor.current_context = context
+            # ::Datadog::AppSec::Processor.current_context = context
 
             request = ::Rack::Request.new(env)
 
             add_appsec_tags(active_trace, active_span, env)
 
-            request_return, request_response = Instrumentation.gateway.push('rack.request', request) do
-              @app.call(env)
+            request_return, request_response =   catch(::Datadog::AppSec::Ext::REQUEST_INTERRUPT) do
+              Instrumentation.gateway.push('rack.request', request) do
+                @app.call(env)
+              end
             end
 
             if request_response && request_response.any? { |action, _event| action == :block }
@@ -68,7 +70,6 @@ module Datadog
             if context
               add_waf_runtime_tags(active_trace, context)
               context.finalize
-              Datadog::AppSec::Processor.reset_current_context
             end
           end
 
@@ -77,17 +78,17 @@ module Datadog
           def active_trace
             # TODO: factor out tracing availability detection
 
-            return unless defined?(Datadog::Tracing)
+            return unless defined?(::Datadog::Tracing)
 
-            Datadog::Tracing.active_trace
+            ::Datadog::Tracing.active_trace
           end
 
           def active_span
             # TODO: factor out tracing availability detection
 
-            return unless defined?(Datadog::Tracing)
+            return unless defined?(::Datadog::Tracing)
 
-            Datadog::Tracing.active_span
+            ::Datadog::Tracing.active_span
           end
 
           def add_appsec_tags(trace, span, env)
@@ -95,13 +96,13 @@ module Datadog
 
             trace.set_tag('_dd.appsec.enabled', 1)
             trace.set_tag('_dd.runtime_family', 'ruby')
-            trace.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
+            trace.set_tag('_dd.appsec.waf.version', ::Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
             if span && span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
-              request_header_collection = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
+              request_header_collection = ::Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
 
               # always collect client ip, as this is part of AppSec provided functionality
-              Datadog::Tracing::ClientIp.set_client_ip_tag!(
+              ::Datadog::Tracing::ClientIp.set_client_ip_tag!(
                 span,
                 headers: request_header_collection,
                 remote_ip: env['REMOTE_ADDR']
@@ -124,8 +125,8 @@ module Datadog
                 # Ensure these tags reach the backend
                 trace.keep!
                 trace.set_tag(
-                  Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                  Datadog::Tracing::Sampling::Ext::Decision::ASM
+                  ::Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                  ::Datadog::Tracing::Sampling::Ext::Decision::ASM
                 )
               end
             end

@@ -36,27 +36,31 @@ module Datadog
 
         def finalize
           @context.finalize
+
+          if @context == Processor.active_context
+            Processor.reset_active_context
+          end
         end
       end
 
       class InvalidContextError < StandardError; end
 
       class << self
-        def current_context
-          Thread.current[:datadog_current_waf_context]
+        def active_context
+          Thread.current[:datadog_active_waf_context]
         end
 
-        def current_context=(context)
+        def active_context=(context)
           unless context.instance_of?(Context)
             raise InvalidContextError,
               "The context provide: #{context.inspect} is not a Datadog::AppSec::Processor::Context"
           end
 
-          Thread.current[:datadog_current_waf_context] = context
+          Thread.current[:datadog_active_waf_context] = context
         end
 
-        def reset_current_context
-          Thread.current[:datadog_current_waf_context] = nil
+        def reset_active_context
+          Thread.current[:datadog_active_waf_context] = nil
         end
       end
 
@@ -81,7 +85,9 @@ module Datadog
       end
 
       def new_context
-        Context.new(self)
+        context = Context.new(self)
+        Processor.active_context = context
+        context
       end
 
       def update_rule_data(data)

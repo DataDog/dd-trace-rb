@@ -60,13 +60,13 @@ module Datadog
 
           def self.client_ip(request)
             remote_ip = request.env['REMOTE_ADDR']
-            headers = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(request.env)
+            headers = ::Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(request.env)
 
-            result = Datadog::Tracing::ClientIp.raw_ip_from_request(headers, remote_ip)
+            result = ::Datadog::Tracing::ClientIp.raw_ip_from_request(headers, remote_ip)
 
             if result.raw_ip
-              ip = Datadog::Tracing::ClientIp.strip_decorations(result.raw_ip)
-              return unless Datadog::Tracing::ClientIp.valid_ip?(ip)
+              ip = ::Datadog::Tracing::ClientIp.strip_decorations(result.raw_ip)
+              return unless ::Datadog::Tracing::ClientIp.valid_ip?(ip)
 
               ip
             end

@@ -6,7 +6,6 @@ require_relative '../../../reactive/operation'
 require_relative '../reactive/request'
 require_relative '../reactive/request_body'
 require_relative '../reactive/response'
-require_relative '../reactive/set_user'
 require_relative '../../../event'
 
 module Datadog
@@ -23,7 +22,6 @@ module Datadog
                 watch_request(gateway)
                 watch_response(gateway)
                 watch_request_body(gateway)
-                watch_user_id(gateway)
               end
 
               def watch_request(gateway = Instrumentation.gateway)
@@ -58,13 +56,7 @@ module Datadog
 
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = nil
-
-                  _, catched_request = catch(Datadog::AppSec::Ext::REQUEST_INTERRUPT) do
-                    ret, res = stack.call(request)
-                  end
-
-                  next [nil, catched_request] if catched_request
+                  ret, res = stack.call(request)
 
                   if event
                     res ||= []
@@ -151,49 +143,6 @@ module Datadog
                   next [nil, [[:block, event]]] if block
 
                   ret, res = stack.call(request)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
-                end
-              end
-
-              def watch_user_id(gateway = Instrumentation.gateway)
-                gateway.watch('identity.set_user', :appsec) do |stack, user_id|
-                  block = false
-                  event = nil
-                  waf_context = Datadog::AppSec::Processor.current_context
-
-                  AppSec::Reactive::Operation.new('identity.set_user') do |op|
-                    trace = active_trace
-                    span = active_span
-
-                    Rack::Reactive::SetUser.subscribe(op, waf_context) do |result, _block|
-                      if result.status == :match
-                        # TODO: should this hash be an Event instance instead?
-                        event = {
-                          waf_result: result,
-                          trace: trace,
-                          span: span,
-                          user_id: user_id,
-                          actions: result.actions
-                        }
-
-                        span.set_tag('appsec.event', 'true') if span
-
-                        waf_context.events << event
-                      end
-                    end
-
-                    _result, block = Rack::Reactive::SetUser.publish(op, user_id)
-                  end
-
-                  next [nil, [[:block, event]]] if block
-
-                  ret, res = stack.call(user_id)
 
                   if event
                     res ||= []

@@ -59,10 +59,7 @@ module Datadog
         end
 
         if ::Datadog::AppSec.settings.enabled
-          _, appsec_response = ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', id)
-          if appsec_response && appsec_response.any? { |action, _event| action == :block }
-            throw(AppSec::Ext::REQUEST_INTERRUPT, [nil, appsec_response])
-          end
+          ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', id)
         end
       end
       # rubocop:enable Metrics/PerceivedComplexity
