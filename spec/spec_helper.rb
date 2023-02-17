@@ -4,6 +4,7 @@ $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 require 'pry'
 require 'rspec/collection_matchers'
+require 'rspec/wait'
 require 'webmock/rspec'
 require 'climate_control'
 
@@ -90,6 +91,7 @@ RSpec.configure do |config|
   config.order = :random
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
+  config.wait_timeout = 5 # default timeout for `wait_for(...)`, in seconds
 
   if config.files_to_run.one?
     # Use the documentation formatter for detailed output,
