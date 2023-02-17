@@ -17,12 +17,15 @@ module Datadog
         def finalize: () -> void
       end
 
-      class InvalidContextError < StandardError
-      end
+      def self.active_context: () -> Context
 
-      def self.current_context: () -> Context?
-      def self.current_context=: (untyped context) -> void
-      def self.reset_current_context: () -> void
+      private
+
+      def self.active_context=: (untyped context) -> untyped
+      def self.reset_active_context: () -> untyped
+
+      class NoActiveContextError < StandardError
+      end
 
       attr_reader ruleset_info: untyped
       attr_reader addresses: untyped
@@ -34,6 +37,8 @@ module Datadog
       def initialize: () -> void
       def ready?: () -> bool
       def new_context: () -> Context
+      def activate_context: () -> Context
+      def deactivate_context: () -> void
       def update_rule_data: (untyped data) -> untyped
       def toggle_rules: (untyped map) -> untyped
       def finalize: () -> void

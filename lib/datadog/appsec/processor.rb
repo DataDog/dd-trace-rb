@@ -44,6 +44,8 @@ module Datadog
           Thread.current[:datadog_current_waf_context]
         end
 
+        private
+
         def active_context=(context)
           unless context.instance_of?(Context)
             raise ArgumentError,
@@ -57,6 +59,8 @@ module Datadog
           Thread.current[:datadog_current_waf_context] = nil
         end
       end
+
+      class NoActiveContextError < StandardError; end
 
       attr_reader :ruleset_info, :addresses
 
@@ -80,6 +84,20 @@ module Datadog
 
       def new_context
         Context.new(self)
+      end
+
+      def activate_context
+        context = new_context
+        Processor.send(:active_context=, context)
+        context
+      end
+
+      def deactivate_context
+        context = Processor.active_context
+        raise NoActiveContextError unless context
+
+        Processor.send(:reset_active_context)
+        context.finalize
       end
 
       def update_rule_data(data)

@@ -20,6 +20,10 @@ RSpec.describe Datadog::AppSec::Processor do
     allow(Datadog).to receive(:logger).and_return(logger)
   end
 
+  after do
+    described_class.send(:reset_active_context)
+  end
+
   context 'self' do
     it 'detects if the WAF is unavailable' do
       hide_const('Datadog::AppSec::WAF')
@@ -60,19 +64,19 @@ RSpec.describe Datadog::AppSec::Processor do
         processor = described_class.new
         context = processor.new_context
 
-        described_class.active_context = context
+        described_class.send(:active_context=, context)
 
         expect(described_class.active_context).to eq(context)
 
         context.finalize
         processor.finalize
-        described_class.reset_active_context
+        described_class.send(:reset_active_context)
       end
 
       describe '.active_context=' do
         it 'raises ArgumentError when trying to setup current conetxt to a non Context instance' do
           expect do
-            described_class.active_context = 'foo'
+            described_class.send(:active_context=, 'foo')
           end.to raise_error(ArgumentError)
         end
       end
@@ -82,11 +86,11 @@ RSpec.describe Datadog::AppSec::Processor do
           processor = described_class.new
           context = processor.new_context
 
-          described_class.active_context = context
+          described_class.send(:active_context=, context)
 
           expect(described_class.active_context).to eq(context)
 
-          described_class.reset_active_context
+          described_class.send(:reset_active_context)
           expect(described_class.active_context).to be_nil
 
           context.finalize
@@ -517,6 +521,30 @@ RSpec.describe Datadog::AppSec::Processor do
           it { expect(data).to have_attributes(count: 0) }
           it { expect(actions).to have_attributes(count: 0) }
         end
+      end
+    end
+  end
+
+  describe '#active_context' do
+    it 'creates a new context and store in the class .active_context variable' do
+      context = described_class.new.activate_context
+      expect(context).to eq(described_class.active_context)
+    end
+  end
+
+  describe '#deactivate_context' do
+    it 'finalize the active context and reset the class .active_context variable' do
+      handler = described_class.new
+      context = handler.activate_context
+
+      expect(context).to receive(:finalize)
+      handler.deactivate_context
+      expect(described_class.active_context).to be_nil
+    end
+
+    context 'without an active_context' do
+      it 'raises NoActiveContextError' do
+        expect { described_class.new.deactivate_context }.to raise_error(described_class::NoActiveContextError)
       end
     end
   end
