@@ -33,7 +33,7 @@ module Datadog
 
             context = processor.new_context
             env['datadog.waf.context'] = context
-            Datadog::AppSec::Processor.current_context = context
+            Datadog::AppSec::Processor.active_context = context
 
             request = ::Rack::Request.new(env)
 
@@ -69,7 +69,8 @@ module Datadog
           ensure
             if context
               add_waf_runtime_tags(active_trace, context)
-              Datadog::AppSec::Processor.reset_current_context
+              Datadog::AppSec::Processor.reset_active_context
+              context.finalize
             end
           end
 
