@@ -25,15 +25,12 @@ RSpec.describe 'Datadog integration' do
     end
 
     context 'for threads' do
-      let!(:original_thread_count) { thread_count }
-      let!(:original_inspect_threads) { inspect_threads }
+      let(:original_threads) { Thread.list }
+      let!(:original_threads_inspect) { inspect_threads(original_threads) } # Store result as stack trace will change
+      let(:threads) { Thread.list }
 
-      def thread_count
-        Thread.list.count
-      end
-
-      def inspect_threads
-        Thread.list.map.with_index { |t, idx| "#{idx}=#{t.backtrace}" }.join(';')
+      def inspect_threads(threads)
+        threads.map.with_index { |t, idx| "#{idx}=#{t.backtrace}" }.join(';')
       end
 
       it 'closes tracer threads' do
@@ -42,9 +39,9 @@ RSpec.describe 'Datadog integration' do
 
         shutdown
 
-        expect(thread_count).to eq(original_thread_count),
-          "Expected #{original_thread_count} threads (#{original_inspect_threads}), "\
-                  "got #{thread_count} threads (#{inspect_threads})"
+        expect(threads.size).to eq(original_threads.size),
+          "Expected #{original_threads.size} threads (#{original_threads_inspect}), "\
+                  "got #{threads.size} threads (#{inspect_threads(threads)})"
       end
     end
 
