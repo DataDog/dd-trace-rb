@@ -268,7 +268,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
 
   describe 'integration tests', :integration do
     describe 'interval' do
-      let(:default_flush_interval) { 0.1 }
+      let(:default_flush_interval) { 0.01 }
 
       before do
         stub_const(
@@ -284,7 +284,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
 
         # Metrics are produced once right away
         # and again after an interval.
-        wait(default_flush_interval * 2).for(metrics).to have_received(:flush).at_least(2).times
+        wait_for(metrics).to have_received(:flush).at_least(2).times
       end
     end
 
