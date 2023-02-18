@@ -68,13 +68,11 @@ module Datadog
           end
 
           def post(env)
-            post = nil
-
             if env.form.nil? || env.form.empty?
               post = ::Net::HTTP::Post.new(env.path, env.headers)
               post.body = env.body
             else
-              post = ::Datadog::Core::Vendor::Net::HTTP::Post::Multipart.new(
+              post = Core::Vendor::Net::HTTP::Post::Multipart.new(
                 env.path,
                 env.form,
                 env.headers
