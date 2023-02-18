@@ -113,6 +113,8 @@ module Datadog
       # This class initializes the HTTP client, breaks down large
       # batches of traces into smaller chunks and handles
       # API version downgrade handshake.
+      #
+      # DEV: We should add retry logic to the transport, as transient failures are common in a real network environment
       class Transport
         attr_reader :client, :apis, :default_api, :current_api_id
 
