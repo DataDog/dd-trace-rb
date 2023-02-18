@@ -1,7 +1,6 @@
 # typed: ignore
 
 require 'spec_helper'
-require_relative '../../support/system_helper'
 
 require 'datadog/statsd'
 
