@@ -22,8 +22,11 @@ module Datadog
           DEFAULT_TIMEOUT = 30
 
           # If this many seconds have passed since the last request, create a new TCP connection.
-          # In seconds.
-          KEEP_ALIVE_TIMEOUT = 60
+          # This should match the trace agent timeout, as the agent will close its side of the connect after this
+          # much time has passed:
+          # https://github.com/DataDog/datadog-agent/blob/ef47fb8c411938e672eb29f3cc5ad79b00133f02/pkg/trace/api/api.go#L150
+          # We subtract 1 second from the agent timeout, to avoid being just slightly too late.
+          KEEP_ALIVE_TIMEOUT = 4 # In seconds.
 
           # @deprecated Positional parameters are deprecated. Use named parameters instead.
           def initialize(hostname = nil, port = nil, **options)

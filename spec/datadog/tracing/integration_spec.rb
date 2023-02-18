@@ -196,8 +196,33 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     it 'reuses the same HTTP connection' do
+      expect_any_instance_of(::Net::HTTP).to receive(:connect).once.and_call_original
+
       trace
-      expect { trace }.to_not(change { SystemHelper.open_fds })
+      trace
+
+      wait_for_flush(:traces_flushed, 2)
+    end
+
+    it 'handles remote timeout from trace agent' do
+      # Ensures this test is actually testing what it claims to.
+      # If only a single connection was made during the test, the
+      # desired reconnection behavior is not being tested.
+      expect_any_instance_of(::Net::HTTP).to receive(:connect).twice.and_call_original
+
+      trace
+      sleep 6 # Agent timeout is 5 seconds, the transport will have to reconnect
+      trace # Transport will reconnect
+
+      wait_for_flush(:traces_flushed, 2)
+
+      expect(stats).to include(traces_flushed: 2)
+      expect(stats[:transport])
+        .to have_attributes(
+              client_error: 0,
+              server_error: 0,
+              internal_error: 0
+            )
     end
 
     it_behaves_like 'flushed trace' do

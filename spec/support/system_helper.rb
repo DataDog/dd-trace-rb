@@ -11,6 +11,6 @@ module SystemHelper
         rescue SystemCallError # This can fail due to... reasons, and we only want it for debugging so let's ignore
           nil
         end
-    end
+    end.values
   end
 end
