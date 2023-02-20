@@ -65,7 +65,10 @@ module Datadog
         if settings.profiling.advanced.force_enable_new_profiler
           print_new_profiler_warnings
 
-          recorder = Datadog::Profiling::StackRecorder.new
+          recorder = Datadog::Profiling::StackRecorder.new(
+            cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
+            alloc_samples_enabled: false, # Always disabled for now -- work in progress
+          )
           collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
             recorder: recorder,
             max_frames: settings.profiling.advanced.max_frames,

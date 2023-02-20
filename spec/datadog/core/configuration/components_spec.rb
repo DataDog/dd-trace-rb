@@ -1111,6 +1111,35 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           build_profiler
         end
+
+        it 'sets up the StackRecorder with alloc_samples_enabled: false' do
+          expect(Datadog::Profiling::StackRecorder)
+            .to receive(:new).with(hash_including(alloc_samples_enabled: false)).and_call_original
+
+          build_profiler
+        end
+
+        context 'when on Linux' do
+          before { stub_const('RUBY_PLATFORM', 'some-linux-based-platform') }
+
+          it 'sets up the StackRecorder with cpu_time_enabled: true' do
+            expect(Datadog::Profiling::StackRecorder)
+              .to receive(:new).with(hash_including(cpu_time_enabled: true)).and_call_original
+
+            build_profiler
+          end
+        end
+
+        context 'when not on Linux' do
+          before { stub_const('RUBY_PLATFORM', 'some-other-os') }
+
+          it 'sets up the StackRecorder with cpu_time_enabled: false' do
+            expect(Datadog::Profiling::StackRecorder)
+              .to receive(:new).with(hash_including(cpu_time_enabled: false)).and_call_original
+
+            build_profiler
+          end
+        end
       end
 
       it 'runs the setup task to set up any needed extensions for profiling' do
