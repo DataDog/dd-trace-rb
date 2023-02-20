@@ -5,7 +5,7 @@ require_relative 'core/environment/variable_helpers'
 require_relative 'core/utils/only_once'
 
 module Datadog
-  # Contains profiler for generating stack profiles, etc.
+  # Datadog Continuous Profiler implementation: https://docs.datadoghq.com/profiler/
   module Profiling
     GOOGLE_PROTOBUF_MINIMUM_VERSION = Gem::Version.new('3.0')
     private_constant :GOOGLE_PROTOBUF_MINIMUM_VERSION

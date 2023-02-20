@@ -249,7 +249,7 @@ module Datadog
               end
             end
 
-            # Forces enabling the new profiler. We do not yet recommend turning on this option.
+            # Forces enabling the new profiler.
             #
             # Note that setting this to "false" (or not setting it) will not prevent the new profiler from
             # being automatically used in the future.
