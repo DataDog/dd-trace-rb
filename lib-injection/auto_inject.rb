@@ -1,4 +1,3 @@
-
 if !ENV['skip_autoinject']
   if system 'skip_autoinject=true bundle show ddtrace'
     puts 'ddtrace already installed... skipping auto-injection'
@@ -16,11 +15,19 @@ if !ENV['skip_autoinject']
 
     puts "ddtrace is not installed... Perform auto-injection... for dd-trace-rb"
 
-    if system "skip_autoinject=true bundle add ddtrace #{condition} --require ddtrace/auto_instrument"
+    system "cp Gemfile Gemfile-datadog"
+    system "cp Gemfile.lock Gemfile-datadog.lock"
+
+    if system "skip_autoinject=true BUNDLE_GEMFILE=Gemfile-datadog bundle add ddtrace #{condition} --require ddtrace/auto_instrument"
       puts 'ddtrace added to bundle...'
+
+      system "cp Gemfile-datadog Gemfile"
+      system "cp Gemfile-datadog.lock Gemfile.lock"
     else
       puts 'Something went wrong when adding ddtrace to bundle...'
     end
+
+    system "rm Gemfile-datadog Gemfile-datadog.lock"
   end
 
   begin
