@@ -93,6 +93,10 @@ module ProfileHelpers
   def samples_for_thread(samples, thread)
     samples.select { |sample| object_id_from(sample.labels.fetch(:'thread id')) == thread.object_id }
   end
+
+  def build_stack_recorder
+    Datadog::Profiling::StackRecorder.new(cpu_time_enabled: true, alloc_samples_enabled: true)
+  end
 end
 
 RSpec.configure do |config|
