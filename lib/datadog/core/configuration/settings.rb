@@ -206,6 +206,7 @@ module Datadog
             # This should never be reduced, as it can cause the resulting profiles to become biased.
             # The current default should be enough for most services, allowing 16 threads to be sampled around 30 times
             # per second for a 60 second period.
+            # This setting is ignored when CPU Profiling 2.0 is in use.
             option :max_events, default: 32768
 
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
@@ -232,8 +233,8 @@ module Datadog
               end
             end
 
-            # Disable gathering of names and versions of gems in use by the service, used to power grouping and
-            # categorization of stack traces.
+            # Can be used to disable the gathering of names and versions of gems in use by the service, used to power
+            # grouping and categorization of stack traces.
             option :code_provenance_enabled, default: true
 
             # No longer does anything, and will be removed on dd-trace-rb 2.0.
@@ -249,7 +250,7 @@ module Datadog
               end
             end
 
-            # Forces enabling the new profiler.
+            # Forces enabling the new CPU Profiling 2.0 profiler (see ddtrace release notes for more details).
             #
             # Note that setting this to "false" (or not setting it) will not prevent the new profiler from
             # being automatically used in the future.
