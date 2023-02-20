@@ -153,6 +153,7 @@ void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused);
 static void grab_gvl_and_sample(void);
 static void reset_stats(struct cpu_and_wall_time_worker_state *state);
 static void sleep_for(uint64_t time_ns);
+static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 
 // Note on sampler global state safety:
 //
@@ -188,6 +189,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_allocation_count", _native_allocation_count, 0);
   rb_define_singleton_method(testing_module, "_native_current_sigprof_signal_handler", _native_current_sigprof_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(testing_module, "_native_install_testing_signal_handler", _native_install_testing_signal_handler, 0);
@@ -774,4 +776,9 @@ static void sleep_for(uint64_t time_ns) {
       ENFORCE_SUCCESS_NO_GVL(errno);
     }
   }
+}
+
+static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
+  // TODO
+  return Qnil;
 }

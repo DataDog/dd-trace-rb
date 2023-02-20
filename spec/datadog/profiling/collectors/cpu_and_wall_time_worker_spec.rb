@@ -535,6 +535,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe '._native_allocation_count' do
+    subject(:_native_allocation_count) { described_class._native_allocation_count }
+
+    # TODO
+    it { is_expected.to be nil }
+  end
+
   def wait_until_running
     try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(cpu_and_wall_time_worker) }
   end
