@@ -325,7 +325,7 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_insta
     state->position_for[CPU_TIME_VALUE_ID] = next_disabled_pos++;
   }
 
-  if (alloc_samples_enabled) {
+  if (alloc_samples_enabled == Qtrue) {
     enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) ALLOC_SAMPLES_VALUE;
     state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_enabled_pos++;
   } else {
