@@ -51,6 +51,7 @@ module Datadog
     # allocations_after = Datadog::Profiling.allocation_count
     # puts "Allocations during do_some_work: #{allocations_after - allocations_before}"
     # ```
+    # (This is similar to some OS-based time representations.)
     #
     # Note 2: All fibers in the same thread will share the same counter values.
     #

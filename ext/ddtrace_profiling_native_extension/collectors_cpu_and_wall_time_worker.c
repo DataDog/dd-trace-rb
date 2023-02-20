@@ -80,6 +80,7 @@ struct cpu_and_wall_time_worker_state {
   atomic_bool should_run;
 
   bool gc_profiling_enabled;
+  bool allocation_counting_enabled;
   VALUE self_instance;
   VALUE cpu_and_wall_time_collector_instance;
   VALUE idle_sampling_helper_instance;
@@ -94,6 +95,8 @@ struct cpu_and_wall_time_worker_state {
 
   // Used to get gc start/finish information
   VALUE gc_tracepoint;
+
+  VALUE object_allocation_tracepoint;
 
   struct stats {
     // How many times we tried to trigger a sample
@@ -155,6 +158,8 @@ static void grab_gvl_and_sample(void);
 static void reset_stats(struct cpu_and_wall_time_worker_state *state);
 static void sleep_for(uint64_t time_ns);
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
+static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
+static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state);
 
 // Note on sampler global state safety:
 //
@@ -165,7 +170,14 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 // This global state is needed because a bunch of functions on this file need to access it from situations
 // (e.g. signal handler) where it's impossible or just awkward to pass it as an argument.
 static VALUE active_sampler_instance = Qnil;
-struct cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
+static struct cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
+
+// Used to implement CpuAndWallTimeWorker._native_allocation_count . To be able to use cheap thread-local variables
+// (here with `__thread`, see https://gcc.gnu.org/onlinedocs/gcc/Thread-Local.html), this needs to be global.
+//
+// Carryover of state between profiler instances can happen and is not considered to be a problem -- see expectations for this
+// API documented in profiling.rb .
+__thread uint64_t allocation_count = 0;
 
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
@@ -220,6 +232,7 @@ static VALUE _native_new(VALUE klass) {
 
   atomic_init(&state->should_run, false);
   state->gc_profiling_enabled = false;
+  state->allocation_counting_enabled = false;
   state->cpu_and_wall_time_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
@@ -227,6 +240,7 @@ static VALUE _native_new(VALUE klass) {
   state->failure_exception = Qnil;
   state->stop_thread = Qnil;
   state->gc_tracepoint = Qnil;
+  state->object_allocation_tracepoint = Qnil;
   reset_stats(state);
 
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
@@ -238,17 +252,20 @@ static VALUE _native_initialize(
   VALUE cpu_and_wall_time_collector_instance,
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
-  DDTRACE_UNUSED VALUE allocation_counting_enabled
+  VALUE allocation_counting_enabled
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
+  ENFORCE_BOOLEAN(allocation_counting_enabled);
 
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   state->gc_profiling_enabled = (gc_profiling_enabled == Qtrue);
+  state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
   state->cpu_and_wall_time_collector_instance = enforce_cpu_and_wall_time_collector_instance(cpu_and_wall_time_collector_instance);
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
+  state->object_allocation_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_NEWOBJ, on_newobj_event, NULL /* unused */);
 
   return Qtrue;
 }
@@ -263,6 +280,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->failure_exception);
   rb_gc_mark(state->stop_thread);
   rb_gc_mark(state->gc_tracepoint);
+  rb_gc_mark(state->object_allocation_tracepoint);
 }
 
 // Called in a background thread created in CpuAndWallTimeWorker#start
@@ -279,14 +297,13 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
       );
     } else {
       // The previously active thread seems to have died without cleaning up after itself.
-      // In this case, we can still go ahead and start the profiler BUT we make sure to disable any existing GC tracepoint
+      // In this case, we can still go ahead and start the profiler BUT we make sure to disable any existing tracepoint
       // first as:
       // a) If this is a new instance of the CpuAndWallTimeWorker, we don't want the tracepoint from the old instance
       //    being kept around
       // b) If this is the same instance of the CpuAndWallTimeWorker if we call enable on a tracepoint that is already
       //    enabled, it will start firing more than once, see https://bugs.ruby-lang.org/issues/19114 for details.
-
-      rb_tracepoint_disable(old_state->gc_tracepoint);
+      disable_tracepoints(old_state);
     }
   }
 
@@ -312,7 +329,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   // The sample trigger loop finished (either cleanly or with an error); let's clean up
 
-  rb_tracepoint_disable(state->gc_tracepoint);
+  disable_tracepoints(state);
 
   active_sampler_instance_state = NULL;
   active_sampler_instance = Qnil;
@@ -364,8 +381,8 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception) {
   atomic_store(&state->should_run, false);
   state->failure_exception = optional_exception;
 
-  // Disable the GC tracepoint as soon as possible, so the VM doesn't keep on calling it
-  rb_tracepoint_disable(state->gc_tracepoint);
+  // Disable the tracepoints as soon as possible, so the VM doesn't keep on calling them
+  disable_tracepoints(state);
 
   return Qtrue;
 }
@@ -532,10 +549,11 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  // Final preparations: Setup signal handler and enable tracepoint. We run these here and not in `_native_sampling_loop`
+  // Final preparations: Setup signal handler and enable tracepoints. We run these here and not in `_native_sampling_loop`
   // because they may raise exceptions.
   install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
+  if (state->allocation_counting_enabled) rb_tracepoint_enable(state->object_allocation_tracepoint);
 
   rb_thread_call_without_gvl(run_sampling_trigger_loop, state, interrupt_sampling_trigger_loop, state);
 
@@ -699,7 +717,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   // Disable all tracepoints, so that there are no more attempts to mutate the profile
-  rb_tracepoint_disable(state->gc_tracepoint);
+  disable_tracepoints(state);
 
   reset_stats(state);
 
@@ -781,6 +799,23 @@ static void sleep_for(uint64_t time_ns) {
 }
 
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
-  // TODO
-  return Qnil;
+  bool is_profiler_running = active_sampler_instance_state != NULL;
+
+  return is_profiler_running ? ULL2NUM(allocation_count) : Qnil;
+}
+
+// Implements memory-related profiling events. This function is called by Ruby via the `object_allocation_tracepoint`
+// when the RUBY_INTERNAL_EVENT_NEWOBJ event is triggered.
+static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
+  // Update thread-local allocation count
+  if (RB_UNLIKELY(allocation_count == UINT64_MAX)) {
+    allocation_count = 0;
+  } else {
+    allocation_count++;
+  }
+}
+
+static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
+  rb_tracepoint_disable(state->gc_tracepoint);
+  rb_tracepoint_disable(state->object_allocation_tracepoint);
 }

@@ -525,8 +525,59 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe '._native_allocation_count' do
     subject(:_native_allocation_count) { described_class._native_allocation_count }
 
-    # TODO
-    it { is_expected.to be nil }
+    context 'when CpuAndWallTimeWorker has not been started' do
+      it { is_expected.to be nil }
+    end
+
+    context 'when CpuAndWallTimeWorker has been started' do
+      before do
+        cpu_and_wall_time_worker.start
+        wait_until_running
+      end
+
+      after do
+        cpu_and_wall_time_worker.stop
+      end
+
+      it 'returns the number of allocations between two calls of the method' do
+        before_allocations = described_class._native_allocation_count
+        100.times { Object.new }
+        after_allocations = described_class._native_allocation_count
+
+        # The profiler can (currently) cause extra allocations, which is why this is not exactly 100
+        expect(after_allocations - before_allocations).to be >= 100
+        expect(after_allocations - before_allocations).to be < 110
+      end
+
+      it 'returns different numbers of allocations for different threads' do
+        t1_can_run = Queue.new
+        t1_has_run = Queue.new
+        before_t1 = nil
+        after_t1 = nil
+
+        background_t1 = Thread.new do
+          before_t1 = described_class._native_allocation_count
+          t1_can_run.pop
+
+          100.times { Object.new }
+          after_t1 = described_class._native_allocation_count
+          t1_has_run << true
+        end
+
+        before_allocations = described_class._native_allocation_count
+        t1_can_run << true
+        t1_has_run.pop
+        after_allocations = described_class._native_allocation_count
+
+        background_t1.join
+
+        # This test checks that even though we observed >= 100 allocations in a background thread t1, the counters for
+        # the current thread were not affected by this change (even though they may be slightly affected by the profiler)
+
+        expect(after_t1 - before_t1).to be >= 100
+        expect(after_allocations - before_allocations).to be < 10
+      end
+    end
   end
 
   def wait_until_running
