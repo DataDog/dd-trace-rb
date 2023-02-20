@@ -49,7 +49,11 @@ RSpec.describe Datadog::Profiling do
       end
 
       it 'does not reference the CpuAndWallTimeWorker' do
-        expect(defined?(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)).to be_falsey
+        if defined?(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
+          without_partial_double_verification do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to_not receive(:_native_allocation_count)
+          end
+        end
 
         allocation_count
       end
