@@ -280,6 +280,9 @@ module Datadog
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
               o.lazy
             end
+
+            # Can be used to disable the Datadog::Profiling.allocation_count feature.
+            option :allocation_counting_enabled, default: true
           end
 
           # @public_api

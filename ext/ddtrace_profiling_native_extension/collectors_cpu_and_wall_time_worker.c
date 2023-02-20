@@ -121,7 +121,8 @@ static VALUE _native_initialize(
   VALUE self_instance,
   VALUE cpu_and_wall_time_collector_instance,
   VALUE gc_profiling_enabled,
-  VALUE idle_sampling_helper_instance
+  VALUE idle_sampling_helper_instance,
+  VALUE allocation_counting_enabled
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
@@ -184,7 +185,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 4);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 5);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -236,7 +237,8 @@ static VALUE _native_initialize(
   VALUE self_instance,
   VALUE cpu_and_wall_time_collector_instance,
   VALUE gc_profiling_enabled,
-  VALUE idle_sampling_helper_instance
+  VALUE idle_sampling_helper_instance,
+  DDTRACE_UNUSED VALUE allocation_counting_enabled
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
 

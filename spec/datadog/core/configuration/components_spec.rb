@@ -1033,6 +1033,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             max_frames: settings.profiling.advanced.max_frames,
             tracer: tracer,
             gc_profiling_enabled: anything,
+            allocation_counting_enabled: anything,
           )
 
           build_profiler
@@ -1093,6 +1094,28 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
               build_profiler
             end
+          end
+        end
+
+        it 'initializes a CpuAndWallTimeWorker collector with allocation_counting_enabled set to true' do
+          expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+            allocation_counting_enabled: true,
+          )
+
+          build_profiler
+        end
+
+        context 'when allocation_counting_enabled is disabled' do
+          before do
+            settings.profiling.advanced.allocation_counting_enabled = false
+          end
+
+          it 'initializes a CpuAndWallTimeWorker collector with allocation_counting_enabled set to false' do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+              allocation_counting_enabled: false,
+            )
+
+            build_profiler
           end
         end
 

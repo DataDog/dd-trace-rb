@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 
 require_relative 'core'
 require_relative 'core/environment/variable_helpers'

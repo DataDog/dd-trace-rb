@@ -20,10 +20,17 @@ module Datadog
           max_frames:,
           tracer:,
           gc_profiling_enabled:,
+          allocation_counting_enabled:,
           cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames, tracer: tracer),
           idle_sampling_helper: IdleSamplingHelper.new
         )
-          self.class._native_initialize(self, cpu_and_wall_time_collector, gc_profiling_enabled, idle_sampling_helper)
+          self.class._native_initialize(
+            self,
+            cpu_and_wall_time_collector,
+            gc_profiling_enabled,
+            idle_sampling_helper,
+            allocation_counting_enabled
+          )
           @worker_thread = nil
           @failure_exception = nil
           @start_stop_mutex = Mutex.new
