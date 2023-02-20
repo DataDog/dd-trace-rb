@@ -281,8 +281,15 @@ module Datadog
               o.lazy
             end
 
-            # Can be used to disable the Datadog::Profiling.allocation_count feature.
-            option :allocation_counting_enabled, default: true
+            # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
+            #
+            # This feature is safe and enabled by default on Ruby 2.x, but
+            # on Ruby 3.x it can break in applications that make use of Ractors due to two Ruby VM bugs:
+            # https://bugs.ruby-lang.org/issues/19112 AND https://bugs.ruby-lang.org/issues/18464.
+            #
+            # If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
+            # feature is fully safe to enable and this toggle can be used to do so.
+            option :allocation_counting_enabled, default: RUBY_VERSION.start_with?('2.')
           end
 
           # @public_api

@@ -364,6 +364,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       # specs. Unfortunately, there's a VM crash in that case as well -- https://bugs.ruby-lang.org/issues/18464 --
       # so this must be disabled when interacting with Ractors.
       let(:gc_profiling_enabled) { false }
+      # ...same thing for the tracepoint for allocation counting/profiling :(
+      let(:allocation_counting_enabled) { false }
 
       describe 'handle_sampling_signal' do
         include_examples 'does not trigger a sample',
