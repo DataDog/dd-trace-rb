@@ -1097,12 +1097,18 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
         end
 
-        it 'initializes a CpuAndWallTimeWorker collector with allocation_counting_enabled set to true' do
-          expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-            allocation_counting_enabled: true,
-          )
+        context 'when allocation_counting_enabled is enabled' do
+          before do
+            settings.profiling.advanced.allocation_counting_enabled = true
+          end
 
-          build_profiler
+          it 'initializes a CpuAndWallTimeWorker collector with allocation_counting_enabled set to true' do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+              allocation_counting_enabled: true,
+            )
+
+            build_profiler
+          end
         end
 
         context 'when allocation_counting_enabled is disabled' do
