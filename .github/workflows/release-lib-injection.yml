@@ -1,13 +1,20 @@
-name: "Library Injection"
+
+name: "Release Library Injection"
 on:
-  # Build each branch for testing
   push:
+    tags:
+      - 'v*.*.*'
 
 jobs:
-  build-and-publish-test-image:
+  build-and-publish-release-image:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Set version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+      - name: Get version
+        run: echo "The selected version is ${{ steps.version.outputs.version }}"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -19,8 +26,8 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${{ github.sha }}
+          tags: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${{ steps.version.outputs.version }}
           platforms: 'linux/amd64,linux/arm64/v8'
-          build-args: DDTRACE_RUBY_SHA=${{ github.sha }}
+          build-args: DDTRACE_RUBY_VERSION=${{ steps.version.outputs.version }}
           context: ./lib-injection
 
