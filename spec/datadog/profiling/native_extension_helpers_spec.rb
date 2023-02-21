@@ -129,8 +129,8 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         end
 
         shared_examples 'supported ruby validation' do
-          context 'when not on Ruby 2.1' do
-            before { stub_const('RUBY_VERSION', '2.2.0') }
+          context 'when not on Ruby 2.1 or 2.2' do
+            before { stub_const('RUBY_VERSION', '2.3.0') }
 
             shared_examples 'libdatadog available' do
               context 'when libdatadog fails to activate' do
@@ -191,7 +191,13 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           context 'when on Ruby 2.1' do
             before { stub_const('RUBY_VERSION', '2.1.10') }
 
-            it { is_expected.to include 'profiler only supports Ruby 2.2 or newer' }
+            it { is_expected.to include 'profiler only supports Ruby 2.3 or newer' }
+          end
+
+          context 'when on Ruby 2.2' do
+            before { stub_const('RUBY_VERSION', '2.2.10') }
+
+            it { is_expected.to include 'profiler only supports Ruby 2.3 or newer' }
           end
         end
 
@@ -210,9 +216,17 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         context 'when macOS testing override is enabled' do
           around { |example| ClimateControl.modify('DD_PROFILING_MACOS_TESTING' => 'true') { example.run } }
 
-          before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
+          context 'when on amd64 (x86-64) macOS' do
+            before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
 
-          include_examples 'supported ruby validation'
+            include_examples 'supported ruby validation'
+          end
+
+          context 'when on arm64 macOS' do
+            before { stub_const('RUBY_PLATFORM', 'arm64-darwin21') }
+
+            include_examples 'supported ruby validation'
+          end
         end
       end
     end

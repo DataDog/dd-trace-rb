@@ -40,6 +40,10 @@ module Datadog
           options[:ip_denylist] = value
         end
 
+        def user_id_denylist=(value)
+          options[:user_id_denylist] = value
+        end
+
         # in microseconds
         def waf_timeout=(value)
           options[:waf_timeout] = value

@@ -11,10 +11,9 @@ RSpec.describe 'Basic scenarios' do
     it { is_expected.to be_a_kind_of(Net::HTTPOK) }
   end
 
-  let(:expected_profiler_available) { RUBY_VERSION >= '2.2' }
+  let(:expected_profiler_available) { RUBY_VERSION >= '2.3' }
 
   let(:expected_profiler_threads) do
-    # NOTE: Threads can't be named on Ruby 2.2
     contain_exactly('Datadog::Profiling::Collectors::OldStack', 'Datadog::Profiling::Scheduler') unless RUBY_VERSION < '2.3'
   end
 

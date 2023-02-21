@@ -149,8 +149,10 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
           allow(runtime_metrics).to receive(:gauge)
         end
 
-        context 'with Ruby < 3', if: RUBY_VERSION < '3.0.0' do
-          it 'records global cache counters' do
+        context 'with Ruby 2.x' do
+          before { skip('Test only runs on Ruby 2.x') unless RUBY_VERSION.start_with?('2.') }
+
+          it 'records the global_constant_state and global_method_state metrics' do
             flush
 
             expect(runtime_metrics).to have_received(:gauge)
@@ -163,12 +165,30 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
           end
         end
 
-        context 'with Ruby >= 3', if: RUBY_VERSION >= '3.0.0' do
-          it 'records constant cache counter' do
+        context 'with Ruby 3.0 and 3.1' do
+          before { skip('Test only runs on Ruby 3.0 and 3.1') unless RUBY_VERSION.start_with?('3.0.', '3.1.') }
+
+          it 'records only the constant_global_state metric' do
             flush
 
             expect(runtime_metrics).to have_received(:gauge)
               .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_GLOBAL_CONSTANT_STATE, kind_of(Numeric))
+              .once
+          end
+        end
+
+        context 'with Ruby >= 3.2' do
+          before { skip('Test only runs on Ruby >= 3.2') if RUBY_VERSION < '3.2.' }
+
+          it 'records the constant_cache_invalidations and constant_cache_misses metrics' do
+            flush
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_CONSTANT_CACHE_INVALIDATIONS, kind_of(Numeric))
+              .once
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_CONSTANT_CACHE_MISSES, kind_of(Numeric))
               .once
           end
         end

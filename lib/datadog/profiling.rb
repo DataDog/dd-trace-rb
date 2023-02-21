@@ -65,7 +65,7 @@ module Datadog
       # NOTE: On environments where protobuf is already loaded, we skip the check. This allows us to support environments
       # where no Gem.loaded_version is NOT available but customers are able to load protobuf; see for instance
       # https://github.com/teamcapybara/capybara/commit/caf3bcd7664f4f2691d0ca9ef3be9a2a954fecfb
-      if !defined?(::Google::Protobuf) && Gem.loaded_specs['google-protobuf'].nil?
+      if !protobuf_already_loaded? && Gem.loaded_specs['google-protobuf'].nil?
         "Missing google-protobuf dependency; please add `gem 'google-protobuf', '~> 3.0'` to your Gemfile or gems.rb file"
       end
     end
@@ -74,10 +74,14 @@ module Datadog
       # See above for why we skip the check when protobuf is already loaded; note that when protobuf was already loaded
       # we skip the version check to avoid the call to Gem.loaded_specs. Unfortunately, protobuf does not seem to
       # expose the gem version constant elsewhere, so in that setup we are not able to check the version.
-      if !defined?(::Google::Protobuf) && Gem.loaded_specs['google-protobuf'].version < GOOGLE_PROTOBUF_MINIMUM_VERSION
+      if !protobuf_already_loaded? && Gem.loaded_specs['google-protobuf'].version < GOOGLE_PROTOBUF_MINIMUM_VERSION
         'Your google-protobuf is too old; ensure that you have google-protobuf >= 3.0 by ' \
         "adding `gem 'google-protobuf', '~> 3.0'` to your Gemfile or gems.rb file"
       end
+    end
+
+    private_class_method def self.protobuf_already_loaded?
+      defined?(::Google::Protobuf) && !defined?(::Protobuf)
     end
 
     private_class_method def self.protobuf_failed_to_load?

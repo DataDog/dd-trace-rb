@@ -22,20 +22,66 @@ RSpec.describe Datadog::Core::Environment::VMCache do
     describe '.global_constant_state' do
       subject(:global_constant_state) { described_class.global_constant_state }
 
-      it { is_expected.to be_a_kind_of(Integer) }
+      context 'on Ruby <= 3.1' do
+        before { skip('Test only runs on Ruby <= 3.1') if RUBY_VERSION >= '3.2.0' }
+
+        it { is_expected.to be_a_kind_of(Integer) }
+      end
+
+      context 'on Ruby >= 3.2' do
+        before { skip('Test only runs on Ruby >= 3.2') if RUBY_VERSION < '3.2.0' }
+
+        it { is_expected.to be nil }
+      end
     end
 
     describe '.global_method_state' do
       subject(:global_method_state) { described_class.global_method_state }
 
-      context 'with Ruby < 3', if: RUBY_VERSION < '3.0.0' do
+      context 'on Ruby 2.x' do
+        before { skip('Test only runs on Ruby 2.x') unless RUBY_VERSION.start_with?('2.') }
+
         it { is_expected.to be_a_kind_of(Integer) }
       end
 
-      context 'with Ruby >= 3', if: RUBY_VERSION >= '3.0.0' do
+      context 'on Ruby >= 3.x' do
+        before { skip('Test only runs on Ruby >= 3.x') if RUBY_VERSION.start_with?('2.') }
+
         it 'has moved to a per-class method cache' do
           is_expected.to be_nil
         end
+      end
+    end
+
+    describe '.constant_cache_invalidations' do
+      subject(:constant_cache_invalidations) { described_class.constant_cache_invalidations }
+
+      context 'on Ruby <= 3.1' do
+        before { skip('Test only runs on Ruby <= 3.1') if RUBY_VERSION >= '3.2.0' }
+
+        it { is_expected.to be nil }
+      end
+
+      context 'on Ruby >= 3.2' do
+        before { skip('Test only runs on Ruby >= 3.2') if RUBY_VERSION < '3.2.0' }
+
+        it { is_expected.to be_a_kind_of(Integer) }
+      end
+    end
+
+    describe '.constant_cache_misses' do
+      subject(:constant_cache_misses) { described_class.constant_cache_misses }
+
+      context 'on Ruby <= 3.1' do
+        before { skip('Test only runs on Ruby <= 3.1') if RUBY_VERSION >= '3.2.0' }
+
+        it { is_expected.to be nil }
+      end
+
+      context 'on Ruby >= 3.2' do
+        before { skip('Test only runs on Ruby >= 3.2') if RUBY_VERSION < '3.2.0' }
+
+        it { is_expected.to be_a_kind_of(Integer) }
       end
     end
   end

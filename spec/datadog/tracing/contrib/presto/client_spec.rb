@@ -103,6 +103,8 @@ RSpec.describe 'Presto::Client instrumentation' do
         expect(span.get_tag('out.port')).to eq(port)
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('presto')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq(operation)
+        expect(span.get_tag('span.kind')).to eq('client')
+        expect(span.get_tag('db.system')).to eq('presto')
       end
     end
 

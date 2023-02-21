@@ -1,10 +1,15 @@
 # typed: ignore
+# frozen_string_literal: true
 
 module Datadog
   module AppSec
     module Reactive
-      # Address for Reactive Engine
+      # AddressHash for Reactive Engine
       class AddressHash < Hash
+        def self.new(*arguments, &block)
+          super { |h, k| h[k] = [] }
+        end
+
         def addresses
           keys.flatten
         end

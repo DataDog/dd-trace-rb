@@ -47,8 +47,8 @@ module Datadog
           return unless value
 
           parts = value.split('-')
-          trace_id = Helpers.value_to_id(parts[0], 16) unless parts.empty?
-          span_id = Helpers.value_to_id(parts[1], 16) if parts.length > 1
+          trace_id = Helpers.value_to_id(parts[0], base: 16) unless parts.empty?
+          span_id = Helpers.value_to_id(parts[1], base: 16) if parts.length > 1
           sampling_priority = Helpers.value_to_number(parts[2]) if parts.length > 2
 
           # Return if this propagation is not valid

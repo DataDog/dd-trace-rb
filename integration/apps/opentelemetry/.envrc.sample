@@ -1,0 +1,2 @@
+export DD_API_KEY=<Your Datadog API key here>
+export DD_HOSTNAME=$(hostname)

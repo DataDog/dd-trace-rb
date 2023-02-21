@@ -34,7 +34,7 @@ RSpec.describe Datadog::Tracing::Distributed::Fetcher do
 
     it 'delegates to Datadog::Tracing::Distributed::Helpers.value_to_id' do
       ret = double('return')
-      expect(Datadog::Tracing::Distributed::Helpers).to receive(:value_to_id).with(value, base).and_return(ret)
+      expect(Datadog::Tracing::Distributed::Helpers).to receive(:value_to_id).with(value, base: base).and_return(ret)
       is_expected.to eq(ret)
     end
   end
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Tracing::Distributed::Fetcher do
 
     it 'delegates to Datadog::Tracing::Distributed::Helpers.value_to_number' do
       ret = double('return')
-      expect(Datadog::Tracing::Distributed::Helpers).to receive(:value_to_number).with(value, base).and_return(ret)
+      expect(Datadog::Tracing::Distributed::Helpers).to receive(:value_to_number).with(value, base: base).and_return(ret)
       is_expected.to eq(ret)
     end
   end

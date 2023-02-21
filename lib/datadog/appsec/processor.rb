@@ -44,14 +44,15 @@ module Datadog
       def initialize
         @ruleset_info = nil
         @addresses = []
+        settings = Datadog::AppSec.settings
 
-        unless load_libddwaf && load_ruleset && create_waf_handle
+        unless load_libddwaf && load_ruleset(settings) && create_waf_handle(settings)
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
 
           return
         end
 
-        update_ip_denylist
+        apply_denylist_data(settings)
       end
 
       def ready?
@@ -70,20 +71,6 @@ module Datadog
         @handle.toggle_rules(map)
       end
 
-      def update_ip_denylist(denylist = Datadog::AppSec.settings.ip_denylist, id: 'blocked_ips')
-        denylist ||= []
-
-        ruledata_setting = [
-          {
-            'id' => id,
-            'type' => 'data_with_expiration',
-            'data' => denylist.map { |ip| { 'value' => ip.to_s, 'expiration' => 2**63 } }
-          }
-        ]
-
-        update_rule_data(ruledata_setting)
-      end
-
       def finalize
         @handle.finalize
       end
@@ -94,17 +81,40 @@ module Datadog
 
       private
 
+      def apply_denylist_data(settings)
+        ruledata_setting = []
+        ruledata_setting << denylist_data('blocked_ips', settings.ip_denylist)
+        ruledata_setting << denylist_data('blocked_users', settings.user_id_denylist)
+
+        update_rule_data(ruledata_setting)
+      end
+
+      def denylist_data(id, denylist)
+        {
+          'id' => id,
+          'type' => 'data_with_expiration',
+          'data' => denylist.map { |v| { 'value' => v.to_s, 'expiration' => 2**63 } }
+        }
+      end
+
       def load_libddwaf
         Processor.require_libddwaf && Processor.libddwaf_provides_waf?
       end
 
-      def load_ruleset
-        ruleset_setting = Datadog::AppSec.settings.ruleset
+      def load_ruleset(settings)
+        ruleset_setting = settings.ruleset
 
         begin
           @ruleset = case ruleset_setting
-                     when :recommended, :risky, :strict
+                     when :recommended, :strict
                        JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
+                     when :risky
+                       JSON.parse(Datadog::AppSec::Assets.waf_rules(:recommended))
+                       Datadog.logger.warn(
+                         'The :risky Application Security Management ruleset has been deprecated and no longer available.'\
+                         'The `:recommended` ruleset will be used instead.'\
+                         'Please remove the `appsec.ruleset = :risky` setting from your Datadog.configure block.'
+                       )
                      when String
                        JSON.parse(File.read(ruleset_setting))
                      when File, StringIO
@@ -125,13 +135,13 @@ module Datadog
         end
       end
 
-      def create_waf_handle
+      def create_waf_handle(settings)
         # TODO: this may need to be reset if the main Datadog logging level changes after initialization
-        Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::AppSec.settings.waf_debug
+        Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && settings.waf_debug
 
         obfuscator_config = {
-          key_regex: Datadog::AppSec.settings.obfuscator_key_regex,
-          value_regex: Datadog::AppSec.settings.obfuscator_value_regex,
+          key_regex: settings.obfuscator_key_regex,
+          value_regex: settings.obfuscator_value_regex,
         }
         @handle = Datadog::AppSec::WAF::Handle.new(@ruleset, obfuscator: obfuscator_config)
         @ruleset_info = @handle.ruleset_info

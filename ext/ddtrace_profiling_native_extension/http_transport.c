@@ -21,7 +21,7 @@ static VALUE library_version_string = Qnil;
 
 struct call_exporter_without_gvl_arguments {
   ddog_prof_Exporter *exporter;
-  ddog_prof_Exporter_Request *request;
+  ddog_prof_Exporter_Request_BuildResult *build_result;
   ddog_CancellationToken *cancel_token;
   ddog_prof_Exporter_SendResult result;
   bool send_ran;
@@ -83,7 +83,7 @@ static VALUE _native_validate_exporter(DDTRACE_UNUSED VALUE _self, VALUE exporte
 
   // We don't actually need the exporter for now -- we just wanted to validate that we could create it with the
   // settings we were given
-  ddog_prof_Exporter_NewResult_drop(exporter_result);
+  ddog_prof_Exporter_drop(exporter_result.ok);
 
   return rb_ary_new_from_args(2, ok_symbol, Qnil);
 }
@@ -111,13 +111,9 @@ static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration
 }
 
 static VALUE handle_exporter_failure(ddog_prof_Exporter_NewResult exporter_result) {
-  if (exporter_result.tag == DDOG_PROF_EXPORTER_NEW_RESULT_OK) return Qnil;
-
-  VALUE err_details = ruby_string_from_prof_vec_u8(exporter_result.err);
-
-  ddog_prof_Exporter_NewResult_drop(exporter_result);
-
-  return rb_ary_new_from_args(2, error_symbol, err_details);
+  return exporter_result.tag == DDOG_PROF_EXPORTER_NEW_RESULT_OK ?
+    Qnil :
+    rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&exporter_result.err));
 }
 
 static ddog_Endpoint endpoint_from(VALUE exporter_configuration) {
@@ -173,14 +169,9 @@ static ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
       ddog_Vec_Tag_push(&tags, char_slice_from_ruby_string(tag_name), char_slice_from_ruby_string(tag_value));
 
     if (push_result.tag == DDOG_VEC_TAG_PUSH_RESULT_ERR) {
-      VALUE err_details = ruby_string_from_vec_u8(push_result.err);
-      ddog_Vec_Tag_PushResult_drop(push_result);
-
       // libdatadog validates tags and may catch invalid tags that ddtrace didn't actually catch.
       // We warn users about such tags, and then just ignore them.
-      safely_log_failure_to_process_tag(tags, err_details);
-    } else {
-      ddog_Vec_Tag_PushResult_drop(push_result);
+      safely_log_failure_to_process_tag(tags, get_error_details_and_drop(&push_result.err));
     }
   }
 
@@ -206,23 +197,28 @@ static void safely_log_failure_to_process_tag(ddog_Vec_Tag tags, VALUE err_detai
 // Note: This function handles a bunch of libdatadog dynamically-allocated objects, so it MUST not use any Ruby APIs
 // which can raise exceptions, otherwise the objects will be leaked.
 static VALUE perform_export(
-  ddog_prof_Exporter_NewResult valid_exporter_result, // Must be called with a valid exporter result
+  ddog_prof_Exporter *exporter,
   ddog_Timespec start,
   ddog_Timespec finish,
   ddog_prof_Exporter_Slice_File slice_files,
   ddog_Vec_Tag *additional_tags,
   uint64_t timeout_milliseconds
 ) {
-  ddog_prof_Exporter *exporter = valid_exporter_result.ok;
-  ddog_CancellationToken *cancel_token = ddog_CancellationToken_new();
   ddog_prof_ProfiledEndpointsStats *endpoints_stats = NULL; // Not in use yet
-  ddog_prof_Exporter_Request *request =
+  ddog_prof_Exporter_Request_BuildResult build_result =
     ddog_prof_Exporter_Request_build(exporter, start, finish, slice_files, additional_tags, endpoints_stats, timeout_milliseconds);
+
+  if (build_result.tag == DDOG_PROF_EXPORTER_REQUEST_BUILD_RESULT_ERR) {
+    ddog_prof_Exporter_drop(exporter);
+    return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&build_result.err));
+  }
+
+  ddog_CancellationToken *cancel_token = ddog_CancellationToken_new();
 
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
   // is pending
   struct call_exporter_without_gvl_arguments args =
-    {.exporter = exporter, .request = request, .cancel_token = cancel_token, .send_ran = false};
+    {.exporter = exporter, .build_result = &build_result, .cancel_token = cancel_token, .send_ran = false};
 
   // We use rb_thread_call_without_gvl2 instead of rb_thread_call_without_gvl as the gvl2 variant never raises any
   // exceptions.
@@ -247,26 +243,23 @@ static VALUE perform_export(
 
   // Cleanup exporter and token, no longer needed
   ddog_CancellationToken_drop(cancel_token);
-  ddog_prof_Exporter_NewResult_drop(valid_exporter_result);
+  ddog_prof_Exporter_drop(exporter);
 
   if (pending_exception) {
     // If we got here send did not run, so we need to explicitly dispose of the request
-    ddog_prof_Exporter_Request_drop(request);
+    ddog_prof_Exporter_Request_drop(&build_result.ok);
 
     // Let Ruby propagate the exception. This will not return.
     rb_jump_tag(pending_exception);
   }
 
+  // The request itself does not need to be freed as libdatadog takes ownership of it as part of sending.
+
   ddog_prof_Exporter_SendResult result = args.result;
-  bool success = result.tag == DDOG_PROF_EXPORTER_SEND_RESULT_HTTP_RESPONSE;
 
-  VALUE ruby_status = success ? ok_symbol : error_symbol;
-  VALUE ruby_result = success ? UINT2NUM(result.http_response.code) : ruby_string_from_prof_vec_u8(result.err);
-
-  ddog_prof_Exporter_SendResult_drop(args.result);
-  // The request itself does not need to be freed as libdatadog takes care of it as part of sending.
-
-  return rb_ary_new_from_args(2, ruby_status, ruby_result);
+  return result.tag == DDOG_PROF_EXPORTER_SEND_RESULT_HTTP_RESPONSE ?
+    rb_ary_new_from_args(2, ok_symbol, UINT2NUM(result.http_response.code)) :
+    rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&result.err));
 }
 
 static VALUE _native_do_export(
@@ -326,13 +319,13 @@ static VALUE _native_do_export(
   VALUE failure_tuple = handle_exporter_failure(exporter_result);
   if (!NIL_P(failure_tuple)) return failure_tuple;
 
-  return perform_export(exporter_result, start, finish, slice_files, null_additional_tags, timeout_milliseconds);
+  return perform_export(exporter_result.ok, start, finish, slice_files, null_additional_tags, timeout_milliseconds);
 }
 
 static void *call_exporter_without_gvl(void *call_args) {
   struct call_exporter_without_gvl_arguments *args = (struct call_exporter_without_gvl_arguments*) call_args;
 
-  args->result = ddog_prof_Exporter_send(args->exporter, args->request, args->cancel_token);
+  args->result = ddog_prof_Exporter_send(args->exporter, &args->build_result->ok, args->cancel_token);
   args->send_ran = true;
 
   return NULL; // Unused

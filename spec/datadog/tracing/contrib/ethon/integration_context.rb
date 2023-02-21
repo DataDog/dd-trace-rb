@@ -53,7 +53,7 @@ RSpec.shared_context 'integration context' do
   let(:port) { @port }
   let(:method) { 'GET' }
   let(:simulate_timeout) { false }
-  let(:timeout) { 0.5 }
+  let(:timeout) { 5 }
   let(:return_headers) { false }
   let(:query) do
     query = { status: status }

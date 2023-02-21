@@ -19,6 +19,7 @@ module Datadog
           TAG_JOB_BODY = 'sneakers.body'
           TAG_COMPONENT = 'sneakers'
           TAG_OPERATION_JOB = 'job'
+          TAG_MESSAGING_SYSTEM = 'rabbitmq'
         end
       end
     end
