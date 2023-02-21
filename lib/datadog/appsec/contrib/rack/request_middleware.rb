@@ -20,20 +20,23 @@ module Datadog
             @app = app
 
             @oneshot_tags_sent = false
-            @processor = Datadog::AppSec::Processor.new
           end
 
           def call(env)
-            return @app.call(env) unless Datadog.configuration.appsec.enabled && @processor.ready?
+            return @app.call(env) unless Datadog.configuration.appsec.enabled
+
+            processor = Datadog::AppSec.processor
+
+            return @app.call(env) unless processor.ready?
 
             # TODO: handle exceptions, except for @app.call
 
-            context = @processor.new_context
-
+            context = processor.new_context
             env['datadog.waf.context'] = context
+
             request = ::Rack::Request.new(env)
 
-            add_appsec_tags(active_trace, active_span, env)
+            add_appsec_tags(processor, active_trace, active_span, env)
 
             request_return, request_response = Instrumentation.gateway.push('rack.request', request) do
               @app.call(env)
@@ -63,8 +66,10 @@ module Datadog
 
             request_return
           ensure
-            add_waf_runtime_tags(active_trace, context) if context
-            context.finalize if context
+            if context
+              add_waf_runtime_tags(active_trace, context)
+              context.finalize
+            end
           end
 
           private
@@ -85,7 +90,7 @@ module Datadog
             Datadog::Tracing.active_span
           end
 
-          def add_appsec_tags(trace, span, env)
+          def add_appsec_tags(processor, trace, span, env)
             return unless trace
 
             trace.set_tag('_dd.appsec.enabled', 1)
@@ -103,18 +108,18 @@ module Datadog
               )
             end
 
-            if @processor.ruleset_info
-              trace.set_tag('_dd.appsec.event_rules.version', @processor.ruleset_info[:version])
+            if processor.ruleset_info
+              trace.set_tag('_dd.appsec.event_rules.version', processor.ruleset_info[:version])
 
               unless @oneshot_tags_sent
                 # Small race condition, but it's inoccuous: worst case the tags
                 # are sent a couple of times more than expected
                 @oneshot_tags_sent = true
 
-                trace.set_tag('_dd.appsec.event_rules.loaded', @processor.ruleset_info[:loaded].to_f)
-                trace.set_tag('_dd.appsec.event_rules.error_count', @processor.ruleset_info[:failed].to_f)
-                trace.set_tag('_dd.appsec.event_rules.errors', JSON.dump(@processor.ruleset_info[:errors]))
-                trace.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(@processor.addresses))
+                trace.set_tag('_dd.appsec.event_rules.loaded', processor.ruleset_info[:loaded].to_f)
+                trace.set_tag('_dd.appsec.event_rules.error_count', processor.ruleset_info[:failed].to_f)
+                trace.set_tag('_dd.appsec.event_rules.errors', JSON.dump(processor.ruleset_info[:errors]))
+                trace.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(processor.addresses))
 
                 # Ensure these tags reach the backend
                 trace.keep!

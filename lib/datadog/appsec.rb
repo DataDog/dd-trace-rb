@@ -8,6 +8,16 @@ module Datadog
   module AppSec
     include Configuration
 
+    class << self
+      def components
+        Datadog.send(:components)
+      end
+
+      def processor
+        components.appsec.processor if components.appsec
+      end
+    end
+
     def self.writer
       @writer ||= Writer.new
     end
@@ -21,3 +31,5 @@ end
 require_relative 'appsec/contrib/rack/integration'
 require_relative 'appsec/contrib/sinatra/integration'
 require_relative 'appsec/contrib/rails/integration'
+
+require_relative 'appsec/autoload'
