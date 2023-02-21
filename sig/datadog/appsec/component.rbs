@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    class Component
+      def self.build_appsec_component: (Core::Configuration::Settings settings) -> Datadog::AppSec::Component?
+
+      attr_reader processor: Datadog::AppSec::Processor?
+
+      def initialize: (Core::Configuration::Settings settings) -> void
+
+      def shutdown!: () -> untyped
+    end
+  end
+end

@@ -13,6 +13,8 @@ module Datadog
         def tracer: (?untyped? options) -> untyped
 
         def tracer=: (untyped tracer) -> untyped
+
+        def appsec: (?untyped? options) -> Datadog::AppSec::Configuration::Settings
       end
     end
   end
