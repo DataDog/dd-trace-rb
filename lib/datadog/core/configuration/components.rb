@@ -10,6 +10,7 @@ require_relative '../workers/runtime_metrics'
 
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
+require_relative '../../appsec/component'
 
 module Datadog
   module Core
@@ -64,7 +65,8 @@ module Datadog
           :profiler,
           :runtime_metrics,
           :telemetry,
-          :tracer
+          :tracer,
+          :appsec
 
         def initialize(settings)
           # Logger
@@ -86,6 +88,9 @@ module Datadog
 
           # Telemetry
           @telemetry = self.class.build_telemetry(settings)
+
+          # AppSec
+          @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
         end
 
         # Starts up components
@@ -108,6 +113,9 @@ module Datadog
         # If it has another instance to compare to, it will compare
         # and avoid tearing down parts still in use.
         def shutdown!(replacement = nil)
+          # Decommission AppSec
+          appsec.shutdown! if appsec && !(replacement && appsec == replacement.appsec)
+
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
           tracer.shutdown! unless replacement && tracer == replacement.tracer
