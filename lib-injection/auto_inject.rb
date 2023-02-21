@@ -18,22 +18,32 @@ if !ENV['skip_autoinject']
 
     puts "ddtrace is not installed... Perform auto-injection... for dd-trace-rb"
 
-    # Copies for trial
-    system "cp Gemfile Gemfile-datadog"
-    system "cp Gemfile.lock Gemfile-datadog.lock"
+    require 'bundler'
+    require 'fileutils'
 
-    if system "skip_autoinject=true BUNDLE_GEMFILE=Gemfile-datadog bundle add ddtrace #{condition} --require ddtrace/auto_instrument"
+    gemfile  = Bundler::SharedHelpers.default_gemfile
+    lockfile = Bundler::SharedHelpers.default_lockfile
+
+    datadog_gemfile = gemfile.dirname + ("datadog-#{gemfile.basename}")
+    datadog_lockfile = lockfile.dirname + ("datadog-#{lockfile.basename}")
+
+    # Copies for trial
+    FileUtils.cp gemfile, datadog_gemfile
+    FileUtils.cp lockfile, datadog_lockfile
+
+    if system "skip_autoinject=true BUNDLE_GEMFILE=#{datadog_gemfile} bundle add ddtrace #{condition} --require ddtrace/auto_instrument"
       puts 'ddtrace added to bundle...'
 
       # Trial success, replace the original
-      system "cp Gemfile-datadog Gemfile"
-      system "cp Gemfile-datadog.lock Gemfile.lock"
+      FileUtils.cp datadog_gemfile, gemfile
+      FileUtils.cp datadog_lockfile, lockfile
     else
       puts 'Something went wrong when adding ddtrace to bundle...'
     end
 
     # Remove the copies
-    system "rm Gemfile-datadog Gemfile-datadog.lock"
+    FileUtils.rm datadog_gemfile
+    FileUtils.rm datadog_lockfile
   end
 
   begin
