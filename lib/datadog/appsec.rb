@@ -9,12 +9,16 @@ module Datadog
     include Configuration
 
     class << self
-      def components
-        Datadog.send(:components)
+      def processor
+        appsec_component = components.appsec
+
+        appsec_component.processor if appsec_component
       end
 
-      def processor
-        components.appsec.processor if components.appsec
+      private
+
+      def components
+        Datadog.send(:components)
       end
     end
 
