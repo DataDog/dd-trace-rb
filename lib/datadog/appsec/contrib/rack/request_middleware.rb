@@ -27,7 +27,7 @@ module Datadog
 
             processor = Datadog::AppSec.processor
 
-            return @app.call(env) unless processor.ready?
+            return @app.call(env) unless processor
 
             # TODO: handle exceptions, except for @app.call
 
