@@ -90,7 +90,7 @@ module Datadog
           @telemetry = self.class.build_telemetry(settings)
 
           # AppSec
-          @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
+          @appsec = Datadog::AppSec::Component.build_appsec_component(settings.appsec)
         end
 
         # Starts up components

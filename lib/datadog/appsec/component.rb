@@ -9,7 +9,7 @@ module Datadog
     class Component
       class << self
         def build_appsec_component(settings)
-          return unless settings.appsec.enabled
+          return unless settings.enabled
 
           new
         end
