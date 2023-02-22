@@ -11,14 +11,14 @@ module Datadog
         def build_appsec_component(settings)
           return unless settings.appsec.enabled
 
-          new(settings)
+          new
         end
       end
 
       attr_reader :processor
 
-      def initialize(settings)
-        @processor = Processor.new
+      def initialize(processor: Processor.new)
+        @processor = processor
       end
 
       def shutdown!
