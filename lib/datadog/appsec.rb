@@ -9,6 +9,10 @@ module Datadog
     include Configuration
 
     class << self
+      def enabled?
+        Datadog.configuration.appsec.enabled
+      end
+
       def processor
         appsec_component = components.appsec
 

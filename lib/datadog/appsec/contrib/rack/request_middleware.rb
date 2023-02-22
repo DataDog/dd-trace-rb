@@ -23,7 +23,7 @@ module Datadog
           end
 
           def call(env)
-            return @app.call(env) unless Datadog.configuration.appsec.enabled
+            return @app.call(env) unless Datadog::AppSec.enabled?
 
             processor = Datadog::AppSec.processor
 
