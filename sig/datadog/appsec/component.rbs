@@ -5,7 +5,7 @@ module Datadog
 
       attr_reader processor: Datadog::AppSec::Processor?
 
-      def initialize: (Core::Configuration::Settings settings) -> void
+      def initialize: (?processor: Datadog::AppSec::Processor?) -> void
 
       def shutdown!: () -> untyped
     end
