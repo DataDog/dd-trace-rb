@@ -10,9 +10,7 @@ module Datadog
 
         def runtime_metrics: (?untyped? options) -> untyped
 
-        def tracer: (?untyped? options) -> untyped
-
-        def tracer=: (untyped tracer) -> untyped
+        def appsec: (?untyped? options) -> Datadog::AppSec::Configuration::Settings
       end
     end
   end

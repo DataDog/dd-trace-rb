@@ -1,6 +1,14 @@
 module Datadog
   module AppSec
     extend Configuration::ClassMethods
+
+    def self.enabled?: () -> bool
+
+    def self.processor: () -> Datadog::AppSec::Processor?
+
+    private
+
+    def self.components: () -> Datadog::Core::Configuration::Components
   end
 end
 

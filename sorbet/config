@@ -4,5 +4,4 @@
 --ignore=/integration
 --ignore=/yard
 --ignore=/vendor/bundle
---ignore=/lib/datadog/appsec
 --ignore=/tmp
