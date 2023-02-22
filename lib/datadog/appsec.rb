@@ -41,4 +41,3 @@ require_relative 'appsec/contrib/sinatra/integration'
 require_relative 'appsec/contrib/rails/integration'
 
 require_relative 'appsec/autoload'
-

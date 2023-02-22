@@ -8,6 +8,7 @@ target :appsec do
 
   ignore 'lib/datadog/appsec/contrib'
   ignore 'lib/datadog/appsec/monitor'
+  ignore 'lib/datadog/appsec/component.rb'
 
   library 'pathname', 'set'
   library 'cgi'
