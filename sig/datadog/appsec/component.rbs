@@ -12,6 +12,10 @@ module Datadog
       def initialize: (processor: Datadog::AppSec::Processor?) -> void
 
       def shutdown!: () -> untyped
+
+      private
+
+      def start_monitor: () -> untyped
     end
   end
 end

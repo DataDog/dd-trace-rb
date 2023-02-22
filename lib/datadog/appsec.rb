@@ -40,10 +40,5 @@ require_relative 'appsec/contrib/rack/integration'
 require_relative 'appsec/contrib/sinatra/integration'
 require_relative 'appsec/contrib/rails/integration'
 
-
 require_relative 'appsec/autoload'
-
-# Internal appsec events monitor
-require_relative 'appsec/monitor'
-Datadog::AppSec::Monitor::Gateway::Watcher.watch
 
