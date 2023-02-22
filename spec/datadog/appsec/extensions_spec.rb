@@ -37,9 +37,15 @@ RSpec.describe Datadog::AppSec::Extensions do
 
             it 'configures the integration' do
               # If integration_class.loaded? is invoked, it means the correct integration is being activated.
-              expect(integration_class).to receive(:loaded?).and_return(false)
+              begin
+                old_appsec_enabled = ENV['DD_APPSEC_ENABLED']
+                ENV['DD_APPSEC_ENABLED'] = 'true'
+                expect(integration_class).to receive(:loaded?).and_return(false)
 
-              configure
+                configure
+              ensure
+                ENV['DD_APPSEC_ENABLED'] = old_appsec_enabled
+              end
             end
           end
         end
