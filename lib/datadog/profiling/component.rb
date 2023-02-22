@@ -73,7 +73,8 @@ module Datadog
             recorder: recorder,
             max_frames: settings.profiling.advanced.max_frames,
             tracer: tracer,
-            gc_profiling_enabled: should_enable_gc_profiling?(settings)
+            gc_profiling_enabled: should_enable_gc_profiling?(settings),
+            allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           )
         else
           trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(

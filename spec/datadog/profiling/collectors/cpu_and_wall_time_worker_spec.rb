@@ -8,6 +8,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   let(:recorder) { build_stack_recorder }
   let(:gc_profiling_enabled) { true }
+  let(:allocation_counting_enabled) { true }
   let(:options) { {} }
 
   subject(:cpu_and_wall_time_worker) do
@@ -16,6 +17,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       max_frames: 400,
       tracer: nil,
       gc_profiling_enabled: gc_profiling_enabled,
+      allocation_counting_enabled: allocation_counting_enabled,
       **options
     )
   end
@@ -55,12 +57,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       allow(Datadog.logger).to receive(:warn)
 
-      another_instance = described_class.new(
-        recorder: build_stack_recorder,
-        max_frames: 400,
-        tracer: nil,
-        gc_profiling_enabled: gc_profiling_enabled,
-      )
+      another_instance = build_another_instance
       another_instance.start
 
       exception = try_wait_until(backoff: 0.01) { another_instance.send(:failure_exception) }
@@ -237,12 +234,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         start
 
         expect_in_fork do
-          another_instance = described_class.new(
-            recorder: build_stack_recorder,
-            max_frames: 400,
-            tracer: nil,
-            gc_profiling_enabled: gc_profiling_enabled,
-          )
+          another_instance = build_another_instance
           another_instance.start
 
           try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(another_instance) }
@@ -253,12 +245,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         start
 
         expect_in_fork do
-          another_instance = described_class.new(
-            recorder: build_stack_recorder,
-            max_frames: 400,
-            tracer: nil,
-            gc_profiling_enabled: gc_profiling_enabled,
-          )
+          another_instance = build_another_instance
           another_instance.start
 
           try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(another_instance) }
@@ -377,6 +364,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       # specs. Unfortunately, there's a VM crash in that case as well -- https://bugs.ruby-lang.org/issues/18464 --
       # so this must be disabled when interacting with Ractors.
       let(:gc_profiling_enabled) { false }
+      # ...same thing for the tracepoint for allocation counting/profiling :(
+      let(:allocation_counting_enabled) { false }
 
       describe 'handle_sampling_signal' do
         include_examples 'does not trigger a sample',
@@ -535,6 +524,64 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe '._native_allocation_count' do
+    subject(:_native_allocation_count) { described_class._native_allocation_count }
+
+    context 'when CpuAndWallTimeWorker has not been started' do
+      it { is_expected.to be nil }
+    end
+
+    context 'when CpuAndWallTimeWorker has been started' do
+      before do
+        cpu_and_wall_time_worker.start
+        wait_until_running
+      end
+
+      after do
+        cpu_and_wall_time_worker.stop
+      end
+
+      it 'returns the number of allocations between two calls of the method' do
+        before_allocations = described_class._native_allocation_count
+        100.times { Object.new }
+        after_allocations = described_class._native_allocation_count
+
+        # The profiler can (currently) cause extra allocations, which is why this is not exactly 100
+        expect(after_allocations - before_allocations).to be >= 100
+        expect(after_allocations - before_allocations).to be < 110
+      end
+
+      it 'returns different numbers of allocations for different threads' do
+        t1_can_run = Queue.new
+        t1_has_run = Queue.new
+        before_t1 = nil
+        after_t1 = nil
+
+        background_t1 = Thread.new do
+          before_t1 = described_class._native_allocation_count
+          t1_can_run.pop
+
+          100.times { Object.new }
+          after_t1 = described_class._native_allocation_count
+          t1_has_run << true
+        end
+
+        before_allocations = described_class._native_allocation_count
+        t1_can_run << true
+        t1_has_run.pop
+        after_allocations = described_class._native_allocation_count
+
+        background_t1.join
+
+        # This test checks that even though we observed >= 100 allocations in a background thread t1, the counters for
+        # the current thread were not affected by this change (even though they may be slightly affected by the profiler)
+
+        expect(after_t1 - before_t1).to be >= 100
+        expect(after_allocations - before_allocations).to be < 10
+      end
+    end
+  end
+
   def wait_until_running
     try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(cpu_and_wall_time_worker) }
   end
@@ -547,5 +594,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     samples_from_pprof(pprof_data)
       .reject { |it| it.locations.first.path == 'Garbage Collection' }
       .reject { |it| it.labels.include?(:'profiler overhead') }
+  end
+
+  def build_another_instance
+    described_class.new(
+      recorder: build_stack_recorder,
+      max_frames: 400,
+      tracer: nil,
+      gc_profiling_enabled: gc_profiling_enabled,
+      allocation_counting_enabled: allocation_counting_enabled,
+    )
   end
 end
