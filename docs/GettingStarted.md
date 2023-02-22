@@ -2270,7 +2270,9 @@ trace.keep!
 
 You can configure sampling rule that allow you keep spans despite their respective traces being dropped by a trace-level sampling rule.
 
-[//]: # (TODO: See <Single Span Sampling documentation URL here> for the full documentation on Single Span Sampling.)
+This allows you to keep important spans when trace-level sampling is applied. Is is not possible to drop spans using Single Span Sampling.
+
+To configure it, see the [Ingestion Mechanisms documentation](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_mechanisms/?tab=ruby#single-spans).
 
 #### Application-side sampling
 
