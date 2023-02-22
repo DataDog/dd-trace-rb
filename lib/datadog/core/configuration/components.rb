@@ -114,7 +114,7 @@ module Datadog
         # and avoid tearing down parts still in use.
         def shutdown!(replacement = nil)
           # Decommission AppSec
-          appsec.shutdown! if appsec && !(replacement && appsec == replacement.appsec)
+          appsec.shutdown! if appsec
 
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
