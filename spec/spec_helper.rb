@@ -114,35 +114,7 @@ RSpec.configure do |config|
   #
   # rubocop:disable Style/GlobalVars
   config.around do |example|
-    # Enforce timeout for tests that are stuck for any reason.
-    # Prints all active threads to allow for further investigation.
-    # CircleCI shuts down containers after no output for 10 minutes.
-    # The timeout is currently 5 minutes for a single test.
-    timeout_thread = Thread.new do
-      timeout = 5 * 60 # 5 minutes
-      sleep(timeout)
-
-      warn("Test timed out after #{timeout}s. List of active threads:")
-
-      Thread.list.select { |t| t.alive? && t != Thread.current }.each_with_index.map do |t, idx|
-        backtrace = t.backtrace
-        backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
-
-        msg = "#{idx}: #{t} (#{t.class.name})",
-              'Thread Backtrace:',
-              backtrace.map { |l| "\t#{l}" }.join("\n"),
-              "\n"
-
-        warn(msg)
-      end
-
-      Process.kill('INT', Process.pid)
-    end
-    timeout_thread.name = 'Test timeout enforcer' if timeout_thread.respond_to?(:name=) # Ruby 2.3+
-
     example.run.tap do
-      timeout_thread.kill
-
       # Stop reporting on background thread leaks after too many
       # successive failures. The output is very verbose and, at that point,
       # it's better to work on fixing the very first occurrences.
@@ -170,8 +142,6 @@ RSpec.configure do |config|
         t == Thread.current ||
           # Thread has shut down, but we caught it right as it was still alive
           !t.alive? ||
-          # Timeout enforcing thread
-          t == timeout_thread ||
           # Internal JRuby thread
           defined?(JRuby) && JRuby.reference(t).native_thread.name == 'Finalizer' ||
           # WEBrick singleton thread for handling timeouts
@@ -280,8 +250,7 @@ end
 
 Thread.prepend(DatadogThreadDebugger)
 
-# Enforce test time limit for the whole process, to allow debugging test runs
-# that get stuck outside of a test run.
+# Enforce test time limit, to allow us to debug why some test runs get stuck in CI
 if ENV.key?('CI')
   require 'spec/support/thread_helpers'
 

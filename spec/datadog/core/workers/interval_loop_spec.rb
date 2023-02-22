@@ -107,6 +107,39 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       context 'when the worker is running' do
         include_context 'perform loop in thread'
 
+        before do
+          # Enforce timeout for tests that are stuck for any reason.
+          # Prints all active threads to allow for further investigation.
+          # CircleCI shuts down containers after no output for 10 minutes.
+          # The timeout will be enforced to 5 minutes.
+          # DEV: Remove @timeout_thread once this flaky issue is resolved.
+          @timeout_thread = Thread.new do
+            timeout = 5 * 60 # 5 minutes
+            sleep(timeout)
+
+            warn("Test timed out after #{timeout}s. List of active threads:")
+
+            Thread.list.select { |t| t.alive? && t != Thread.current }.each_with_index.map do |t, idx|
+              backtrace = t.backtrace
+              backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
+
+              msg = "#{idx}: #{t} (#{t.class.name})",
+                'Thread Backtrace:',
+                backtrace.map { |l| "\t#{l}" }.join("\n"),
+                "\n"
+
+              warn(msg)
+            end
+
+            Process.kill('INT', Process.pid)
+          end
+          @timeout_thread.name = 'Test timeout enforcer' if @timeout_thread.respond_to?(:name=) # Ruby 2.3+
+        end
+
+        after do
+          @timeout_thread.kill.join
+        end
+
         it { is_expected.to be true }
 
         it do
@@ -132,6 +165,40 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
 
       context 'when the worker is running' do
         include_context 'perform loop in thread'
+
+        before do
+          # Enforce timeout for tests that are stuck for any reason.
+          # Prints all active threads to allow for further investigation.
+          # CircleCI shuts down containers after no output for 10 minutes.
+          # The timeout will be enforced to 5 minutes.
+          # DEV: Remove @timeout_thread once this flaky issue is resolved.
+          @timeout_thread = Thread.new do
+            timeout = 5 * 60 # 5 minutes
+            sleep(timeout)
+
+            warn("Test timed out after #{timeout}s. List of active threads:")
+
+            Thread.list.select { |t| t.alive? && t != Thread.current }.each_with_index.map do |t, idx|
+              backtrace = t.backtrace
+              backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
+
+              msg = "#{idx}: #{t} (#{t.class.name})",
+                'Thread Backtrace:',
+                backtrace.map { |l| "\t#{l}" }.join("\n"),
+                "\n"
+
+              warn(msg)
+            end
+
+            Process.kill('INT', Process.pid)
+          end
+          @timeout_thread.name = 'Test timeout enforcer' if @timeout_thread.respond_to?(:name=) # Ruby 2.3+
+        end
+
+        after do
+          @timeout_thread.kill.join
+        end
+
         it { is_expected.to be true }
       end
     end
