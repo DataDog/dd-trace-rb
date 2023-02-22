@@ -7,8 +7,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   before { skip_if_profiling_not_supported(self) }
 
   let(:numeric_labels) { [] }
+  let(:cpu_time_enabled) { true }
+  let(:alloc_samples_enabled) { true }
 
-  subject(:stack_recorder) { described_class.new }
+  subject(:stack_recorder) do
+    described_class.new(cpu_time_enabled: cpu_time_enabled, alloc_samples_enabled: alloc_samples_enabled)
+  end
 
   # NOTE: A lot of libdatadog integration behaviors are tested in the Collectors::Stack specs, since we need actual
   # samples in order to observe what comes out of libdatadog
@@ -109,13 +113,56 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(start).to be <= finish
       end
 
-      it 'returns a pprof with the configured sample types' do
-        expect(sample_types_from(decoded_profile)).to eq(
-          'cpu-time' => 'nanoseconds',
-          'cpu-samples' => 'count',
-          'wall-time' => 'nanoseconds',
-          'alloc-samples' => 'count',
-        )
+      context 'when all profile types are enabled' do
+        let(:cpu_time_enabled) { true }
+        let(:alloc_samples_enabled) { true }
+
+        it 'returns a pprof with the configured sample types' do
+          expect(sample_types_from(decoded_profile)).to eq(
+            'cpu-time' => 'nanoseconds',
+            'cpu-samples' => 'count',
+            'wall-time' => 'nanoseconds',
+            'alloc-samples' => 'count',
+          )
+        end
+      end
+
+      context 'when cpu-time is disabled' do
+        let(:cpu_time_enabled) { false }
+        let(:alloc_samples_enabled) { true }
+
+        it 'returns a pprof without the cpu-type type' do
+          expect(sample_types_from(decoded_profile)).to eq(
+            'cpu-samples' => 'count',
+            'wall-time' => 'nanoseconds',
+            'alloc-samples' => 'count',
+          )
+        end
+      end
+
+      context 'when alloc-samples is disabled' do
+        let(:cpu_time_enabled) { true }
+        let(:alloc_samples_enabled) { false }
+
+        it 'returns a pprof without the alloc-samples type' do
+          expect(sample_types_from(decoded_profile)).to eq(
+            'cpu-time' => 'nanoseconds',
+            'cpu-samples' => 'count',
+            'wall-time' => 'nanoseconds',
+          )
+        end
+      end
+
+      context 'when all optional types are disabled' do
+        let(:cpu_time_enabled) { false }
+        let(:alloc_samples_enabled) { false }
+
+        it 'returns a pprof with without the optional types' do
+          expect(sample_types_from(decoded_profile)).to eq(
+            'cpu-samples' => 'count',
+            'wall-time' => 'nanoseconds',
+          )
+        end
       end
 
       it 'returns an empty pprof' do
@@ -154,6 +201,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it 'encodes the sample with the metrics provided' do
         expect(samples.first.values)
           .to eq(:'cpu-time' => 123, :'cpu-samples' => 456, :'wall-time' => 789, :'alloc-samples' => 4242)
+      end
+
+      context 'when disabling an optional profile sample type' do
+        let(:cpu_time_enabled) { false }
+
+        it 'encodes the sample with the metrics provided, ignoring the disabled ones' do
+          expect(samples.first.values)
+            .to eq(:'cpu-samples' => 456, :'wall-time' => 789, :'alloc-samples' => 4242)
+        end
       end
 
       it 'encodes the sample with the labels provided' do

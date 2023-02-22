@@ -153,7 +153,7 @@ static void trigger_sample_for_thread(
   VALUE thread,
   VALUE stack_from_thread,
   struct per_thread_context *thread_context,
-  ddog_Slice_I64 metric_values_slice,
+  sample_values values,
   sample_type type
 );
 static VALUE _native_thread_list(VALUE self);
@@ -407,18 +407,12 @@ void update_metrics_and_sample(
     IS_WALL_TIME
   );
 
-  int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
-
-  metric_values[CPU_TIME_VALUE_POS] = cpu_time_elapsed_ns;
-  metric_values[CPU_SAMPLES_VALUE_POS] = 1;
-  metric_values[WALL_TIME_VALUE_POS] = wall_time_elapsed_ns;
-
   trigger_sample_for_thread(
     state,
     thread_being_sampled,
     stack_from_thread,
     thread_context,
-    (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+    (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
     SAMPLE_REGULAR
   );
 }
@@ -555,18 +549,12 @@ VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
       rb_raise(rb_eRuntimeError, "BUG: Unexpected zero value for gc_tracking.wall_time_at_start_ns");
     }
 
-    int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
-
-    metric_values[CPU_TIME_VALUE_POS] = gc_cpu_time_elapsed_ns;
-    metric_values[CPU_SAMPLES_VALUE_POS] = 1;
-    metric_values[WALL_TIME_VALUE_POS] = gc_wall_time_elapsed_ns;
-
     trigger_sample_for_thread(
       state,
       /* thread: */  thread,
       /* stack_from_thread: */ thread,
       thread_context,
-      (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+      (sample_values) {.cpu_time_ns = gc_cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = gc_wall_time_elapsed_ns},
       SAMPLE_IN_GC
     );
 
@@ -596,7 +584,7 @@ static void trigger_sample_for_thread(
   VALUE thread,
   VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
-  ddog_Slice_I64 metric_values_slice,
+  sample_values values,
   sample_type type
 ) {
   int max_label_count =
@@ -664,7 +652,7 @@ static void trigger_sample_for_thread(
     stack_from_thread,
     state->sampling_buffer,
     state->recorder_instance,
-    metric_values_slice,
+    values,
     (ddog_prof_Slice_Label) {.ptr = labels, .len = label_pos},
     type
   );

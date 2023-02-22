@@ -6,7 +6,7 @@ require 'datadog/profiling/collectors/cpu_and_wall_time_worker'
 RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   before { skip_if_profiling_not_supported(self) }
 
-  let(:recorder) { Datadog::Profiling::StackRecorder.new }
+  let(:recorder) { build_stack_recorder }
   let(:gc_profiling_enabled) { true }
   let(:options) { {} }
 
@@ -56,7 +56,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       allow(Datadog.logger).to receive(:warn)
 
       another_instance = described_class.new(
-        recorder: Datadog::Profiling::StackRecorder.new,
+        recorder: build_stack_recorder,
         max_frames: 400,
         tracer: nil,
         gc_profiling_enabled: gc_profiling_enabled,
@@ -238,7 +238,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         expect_in_fork do
           another_instance = described_class.new(
-            recorder: Datadog::Profiling::StackRecorder.new,
+            recorder: build_stack_recorder,
             max_frames: 400,
             tracer: nil,
             gc_profiling_enabled: gc_profiling_enabled,
@@ -254,7 +254,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         expect_in_fork do
           another_instance = described_class.new(
-            recorder: Datadog::Profiling::StackRecorder.new,
+            recorder: build_stack_recorder,
             max_frames: 400,
             tracer: nil,
             gc_profiling_enabled: gc_profiling_enabled,
