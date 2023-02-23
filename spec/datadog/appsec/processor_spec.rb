@@ -74,7 +74,7 @@ RSpec.describe Datadog::AppSec::Processor do
       end
 
       describe '.active_context=' do
-        it 'raises ArgumentError when trying to setup current conetxt to a non Context instance' do
+        it 'raises ArgumentError when trying to setup current context to a non Context instance' do
           expect do
             described_class.send(:active_context=, 'foo')
           end.to raise_error(ArgumentError)
@@ -529,6 +529,13 @@ RSpec.describe Datadog::AppSec::Processor do
     it 'creates a new context and store in the class .active_context variable' do
       context = described_class.new.activate_context
       expect(context).to eq(described_class.active_context)
+    end
+
+    context 'when an active context already exists' do
+      it 'raises AlreadyActiveContextError' do
+        described_class.new.activate_context
+        expect { described_class.new.activate_context }.to raise_error(described_class::AlreadyActiveContextError)
+      end
     end
   end
 

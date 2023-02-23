@@ -27,6 +27,9 @@ module Datadog
       class NoActiveContextError < StandardError
       end
 
+      class AlreadyActiveContextError < StandardError
+      end
+
       attr_reader ruleset_info: untyped
       attr_reader addresses: untyped
 

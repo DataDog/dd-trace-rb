@@ -61,6 +61,7 @@ module Datadog
       end
 
       class NoActiveContextError < StandardError; end
+      class AlreadyActiveContextError < StandardError; end
 
       attr_reader :ruleset_info, :addresses
 
@@ -87,6 +88,9 @@ module Datadog
       end
 
       def activate_context
+        existing_active_context = Processor.active_context
+        raise AlreadyActiveContextError if existing_active_context
+
         context = new_context
         Processor.send(:active_context=, context)
         context
