@@ -546,9 +546,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         100.times { Object.new }
         after_allocations = described_class._native_allocation_count
 
-        # The profiler can (currently) cause extra allocations, which is why this is not exactly 100
-        expect(after_allocations - before_allocations).to be >= 100
-        expect(after_allocations - before_allocations).to be < 110
+        expect(after_allocations - before_allocations).to be 100
       end
 
       it 'returns different numbers of allocations for different threads' do
@@ -573,10 +571,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         background_t1.join
 
-        # This test checks that even though we observed >= 100 allocations in a background thread t1, the counters for
-        # the current thread were not affected by this change (even though they may be slightly affected by the profiler)
+        # This test checks that even though we observed 100 allocations in a background thread t1, the counters for
+        # the current thread were not affected by this change
 
-        expect(after_t1 - before_t1).to be >= 100
+        expect(after_t1 - before_t1).to be 100
         expect(after_allocations - before_allocations).to be < 10
       end
     end
