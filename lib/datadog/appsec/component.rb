@@ -32,7 +32,7 @@ module Datadog
       end
 
       def shutdown!
-        if processor
+        if processor && processor.ready?
           processor.finalize
           @processor = nil
         end

@@ -49,13 +49,34 @@ RSpec.describe Datadog::AppSec::Component do
   end
 
   describe '#shutdown!' do
-    context 'when processor is not nil' do
+    context 'when processor is not nil and ready' do
       it 'finalizes the processor' do
         processor = instance_double(Datadog::AppSec::Processor)
 
         component = described_class.new(processor: processor)
-
+        expect(processor).to receive(:ready?).and_return(true)
         expect(processor).to receive(:finalize)
+        component.shutdown!
+      end
+    end
+
+    context 'when processor is not ready' do
+      it 'does not finalize the processor' do
+        processor = instance_double(Datadog::AppSec::Processor)
+        expect(processor).to receive(:ready?).and_return(false)
+
+        component = described_class.new(processor: processor)
+
+        expect(processor).to_not receive(:finalize)
+        component.shutdown!
+      end
+    end
+
+    context 'when processor is nil' do
+      it 'does not finalize the processor' do
+        component = described_class.new(processor: nil)
+
+        expect_any_instance_of(Datadog::AppSec::Processor).to_not receive(:finalize)
         component.shutdown!
       end
     end
