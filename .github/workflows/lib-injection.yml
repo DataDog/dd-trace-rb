@@ -24,3 +24,33 @@ jobs:
           build-args: DDTRACE_RUBY_SHA=${{ github.sha }}
           context: ./lib-injection
 
+  test:
+    needs:
+      - build-and-publish-test-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        lib-injection-connection: ['network']
+        lib-injection-use-admission-controller: ['', 'use-admission-controller']
+        weblog-variant: ['dd-lib-ruby-init-test-rails']
+      fail-fast: false
+    env:
+      TEST_LIBRARY: ruby
+      WEBLOG_VARIANT: ${{ matrix.weblog-variant }}
+      LIBRARY_INJECTION_CONNECTION: ${{ matrix.lib-injection-connection }}
+      LIBRARY_INJECTION_ADMISSION_CONTROLLER: ${{ matrix.lib-injection-use-admission-controller }}
+      DOCKER_REGISTRY_IMAGES_PATH: ghcr.io/datadog
+      DOCKER_IMAGE_TAG: ${{ github.sha }}
+      BUILDX_PLATFORMS: linux/amd64
+    steps:
+      - name: lib-injection test runner
+        id: lib-injection-test-runner
+        uses: DataDog/system-tests/lib-injection/runner@a8acd1e881cf020711b1ada4c054424135c17787
+        with:
+          docker-registry: ghcr.io
+          docker-registry-username: ${{ github.repository_owner }}
+          docker-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          test-script: ./lib-injection/run-manual-lib-injection.sh
