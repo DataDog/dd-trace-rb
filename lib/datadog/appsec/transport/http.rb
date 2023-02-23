@@ -48,7 +48,7 @@ module Datadog
 
             apis = API.defaults
 
-            transport.api API::TOP, apis[API::TOP]
+            transport.api API::ROOT, apis[API::ROOT]
 
             # Apply any settings given by options
             unless options.empty?

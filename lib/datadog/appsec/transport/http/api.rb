@@ -16,14 +16,14 @@ module Datadog
         # Namespace for API components
         module API
           # Default API versions
-          TOP = ''.freeze
+          ROOT = 'root'.freeze
           V7 = 'v0.7'.freeze
 
           module_function
 
           def defaults
             Datadog::Transport::HTTP::API::Map[
-              TOP => Spec.new do |s|
+              ROOT => Spec.new do |s|
                 s.info = Negotiation::API::Endpoint.new(
                   '/info'.freeze,
                 )

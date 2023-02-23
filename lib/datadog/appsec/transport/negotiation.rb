@@ -46,7 +46,7 @@ module Datadog
           end
 
           def current_api
-            @apis['']
+            @apis[HTTP::API::ROOT]
           end
         end
       end
