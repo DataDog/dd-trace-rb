@@ -110,6 +110,7 @@ RSpec.describe 'Sinatra integration tests' do
   end
 
   after do
+    Datadog::AppSec.settings.send(:reset!)
     Datadog.registry[:rack].reset_configuration!
     Datadog.registry[:sinatra].reset_configuration!
   end

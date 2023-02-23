@@ -97,6 +97,11 @@ RSpec.describe 'Rails integration tests' do
     end
   end
 
+  after do
+    Datadog::AppSec.settings.send(:reset!)
+    Datadog.registry[:rails].reset_configuration!
+  end
+
   context 'for an application' do
     include_context 'Rails test application'
 

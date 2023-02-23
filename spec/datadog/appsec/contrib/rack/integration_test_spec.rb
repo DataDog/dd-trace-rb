@@ -139,7 +139,10 @@ RSpec.describe 'Rack integration tests' do
     end
   end
 
-  after { Datadog.registry[:rack].reset_configuration! }
+  after do
+    Datadog::AppSec.settings.send(:reset!)
+    Datadog.registry[:rack].reset_configuration!
+  end
 
   context 'for an application' do
     # TODO: also test without Tracing: it should run without trace transport
