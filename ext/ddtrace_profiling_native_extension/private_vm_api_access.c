@@ -27,6 +27,10 @@
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
 
+st_table *get_class_iv_table(VALUE klass) {
+  return RCLASS_IV_INDEX_TBL(klass);
+}
+
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
 // Instead, we have our own version of that function, and we lazily initialize the thread_data_type pointer

@@ -87,3 +87,5 @@ NORETURN(void raise_syserr(
   int line,
   const char *function_name
 ));
+
+size_t rb_obj_memsize_of(VALUE obj);

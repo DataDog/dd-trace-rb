@@ -43,3 +43,5 @@ bool ddtrace_rb_ractor_main_p(void);
 
 // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
 #define PLACEHOLDER_STACK_IN_NATIVE_CODE -1
+
+st_table *get_class_iv_table(VALUE klass);

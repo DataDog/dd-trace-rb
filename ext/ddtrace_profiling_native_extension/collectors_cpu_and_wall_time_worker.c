@@ -179,6 +179,18 @@ static struct cpu_and_wall_time_worker_state *active_sampler_instance_state = NU
 // API documented in profiling.rb .
 __thread uint64_t allocation_count = 0;
 
+static VALUE all_workers_array = Qnil;
+
+static VALUE all_workers(DDTRACE_UNUSED VALUE self) {
+  return all_workers_array;
+}
+
+static VALUE fake_print(DDTRACE_UNUSED VALUE self, VALUE string) {
+  fprintf(stderr, "%s\n", StringValueCStr(string));
+
+  return Qnil;
+}
+
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
 
@@ -203,6 +215,8 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_allocation_count", _native_allocation_count, 0);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "all_workers", all_workers, 0);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "fake_print", fake_print, 1);
   rb_define_singleton_method(testing_module, "_native_current_sigprof_signal_handler", _native_current_sigprof_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(testing_module, "_native_install_testing_signal_handler", _native_install_testing_signal_handler, 0);
@@ -212,6 +226,9 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
   rb_define_singleton_method(testing_module, "_native_simulate_sample_from_postponed_job", _native_simulate_sample_from_postponed_job, 0);
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
+
+  rb_global_variable(&all_workers_array);
+  all_workers_array = rb_ary_new();
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_worker_state
@@ -426,7 +443,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
-  uint64_t minimum_time_between_signals = MILLIS_AS_NS(10);
+  uint64_t minimum_time_between_signals = MILLIS_AS_NS(500);
 
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
@@ -806,16 +823,76 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
 
 // Implements memory-related profiling events. This function is called by Ruby via the `object_allocation_tracepoint`
 // when the RUBY_INTERNAL_EVENT_NEWOBJ event is triggered.
-static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
+static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   // Update thread-local allocation count
   if (RB_UNLIKELY(allocation_count == UINT64_MAX)) {
     allocation_count = 0;
   } else {
     allocation_count++;
   }
+
+  rb_trace_arg_t *data = rb_tracearg_from_tracepoint(tracepoint_data);
+  VALUE allocated_object = rb_tracearg_object(data);
+
+  VALUE object_class = rb_class_of(allocated_object); // TODO: Difference between this and rb_obj_class?
+  VALUE class_name = (BUILTIN_TYPE(allocated_object) == T_OBJECT) ? rb_class_name(object_class) : rb_str_new_cstr("(fixme)");
+
+  // if (strcmp(StringValueCStr(class_name), "Datadog::Core::Worker") == 0) {
+
+  char *type;
+  switch (BUILTIN_TYPE(allocated_object)) {
+    case T_NONE    : type = "T_NONE"; break;
+    case T_NIL     : type = "T_NIL"; break;
+    case T_OBJECT  : type = "T_OBJECT"; break;
+    case T_CLASS   : type = "T_CLASS"; break;
+    case T_ICLASS  : type = "T_ICLASS"; break;
+    case T_MODULE  : type = "T_MODULE"; break;
+    case T_FLOAT   : type = "T_FLOAT"; break;
+    case T_STRING  : type = "T_STRING"; break;
+    case T_REGEXP  : type = "T_REGEXP"; break;
+    case T_ARRAY   : type = "T_ARRAY"; break;
+    case T_HASH    : type = "T_HASH"; break;
+    case T_STRUCT  : type = "T_STRUCT"; break;
+    case T_BIGNUM  : type = "T_BIGNUM"; break;
+    case T_FILE    : type = "T_FILE"; break;
+    case T_FIXNUM  : type = "T_FIXNUM"; break;
+    case T_TRUE    : type = "T_TRUE"; break;
+    case T_FALSE   : type = "T_FALSE"; break;
+    case T_DATA    : type = "T_DATA"; break;
+    case T_MATCH   : type = "T_MATCH"; break;
+    case T_SYMBOL  : type = "T_SYMBOL"; break;
+    case T_RATIONAL: type = "T_RATIONAL"; break;
+    case T_COMPLEX : type = "T_COMPLEX"; break;
+    case T_IMEMO   : type = "T_IMEMO"; break;
+    case T_UNDEF   : type = "T_UNDEF"; break;
+    case T_NODE    : type = "T_NODE"; break;
+    case T_ZOMBIE  : type = "T_ZOMBIE"; break;
+    case T_MOVED   : type = "T_MOVED"; break;
+    case T_MASK    : type = "T_MASK"; break;
+    default: type = "(unknown)";
+  }
+
+  int estimated_size = -1;
+
+  if (BUILTIN_TYPE(allocated_object) == T_OBJECT) {
+    VALUE klass = rb_obj_class(allocated_object);
+    st_table *iv_index_tbl = get_class_iv_table(klass); // RCLASS_IV_INDEX_TBL(klass);
+    if (iv_index_tbl) {
+      if (iv_index_tbl->num_entries < ROBJECT_EMBED_LEN_MAX) {
+        estimated_size = sizeof(struct RObject);
+      } else {
+        estimated_size = sizeof(struct RObject) + iv_index_tbl->num_entries * sizeof(VALUE);
+      }
+    }
+  }
+
+  fprintf(stderr, "Allocated %s (%s) with size %ld (estimated %d)\n", StringValueCStr(class_name), type, rb_obj_memsize_of(allocated_object), estimated_size);
+
+  if (BUILTIN_TYPE(allocated_object) == T_STRING) rb_bug("Investigate!");
 }
 
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
   rb_tracepoint_disable(state->gc_tracepoint);
   rb_tracepoint_disable(state->object_allocation_tracepoint);
 }
+
