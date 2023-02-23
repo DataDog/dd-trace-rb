@@ -27,7 +27,7 @@ module Datadog
               "Internal error during #{self.class.name} request. Cause: #{e.class.name} #{e.message} " \
               "Location: #{Array(e.backtrace).first}"
 
-            InternalErrorResponse.new(e)
+            Datadog::Transport::InternalErrorResponse.new(e)
           end
 
           def build_env(request)
