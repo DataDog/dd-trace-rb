@@ -11,19 +11,31 @@ module Datadog
         def build_appsec_component(settings)
           return unless settings.enabled
 
-          new
+          processor = create_processor
+          new(processor: processor)
+        end
+
+        private
+
+        def create_processor
+          processor = Processor.new
+          return nil unless processor.ready?
+
+          processor
         end
       end
 
       attr_reader :processor
 
-      def initialize(processor: Processor.new)
+      def initialize(processor:)
         @processor = processor
       end
 
       def shutdown!
-        processor.finalize if processor
-        @processor = nil
+        if processor && processor.ready?
+          processor.finalize
+          @processor = nil
+        end
       end
     end
   end
