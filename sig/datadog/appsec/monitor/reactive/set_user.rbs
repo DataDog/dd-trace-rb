@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Monitor
+      module Reactive
+        module SetUser
+          ADDRESSES: ::Array[::String]
+
+          def self.publish: (untyped op, untyped user) -> untyped
+
+          def self.subscribe: (untyped op, untyped waf_context) { (untyped) -> untyped } -> untyped
+        end
+      end
+    end
+  end
+end

@@ -31,7 +31,7 @@ module Datadog
 
             # TODO: handle exceptions, except for @app.call
 
-            context = processor.new_context
+            context = processor.activate_context
             env['datadog.waf.context'] = context
 
             request = ::Rack::Request.new(env)
@@ -68,7 +68,7 @@ module Datadog
           ensure
             if context
               add_waf_runtime_tags(active_trace, context)
-              context.finalize
+              processor.deactivate_context
             end
           end
 
