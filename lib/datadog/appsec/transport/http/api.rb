@@ -26,8 +26,6 @@ module Datadog
               TOP => Spec.new do |s|
                 s.info = Negotiation::API::Endpoint.new(
                   '/info'.freeze,
-                  Core::Encoding::MsgpackEncoder,
-                  service_rates: true
                 )
               end,
               #V7 => Spec.new do |s|

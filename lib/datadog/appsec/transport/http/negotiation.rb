@@ -92,18 +92,11 @@ module Datadog
             class Endpoint < Datadog::Transport::HTTP::API::Endpoint
               HEADER_CONTENT_TYPE = 'Content-Type'.freeze
 
-              attr_reader :encoder
-
-              def initialize(path, encoder, options = {})
-                super(:post, path)
-                @encoder = encoder
+              def initialize(path)
+                super(:get, path)
               end
 
               def call(env, &block)
-                # Encode body & type
-                env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
-                env.body = env.request.parcel.data
-
                 # Query for response
                 http_response = super(env, &block)
 
