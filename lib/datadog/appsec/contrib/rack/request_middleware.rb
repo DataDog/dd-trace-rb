@@ -2,6 +2,7 @@
 
 require 'json'
 
+require_relative '../../ext'
 require_relative '../../instrumentation/gateway'
 require_relative '../../processor'
 require_relative '../../response'
@@ -38,8 +39,10 @@ module Datadog
 
             add_appsec_tags(processor, active_trace, active_span, env)
 
-            request_return, request_response = Instrumentation.gateway.push('rack.request', request) do
-              @app.call(env)
+            request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+              Instrumentation.gateway.push('rack.request', request) do
+                @app.call(env)
+              end
             end
 
             if request_response && request_response.any? { |action, _event| action == :block }

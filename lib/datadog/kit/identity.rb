@@ -56,6 +56,11 @@ module Datadog
         others.each do |k, v|
           trace.set_tag("usr.#{k}", v) unless v.nil?
         end
+
+        if Datadog.configuration.appsec.enabled
+          user = OpenStruct.new(id: id)
+          ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
+        end
       end
       # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Metrics/CyclomaticComplexity

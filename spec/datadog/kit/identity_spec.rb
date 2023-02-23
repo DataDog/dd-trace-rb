@@ -230,5 +230,29 @@ RSpec.describe Datadog::Kit::Identity do
         expect { described_class.set_user(trace_op, id: 42, foo: 42) }.to raise_error(TypeError)
       end
     end
+
+    context 'appsec' do
+      after { Datadog.configuration.appsec.send(:reset!) }
+
+      context 'when is enabled' do
+        it 'instruments the user information to appsec' do
+          Datadog.configuration.appsec.enabled = true
+          user = OpenStruct.new(id: '42')
+          expect_any_instance_of(Datadog::AppSec::Instrumentation::Gateway).to receive(:push).with(
+            'identity.set_user',
+            user
+          )
+          described_class.set_user(trace_op, id: '42')
+        end
+      end
+
+      context 'when is disabled' do
+        it 'does not instrument the user information to appsec' do
+          Datadog.configuration.appsec.enabled = false
+          expect_any_instance_of(Datadog::AppSec::Instrumentation::Gateway).to_not receive(:push).with('identity.set_user')
+          described_class.set_user(trace_op, id: '42')
+        end
+      end
+    end
   end
 end

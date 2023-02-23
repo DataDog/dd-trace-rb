@@ -22,6 +22,7 @@ RSpec.describe 'Rack integration tests' do
   let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
   let(:appsec_ip_denylist) { nil }
+  let(:appsec_user_id_denylist) { nil }
   let(:appsec_ruleset) { :recommended }
 
   let(:crs_942_100) do
@@ -133,6 +134,7 @@ RSpec.describe 'Rack integration tests' do
       c.appsec.enabled = appsec_enabled
       c.appsec.instrument :rack
       c.appsec.ip_denylist = appsec_ip_denylist
+      c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
     end
   end
@@ -293,6 +295,15 @@ RSpec.describe 'Rack integration tests' do
               end
             )
           end
+
+          map '/set_user' do
+            run(
+              proc do |_env|
+                Datadog::Kit::Identity.set_user(Datadog::Tracing.active_trace, id: 'blocked-user-id')
+                [200, { 'Content-Type' => 'text/html' }, ['OK']]
+              end
+            )
+          end
         end
       end
 
@@ -374,6 +385,26 @@ RSpec.describe 'Rack integration tests' do
             let(:appsec_ruleset) { nfd_000_002 }
             let(:url) { '/readme.md' }
             let(:appsec_enabled) { true }
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a GET 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
+        end
+
+        context 'with user blocking ID' do
+          let(:url) { '/set_user' }
+
+          it { is_expected.to be_ok }
+
+          it_behaves_like 'a GET 200 span'
+          it_behaves_like 'a trace with AppSec tags'
+          it_behaves_like 'a trace without AppSec events'
+
+          context 'with an event-triggering user ID' do
+            let(:appsec_user_id_denylist) { ['blocked-user-id'] }
 
             it { is_expected.to be_forbidden }
 

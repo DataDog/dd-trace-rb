@@ -1,6 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
+require_relative '../../ext'
 require_relative '../../instrumentation/gateway'
 require_relative '../../reactive/operation'
 require_relative '../reactive/set_user'
@@ -48,7 +49,7 @@ module Datadog
                   _result, block = Monitor::Reactive::SetUser.publish(op, user)
                 end
 
-                next [nil, [[:block, event]]] if block
+                throw(Datadog::AppSec::Ext::INTERRUPT, [nil, [:block, event]]) if block
 
                 ret, res = stack.call(user)
 
