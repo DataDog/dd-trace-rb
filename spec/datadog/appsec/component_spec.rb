@@ -48,16 +48,6 @@ RSpec.describe Datadog::AppSec::Component do
     end
   end
 
-  describe '#new' do
-    context 'Watch monitor' do
-      it 'calls watch on the monitor gateway' do
-        expect(Datadog::AppSec::Monitor::Gateway::Watcher).to receive(:watch)
-
-        described_class.new
-      end
-    end
-  end
-
   describe '#shutdown!' do
     context 'when processor is not nil and ready' do
       it 'finalizes the processor' do

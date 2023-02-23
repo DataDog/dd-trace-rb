@@ -2,7 +2,6 @@
 # frozen_string_literal: true
 
 require_relative 'processor'
-require_relative 'monitor'
 
 module Datadog
   module AppSec
@@ -30,8 +29,6 @@ module Datadog
 
       def initialize(processor:)
         @processor = processor
-
-        start_monitor
       end
 
       def shutdown!
@@ -39,12 +36,6 @@ module Datadog
           processor.finalize
           @processor = nil
         end
-      end
-
-      private
-
-      def start_monitor
-        Datadog::AppSec::Monitor::Gateway::Watcher.watch
       end
     end
   end
