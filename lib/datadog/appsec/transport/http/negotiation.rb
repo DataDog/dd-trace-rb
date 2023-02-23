@@ -90,8 +90,6 @@ module Datadog
 
             # Endpoint for negotiation
             class Endpoint < Datadog::Transport::HTTP::API::Endpoint
-              HEADER_CONTENT_TYPE = 'Content-Type'.freeze
-
               def initialize(path)
                 super(:get, path)
               end

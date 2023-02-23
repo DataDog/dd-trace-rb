@@ -6,19 +6,6 @@ module Datadog
   module AppSec
     module Transport
       module Negotiation
-        # Data transfer object for encoded traces
-        class EncodedParcel
-          include Datadog::Transport::Parcel
-
-          def initialize(data)
-            super(data)
-          end
-
-          def count
-            data.length
-          end
-        end
-
         # Negotiation request
         class Request < Datadog::Transport::Request
         end
