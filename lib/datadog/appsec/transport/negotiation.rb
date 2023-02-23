@@ -37,8 +37,7 @@ module Datadog
           end
 
           def send_info
-            parcel = EncodedParcel.new('')
-            request = Request.new(parcel)
+            request = Request.new
 
             response = @client.send_payload(request)
 
