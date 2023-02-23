@@ -124,9 +124,9 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
               backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
 
               msg = "#{idx}: #{t} (#{t.class.name})",
-                'Thread Backtrace:',
-                backtrace.map { |l| "\t#{l}" }.join("\n"),
-                "\n"
+                    'Thread Backtrace:',
+                    backtrace.map { |l| "\t#{l}" }.join("\n"),
+                    "\n"
 
               warn(msg)
             end
@@ -183,9 +183,9 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
               backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
 
               msg = "#{idx}: #{t} (#{t.class.name})",
-                'Thread Backtrace:',
-                backtrace.map { |l| "\t#{l}" }.join("\n"),
-                "\n"
+                    'Thread Backtrace:',
+                    backtrace.map { |l| "\t#{l}" }.join("\n"),
+                    "\n"
 
               warn(msg)
             end
