@@ -549,12 +549,13 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           write.write('!') # Signals that this fork is ready
-          sleep(5)
+          sleep(5) # Should be interrupted
+          exit! # Should not be reached, will skip shutdown hooks
         end
 
         # Wait for fork to get ready
         IO.select([read], [], [], 5) # 5 second timeout
-        read.getc # Reads '!'
+        expect(read.getc).to eq('!') # Child process is ready
 
         # Kill the process
         write.close
