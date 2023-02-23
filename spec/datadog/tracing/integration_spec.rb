@@ -548,11 +548,13 @@ RSpec.describe 'Tracer integration tests' do
             span.service = 'my.service'
           end
 
-          sleep(1)
+          write.write('!') # Signals that this fork is ready
+          sleep(5)
         end
 
-        # Give the fork a chance to setup and sleep
-        sleep(0.2)
+        # Wait for fork to get ready
+        IO.select([read], [], [], 5) # 5 second timeout
+        read.getc # Reads '!'
 
         # Kill the process
         write.close
