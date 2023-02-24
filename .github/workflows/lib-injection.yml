@@ -48,7 +48,7 @@ jobs:
     steps:
       - name: lib-injection test runner
         id: lib-injection-test-runner
-        uses: DataDog/system-tests/lib-injection/runner@d2ccf0691213a9d515e932ab933528c38ae69023
+        uses: DataDog/system-tests/lib-injection/runner@1af3241d5b6a928199528a8cbfc5698564f5d260
         with:
           docker-registry: ghcr.io
           docker-registry-username: ${{ github.repository_owner }}
