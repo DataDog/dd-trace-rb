@@ -25,8 +25,6 @@ REMOVED_GEMS = {
   :check => [
     'rbs',
     'steep',
-    'spoom',
-    'sorbet',
   ],
 }
 
