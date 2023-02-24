@@ -10,8 +10,6 @@ module Datadog
         module Quantization
           # Quantization for HTTP resources
           module HTTP
-            include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
-
             PLACEHOLDER = '?'.freeze
 
             # taken from Ruby https://github.com/ruby/uri/blob/ffbab83de6d8748c9454414e02db5317609166eb/lib/uri/rfc3986_parser.rb

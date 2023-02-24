@@ -3,8 +3,6 @@
 require 'datadog/profiling'
 
 module ProfileHelpers
-  include Kernel
-
   Sample = Struct.new(:locations, :values, :labels) # rubocop:disable Lint/StructNewOverride
   Frame = Struct.new(:base_label, :path, :lineno)
 

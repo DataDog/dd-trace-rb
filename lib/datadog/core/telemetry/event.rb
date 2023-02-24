@@ -9,8 +9,6 @@ module Datadog
     module Telemetry
       # Class defining methods to construct a Telemetry event
       class Event
-        include Kernel
-
         include Telemetry::Collector
 
         API_VERSION = 'v1'.freeze
