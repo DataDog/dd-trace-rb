@@ -1,5 +1,3 @@
-# typed: false
-
 require 'json'
 
 require 'datadog/tracing/contrib/integration_examples'

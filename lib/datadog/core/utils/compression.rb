@@ -1,5 +1,3 @@
-# typed: true
-
 require 'stringio'
 require 'zlib'
 

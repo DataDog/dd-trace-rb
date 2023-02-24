@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../integration'
 require_relative 'patcher'
 require_relative 'configuration/settings'

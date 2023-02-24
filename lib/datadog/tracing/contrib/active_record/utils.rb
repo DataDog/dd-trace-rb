@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../../core/environment/ext'
 require_relative '../utils/database'
 

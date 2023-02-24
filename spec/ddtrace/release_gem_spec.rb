@@ -35,7 +35,7 @@ RSpec.describe 'gem release process' do
         /x
 
         directories_excluded = %r{
-          ^(sig|spec|docs|\.circleci|\.github|benchmarks|gemfiles|integration|tasks|sorbet|yard|vendor/rbs)/
+          ^(sig|spec|docs|\.circleci|\.github|benchmarks|gemfiles|integration|tasks|yard|vendor/rbs)/
         }x
 
         expect(files)

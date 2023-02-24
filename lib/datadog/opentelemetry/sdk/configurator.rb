@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-# typed: ignore
 
 require_relative 'span_processor'
 require_relative 'id_generator'

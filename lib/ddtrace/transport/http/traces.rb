@@ -1,5 +1,3 @@
-# typed: false
-
 require 'json'
 
 require_relative '../traces'

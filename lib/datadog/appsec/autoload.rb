@@ -1,5 +1,3 @@
-# typed: ignore
-
 if %w[1 true].include?((ENV['DD_APPSEC_ENABLED'] || '').downcase)
   begin
     require_relative 'contrib/auto_instrument'

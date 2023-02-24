@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../response'
 
 module Datadog

@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../../core/configuration/base'
 require_relative '../../../core/utils/only_once'
 

@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/cpu_and_wall_time_worker'
 

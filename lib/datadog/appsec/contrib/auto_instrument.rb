@@ -1,5 +1,3 @@
-# typed: ignore
-
 module Datadog
   module AppSec
     module Contrib

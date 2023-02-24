@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../utils/time'
 require_relative '../utils/only_once'
 require_relative '../configuration/ext'

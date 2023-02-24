@@ -1,5 +1,3 @@
-# typed: false
-
 module Datadog
   module Profiling
     # Used to report profiling data to Datadog.

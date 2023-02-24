@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/core/encoding'
 require 'ddtrace/transport/http'
 

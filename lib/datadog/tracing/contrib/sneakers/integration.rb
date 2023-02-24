@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: false
-
 require_relative '../integration'
 require_relative 'ext'
 require_relative 'configuration/settings'

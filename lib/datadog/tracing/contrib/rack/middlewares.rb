@@ -1,5 +1,3 @@
-# typed: false
-
 require 'date'
 
 require_relative '../../../core/environment/variable_helpers'

@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'events/render_partial'
 require_relative 'events/render_template'
 

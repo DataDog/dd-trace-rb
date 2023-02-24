@@ -4,8 +4,6 @@ module Datadog
       module V1
         # Describes payload for telemetry V1 API app-integrations-change event
         class AppEvent
-          include Kernel
-
           attr_reader \
             :additional_payload,
             :configuration,

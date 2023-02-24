@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../../metadata/ext'
 require_relative '../event'
 require_relative '../ext'

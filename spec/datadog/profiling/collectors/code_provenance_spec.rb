@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/profiling/collectors/code_provenance'
 require 'json-schema'
 

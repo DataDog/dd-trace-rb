@@ -1,5 +1,3 @@
-# typed: strict
-
 require 'opentracing'
 require 'opentracing/carrier'
 require_relative 'tracing'

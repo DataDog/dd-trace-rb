@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../configuration/resolver'
 require_relative '../vendor/connection_specification'
 require_relative 'makara_resolver'

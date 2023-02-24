@@ -1,5 +1,3 @@
-# typed: false
-
 require 'sucker_punch'
 
 require_relative '../../metadata/ext'

@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 require_relative 'support/helper'
 

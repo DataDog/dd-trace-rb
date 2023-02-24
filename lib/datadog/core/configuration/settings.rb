@@ -1,5 +1,3 @@
-# typed: false
-
 require 'logger'
 
 require_relative 'base'

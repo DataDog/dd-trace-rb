@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../tracing/metadata/ext'
 require_relative '../tracing/flush'
 

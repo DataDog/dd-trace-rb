@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative '../patcher'
 require_relative 'ext'
 require_relative 'configuration/resolver'
