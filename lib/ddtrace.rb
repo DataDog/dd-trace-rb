@@ -1,5 +1,3 @@
-# typed: strict
-
 # Load tracing
 require_relative 'datadog/tracing'
 require_relative 'datadog/tracing/contrib'

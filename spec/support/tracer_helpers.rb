@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/trace_operation'
 require 'support/faux_writer'

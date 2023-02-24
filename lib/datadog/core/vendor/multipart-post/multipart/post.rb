@@ -1,5 +1,3 @@
-# typed: strict
-
 module Datadog
   module Core
     module Vendor

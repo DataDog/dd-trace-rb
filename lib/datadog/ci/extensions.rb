@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../core/configuration/settings'
 require_relative '../core/configuration/components'
 

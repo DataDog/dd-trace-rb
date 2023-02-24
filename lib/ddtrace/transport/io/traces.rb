@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../traces'
 
 require_relative 'response'

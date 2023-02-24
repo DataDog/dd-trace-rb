@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'ext'
 require_relative 'parsers'
 require_relative 'subscribers'

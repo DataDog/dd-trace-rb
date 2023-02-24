@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../../core'
 require_relative '../../metadata/ext'
 require_relative '../analytics'

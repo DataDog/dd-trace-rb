@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../contrib'
 require_relative 'extensions'
 

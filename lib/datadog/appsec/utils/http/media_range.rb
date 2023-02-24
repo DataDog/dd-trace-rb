@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative 'media_type'
 
 module Datadog

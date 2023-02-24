@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: ignore
-
 require 'rubygems'
 require 'pathname'
 

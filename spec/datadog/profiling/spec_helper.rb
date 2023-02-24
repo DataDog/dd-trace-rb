@@ -1,5 +1,3 @@
-# typed: true
-
 require 'datadog/profiling'
 
 module ProfileHelpers

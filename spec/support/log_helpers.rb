@@ -1,5 +1,3 @@
-# typed: false
-
 module LogHelpers
   def without_warnings(&block)
     LogHelpers.without_warnings(&block)

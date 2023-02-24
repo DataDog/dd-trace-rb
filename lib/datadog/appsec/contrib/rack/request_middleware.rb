@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'json'
 
 require_relative '../../ext'

@@ -1,5 +1,3 @@
-# typed: false
-
 require 'qless'
 
 require_relative '../../metadata/ext'

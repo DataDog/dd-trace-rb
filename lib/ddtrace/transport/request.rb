@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module Transport
     # Defines request for transport operations

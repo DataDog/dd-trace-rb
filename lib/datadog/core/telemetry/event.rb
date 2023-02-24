@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'collector'
 require_relative 'v1/app_event'
 require_relative 'v1/telemetry_request'

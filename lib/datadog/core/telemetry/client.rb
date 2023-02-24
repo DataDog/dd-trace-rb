@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'emitter'
 require_relative 'heartbeat'
 require_relative '../utils/forking'

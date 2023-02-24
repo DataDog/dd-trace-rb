@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'configuration/components'
 require_relative 'configuration/settings'
 require_relative 'telemetry/emitter'

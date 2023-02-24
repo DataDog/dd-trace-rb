@@ -1,5 +1,3 @@
-# typed: false
-
 module Datadog
   # Datadog::Kit holds public-facing APIs for higher level user-facing
   # features, these features not belonging to a specific product. Contrary to

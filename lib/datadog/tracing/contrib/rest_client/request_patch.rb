@@ -1,5 +1,3 @@
-# typed: false
-
 require 'uri'
 
 require_relative '../../metadata/ext'

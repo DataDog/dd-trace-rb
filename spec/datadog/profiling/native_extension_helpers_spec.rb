@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'ext/ddtrace_profiling_native_extension/native_extension_helpers'
 require 'libdatadog'
 require 'datadog/profiling/spec_helper'

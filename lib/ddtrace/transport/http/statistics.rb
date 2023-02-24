@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../statistics'
 
 module Datadog

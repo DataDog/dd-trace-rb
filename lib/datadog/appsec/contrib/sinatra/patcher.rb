@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative '../../../tracing/contrib/rack/middlewares'
 
 require_relative '../patcher'

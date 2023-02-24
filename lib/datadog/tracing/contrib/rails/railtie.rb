@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative 'framework'
 require_relative 'middlewares'
 require_relative '../rack/middlewares'

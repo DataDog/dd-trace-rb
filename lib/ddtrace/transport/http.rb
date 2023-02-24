@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: true
-
 require 'uri'
 
 require_relative '../../datadog/core/environment/container'

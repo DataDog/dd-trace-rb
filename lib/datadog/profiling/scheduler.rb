@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../core/utils/time'
 
 require_relative '../core/worker'

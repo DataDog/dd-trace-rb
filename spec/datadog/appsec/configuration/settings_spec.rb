@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/appsec/spec_helper'
 
 RSpec.describe Datadog::AppSec::Configuration::Settings do

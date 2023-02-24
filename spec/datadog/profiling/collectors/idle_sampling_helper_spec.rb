@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/idle_sampling_helper'
 

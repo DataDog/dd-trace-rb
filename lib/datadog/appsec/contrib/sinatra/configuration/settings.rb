@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative '../../configuration/settings'
 require_relative '../ext'
 

@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'configuration'
 
 # Global namespace that includes all Datadog functionality.

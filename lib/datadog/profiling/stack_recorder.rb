@@ -1,5 +1,3 @@
-# typed: false
-
 module Datadog
   module Profiling
     # Stores stack samples in a native libdatadog data structure and expose Ruby-level serialization APIs

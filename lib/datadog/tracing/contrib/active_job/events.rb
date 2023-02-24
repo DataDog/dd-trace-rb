@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'events/discard'
 require_relative 'events/enqueue'
 require_relative 'events/enqueue_at'

@@ -1,5 +1,4 @@
 # frozen_string_literal: false
-# typed: false
 
 require_relative '../../../distributed/fetcher'
 

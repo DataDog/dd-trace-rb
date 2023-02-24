@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../core/utils/object_set'
 
 module Datadog

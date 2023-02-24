@@ -1,5 +1,3 @@
-# typed: ignore
-
 RSpec.describe 'Datadog::Kit::EnableCoreDumps' do
   before do
     # Make sure we don't touch the actual real value
