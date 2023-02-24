@@ -35,7 +35,7 @@ jobs:
       matrix:
         lib-injection-connection: ['network']
         lib-injection-use-admission-controller: ['', 'use-admission-controller']
-        weblog-variant: ['dd-lib-ruby-init-test-rails']
+        weblog-variant: ['dd-lib-ruby-init-test-rails-gemsrb']
       fail-fast: false
     env:
       TEST_LIBRARY: ruby
@@ -44,11 +44,11 @@ jobs:
       LIBRARY_INJECTION_ADMISSION_CONTROLLER: ${{ matrix.lib-injection-use-admission-controller }}
       DOCKER_REGISTRY_IMAGES_PATH: ghcr.io/datadog
       DOCKER_IMAGE_TAG: ${{ github.sha }}
-      BUILDX_PLATFORMS: linux/amd64
+      BUILDX_PLATFORMS: linux/amd64,linux/arm64/v8
     steps:
       - name: lib-injection test runner
         id: lib-injection-test-runner
-        uses: DataDog/system-tests/lib-injection/runner@5e02aeb8ff4555239d15ece4abf48db530b42510
+        uses: DataDog/system-tests/lib-injection/runner@d2ccf0691213a9d515e932ab933528c38ae69023
         with:
           docker-registry: ghcr.io
           docker-registry-username: ${{ github.repository_owner }}
