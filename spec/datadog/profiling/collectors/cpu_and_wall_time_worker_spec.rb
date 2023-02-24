@@ -542,16 +542,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it 'returns the number of allocations between two calls of the method' do
+        # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
+        # it needs to
+        new_object = proc { Object.new }
+        1.times(&new_object)
+
         before_allocations = described_class._native_allocation_count
-        100.times { Object.new }
+        100.times(&new_object)
         after_allocations = described_class._native_allocation_count
 
-        # The profiler can (currently) cause extra allocations, which is why this is not exactly 100
-        expect(after_allocations - before_allocations).to be >= 100
-        expect(after_allocations - before_allocations).to be < 110
+        expect(after_allocations - before_allocations).to be 100
       end
 
       it 'returns different numbers of allocations for different threads' do
+        # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
+        # it needs to
+        new_object = proc { Object.new }
+        1.times(&new_object)
+
         t1_can_run = Queue.new
         t1_has_run = Queue.new
         before_t1 = nil
@@ -561,7 +569,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           before_t1 = described_class._native_allocation_count
           t1_can_run.pop
 
-          100.times { Object.new }
+          100.times(&new_object)
           after_t1 = described_class._native_allocation_count
           t1_has_run << true
         end
@@ -573,10 +581,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         background_t1.join
 
-        # This test checks that even though we observed >= 100 allocations in a background thread t1, the counters for
-        # the current thread were not affected by this change (even though they may be slightly affected by the profiler)
+        # This test checks that even though we observed 100 allocations in a background thread t1, the counters for
+        # the current thread were not affected by this change
 
-        expect(after_t1 - before_t1).to be >= 100
+        expect(after_t1 - before_t1).to be 100
         expect(after_allocations - before_allocations).to be < 10
       end
     end
