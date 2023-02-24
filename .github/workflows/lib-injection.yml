@@ -35,7 +35,7 @@ jobs:
       matrix:
         lib-injection-connection: ['network']
         lib-injection-use-admission-controller: ['', 'use-admission-controller']
-        weblog-variant: ['dd-lib-ruby-init-test-rails-gemsrb']
+        weblog-variant: ['dd-lib-ruby-init-test-rails-explicit']
       fail-fast: false
     env:
       TEST_LIBRARY: ruby
