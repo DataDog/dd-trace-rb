@@ -24,13 +24,19 @@ if !ENV['skip_autoinject']
     gemfile  = Bundler::SharedHelpers.default_gemfile
     lockfile = Bundler::SharedHelpers.default_lockfile
 
-    if gemfile.basename == 'gems.rb'
+    puts gemfile
+    puts lockfile
+
+    if gemfile.basename.to_s == 'gems.rb'
       datadog_gemfile = gemfile.dirname + "datadog-Gemfile"
       datadog_lockfile = lockfile.dirname + "datadog-Gemfile.lock"
     else
       datadog_gemfile = gemfile.dirname + ("datadog-#{gemfile.basename}")
       datadog_lockfile = lockfile.dirname + ("datadog-#{lockfile.basename}")
     end
+
+    puts datadog_gemfile
+    puts datadog_lockfile
 
     # Copies for trial
     FileUtils.cp gemfile, datadog_gemfile
