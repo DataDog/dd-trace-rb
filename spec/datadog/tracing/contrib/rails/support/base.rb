@@ -37,6 +37,8 @@ RSpec.shared_context 'Rails base application' do
     logger = self.logger
 
     proc do
+      config.logger = logger # Default StringIO logger. Might be overridden below.
+
       if ENV['USE_TAGGED_LOGGING'] == true
         config.log_tags = ENV['LOG_TAGS'] || []
         Rails.logger = ActiveSupport::TaggedLogging.new(logger)

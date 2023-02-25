@@ -89,7 +89,10 @@ module Datadog
             end
 
             if should_warn
-              Datadog.logger.warn("Unable to enable Datadog Trace context, Logger #{logger.class} is not supported")
+              Datadog.logger.warn(
+                "Unable to connect Logs and Traces, Rails.Logger class '#{logger.class}' is not supported. " \
+                'Supported loggers are: ActiveSupport::TaggedLogging, SemanticLogger, and Lograge.'
+              )
             end
           end
 
