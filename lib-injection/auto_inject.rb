@@ -1,12 +1,15 @@
-
 return if ENV['skip_autoinject']
 
-if system 'skip_autoinject=true bundle show ddtrace'
-  puts '[DATADOG LIB INJECTION] ddtrace already installed... skipping auto-injection'
-  return
-end
-
 begin
+  require 'open3'
+
+  _, status = Open3.capture2e({'skip_autoinject' => 'true'}, 'bundle show ddtrace')
+
+  if status.success?
+    puts '[DATADOG LIB INJECTION] ddtrace already installed... skipping auto-injection'
+    return
+  end
+
   require 'bundler'
   require 'shellwords'
 
@@ -21,10 +24,10 @@ begin
   # Stronger restrict
   condition = if !version.empty?
     # For public release
-    "--version #{version.gsub(/^v/, '').shellwords}"
+    "--version #{version.gsub(/^v/, '').shellescape}"
   elsif !sha.empty?
     # For internal testing
-    "--github datadog/dd-trace-rb --ref #{sha.shellwords}"
+    "--github datadog/dd-trace-rb --ref #{sha.shellescape}"
   end
 
   unless condition
@@ -52,16 +55,19 @@ begin
     FileUtils.cp gemfile, datadog_gemfile
     FileUtils.cp lockfile, datadog_lockfile
 
-    if system "skip_autoinject=true BUNDLE_GEMFILE=#{datadog_gemfile.to_s.shellwords} bundle add ddtrace #{condition} --require ddtrace/auto_instrument"
+    output, status = Open3.capture2e(
+      { 'skip_autoinject' => 'true', 'BUNDLE_GEMFILE' => datadog_gemfile.to_s },
+      "bundle add ddtrace #{condition} --require ddtrace/auto_instrument"
+    )
+
+    if status.success?
       puts '[DATADOG LIB INJECTION] ddtrace added to bundle...'
 
-      # Trial success, replace the original
       FileUtils.cp datadog_gemfile, gemfile
       FileUtils.cp datadog_lockfile, lockfile
     else
-      puts '[DATADOG LIB INJECTION] Something went wrong when adding ddtrace to bundle...'
+      puts "[DATADOG LIB INJECTION] #{output}"
     end
-
   rescue => e
     puts "[DATADOG LIB INJECTION] #{e}"
   ensure
