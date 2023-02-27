@@ -2,6 +2,7 @@
 # and auto instrument Ruby applications in containerized environments.
 FROM busybox
 
+# Set high UID to prevent possible conflict with existing users: http://www.linfo.org/uid.html
 ARG UID=10000
 
 ARG DDTRACE_RUBY_VERSION
