@@ -16,7 +16,7 @@ module Datadog
               _request, route_params = data
 
               catch(:block) do
-                op.publish('sinatra.request.route_params', route_params)
+                op.publish('sinatra.request.route_params', route_params.params)
 
                 nil
               end
