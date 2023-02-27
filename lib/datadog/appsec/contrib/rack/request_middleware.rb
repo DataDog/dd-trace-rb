@@ -1,5 +1,7 @@
 require 'json'
 
+require_relative 'gateway/request'
+require_relative 'gateway/response'
 require_relative '../../ext'
 require_relative '../../instrumentation/gateway'
 require_relative '../../processor'
@@ -33,12 +35,12 @@ module Datadog
             context = processor.activate_context
             env['datadog.waf.context'] = context
 
-            request = ::Rack::Request.new(env)
+            gateway_request = Gateway::Request.new(env)
 
             add_appsec_tags(processor, active_trace, active_span, env)
 
             request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
-              Instrumentation.gateway.push('rack.request', request) do
+              Instrumentation.gateway.push('rack.request', gateway_request) do
                 @app.call(env)
               end
             end
@@ -47,16 +49,13 @@ module Datadog
               request_return = AppSec::Response.negotiate(env).to_rack
             end
 
-            response = ::Rack::Response.new(request_return[2], request_return[0], request_return[1])
-            response.instance_eval do
-              @waf_context = context
-            end
+            gateway_response = Gateway::Response.new(request_return[2], request_return[0], request_return[1])
 
-            _response_return, response_response = Instrumentation.gateway.push('rack.response', response)
+            _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
 
             context.events.each do |e|
-              e[:response] ||= response
-              e[:request]  ||= request
+              e[:response] ||= gateway_response
+              e[:request]  ||= gateway_request
             end
 
             AppSec::Event.record(*context.events)

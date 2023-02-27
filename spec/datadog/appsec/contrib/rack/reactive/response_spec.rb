@@ -2,13 +2,13 @@
 
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/reactive/operation'
+require 'datadog/appsec/contrib/rack/gateway/response'
 require 'datadog/appsec/contrib/rack/reactive/response'
-require 'rack'
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
   let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
   let(:response) do
-    Rack::Response.new
+    Datadog::AppSec::Contrib::Rack::Gateway::Response.new('Ok', 200, {})
   end
 
   describe '.publish' do

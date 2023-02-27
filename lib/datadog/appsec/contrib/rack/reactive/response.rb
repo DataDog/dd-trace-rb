@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../response'
-
 module Datadog
   module AppSec
     module Contrib
@@ -14,9 +12,9 @@ module Datadog
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, response)
+            def self.publish(op, gateway_response)
               catch(:block) do
-                op.publish('response.status', Rack::Response.status(response))
+                op.publish('response.status', gateway_response.status)
 
                 nil
               end

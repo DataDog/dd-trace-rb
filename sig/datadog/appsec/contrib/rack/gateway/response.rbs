@@ -1,0 +1,21 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        module Gateway
+          class Response < Instrumentation::Gateway::Argument
+            attr_reader body: String
+
+            attr_reader status: untyped
+
+            attr_reader headers: untyped
+
+            def initialize: (untyped body, untyped status, untyped headers) -> void
+
+            def response: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

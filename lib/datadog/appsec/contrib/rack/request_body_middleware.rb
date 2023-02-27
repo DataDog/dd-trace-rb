@@ -1,3 +1,6 @@
+# frozen_string_literal: true
+
+require_relative 'gateway/request'
 require_relative '../../instrumentation/gateway'
 require_relative '../../response'
 
@@ -20,9 +23,10 @@ module Datadog
 
             # TODO: handle exceptions, except for @app.call
 
-            request = ::Rack::Request.new(env)
-
-            request_return, request_response = Instrumentation.gateway.push('rack.request.body', request) do
+            request_return, request_response = Instrumentation.gateway.push(
+              'rack.request.body',
+              Gateway::Request.new(env)
+            ) do
               @app.call(env)
             end
 
