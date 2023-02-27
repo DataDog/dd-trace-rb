@@ -1,4 +1,3 @@
-# typed: false
 # frozen_string_literal: true
 
 module Datadog
@@ -65,12 +64,16 @@ module Datadog
         if settings.profiling.advanced.force_enable_new_profiler
           print_new_profiler_warnings
 
-          recorder = Datadog::Profiling::StackRecorder.new
+          recorder = Datadog::Profiling::StackRecorder.new(
+            cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
+            alloc_samples_enabled: false, # Always disabled for now -- work in progress
+          )
           collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
             recorder: recorder,
             max_frames: settings.profiling.advanced.max_frames,
             tracer: tracer,
-            gc_profiling_enabled: should_enable_gc_profiling?(settings)
+            gc_profiling_enabled: should_enable_gc_profiling?(settings),
+            allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           )
         else
           trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(

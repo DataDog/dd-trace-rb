@@ -1,5 +1,3 @@
-# typed: false
-
 module Datadog
   module Profiling
     # Represents a collection of events of a specific type being flushed.

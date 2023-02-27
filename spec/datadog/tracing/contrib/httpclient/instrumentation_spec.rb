@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'httpclient'
 require 'webrick'
 require 'json'

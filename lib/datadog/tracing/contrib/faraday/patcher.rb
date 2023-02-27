@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'connection'
 require_relative 'ext'
 require_relative 'rack_builder'

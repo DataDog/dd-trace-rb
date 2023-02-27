@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 require 'ddtrace'
 require 'datadog/core/metrics/client'

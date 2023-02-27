@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: false
-
 require_relative '../tracing/contrib/analytics'
 
 require_relative 'ext/app_types'

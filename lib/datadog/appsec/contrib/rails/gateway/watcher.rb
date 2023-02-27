@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative '../../../instrumentation/gateway'
 require_relative '../../../reactive/operation'
 require_relative '../reactive/action'
@@ -12,50 +10,56 @@ module Datadog
         module Gateway
           # Watcher for Rails gateway events
           module Watcher
-            def self.watch
-              Instrumentation.gateway.watch('rails.request.action', :appsec) do |stack, request|
-                block = false
-                event = nil
-                waf_context = request.env['datadog.waf.context']
+            class << self
+              def watch
+                gateway = Instrumentation.gateway
 
-                AppSec::Reactive::Operation.new('rails.request.action') do |op|
-                  trace = active_trace
-                  span = active_span
+                watch_request_action(gateway)
+              end
 
-                  Rails::Reactive::Action.subscribe(op, waf_context) do |result, _block|
-                    if result.status == :match
-                      # TODO: should this hash be an Event instance instead?
-                      event = {
-                        waf_result: result,
-                        trace: trace,
-                        span: span,
-                        request: request,
-                        actions: result.actions
-                      }
+              def watch_request_action(gateway = Instrumentation.gateway)
+                gateway.watch('rails.request.action', :appsec) do |stack, request|
+                  block = false
+                  event = nil
+                  waf_context = request.env['datadog.waf.context']
 
-                      span.set_tag('appsec.event', 'true') if span
+                  AppSec::Reactive::Operation.new('rails.request.action') do |op|
+                    trace = active_trace
+                    span = active_span
 
-                      waf_context.events << event
+                    Rails::Reactive::Action.subscribe(op, waf_context) do |result, _block|
+                      if result.status == :match
+                        # TODO: should this hash be an Event instance instead?
+                        event = {
+                          waf_result: result,
+                          trace: trace,
+                          span: span,
+                          request: request,
+                          actions: result.actions
+                        }
+
+                        span.set_tag('appsec.event', 'true') if span
+
+                        waf_context.events << event
+                      end
                     end
+
+                    _result, block = Rails::Reactive::Action.publish(op, request)
                   end
 
-                  _result, block = Rails::Reactive::Action.publish(op, request)
+                  next [nil, [[:block, event]]] if block
+
+                  ret, res = stack.call(request)
+
+                  if event
+                    res ||= []
+                    res << [:monitor, event]
+                  end
+
+                  [ret, res]
                 end
-
-                next [nil, [[:block, event]]] if block
-
-                ret, res = stack.call(request)
-
-                if event
-                  res ||= []
-                  res << [:monitor, event]
-                end
-
-                [ret, res]
               end
-            end
 
-            class << self
               private
 
               def active_trace

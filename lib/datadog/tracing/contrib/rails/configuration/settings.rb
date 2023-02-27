@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../configuration/settings'
 
 module Datadog

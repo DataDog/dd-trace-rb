@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 require 'datadog/profiling/spec_helper'
 
@@ -1033,6 +1031,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             max_frames: settings.profiling.advanced.max_frames,
             tracer: tracer,
             gc_profiling_enabled: anything,
+            allocation_counting_enabled: anything,
           )
 
           build_profiler
@@ -1096,6 +1095,34 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
         end
 
+        context 'when allocation_counting_enabled is enabled' do
+          before do
+            settings.profiling.advanced.allocation_counting_enabled = true
+          end
+
+          it 'initializes a CpuAndWallTimeWorker collector with allocation_counting_enabled set to true' do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+              allocation_counting_enabled: true,
+            )
+
+            build_profiler
+          end
+        end
+
+        context 'when allocation_counting_enabled is disabled' do
+          before do
+            settings.profiling.advanced.allocation_counting_enabled = false
+          end
+
+          it 'initializes a CpuAndWallTimeWorker collector with allocation_counting_enabled set to false' do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+              allocation_counting_enabled: false,
+            )
+
+            build_profiler
+          end
+        end
+
         it 'sets up the Profiler with the CpuAndWallTimeWorker collector' do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             [instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)],
@@ -1110,6 +1137,35 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::StackRecorder)))
 
           build_profiler
+        end
+
+        it 'sets up the StackRecorder with alloc_samples_enabled: false' do
+          expect(Datadog::Profiling::StackRecorder)
+            .to receive(:new).with(hash_including(alloc_samples_enabled: false)).and_call_original
+
+          build_profiler
+        end
+
+        context 'when on Linux' do
+          before { stub_const('RUBY_PLATFORM', 'some-linux-based-platform') }
+
+          it 'sets up the StackRecorder with cpu_time_enabled: true' do
+            expect(Datadog::Profiling::StackRecorder)
+              .to receive(:new).with(hash_including(cpu_time_enabled: true)).and_call_original
+
+            build_profiler
+          end
+        end
+
+        context 'when not on Linux' do
+          before { stub_const('RUBY_PLATFORM', 'some-other-os') }
+
+          it 'sets up the StackRecorder with cpu_time_enabled: false' do
+            expect(Datadog::Profiling::StackRecorder)
+              .to receive(:new).with(hash_including(cpu_time_enabled: false)).and_call_original
+
+            build_profiler
+          end
         end
       end
 
@@ -1299,6 +1355,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       it 'shuts down all components' do
         expect(components.tracer).to receive(:shutdown!)
         expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+        expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
         expect(components.runtime_metrics).to receive(:stop)
           .with(true, close_metrics: false)
         expect(components.runtime_metrics.metrics.statsd).to receive(:close)
@@ -1315,6 +1372,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:replacement) { instance_double(described_class) }
         let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
         let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
+        let(:appsec) { instance_double(Datadog::AppSec::Component) }
         let(:runtime_metrics_worker) { instance_double(Datadog::Core::Workers::RuntimeMetrics, metrics: runtime_metrics) }
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics, statsd: statsd) }
@@ -1324,6 +1382,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         before do
           allow(replacement).to receive(:tracer).and_return(tracer)
           allow(replacement).to receive(:profiler).and_return(profiler)
+          allow(replacement).to receive(:appsec).and_return(appsec)
           allow(replacement).to receive(:runtime_metrics).and_return(runtime_metrics_worker)
           allow(replacement).to receive(:health_metrics).and_return(health_metrics)
           allow(replacement).to receive(:telemetry).and_return(telemetry)
@@ -1336,6 +1395,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it 'shuts down all components' do
           expect(components.tracer).to receive(:shutdown!)
           expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+          expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
           expect(components.runtime_metrics).to receive(:stop)
             .with(true, close_metrics: false)
           expect(components.runtime_metrics.metrics.statsd).to receive(:close)

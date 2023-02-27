@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative '../../../core/utils/only_once'
 
 require_relative '../patcher'

@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'buffer'
 require_relative 'encoding/profile'
 

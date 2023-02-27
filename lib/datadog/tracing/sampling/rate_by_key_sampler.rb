@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'sampler'
 require_relative 'rate_sampler'
 

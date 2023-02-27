@@ -1,5 +1,3 @@
-# typed: false
-
 require 'sinatra/base'
 
 require_relative '../../../core/utils/only_once'

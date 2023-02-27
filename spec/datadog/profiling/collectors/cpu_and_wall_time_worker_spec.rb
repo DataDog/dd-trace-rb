@@ -1,13 +1,12 @@
-# typed: ignore
-
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/cpu_and_wall_time_worker'
 
 RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   before { skip_if_profiling_not_supported(self) }
 
-  let(:recorder) { Datadog::Profiling::StackRecorder.new }
+  let(:recorder) { build_stack_recorder }
   let(:gc_profiling_enabled) { true }
+  let(:allocation_counting_enabled) { true }
   let(:options) { {} }
 
   subject(:cpu_and_wall_time_worker) do
@@ -16,6 +15,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       max_frames: 400,
       tracer: nil,
       gc_profiling_enabled: gc_profiling_enabled,
+      allocation_counting_enabled: allocation_counting_enabled,
       **options
     )
   end
@@ -55,12 +55,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       allow(Datadog.logger).to receive(:warn)
 
-      another_instance = described_class.new(
-        recorder: Datadog::Profiling::StackRecorder.new,
-        max_frames: 400,
-        tracer: nil,
-        gc_profiling_enabled: gc_profiling_enabled,
-      )
+      another_instance = build_another_instance
       another_instance.start
 
       exception = try_wait_until(backoff: 0.01) { another_instance.send(:failure_exception) }
@@ -129,7 +124,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       all_samples = try_wait_until do
-        samples = samples_from_pprof_without_gc(recorder.serialize!)
+        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
         samples if samples.any?
       end
 
@@ -143,14 +138,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       all_samples = try_wait_until do
-        samples = samples_from_pprof_without_gc(recorder.serialize!)
+        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
         samples if samples.any?
       end
 
       cpu_and_wall_time_worker.stop
 
       sample_count =
-        samples_for_thread(all_samples, Thread.current).map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+        samples_for_thread(all_samples, Thread.current)
+          .map { |it| it.values.fetch(:'cpu-samples') }
+          .reduce(:+)
 
       stats = cpu_and_wall_time_worker.stats
 
@@ -163,7 +160,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       try_wait_until do
-        samples = samples_from_pprof_without_gc(recorder.serialize!)
+        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
         samples if samples.any?
       end
 
@@ -210,14 +207,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       current_thread_gc_samples =
         samples_for_thread(all_samples, Thread.current)
-          .select { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
+          .select { |it| it.locations.first.path == 'Garbage Collection' }
 
       # NOTE: In some cases, Ruby may actually call two GC's back-to-back without us having the possibility to take
       # a sample. I don't expect this to happen for this test (that's what the `Thread.pass` above is trying to avoid)
       # but if this spec turns out to be flaky, that is probably the issue, and that would mean we'd need to relax the
       # check.
       expect(
-        current_thread_gc_samples.inject(0) { |sum, sample| sum + sample.fetch(:values).fetch(:'cpu-samples') }
+        current_thread_gc_samples.inject(0) { |sum, sample| sum + sample.values.fetch(:'cpu-samples') }
       ).to be >= invoke_gc_times
     end
 
@@ -235,12 +232,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         start
 
         expect_in_fork do
-          another_instance = described_class.new(
-            recorder: Datadog::Profiling::StackRecorder.new,
-            max_frames: 400,
-            tracer: nil,
-            gc_profiling_enabled: gc_profiling_enabled,
-          )
+          another_instance = build_another_instance
           another_instance.start
 
           try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(another_instance) }
@@ -251,12 +243,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         start
 
         expect_in_fork do
-          another_instance = described_class.new(
-            recorder: Datadog::Profiling::StackRecorder.new,
-            max_frames: 400,
-            tracer: nil,
-            gc_profiling_enabled: gc_profiling_enabled,
-          )
+          another_instance = build_another_instance
           another_instance.start
 
           try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(another_instance) }
@@ -294,8 +281,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         cpu_and_wall_time_worker.stop
         background_thread.kill
 
-        result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
-        sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+        result = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+        sample_count = result.map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
 
@@ -323,8 +310,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        result = samples_for_thread(samples_from_pprof_without_gc(recorder.serialize!), Thread.current)
-        sample_count = result.map { |it| it.fetch(:values).fetch(:'cpu-samples') }.reduce(:+)
+        result = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+        sample_count = result.map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
         debug_failures = { thread_list: Thread.list, result: result }
@@ -364,7 +351,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         samples_from_ractor =
           samples_from_pprof(recorder.serialize!)
-            .select { |it| it.fetch(:labels)[:'thread name'] == 'background ractor' }
+            .select { |it| it.labels[:'thread name'] == 'background ractor' }
 
         expect(samples_from_ractor).to be_empty
       end
@@ -375,6 +362,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       # specs. Unfortunately, there's a VM crash in that case as well -- https://bugs.ruby-lang.org/issues/18464 --
       # so this must be disabled when interacting with Ractors.
       let(:gc_profiling_enabled) { false }
+      # ...same thing for the tracepoint for allocation counting/profiling :(
+      let(:allocation_counting_enabled) { false }
 
       describe 'handle_sampling_signal' do
         include_examples 'does not trigger a sample',
@@ -533,15 +522,93 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe '._native_allocation_count' do
+    subject(:_native_allocation_count) { described_class._native_allocation_count }
+
+    context 'when CpuAndWallTimeWorker has not been started' do
+      it { is_expected.to be nil }
+    end
+
+    context 'when CpuAndWallTimeWorker has been started' do
+      before do
+        cpu_and_wall_time_worker.start
+        wait_until_running
+      end
+
+      after do
+        cpu_and_wall_time_worker.stop
+      end
+
+      it 'returns the number of allocations between two calls of the method' do
+        # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
+        # it needs to
+        new_object = proc { Object.new }
+        1.times(&new_object)
+
+        before_allocations = described_class._native_allocation_count
+        100.times(&new_object)
+        after_allocations = described_class._native_allocation_count
+
+        expect(after_allocations - before_allocations).to be 100
+      end
+
+      it 'returns different numbers of allocations for different threads' do
+        # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
+        # it needs to
+        new_object = proc { Object.new }
+        1.times(&new_object)
+
+        t1_can_run = Queue.new
+        t1_has_run = Queue.new
+        before_t1 = nil
+        after_t1 = nil
+
+        background_t1 = Thread.new do
+          before_t1 = described_class._native_allocation_count
+          t1_can_run.pop
+
+          100.times(&new_object)
+          after_t1 = described_class._native_allocation_count
+          t1_has_run << true
+        end
+
+        before_allocations = described_class._native_allocation_count
+        t1_can_run << true
+        t1_has_run.pop
+        after_allocations = described_class._native_allocation_count
+
+        background_t1.join
+
+        # This test checks that even though we observed 100 allocations in a background thread t1, the counters for
+        # the current thread were not affected by this change
+
+        expect(after_t1 - before_t1).to be 100
+        expect(after_allocations - before_allocations).to be < 10
+      end
+    end
+  end
+
   def wait_until_running
     try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(cpu_and_wall_time_worker) }
   end
 
-  # This is useful because in a bunch of tests above we want to assert on properties of the period sampling, and having
-  # a random GC in the middle of the spec contribute a sample can throw off the expected values and counts.
+  # This is useful because in a bunch of tests above we want to assert on properties of the samples, and having GC
+  # and profiler overhead samples is a source of randomness which causes flakiness in the assertions.
   #
-  # We have separate specs that assert on the GC behaviors.
-  def samples_from_pprof_without_gc(pprof_data)
-    samples_from_pprof(pprof_data).reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
+  # We have separate specs that assert on these behaviors.
+  def samples_from_pprof_without_gc_and_overhead(pprof_data)
+    samples_from_pprof(pprof_data)
+      .reject { |it| it.locations.first.path == 'Garbage Collection' }
+      .reject { |it| it.labels.include?(:'profiler overhead') }
+  end
+
+  def build_another_instance
+    described_class.new(
+      recorder: build_stack_recorder,
+      max_frames: 400,
+      tracer: nil,
+      gc_profiling_enabled: gc_profiling_enabled,
+      allocation_counting_enabled: allocation_counting_enabled,
+    )
   end
 end

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: true
-
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 

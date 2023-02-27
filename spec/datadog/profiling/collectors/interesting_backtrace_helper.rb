@@ -1,5 +1,3 @@
-# typed: ignore
-
 # This (very bizarre file) gets used from `stack_spec.rb`. It tries to reproduce the most interesting (contrived?) call
 # stack I can think of, with as many weird variants as possible.
 # The objective is to thoroughly test our stack trace sampling abilities.

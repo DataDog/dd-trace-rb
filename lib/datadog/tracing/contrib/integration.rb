@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'configurable'
 require_relative 'patchable'
 require_relative 'registerable'

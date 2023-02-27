@@ -49,6 +49,7 @@ gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.12'
 gem 'rspec-collection_matchers', '~> 1.1'
+gem 'rspec-wait', '~> 0'
 if RUBY_VERSION >= '2.3.0'
   gem 'rspec_junit_formatter', '>= 0.5.1'
 else
@@ -111,17 +112,6 @@ if RUBY_PLATFORM != 'java'
 end
 
 group :check do
-  # For type checking
-  # Sorbet releases almost daily, with new checks introduced that can make a
-  # previously-passing codebase start failing. Thus, we need to lock to a specific
-  # version and bump it from time to time.
-  # Also, there's no support for windows
-  if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
-    gem 'sorbet', '= 0.5.9672'
-    gem 'spoom', '~> 1.1'
-  end
-
-  # type checking with steep
   if RUBY_VERSION >= '2.6.0' && RUBY_PLATFORM != 'java'
     gem 'rbs', '~> 2.8.1', require: false
     gem 'steep', '~> 1.3.0', require: false

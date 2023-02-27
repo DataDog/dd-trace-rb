@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module CI
     module Ext

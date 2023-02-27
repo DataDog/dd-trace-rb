@@ -1,9 +1,8 @@
-# typed: true
-
 require 'datadog/profiling'
 
 module ProfileHelpers
-  include Kernel
+  Sample = Struct.new(:locations, :values, :labels) # rubocop:disable Lint/StructNewOverride
+  Frame = Struct.new(:base_label, :path, :lineno)
 
   def build_stack_sample(
     locations: nil,
@@ -59,16 +58,16 @@ module ProfileHelpers
     pretty_sample_types = decoded_profile.sample_type.map { |it| string_table[it.type].to_sym }
 
     decoded_profile.sample.map do |sample|
-      {
-        locations: sample.location_id.map { |location_id| decode_frame_from_pprof(decoded_profile, location_id) },
-        values: pretty_sample_types.zip(sample.value).to_h,
-        labels: sample.label.map do |it|
+      Sample.new(
+        sample.location_id.map { |location_id| decode_frame_from_pprof(decoded_profile, location_id) },
+        pretty_sample_types.zip(sample.value).to_h,
+        sample.label.map do |it|
           [
             string_table[it.key].to_sym,
             it.num == 0 ? string_table[it.str] : it.num,
           ]
         end.to_h,
-      }
+      ).freeze
     end
   end
 
@@ -80,7 +79,7 @@ module ProfileHelpers
     line_entry = location.line.first
     function = decoded_profile.function.find { |func| func.id == line_entry.function_id }
 
-    { base_label: strings[function.name], path: strings[function.filename], lineno: line_entry.line }
+    Frame.new(strings[function.name], strings[function.filename], line_entry.line).freeze
   end
 
   def object_id_from(thread_id)
@@ -88,7 +87,11 @@ module ProfileHelpers
   end
 
   def samples_for_thread(samples, thread)
-    samples.select { |sample| object_id_from(sample.fetch(:labels).fetch(:'thread id')) == thread.object_id }
+    samples.select { |sample| object_id_from(sample.labels.fetch(:'thread id')) == thread.object_id }
+  end
+
+  def build_stack_recorder
+    Datadog::Profiling::StackRecorder.new(cpu_time_enabled: true, alloc_samples_enabled: true)
   end
 end
 

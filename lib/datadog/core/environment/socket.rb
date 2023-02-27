@@ -1,5 +1,3 @@
-# typed: false
-
 require 'socket'
 require_relative '../utils/forking'
 

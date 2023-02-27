@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/rails/rails_helper'
 

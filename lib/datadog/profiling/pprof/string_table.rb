@@ -1,5 +1,3 @@
-# typed: strict
-
 require_relative '../../core/utils/string_table'
 
 module Datadog

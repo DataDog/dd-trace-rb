@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'excon'
 
 require_relative '../../../core'

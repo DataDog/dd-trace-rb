@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'pathname'
 
 module Datadog

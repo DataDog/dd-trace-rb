@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: true
-
 require_relative '../../core/git/ext'
 
 require 'open3'
@@ -12,8 +10,6 @@ module Datadog
     module Ext
       # Defines constants for CI tags
       module Environment
-        include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
-
         TAG_JOB_NAME = 'ci.job.name'
         TAG_JOB_URL = 'ci.job.url'
         TAG_PIPELINE_ID = 'ci.pipeline.id'

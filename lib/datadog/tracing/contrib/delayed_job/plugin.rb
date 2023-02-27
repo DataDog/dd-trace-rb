@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'delayed/plugin'
 
 require_relative '../../metadata/ext'

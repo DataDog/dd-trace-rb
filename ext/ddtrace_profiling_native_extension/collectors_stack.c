@@ -40,7 +40,7 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 static void record_placeholder_stack_in_native_code(
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_I64 metric_values,
+  sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
@@ -49,7 +49,7 @@ static void sample_thread_internal(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_I64 metric_values,
+  sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
@@ -83,20 +83,13 @@ static VALUE _native_sample(
   ENFORCE_TYPE(labels_array, T_ARRAY);
   ENFORCE_TYPE(numeric_labels_array, T_ARRAY);
 
-  if (RHASH_SIZE(metric_values_hash) != ENABLED_VALUE_TYPES_COUNT) {
-    rb_raise(
-      rb_eArgError,
-      "Mismatched values for metrics; expected %lu values and got %lu instead",
-      ENABLED_VALUE_TYPES_COUNT,
-      RHASH_SIZE(metric_values_hash)
-    );
-  }
-
-  int64_t metric_values[ENABLED_VALUE_TYPES_COUNT];
-  for (unsigned int i = 0; i < ENABLED_VALUE_TYPES_COUNT; i++) {
-    VALUE metric_value = rb_hash_fetch(metric_values_hash, rb_str_new_cstr(enabled_value_types[i].type_.ptr));
-    metric_values[i] = NUM2LONG(metric_value);
-  }
+  VALUE zero = INT2NUM(0);
+  sample_values values = {
+    .cpu_time_ns   = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-time"),      zero)),
+    .cpu_samples   = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-samples"),   zero)),
+    .wall_time_ns  = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("wall-time"),     zero)),
+    .alloc_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("alloc-samples"), zero)),
+  };
 
   long labels_count = RARRAY_LEN(labels_array) + RARRAY_LEN(numeric_labels_array);
   ddog_prof_Label labels[labels_count];
@@ -127,7 +120,7 @@ static VALUE _native_sample(
     thread,
     buffer,
     recorder_instance,
-    (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+    values,
     (ddog_prof_Slice_Label) {.ptr = labels, .len = labels_count},
     RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
   );
@@ -141,7 +134,7 @@ void sample_thread(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_I64 metric_values,
+  sample_values values,
   ddog_prof_Slice_Label labels,
   sample_type type
 ) {
@@ -149,7 +142,7 @@ void sample_thread(
   if (type == SAMPLE_REGULAR) {
     sampling_buffer *record_buffer = buffer;
     int extra_frames_in_record_buffer = 0;
-    sample_thread_internal(thread, buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+    sample_thread_internal(thread, buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
     return;
   }
 
@@ -173,7 +166,7 @@ void sample_thread(
     };
     sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
     int extra_frames_in_record_buffer = 1;
-    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
     return;
   }
 
@@ -203,7 +196,7 @@ static void sample_thread_internal(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_I64 metric_values,
+  sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
@@ -221,7 +214,7 @@ static void sample_thread_internal(
     record_placeholder_stack_in_native_code(
       buffer,
       recorder_instance,
-      metric_values,
+      values,
       labels,
       record_buffer,
       extra_frames_in_record_buffer
@@ -278,11 +271,9 @@ static void sample_thread_internal(
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Sample) {
-      .locations = (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = captured_frames + extra_frames_in_record_buffer},
-      .values = metric_values,
-      .labels = labels,
-    }
+    (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = captured_frames + extra_frames_in_record_buffer},
+    values,
+    labels
   );
 }
 
@@ -330,7 +321,7 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 static void record_placeholder_stack_in_native_code(
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_I64 metric_values,
+  sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
@@ -344,11 +335,9 @@ static void record_placeholder_stack_in_native_code(
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Sample) {
-      .locations = (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = 1 + extra_frames_in_record_buffer},
-      .values = metric_values,
-      .labels = labels,
-    }
+    (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = 1 + extra_frames_in_record_buffer},
+    values,
+    labels
   );
 }
 

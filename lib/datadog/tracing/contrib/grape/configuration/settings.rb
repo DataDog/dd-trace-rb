@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../configuration/settings'
 require_relative '../ext'
 require_relative '../../status_code_matcher'

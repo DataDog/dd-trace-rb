@@ -1,5 +1,3 @@
-# typed: false
-
 require 'securerandom'
 
 require_relative 'ext'

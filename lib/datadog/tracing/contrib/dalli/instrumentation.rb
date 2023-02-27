@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
@@ -23,6 +21,8 @@ module Datadog
                 span.resource = op.to_s.upcase
                 span.service = datadog_configuration[:service_name]
                 span.span_type = Ext::SPAN_TYPE_COMMAND
+
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)

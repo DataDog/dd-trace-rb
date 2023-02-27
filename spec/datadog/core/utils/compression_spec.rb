@@ -1,5 +1,3 @@
-# typed: false
-
 require 'securerandom'
 require 'datadog/core/utils/compression'
 

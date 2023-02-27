@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'grpc'
 
 require 'spec/support/thread_helpers'

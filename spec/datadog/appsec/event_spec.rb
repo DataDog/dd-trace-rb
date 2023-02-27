@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/event'
 

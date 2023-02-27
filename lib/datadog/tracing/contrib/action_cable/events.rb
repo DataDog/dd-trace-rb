@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'event'
 require_relative 'events/broadcast'
 require_relative 'events/perform_action'

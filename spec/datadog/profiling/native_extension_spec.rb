@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/profiling/spec_helper'
 
 RSpec.describe Datadog::Profiling::NativeExtension do

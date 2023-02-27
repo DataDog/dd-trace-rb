@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative '../../instrumentation/gateway'
 require_relative '../../response'
 

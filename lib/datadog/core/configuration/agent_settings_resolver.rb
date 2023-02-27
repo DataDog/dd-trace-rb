@@ -1,5 +1,3 @@
-# typed: true
-
 require 'uri'
 
 require_relative 'settings'
@@ -48,21 +46,6 @@ module Datadog
                 deprecated_for_removal_transport_configuration_proc
               )
               freeze
-            end
-
-            # Returns a frozen copy of this struct
-            # with the provided +member_values+ modified.
-            #
-            # TODO: This is only used when configuring profiling, and can be removed once
-            # https://github.com/DataDog/dd-trace-rb/pull/1924 is merged
-            def merge(**member_values)
-              new_struct = dup
-
-              member_values.each do |member, value|
-                new_struct[member] = value
-              end
-
-              new_struct.freeze
             end
           end
 

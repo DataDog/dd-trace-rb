@@ -1562,7 +1562,7 @@ run app
 | `quantize.query.obfuscate.with` | Defines the string to replace obfuscated matches with. May be a String. Option must be nested inside the `query.obfuscate` option. | `'<redacted>'` |
 | `quantize.query.obfuscate.regex` | Defines the regex with which the query string will be redacted. May be a Regexp, or `:internal` to use the default internal Regexp, which redacts well-known sensitive data. Each match is redacted entirely by replacing it with `query.obfuscate.with`. Option must be nested inside the `query.obfuscate` option. | `:internal` |
 | `quantize.fragment` | Defines behavior for URL fragments. May be `:show` to show URL fragments, or `nil` to remove fragments. Option must be nested inside the `quantize` option. | `nil` |
-| `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | `false` |
+| `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. | `false` |
 | `web_service_name` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | `'web-server'` |
 
 Deprecation notice:
@@ -1639,7 +1639,7 @@ end
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
-| `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | `false` |
+| `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. | `false` |
 | `exception_controller` | Class or Module which identifies a custom exception controller class. Tracer provides improved error behavior when it can identify custom exception controllers. By default, without this option, it 'guesses' what a custom exception controller looks like. Providing this option aids this identification. | `nil` |
 | `middleware` | Add the trace middleware to the Rails application. Set to `false` if you don't want the middleware to load. | `true` |
 | `middleware_names` | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace. | `false` |
@@ -2270,7 +2270,9 @@ trace.keep!
 
 You can configure sampling rule that allow you keep spans despite their respective traces being dropped by a trace-level sampling rule.
 
-[//]: # (TODO: See <Single Span Sampling documentation URL here> for the full documentation on Single Span Sampling.)
+This allows you to keep important spans when trace-level sampling is applied. Is is not possible to drop spans using Single Span Sampling.
+
+To configure it, see the [Ingestion Mechanisms documentation](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_mechanisms/?tab=ruby#single-spans).
 
 #### Application-side sampling
 
@@ -2479,7 +2481,14 @@ server {
 }
 ```
 
-Then you must enable the request queuing feature, by setting `request_queuing: true`, in the integration handling the request. For Rack-based applications, see the [documentation](#rack) for details.
+Then you must enable the request queuing feature. The following options are available for the `:request_queuing` configuration:
+
+| Option             | Description |
+| ------------------ | ----------- |
+| `:include_request` | A `http_server.queue` span will be the root span of a trace, including the total time spent processing the request *in addition* to the time spent waiting for the request to begin being processed. This is the behavior when the configuration is set to `true`. This is the selected configuration when set to `true`. |
+| `:exclude_request` | A `http.proxy.request` span will be the root span of a trace, with the `http.proxy.queue` child span duration representing only the time spent waiting for the request to begin being processed. *This is an experimental feature!* |
+
+For Rack-based applications, see the [documentation](#rack) for details.
 
 ### Processing Pipeline
 

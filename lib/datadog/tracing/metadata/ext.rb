@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: true
-
 module Datadog
   module Tracing
     module Metadata
@@ -166,6 +164,7 @@ module Datadog
 
         # @public_api
         module SpanKind
+          TAG_PROXY = 'proxy'
           TAG_SERVER = 'server'
           TAG_CLIENT = 'client'
           TAG_PRODUCER = 'producer'

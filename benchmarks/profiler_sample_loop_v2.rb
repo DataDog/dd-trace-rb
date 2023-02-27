@@ -1,5 +1,3 @@
-# typed: ignore
-
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 
@@ -13,8 +11,12 @@ require_relative 'dogstatsd_reporter'
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
 class ProfilerSampleLoopBenchmark
+  # This is needed because we're directly invoking the CpuAndWallTime collector through a testing interface; in normal
+  # use a profiler thread is automatically used.
+  PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
+
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.new
+    @recorder = Datadog::Profiling::StackRecorder.new(cpu_time_enabled: true, alloc_samples_enabled: true)
     @collector = Datadog::Profiling::Collectors::CpuAndWallTime.new(recorder: @recorder, max_frames: 400, tracer: nil)
   end
 
@@ -36,7 +38,7 @@ class ProfilerSampleLoopBenchmark
       x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_sample_loop_v2'))
 
       x.report("stack collector #{ENV['CONFIG']}") do
-        Datadog::Profiling::Collectors::CpuAndWallTime::Testing._native_sample(@collector)
+        Datadog::Profiling::Collectors::CpuAndWallTime::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
       end
 
       x.save! 'profiler-sample-loop-v2-results.json' unless VALIDATE_BENCHMARK_MODE
@@ -48,7 +50,7 @@ class ProfilerSampleLoopBenchmark
 
   def run_forever
     while true
-      1000.times { Datadog::Profiling::Collectors::CpuAndWallTime::Testing._native_sample(@collector) }
+      1000.times { Datadog::Profiling::Collectors::CpuAndWallTime::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD) }
       @recorder.serialize
       print '.'
     end

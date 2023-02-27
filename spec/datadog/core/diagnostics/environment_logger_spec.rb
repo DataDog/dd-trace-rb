@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'datadog/core/diagnostics/environment_logger'
@@ -33,7 +31,11 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
     before do
       allow(Datadog).to receive(:logger).and_return(tracer_logger)
+      allow(tracer_logger).to receive(:debug?).and_return true
+      allow(tracer_logger).to receive(:debug)
       allow(tracer_logger).to receive(:info)
+      allow(tracer_logger).to receive(:warn)
+      allow(tracer_logger).to receive(:error)
     end
 
     it 'with a default tracer settings' do

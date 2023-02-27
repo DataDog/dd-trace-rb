@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'async'
 require_relative 'interval_loop'
 

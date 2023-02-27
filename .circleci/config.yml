@@ -138,10 +138,6 @@ step_rubocop: &step_rubocop
     # The workaround is to use `cpu.shares / 1024`:
     # https://discuss.circleci.com/t/environment-variable-set-to-the-number-of-available-cpus/32670/4
     command: PARALLEL_PROCESSOR_COUNT=$((`cat /sys/fs/cgroup/cpu/cpu.shares` / 1024)) bundle exec rake rubocop
-step_sorbet_type_checker: &step_sorbet_type_checker
-  run:
-    name: Run sorbet type checker
-    command: bundle exec rake typecheck
 step_appraisal_install: &step_appraisal_install
   run:
     name: Install Appraisal gems
@@ -348,16 +344,6 @@ orbs:
               keys:
                 - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - *step_rubocop
-      sorbet_type_checker:
-        <<: *test_job_default
-        steps:
-          - restore_cache:
-              keys:
-                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
-          - restore_cache:
-              keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
-          - *step_sorbet_type_checker
       coverage:
         <<: *test_job_default
         steps:
@@ -564,11 +550,6 @@ workflows:
           name: lint
           requires:
             - build-2.7
-      - orb/sorbet_type_checker:
-          <<: *config-2_7-small
-          name: sorbet_type_checker
-          requires:
-            - build-2.7
       - orb/coverage:
           <<: *config-2_7-small
           name: coverage
@@ -766,7 +747,6 @@ workflows:
           <<: *filters_all_branches_and_tags
           requires:
             - lint
-            - sorbet_type_checker
             - test-2.1
             - test-2.2
             - test-2.3
@@ -786,7 +766,6 @@ workflows:
           <<: *filters_only_release_tags
           requires:
             - lint
-            - sorbet_type_checker
             - test-2.1
             - test-2.2
             - test-2.3

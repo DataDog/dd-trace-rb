@@ -1,9 +1,8 @@
-# typed: ignore
-
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 require 'pry'
 require 'rspec/collection_matchers'
+require 'rspec/wait'
 require 'webmock/rspec'
 require 'climate_control'
 
@@ -90,6 +89,10 @@ RSpec.configure do |config|
   config.order = :random
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
+
+  # rspec-wait configuration
+  config.wait_timeout = 5 # default timeout for `wait_for(...)`, in seconds
+  config.wait_delay = 0.01 # default retry delay for `wait_for(...)`, in seconds
 
   if config.files_to_run.one?
     # Use the documentation formatter for detailed output,
@@ -276,3 +279,11 @@ end
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be
+
+# The Ruby Timeout class uses a long-lived class-level thread that is never terminated.
+# Creating it early here ensures tests that tests that check for leaking threads are not
+# triggered by the creation of this thread.
+#
+# This has to be one once for the lifetime of this process, and was introduced in Ruby 3.1.
+# Before 3.1, a thread was created and destroyed on every Timeout#timeout call.
+Timeout.ensure_timeout_thread_created if Timeout.respond_to?(:ensure_timeout_thread_created)

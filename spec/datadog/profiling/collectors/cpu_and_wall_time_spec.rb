@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/cpu_and_wall_time'
 
@@ -11,12 +9,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     expect(Thread.list).to include(Thread.main, t1, t2, t3)
   end
 
-  let(:recorder) { Datadog::Profiling::StackRecorder.new }
+  let(:recorder) { build_stack_recorder }
   let(:ready_queue) { Queue.new }
   let(:t1) do
     Thread.new(ready_queue) do |ready_queue|
-      ready_queue << true
-      sleep
+      inside_t1 do
+        ready_queue << true
+        sleep
+      end
     end
   end
   let(:t2) do
@@ -47,8 +47,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     end
   end
 
-  def sample
-    described_class::Testing._native_sample(cpu_and_wall_time_collector)
+  def sample(profiler_overhead_stack_thread: Thread.current)
+    described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread)
   end
 
   def on_gc_start
@@ -75,6 +75,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     described_class::Testing._native_stats(cpu_and_wall_time_collector)
   end
 
+  def inside_t1
+    yield
+  end
+
+  # This method exists only so we can look for its name in the stack trace in a few tests
+  def another_way_of_calling_sample(profiler_overhead_stack_thread: Thread.current)
+    sample(profiler_overhead_stack_thread: profiler_overhead_stack_thread)
+  end
+
   describe '#sample' do
     it 'samples all threads' do
       all_threads = Thread.list
@@ -88,7 +97,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     it 'tags the samples with the object ids of the Threads they belong to' do
       sample
 
-      expect(samples.map { |it| object_id_from(it.fetch(:labels).fetch(:'thread id')) })
+      expect(samples.map { |it| object_id_from(it.labels.fetch(:'thread id')) })
         .to include(*[Thread.main, t1, t2, t3].map(&:object_id))
     end
 
@@ -103,9 +112,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       t2_sample = samples_for_thread(samples, t2).first
       t3_sample = samples_for_thread(samples, t3).first
 
-      expect(t1_sample).to include(labels: include(:'thread name' => 'thread t1'))
-      expect(t2_sample.fetch(:labels).keys).to_not include(:'thread name')
-      expect(t3_sample).to include(labels: include(:'thread name' => 'thread t3'))
+      expect(t1_sample.labels).to include(:'thread name' => 'thread t1')
+      expect(t2_sample.labels.keys).to_not include(:'thread name')
+      expect(t3_sample.labels).to include(:'thread name' => 'thread t3')
     end
 
     it 'includes the wall-time elapsed between samples' do
@@ -118,7 +127,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
         per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
 
       t1_samples = samples_for_thread(samples, t1)
-      wall_time = t1_samples.first.fetch(:values).fetch(:'wall-time')
+      wall_time = t1_samples.first.values.fetch(:'wall-time')
 
       expect(t1_samples.size)
         .to be(1), "Expected thread t1 to always have same stack trace (because it's sleeping), got #{t1_samples.inspect}"
@@ -131,7 +140,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
       t1_sample = samples_for_thread(samples, t1).first
 
-      expect(t1_sample).to include(values: include(:'cpu-samples' => 5))
+      expect(t1_sample.values).to include(:'cpu-samples' => 5)
     end
 
     [:before, :after].each do |on_gc_finish_order|
@@ -148,11 +157,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
           wall_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:'gc_tracking.wall_time_at_start_ns')
 
-          5.times { sample } # Even though we keep sampling, the result only includes the time until we called on_gc_start
+          # Even though we keep calling sample, the result only includes the time until we called on_gc_start
+          5.times { another_way_of_calling_sample }
 
           total_wall_for_rspec_thread =
             samples_for_thread(samples, Thread.current)
-              .map { |it| it.fetch(:values).fetch(:'wall-time') }
+              .select { |it| it.locations.find { |frame| frame.base_label == 'another_way_of_calling_sample' } }
+              .map { |it| it.values.fetch(:'wall-time') }
               .reduce(:+)
 
           expect(total_wall_for_rspec_thread).to be(wall_time_at_gc_start - wall_time_at_first_sample)
@@ -207,7 +218,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           # some data for it
           total_cpu_for_rspec_thread =
             samples_for_thread(samples, Thread.current)
-              .map { |it| it.fetch(:values).fetch(:'cpu-time') }
+              .map { |it| it.values.fetch(:'cpu-time') }
               .reduce(:+)
 
           # The **wall-clock time** spent by the rspec thread is going to be an upper bound for the cpu time spent,
@@ -227,12 +238,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
               cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:'gc_tracking.cpu_time_at_start_ns')
 
-              # Even though we keep sampling, the result only includes the time until we called on_gc_start
-              5.times { sample }
+              # Even though we keep calling sample, the result only includes the time until we called on_gc_start
+              5.times { another_way_of_calling_sample }
 
               total_cpu_for_rspec_thread =
                 samples_for_thread(samples, Thread.current)
-                  .map { |it| it.fetch(:values).fetch(:'cpu-time') }
+                  .select { |it| it.locations.find { |frame| frame.base_label == 'another_way_of_calling_sample' } }
+                  .map { |it| it.values.fetch(:'cpu-time') }
                   .reduce(:+)
 
               expect(total_cpu_for_rspec_thread).to be(cpu_time_at_gc_start - cpu_time_at_first_sample)
@@ -274,7 +286,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
         it 'does not include "local root span id" nor "span id" labels in the samples' do
           sample
 
-          found_labels = t1_sample.fetch(:labels).keys
+          found_labels = t1_sample.labels.keys
 
           expect(found_labels).to_not include(:'local root span id')
           expect(found_labels).to_not include(:'span id')
@@ -347,7 +359,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           it 'includes "local root span id" and "span id" labels in the samples' do
             sample
 
-            expect(t1_sample.fetch(:labels)).to include(
+            expect(t1_sample.labels).to include(
               :'local root span id' => @t1_local_root_span_id.to_i,
               :'span id' => @t1_span_id.to_i,
             )
@@ -356,7 +368,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           it 'does not include the "trace endpoint" label' do
             sample
 
-            expect(t1_sample.fetch(:labels).keys).to_not include(:'trace endpoint')
+            expect(t1_sample.labels.keys).to_not include(:'trace endpoint')
           end
 
           context 'when local root span type is web' do
@@ -365,7 +377,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
             it 'includes the "trace endpoint" label in the samples' do
               sample
 
-              expect(t1_sample.fetch(:labels)).to include(:'trace endpoint' => 'profiler.test')
+              expect(t1_sample.labels).to include(:'trace endpoint' => 'profiler.test')
             end
 
             describe 'trace vs root span resource mutation' do
@@ -392,7 +404,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
                 it 'includes the "trace endpoint" label in the samples with the root span resource' do
                   sample
 
-                  expect(t1_sample.fetch(:labels)).to include(:'trace endpoint' => 'root_span_resource')
+                  expect(t1_sample.labels).to include(:'trace endpoint' => 'root_span_resource')
                 end
               end
 
@@ -403,7 +415,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
                 it 'includes the "trace endpoint" label in the samples with the trace resource' do
                   sample
 
-                  expect(t1_sample.fetch(:labels)).to include(:'trace endpoint' => 'trace_resource')
+                  expect(t1_sample.labels).to include(:'trace endpoint' => 'trace_resource')
                 end
               end
 
@@ -414,7 +426,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
                 it 'does not include the "trace endpoint" label' do
                   sample
 
-                  expect(t1_sample.fetch(:labels).keys).to_not include(:'trace endpoint')
+                  expect(t1_sample.labels.keys).to_not include(:'trace endpoint')
                 end
               end
             end
@@ -431,8 +443,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
                 t1_samples = samples_for_thread(samples, t1)
 
                 expect(t1_samples).to have(1).item
-                expect(t1_samples.first.fetch(:labels)).to include(:'trace endpoint' => 'changed_after_first_sample')
-                expect(t1_samples.first.fetch(:values)).to include(:'cpu-samples' => 2)
+                expect(t1_samples.first.labels).to include(:'trace endpoint' => 'changed_after_first_sample')
+                expect(t1_samples.first.values).to include(:'cpu-samples' => 2)
               end
 
               context 'when the resource is changed multiple times' do
@@ -446,14 +458,56 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
                   t1_samples = samples_for_thread(samples, t1)
 
                   expect(t1_samples).to have(1).item
-                  expect(t1_samples.first.fetch(:labels)).to include(:'trace endpoint' => 'changed_after_second_sample')
-                  expect(t1_samples.first.fetch(:values)).to include(:'cpu-samples' => 3)
+                  expect(t1_samples.first.labels).to include(:'trace endpoint' => 'changed_after_second_sample')
+                  expect(t1_samples.first.values).to include(:'cpu-samples' => 3)
                 end
               end
             end
           end
         end
       end
+    end
+
+    # This is a bit weird, but what we're doing here is using the stack from a different thread to represent the
+    # profiler overhead. In practice, the "different thread" will be the Collectors::CpuAndWallTimeWorker thread.
+    #
+    # Thus, what happens is, when we sample _once_, two samples will show up for the thread **that calls sample**:
+    # * The regular stack
+    # * The stack from the other thread
+    #
+    # E.g. if 1s elapsed since the last sample, and sampling takes 500ms:
+    # * The regular stack will have 1s attributed to it
+    # * The stack from the other thread will have 500ms attributed to it.
+    #
+    # This way it's clear what overhead comes from profiling. Without this feature (aka if profiler_overhead_stack_thread
+    # is set to Thread.current), then all 1.5s get attributed to the current stack, and the profiler overhead would be
+    # invisible.
+    it 'attributes the time sampling to the stack of the worker_thread_to_blame' do
+      sample
+      wall_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
+
+      another_way_of_calling_sample(profiler_overhead_stack_thread: t1)
+      wall_time_at_second_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
+
+      second_sample_stack =
+        samples_for_thread(samples, Thread.current)
+          .select { |it| it.locations.find { |frame| frame.base_label == 'another_way_of_calling_sample' } }
+
+      # The stack from the profiler_overhead_stack_thread (t1) above has showed up attributed to Thread.current, as we
+      # are using it to represent the profiler overhead.
+      profiler_overhead_stack =
+        samples_for_thread(samples, Thread.current)
+          .select { |it| it.locations.find { |frame| frame.base_label == 'inside_t1' } }
+
+      expect(second_sample_stack.size).to be 1
+      expect(profiler_overhead_stack.size).to be 1
+
+      expect(
+        second_sample_stack.first.values.fetch(:'wall-time') + profiler_overhead_stack.first.values.fetch(:'wall-time')
+      ).to be wall_time_at_second_sample - wall_time_at_first_sample
+
+      expect(second_sample_stack.first.labels).to_not include(:'profiler overhead' => anything)
+      expect(profiler_overhead_stack.first.labels).to include(:'profiler overhead' => 1)
     end
   end
 
@@ -626,7 +680,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
   end
 
   describe '#sample_after_gc' do
-    let(:gc_samples) { samples.select { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } }
+    let(:gc_samples) { samples.select { |it| it.locations.first.path == 'Garbage Collection' } }
 
     before { sample }
 
@@ -674,7 +728,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       it 'samples the thread with recorded gc start and finish time, marking it as being in Garbage Collection' do
         sample_after_gc
 
-        expect(object_id_from(gc_sample.fetch(:labels).fetch(:'thread id'))).to eq Thread.current.object_id
+        expect(object_id_from(gc_sample.labels.fetch(:'thread id'))).to eq Thread.current.object_id
       end
 
       it 'samples the thread with recorded gc start and finish time, recording the times between gc start and finish' do
@@ -685,7 +739,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
         sample_after_gc
 
-        expect(gc_sample.fetch(:values)).to include(
+        expect(gc_sample.values).to include(
           :"cpu-samples" => 1,
           :'cpu-time' => cpu_time_at_finish_ns - cpu_time_at_start_ns,
           :"wall-time" => wall_time_at_finish_ns - wall_time_at_start_ns,
@@ -719,7 +773,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
         sample_after_gc
 
-        wall_time_spent_in_gc = gc_sample.fetch(:values).fetch(:'wall-time')
+        wall_time_spent_in_gc = gc_sample.values.fetch(:'wall-time')
 
         expect(per_thread_context.fetch(Thread.current)).to include(
           wall_time_at_previous_sample_ns: wall_time_at_previous_sample_ns_before + wall_time_spent_in_gc
@@ -750,7 +804,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
             sample_after_gc
 
-            cpu_time_spent_in_gc = gc_sample.fetch(:values).fetch(:'cpu-time')
+            cpu_time_spent_in_gc = gc_sample.values.fetch(:'cpu-time')
 
             expect(per_thread_context.fetch(Thread.current)).to include(
               cpu_time_at_previous_sample_ns: cpu_time_at_previous_sample_ns_before + cpu_time_spent_in_gc

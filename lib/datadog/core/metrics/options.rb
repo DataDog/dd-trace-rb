@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'ext'
 require_relative '../environment/ext'
 require_relative '../environment/identity'

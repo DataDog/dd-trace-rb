@@ -1,5 +1,3 @@
-# typed: false
-
 if ::Rails::VERSION::MAJOR.to_i == 3
   # Rails 3.x unsubscribes all render_template handlers during the test teardown
   # because it uses some subscribers to load @layouts @templates and @partials.

@@ -1,5 +1,3 @@
-# typed: true
-
 require 'ddtrace/transport/http'
 
 # FauxTransport is a dummy Datadog::Transport that doesn't send data to an agent.
