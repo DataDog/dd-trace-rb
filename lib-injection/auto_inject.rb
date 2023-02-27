@@ -69,12 +69,14 @@ begin
       puts "[DATADOG LIB INJECTION] #{output}"
     end
   rescue => e
-    puts "[DATADOG LIB INJECTION] #{e}"
+    puts "[DATADOG LIB INJECTION] trial error: #{e}"
   ensure
     # Remove the copies
     FileUtils.rm datadog_gemfile
     FileUtils.rm datadog_lockfile
   end
-rescue LoadError, Bundler::BundlerError => e
-  puts "[DATADOG LIB INJECTION] #{e}"
+rescue Bundler::BundlerError => e
+  puts "[DATADOG LIB INJECTION] BundlerError: #{e}"
+rescue LoadError => e
+  puts "[DATADOG LIB INJECTION] LoadError: #{e}"
 end
