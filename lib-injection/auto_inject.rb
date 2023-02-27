@@ -8,7 +8,7 @@ end
 
 begin
   require 'bundler'
-  # require 'shellwords'
+  require 'shellwords'
 
   if Bundler.frozen_bundle?
     puts "[DATADOG LIB INJECTION] Cannot inject with frozen Bundler"
@@ -21,10 +21,10 @@ begin
   # Stronger restrict
   condition = if !version.empty?
     # For public release
-    "--version #{version.gsub(/^v/, '')}"
+    "--version #{version.gsub(/^v/, '').shellwords}"
   elsif !sha.empty?
     # For internal testing
-    "--github datadog/dd-trace-rb --ref #{sha}"
+    "--github datadog/dd-trace-rb --ref #{sha.shellwords}"
   end
 
   unless condition
@@ -52,7 +52,7 @@ begin
     FileUtils.cp gemfile, datadog_gemfile
     FileUtils.cp lockfile, datadog_lockfile
 
-    if system "skip_autoinject=true BUNDLE_GEMFILE=#{datadog_gemfile} bundle add ddtrace #{condition} --require ddtrace/auto_instrument"
+    if system "skip_autoinject=true BUNDLE_GEMFILE=#{datadog_gemfile.to_s.shellwords} bundle add ddtrace #{condition} --require ddtrace/auto_instrument"
       puts '[DATADOG LIB INJECTION] ddtrace added to bundle...'
 
       # Trial success, replace the original
