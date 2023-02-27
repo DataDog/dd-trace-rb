@@ -79,4 +79,6 @@ rescue Bundler::BundlerError => e
   puts "[DATADOG LIB INJECTION] BundlerError: #{e}"
 rescue LoadError => e
   puts "[DATADOG LIB INJECTION] LoadError: #{e}"
+rescue Exception => e
+  puts "[DATADOG LIB INJECTION] Exception: #{e}"
 end
