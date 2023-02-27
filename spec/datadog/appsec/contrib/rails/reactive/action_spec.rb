@@ -1,6 +1,7 @@
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/reactive/operation'
 require 'datadog/appsec/contrib/rails/reactive/action'
+require 'datadog/appsec/contrib/rails/gateway/request'
 require 'action_dispatch'
 
 RSpec.describe Datadog::AppSec::Contrib::Rails::Reactive::Action do
@@ -11,11 +12,13 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Reactive::Action do
       { method: 'POST', params: { 'foo' => 'bar' }, 'action_dispatch.request.path_parameters' => { id: '1234' } }
     )
 
-    if ActionDispatch::TestRequest.respond_to?(:create)
-      ActionDispatch::TestRequest.create(request_env)
-    else
-      ActionDispatch::TestRequest.new(request_env)
-    end
+    rails_request = if ActionDispatch::TestRequest.respond_to?(:create)
+                      ActionDispatch::TestRequest.create(request_env)
+                    else
+                      ActionDispatch::TestRequest.new(request_env)
+                    end
+
+    Datadog::AppSec::Contrib::Rails::Gateway::Request.new(rails_request)
   end
 
   describe '.publish' do
