@@ -1,5 +1,3 @@
-# typed: ignore
-
 RSpec.configure do |c|
   c.around(:example, :delayed_job_active_record) do |example|
     ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')

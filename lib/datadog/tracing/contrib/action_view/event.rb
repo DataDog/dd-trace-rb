@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../active_support/notifications/event'
 
 module Datadog

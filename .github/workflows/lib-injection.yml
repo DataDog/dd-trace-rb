@@ -1,0 +1,59 @@
+name: "Library Injection"
+on:
+  # Build each branch for testing
+  push:
+
+jobs:
+  build-and-publish-test-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker
+        run: docker login -u publisher -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
+      - name: Docker Build
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          tags: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${{ github.sha }}
+          platforms: 'linux/amd64,linux/arm64/v8'
+          build-args: DDTRACE_RUBY_SHA=${{ github.sha }}
+          context: ./lib-injection
+
+  test:
+    needs:
+      - build-and-publish-test-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        lib-injection-connection: ['network']
+        lib-injection-use-admission-controller: ['', 'use-admission-controller']
+        weblog-variant:
+          - dd-lib-ruby-init-test-rails
+          - dd-lib-ruby-init-test-rails-explicit
+          - dd-lib-ruby-init-test-rails-gemsrb
+      fail-fast: false
+    env:
+      TEST_LIBRARY: ruby
+      WEBLOG_VARIANT: ${{ matrix.weblog-variant }}
+      LIBRARY_INJECTION_CONNECTION: ${{ matrix.lib-injection-connection }}
+      LIBRARY_INJECTION_ADMISSION_CONTROLLER: ${{ matrix.lib-injection-use-admission-controller }}
+      DOCKER_REGISTRY_IMAGES_PATH: ghcr.io/datadog
+      DOCKER_IMAGE_TAG: ${{ github.sha }}
+      BUILDX_PLATFORMS: linux/amd64,linux/arm64/v8
+    steps:
+      - name: lib-injection test runner
+        id: lib-injection-test-runner
+        uses: DataDog/system-tests/lib-injection/runner@1af3241d5b6a928199528a8cbfc5698564f5d260
+        with:
+          docker-registry: ghcr.io
+          docker-registry-username: ${{ github.repository_owner }}
+          docker-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          test-script: ./lib-injection/run-manual-lib-injection.sh

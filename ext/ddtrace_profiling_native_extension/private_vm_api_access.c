@@ -204,8 +204,7 @@ ptrdiff_t stack_depth_for(VALUE thread) {
 #endif
 
 // Tries to match rb_thread_list() but that method isn't accessible to extensions
-VALUE ddtrace_thread_list(void) {
-  VALUE result = rb_ary_new();
+void ddtrace_thread_list(VALUE result_array) {
   rb_thread_t *thread = NULL;
 
   // Ruby 3 Safety: Our implementation is inspired by `rb_ractor_thread_list` BUT that method wraps the operations below
@@ -234,13 +233,11 @@ VALUE ddtrace_thread_list(void) {
         case THREAD_RUNNABLE:
         case THREAD_STOPPED:
         case THREAD_STOPPED_FOREVER:
-          rb_ary_push(result, thread->self);
+          rb_ary_push(result_array, thread->self);
         default:
           break;
       }
     }
-
-  return result;
 }
 
 bool is_thread_alive(VALUE thread) {

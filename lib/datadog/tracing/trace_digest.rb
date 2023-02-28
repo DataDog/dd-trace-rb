@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module Tracing
     # Trace digest that represents the important parts of an active trace.

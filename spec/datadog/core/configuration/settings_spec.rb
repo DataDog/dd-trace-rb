@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'securerandom'
@@ -494,6 +492,33 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.force_enable_gc_profiling }
             .from(false)
             .to(true)
+        end
+      end
+
+      describe '#allocation_counting_enabled' do
+        subject(:allocation_counting_enabled) { settings.profiling.advanced.allocation_counting_enabled }
+
+        context 'on Ruby 2.x' do
+          before { skip("Spec doesn't run on Ruby 3.x") unless RUBY_VERSION.start_with?('2.') }
+
+          it { is_expected.to be true }
+        end
+
+        context 'on Ruby 3.x' do
+          before { skip("Spec doesn't run on Ruby 2.x") if RUBY_VERSION.start_with?('2.') }
+
+          it { is_expected.to be false }
+        end
+      end
+
+      describe '#allocation_counting_enabled=' do
+        it 'updates the #allocation_counting_enabled setting' do
+          settings.profiling.advanced.allocation_counting_enabled = true
+
+          expect { settings.profiling.advanced.allocation_counting_enabled = false }
+            .to change { settings.profiling.advanced.allocation_counting_enabled }
+            .from(true)
+            .to(false)
         end
       end
     end

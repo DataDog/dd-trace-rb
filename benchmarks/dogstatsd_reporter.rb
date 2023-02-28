@@ -1,5 +1,3 @@
-# typed: false
-
 require 'ddtrace'
 require 'datadog/statsd'
 require 'benchmark/ips'

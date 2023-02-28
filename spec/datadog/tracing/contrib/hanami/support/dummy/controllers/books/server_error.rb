@@ -1,5 +1,3 @@
-# typed: ignore
-
 module Dummy
   module Controllers
     module Books

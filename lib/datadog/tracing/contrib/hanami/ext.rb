@@ -1,5 +1,3 @@
-# typed: ignore
-
 module Datadog
   module Tracing
     module Contrib

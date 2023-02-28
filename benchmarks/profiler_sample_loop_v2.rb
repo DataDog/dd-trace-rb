@@ -1,5 +1,3 @@
-# typed: ignore
-
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 
@@ -18,7 +16,7 @@ class ProfilerSampleLoopBenchmark
   PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
 
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.new
+    @recorder = Datadog::Profiling::StackRecorder.new(cpu_time_enabled: true, alloc_samples_enabled: true)
     @collector = Datadog::Profiling::Collectors::CpuAndWallTime.new(recorder: @recorder, max_frames: 400, tracer: nil)
   end
 

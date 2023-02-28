@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../core/configuration'
 require_relative 'metadata/ext'
 require_relative 'span'

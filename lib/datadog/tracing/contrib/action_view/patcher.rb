@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../../core'
 require_relative '../patcher'
 require_relative 'events'

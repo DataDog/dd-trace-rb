@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'agent_settings_resolver'
 require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
@@ -10,6 +8,7 @@ require_relative '../workers/runtime_metrics'
 
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
+require_relative '../../appsec/component'
 
 module Datadog
   module Core
@@ -64,7 +63,8 @@ module Datadog
           :profiler,
           :runtime_metrics,
           :telemetry,
-          :tracer
+          :tracer,
+          :appsec
 
         def initialize(settings)
           # Logger
@@ -86,6 +86,9 @@ module Datadog
 
           # Telemetry
           @telemetry = self.class.build_telemetry(settings)
+
+          # AppSec
+          @appsec = Datadog::AppSec::Component.build_appsec_component(settings.appsec)
         end
 
         # Starts up components
@@ -108,6 +111,9 @@ module Datadog
         # If it has another instance to compare to, it will compare
         # and avoid tearing down parts still in use.
         def shutdown!(replacement = nil)
+          # Decommission AppSec
+          appsec.shutdown! if appsec
+
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
           tracer.shutdown! unless replacement && tracer == replacement.tracer

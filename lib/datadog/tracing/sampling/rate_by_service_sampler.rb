@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../core'
 require_relative 'rate_by_key_sampler'
 

@@ -1,5 +1,3 @@
-# typed: false
-
 require 'etc'
 
 require_relative 'identity'

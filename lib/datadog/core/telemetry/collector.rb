@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: true
-
 require 'etc'
 
 require_relative '../configuration/agent_settings_resolver'

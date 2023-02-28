@@ -1,5 +1,3 @@
-# typed: true
-
 require 'yaml'
 
 require_relative '../../../core'

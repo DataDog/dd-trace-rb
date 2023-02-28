@@ -1,5 +1,3 @@
-# typed: false
-
 require 'resque'
 
 require_relative '../../metadata/ext'

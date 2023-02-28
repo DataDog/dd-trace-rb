@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'events/process'
 require_relative 'events/deliver'
 

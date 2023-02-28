@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'events/instantiation'
 require_relative 'events/sql'
 

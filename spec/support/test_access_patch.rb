@@ -1,5 +1,3 @@
-# typed: true
-
 # Give access to otherwise private members
 module Datadog
   module Tracing

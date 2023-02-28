@@ -379,6 +379,7 @@ Naming/FileName:
   Exclude:
     - 'integration/**/Gemfile'
     - 'integration/**/Rakefile'
+    - 'Steepfile'
 
 # Enforces boolean parameters with default to be keyword arguments.
 Style/OptionalBooleanParameter:

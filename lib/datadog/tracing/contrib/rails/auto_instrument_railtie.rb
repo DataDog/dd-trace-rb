@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative '../auto_instrument'
 
 # Railtie to include AutoInstrumentation in rails loading

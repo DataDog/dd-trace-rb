@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../../datadog/core/configuration/agent_settings_resolver'
 require_relative 'adapters/registry'
 require_relative 'api/map'

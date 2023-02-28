@@ -130,6 +130,37 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 
 static VALUE stack_recorder_class = Qnil;
 
+// Note: Please DO NOT use `VALUE_STRING` anywhere else, instead use `DDOG_CHARSLICE_C`.
+// `VALUE_STRING` is only needed because older versions of gcc (4.9.2, used in our Ruby 2.2 CI test images)
+// tripped when compiling `enabled_value_types` using `-std=gnu99` due to the extra cast that is included in
+// `DDOG_CHARSLICE_C` with the following error:
+//
+// ```
+// compiling ../../../../ext/ddtrace_profiling_native_extension/stack_recorder.c
+// ../../../../ext/ddtrace_profiling_native_extension/stack_recorder.c:23:1: error: initializer element is not constant
+// static const ddog_prof_ValueType enabled_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE};
+// ^
+// ```
+#define VALUE_STRING(string) {.ptr = "" string, .len = sizeof(string) - 1}
+
+#define CPU_TIME_VALUE          {.type_ = VALUE_STRING("cpu-time"),          .unit = VALUE_STRING("nanoseconds")}
+#define CPU_TIME_VALUE_ID 0
+#define CPU_SAMPLES_VALUE       {.type_ = VALUE_STRING("cpu-samples"),       .unit = VALUE_STRING("count")}
+#define CPU_SAMPLES_VALUE_ID 1
+#define WALL_TIME_VALUE         {.type_ = VALUE_STRING("wall-time"),         .unit = VALUE_STRING("nanoseconds")}
+#define WALL_TIME_VALUE_ID 2
+#define ALLOC_SAMPLES_VALUE     {.type_ = VALUE_STRING("alloc-samples"),     .unit = VALUE_STRING("count")}
+#define ALLOC_SAMPLES_VALUE_ID 3
+
+static const ddog_prof_ValueType all_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE};
+
+// This array MUST be kept in sync with all_value_types above and is intended to act as a "hashmap" between VALUE_ID and the position it
+// occupies on the all_value_types array.
+// E.g. all_value_types_positions[CPU_TIME_VALUE_ID] => 0, means that CPU_TIME_VALUE was declared at position 0 of all_value_types.
+static const uint8_t all_value_types_positions[] = {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID};
+
+#define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
+
 // Contains native state for each instance
 struct stack_recorder_state {
   pthread_mutex_t slot_one_mutex;
@@ -139,6 +170,9 @@ struct stack_recorder_state {
   ddog_prof_Profile *slot_two_profile;
 
   short active_slot; // MUST NEVER BE ACCESSED FROM record_sample; this is NOT for the sampler thread to use.
+
+  uint8_t position_for[ALL_VALUE_TYPES_COUNT];
+  uint8_t enabled_values_count;
 };
 
 // Used to return a pair of values from sampler_lock_active_profile()
@@ -163,6 +197,7 @@ struct call_serialize_without_gvl_arguments {
 static VALUE _native_new(VALUE klass);
 static void initialize_slot_concurrency_control(struct stack_recorder_state *state);
 static void stack_recorder_typed_data_free(void *data);
+static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE cpu_time_enabled, VALUE alloc_samples_enabled);
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
 static VALUE ruby_time_from(ddog_Timespec ddprof_time);
 static void *call_serialize_without_gvl(void *call_args);
@@ -193,6 +228,7 @@ void stack_recorder_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
+  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 3);
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
   rb_define_singleton_method(stack_recorder_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
@@ -219,9 +255,11 @@ static const rb_data_type_t stack_recorder_typed_data = {
 static VALUE _native_new(VALUE klass) {
   struct stack_recorder_state *state = ruby_xcalloc(1, sizeof(struct stack_recorder_state));
 
-  ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = ENABLED_VALUE_TYPES_COUNT};
+  ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
 
   initialize_slot_concurrency_control(state);
+  for (uint8_t i = 0; i < ALL_VALUE_TYPES_COUNT; i++) { state->position_for[i] = all_value_types_positions[i]; }
+  state->enabled_values_count = ALL_VALUE_TYPES_COUNT;
 
   // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
 
@@ -251,6 +289,58 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   ddog_prof_Profile_drop(state->slot_two_profile);
 
   ruby_xfree(state);
+}
+
+static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE cpu_time_enabled, VALUE alloc_samples_enabled) {
+  ENFORCE_BOOLEAN(cpu_time_enabled);
+  ENFORCE_BOOLEAN(alloc_samples_enabled);
+
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  if (cpu_time_enabled == Qtrue && alloc_samples_enabled == Qtrue) return Qtrue; // Nothing to do, this is the default
+
+  // When some sample types are disabled, we need to reconfigure libdatadog to record less types,
+  // as well as reconfigure the position_for array to push the disabled types to the end so they don't get recorded.
+  // See record_sample for details on the use of position_for.
+
+  state->enabled_values_count = ALL_VALUE_TYPES_COUNT - (cpu_time_enabled == Qtrue ? 0 : 1) - (alloc_samples_enabled == Qtrue? 0 : 1);
+
+  ddog_prof_ValueType enabled_value_types[ALL_VALUE_TYPES_COUNT];
+  uint8_t next_enabled_pos = 0;
+  uint8_t next_disabled_pos = state->enabled_values_count;
+
+  // CPU_SAMPLES_VALUE is always enabled
+  enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) CPU_SAMPLES_VALUE;
+  state->position_for[CPU_SAMPLES_VALUE_ID] = next_enabled_pos++;
+
+  // WALL_TIME_VALUE is always enabled
+  enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) WALL_TIME_VALUE;
+  state->position_for[WALL_TIME_VALUE_ID] = next_enabled_pos++;
+
+  if (cpu_time_enabled == Qtrue) {
+    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) CPU_TIME_VALUE;
+    state->position_for[CPU_TIME_VALUE_ID] = next_enabled_pos++;
+  } else {
+    state->position_for[CPU_TIME_VALUE_ID] = next_disabled_pos++;
+  }
+
+  if (alloc_samples_enabled == Qtrue) {
+    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) ALLOC_SAMPLES_VALUE;
+    state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_enabled_pos++;
+  } else {
+    state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_disabled_pos++;
+  }
+
+  ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
+
+  ddog_prof_Profile_drop(state->slot_one_profile);
+  ddog_prof_Profile_drop(state->slot_two_profile);
+
+  state->slot_one_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+  state->slot_two_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+
+  return Qtrue;
 }
 
 static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
@@ -308,13 +398,32 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   return rb_time_timespec_new(&time, utc);
 }
 
-void record_sample(VALUE recorder_instance, ddog_prof_Sample sample) {
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, ddog_prof_Slice_Label labels) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
   struct active_slot_pair active_slot = sampler_lock_active_profile(state);
 
-  ddog_prof_Profile_AddResult result = ddog_prof_Profile_add(active_slot.profile, sample);
+  // Note: We initialize this array to have ALL_VALUE_TYPES_COUNT but only tell libdatadog to use the first
+  // state->enabled_values_count values. This simplifies handling disabled value types -- we still put them on the
+  // array, but in _native_initialize we arrange so their position starts from state->enabled_values_count and thus
+  // libdatadog doesn't touch them.
+  int64_t metric_values[ALL_VALUE_TYPES_COUNT] = {0};
+  uint8_t *position_for = state->position_for;
+
+  metric_values[position_for[CPU_TIME_VALUE_ID]]      = values.cpu_time_ns;
+  metric_values[position_for[CPU_SAMPLES_VALUE_ID]]   = values.cpu_samples;
+  metric_values[position_for[WALL_TIME_VALUE_ID]]     = values.wall_time_ns;
+  metric_values[position_for[ALLOC_SAMPLES_VALUE_ID]] = values.alloc_samples;
+
+  ddog_prof_Profile_AddResult result = ddog_prof_Profile_add(
+    active_slot.profile,
+    (ddog_prof_Sample) {
+      .locations = locations,
+      .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
+      .labels = labels
+    }
+  );
 
   sampler_unlock_active_profile(active_slot);
 

@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor'
 
@@ -18,6 +16,10 @@ RSpec.describe Datadog::AppSec::Processor do
     allow(logger).to receive(:error)
 
     allow(Datadog).to receive(:logger).and_return(logger)
+  end
+
+  after do
+    described_class.send(:reset_active_context)
   end
 
   context 'self' do
@@ -49,6 +51,50 @@ RSpec.describe Datadog::AppSec::Processor do
       allow(described_class).to receive(:require).with('libddwaf').and_return(false)
 
       expect(described_class.require_libddwaf).to be true
+    end
+
+    describe '.active_context' do
+      it 'return nil if not set earlier' do
+        expect(described_class.active_context).to be_nil
+      end
+
+      it 'return the previously set current context' do
+        processor = described_class.new
+        context = processor.new_context
+
+        described_class.send(:active_context=, context)
+
+        expect(described_class.active_context).to eq(context)
+
+        context.finalize
+        processor.finalize
+        described_class.send(:reset_active_context)
+      end
+
+      describe '.active_context=' do
+        it 'raises ArgumentError when trying to setup current context to a non Context instance' do
+          expect do
+            described_class.send(:active_context=, 'foo')
+          end.to raise_error(ArgumentError)
+        end
+      end
+
+      describe '.reset_active_context' do
+        it 'sets active_context to nil' do
+          processor = described_class.new
+          context = processor.new_context
+
+          described_class.send(:active_context=, context)
+
+          expect(described_class.active_context).to eq(context)
+
+          described_class.send(:reset_active_context)
+          expect(described_class.active_context).to be_nil
+
+          context.finalize
+          processor.finalize
+        end
+      end
     end
   end
 
@@ -473,6 +519,37 @@ RSpec.describe Datadog::AppSec::Processor do
           it { expect(data).to have_attributes(count: 0) }
           it { expect(actions).to have_attributes(count: 0) }
         end
+      end
+    end
+  end
+
+  describe '#active_context' do
+    it 'creates a new context and store in the class .active_context variable' do
+      context = described_class.new.activate_context
+      expect(context).to eq(described_class.active_context)
+    end
+
+    context 'when an active context already exists' do
+      it 'raises AlreadyActiveContextError' do
+        described_class.new.activate_context
+        expect { described_class.new.activate_context }.to raise_error(described_class::AlreadyActiveContextError)
+      end
+    end
+  end
+
+  describe '#deactivate_context' do
+    it 'finalize the active context and reset the class .active_context variable' do
+      handler = described_class.new
+      context = handler.activate_context
+
+      expect(context).to receive(:finalize)
+      handler.deactivate_context
+      expect(described_class.active_context).to be_nil
+    end
+
+    context 'without an active_context' do
+      it 'raises NoActiveContextError' do
+        expect { described_class.new.deactivate_context }.to raise_error(described_class::NoActiveContextError)
       end
     end
   end

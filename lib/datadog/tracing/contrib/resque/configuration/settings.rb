@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../../span_operation'
 require_relative '../../configuration/settings'
 require_relative '../ext'

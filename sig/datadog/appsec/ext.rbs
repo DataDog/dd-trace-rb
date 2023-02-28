@@ -1,0 +1,7 @@
+module Datadog
+  module AppSec
+    module Ext
+      INTERRUPT: Symbol
+    end
+  end
+end

@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative 'configuration'
 
 module Datadog

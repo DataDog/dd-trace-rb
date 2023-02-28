@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'faraday'
 
 require_relative '../../metadata/ext'

@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-# typed: true
 
 require_relative '../sampling/ext'
 require_relative '../utils'

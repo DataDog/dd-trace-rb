@@ -1,5 +1,3 @@
-# typed: true
-
 module ThreadHelpers
   module_function
 

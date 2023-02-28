@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/cpu_and_wall_time'
 
@@ -11,7 +9,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     expect(Thread.list).to include(Thread.main, t1, t2, t3)
   end
 
-  let(:recorder) { Datadog::Profiling::StackRecorder.new }
+  let(:recorder) { build_stack_recorder }
   let(:ready_queue) { Queue.new }
   let(:t1) do
     Thread.new(ready_queue) do |ready_queue|

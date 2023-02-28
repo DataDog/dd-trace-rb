@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative '../patcher'
 require_relative 'action_tracer'
 require_relative 'renderer_policy_tracing'

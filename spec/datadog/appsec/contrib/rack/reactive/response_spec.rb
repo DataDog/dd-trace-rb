@@ -1,15 +1,17 @@
-# typed: ignore
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
+require 'datadog/appsec/processor'
 require 'datadog/appsec/reactive/operation'
+require 'datadog/appsec/contrib/rack/gateway/response'
 require 'datadog/appsec/contrib/rack/reactive/response'
-require 'rack'
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
   let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
+  let(:waf_context) { instance_double(Datadog::AppSec::Processor::Context) }
+
   let(:response) do
-    Rack::Response.new
+    Datadog::AppSec::Contrib::Rack::Gateway::Response.new('Ok', 200, {}, active_context: waf_context)
   end
 
   describe '.publish' do
@@ -21,8 +23,6 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
   end
 
   describe '.subscribe' do
-    let(:waf_context) { double(:waf_context) }
-
     context 'not all addresses have been published' do
       it 'does not call the waf context' do
         expect(operation).to receive(:subscribe).with('response.status').and_call_original

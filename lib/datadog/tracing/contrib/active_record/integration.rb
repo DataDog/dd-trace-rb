@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'configuration/resolver'
 require_relative 'configuration/settings'
 require_relative 'events'

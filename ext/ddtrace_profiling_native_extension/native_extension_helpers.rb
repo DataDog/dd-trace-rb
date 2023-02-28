@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: ignore
-
 require 'rubygems'
 require 'pathname'
 
@@ -174,6 +172,8 @@ module Datadog
           'the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
           'the `pkgconf` package on Arch and Alpine-based Linux;',
           'the `pkgconf-pkg-config` package on Fedora/Red Hat-based Linux.',
+          '(Tip: When fixing this, ensure `pkg-config` is installed **before**',
+          'running `bundle install`, and remember to clear any installed gems cache).',
           suggested: CONTACT_SUPPORT,
         )
 

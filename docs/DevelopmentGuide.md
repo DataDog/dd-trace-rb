@@ -10,7 +10,6 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Running tests](#running-tests)
      - [Checking code quality](#checking-code-quality)
      - [Running benchmarks](#running-benchmarks)
-     - [Type checking](#type-checking)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
      - [Custom transport adapters](#custom-transport-adapters)
@@ -163,19 +162,6 @@ $ bundle exec appraisal ruby-3.0.4-contrib rake spec:benchmark
 ```
 
 Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
-
-## Type checking
-
-This library uses the [Sorbet](https://sorbet.org/) type checker. Sorbet can be run with `bundle exec srb tc` (or `bundle exec rake
-typecheck`). There's also Language Server Protocol support, if your editor supports it.
-
-Type checking can be controlled on a file-by-file manner, using a `# typed: ...` comment. The default (when none is provided) is assuming `# typed: false`.
-
-Things to note:
-
-* For compatibility with older Rubies, we use Sorbet but do not yet allow type annotations in the codebase. If Sorbet is blocking you, feel free to use `# typed: false` or `# typed: ignore` with a quick note on why this was needed. In many cases, Sorbet can typecheck a file correctly with no extra type annotations.
-
-* Most integration-specific code will reference optional external dependencies which Sorbet cannot see into. You'll probably need to use `# typed: false` or `# typed: ignore`  for those files as well.
 
 ## Appendix
 
