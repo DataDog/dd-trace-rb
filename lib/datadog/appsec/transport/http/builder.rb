@@ -84,11 +84,11 @@ module Datadog
             @default_api = key
           end
 
-          def to_transport
+          def to_transport(klass)
             raise NoDefaultApiError if @default_api.nil?
 
-            # DEV: Should not be specific to traces
-            Transport::Negotiation::Transport.new(to_api_instances, @default_api)
+            ######### there is only one transport!
+            klass.new(to_api_instances, @default_api)
           end
 
           def to_api_instances

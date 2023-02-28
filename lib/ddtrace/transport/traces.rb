@@ -121,6 +121,7 @@ module Datadog
           change_api!(default_api)
         end
 
+        ###
         def send_traces(traces)
           encoder = current_api.encoder
           chunker = Datadog::Transport::Traces::Chunker.new(encoder)
@@ -128,7 +129,7 @@ module Datadog
           responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
             request = Request.new(EncodedParcel.new(encoded_traces, trace_count))
 
-            client.send_payload(request).tap do |response|
+            client.send_traces_payload(request).tap do |response|
               if downgrade?(response)
                 downgrade!
                 return send_traces(traces)

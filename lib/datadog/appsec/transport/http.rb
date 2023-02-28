@@ -32,23 +32,52 @@ module Datadog
         module_function
 
         # Builds a new Transport::HTTP::Client
-        def new(&block)
-          Builder.new(&block).to_transport
+        def new(klass, &block)
+          Builder.new(&block).to_transport(klass)
         end
 
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
-        def default(
+        def root(
           agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
           **options
         )
-          new do |transport|
+          new(Transport::Negotiation::Transport) do |transport|
             transport.adapter(agent_settings)
             transport.headers default_headers
 
             apis = API.defaults
 
             transport.api API::ROOT, apis[API::ROOT]
+
+            # Apply any settings given by options
+            unless options.empty?
+              transport.default_api = options[:api_version] if options.key?(:api_version)
+              transport.headers options[:headers] if options.key?(:headers)
+            end
+
+            if agent_settings.deprecated_for_removal_transport_configuration_proc
+              agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
+            end
+
+            # Call block to apply any customization, if provided
+            yield(transport) if block_given?
+          end
+        end
+
+        # Builds a new Transport::HTTP::Client with default settings
+        # Pass a block to override any settings.
+        def v7(
+          agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
+          **options
+        )
+          new(Transport::Config::Transport) do |transport|
+            transport.adapter(agent_settings)
+            transport.headers default_headers
+
+            apis = API.defaults
+
+            transport.api API::V7, apis[API::V7]
 
             # Apply any settings given by options
             unless options.empty?

@@ -8,6 +8,7 @@ require_relative '../../../../ddtrace/transport/http/api/map'
 require_relative 'api/spec'
 
 require_relative 'negotiation'
+require_relative 'config'
 
 module Datadog
   module AppSec
@@ -28,13 +29,12 @@ module Datadog
                   '/info'.freeze,
                 )
               end,
-              #V7 => Spec.new do |s|
-              #  s.config = Config::API::Endpoint.new(
-              #    '/v0.7/config'.freeze,
-              #    Core::Encoding::MsgpackEncoder,
-              #    service_rates: true
-              #  )
-              #end,
+              V7 => Spec.new do |s|
+                s.config = Config::API::Endpoint.new(
+                  '/v0.7/config'.freeze,
+                  Core::Encoding::JSONEncoder,
+                )
+              end,
             ]
           end
         end

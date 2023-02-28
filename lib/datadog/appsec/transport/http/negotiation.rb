@@ -23,12 +23,19 @@ module Datadog
 
             def initialize(http_response, options = {})
               super(http_response)
+
+              # TODO: keys should be symbols
+              # TODO: transform endpoint hash in a better object for negotiation
+              # TODO: transform config in a better object, notably config has max_request_bytes
+              @version = options['version']
+              @endpoints = options['endpoints']
+              @config = options['config']
             end
           end
 
           # Extensions for HTTP client
           module Client
-            def send_payload(request)
+            def send_info_payload(request)
               send_request(request) do |api, env|
                 api.send_info(env)
               end
@@ -101,7 +108,8 @@ module Datadog
                 # Process the response
                 body = JSON.parse(http_response.payload)
 
-                response_options = {}
+                # TODO: there should be more processing here to ensure a proper response_options
+                response_options = body.is_a?(Hash) ? body : {}
 
                 # Build and return a trace response
                 Negotiation::Response.new(http_response, response_options)

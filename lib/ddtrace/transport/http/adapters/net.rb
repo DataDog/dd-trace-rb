@@ -68,6 +68,10 @@ module Datadog
           def post(env)
             post = nil
 
+            ts = Time.now.to_i
+
+            File.open('dump_%d.req.json' % ts, 'wb') { |f| f << env.body }
+
             if env.form.nil? || env.form.empty?
               post = ::Net::HTTP::Post.new(env.path, env.headers)
               post.body = env.body
@@ -83,6 +87,8 @@ module Datadog
             http_response = open do |http|
               http.request(post)
             end
+
+            File.open('dump_%d.res.json' % ts, 'wb') { |f| f << http_response.body }
 
             # Build and return response
             Response.new(http_response)
