@@ -21,16 +21,16 @@ begin
   version = "<DD_TRACE_VERSION_TO_BE_REPLACED>"
   sha = "<DD_TRACE_SHA_TO_BE_REPLACED>"
 
-  # Stronger restrict
-  condition = if !version.empty?
-    # For public release
-    "--version #{version.gsub(/^v/, '').shellescape}"
-  elsif !sha.empty?
-    # For internal testing
-    "--github datadog/dd-trace-rb --ref #{sha.shellescape}"
-  end
+  bundle_add_ddtrace_cmd =
+    if !version.empty?
+      # For public release
+      "bundle add ddtrace --require ddtrace/auto_instrument --version #{version.gsub(/^v/, '').shellescape}"
+    elsif !sha.empty?
+      # For internal testing
+      "bundle add ddtrace --require ddtrace/auto_instrument --github datadog/dd-trace-rb --ref #{sha.shellescape}"
+    end
 
-  unless condition
+  unless bundle_add_ddtrace_cmd
     puts "[DATADOG LIB INJECTION] NO VERSION"
     return
   end
@@ -57,7 +57,7 @@ begin
 
     output, status = Open3.capture2e(
       { 'skip_autoinject' => 'true', 'BUNDLE_GEMFILE' => datadog_gemfile.to_s },
-      "bundle add ddtrace #{condition} --require ddtrace/auto_instrument"
+      bundle_add_ddtrace_cmd
     )
 
     if status.success?
@@ -66,7 +66,7 @@ begin
       FileUtils.cp datadog_gemfile, gemfile
       FileUtils.cp datadog_lockfile, lockfile
     else
-      puts "[DATADOG LIB INJECTION] #{output}"
+      puts "[DATADOG LIB INJECTION] Unable to add ddtrace: #{output}"
     end
   rescue => e
     puts "[DATADOG LIB INJECTION] trial error: #{e}"
