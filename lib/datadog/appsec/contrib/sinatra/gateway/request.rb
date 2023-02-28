@@ -9,7 +9,6 @@ module Datadog
         module Gateway
           # Gateway Request argument. Normalized extration of data from Rack::Request
           class Request < Rack::Gateway::Request
-
           end
         end
       end
