@@ -25,8 +25,7 @@ module Datadog
               o.lazy
             end
 
-            option :distributed_tracing, default: true
-            option :service_name, default: Ext::SERVICE_NAME
+            option :service_name
           end
         end
       end

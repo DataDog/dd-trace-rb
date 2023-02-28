@@ -21,13 +21,12 @@ module Datadog
           private
 
           def instrument(span_name, &block)
-            set_distributed_tracing_context!(request.env)
-
             Tracing.trace(span_name) do |span|
               begin
                 request_method = request.request_method.to_s.upcase
 
-                span.service = configuration[:service_name]
+                span.service = configuration[:service_name] if configuration[:service_name]
+
                 span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
 
                 # Using the http method as a resource, since the URL/path can trigger
@@ -71,12 +70,6 @@ module Datadog
             Datadog.configuration.tracing[:roda]
           end
 
-          def set_distributed_tracing_context!(env)
-            if configuration[:distributed_tracing]
-              trace_digest = Tracing::Propagation::HTTP.extract(env)
-              Tracing.continue_trace!(trace_digest)
-            end
-          end
         end
       end
     end

@@ -81,6 +81,7 @@ RSpec.describe 'Roda instrumentation' do
           it do
             expect(response.status).to eq(200)
             expect(spans).to have(1).items
+            expect(span.service).to eq('rspec')
             expect(span.name).to eq('roda.request')
           end
         end
@@ -91,6 +92,7 @@ RSpec.describe 'Roda instrumentation' do
           it do
             expect(response.status).to eq(200)
             expect(spans).to have(1).items
+            expect(span.service).to eq('rspec')
             expect(span.name).to eq('roda.request')
           end
         end
@@ -101,6 +103,7 @@ RSpec.describe 'Roda instrumentation' do
           it do
             expect(response.status).to eq(200)
             expect(spans).to have(1).items
+            expect(span.service).to eq('rspec')
             expect(span.name).to eq('roda.request')
           end
         end
@@ -113,6 +116,7 @@ RSpec.describe 'Roda instrumentation' do
           it do
             expect(response.status).to eq(404)
             expect(spans).to have(1).items
+            expect(span.service).to eq('rspec')
             expect(span.name).to eq('roda.request')
           end
         end
@@ -126,6 +130,7 @@ RSpec.describe 'Roda instrumentation' do
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
             expect(span.status).to eq(1)
+            expect(span.service).to eq('rspec')
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
           end
         end
@@ -141,6 +146,7 @@ RSpec.describe 'Roda instrumentation' do
               expect(spans).to have(1).items
               expect(span.name).to eq('roda.request')
               expect(span.status).to eq(1)
+              expect(span.service).to eq('rspec')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
             end
           end

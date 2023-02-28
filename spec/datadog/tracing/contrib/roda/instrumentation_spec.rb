@@ -30,14 +30,13 @@ RSpec.describe Datadog::Tracing::Contrib::Roda::Instrumentation do
             expect(Datadog.configuration.tracing.enabled).to eq(true)
           end
 
-          it 'uses a default service name' do
-            expected_service_name = Datadog::Tracing::Contrib::Roda::Ext::SERVICE_NAME
+          it 'does not have a default service name (left up to global configuration)' do
+            expect(Datadog.configuration.tracing[:roda].service_name).to eq(nil)
             expect(Datadog.configuration.service).to eq('rspec')
-            expect(Datadog.configuration.tracing[:roda].service_name).to eq(expected_service_name)
           end
 
           context 'with a custom service name' do
-            let(:custom_service_name) { 'custom service name' }
+            let(:custom_service_name) { 'custom_service_name' }
             let(:configuration_options) { { service_name: custom_service_name } }
 
             it 'sets a custom service name' do
