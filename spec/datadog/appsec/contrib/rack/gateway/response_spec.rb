@@ -2,11 +2,12 @@
 
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/rack/gateway/request'
+require 'datadog/appsec/processor'
 require 'rack'
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
   let(:response) do
-    described_class.new('Ok', 200, { 'Content-Type' => 'text/html' })
+    described_class.new('Ok', 200, { 'Content-Type' => 'text/html' }, active_context: instance_double(Datadog::AppSec::Processor::Context))
   end
 
   describe '#body' do

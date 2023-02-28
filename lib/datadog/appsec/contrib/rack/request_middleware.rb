@@ -49,7 +49,7 @@ module Datadog
               request_return = AppSec::Response.negotiate(env).to_rack
             end
 
-            gateway_response = Gateway::Response.new(request_return[2], request_return[0], request_return[1])
+            gateway_response = Gateway::Response.new(request_return[2], request_return[0], request_return[1], active_context: context)
 
             _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
 

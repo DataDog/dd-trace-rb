@@ -9,13 +9,14 @@ module Datadog
         module Gateway
           # Gateway Response argument.
           class Response < Instrumentation::Gateway::Argument
-            attr_reader :body, :status, :headers
+            attr_reader :body, :status, :headers, :active_context
 
-            def initialize(body, status, headers)
+            def initialize(body, status, headers, active_context:)
               super
               @body = body
               @status = status
               @headers = headers.each_with_object({}) { |(k, v), h| h[k.downcase] = v }
+              @active_context = active_context
             end
 
             def response

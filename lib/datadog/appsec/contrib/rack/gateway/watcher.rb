@@ -68,7 +68,7 @@ module Datadog
                 gateway.watch('rack.response', :appsec) do |stack, gateway_response|
                   block = false
                   event = nil
-                  waf_context = AppSec::Processor.active_context
+                  waf_context = gateway_response.active_context
 
                   AppSec::Reactive::Operation.new('rack.response') do |op|
                     trace = active_trace
