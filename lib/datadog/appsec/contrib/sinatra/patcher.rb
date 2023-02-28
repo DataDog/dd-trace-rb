@@ -3,10 +3,10 @@ require_relative '../../../tracing/contrib/rack/middlewares'
 require_relative '../patcher'
 require_relative '../../response'
 require_relative '../rack/request_middleware'
-require_relative '../rack/gateway/request'
 require_relative 'framework'
 require_relative 'gateway/watcher'
 require_relative 'gateway/route_params'
+require_relative 'gateway/request'
 require_relative '../../../tracing/contrib/sinatra/framework'
 
 module Datadog
@@ -57,7 +57,7 @@ module Datadog
 
             # TODO: handle exceptions, except for super
 
-            gateway_request = Datadog::AppSec::Contrib::Rack::Gateway::Request.new(env)
+            gateway_request = Gateway::Request.new(env)
 
             request_return, request_response = Instrumentation.gateway.push('sinatra.request.dispatch', gateway_request) do
               # handle process_route interruption
@@ -94,7 +94,7 @@ module Datadog
               # At this point params has both route params and normal params.
               route_params = params.each.with_object({}) { |(k, v), h| h[k] = v unless base_params.key?(k) }
 
-              gateway_request = Datadog::AppSec::Contrib::Rack::Gateway::Request.new(env)
+              gateway_request = Gateway::Request.new(env)
               gateway_route_params = Gateway::RouteParams.new(route_params)
 
               _, request_response = Instrumentation.gateway.push(
