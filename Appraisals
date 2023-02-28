@@ -347,6 +347,7 @@ elsif ruby_version?('2.2')
     gem 'rack-test'
     gem 'rake', '>= 12.3'
     gem 'rest-client'
+    gem 'redis', '~> 3'
     gem 'resque', '< 2.0'
     gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
@@ -768,7 +769,7 @@ elsif ruby_version?('2.5')
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-    gem 'redis'
+    gem 'redis', '~> 4'
     gem 'redis-store', '~> 1.9'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -829,7 +830,7 @@ elsif ruby_version?('2.5')
     gem 'rails', '~> 6.0.0'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
-    gem 'redis'
+    gem 'redis', '~> 4'
     gem 'redis-store', '~> 1.9'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -1042,7 +1043,7 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1096,7 +1097,7 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1283,7 +1284,7 @@ elsif ruby_version?('2.7')
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1291,7 +1292,7 @@ elsif ruby_version?('2.7')
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1331,7 +1332,7 @@ elsif ruby_version?('2.7')
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1339,7 +1340,7 @@ elsif ruby_version?('2.7')
     appraise 'rails6-postgres-redis-activesupport' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
