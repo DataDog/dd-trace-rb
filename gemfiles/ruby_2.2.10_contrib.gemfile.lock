@@ -1338,7 +1338,7 @@ GEM
     rake-compiler (1.2.1)
       rake
     redcarpet (3.6.0)
-    redis (4.1.1)
+    redis (3.3.5)
     redis-namespace (1.6.0)
       redis (>= 3.0.4)
     request_store (1.5.1)
@@ -1495,6 +1495,7 @@ DEPENDENCIES
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
+  redis (~> 3)
   resque (< 2.0)
   rest-client
   rexml (< 3.2.5)
