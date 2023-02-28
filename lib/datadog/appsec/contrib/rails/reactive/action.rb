@@ -15,11 +15,11 @@ module Datadog
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, request)
+            def self.publish(op, gateway_request)
               catch(:block) do
                 # params have been parsed from the request body
-                op.publish('rails.request.body', Rails::Request.parsed_body(request))
-                op.publish('rails.request.route_params', Rails::Request.route_params(request))
+                op.publish('rails.request.body', gateway_request.parsed_body)
+                op.publish('rails.request.route_params', gateway_request.route_params)
 
                 nil
               end

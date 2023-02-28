@@ -6,7 +6,7 @@ module Datadog
           module Request
             ADDRESSES: ::Array[::String]
 
-            def self.publish: (untyped op, untyped request) -> untyped
+            def self.publish: (untyped op, Datadog::AppSec::Contrib::Rack::Gateway::Request request) -> untyped
 
             def self.subscribe: (untyped op, untyped waf_context) { (untyped) -> untyped } -> untyped
           end

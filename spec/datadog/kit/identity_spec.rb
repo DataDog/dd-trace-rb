@@ -235,10 +235,9 @@ RSpec.describe Datadog::Kit::Identity do
       context 'when is enabled' do
         it 'instruments the user information to appsec' do
           Datadog.configuration.appsec.enabled = true
-          user = OpenStruct.new(id: '42')
           expect_any_instance_of(Datadog::AppSec::Instrumentation::Gateway).to receive(:push).with(
             'identity.set_user',
-            user
+            instance_of(Datadog::AppSec::Instrumentation::Gateway::User)
           )
           described_class.set_user(trace_op, id: '42')
         end

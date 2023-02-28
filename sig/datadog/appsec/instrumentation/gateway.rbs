@@ -6,7 +6,6 @@ module Datadog
         type final_call_result = untyped
         type final_call = ^() -> final_call_result
         type stack = ::Proc
-        type env = untyped
 
         # TODO: this should be a struct
         type stack_result = ::Array[nil | middleware_result | final_call_result]
@@ -15,15 +14,15 @@ module Datadog
           attr_reader key: ::Symbol
           attr_reader block: ::Proc
 
-          def initialize: (::Symbol key) { (stack next, env env) -> stack_result } -> void
-          def call: (stack next, env env) -> stack_result
+          def initialize: (::Symbol key) { (stack next, Instrumentation::Gateway::Argument env) -> stack_result } -> void
+          def call: (stack next, Gateway::Argument? env) -> stack_result
         end
 
         @middlewares: ::Hash[::String, ::Array[Middleware]]
 
         def initialize: () -> void
-        def push: (::String name, env env) { () -> final_call_result } -> stack_result
-        def watch: (::String name, ::Symbol key) { (stack next, env env) -> stack_result } -> void
+        def push: (::String name, Gateway::Argument env) ?{ () -> final_call_result } -> stack_result
+        def watch: (::String name, ::Symbol key) { (stack next, Gateway::Argument env) -> stack_result } -> void
 
         private
 

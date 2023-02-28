@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../request'
-
 module Datadog
   module AppSec
     module Contrib
@@ -18,13 +16,13 @@ module Datadog
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, request)
+            def self.publish(op, gateway_request)
               catch(:block) do
-                op.publish('request.query', Rack::Request.query(request))
-                op.publish('request.headers', Rack::Request.headers(request))
-                op.publish('request.uri.raw', Rack::Request.url(request))
-                op.publish('request.cookies', Rack::Request.cookies(request))
-                op.publish('request.client_ip', Rack::Request.client_ip(request))
+                op.publish('request.query', gateway_request.query)
+                op.publish('request.headers', gateway_request.headers)
+                op.publish('request.uri.raw', gateway_request.url)
+                op.publish('request.cookies', gateway_request.cookies)
+                op.publish('request.client_ip', gateway_request.client_ip)
 
                 nil
               end

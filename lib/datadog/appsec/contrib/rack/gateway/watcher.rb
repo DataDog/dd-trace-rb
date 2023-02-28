@@ -22,10 +22,10 @@ module Datadog
               end
 
               def watch_request(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request', :appsec) do |stack, request|
+                gateway.watch('rack.request', :appsec) do |stack, gateway_request|
                   block = false
                   event = nil
-                  waf_context = request.env['datadog.waf.context']
+                  waf_context = gateway_request.env['datadog.waf.context']
 
                   AppSec::Reactive::Operation.new('rack.request') do |op|
                     trace = active_trace
@@ -38,7 +38,7 @@ module Datadog
                           waf_result: result,
                           trace: trace,
                           span: span,
-                          request: request,
+                          request: gateway_request,
                           actions: result.actions
                         }
 
@@ -48,12 +48,12 @@ module Datadog
                       end
                     end
 
-                    _result, block = Rack::Reactive::Request.publish(op, request)
+                    _result, block = Rack::Reactive::Request.publish(op, gateway_request)
                   end
 
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(request)
+                  ret, res = stack.call(gateway_request.request)
 
                   if event
                     res ||= []
@@ -65,10 +65,10 @@ module Datadog
               end
 
               def watch_response(gateway = Instrumentation.gateway)
-                gateway.watch('rack.response', :appsec) do |stack, response|
+                gateway.watch('rack.response', :appsec) do |stack, gateway_response|
                   block = false
                   event = nil
-                  waf_context = response.instance_eval { @waf_context }
+                  waf_context = gateway_response.active_context
 
                   AppSec::Reactive::Operation.new('rack.response') do |op|
                     trace = active_trace
@@ -81,7 +81,7 @@ module Datadog
                           waf_result: result,
                           trace: trace,
                           span: span,
-                          response: response,
+                          response: gateway_response,
                           actions: result.actions
                         }
 
@@ -91,12 +91,12 @@ module Datadog
                       end
                     end
 
-                    _result, block = Rack::Reactive::Response.publish(op, response)
+                    _result, block = Rack::Reactive::Response.publish(op, gateway_response)
                   end
 
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(response)
+                  ret, res = stack.call(gateway_response.response)
 
                   if event
                     res ||= []
@@ -108,10 +108,10 @@ module Datadog
               end
 
               def watch_request_body(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request.body', :appsec) do |stack, request|
+                gateway.watch('rack.request.body', :appsec) do |stack, gateway_request|
                   block = false
                   event = nil
-                  waf_context = request.env['datadog.waf.context']
+                  waf_context = gateway_request.env['datadog.waf.context']
 
                   AppSec::Reactive::Operation.new('rack.request.body') do |op|
                     trace = active_trace
@@ -124,7 +124,7 @@ module Datadog
                           waf_result: result,
                           trace: trace,
                           span: span,
-                          request: request,
+                          request: gateway_request,
                           actions: result.actions
                         }
 
@@ -134,12 +134,12 @@ module Datadog
                       end
                     end
 
-                    _result, block = Rack::Reactive::RequestBody.publish(op, request)
+                    _result, block = Rack::Reactive::RequestBody.publish(op, gateway_request)
                   end
 
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(request)
+                  ret, res = stack.call(gateway_request.request)
 
                   if event
                     res ||= []

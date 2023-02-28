@@ -2,13 +2,14 @@
 
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/reactive/operation'
+require 'datadog/appsec/contrib/rack/gateway/request'
 require 'datadog/appsec/contrib/rack/reactive/request_body'
 require 'rack'
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::RequestBody do
   let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
   let(:request) do
-    Rack::Request.new(
+    Datadog::AppSec::Contrib::Rack::Gateway::Request.new(
       Rack::MockRequest.env_for(
         'http://example.com:8080/?a=foo',
         { method: 'POST', params: { 'foo' => 'bar' } }

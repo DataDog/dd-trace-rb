@@ -18,10 +18,10 @@ module Datadog
               end
 
               def watch_request_action(gateway = Instrumentation.gateway)
-                gateway.watch('rails.request.action', :appsec) do |stack, request|
+                gateway.watch('rails.request.action', :appsec) do |stack, gateway_request|
                   block = false
                   event = nil
-                  waf_context = request.env['datadog.waf.context']
+                  waf_context = gateway_request.env['datadog.waf.context']
 
                   AppSec::Reactive::Operation.new('rails.request.action') do |op|
                     trace = active_trace
@@ -34,7 +34,7 @@ module Datadog
                           waf_result: result,
                           trace: trace,
                           span: span,
-                          request: request,
+                          request: gateway_request,
                           actions: result.actions
                         }
 
@@ -44,12 +44,12 @@ module Datadog
                       end
                     end
 
-                    _result, block = Rails::Reactive::Action.publish(op, request)
+                    _result, block = Rails::Reactive::Action.publish(op, gateway_request)
                   end
 
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(request)
+                  ret, res = stack.call(gateway_request.request)
 
                   if event
                     res ||= []

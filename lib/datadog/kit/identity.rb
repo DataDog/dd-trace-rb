@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../appsec/instrumentation/gateway/argument'
+
 module Datadog
   module Kit
     # Tracking identity via traces
@@ -57,7 +59,7 @@ module Datadog
         end
 
         if Datadog.configuration.appsec.enabled
-          user = OpenStruct.new(id: id)
+          user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id)
           ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
         end
       end

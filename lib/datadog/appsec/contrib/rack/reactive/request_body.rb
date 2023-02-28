@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../request'
-
 module Datadog
   module AppSec
     module Contrib
@@ -14,10 +12,10 @@ module Datadog
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, request)
+            def self.publish(op, gateway_request)
               catch(:block) do
                 # params have been parsed from the request body
-                op.publish('request.body', Rack::Request.form_hash(request))
+                op.publish('request.body', gateway_request.form_hash)
 
                 nil
               end

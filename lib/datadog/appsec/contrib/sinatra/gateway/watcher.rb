@@ -20,10 +20,10 @@ module Datadog
               end
 
               def watch_request_dispatch(gateway = Instrumentation.gateway)
-                gateway.watch('sinatra.request.dispatch', :appsec) do |stack, request|
+                gateway.watch('sinatra.request.dispatch', :appsec) do |stack, gateway_request|
                   block = false
                   event = nil
-                  waf_context = request.env['datadog.waf.context']
+                  waf_context = gateway_request.env['datadog.waf.context']
 
                   AppSec::Reactive::Operation.new('sinatra.request.dispatch') do |op|
                     trace = active_trace
@@ -36,7 +36,7 @@ module Datadog
                           waf_result: result,
                           trace: trace,
                           span: span,
-                          request: request,
+                          request: gateway_request,
                           actions: result.actions
                         }
 
@@ -46,12 +46,12 @@ module Datadog
                       end
                     end
 
-                    _result, block = Rack::Reactive::RequestBody.publish(op, request)
+                    _result, block = Rack::Reactive::RequestBody.publish(op, gateway_request)
                   end
 
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(request)
+                  ret, res = stack.call(gateway_request.request)
 
                   if event
                     res ||= []
@@ -63,10 +63,10 @@ module Datadog
               end
 
               def watch_request_routed(gateway = Instrumentation.gateway)
-                gateway.watch('sinatra.request.routed', :appsec) do |stack, (request, route_params)|
+                gateway.watch('sinatra.request.routed', :appsec) do |stack, (gateway_request, gateway_route_params)|
                   block = false
                   event = nil
-                  waf_context = request.env['datadog.waf.context']
+                  waf_context = gateway_request.env['datadog.waf.context']
 
                   AppSec::Reactive::Operation.new('sinatra.request.routed') do |op|
                     trace = active_trace
@@ -79,7 +79,7 @@ module Datadog
                           waf_result: result,
                           trace: trace,
                           span: span,
-                          request: request,
+                          request: gateway_request,
                           actions: result.actions
                         }
 
@@ -89,12 +89,12 @@ module Datadog
                       end
                     end
 
-                    _result, block = Sinatra::Reactive::Routed.publish(op, [request, route_params])
+                    _result, block = Sinatra::Reactive::Routed.publish(op, [gateway_request, gateway_route_params])
                   end
 
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(request)
+                  ret, res = stack.call(gateway_request.request)
 
                   if event
                     res ||= []

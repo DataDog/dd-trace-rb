@@ -18,18 +18,13 @@ RSpec.describe Datadog::AppSec::Event do
 
         allow(dbl).to receive(:host).and_return('example.com')
         allow(dbl).to receive(:user_agent).and_return('Ruby/0.0')
-        allow(dbl).to receive(:ip).and_return('127.0.0.1')
+        allow(dbl).to receive(:remote_addr).and_return('127.0.0.1')
 
-        allow(dbl).to receive(:each_header).and_return [
-          ['HTTP_USER_AGENT', 'Ruby/0.0'],
+        allow(dbl).to receive(:headers).and_return [
+          ['user-agent', 'Ruby/0.0'],
           ['SERVER_NAME', 'example.com'],
           ['REMOTE_ADDR', '127.0.0.1']
         ]
-        allow(dbl).to receive(:env).and_return(
-          'HTTP_USER_AGENT' => 'Ruby/0.0',
-          'SERVER_NAME' => 'example.com',
-          'REMOTE_ADDR' => '127.0.0.1'
-        )
 
         dbl
       end

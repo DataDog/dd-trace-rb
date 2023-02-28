@@ -1,7 +1,5 @@
 require 'json'
 
-require_relative 'contrib/rack/request'
-require_relative 'contrib/rack/response'
 require_relative 'rate_limiter'
 
 module Datadog
@@ -50,7 +48,7 @@ module Datadog
       end
 
       # rubocop:disable Metrics/MethodLength
-      def self.record_via_span(*events) # rubocop:disable Metrics/AbcSize
+      def self.record_via_span(*events)
         events.group_by { |e| e[:trace] }.each do |trace, event_group|
           unless trace
             Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
@@ -68,7 +66,7 @@ module Datadog
             # TODO: assume HTTP request context for now
 
             if (request = event[:request])
-              request_headers = AppSec::Contrib::Rack::Request.headers(request).select do |k, _|
+              request_headers = request.headers.select do |k, _|
                 ALLOWED_REQUEST_HEADERS.include?(k.downcase)
               end
 
@@ -78,11 +76,11 @@ module Datadog
 
               tags['http.host'] = request.host
               tags['http.useragent'] = request.user_agent
-              tags['network.client.ip'] = request.env['REMOTE_ADDR'] if request.env['REMOTE_ADDR']
+              tags['network.client.ip'] = request.remote_addr
             end
 
             if (response = event[:response])
-              response_headers = AppSec::Contrib::Rack::Response.headers(response).select do |k, _|
+              response_headers = response.headers.select do |k, _|
                 ALLOWED_RESPONSE_HEADERS.include?(k.downcase)
               end
 
