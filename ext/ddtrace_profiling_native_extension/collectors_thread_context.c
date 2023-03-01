@@ -1,7 +1,7 @@
 #include <ruby.h>
 
+#include "collectors_thread_context.h"
 #include "clock_id.h"
-#include "collectors_cpu_and_wall_time.h"
 #include "collectors_stack.h"
 #include "helpers.h"
 #include "libdatadog_helpers.h"
@@ -9,29 +9,32 @@
 #include "stack_recorder.h"
 #include "time_helpers.h"
 
-// Used to periodically sample threads, recording elapsed CPU-time and Wall-time between samples.
+// Used to trigger sampling of threads, based on external "events", such as:
+// * periodic timer for cpu-time and wall-time
+// * VM garbage collection events
+// * VM object allocation events
 //
-// This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
+// This file implements the native bits of the Datadog::Profiling::Collectors::ThreadContext class
 //
-// Triggering of this component (e.g. deciding when to take a sample) is implemented in Collectors::CpuAndWallTimeWorker.
+// Triggering of this component (e.g. watching for the above "events") is implemented by Collectors::CpuAndWallTimeWorker.
 
 // ---
 // ## Tracking of cpu-time and wall-time spent during garbage collection
 //
-// This feature works by having an implicit state that a thread can be in: doing garbage collection. This state is
+// This feature works by having a special state that a thread can be in: doing garbage collection. This state is
 // tracked inside the thread's `per_thread_context.gc_tracking` data, and three functions, listed below. The functions
 // will get called by the `Collectors::CpuAndWallTimeWorker` at very specific times in the VM lifetime.
 //
-// * `cpu_and_wall_time_collector_on_gc_start`: Called at the very beginning of the garbage collection process.
+// * `thread_context_collector_on_gc_start`: Called at the very beginning of the garbage collection process.
 //   The internal VM `during_gc` flag is set to `true`, but Ruby has not done any work yet.
-// * `cpu_and_wall_time_collector_on_gc_finish`: Called at the very end of the garbage collection process.
+// * `thread_context_collector_on_gc_finish`: Called at the very end of the garbage collection process.
 //   The internal VM `during_gc` flag is still set to `true`, but all the work has been done.
-// * `cpu_and_wall_time_collector_sample_after_gc`: Called shortly after the garbage collection process.
+// * `thread_context_collector_sample_after_gc`: Called shortly after the garbage collection process.
 //   The internal VM `during_gc` flag is set to `false`.
 //
 // Inside this component, here's what happens inside those three functions:
 //
-// When `cpu_and_wall_time_collector_on_gc_start` gets called, the current cpu and wall-time get recorded to the thread
+// When `thread_context_collector_on_gc_start` gets called, the current cpu and wall-time get recorded to the thread
 // context: `cpu_time_at_gc_start_ns` and `wall_time_at_gc_start_ns`.
 //
 // While these fields are set, regular samples (if any) do not account for any time that passes after these two
@@ -39,10 +42,10 @@
 //
 // (Regular samples can still account for the time between the previous sample and the start of GC.)
 //
-// When `cpu_and_wall_time_collector_on_gc_finish` gets called, the current cpu and wall-time again get recorded to the
+// When `thread_context_collector_on_gc_finish` gets called, the current cpu and wall-time again get recorded to the
 // thread context: `cpu_time_at_gc_finish_ns` and `wall_time_at_gc_finish_ns`.
 //
-// Finally, when `cpu_and_wall_time_collector_sample_after_gc` gets called, the following happens:
+// Finally, when `thread_context_collector_sample_after_gc` gets called, the following happens:
 //
 // 1. A sample gets taken, using the special `SAMPLE_IN_GC` sample type, which produces a stack with a placeholder
 // `Garbage Collection` frame as the latest frame. This sample gets assigned the cpu-time and wall-time period that was
@@ -54,8 +57,8 @@
 // GC, so that all time is accounted for -- e.g. the next sample will not get "blamed" by time spent in GC.
 //
 // In an earlier attempt at implementing this functionality (https://github.com/DataDog/dd-trace-rb/pull/2308), we
-// discovered that we needed to factor the sampling work away from `cpu_and_wall_time_collector_on_gc_finish` and into a
-// separate `cpu_and_wall_time_collector_sample_after_gc` because (as documented in more detail below),
+// discovered that we needed to factor the sampling work away from `thread_context_collector_on_gc_finish` and into a
+// separate `thread_context_collector_sample_after_gc` because (as documented in more detail below),
 // `sample_after_gc` could trigger memory allocation in rare occasions (usually exceptions), which is actually not
 // allowed to happen during Ruby's garbage collection start/finish hooks.
 // ---
@@ -73,8 +76,8 @@ static ID at_resource_id;     // id of :@resource in Ruby
 static ID at_root_span_id;    // id of :@root_span in Ruby
 static ID at_type_id;         // id of :@type in Ruby
 
-// Contains state for a single CpuAndWallTime instance
-struct cpu_and_wall_time_collector_state {
+// Contains state for a single ThreadContext instance
+struct thread_context_collector_state {
   // Note: Places in this file that usually need to be changed when this struct is changed are tagged with
   // "Update this when modifying state struct"
 
@@ -98,7 +101,7 @@ struct cpu_and_wall_time_collector_state {
   struct stats {
     // Track how many garbage collection samples we've taken.
     unsigned int gc_samples;
-    // See cpu_and_wall_time_collector_on_gc_start for details
+    // See thread_context_collector_on_gc_start for details
     unsigned int gc_samples_missed_due_to_missing_context;
   } stats;
 };
@@ -132,8 +135,8 @@ struct trace_identifiers {
   VALUE trace_endpoint;
 };
 
-static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr);
-static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr);
+static void thread_context_collector_typed_data_mark(void *state_ptr);
+static void thread_context_collector_typed_data_free(void *state_ptr);
 static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _value, st_data_t _argument);
 static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument);
 static VALUE _native_new(VALUE klass);
@@ -143,7 +146,7 @@ static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
 static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 void update_metrics_and_sample(
-  struct cpu_and_wall_time_collector_state *state,
+  struct thread_context_collector_state *state,
   VALUE thread_being_sampled,
   VALUE profiler_overhead_stack_thread,
   struct per_thread_context *thread_context,
@@ -151,7 +154,7 @@ void update_metrics_and_sample(
   long current_monotonic_wall_time_ns
 );
 static void trigger_sample_for_thread(
-  struct cpu_and_wall_time_collector_state *state,
+  struct thread_context_collector_state *state,
   VALUE thread,
   VALUE stack_from_thread,
   struct per_thread_context *thread_context,
@@ -159,44 +162,44 @@ static void trigger_sample_for_thread(
   sample_type type
 );
 static VALUE _native_thread_list(VALUE self);
-static struct per_thread_context *get_or_create_context_for(VALUE thread, struct cpu_and_wall_time_collector_state *state);
-static struct per_thread_context *get_context_for(VALUE thread, struct cpu_and_wall_time_collector_state *state);
+static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state);
+static struct per_thread_context *get_context_for(VALUE thread, struct thread_context_collector_state *state);
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context);
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
-static VALUE per_thread_context_st_table_as_ruby_hash(struct cpu_and_wall_time_collector_state *state);
+static VALUE per_thread_context_st_table_as_ruby_hash(struct thread_context_collector_state *state);
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash);
-static VALUE stats_as_ruby_hash(struct cpu_and_wall_time_collector_state *state);
-static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_state *state);
+static VALUE stats_as_ruby_hash(struct thread_context_collector_state *state);
+static void remove_context_for_dead_threads(struct thread_context_collector_state *state);
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
 static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns, bool is_wall_time);
 static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
-static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
+static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
 static bool is_type_web(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
-static VALUE thread_list(struct cpu_and_wall_time_collector_state *state);
+static VALUE thread_list(struct thread_context_collector_state *state);
 
-void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
+void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
-  VALUE collectors_cpu_and_wall_time_class = rb_define_class_under(collectors_module, "CpuAndWallTime", rb_cObject);
+  VALUE collectors_thread_context_class = rb_define_class_under(collectors_module, "ThreadContext", rb_cObject);
   // Hosts methods used for testing the native code using RSpec
-  VALUE testing_module = rb_define_module_under(collectors_cpu_and_wall_time_class, "Testing");
+  VALUE testing_module = rb_define_module_under(collectors_thread_context_class, "Testing");
 
-  // Instances of the CpuAndWallTime class are "TypedData" objects.
+  // Instances of the ThreadContext class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
-  // In this case, it wraps the cpu_and_wall_time_collector_state.
+  // In this case, it wraps the thread_context_collector_state.
   //
   // Because Ruby doesn't know how to initialize native-level structs, we MUST override the allocation function for objects
   // of this class so that we can manage this part. Not overriding or disabling the allocation function is a common
   // gotcha for "TypedData" objects that can very easily lead to VM crashes, see for instance
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
-  rb_define_alloc_func(collectors_cpu_and_wall_time_class, _native_new);
+  rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 4);
-  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_inspect", _native_inspect, 1);
-  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 4);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
@@ -213,13 +216,13 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   at_type_id = rb_intern_const("@type");
 }
 
-// This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_collector_state
+// This structure is used to define a Ruby object that stores a pointer to a struct thread_context_collector_state
 // See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
-static const rb_data_type_t cpu_and_wall_time_collector_typed_data = {
-  .wrap_struct_name = "Datadog::Profiling::Collectors::CpuAndWallTime",
+static const rb_data_type_t thread_context_collector_typed_data = {
+  .wrap_struct_name = "Datadog::Profiling::Collectors::ThreadContext",
   .function = {
-    .dmark = cpu_and_wall_time_collector_typed_data_mark,
-    .dfree = cpu_and_wall_time_collector_typed_data_free,
+    .dmark = thread_context_collector_typed_data_mark,
+    .dfree = thread_context_collector_typed_data_free,
     .dsize = NULL, // We don't track profile memory usage (although it'd be cool if we did!)
     //.dcompact = NULL, // FIXME: Add support for compaction
   },
@@ -228,8 +231,8 @@ static const rb_data_type_t cpu_and_wall_time_collector_typed_data = {
 
 // This function is called by the Ruby GC to give us a chance to mark any Ruby objects that we're holding on to,
 // so that they don't get garbage collected
-static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr) {
-  struct cpu_and_wall_time_collector_state *state = (struct cpu_and_wall_time_collector_state *) state_ptr;
+static void thread_context_collector_typed_data_mark(void *state_ptr) {
+  struct thread_context_collector_state *state = (struct thread_context_collector_state *) state_ptr;
 
   // Update this when modifying state struct
   rb_gc_mark(state->recorder_instance);
@@ -237,8 +240,8 @@ static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->thread_list_buffer);
 }
 
-static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr) {
-  struct cpu_and_wall_time_collector_state *state = (struct cpu_and_wall_time_collector_state *) state_ptr;
+static void thread_context_collector_typed_data_free(void *state_ptr) {
+  struct thread_context_collector_state *state = (struct thread_context_collector_state *) state_ptr;
 
   // Update this when modifying state struct
 
@@ -269,7 +272,7 @@ static int hash_map_per_thread_context_free_values(DDTRACE_UNUSED st_data_t _thr
 }
 
 static VALUE _native_new(VALUE klass) {
-  struct cpu_and_wall_time_collector_state *state = ruby_xcalloc(1, sizeof(struct cpu_and_wall_time_collector_state));
+  struct thread_context_collector_state *state = ruby_xcalloc(1, sizeof(struct thread_context_collector_state));
 
   // Update this when modifying state struct
   state->sampling_buffer = NULL;
@@ -280,12 +283,12 @@ static VALUE _native_new(VALUE klass) {
   state->tracer_context_key = MISSING_TRACER_CONTEXT_KEY;
   state->thread_list_buffer = rb_ary_new();
 
-  return TypedData_Wrap_Struct(klass, &cpu_and_wall_time_collector_typed_data, state);
+  return TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
 }
 
 static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames, VALUE tracer_context_key) {
-  struct cpu_and_wall_time_collector_state *state;
-  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   int max_frames_requested = NUM2INT(max_frames);
   if (max_frames_requested < 0) rb_raise(rb_eArgError, "Invalid max_frames: value must not be negative");
@@ -306,33 +309,33 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_inst
   return Qtrue;
 }
 
-// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE profiler_overhead_stack_thread) {
   if (!is_thread_alive(profiler_overhead_stack_thread)) rb_raise(rb_eArgError, "Unexpected: profiler_overhead_stack_thread is not alive");
 
-  cpu_and_wall_time_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE), profiler_overhead_stack_thread);
+  thread_context_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE), profiler_overhead_stack_thread);
   return Qtrue;
 }
 
-// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_on_gc_start(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
-  cpu_and_wall_time_collector_on_gc_start(collector_instance);
+  thread_context_collector_on_gc_start(collector_instance);
   return Qtrue;
 }
 
-// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_on_gc_finish(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
-  cpu_and_wall_time_collector_on_gc_finish(collector_instance);
+  thread_context_collector_on_gc_finish(collector_instance);
   return Qtrue;
 }
 
-// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
-  cpu_and_wall_time_collector_sample_after_gc(collector_instance);
+  thread_context_collector_sample_after_gc(collector_instance);
   return Qtrue;
 }
 
@@ -346,9 +349,9 @@ static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_
 //
 // The `profiler_overhead_stack_thread` is used to attribute the profiler overhead to a stack borrowed from a different thread
 // (belonging to ddtrace), so that the overhead is visible in the profile rather than blamed on user code.
-void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns, VALUE profiler_overhead_stack_thread) {
-  struct cpu_and_wall_time_collector_state *state;
-  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+void thread_context_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns, VALUE profiler_overhead_stack_thread) {
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE current_thread = rb_thread_current();
   struct per_thread_context *current_thread_context = get_or_create_context_for(current_thread, state);
@@ -392,7 +395,7 @@ void cpu_and_wall_time_collector_sample(VALUE self_instance, long current_monoto
 }
 
 void update_metrics_and_sample(
-  struct cpu_and_wall_time_collector_state *state,
+  struct thread_context_collector_state *state,
   VALUE thread_being_sampled,
   VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
@@ -432,11 +435,11 @@ void update_metrics_and_sample(
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 // Assumption 2: This function is called from the main Ractor (if Ruby has support for Ractors).
-void cpu_and_wall_time_collector_on_gc_start(VALUE self_instance) {
-  struct cpu_and_wall_time_collector_state *state;
-  if (!rb_typeddata_is_kind_of(self_instance, &cpu_and_wall_time_collector_typed_data)) return;
+void thread_context_collector_on_gc_start(VALUE self_instance) {
+  struct thread_context_collector_state *state;
+  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return;
   // This should never fail the the above check passes
-  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   struct per_thread_context *thread_context = get_context_for(rb_thread_current(), state);
 
@@ -477,11 +480,11 @@ void cpu_and_wall_time_collector_on_gc_start(VALUE self_instance) {
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 // Assumption 2: This function is called from the main Ractor (if Ruby has support for Ractors).
-void cpu_and_wall_time_collector_on_gc_finish(VALUE self_instance) {
-  struct cpu_and_wall_time_collector_state *state;
-  if (!rb_typeddata_is_kind_of(self_instance, &cpu_and_wall_time_collector_typed_data)) return;
+void thread_context_collector_on_gc_finish(VALUE self_instance) {
+  struct thread_context_collector_state *state;
+  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return;
   // This should never fail the the above check passes
-  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   struct per_thread_context *thread_context = get_context_for(rb_thread_current(), state);
 
@@ -514,9 +517,9 @@ void cpu_and_wall_time_collector_on_gc_finish(VALUE self_instance) {
 // Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
 // Assumption 3: Unlike `on_gc_start` and `on_gc_finish`, this method is allowed to allocate memory as needed.
 // Assumption 4: This function is called from the main Ractor (if Ruby has support for Ractors).
-VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
-  struct cpu_and_wall_time_collector_state *state;
-  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE threads = thread_list(state);
   bool sampled_any_thread = false;
@@ -585,7 +588,7 @@ VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
 }
 
 static void trigger_sample_for_thread(
-  struct cpu_and_wall_time_collector_state *state,
+  struct thread_context_collector_state *state,
   VALUE thread,
   VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
@@ -663,7 +666,7 @@ static void trigger_sample_for_thread(
   );
 }
 
-// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_thread_list(DDTRACE_UNUSED VALUE _self) {
   VALUE result = rb_ary_new();
@@ -671,7 +674,7 @@ static VALUE _native_thread_list(DDTRACE_UNUSED VALUE _self) {
   return result;
 }
 
-static struct per_thread_context *get_or_create_context_for(VALUE thread, struct cpu_and_wall_time_collector_state *state) {
+static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state) {
   struct per_thread_context* thread_context = NULL;
   st_data_t value_context = 0;
 
@@ -686,7 +689,7 @@ static struct per_thread_context *get_or_create_context_for(VALUE thread, struct
   return thread_context;
 }
 
-static struct per_thread_context *get_context_for(VALUE thread, struct cpu_and_wall_time_collector_state *state) {
+static struct per_thread_context *get_context_for(VALUE thread, struct thread_context_collector_state *state) {
   struct per_thread_context* thread_context = NULL;
   st_data_t value_context = 0;
 
@@ -715,8 +718,8 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
 }
 
 static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
-  struct cpu_and_wall_time_collector_state *state;
-  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE result = rb_str_new2(" (native state)");
 
@@ -731,7 +734,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   return result;
 }
 
-static VALUE per_thread_context_st_table_as_ruby_hash(struct cpu_and_wall_time_collector_state *state) {
+static VALUE per_thread_context_st_table_as_ruby_hash(struct thread_context_collector_state *state) {
   VALUE result = rb_hash_new();
   st_foreach(state->hash_map_per_thread_context, per_thread_context_as_ruby_hash, result);
   return result;
@@ -761,7 +764,7 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
   return ST_CONTINUE;
 }
 
-static VALUE stats_as_ruby_hash(struct cpu_and_wall_time_collector_state *state) {
+static VALUE stats_as_ruby_hash(struct thread_context_collector_state *state) {
   // Update this when modifying state struct (stats inner struct)
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
@@ -772,7 +775,7 @@ static VALUE stats_as_ruby_hash(struct cpu_and_wall_time_collector_state *state)
   return stats_as_hash;
 }
 
-static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_state *state) {
+static void remove_context_for_dead_threads(struct thread_context_collector_state *state) {
   st_foreach(state->hash_map_per_thread_context, remove_if_dead_thread, 0 /* unused */);
 }
 
@@ -786,13 +789,13 @@ static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, 
   return ST_DELETE;
 }
 
-// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 //
 // Returns the whole contents of the per_thread_context structs being tracked.
 static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
-  struct cpu_and_wall_time_collector_state *state;
-  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   return per_thread_context_st_table_as_ruby_hash(state);
 }
@@ -867,24 +870,24 @@ static long thread_id_for(VALUE thread) {
   return FIXNUM_P(object_id) ? FIX2LONG(object_id) : -1;
 }
 
-VALUE enforce_cpu_and_wall_time_collector_instance(VALUE object) {
-  Check_TypedStruct(object, &cpu_and_wall_time_collector_typed_data);
+VALUE enforce_thread_context_collector_instance(VALUE object) {
+  Check_TypedStruct(object, &thread_context_collector_typed_data);
   return object;
 }
 
-// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 //
 // Returns the whole contents of the per_thread_context structs being tracked.
 static VALUE _native_stats(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
-  struct cpu_and_wall_time_collector_state *state;
-  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   return stats_as_ruby_hash(state);
 }
 
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
-static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result) {
+static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result) {
   if (state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY) return;
 
   VALUE current_context = rb_thread_local_aref(thread, state->tracer_context_key);
@@ -930,8 +933,8 @@ static bool is_type_web(VALUE root_span_type) {
 // Assumption: This method gets called BEFORE restarting profiling -- e.g. there are no components attempting to
 // trigger samples at the same time.
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
-  struct cpu_and_wall_time_collector_state *state;
-  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   st_clear(state->hash_map_per_thread_context);
 
@@ -942,7 +945,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector
   return Qtrue;
 }
 
-static VALUE thread_list(struct cpu_and_wall_time_collector_state *state) {
+static VALUE thread_list(struct thread_context_collector_state *state) {
   VALUE result = state->thread_list_buffer;
   rb_ary_clear(result);
   ddtrace_thread_list(result);

@@ -470,15 +470,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe '#reset_after_fork' do
     subject(:reset_after_fork) { cpu_and_wall_time_worker.reset_after_fork }
 
-    let(:cpu_and_wall_time_collector) do
-      Datadog::Profiling::Collectors::CpuAndWallTime.new(recorder: recorder, max_frames: 400, tracer: nil)
+    let(:thread_context_collector) do
+      Datadog::Profiling::Collectors::ThreadContext.new(recorder: recorder, max_frames: 400, tracer: nil)
     end
-    let(:options) { { cpu_and_wall_time_collector: cpu_and_wall_time_collector } }
+    let(:options) { { thread_context_collector: thread_context_collector } }
 
     before do
       # This is important -- the real #reset_after_fork must not be called concurrently with the worker running,
       # which we do in this spec to make it easier to test the reset_after_fork behavior
-      allow(cpu_and_wall_time_collector).to receive(:reset_after_fork)
+      allow(thread_context_collector).to receive(:reset_after_fork)
 
       cpu_and_wall_time_worker.start
       wait_until_running
@@ -495,7 +495,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     it 'resets the CpuAndWallTime collector only after disabling the tracepoint' do
-      expect(cpu_and_wall_time_collector).to receive(:reset_after_fork) do
+      expect(thread_context_collector).to receive(:reset_after_fork) do
         expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
       end
 

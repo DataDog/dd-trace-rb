@@ -1,14 +1,17 @@
 module Datadog
   module Profiling
     module Collectors
-      # Used to periodically sample threads, recording elapsed CPU-time and Wall-time between samples.
-      # Triggering of this component (e.g. deciding when to take a sample) is implemented in
+      # Used to trigger sampling of threads, based on external "events", such as:
+      # * periodic timer for cpu-time and wall-time
+      # * VM garbage collection events
+      # * VM object allocation events
+      # Triggering of this component (e.g. watching for the above "events") is implemented by
       # Collectors::CpuAndWallTimeWorker.
       # The stack collection itself is handled using the Datadog::Profiling::Collectors::Stack.
       # Almost all of this class is implemented as native code.
       #
-      # Methods prefixed with _native_ are implemented in `collectors_cpu_and_wall_time.c`
-      class CpuAndWallTime
+      # Methods prefixed with _native_ are implemented in `collectors_thread_context.c`
+      class ThreadContext
         def initialize(recorder:, max_frames:, tracer:)
           tracer_context_key = safely_extract_context_key_from(tracer)
           self.class._native_initialize(self, recorder, max_frames, tracer_context_key)

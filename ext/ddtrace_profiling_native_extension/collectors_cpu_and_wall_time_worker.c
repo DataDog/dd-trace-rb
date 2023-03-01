@@ -9,15 +9,15 @@
 
 #include "helpers.h"
 #include "ruby_helpers.h"
-#include "collectors_cpu_and_wall_time.h"
+#include "collectors_thread_context.h"
 #include "collectors_dynamic_sampling_rate.h"
 #include "collectors_idle_sampling_helper.h"
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 
-// Used to trigger the periodic execution of Collectors::CpuAndWallTime, which implements all of the sampling logic
-// itself; this class only implements the "doing it periodically" part.
+// Used to trigger the execution of Collectors::ThreadState, which implements all of the sampling logic
+// itself; this class only implements the "when to do it" part.
 //
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTimeWorker class
 
@@ -61,7 +61,7 @@
 // "as soon as it can".
 //
 // 4. The Ruby VM calls our `sample_from_postponed_job` from a thread holding the global VM lock. A sample is recorded by
-// calling `cpu_and_wall_time_collector_sample`.
+// calling `thread_context_collector_sample`.
 //
 // ### TracePoints and Forking
 //
@@ -82,7 +82,7 @@ struct cpu_and_wall_time_worker_state {
   bool gc_profiling_enabled;
   bool allocation_counting_enabled;
   VALUE self_instance;
-  VALUE cpu_and_wall_time_collector_instance;
+  VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
   VALUE owner_thread;
   dynamic_sampling_rate_state dynamic_sampling_rate;
@@ -122,7 +122,7 @@ static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(
   DDTRACE_UNUSED VALUE _self,
   VALUE self_instance,
-  VALUE cpu_and_wall_time_collector_instance,
+  VALUE thread_context_collector_instance,
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
   VALUE allocation_counting_enabled
@@ -233,7 +233,7 @@ static VALUE _native_new(VALUE klass) {
   atomic_init(&state->should_run, false);
   state->gc_profiling_enabled = false;
   state->allocation_counting_enabled = false;
-  state->cpu_and_wall_time_collector_instance = Qnil;
+  state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
   dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
@@ -249,7 +249,7 @@ static VALUE _native_new(VALUE klass) {
 static VALUE _native_initialize(
   DDTRACE_UNUSED VALUE _self,
   VALUE self_instance,
-  VALUE cpu_and_wall_time_collector_instance,
+  VALUE thread_context_collector_instance,
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
   VALUE allocation_counting_enabled
@@ -262,7 +262,7 @@ static VALUE _native_initialize(
 
   state->gc_profiling_enabled = (gc_profiling_enabled == Qtrue);
   state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
-  state->cpu_and_wall_time_collector_instance = enforce_cpu_and_wall_time_collector_instance(cpu_and_wall_time_collector_instance);
+  state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
   state->object_allocation_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_NEWOBJ, on_newobj_event, NULL /* unused */);
@@ -274,7 +274,7 @@ static VALUE _native_initialize(
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
-  rb_gc_mark(state->cpu_and_wall_time_collector_instance);
+  rb_gc_mark(state->thread_context_collector_instance);
   rb_gc_mark(state->idle_sampling_helper_instance);
   rb_gc_mark(state->owner_thread);
   rb_gc_mark(state->failure_exception);
@@ -503,7 +503,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   state->stats.sampled++;
 
   VALUE profiler_overhead_stack_thread = state->owner_thread; // Used to attribute profiler overhead to a different stack
-  cpu_and_wall_time_collector_sample(state->cpu_and_wall_time_collector_instance, wall_time_ns_before_sample, profiler_overhead_stack_thread);
+  thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample, profiler_overhead_stack_thread);
 
   long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
   long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
@@ -609,9 +609,9 @@ static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance) {
 // when the RUBY_INTERNAL_EVENT_GC_ENTER and RUBY_INTERNAL_EVENT_GC_EXIT events are triggered.
 //
 // See the comments on
-// * cpu_and_wall_time_collector_on_gc_start
-// * cpu_and_wall_time_collector_on_gc_finish
-// * cpu_and_wall_time_collector_sample_after_gc
+// * thread_context_collector_on_gc_start
+// * thread_context_collector_on_gc_finish
+// * thread_context_collector_sample_after_gc
 //
 // For the expected times in which to call them, and their assumptions.
 //
@@ -633,11 +633,11 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   if (state == NULL) return;
 
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
-    cpu_and_wall_time_collector_on_gc_start(state->cpu_and_wall_time_collector_instance);
+    thread_context_collector_on_gc_start(state->thread_context_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
     // Design: In an earlier iteration of this feature (see https://github.com/DataDog/dd-trace-rb/pull/2308) we
-    // actually had a single method to implement the behavior of both cpu_and_wall_time_collector_on_gc_finish
-    // and cpu_and_wall_time_collector_sample_after_gc (the latter is called via after_gc_from_postponed_job).
+    // actually had a single method to implement the behavior of both thread_context_collector_on_gc_finish
+    // and thread_context_collector_sample_after_gc (the latter is called via after_gc_from_postponed_job).
     //
     // Unfortunately, then we discovered the safety issue around no allocations, and thus decided to separate them -- so that
     // the sampling could run outside the tight safety constraints of the garbage collection process.
@@ -647,11 +647,11 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
     // it should be pointing at.
     // Alternatives to solve this would be to capture no stack for garbage collection (as we do for Java and .net);
     // making the sampling process allocation-safe (very hard); or separate stack sampling from sample recording,
-    // e.g. enabling us to capture the stack in cpu_and_wall_time_collector_on_gc_finish and do the rest later
+    // e.g. enabling us to capture the stack in thread_context_collector_on_gc_finish and do the rest later
     // (medium hard).
 
-    cpu_and_wall_time_collector_on_gc_finish(state->cpu_and_wall_time_collector_instance);
-    // We use rb_postponed_job_register_one to ask Ruby to run cpu_and_wall_time_collector_sample_after_gc after if
+    thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
+    // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc after if
     // fully finishes the garbage collection, so that one is allowed to do allocations and throw exceptions as usual.
     //
     // Note: If we ever want to get rid of rb_postponed_job_register_one, remember not to clobber Ruby exceptions, as
@@ -672,8 +672,8 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
-  // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
-  safely_call(cpu_and_wall_time_collector_sample_after_gc, state->cpu_and_wall_time_collector_instance, state->self_instance);
+  // Trigger sampling using the Collectors::ThreadState; rescue against any exceptions that happen during sampling
+  safely_call(thread_context_collector_sample_after_gc, state->thread_context_collector_instance, state->self_instance);
 }
 
 // Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
@@ -721,8 +721,8 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
 
   reset_stats(state);
 
-  // Remove all state from the `Collectors::CpuAndWallTime` and connected downstream components
-  rb_funcall(state->cpu_and_wall_time_collector_instance, rb_intern("reset_after_fork"), 0);
+  // Remove all state from the `Collectors::ThreadState` and connected downstream components
+  rb_funcall(state->thread_context_collector_instance, rb_intern("reset_after_fork"), 0);
 
   return Qtrue;
 }
