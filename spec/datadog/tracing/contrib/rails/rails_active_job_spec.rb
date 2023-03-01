@@ -1,5 +1,3 @@
-# typed: ignore
-
 # This module tests the right integration between Sidekiq and
 # Rails. Functionality tests for Rails and Sidekiq must go
 # in their testing modules.
@@ -250,6 +248,8 @@ RSpec.describe 'ActiveJob' do
         expect(span.get_tag('sidekiq.job.id')).to match(/[0-9a-f]{24}/)
         expect(span.get_tag('sidekiq.job.retry')).to eq('true')
         expect(span.get_tag('sidekiq.job.queue')).to eq('default')
+        expect(span.get_tag('span.kind')).to eq('consumer')
+        expect(span.get_tag('messaging.system')).to eq('sidekiq')
       end
     end
 
@@ -276,6 +276,8 @@ RSpec.describe 'ActiveJob' do
         expect(span.get_tag('sidekiq.job.id')).to match(/[0-9a-f]{24}/)
         expect(span.get_tag('sidekiq.job.retry')).to eq('true')
         expect(span.get_tag('sidekiq.job.queue')).to eq('default')
+        expect(span.get_tag('span.kind')).to eq('consumer')
+        expect(span.get_tag('messaging.system')).to eq('sidekiq')
       end
 
       context 'when active_job tracing is also enabled' do

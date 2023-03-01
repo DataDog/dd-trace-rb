@@ -1,11 +1,9 @@
-# typed: true
-
 require_relative 'core'
 require_relative 'core/environment/variable_helpers'
 require_relative 'core/utils/only_once'
 
 module Datadog
-  # Contains profiler for generating stack profiles, etc.
+  # Datadog Continuous Profiler implementation: https://docs.datadoghq.com/profiler/
   module Profiling
     GOOGLE_PROTOBUF_MINIMUM_VERSION = Gem::Version.new('3.0')
     private_constant :GOOGLE_PROTOBUF_MINIMUM_VERSION
@@ -41,6 +39,39 @@ module Datadog
       !!profiler
     end
 
+    # Returns an ever-increasing counter of the number of allocations observed by the profiler in this thread.
+    #
+    # Note 1: This counter may not start from zero on new threads. It should only be used to measure how many
+    # allocations have happened between two calls to this API:
+    # ```
+    # allocations_before = Datadog::Profiling.allocation_count
+    # do_some_work()
+    # allocations_after = Datadog::Profiling.allocation_count
+    # puts "Allocations during do_some_work: #{allocations_after - allocations_before}"
+    # ```
+    # (This is similar to some OS-based time representations.)
+    #
+    # Note 2: All fibers in the same thread will share the same counter values.
+    #
+    # Only available when the profiler is running, the new CPU Profiling 2.0 profiler is in use, and allocation-related
+    # features are not disabled via configuration.
+    # For instructions on enabling CPU Profiling 2.0 see the ddtrace release notes.
+    #
+    # @return [Integer] number of allocations observed in the current thread.
+    # @return [nil] when not available.
+    # @public_api
+    def self.allocation_count
+      # This no-op implementation is used when profiling failed to load.
+      # It gets replaced inside #replace_noop_allocation_count.
+      nil
+    end
+
+    private_class_method def self.replace_noop_allocation_count
+      def self.allocation_count # rubocop:disable Lint/DuplicateMethods, Lint/NestedMethodDefinition (On purpose!)
+        Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_allocation_count
+      end
+    end
+
     private_class_method def self.native_library_compilation_skipped?
       skipped_reason = try_reading_skipped_reason_file
 
@@ -65,7 +96,7 @@ module Datadog
       # NOTE: On environments where protobuf is already loaded, we skip the check. This allows us to support environments
       # where no Gem.loaded_version is NOT available but customers are able to load protobuf; see for instance
       # https://github.com/teamcapybara/capybara/commit/caf3bcd7664f4f2691d0ca9ef3be9a2a954fecfb
-      if !defined?(::Google::Protobuf) && Gem.loaded_specs['google-protobuf'].nil?
+      if !protobuf_already_loaded? && Gem.loaded_specs['google-protobuf'].nil?
         "Missing google-protobuf dependency; please add `gem 'google-protobuf', '~> 3.0'` to your Gemfile or gems.rb file"
       end
     end
@@ -74,10 +105,14 @@ module Datadog
       # See above for why we skip the check when protobuf is already loaded; note that when protobuf was already loaded
       # we skip the version check to avoid the call to Gem.loaded_specs. Unfortunately, protobuf does not seem to
       # expose the gem version constant elsewhere, so in that setup we are not able to check the version.
-      if !defined?(::Google::Protobuf) && Gem.loaded_specs['google-protobuf'].version < GOOGLE_PROTOBUF_MINIMUM_VERSION
+      if !protobuf_already_loaded? && Gem.loaded_specs['google-protobuf'].version < GOOGLE_PROTOBUF_MINIMUM_VERSION
         'Your google-protobuf is too old; ensure that you have google-protobuf >= 3.0 by ' \
         "adding `gem 'google-protobuf', '~> 3.0'` to your Gemfile or gems.rb file"
       end
+    end
+
+    private_class_method def self.protobuf_already_loaded?
+      defined?(::Google::Protobuf) && !defined?(::Protobuf)
     end
 
     private_class_method def self.protobuf_failed_to_load?
@@ -164,6 +199,8 @@ module Datadog
       require_relative 'profiling/pprof/pprof_pb'
       require_relative 'profiling/tag_builder'
       require_relative 'profiling/http_transport'
+
+      replace_noop_allocation_count
 
       true
     end

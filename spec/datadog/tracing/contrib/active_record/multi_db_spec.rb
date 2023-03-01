@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'ddtrace'
 require 'datadog/tracing/contrib/integration_examples'

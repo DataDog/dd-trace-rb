@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/tracing/contrib/rails/support/base'
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'
 

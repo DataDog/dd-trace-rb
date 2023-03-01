@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../analytics'
 
 module Datadog
@@ -20,6 +18,8 @@ module Datadog
               span_type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
               on_error: @error_handler
             ) do |span|
+              span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)
+
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
 

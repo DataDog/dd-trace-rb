@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'datadog/tracing/distributed/b3_multi'

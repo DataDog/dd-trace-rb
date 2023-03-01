@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative 'ext'
 require_relative '../../metadata/ext'
 

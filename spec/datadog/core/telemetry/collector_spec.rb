@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'spec_helper'
 
 require 'datadog/core/configuration'
@@ -86,6 +84,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
           Datadog.configuration.appsec.enabled = false
           stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
         end
+
         after do
           Datadog.configuration.profiling.send(:reset!)
           Datadog.configuration.appsec.send(:reset!)
@@ -99,11 +98,13 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         require 'datadog/appsec'
 
         before do
+          allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start) if PlatformHelpers.mri?
           Datadog.configure do |c|
             c.profiling.enabled = true
             c.appsec.enabled = true
           end
         end
+
         after do
           Datadog.configuration.profiling.send(:reset!)
           Datadog.configuration.appsec.send(:reset!)
@@ -223,6 +224,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     context 'when profiling is enabled' do
       before do
         stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+        allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start)
         Datadog.configure do |c|
           c.profiling.enabled = true
         end

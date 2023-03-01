@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'datadog/core/worker'
@@ -22,25 +20,14 @@ RSpec.describe Datadog::Core::Workers::Polling do
       let(:task) { proc { |*args| worker_spy.perform(*args) } }
       let(:worker_spy) { double('worker spy') }
 
-      before { allow(worker_spy).to receive(:perform) { sleep 5 } }
-
-      context 'by default' do
-        before { skip('TODO: This test sometimes hangs forever and other times flakes. Requires further investigation.') }
-
-        it do
-          perform
-          try_wait_until { worker.running? && worker.run_loop? }
-          expect(worker_spy).to have_received(:perform).at_least(:once)
-        end
-      end
+      before { allow(worker_spy).to receive(:perform) }
 
       context 'when #enabled? is true' do
         before { allow(worker).to receive(:enabled?).and_return(true) }
 
         it do
           perform
-          try_wait_until { worker.running? && worker.run_loop? }
-          expect(worker_spy).to have_received(:perform).at_least(:once)
+          wait_for(worker_spy).to have_received(:perform)
         end
       end
 

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: ignore
-
 require 'rubygems'
 require 'pathname'
 
@@ -17,7 +15,7 @@ module Datadog
       # Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
       CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
 
-      LIBDATADOG_VERSION = '~> 1.0.1.1.0'
+      LIBDATADOG_VERSION = '~> 2.0.0.1.0'
 
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
@@ -87,8 +85,8 @@ module Datadog
             on_windows? ||
             on_macos? ||
             on_unknown_os? ||
-            not_on_amd64_or_arm64? ||
-            on_ruby_2_1? ||
+            on_unsupported_cpu_arch? ||
+            on_unsupported_ruby_version? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
             libdatadog_not_available? ||
             libdatadog_not_usable?
@@ -174,6 +172,8 @@ module Datadog
           'the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
           'the `pkgconf` package on Arch and Alpine-based Linux;',
           'the `pkgconf-pkg-config` package on Fedora/Red Hat-based Linux.',
+          '(Tip: When fixing this, ensure `pkg-config` is installed **before**',
+          'running `bundle install`, and remember to clear any installed gems cache).',
           suggested: CONTACT_SUPPORT,
         )
 
@@ -251,7 +251,7 @@ module Datadog
           unknown_os_not_supported unless RUBY_PLATFORM.include?('darwin') || RUBY_PLATFORM.include?('linux')
         end
 
-        private_class_method def self.not_on_amd64_or_arm64?
+        private_class_method def self.on_unsupported_cpu_arch?
           architecture_not_supported = explain_issue(
             'your CPU architecture is not supported by the Datadog Continuous Profiler.',
             suggested: GET_IN_TOUCH,
@@ -260,13 +260,13 @@ module Datadog
           architecture_not_supported unless RUBY_PLATFORM.start_with?('x86_64', 'aarch64', 'arm64')
         end
 
-        private_class_method def self.on_ruby_2_1?
+        private_class_method def self.on_unsupported_ruby_version?
           ruby_version_not_supported = explain_issue(
-            'the profiler only supports Ruby 2.2 or newer.',
+            'the profiler only supports Ruby 2.3 or newer.',
             suggested: UPGRADE_RUBY,
           )
 
-          ruby_version_not_supported if RUBY_VERSION.start_with?('2.1.')
+          ruby_version_not_supported if RUBY_VERSION.start_with?('2.1.', '2.2.')
         end
 
         # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip

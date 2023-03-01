@@ -1,5 +1,3 @@
-# typed: false
-
 module Datadog
   module Core
     # Namespace for handling application environment

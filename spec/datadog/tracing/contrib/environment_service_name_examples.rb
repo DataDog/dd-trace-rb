@@ -1,5 +1,3 @@
-# typed: ignore
-
 RSpec.shared_examples_for 'environment service name' do |env_service_name_key, error: nil|
   context "when given `#{env_service_name_key}` environment variable" do
     around do |example|

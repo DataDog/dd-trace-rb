@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'sql_comment/comment'
 require_relative 'sql_comment/ext'
 

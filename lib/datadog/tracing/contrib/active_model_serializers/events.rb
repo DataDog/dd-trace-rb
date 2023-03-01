@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'events/render'
 require_relative 'events/serialize'
 

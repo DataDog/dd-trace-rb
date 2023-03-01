@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: true
-
 require 'uri'
 
 require_relative '../../datadog/core/environment/container'
@@ -18,8 +16,6 @@ module Datadog
   module Transport
     # Namespace for HTTP transport components
     module HTTP
-      include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
-
       # NOTE: Due to... legacy reasons... This class likes having a default `AgentSettings` instance to fall back to.
       # Because we generate this instance with an empty instance of `Settings`, the resulting `AgentSettings` below
       # represents only settings specified via environment variables + the usual defaults.

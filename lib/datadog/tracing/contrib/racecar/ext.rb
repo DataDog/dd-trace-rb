@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module Tracing
     module Contrib
@@ -24,6 +22,7 @@ module Datadog
           TAG_OPERATION_CONSUME = 'consume'.freeze
           TAG_OPERATION_BATCH = 'batch'.freeze
           TAG_OPERATION_MESSAGE = 'message'.freeze
+          TAG_MESSAGING_SYSTEM = 'kafka'.freeze
         end
       end
     end

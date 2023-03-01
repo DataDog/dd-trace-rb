@@ -1,5 +1,3 @@
-# typed: true
-
 require 'time'
 
 require_relative '../pprof/template'

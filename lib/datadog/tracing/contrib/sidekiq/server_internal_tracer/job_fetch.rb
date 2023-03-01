@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module Tracing
     module Contrib
@@ -14,6 +12,8 @@ module Datadog
 
               Datadog::Tracing.trace(Ext::SPAN_JOB_FETCH, service: configuration[:service_name]) do |span|
                 span.span_type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
+
+                span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
 
                 span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB_FETCH)

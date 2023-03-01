@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../datadog/core/metrics/metric'
 require_relative '../../datadog/core/diagnostics/health'
 

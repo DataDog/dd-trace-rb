@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'payload'
 require_relative 'message_set'
 require_relative 'builder'

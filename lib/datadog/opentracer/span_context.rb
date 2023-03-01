@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module OpenTracer
     # OpenTracing adapter for SpanContext

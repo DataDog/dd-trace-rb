@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../tracing'
 require_relative 'contrib/registry'
 require_relative 'contrib/extensions'

@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'context_composite_executor_service'
 
 module Datadog

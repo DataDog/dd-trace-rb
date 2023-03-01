@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../test'
 
 require_relative '../../ext/app_types'

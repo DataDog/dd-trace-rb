@@ -6,6 +6,8 @@ module Datadog
           module Watcher
             def self.watch: () -> untyped
 
+            def self.watch_request_action: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> untyped
+
             private
 
             def self.active_trace: () -> (nil | untyped)
