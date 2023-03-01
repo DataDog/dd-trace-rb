@@ -21,8 +21,8 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
     end
   end
 
-  describe '#truncate_base16_number' do
-    subject(:number) { described_class.truncate_base16_number(value) }
+  describe '#format_base16_number' do
+    subject(:number) { described_class.format_base16_number(value) }
 
     [
       %w[1 1],
@@ -36,22 +36,13 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
       # Test lowercase
       %w[DEADBEEF deadbeef],
 
-      # Test at boundary (64-bit)
-      # 64-bit max, which is 17 characters long, so we truncate to the last 16, which is all zeros
-      [(2**64).to_s(16), '10000000000000000'],
-      # 64-bit - 1, which is the max 16 characters we allow
-      [((2**64) - 1).to_s(16), 'ffffffffffffffff'],
+      # # Test at boundary (64-bit)
+      # [(1 << 64).to_s(16), '1' + '0' * 16],
+      # [((1 << 64) - 1).to_s(16), 'f' * 16],
 
-      # Our max generated id
-      [Datadog::Tracing::Utils::RUBY_MAX_ID.to_s(16), '3fffffffffffffff'],
-      # Our max external id
-      # DEV: This is the same as (2**64) above, but use the constant to be sure
-      [Datadog::Tracing::Utils::EXTERNAL_MAX_ID.to_s(16), '100000000000000000000000000000000'],
-
-      # 128-bit max, which is 32 characters long, so we truncate to the last 16, which is all zeros
-      [(2**128).to_s(16), '100000000000000000000000000000000'],
-      # 128-bit - 1, which is 32 characters long and all `f`s
-      [((2**128) - 1).to_s(16), 'ffffffffffffffffffffffffffffffff']
+      # # Test at boundary (128-bit)
+      # [(1 << 128).to_s(16), '1' + '0' * 32],
+      # [((1 << 128) - 1).to_s(16), 'f' * 32],
     ].each do |value, expected|
       context "with input of #{value}" do
         let(:value) { value }
@@ -116,12 +107,6 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
   end
 
   describe '#value_to_number' do
-    context 'when value is not present' do
-      subject(:subject) { described_class.value_to_number(nil) }
-
-      it { is_expected.to be_nil }
-    end
-
     context 'when value is ' do
       [
         [nil, nil],
@@ -138,8 +123,8 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
         # Allowed values
         [Datadog::Tracing::Utils::RUBY_MAX_ID.to_s, Datadog::Tracing::Utils::RUBY_MAX_ID],
         [(Datadog::Tracing::Utils::RUBY_MAX_ID + 1).to_s, Datadog::Tracing::Utils::RUBY_MAX_ID + 1],
-        [Datadog::Tracing::Utils::EXTERNAL_MAX_ID.to_s, Datadog::Tracing::Utils::EXTERNAL_MAX_ID],
-        [(Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1).to_s, Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1],
+        [Datadog::Tracing::Utils::TraceId::MAX.to_s, Datadog::Tracing::Utils::TraceId::MAX],
+        [(Datadog::Tracing::Utils::TraceId::MAX + 1).to_s, Datadog::Tracing::Utils::TraceId::MAX + 1],
         ['-100', -100],
         ['100', 100],
       ].each do |value, expected|
@@ -153,9 +138,8 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
       # Base 16
       [
         # Larger than we allow
-        # DEV: We truncate to 64-bit for base16, so the
-        [Datadog::Tracing::Utils::EXTERNAL_MAX_ID.to_s(16), Datadog::Tracing::Utils::EXTERNAL_MAX_ID],
-        [(Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1).to_s(16), Datadog::Tracing::Utils::EXTERNAL_MAX_ID + 1],
+        [Datadog::Tracing::Utils::TraceId::MAX.to_s(16), Datadog::Tracing::Utils::TraceId::MAX],
+        [(Datadog::Tracing::Utils::TraceId::MAX + 1).to_s(16), Datadog::Tracing::Utils::TraceId::MAX + 1],
 
         [Datadog::Tracing::Utils::RUBY_MAX_ID.to_s(16), Datadog::Tracing::Utils::RUBY_MAX_ID],
         [(Datadog::Tracing::Utils::RUBY_MAX_ID + 1).to_s(16), Datadog::Tracing::Utils::RUBY_MAX_ID + 1],

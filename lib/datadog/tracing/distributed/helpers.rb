@@ -20,16 +20,11 @@ module Datadog
           sampling_priority
         end
 
-        def self.truncate_base16_number(value)
+        def self.format_base16_number(value)
           # Lowercase if we want to parse base16 e.g. 3E8 => 3e8
           # DEV: Ruby will parse `3E8` just fine, but to test
           #      `num.to_s(base) == value` we need to lowercase
           value = value.downcase
-
-          # Truncate to trailing 16 characters if length is greater than 16
-          # https://github.com/apache/incubator-zipkin/blob/21fe362899fef5c593370466bc5707d3837070c2/zipkin/src/main/java/zipkin2/storage/StorageComponent.java#L49-L53
-          # DEV: This ensures we truncate B3 128-bit trace and span ids to 64-bit
-          # value = value[value.length - 16, 16] if value.length > 16
 
           # Remove any leading zeros
           # DEV: When we call `num.to_s(16)` later Ruby will not add leading zeros
@@ -46,7 +41,7 @@ module Datadog
           return if id.nil?
 
           # Zero or greater than max allowed value of 2**64
-          return if id.zero? || id > Tracing::Utils::EXTERNAL_MAX_ID
+          return if id.zero? || id > Tracing::Utils::TraceId::MAX
 
           id < 0 ? id + (2**64) : id
         end
@@ -59,7 +54,7 @@ module Datadog
           value = value.to_s
 
           # If we are parsing base16 number then truncate to 64-bit
-          value = Helpers.truncate_base16_number(value) if base == 16
+          value = Helpers.format_base16_number(value) if base == 16
 
           # Convert value to an integer
           # DEV: Ruby `.to_i` will return `0` if a number could not be parsed
@@ -68,6 +63,31 @@ module Datadog
           # Ensure the parsed number is the same as the original string value
           # e.g. We want to make sure to throw away `'nan'.to_i == 0`
           return unless num.to_s(base) == value
+
+          num
+        end
+
+        def self.parse_decimal_id(value)
+          return unless value
+
+          value = value.to_s
+          num = value.to_i(10)
+
+          return unless num.to_s(10) == value
+
+          num
+        end
+
+        def self.parse_hex_id(value, length:)
+          return unless value
+
+          value = value.to_s.downcase
+          value = value[value.length - length, length] if value.length > length
+          value = value.sub(/^0*(?=(0$)|[^0])/, '')
+
+          num = value.to_i(16)
+
+          return unless num.to_s(16) == value
 
           num
         end

@@ -21,7 +21,7 @@ module Datadog
 
       # While we only generate 63-bit integers due to limitations in other languages, we support
       # parsing 64-bit integers for distributed tracing since an upstream system may generate one
-      EXTERNAL_MAX_ID = 1 << 128
+      EXTERNAL_MAX_ID = 1 << 64
 
       # We use a custom random number generator because we want no interference
       # with the default one. Using the default prng, we could break code that
@@ -46,6 +46,8 @@ module Datadog
 
       # The module handles bitwise operation for trace id
       module TraceId
+        MAX = (1 << 128) - 1
+
         module_function
 
         def next_id
@@ -62,11 +64,11 @@ module Datadog
         end
 
         def to_low_order(trace_id)
-          trace_id & 0xFFFFFFFFFFFFFFFF
+          trace_id.to_i & 0xFFFFFFFFFFFFFFFF
         end
 
         def concatenate(high_order, low_order)
-          high_order.to_i << 64 | low_order
+          high_order.to_i << 64 | low_order.to_i
         end
       end
     end

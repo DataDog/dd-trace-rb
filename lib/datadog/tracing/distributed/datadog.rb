@@ -45,7 +45,9 @@ module Datadog
           data[@sampling_priority_key] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
           data[@origin_key] = digest.trace_origin.to_s if digest.trace_origin
 
-          inject_tags(digest, data)
+          build_tags(digest).tap do |tags|
+            inject_tags!(tags, data) unless tags.empty?
+          end
 
           data
         end
@@ -61,17 +63,13 @@ module Datadog
           # DEV: To be valid we need to have a trace id and a parent id
           #      or when it is a synthetics trace, just the trace id.
           # DEV: `Fetcher#id` will not return 0
-
           return unless (trace_id && parent_id) || (origin && trace_id)
 
           trace_distributed_tags = extract_tags(fetcher)
 
-          if trace_distributed_tags && trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_TID]
-            trace_id = Tracing::Utils::TraceId.concatenate(
-              trace_distributed_tags.delete(Tracing::Metadata::Ext::Distributed::TAG_TID).to_i(16),
-              trace_id
-            )
-          end
+          # If trace id is 128 bits long,
+          # Concatentated high order 64 bit hex-encoded `tid` tag
+          trace_id = extract_trace_id!(trace_id, trace_distributed_tags)
 
           TraceDigest.new(
             span_id: parent_id,
@@ -84,29 +82,39 @@ module Datadog
 
         private
 
+        def build_tags(digest)
+          high_order = Tracing::Utils::TraceId.to_high_order(digest.trace_id)
+          tags = digest.trace_distributed_tags || {}
+
+          return tags if high_order == 0
+
+          tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => high_order.to_s(16))
+        end
+
+        # Side effect: Remove high order 64 bit hex-encoded `tid` tag from distributed tags
+        def extract_trace_id!(trace_id, tags)
+          return trace_id unless tags
+          return trace_id unless (high_order = tags.delete(Tracing::Metadata::Ext::Distributed::TAG_TID))
+
+          Tracing::Utils::TraceId.concatenate(high_order.to_i(16), trace_id)
+        end
+
         # Export trace distributed tags through the `x-datadog-tags` key.
         #
         # DEV: This method accesses global state (the active trace) to record its error state as a trace tag.
         # DEV: This means errors cannot be reported if there's not active span.
         # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
-        def inject_tags(digest, data)
-          high_order = Tracing::Utils::TraceId.to_high_order(digest.trace_id)
-
-          trace_distributed_tags = digest.trace_distributed_tags || {}
-          if high_order != 0
-            trace_distributed_tags =
-              trace_distributed_tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => high_order.to_s(16))
-          end
-
-          return if trace_distributed_tags.empty?
-
+        def inject_tags!(tags, data)
           return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
 
-          tags = DatadogTagsCodec.encode(trace_distributed_tags)
+          encoded_tags = DatadogTagsCodec.encode(tags)
 
-          return set_tags_propagation_error(reason: 'inject_max_size') if tags_too_large?(tags.size, scenario: 'inject')
+          return set_tags_propagation_error(reason: 'inject_max_size') if tags_too_large?(
+            encoded_tags.size,
+            scenario: 'inject'
+          )
 
-          data[@tags_key] = tags
+          data[@tags_key] = encoded_tags
         rescue => e
           set_tags_propagation_error(reason: 'encoding_error')
           ::Datadog.logger.warn(

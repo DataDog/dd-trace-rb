@@ -45,7 +45,7 @@ module Datadog
 
       def id(header)
         value = @carrier[header].to_i
-        return if value.zero? || value >= Datadog::Tracing::Utils::EXTERNAL_MAX_ID
+        return if value.zero? || value >= Datadog::Tracing::Utils::TraceId::MAX_ID
 
         value < 0 ? value + 0x1_0000_0000_0000_0000 : value
       end
