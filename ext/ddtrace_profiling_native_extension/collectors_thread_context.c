@@ -180,6 +180,7 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
 static bool is_type_web(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
+static VALUE _native_sample_allocation(VALUE self, VALUE collector_instance, VALUE sample_weight);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -201,6 +202,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
+  rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 2);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_sample_after_gc", _native_sample_after_gc, 1);
@@ -950,4 +952,27 @@ static VALUE thread_list(struct thread_context_collector_state *state) {
   rb_ary_clear(result);
   ddtrace_thread_list(result);
   return result;
+}
+
+void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight) {
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  VALUE current_thread = rb_thread_current();
+
+  trigger_sample_for_thread(
+    state,
+    /* thread: */  current_thread,
+    /* stack_from_thread: */ current_thread,
+    get_or_create_context_for(current_thread, state),
+    (sample_values) {.alloc_samples = sample_weight},
+    SAMPLE_REGULAR
+  );
+}
+
+// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight) {
+  thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight));
+  return Qtrue;
 }
