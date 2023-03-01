@@ -47,8 +47,8 @@ module Datadog
 
           parts = value.split('-')
           trace_id = Helpers.parse_hex_id(parts[0], length: 32) unless parts.empty?
-          span_id =  Helpers.parse_hex_id(parts[1], length: 16) if parts.length > 1
-          sampling_priority = Helpers.value_to_number(parts[2]) if parts.length > 2
+          span_id  = Helpers.parse_hex_id(parts[1], length: 16)  if parts.length > 1
+          sampling_priority = Helpers.parse_decimal_id(parts[2]) if parts.length > 2
 
           # Return if this propagation is not valid
           return unless trace_id && span_id

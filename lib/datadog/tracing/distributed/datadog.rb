@@ -4,6 +4,7 @@ require_relative '../metadata/ext'
 require_relative '../trace_digest'
 require_relative 'datadog_tags_codec'
 require_relative '../utils'
+require_relative 'helpers'
 
 module Datadog
   module Tracing
@@ -54,9 +55,10 @@ module Datadog
 
         def extract(data)
           fetcher = @fetcher.new(data)
-          trace_id = fetcher.id(@trace_id_key)
-          parent_id = fetcher.id(@parent_id_key)
-          sampling_priority = fetcher.number(@sampling_priority_key)
+
+          trace_id  = Helpers.parse_decimal_id(fetcher[@trace_id_key])
+          parent_id = Helpers.parse_decimal_id(fetcher[@parent_id_key])
+          sampling_priority = Helpers.parse_decimal_id(fetcher[@sampling_priority_key])
           origin = fetcher[@origin_key]
 
           # Return early if this propagation is not valid

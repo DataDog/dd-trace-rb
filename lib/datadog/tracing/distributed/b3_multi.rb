@@ -45,10 +45,10 @@ module Datadog
         def extract(data)
           # DEV: B3 doesn't have "origin"
           fetcher = @fetcher.new(data)
-          trace_id = fetcher.hex_trace_id(@trace_id_key)
-          span_id  = fetcher.hex_span_id(@span_id_key)
+          trace_id = Helpers.parse_hex_id(fetcher[@trace_id_key], length: 32)
+          span_id  = Helpers.parse_hex_id(fetcher[@span_id_key], length: 16)
           # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
-          sampling_priority = fetcher.number(@sampled_key)
+          sampling_priority = Helpers.parse_decimal_id(fetcher[@sampled_key])
 
           # Return early if this propagation is not valid
           return unless trace_id && span_id

@@ -34,51 +34,51 @@ module Datadog
           value.sub(/^0*(?=(0$)|[^0])/, '')
         end
 
-        def self.value_to_id(value, base: 10)
-          id = value_to_number(value, base: base)
+        # def self.value_to_id(value, base: 10)
+        #   id = value_to_number(value, base: base)
 
-          # Return early if we could not parse a number
-          return if id.nil?
+        #   # Return early if we could not parse a number
+        #   return if id.nil?
 
-          # Zero or greater than max allowed value of 2**64
-          return if id.zero? || id > Tracing::Utils::TraceId::MAX
+        #   # Zero or greater than max allowed value of 2**64
+        #   return if id.zero? || id > Tracing::Utils::TraceId::MAX
 
-          id < 0 ? id + (2**64) : id
-        end
+        #   id < 0 ? id + (2**64) : id
+        # end
 
-        def self.value_to_number(value, base: 10)
-          # It's important to make a difference between no data and zero.
-          return if value.nil?
+        # def self.value_to_number(value, base: 10)
+        #   # It's important to make a difference between no data and zero.
+        #   return if value.nil?
 
-          # Be sure we have a string
-          value = value.to_s
+        #   # Be sure we have a string
+        #   value = value.to_s
 
-          # If we are parsing base16 number then truncate to 64-bit
-          value = Helpers.format_base16_number(value) if base == 16
+        #   # If we are parsing base16 number then truncate to 64-bit
+        #   value = Helpers.format_base16_number(value) if base == 16
 
-          # Convert value to an integer
-          # DEV: Ruby `.to_i` will return `0` if a number could not be parsed
-          num = value.to_i(base)
+        #   # Convert value to an integer
+        #   # DEV: Ruby `.to_i` will return `0` if a number could not be parsed
+        #   num = value.to_i(base)
 
-          # Ensure the parsed number is the same as the original string value
-          # e.g. We want to make sure to throw away `'nan'.to_i == 0`
-          return unless num.to_s(base) == value
+        #   # Ensure the parsed number is the same as the original string value
+        #   # e.g. We want to make sure to throw away `'nan'.to_i == 0`
+        #   return unless num.to_s(base) == value
 
-          num
-        end
+        #   num
+        # end
 
         def self.parse_decimal_id(value)
           return unless value
 
           value = value.to_s
-          num = value.to_i(10)
+          num   = value.to_i
 
           return unless num.to_s(10) == value
 
           num
         end
 
-        def self.parse_hex_id(value, length:)
+        def self.parse_hex_id(value, length: )
           return unless value
 
           value = value.to_s.downcase
