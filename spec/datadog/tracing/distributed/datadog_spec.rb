@@ -376,6 +376,40 @@ RSpec.shared_examples 'Datadog distributed format' do
           end
         end
       end
+
+      context 'when given invalid trace_id' do
+        [
+          (1 << 64).to_s,
+          '0',
+          '-1'
+        ].each do |invalid_trace_id|
+          context "when given invalid trace_id: #{invalid_trace_id}" do
+            let(:data) do
+              { prepare_key['x-datadog-trace-id'] => invalid_trace_id,
+                prepare_key['x-datadog-parent-id'] => '20000' }
+            end
+
+            it { is_expected.to be nil }
+          end
+        end
+      end
+
+      context 'when given invalid span_id' do
+        [
+          (1 << 64).to_s,
+          '0',
+          '-1'
+        ].each do |invalid_span_id|
+          context "when given invalid span_id: #{invalid_span_id}" do
+            let(:data) do
+              { prepare_key['x-datadog-trace-id'] => '10000',
+                prepare_key['x-datadog-parent-id'] => invalid_span_id }
+            end
+
+            it { is_expected.to be nil }
+          end
+        end
+      end
     end
 
     context 'with span_id' do

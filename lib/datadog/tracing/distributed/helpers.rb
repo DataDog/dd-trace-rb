@@ -20,19 +20,19 @@ module Datadog
           sampling_priority
         end
 
-        def self.format_base16_number(value)
-          # Lowercase if we want to parse base16 e.g. 3E8 => 3e8
-          # DEV: Ruby will parse `3E8` just fine, but to test
-          #      `num.to_s(base) == value` we need to lowercase
-          value = value.downcase
+        # def self.format_base16_number(value)
+        #   # Lowercase if we want to parse base16 e.g. 3E8 => 3e8
+        #   # DEV: Ruby will parse `3E8` just fine, but to test
+        #   #      `num.to_s(base) == value` we need to lowercase
+        #   value = value.downcase
 
-          # Remove any leading zeros
-          # DEV: When we call `num.to_s(16)` later Ruby will not add leading zeros
-          #      for us so we want to make sure the comparision will work as expected
-          # DEV: regex, remove all leading zeros up until we find the last 0 in the string
-          #      or we find the first non-zero, this allows `'0000' -> '0'` and `'00001' -> '1'`
-          value.sub(/^0*(?=(0$)|[^0])/, '')
-        end
+        #   # Remove any leading zeros
+        #   # DEV: When we call `num.to_s(16)` later Ruby will not add leading zeros
+        #   #      for us so we want to make sure the comparision will work as expected
+        #   # DEV: regex, remove all leading zeros up until we find the last 0 in the string
+        #   #      or we find the first non-zero, this allows `'0000' -> '0'` and `'00001' -> '1'`
+        #   value.sub(/^0*(?=(0$)|[^0])/, '')
+        # end
 
         # def self.value_to_id(value, base: 10)
         #   id = value_to_number(value, base: base)
@@ -78,11 +78,11 @@ module Datadog
           num
         end
 
-        def self.parse_hex_id(value, length: )
+        def self.parse_hex_id(value, length: nil)
           return unless value
 
           value = value.to_s.downcase
-          value = value[value.length - length, length] if value.length > length
+          value = value[value.length - length, length] if length && value.length > length
           value = value.sub(/^0*(?=(0$)|[^0])/, '')
 
           num = value.to_i(16)

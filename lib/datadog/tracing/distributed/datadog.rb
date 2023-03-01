@@ -56,8 +56,9 @@ module Datadog
         def extract(data)
           fetcher = @fetcher.new(data)
 
-          trace_id  = Helpers.parse_decimal_id(fetcher[@trace_id_key])
-          parent_id = Helpers.parse_decimal_id(fetcher[@parent_id_key])
+          trace_id  = parse_trace_id(fetcher)
+          parent_id = parse_parent_id(fetcher)
+
           sampling_priority = Helpers.parse_decimal_id(fetcher[@sampling_priority_key])
           origin = fetcher[@origin_key]
 
@@ -83,6 +84,24 @@ module Datadog
         end
 
         private
+
+        def parse_trace_id(fetcher_object)
+          trace_id = Helpers.parse_decimal_id(fetcher_object[@trace_id_key])
+
+          return unless trace_id
+          return if trace_id <= 0 || trace_id >= Tracing::Utils::EXTERNAL_MAX_ID
+
+          trace_id
+        end
+
+        def parse_parent_id(fetcher_object)
+          parent_id = Helpers.parse_decimal_id(fetcher_object[@parent_id_key])
+
+          return unless parent_id
+          return if parent_id <= 0 || parent_id >= Tracing::Utils::EXTERNAL_MAX_ID
+
+          parent_id
+        end
 
         def build_tags(digest)
           high_order = Tracing::Utils::TraceId.to_high_order(digest.trace_id)

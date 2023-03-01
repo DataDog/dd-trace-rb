@@ -283,7 +283,7 @@ RSpec.describe Datadog::Tracing::Correlation do
 
                 it do
                   is_expected.to have_attribute(
-                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=0xffffffffffffffffaaaaaaaaaaaaaaaa"
+                    "#{Datadog::Tracing::Correlation::Identifier::LOG_ATTR_TRACE_ID}=ffffffffffffffffaaaaaaaaaaaaaaaa"
                   )
                 end
               end
