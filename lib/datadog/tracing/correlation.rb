@@ -77,7 +77,7 @@ module Datadog
         def logging_trace_id
           if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
               !Tracing::Utils::TraceId.to_high_order(@trace_id).zero?
-            "0x#{@trace_id.to_s(16)}"
+            Kernel.format('%032x', trace_id)
           else
             Tracing::Utils::TraceId.to_low_order(@trace_id)
           end
