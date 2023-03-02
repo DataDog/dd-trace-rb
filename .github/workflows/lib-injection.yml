@@ -93,7 +93,7 @@ jobs:
             ${{matrix.variant}}
       - name: Log container to see error message
         run: |
-          sleep 5
+          sleep 10
           docker logs ${{matrix.variant}}
       - name: Send http request to ensure app remains running even with lib injection failure
         run: curl -v --retry 10 -f --retry-all-errors --retry-delay 5 -s -o /dev/null http://localhost:18080
