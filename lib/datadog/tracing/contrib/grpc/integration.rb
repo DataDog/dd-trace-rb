@@ -20,7 +20,14 @@ module Datadog
           end
 
           def self.loaded?
-            !defined?(::GRPC).nil?
+            !defined?(::GRPC).nil? &&
+              # When using the Google "Calendar User Availability API"
+              # (https://developers.google.com/calendar/api/user-availability/reference/rest), though the gem
+              # `google-cloud-calendar-useravailability-v1alpha` (currently in private preview),
+              # it's possible to load `GRPC` without loading the rest of the `grpc` gem. See:
+              # https://github.com/googleapis/gapic-generator-ruby/blob/f1c2e73219453e497b6ec2dc807a907e939e1342/gapic-common/lib/gapic/common.rb#L15-L16
+              # When this happens, there are no gRPC components of interest to instrument.
+              !defined?(::GRPC::Interceptor).nil? && !defined?(::GRPC::InterceptionContext).nil?
           end
 
           def self.compatible?

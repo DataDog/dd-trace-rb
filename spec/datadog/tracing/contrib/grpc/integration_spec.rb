@@ -28,7 +28,26 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Integration do
     context 'when GRPC is defined' do
       before { stub_const('GRPC', Class.new) }
 
-      it { is_expected.to be true }
+      context 'when GRPC::Interceptor is defined' do
+        before { stub_const('GRPC::Interceptor', Class.new) }
+
+        context 'when GRPC::InterceptionContext is defined' do
+          before { stub_const('GRPC::InterceptionContext', Class.new) }
+          it { is_expected.to be true }
+        end
+
+        context 'when GRPC::InterceptionContext is not defined' do
+          before { hide_const('GRPC::InterceptionContext') }
+
+          it { is_expected.to be false }
+        end
+      end
+
+      context 'when GRPC::Interceptor is not defined' do
+        before { hide_const('GRPC::Interceptor') }
+
+        it { is_expected.to be false }
+      end
     end
 
     context 'when GRPC is not defined' do
