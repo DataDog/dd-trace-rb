@@ -51,6 +51,10 @@ module Datadog
 
         module_function
 
+        # Format for generating 128 bits trace id =>
+        # - 32-bits : seconds since Epoch
+        # - 32-bits : set to zero,
+        # - 64 bits : random 64-bits
         def next_id
           return Utils.next_id unless Datadog.configuration.tracing.trace_id_128_bit_generation_enabled
 

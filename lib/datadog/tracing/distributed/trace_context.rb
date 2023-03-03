@@ -291,6 +291,8 @@ module Datadog
             when /^t\./
               key.slice!(0..1) # Delete `t.` prefix
 
+              # Ignore the high order 64 bit trace id propagation tag to avoid confusion,
+              # the single source of truth is from traceparent
               next if key == Tracing::Metadata::Ext::Distributed::TID
 
               value = deserialize_tag_value(value)

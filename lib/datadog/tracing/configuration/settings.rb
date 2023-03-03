@@ -186,6 +186,8 @@ module Datadog
               #
               # @default `DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED` environment variable, otherwise `false`
               # @return [Boolean]
+              #
+              # It is not supported by our backend yet. Do not enable it.
               option :trace_id_128_bit_logging_enabled do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::Correlation::ENV_TRACE_ID_128_BIT_LOGGING_ENABLED, false) }
                 o.lazy
