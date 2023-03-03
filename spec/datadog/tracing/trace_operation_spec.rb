@@ -3,6 +3,7 @@ require 'spec_helper'
 require 'time'
 
 require 'datadog/core'
+require 'datadog/core/utils/time'
 require 'datadog/core/environment/identity'
 
 require 'datadog/tracing/sampling/ext'
@@ -97,7 +98,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
 
         it do
-          allow(Time).to receive(:now).and_return(0xffffffff)
+          allow(Datadog::Core::Utils::Time).to receive(:now).and_return(0xffffffff)
           allow(Datadog::Tracing::Utils).to receive(:next_id).and_return(0xaaaaaaaaaaaaaaaa)
 
           expect(trace_op.id).to eq(0xffffffff00000000aaaaaaaaaaaaaaaa)

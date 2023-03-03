@@ -1,4 +1,5 @@
 require_relative '../core/utils/forking'
+require_relative '../core/utils/time'
 
 module Datadog
   module Tracing
@@ -54,7 +55,7 @@ module Datadog
           return Utils.next_id unless Datadog.configuration.tracing.trace_id_128_bit_generation_enabled
 
           concatenate(
-            Time.now.to_i << 32,
+            Core::Utils::Time.now.to_i << 32,
             Utils.next_id
           )
         end
