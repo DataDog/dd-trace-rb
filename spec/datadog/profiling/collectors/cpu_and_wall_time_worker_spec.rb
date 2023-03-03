@@ -310,11 +310,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        result = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+        all_samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+        result = samples_for_thread(all_samples, Thread.current)
         sample_count = result.map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
-        debug_failures = { thread_list: Thread.list, result: result }
+        debug_failures = { thread_list: Thread.list, all_samples: all_samples }
 
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
@@ -324,9 +325,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         # Sanity checking
 
-        # We're currently targeting 100 samples per second, so this is a conservative approximation that hopefully
-        # will not cause flakiness
-        expect(sample_count).to be >= 8, "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
+        # We're currently targeting 100 samples per second (aka 20 in the 0.2 period above), so expecting 5 samples is a
+        # conservative choice that hopefully will not cause flakiness.
+        #
+        # @ivoanjo: One source of flakiness here in the past has been the dynamic sampling rate component -- if for some
+        # reason the profiler takes longer to sample (maybe the CI machine is busy today...), it will by design slow down
+        # and take less samples. For now, I tried to tune down this value, and am hesitating on adding a way to disable
+        # the dynamic sampling rate while we're running this test (because this is something we'd never do in production).
+        # But if spec proves to be flaky again, then I think we'll need to go with that solution (as I think this test
+        # is still quite valuable).
+        expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
         expect(trigger_sample_attempts).to be >= sample_count
       end
     end
@@ -470,15 +478,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe '#reset_after_fork' do
     subject(:reset_after_fork) { cpu_and_wall_time_worker.reset_after_fork }
 
-    let(:cpu_and_wall_time_collector) do
-      Datadog::Profiling::Collectors::CpuAndWallTime.new(recorder: recorder, max_frames: 400, tracer: nil)
+    let(:thread_context_collector) do
+      Datadog::Profiling::Collectors::ThreadContext.new(recorder: recorder, max_frames: 400, tracer: nil)
     end
-    let(:options) { { cpu_and_wall_time_collector: cpu_and_wall_time_collector } }
+    let(:options) { { thread_context_collector: thread_context_collector } }
 
     before do
       # This is important -- the real #reset_after_fork must not be called concurrently with the worker running,
       # which we do in this spec to make it easier to test the reset_after_fork behavior
-      allow(cpu_and_wall_time_collector).to receive(:reset_after_fork)
+      allow(thread_context_collector).to receive(:reset_after_fork)
 
       cpu_and_wall_time_worker.start
       wait_until_running
@@ -495,7 +503,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     it 'resets the CpuAndWallTime collector only after disabling the tracepoint' do
-      expect(cpu_and_wall_time_collector).to receive(:reset_after_fork) do
+      expect(thread_context_collector).to receive(:reset_after_fork) do
         expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
       end
 
