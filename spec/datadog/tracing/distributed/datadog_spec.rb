@@ -2,6 +2,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/distributed/datadog'
 require 'datadog/tracing/trace_digest'
+require 'datadog/tracing/utils'
 
 RSpec.shared_examples 'Datadog distributed format' do
   subject(:datadog) { described_class.new(fetcher: fetcher_class) }
@@ -94,7 +95,12 @@ RSpec.shared_examples 'Datadog distributed format' do
       end
 
       context 'with trace_distributed_tags' do
-        let(:digest) { Datadog::Tracing::TraceDigest.new(trace_distributed_tags: tags) }
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: Datadog::Tracing::Utils::TraceId.next_id,
+            trace_distributed_tags: tags
+          )
+        end
 
         context 'nil' do
           let(:tags) { nil }

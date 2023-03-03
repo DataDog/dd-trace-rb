@@ -37,7 +37,8 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
     context 'when given <= 64 bit' do
       [
         0xaaaaaaaaaaaaaaaa,
-        0xffffffffffffffff
+        0xffffffffffffffff,
+        0,
       ].each do |input|
         it 'returns itself' do
           expect(described_class.to_low_order(input)).to eq(input)
@@ -64,7 +65,7 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
       [
         0xaaaaaaaaaaaaaaaa,
         0xffffffffffffffff,
-        nil
+        0,
       ].each do |input|
         it 'returns 0' do
           expect(described_class.to_high_order(input)).to eq(0)
@@ -92,9 +93,8 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
       [0xffffffffffffffff, 0xaaaaaaaaaaaaaaaa] => 0xffffffffffffffffaaaaaaaaaaaaaaaa,
       [0x00000000aaaaaaaa, 0xffffffffffffffff] => 0x00000000aaaaaaaaffffffffffffffff,
       [0xaaaaaaaaaaaaaaaa, 0xffffffff] => 0xaaaaaaaaaaaaaaaa00000000ffffffff,
-      [nil, 0xffffffffffffffff] => 0xffffffffffffffff,
       [0,   0xffffffffffffffff] => 0xffffffffffffffff,
-      ['0', 0xffffffffffffffff] => 0xffffffffffffffff,
+      [0xaaaaaaaaaaaaaaaa, 0] => 0xaaaaaaaaaaaaaaaa0000000000000000,
     }.each do |(high_order, low_order), result|
       context "when given `#{high_order}` and `#{low_order}`" do
         it "returns `0x#{result.to_s(16)}`" do

@@ -12,7 +12,8 @@ require 'ddtrace/transport/trace_formatter'
 
 RSpec.describe Datadog::Transport::TraceFormatter do
   subject(:trace_formatter) { described_class.new(trace) }
-  let(:trace_options) { {} }
+  let(:trace_options) { { id: trace_id } }
+  let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
 
   shared_context 'trace metadata' do
     let(:trace_tags) do
@@ -21,6 +22,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
 
     let(:trace_options) do
       {
+        id: trace_id,
         resource: resource,
         agent_sample_rate: agent_sample_rate,
         hostname: hostname,

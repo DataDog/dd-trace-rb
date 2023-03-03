@@ -61,15 +61,15 @@ module Datadog
         end
 
         def to_high_order(trace_id)
-          trace_id.to_i >> 64
+          trace_id >> 64
         end
 
         def to_low_order(trace_id)
-          trace_id.to_i & 0xFFFFFFFFFFFFFFFF
+          trace_id & 0xFFFFFFFFFFFFFFFF
         end
 
         def concatenate(high_order, low_order)
-          high_order.to_i << 64 | low_order.to_i
+          high_order << 64 | low_order
         end
       end
     end
