@@ -140,7 +140,7 @@ module Datadog
         # NOTE: We use Kernel#warn here because this code gets run BEFORE Datadog.logger is actually set up.
         # In the future it'd be nice to shuffle the logger startup to happen first to avoid this special case.
         Kernel.warn(
-          '[DDTRACE] Error while loading google-protobuf gem. ' \
+          '[ddtrace] Error while loading google-protobuf gem. ' \
           "Cause: '#{e.class.name} #{e.message}' Location: '#{Array(e.backtrace).first}'. " \
           'This can happen when google-protobuf is missing its native components. ' \
           'To fix this, try removing and reinstalling the gem, forcing it to recompile the components: ' \
