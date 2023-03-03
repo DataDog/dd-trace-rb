@@ -1,7 +1,7 @@
 require 'datadog/profiling/spec_helper'
-require 'datadog/profiling/collectors/cpu_and_wall_time'
+require 'datadog/profiling/collectors/thread_context'
 
-RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
+RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   before do
     skip_if_profiling_not_supported(self)
 

@@ -7,16 +7,18 @@ For a more practical view of getting started with development of `ddtrace`, see 
 ## Profiling components high-level view
 
 Some of the profiling components referenced below are implemented using C code. As much as possible, that C code is still
-assigned to Ruby classes and Ruby methods, and the Ruby classes are still created in `.rb` files.
+organized in Ruby classes, and the Ruby classes are still created in their corresponding `.rb` files.
 
 Components below live inside <../lib/datadog/profiling>:
 
 * (Deprecated) `Collectors::OldStack`: Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
   Runs on its own background thread.
-* `Collectors::CodeProvenance`: Collects library metadata to power grouping and categorization of stack traces (e.g. to help distinguish user code, from libraries, from the standard library, etc).
-* `Collectors::CpuAndWallTime`: Collects samples of living Ruby threads, recording elapsed CPU and Wall-clock time, and
-tagging them with thread id and thread name. Relies on the `Collectors::Stack` for the actual stack sampling.
-* `Collectors::CpuAndWallTimeWorker`: Triggers the periodic execution of `Collectors::CpuAndWallTime`.
+* `Collectors::CodeProvenance`: Collects library metadata to power grouping and categorization of stack traces (e.g. to help distinguish user code,
+from libraries, from the standard library, etc).
+* `Collectors::ThreadContext`: Collects samples of living Ruby threads, based on external events (periodic timer, GC happening, allocations, ...),
+recording a metric for them (such as elapsed cpu-time or wall-time, in a few cases) and labeling them with thread id and thread name, as well as
+with ongoing tracing information, if any. Relies on the `Collectors::Stack` for the actual stack sampling.
+* `Collectors::CpuAndWallTimeWorker`: Triggers the periodic execution of `Collectors::ThreadContext`.
 * `Collectors::Stack`: Used to gather a stack trace from a given Ruby thread. Stores its output on a `StackRecorder`.
 
 * (Deprecated) `Encoding::Profile::Protobuf`: Encodes gathered data into the pprof format.
@@ -94,7 +96,7 @@ The profiler is undergoing a lot of refactoring. After this work is done, this i
           |                              |       |
           |                              |       v
           |                              |  +----+----------+
-          |                              |  | HttpTransport |
+(... see "How sampling happens" ...)     |  | HttpTransport |
           |                              |  +---------------+
           |                              |
           v                              v
@@ -110,14 +112,52 @@ The profiler is undergoing a lot of refactoring. After this work is done, this i
 
 ## Run-time execution
 
-During run-time, the `Scheduler` and the `Collectors::OldStack` each execute on their own background thread.
+During run-time, the `Scheduler` and the `Collectors::CpuAndWallTimeWorker` (`Collectors::OldStack` for the legacy profiler) each execute on their own background thread.
 
-The `Collectors::OldStack` samples stack traces of threads, capturing both CPU-time (if available) and wall-clock, storing
-them in the `OldRecorder`.
+The `Scheduler` wakes up every 1 minute to flush the results of the `Exporter` into the `HttpTransport` (see above).
 
-The `Scheduler` wakes up every 1 minute to flush the results of the `Exporter` into the transport.
-By default, the `Scheduler` gets created with the default `HttpTransport`, which
-takes care of encoding the data and reporting it to the Datadog agent.
+### How sampling happens
+
+The `Collectors::CpuAndWallTimeWorker` component is the "active" part of the profiler. It manages periodic timers, tracepoints, etc
+and is responsible for deciding when to sample, and what kind of sample it is.
+
+It then kicks off a pipeline of components, each of which is responsible for gathering part of the information for a single sample.
+
+```asciiflow
+
+ Events:    Timing   GC   Allocations
+               │      │        │
+  ┌────────────v──────v────────v─────┐
+  │ Collectors::CpuAndWallTimeWorker │
+  └┬─────────────────────────────────┘
+   │
+   │ Event details
+   │
+  ┌v──────────────────────────┐
+  │ Collectors::ThreadContext │
+  └┬──────────────────────────┘
+   │
+   │ + Values (cpu-time, ...) and labels (thread id, span id, ...)
+   │
+  ┌v──────────────────┐
+  │ Collectors::Stack │
+  └┬──────────────────┘
+   │
+   │ + Stack traces
+   │
+  ┌v──────────────┐
+  │ StackRecorder │
+  └┬──────────────┘
+   │
+   │ Sample
+   │
+  ┌v───────────┐
+  │ libdatadog │
+  └────────────┘
+```
+
+All of these components are executed synchronously, and at the end of recording the sample in libdatadog, control is returned back "up"
+through each one, until the `CpuAndWallTimeWorker` finishes its work and control returns to the Ruby VM.
 
 ## How linking of traces to profiles works
 
