@@ -875,6 +875,25 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
         end
       end
+
+      context 'with the msgpack_rails gem present' do
+        include_context 'tracer logging'
+
+        before do
+          allow(Gem.loaded_specs).to receive(:[])
+            .with('msgpack_rails')
+            .and_return(instance_double(Bundler::StubSpecification))
+        end
+
+        it 'logs possible serialization error' do
+          build_tracer
+          expect(log_buffer).to contain_line_with('msgpack_rails')
+        end
+
+        # context 'with log message disabled' do
+        #   DD_TRACE_REPORT_ON_MSGPACK_RAILS
+        # end
+      end
     end
   end
 

@@ -11,6 +11,8 @@ module Datadog
     # Tracing component
     module Component
       def build_tracer(settings, agent_settings)
+        check_for_msgpack_rails
+
         # If a custom tracer has been provided, use it instead.
         # Ignore all other options (they should already be configured.)
         tracer = settings.tracing.instance
@@ -170,6 +172,23 @@ module Datadog
         # Flush traces synchronously, to guarantee they are written.
         writer_options = settings.tracing.test_mode.writer_options || {}
         Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
+      end
+
+      CHECK_FOR_MSGPACK_RAILS_ONLY_ONCE = Core::Utils::OnlyOnce.new
+
+      # This gem conflict issue was identified in GitHub issue:
+      # @see https://github.com/DataDog/datadog-agent/issues/15808
+      def check_for_msgpack_rails
+        CHECK_FOR_MSGPACK_RAILS_ONLY_ONCE.run do
+          if Gem.loaded_specs['msgpack_rails'] && ENV['DD_TRACE_REPORT_ON_MSGPACK_RAILS'] != 'false'
+            Datadog.logger.error(
+              "The 'msgpack_rails' gem overrides 'msgpack' behavior and breaks its API contract. " \
+              'This can corrupt the Datadog trace serialization. ' \
+              "Please remove the 'msgpack_rails' gem from this application. " \
+              '(Set `DD_TRACE_REPORT_ON_MSGPACK_RAILS=false` to suppress this log output)' \
+            )
+          end
+        end
       end
     end
   end
