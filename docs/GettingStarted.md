@@ -28,8 +28,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
  - [Installation](#installation)
      - [Setup the Datadog Agent for tracing](#setup-the-datadog-agent-for-tracing)
      - [Instrument your application](#instrument-your-application)
-        - [Rails applications](#rails-applications)
-        - [Ruby applications](#ruby-applications)
+        - [Rails or Hanami applications](#rails-or-hanami-applications)
+        - [Other Ruby applications](#other-ruby-applications)
         - [Configuring OpenTracing](#configuring-opentracing)
         - [Configuring OpenTelemetry](#configuring-opentelemetry)
      - [Connect your application to the Datadog Agent](#connect-your-application-to-the-datadog-agent)
@@ -219,7 +219,7 @@ OR
 
 ### Instrument your application
 
-#### Rails/Hanami applications
+#### Rails or Hanami applications
 
 1. Add the `ddtrace` gem to your Gemfile:
 
@@ -337,7 +337,7 @@ If your Datadog Agent is listening at any of these locations, no further configu
 If your agent runs on a different host or container than your application, or you would like to send traces via a different protocol, you will need to configure your application accordingly.
 
   - [How to send trace data via HTTP over TCP to agent](#changing-default-agent-hostname-and-port)
-  - [How to send trace data via Unix Domain Socket (UDS) to agent](#using-the-unix-domain-socket-uds-adapter)
+  - [How to send trace data via Unix Domain Socket (UDS) to agent](#using-the-unix-domain-socket--uds--adapter)
 
 ### Final steps for installation
 
@@ -413,7 +413,7 @@ end
 
 Calling `Datadog::Tracing.trace` without a block will cause the function to return a `Datadog::Tracing::SpanOperation` that is started, but not finished. You can then modify this span however you wish, then close it `finish`.
 
-*You must not leave any unfinished spans.* If any spans are left open when the trace completes, the trace will be discarded. You can [activate debug mode](#tracer-settings) to check for warnings if you suspect this might be happening.
+*You must not leave any unfinished spans.* If any spans are left open when the trace completes, the trace will be discarded. You can [activate debug mode](#additional-configuration) to check for warnings if you suspect this might be happening.
 
 To avoid this scenario when handling start/finish events, you can use `Datadog::Tracing.active_span` to get the current active span.
 
@@ -2125,7 +2125,7 @@ end
 | `env`                                                   | `DD_ENV`                       | `nil`                                                             | Your application environment. (e.g. `production`, `staging`, etc.) This value is set as a tag on all traces.                                                                                                                              |
 | `service`                                               | `DD_SERVICE`                   | *Ruby filename*                                                   | Your application's default service name. (e.g. `billing-api`) This value is set as a tag on all traces.                                                                                                                                   |
 | `tags`                                                  | `DD_TAGS`                      | `nil`                                                             | Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`) These tags are set on all traces. See [Environment and tags](#environment-and-tags) for more details.                                                          |
-| `time_now_provider`                                     |                                | `->{ Time.now }`                                                  | Changes how time is retrieved. See [Setting the time provider](#Setting the time provider) for more details.                                                                                                                              |
+| `time_now_provider`                                     |                                | `->{ Time.now }`                                                  | Changes how time is retrieved. See [Setting the time provider](#setting-the-time-provider) for more details.                                                                                                                              |
 | `version`                                               | `DD_VERSION`                   | `nil`                                                             | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                        |
 | `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED` | `false`                                                             | Allows you to enable sending telemetry data to Datadog. In a future release, we will be setting this to  `true` by default, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                          |
 | **Tracing**                                             |                                |                                                                   |                                                                                                                                                                                                                                           |
