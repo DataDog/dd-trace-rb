@@ -2,6 +2,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/distributed/datadog'
 require 'datadog/tracing/trace_digest'
+require 'datadog/tracing/utils'
 
 RSpec.shared_examples 'Datadog distributed format' do
   subject(:datadog) { described_class.new(fetcher: fetcher_class) }
@@ -94,7 +95,12 @@ RSpec.shared_examples 'Datadog distributed format' do
       end
 
       context 'with trace_distributed_tags' do
-        let(:digest) { Datadog::Tracing::TraceDigest.new(trace_distributed_tags: tags) }
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: Datadog::Tracing::Utils::TraceId.next_id,
+            trace_distributed_tags: tags
+          )
+        end
 
         context 'nil' do
           let(:tags) { nil }
@@ -187,6 +193,43 @@ RSpec.shared_examples 'Datadog distributed format' do
               inject!
             end
           end
+        end
+      end
+
+      context 'when given a trace digest with 128 bit trace id' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
+            span_id: 0xbbbbbbbbbbbbbbbb
+          )
+        end
+
+        it do
+          inject!
+
+          expect(data).to eq(
+            'x-datadog-trace-id' => 0xffffffffffffffff.to_s,
+            'x-datadog-parent-id' => 0xbbbbbbbbbbbbbbbb.to_s,
+            'x-datadog-tags' => '_dd.p.tid=aaaaaaaaaaaaaaaa'
+          )
+        end
+      end
+
+      context 'when given a trace digest with 64 bit trace id' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 0xffffffffffffffff,
+            span_id: 0xbbbbbbbbbbbbbbbb
+          )
+        end
+
+        it do
+          inject!
+
+          expect(data).to eq(
+            'x-datadog-trace-id' => 0xffffffffffffffff.to_s,
+            'x-datadog-parent-id' => 0xbbbbbbbbbbbbbbbb.to_s
+          )
         end
       end
     end
@@ -339,6 +382,40 @@ RSpec.shared_examples 'Datadog distributed format' do
           end
         end
       end
+
+      context 'when given invalid trace_id' do
+        [
+          (1 << 64).to_s,
+          '0',
+          '-1'
+        ].each do |invalid_trace_id|
+          context "when given invalid trace_id: #{invalid_trace_id}" do
+            let(:data) do
+              { prepare_key['x-datadog-trace-id'] => invalid_trace_id,
+                prepare_key['x-datadog-parent-id'] => '20000' }
+            end
+
+            it { is_expected.to be nil }
+          end
+        end
+      end
+
+      context 'when given invalid span_id' do
+        [
+          (1 << 64).to_s,
+          '0',
+          '-1'
+        ].each do |invalid_span_id|
+          context "when given invalid span_id: #{invalid_span_id}" do
+            let(:data) do
+              { prepare_key['x-datadog-trace-id'] => '10000',
+                prepare_key['x-datadog-parent-id'] => invalid_span_id }
+            end
+
+            it { is_expected.to be nil }
+          end
+        end
+      end
     end
 
     context 'with span_id' do
@@ -387,6 +464,20 @@ RSpec.shared_examples 'Datadog distributed format' do
         it { expect(digest.trace_origin).to eq('custom-origin') }
         it { expect(digest.trace_sampling_priority).to be nil }
       end
+    end
+
+    context 'with trace id and distributed tags `_dd.p.tid`' do
+      let(:data) do
+        {
+          prepare_key['x-datadog-trace-id'] => 0xffffffffffffffff.to_s,
+          prepare_key['x-datadog-parent-id'] => 0xbbbbbbbbbbbbbbbb.to_s,
+          prepare_key['x-datadog-tags'] => '_dd.p.tid=aaaaaaaaaaaaaaaa'
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).not_to include('_dd.p.tid') }
     end
   end
 end

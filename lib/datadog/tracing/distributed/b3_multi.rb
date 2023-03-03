@@ -2,6 +2,7 @@
 
 require_relative 'helpers'
 require_relative '../trace_digest'
+require_relative '../utils'
 
 module Datadog
   module Tracing
@@ -45,13 +46,19 @@ module Datadog
         def extract(data)
           # DEV: B3 doesn't have "origin"
           fetcher = @fetcher.new(data)
-          trace_id = fetcher.id(@trace_id_key, base: 16)
-          span_id = fetcher.id(@span_id_key, base: 16)
-          # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
-          sampling_priority = fetcher.number(@sampled_key)
+
+          trace_id = Helpers.parse_hex_id(fetcher[@trace_id_key])
 
           # Return early if this propagation is not valid
-          return unless trace_id && span_id
+          return if trace_id.nil? || trace_id <= 0 || trace_id > Tracing::Utils::TraceId::MAX
+
+          span_id = Helpers.parse_hex_id(fetcher[@span_id_key])
+
+          # Return early if this propagation is not valid
+          return if span_id.nil? || span_id <= 0 || span_id >= Tracing::Utils::EXTERNAL_MAX_ID
+
+          # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
+          sampling_priority = Helpers.parse_decimal_id(fetcher[@sampled_key])
 
           TraceDigest.new(
             trace_id: trace_id,

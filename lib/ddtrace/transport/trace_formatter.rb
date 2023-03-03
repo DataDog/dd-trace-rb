@@ -47,6 +47,7 @@ module Datadog
         tag_rate_limiter_rate!
         tag_sample_rate!
         tag_sampling_decision_maker!
+        tag_high_order_trace_id!
         tag_sampling_priority!
 
         trace
@@ -164,6 +165,12 @@ module Datadog
           Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY,
           trace.sampling_priority
         )
+      end
+
+      def tag_high_order_trace_id!
+        return unless (high_order_tid = trace.high_order_tid)
+
+        root_span.set_tag(Tracing::Metadata::Ext::Distributed::TAG_TID, high_order_tid)
       end
 
       private

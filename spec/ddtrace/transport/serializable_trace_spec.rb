@@ -41,6 +41,35 @@ RSpec.describe Datadog::Transport::SerializableTrace do
         is_expected.to eq(original_spans)
       end
     end
+
+    context 'when given trace_id' do
+      subject(:unpacked_trace) { MessagePack.unpack(to_msgpack) }
+
+      let(:spans) do
+        Array.new(3) do |_i|
+          Datadog::Tracing::Span.new(
+            'dummy',
+            trace_id: trace_id
+          )
+        end
+      end
+
+      context 'when given 64 bits trace id' do
+        let(:trace_id) { 0xffffffffffffffff }
+
+        it 'serializes 64 bits trace id entirely' do
+          expect(unpacked_trace.map { |s| s['trace_id'] }).to all(eq(0xffffffffffffffff))
+        end
+      end
+
+      context 'when given 128 bits trace id' do
+        let(:trace_id) { 0xaaaaaaaaaaaaaaaaffffffffffffffff }
+
+        it 'serializes the low order 64 bits trace id' do
+          expect(unpacked_trace.map { |s| s['trace_id'] }).to all(eq(0xffffffffffffffff))
+        end
+      end
+    end
   end
 
   describe '#to_json' do
@@ -57,6 +86,35 @@ RSpec.describe Datadog::Transport::SerializableTrace do
 
       it 'correctly performs a serialization round-trip' do
         is_expected.to eq(original_spans)
+      end
+    end
+
+    context 'when given trace_id' do
+      subject(:unpacked_trace) { JSON(to_json) }
+
+      let(:spans) do
+        Array.new(3) do |_i|
+          Datadog::Tracing::Span.new(
+            'dummy',
+            trace_id: trace_id
+          )
+        end
+      end
+
+      context 'when given 64 bits trace id' do
+        let(:trace_id) { 0xffffffffffffffff }
+
+        it 'serializes 64 bits trace id entirely' do
+          expect(unpacked_trace.map { |s| s['trace_id'] }).to all(eq(0xffffffffffffffff))
+        end
+      end
+
+      context 'when given 128 bits trace id' do
+        let(:trace_id) { 0xaaaaaaaaaaaaaaaaffffffffffffffff }
+
+        it 'serializes the low order 64 bits trace id' do
+          expect(unpacked_trace.map { |s| s['trace_id'] }).to all(eq(0xffffffffffffffff))
+        end
       end
     end
   end

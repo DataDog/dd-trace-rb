@@ -28,13 +28,6 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(traceparent).to eq('00-00000000000000000000000000c0ffee-0000000000000bee-00') }
 
-      context 'with trace_distributed_id' do
-        let(:options) { { trace_distributed_id: 0xACE00000000000000000000000C0FFEE } }
-        it 'prioritizes the original trace_distributed_id' do
-          expect(traceparent).to eq('00-ace00000000000000000000000c0ffee-0000000000000bee-00')
-        end
-      end
-
       context 'with trace_flags' do
         context 'with a dropped trace' do
           let(:options) { { trace_flags: 0xFF, trace_sampling_priority: -1 } }
@@ -130,6 +123,21 @@ RSpec.shared_examples 'Trace Context distributed format' do
               it { expect(tracestate).to eq('dd=o:_') }
             end
           end
+        end
+      end
+
+      context 'with 128 bit trace id' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
+            span_id: 0xbbbbbbbbbbbbbbbb
+          )
+        end
+
+        it do
+          inject!
+
+          expect(traceparent).to eq('00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00')
         end
       end
 
@@ -311,6 +319,44 @@ RSpec.shared_examples 'Trace Context distributed format' do
       it { is_expected.to be nil }
     end
 
+    context 'with traceparent and distributed_tag `t.tid` in tracestate' do
+      let(:data) do
+        {
+          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
+          prepare_key['tracestate'] => 'dd=t.tid:cccccccccccccccc'
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).to be_nil }
+    end
+
+    context 'with traceparent without tracestate' do
+      let(:data) do
+        {
+          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).to be_nil }
+    end
+
+    context 'with traceparent and with empty tracestate' do
+      let(:data) do
+        {
+          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
+          prepare_key['tracestate'] => ''
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).to be_nil }
+    end
+
     context 'with valid trace_id and parent_id' do
       it { expect(digest.trace_id).to eq(0xC0FFEE) }
       it { expect(digest.span_id).to eq(0xBEE) }
@@ -320,8 +366,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
       context 'and trace_id larger than 64 bits' do
         let(:trace_id) { 'ace00000000000000000000000c0ffee' }
 
-        it { expect(digest.trace_id).to eq(0xC0FFEE) }
-        it { expect(digest.trace_distributed_id).to eq(0xACE00000000000000000000000C0FFEE) }
+        it { expect(digest.trace_id).to eq(0xACE00000000000000000000000C0FFEE) }
       end
 
       context 'with sampling priority' do
