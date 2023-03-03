@@ -63,6 +63,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_sample_after_gc(cpu_and_wall_time_collector)
   end
 
+  def sample_allocation(weight:)
+    described_class::Testing._native_sample_allocation(cpu_and_wall_time_collector, weight)
+  end
+
   def thread_list
     described_class::Testing._native_thread_list
   end
@@ -75,6 +79,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_stats(cpu_and_wall_time_collector)
   end
 
+  # This method exists only so we can look for its name in the stack trace in a few tests
   def inside_t1
     yield
   end
@@ -810,6 +815,75 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               cpu_time_at_previous_sample_ns: cpu_time_at_previous_sample_ns_before + cpu_time_spent_in_gc
             )
           end
+        end
+      end
+    end
+  end
+
+  describe '#sample_allocation' do
+    let(:single_sample) do
+      expect(samples.size).to be 1
+      samples.first
+    end
+
+    it 'samples the caller thread' do
+      sample_allocation(weight: 123)
+
+      expect(object_id_from(single_sample.labels.fetch(:'thread id'))).to be Thread.current.object_id
+    end
+
+    it 'tags the sample with the provided weight' do
+      sample_allocation(weight: 123)
+
+      expect(single_sample.values).to include(:'alloc-samples' => 123)
+    end
+
+    it 'includes the thread names, if available' do
+      thread_with_name = Thread.new do
+        Thread.current.name = 'thread_with_name'
+        sample_allocation(weight: 123)
+      end.join
+      thread_without_name = Thread.new { sample_allocation(weight: 123) }.join
+
+      sample_with_name = samples_for_thread(samples, thread_with_name).first
+      sample_without_name = samples_for_thread(samples, thread_without_name).first
+
+      expect(sample_with_name.labels).to include(:'thread name' => 'thread_with_name')
+      expect(sample_without_name.labels).to_not include(:'thread name')
+    end
+
+    describe 'code hotspots' do
+      # NOTE: To avoid duplicating all of the similar-but-slightly different tests from `#sample` (due to how
+      # `#sample` includes every thread, but `#sample_allocation` includes only the caller thread), here is a simpler
+      # test to make sure this works in the common case
+      context 'when there is an active trace on the sampled thread' do
+        let(:tracer) { Datadog::Tracing.send(:tracer) }
+        let(:t1) do
+          Thread.new(ready_queue) do |ready_queue|
+            inside_t1 do
+              Datadog::Tracing.trace('profiler.test', type: 'web') do |_span, trace|
+                trace.resource = 'trace_resource'
+
+                Datadog::Tracing.trace('profiler.test.inner') do |inner_span|
+                  @t1_span_id = inner_span.id
+                  @t1_local_root_span_id = trace.send(:root_span).id
+                  sample_allocation(weight: 456)
+                  ready_queue << true
+                  sleep
+                end
+              end
+            end
+          end
+        end
+
+        after { Datadog::Tracing.shutdown! }
+
+        it 'gathers the "local root span id", "span id" and "trace endpoint"' do
+          expect(single_sample.labels).to include(
+            :'local root span id' => @t1_local_root_span_id.to_i,
+            :'span id' => @t1_span_id.to_i,
+            :'trace endpoint' => 'trace_resource',
+          )
         end
       end
     end

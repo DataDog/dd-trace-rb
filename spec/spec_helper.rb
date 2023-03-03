@@ -1,5 +1,8 @@
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
+
+Thread.main.name = 'Thread.main' unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+
 require 'pry'
 require 'rspec/collection_matchers'
 require 'rspec/wait'
