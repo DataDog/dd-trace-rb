@@ -244,7 +244,9 @@ OR
       - [Add additional configuration settings](#additional-configuration)
       - [Activate or reconfigure instrumentation](#integration-instrumentation)
 
-#### Ruby applications
+#### Other Ruby applications
+
+If you application does not use of the supported gems above, you can set it up as follows:
 
 1. Add the `ddtrace` gem to your Gemfile:
 
