@@ -39,9 +39,8 @@ module Datadog
         :span
 
       def initialize(span)
-        @span = span.tap do |s|
-          s.trace_id = Tracing::Utils::TraceId.to_low_order(s.trace_id)
-        end
+        @span = span
+        @trace_id = Tracing::Utils::TraceId.to_low_order(span.trace_id)
       end
 
       # MessagePack serializer interface. Making this object
@@ -78,7 +77,7 @@ module Datadog
         packer.write('parent_id')
         packer.write(span.parent_id)
         packer.write('trace_id')
-        packer.write(span.trace_id)
+        packer.write(@trace_id)
         packer.write('name')
         packer.write(span.name)
         packer.write('service')
@@ -110,7 +109,7 @@ module Datadog
       end
 
       def to_hash
-        span.to_hash
+        span.to_hash.merge(trace_id: @trace_id)
       end
 
       # Used for serialization
