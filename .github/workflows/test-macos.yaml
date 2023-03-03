@@ -6,8 +6,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - macos-11
-          - macos-12
+          - macos-latest
         ruby:
           - '2.1'
           - '2.2'
