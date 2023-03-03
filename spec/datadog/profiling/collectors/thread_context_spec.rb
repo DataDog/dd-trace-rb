@@ -79,6 +79,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_stats(cpu_and_wall_time_collector)
   end
 
+  # This method exists only so we can look for its name in the stack trace in a few tests
   def inside_t1
     yield
   end
