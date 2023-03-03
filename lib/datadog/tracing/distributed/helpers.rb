@@ -31,11 +31,10 @@ module Datadog
           num
         end
 
-        def self.parse_hex_id(value, length: nil)
+        def self.parse_hex_id(value)
           return unless value
 
           value = value.to_s.downcase
-          value = value[value.length - length, length] if length && value.length > length
           value = value.sub(/^0*(?=(0$)|[^0])/, '')
 
           num = value.to_i(16)
