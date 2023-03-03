@@ -8,9 +8,7 @@ require 'datadog/tracing/utils'
 
 RSpec.describe Datadog::Tracing::TraceSegment do
   let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
-  subject(:trace_segment) { described_class.new(spans, **options.merge(id: trace_id)) }
   let(:options) { {} }
-
   let(:spans) do
     Array.new(3) do |i|
       span = Datadog::Tracing::Span.new(
@@ -26,6 +24,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
       span
     end
   end
+  subject(:trace_segment) { described_class.new(spans, **options.merge(id: trace_id)) }
 
   describe '::new' do
     context 'by default' do
