@@ -337,7 +337,7 @@ If your Datadog Agent is listening at any of these locations, no further configu
 If your agent runs on a different host or container than your application, or you would like to send traces via a different protocol, you will need to configure your application accordingly.
 
   - [How to send trace data via HTTP over TCP to agent](#changing-default-agent-hostname-and-port)
-  - [How to send trace data via Unix Domain Socket (UDS) to agent](#using-the-unix-domain-socket--uds--adapter)
+  - [How to send trace data via Unix Domain Socket (UDS) to agent](#using-the-unix-domain-socket-uds-adapter)
 
 ### Final steps for installation
 
