@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.9.0)
+    ddtrace (1.10.0)
       debase-ruby_core_source (>= 0.10.16, <= 3.2.0)
       libdatadog (~> 2.0.0.1.0)
       libddwaf (~> 1.6.2.0.0)
@@ -1613,7 +1613,7 @@ GEM
     mongo (2.14.1)
       bson (>= 4.8.2, < 5.0.0)
     mono_logger (1.1.1)
-    msgpack (1.6.0)
+    msgpack (1.6.1)
     multi_json (1.15.0)
     multi_test (0.1.2)
     multipart-post (2.3.0)
