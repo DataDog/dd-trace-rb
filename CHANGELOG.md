@@ -7,37 +7,33 @@
 ### Added
 
 * Support Ruby 3.2 ([#2601][])
-* Create init image for lib-injection ([#2606][])
+* Publish init container image (beta) for `dd-trace-rb` injection through K8s admission controller ([#2606][])
 * Tracing: Support 128 bits trace id  ([#2543][])
-* Tracing: Add tags to  integrations (`que` / `racecar` / `resque`/ `shoryken` / `sneakers` / `qless` / `delayed_job` / `kafka` / `sidekiq` / `dalli` / `presto` / `elasticsearch`) ([#2619][],  [#2613][] , [#2608][], [#2590][])
+* Tracing: Add tags to integrations (`que` / `racecar` / `resque`/ `shoryken` / `sneakers` / `qless` / `delayed_job` / `kafka` / `sidekiq` / `dalli` / `presto` / `elasticsearch`) ([#2619][],  [#2613][] , [#2608][], [#2590][])
 * Appsec: Introduce `AppSec::Instrumentation::Gateway::Argument` ([#2648][])
-* Appsec: Block request when user ID matches rules data  ([#2642][])
+* Appsec: Block request when user ID matches rules  ([#2642][])
 * Appsec: Block request base on response addresses matches ([#2605][])
-* Appsec: Add appsec component ([#2632][])
 * Appsec: Allow to set user id denylist ([#2612][])
-* Appsec: Extract array creation from critical path ([#2597][])
 * Profiling: Show profiler overhead in flamegraph for CPU Profiling 2.0 ([#2607][])
 * Profiling: Add support for allocation samples to `ThreadContext` ([#2657][])
 * Profiling: Exclude disabled profiling sample value types from output ([#2634][])
-* Profiling: Extend stack collector to be able to record the alloc-samples metric ([#2618][])
+* Profiling: Extend stack collector to record the alloc-samples metric ([#2618][])
 * Profiling: Add `Profiling.allocation_count` API for new profiler ([#2635][])
 
 ### Changed
 
-* Tracing: `rack`, Only count time spent in queue as part of the `http_server.queue` span ([#2591][]) ([@agrobbin][])
-* Appsec: Update ruleset to 1.5.2 ([#2662][], [#2659][])
-* Appsec: Update waf rules to 1.5.0 version ([#2598][])
+* Tracing: `rack` instrumentation counts time spent in queue as part of the `http_server.queue` span ([#2591][]) ([@agrobbin][])
+* Appsec: Update ruleset to 1.5.2 ([#2662][], [#2659][], [#2598][])
 * Appsec: Update `libddwaf` version to 1.6.2.0.0 ([#2614][])
 * Profiling: Upgrade profiler to use `libdatadog` v2.0.0 ([#2599][])
 * Profiling: Remove support for profiling Ruby 2.2 ([#2592][])
 
 ### Fixed
 
-* Fix Ruby VM statistics broken and causing errors on Ruby 3.2 ([#2600][])
-* Tracing: Fix 'uninitialized constant GRPC::Interceptor' with 'gapic-common' gem ([#2649][])
-* Appsec: Make sure to assign a valid processor to appsec component ([#2637][])
+* Fix broken Ruby VM statistics for Ruby 3.2 ([#2600][])
+* Tracing: Fix 'uninitialized constant GRPC::Interceptor' error with 'gapic-common' gem ([#2649][])
 * Profiling: Fix profiler not adding the "In native code" placeholder ([#2594][])
-* Fix profiler wrongly detecting that google-protobuf is installed ([#2595][])
+* Fix profiler detection for google-protobuf installation ([#2595][])
 
 ## [1.9.0] - 2023-01-30
 
@@ -3304,7 +3300,6 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2592]: https://github.com/DataDog/dd-trace-rb/issues/2592
 [#2594]: https://github.com/DataDog/dd-trace-rb/issues/2594
 [#2595]: https://github.com/DataDog/dd-trace-rb/issues/2595
-[#2597]: https://github.com/DataDog/dd-trace-rb/issues/2597
 [#2598]: https://github.com/DataDog/dd-trace-rb/issues/2598
 [#2599]: https://github.com/DataDog/dd-trace-rb/issues/2599
 [#2600]: https://github.com/DataDog/dd-trace-rb/issues/2600
@@ -3318,10 +3313,8 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2614]: https://github.com/DataDog/dd-trace-rb/issues/2614
 [#2618]: https://github.com/DataDog/dd-trace-rb/issues/2618
 [#2619]: https://github.com/DataDog/dd-trace-rb/issues/2619
-[#2632]: https://github.com/DataDog/dd-trace-rb/issues/2632
 [#2634]: https://github.com/DataDog/dd-trace-rb/issues/2634
 [#2635]: https://github.com/DataDog/dd-trace-rb/issues/2635
-[#2637]: https://github.com/DataDog/dd-trace-rb/issues/2637
 [#2642]: https://github.com/DataDog/dd-trace-rb/issues/2642
 [#2648]: https://github.com/DataDog/dd-trace-rb/issues/2648
 [#2649]: https://github.com/DataDog/dd-trace-rb/issues/2649
