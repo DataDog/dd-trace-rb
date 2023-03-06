@@ -246,7 +246,7 @@ OR
 
 #### Other Ruby applications
 
-If you application does not use of the supported gems above, you can set it up as follows:
+If your application does not use the supported gems (Rails or Hanami) above, you can set it up as follows:
 
 1. Add the `ddtrace` gem to your Gemfile:
 
