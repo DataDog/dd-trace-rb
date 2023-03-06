@@ -2547,6 +2547,11 @@ Datadog::Tracing.before_flush(MyCustomProcessor.new)
 
 In both cases, the processor method *must* return the `trace` object; this return value will be passed to the next processor in the pipeline.
 
+#### Caveats
+
+1. The [debug mode logs](#enabling-debug-mode) reports the state of spans *before* the Processing Pipeline is executed.
+2. Removing a span in the Processing Pipeline also removes all children spans from the removed span. This prevents orphan spans in the trace graph.
+
 ### Trace correlation
 
 In many cases, such as logging, it may be useful to correlate trace IDs to other events or data streams, for easier cross-referencing.
