@@ -174,9 +174,6 @@ module Datadog
             TAG_PIPELINE_URL => url,
             TAG_PROVIDER_NAME => 'bitbucket',
             TAG_WORKSPACE_PATH => env['BITBUCKET_CLONE_DIR'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
           }
         end
 
@@ -265,9 +262,6 @@ module Datadog
             TAG_PIPELINE_URL => pipeline_url,
             TAG_PROVIDER_NAME => 'github',
             TAG_WORKSPACE_PATH => env['GITHUB_WORKSPACE'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE'],
             TAG_CI_ENV_VARS => {
               'GITHUB_SERVER_URL' => env['GITHUB_SERVER_URL'],
               'GITHUB_REPOSITORY' => env['GITHUB_REPOSITORY'],
@@ -325,9 +319,6 @@ module Datadog
             TAG_PIPELINE_URL => env['BUILD_URL'],
             TAG_PROVIDER_NAME => 'jenkins',
             TAG_WORKSPACE_PATH => env['WORKSPACE'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE'],
             TAG_CI_ENV_VARS => {
               'DD_CUSTOM_TRACE_ID' => env['DD_CUSTOM_TRACE_ID']
             }.to_json
