@@ -102,9 +102,28 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
       before { allow(env).to receive(:verb).and_return(verb) }
 
       context ':get' do
+        include_context 'HTTP connection stub'
         let(:verb) { :get }
+        let(:http_response) { double('http_response') }
 
-        it { expect { call }.to raise_error(described_class::UnknownHTTPMethod) }
+        context 'and a simple get request' do
+          let(:get) { instance_double(Net::HTTP::Get) }
+
+          it 'makes a GET and produces a response' do
+            expect(Net::HTTP::Get)
+              .to receive(:new)
+              .with(env.path, env.headers)
+              .and_return(get)
+
+            expect(http_connection)
+              .to receive(:request)
+              .with(get)
+              .and_return(http_response)
+
+            is_expected.to be_a_kind_of(described_class::Response)
+            expect(call.http_response).to be(http_response)
+          end
+        end
       end
 
       context ':post' do
@@ -155,6 +174,30 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
             expect(call.http_response).to be(http_response)
           end
         end
+      end
+
+      context ':head' do
+        let(:verb) { :head }
+
+        it { expect { call }.to raise_error(described_class::UnknownHTTPMethod) }
+      end
+
+      context ':put' do
+        let(:verb) { :put }
+
+        it { expect { call }.to raise_error(described_class::UnknownHTTPMethod) }
+      end
+
+      context ':delete' do
+        let(:verb) { :delete }
+
+        it { expect { call }.to raise_error(described_class::UnknownHTTPMethod) }
+      end
+
+      context ':patch' do
+        let(:verb) { :patch }
+
+        it { expect { call }.to raise_error(described_class::UnknownHTTPMethod) }
       end
     end
   end

@@ -9,5 +9,11 @@ RSpec.describe Datadog::Transport::Request do
 
   describe '#initialize' do
     it { is_expected.to have_attributes(parcel: parcel) }
+
+    context 'with no argument' do
+      subject(:request) { described_class.new }
+
+      it { is_expected.to have_attributes(parcel: nil) }
+    end
   end
 end
