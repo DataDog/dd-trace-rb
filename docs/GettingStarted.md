@@ -2549,8 +2549,9 @@ In both cases, the processor method *must* return the `trace` object; this retur
 
 #### Caveats
 
-1. The [debug mode logs](#enabling-debug-mode) reports the state of spans *before* the Processing Pipeline is executed.
-2. Removing a span in the Processing Pipeline also removes all children spans from the removed span. This prevents orphan spans in the trace graph.
+1. Removed spans will not generate trace metrics, affecting monitors and dashboards.
+2. Removing a span also removes all children spans from the removed span. This prevents orphan spans in the trace graph.
+3. The [debug mode logs](#enabling-debug-mode) reports the state of spans *before* the Processing Pipeline is executed: modified or removed spans will display their original state in debug mode logs.
 
 ### Trace correlation
 
