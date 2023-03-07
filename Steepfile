@@ -180,7 +180,6 @@ target :ddtrace do
   ignore 'lib/datadog/profiling/flush.rb'
   ignore 'lib/datadog/profiling/http_transport.rb'
   ignore 'lib/datadog/profiling/load_native_extension.rb'
-  ignore 'lib/datadog/profiling/native_extension.rb'
   ignore 'lib/datadog/profiling/old_recorder.rb'
   ignore 'lib/datadog/profiling/pprof/builder.rb'
   ignore 'lib/datadog/profiling/pprof/converter.rb'
