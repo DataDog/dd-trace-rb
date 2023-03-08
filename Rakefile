@@ -469,7 +469,7 @@ end
 
 desc 'Runs the steep type checker on the codebase'
 task :typecheck do
-  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
+  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
     $stderr.puts 'Sorry, cannot run sorbet type checker on older rubies :(' # rubocop:disable Style/StderrPuts
   else
     begin
