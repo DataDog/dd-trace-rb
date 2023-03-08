@@ -37,4 +37,4 @@ jobs:
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest # needed to fix issue with steep on Ruby 3.0/3.1
           cache-version: v2 # bump this to invalidate cache
-      - run: bundle exec rake spec:main
+      - run: bin/rake spec:main
