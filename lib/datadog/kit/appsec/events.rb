@@ -23,7 +23,7 @@ module Datadog
           track(LOGIN_SUCCESS_EVENT, trace, **others)
 
           user_options = user.dup
-          user_id = user.delete(:id)
+          user_id = user_options.delete(:id)
 
           raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
 
