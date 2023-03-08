@@ -66,9 +66,9 @@ module Datadog
 
         def call
           # A transport_options proc configured for unix domain socket overrides most of the logic on this file
-          if transport_options.adapter == Transport::Ext::UnixSocket::ADAPTER
+          if transport_options.adapter == Datadog::Transport::Ext::UnixSocket::ADAPTER
             return AgentSettings.new(
-              adapter: Transport::Ext::UnixSocket::ADAPTER,
+              adapter: Datadog::Transport::Ext::UnixSocket::ADAPTER,
               ssl: false,
               hostname: nil,
               port: nil,
@@ -98,9 +98,9 @@ module Datadog
           # If no agent settings have been provided, we try to connect using a local unix socket.
           # We only do so if the socket is present when `ddtrace` runs.
           if should_use_uds_fallback?
-            Transport::Ext::UnixSocket::ADAPTER
+            Datadog::Transport::Ext::UnixSocket::ADAPTER
           else
-            Transport::Ext::HTTP::ADAPTER
+            Datadog::Transport::Ext::HTTP::ADAPTER
           end
         end
 
@@ -204,9 +204,9 @@ module Datadog
             if configured_hostname.nil? &&
                 configured_port.nil? &&
                 deprecated_for_removal_transport_configuration_proc.nil? &&
-                File.exist?(Transport::Ext::UnixSocket::DEFAULT_PATH)
+                File.exist?(Datadog::Transport::Ext::UnixSocket::DEFAULT_PATH)
 
-              Transport::Ext::UnixSocket::DEFAULT_PATH
+              Datadog::Transport::Ext::UnixSocket::DEFAULT_PATH
             end
         end
 
