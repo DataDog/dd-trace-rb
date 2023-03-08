@@ -151,7 +151,9 @@ void update_metrics_and_sample(
   VALUE profiler_overhead_stack_thread,
   struct per_thread_context *thread_context,
   long current_cpu_time_ns,
-  long current_monotonic_wall_time_ns
+  long current_monotonic_wall_time_ns,
+  long cores_power,
+  long pkg_power
 );
 static void trigger_sample_for_thread(
   struct thread_context_collector_state *state,
@@ -181,6 +183,8 @@ static bool is_type_web(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
 static VALUE _native_sample_allocation(VALUE self, VALUE collector_instance, VALUE sample_weight);
+static long cores_power_now(struct thread_context_collector_state *state);
+static long pkg_power_now(struct thread_context_collector_state *state);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -358,6 +362,8 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   VALUE current_thread = rb_thread_current();
   struct per_thread_context *current_thread_context = get_or_create_context_for(current_thread, state);
   long cpu_time_at_sample_start_for_current_thread = cpu_time_now_ns(current_thread_context);
+  long cores_power_at_sample_start = cores_power_now(state);
+  long pkg_power_at_sample_start = pkg_power_now(state);
 
   VALUE threads = thread_list(state);
 
@@ -370,13 +376,24 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
     // blaming the time the profiler took on whatever's running on the thread right now
     long current_cpu_time_ns = thread != current_thread ? cpu_time_now_ns(thread_context) : cpu_time_at_sample_start_for_current_thread;
 
+    long cores_power = 0;
+    long pkg_power = 0;
+
+    // We "blame" the power spent between two samples on the thread that we find active.
+    if (thread == current_thread) {
+      cores_power = cores_power_at_sample_start;
+      pkg_power = pkg_power_at_sample_start;
+    }
+
     update_metrics_and_sample(
       state,
       /* thread_being_sampled: */ thread,
       /* stack_from_thread: */ thread,
       thread_context,
       current_cpu_time_ns,
-      current_monotonic_wall_time_ns
+      current_monotonic_wall_time_ns,
+      cores_power,
+      pkg_power
     );
   }
 
@@ -392,7 +409,9 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
     /* stack_from_thread: */ profiler_overhead_stack_thread,
     current_thread_context,
     cpu_time_now_ns(current_thread_context),
-    monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
+    monotonic_wall_time_now_ns(RAISE_ON_FAILURE),
+    cores_power_now(state),
+    pkg_power_now(state)
   );
 }
 
@@ -402,7 +421,9 @@ void update_metrics_and_sample(
   VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
   long current_cpu_time_ns,
-  long current_monotonic_wall_time_ns
+  long current_monotonic_wall_time_ns,
+  long cores_power,
+  long pkg_power
 ) {
   long cpu_time_elapsed_ns = update_time_since_previous_sample(
     &thread_context->cpu_time_at_previous_sample_ns,
@@ -422,7 +443,13 @@ void update_metrics_and_sample(
     thread_being_sampled,
     stack_from_thread,
     thread_context,
-    (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
+    (sample_values) {
+      .cpu_time_ns = cpu_time_elapsed_ns,
+      .cpu_samples = 1,
+      .wall_time_ns = wall_time_elapsed_ns,
+      .cores_power = cores_power,
+      .pkg_power = pkg_power
+    },
     SAMPLE_REGULAR
   );
 }
@@ -975,4 +1002,12 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight) {
   thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight));
   return Qtrue;
+}
+
+static long cores_power_now(DDTRACE_UNUSED struct thread_context_collector_state *state) {
+  return 0;
+}
+
+static long pkg_power_now(DDTRACE_UNUSED struct thread_context_collector_state *state) {
+  return 0;
 }
