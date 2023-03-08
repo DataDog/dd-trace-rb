@@ -25,7 +25,7 @@ module Datadog
 
         # Extensions for HTTP client
         module Client
-          def send_payload(request)
+          def send_traces_payload(request)
             send_request(request) do |api, env|
               api.send_traces(env)
             end
