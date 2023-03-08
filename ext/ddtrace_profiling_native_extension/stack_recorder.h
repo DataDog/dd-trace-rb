@@ -7,6 +7,8 @@ typedef struct sample_values {
   int64_t wall_time_ns;
   uint32_t cpu_samples;
   uint32_t alloc_samples;
+  int64_t cores_power;
+  int64_t pkg_power;
 } sample_values;
 
 void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, ddog_prof_Slice_Label labels);
