@@ -30,7 +30,6 @@ RSpec.describe 'gem release process' do
            |Steepfile
            |ddtrace\.gemspec
            |docker-compose\.yml
-           |bin\/rake
           )
           $
         /x
