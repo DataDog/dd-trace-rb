@@ -42,7 +42,7 @@ module Datadog
             when Socket::AF_INET6
               addr & 0xfe00_0000_0000_0000_0000_0000_0000_0000 == 0xfc00_0000_0000_0000_0000_0000_0000_0000
             else
-              raise IPAddr::AddressFamilyError, 'unsupported address family'
+              raise ::IPAddr::AddressFamilyError, 'unsupported address family'
             end
           end
 
@@ -55,7 +55,7 @@ module Datadog
             when Socket::AF_INET6
               addr & 0xffc0_0000_0000_0000_0000_0000_0000_0000 == 0xfe80_0000_0000_0000_0000_0000_0000_0000
             else
-              raise IPAddr::AddressFamilyError, 'unsupported address family'
+              raise ::IPAddr::AddressFamilyError, 'unsupported address family'
             end
           end
 
@@ -68,7 +68,7 @@ module Datadog
             when Socket::AF_INET6
               addr == 1
             else
-              raise IPAddr::AddressFamilyError, 'unsupported address family'
+              raise ::IPAddr::AddressFamilyError, 'unsupported address family'
             end
           end
         end
