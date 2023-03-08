@@ -126,7 +126,7 @@ group :check do
   # Hopefully, if you want to run steep on macos, you can either manually remove this, or use a different Ruby (like 3.2)
   # instead.
   skip_versions_of_macos_that_fail_in_ci = RUBY_PLATFORM.include?('darwin') && RUBY_VERSION.start_with?('3.0.', '3.1.')
-  if RUBY_VERSION >= '2.6.0' && RUBY_PLATFORM != 'java' && !skip_versions_of_macos_that_fail_in_ci
+  if RUBY_VERSION >= '2.7.0' && RUBY_PLATFORM != 'java' && !skip_versions_of_macos_that_fail_in_ci
     gem 'rbs', '~> 2.8.1', require: false
     gem 'steep', '~> 1.3.1', require: false
   end
