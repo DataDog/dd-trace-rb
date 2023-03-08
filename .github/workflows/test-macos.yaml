@@ -35,4 +35,5 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+          bundler: latest # needed to fix issue with steep on Ruby 3.0/3.1
       - run: bundle exec rake spec:main
