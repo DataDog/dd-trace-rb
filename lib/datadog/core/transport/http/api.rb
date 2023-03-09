@@ -20,6 +20,9 @@ require_relative 'api/spec'
 # TODO: only needed for Negotiation::API::Endpoint
 require_relative 'negotiation'
 
+# TODO: only needed for Config::API::Endpoint
+require_relative 'config'
+
 module Datadog
   module Core
     module Transport
@@ -28,6 +31,7 @@ module Datadog
         module API
           # Default API versions
           ROOT = 'root'
+          V7 = 'v0.7'
 
           module_function
 
@@ -36,6 +40,12 @@ module Datadog
               ROOT => Spec.new do |s|
                 s.info = Negotiation::API::Endpoint.new(
                   '/info',
+                )
+              end,
+              V7 => Spec.new do |s|
+                s.config = Config::API::Endpoint.new(
+                  '/v0.7/config',
+                  Core::Encoding::JSONEncoder,
                 )
               end,
             ]
