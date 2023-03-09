@@ -4,12 +4,15 @@ require 'datadog/appsec/component'
 RSpec.describe Datadog::AppSec::Component do
   describe '.build_appsec_component' do
     let(:settings) do
-      Datadog::AppSec::Configuration::Settings.new.merge(
-        Datadog::AppSec::Configuration::DSL.new.tap do |appsec|
-          appsec.enabled = appsec_enabled
-        end
+      double(
+        appsec: Datadog::AppSec::Configuration::Settings.new.merge(
+          Datadog::AppSec::Configuration::DSL.new.tap do |appsec|
+            appsec.enabled = appsec_enabled
+          end
+        )
       )
     end
+
     context 'when appsec is enabled' do
       let(:appsec_enabled) { true }
       it 'returns a Datadog::AppSec::Component instance' do

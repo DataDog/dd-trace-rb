@@ -8,7 +8,7 @@ module Datadog
     class Component
       class << self
         def build_appsec_component(settings)
-          return unless settings.enabled
+          return unless defined?(Datadog::AppSec::Configuration) && settings.appsec.enabled
 
           processor = create_processor
           new(processor: processor)
