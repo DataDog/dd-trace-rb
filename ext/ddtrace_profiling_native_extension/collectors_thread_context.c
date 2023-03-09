@@ -104,6 +104,14 @@ struct thread_context_collector_state {
     // See thread_context_collector_on_gc_start for details
     unsigned int gc_samples_missed_due_to_missing_context;
   } stats;
+
+  struct {
+    int cores_file_descriptor;
+    int pkg_file_descriptor;
+
+    uint64_t cores_power_ticks;
+    uint64_t pkg_power_ticks;
+  } power_tracking;
 };
 
 // Tracks per-thread state
@@ -185,6 +193,9 @@ static VALUE thread_list(struct thread_context_collector_state *state);
 static VALUE _native_sample_allocation(VALUE self, VALUE collector_instance, VALUE sample_weight);
 static long cores_power_now(struct thread_context_collector_state *state);
 static long pkg_power_now(struct thread_context_collector_state *state);
+static void setup_power(struct thread_context_collector_state *state);
+static int read_power_type(void);
+static int read_event_config(char *path);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -311,6 +322,8 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_inst
     // the implementation of Thread#[]= so any symbol that gets used as a key there will already be prevented from GC.
     state->tracer_context_key = rb_to_id(tracer_context_key);
   }
+
+  setup_power(state);
 
   return Qtrue;
 }
@@ -1011,3 +1024,44 @@ static long cores_power_now(DDTRACE_UNUSED struct thread_context_collector_state
 static long pkg_power_now(DDTRACE_UNUSED struct thread_context_collector_state *state) {
   return 0;
 }
+
+// As per https://man7.org/linux/man-pages/man2/perf_event_open.2.html there's no helper for this function, we need
+// to directly invoke the system call.
+static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags) {
+  return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
+}
+
+static int setup_power_event(char* event_config_path) {
+  struct perf_event_attr event_setup = {
+    .type = read_power_type(),
+    .size = sizeof(struct perf_event_attr),
+    .config = read_event_config(event_config_path),
+  };
+  int event_file_descriptor = perf_event_open(&event_setup, -1, 0, -1, 0); // Yay magic flags; TODO actually comment this
+  if (event_file_descriptor < 0) {
+    if (errno != EACCES) ENFORCE_SUCCESS_GVL(errno);
+    rb_raise(rb_eRuntimeError, "Permission denied when calling the perf_event_open API. You probably need to run `sudo sysctl kernel.perf_event_paranoid=0`");
+  }
+  return event_file_descriptor;
+}
+
+static void setup_power(struct thread_context_collector_state *state) {
+  state->power_tracking.cores_file_descriptor = setup_power_event("/sys/bus/event_source/devices/power/events/energy-cores");
+  state->power_tracking.pkg_file_descriptor = setup_power_event("/sys/bus/event_source/devices/power/events/energy-pkg");
+}
+
+static int read_event_config_new(char *path, char *event_format) {
+  FILE *event_config_file = fopen(path, "r");
+  if (!event_config_file) { ENFORCE_SUCCESS_GVL(errno); }
+
+  int config;
+  int matched = fscanf(event_config_file, event_format, &config);
+
+  if (fclose(event_config_file) != 0) ENFORCE_SUCCESS_GVL(errno);
+  if (matched != 1) rb_raise(rb_eRuntimeError, "Unexpected failure reading config");
+
+  return config;
+}
+
+static int read_power_type(void) { return read_event_config_new("/sys/bus/event_source/devices/power/type", "%d"); }
+static int read_event_config(char *path) { return read_event_config_new(path, "event=%x"); }
