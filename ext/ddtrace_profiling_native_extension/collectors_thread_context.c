@@ -191,8 +191,8 @@ static bool is_type_web(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
 static VALUE _native_sample_allocation(VALUE self, VALUE collector_instance, VALUE sample_weight);
-static long cores_power_now(struct thread_context_collector_state *state);
-static long pkg_power_now(struct thread_context_collector_state *state);
+static uint64_t cores_power_now(struct thread_context_collector_state *state);
+static uint64_t pkg_power_now(struct thread_context_collector_state *state);
 static void setup_power(struct thread_context_collector_state *state);
 static int read_power_type(void);
 static int read_event_config(char *path);
@@ -1017,12 +1017,45 @@ static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collecto
   return Qtrue;
 }
 
-static long cores_power_now(DDTRACE_UNUSED struct thread_context_collector_state *state) {
-  return 0;
+#include <linux/perf_event.h>
+#include <sys/syscall.h>
+#include <errno.h>
+
+// Should be read from energy-*.scale files, but it's a constant on the current Linux driver so I just copy-pasted it here
+#define JOULES_PER_TICK 2.3283064365386962890625e-10
+
+static uint64_t event_power_now(int event_file_descriptor, uint64_t *previous_event_ticks) {
+  uint64_t ticks = 0;
+
+  if (event_file_descriptor) {
+    int success = read(event_file_descriptor, &ticks, sizeof(ticks));
+    if (success == -1) ENFORCE_SUCCESS_GVL(errno);
+    if (success != sizeof(ticks)) rb_raise(rb_eRuntimeError, "Unexpected failure reading power event ticks");
+  }
+
+  // Initial read -- no delta to report
+  if (*previous_event_ticks == 0) {
+    *previous_event_ticks = ticks;
+    return 0;
+  }
+
+  // No change since last read
+  if (*previous_event_ticks == ticks) { return 0; }
+
+  int64_t ticks_delta = ticks - *previous_event_ticks;
+  uint64_t energy_millijoules = (uint64_t) (ticks_delta * JOULES_PER_TICK * 1000);
+
+  *previous_event_ticks = ticks;
+
+  return (uint64_t) energy_millijoules;
 }
 
-static long pkg_power_now(DDTRACE_UNUSED struct thread_context_collector_state *state) {
-  return 0;
+static uint64_t cores_power_now(struct thread_context_collector_state *state) {
+  return event_power_now(state->power_tracking.cores_file_descriptor, &state->power_tracking.cores_power_ticks);
+}
+
+static uint64_t pkg_power_now(struct thread_context_collector_state *state) {
+  return event_power_now(state->power_tracking.pkg_file_descriptor, &state->power_tracking.pkg_power_ticks);
 }
 
 // As per https://man7.org/linux/man-pages/man2/perf_event_open.2.html there's no helper for this function, we need
