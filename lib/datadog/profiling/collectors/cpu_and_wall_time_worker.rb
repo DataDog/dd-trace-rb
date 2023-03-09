@@ -1,10 +1,8 @@
-# typed: false
-
 module Datadog
   module Profiling
     module Collectors
-      # Used to trigger the periodic execution of Collectors::CpuAndWallTime, which implements all of the sampling logic
-      # itself; this class only implements the "doing it periodically" part.
+      # Used to trigger the periodic execution of Collectors::ThreadState, which implements all of the sampling logic
+      # itself; this class only implements the "when to do it" part.
       # Almost all of this class is implemented as native code.
       #
       # Methods prefixed with _native_ are implemented in `collectors_cpu_and_wall_time_worker.c`
@@ -20,10 +18,17 @@ module Datadog
           max_frames:,
           tracer:,
           gc_profiling_enabled:,
-          cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames, tracer: tracer),
+          allocation_counting_enabled:,
+          thread_context_collector: ThreadContext.new(recorder: recorder, max_frames: max_frames, tracer: tracer),
           idle_sampling_helper: IdleSamplingHelper.new
         )
-          self.class._native_initialize(self, cpu_and_wall_time_collector, gc_profiling_enabled, idle_sampling_helper)
+          self.class._native_initialize(
+            self,
+            thread_context_collector,
+            gc_profiling_enabled,
+            idle_sampling_helper,
+            allocation_counting_enabled
+          )
           @worker_thread = nil
           @failure_exception = nil
           @start_stop_mutex = Mutex.new
@@ -40,7 +45,7 @@ module Datadog
 
             @worker_thread = Thread.new do
               begin
-                Thread.current.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+                Thread.current.name = self.class.name
 
                 self.class._native_sampling_loop(self)
 

@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../../core/utils/only_once'
 require_relative 'instrumentation'
 require_relative '../patcher'

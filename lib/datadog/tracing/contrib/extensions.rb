@@ -1,5 +1,3 @@
-# typed: false
-
 require 'set'
 
 require_relative '../../core/configuration/settings'

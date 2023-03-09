@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../analytics'
 require_relative '../patcher'
 

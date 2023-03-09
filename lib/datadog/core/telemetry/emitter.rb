@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'event'
 require_relative 'http/transport'
 require_relative '../utils/sequence'

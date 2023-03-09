@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'option_set'
 require_relative 'option_definition'
 require_relative 'option_definition_set'

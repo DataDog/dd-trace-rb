@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/rails/rails_helper'
 require 'rack/test'
 
@@ -32,6 +30,7 @@ RSpec.describe 'Rails integration tests' do
   let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
   let(:appsec_ip_denylist) { nil }
+  let(:appsec_user_id_denylist) { nil }
   let(:appsec_ruleset) { :recommended }
 
   let(:crs_942_100) do
@@ -89,10 +88,16 @@ RSpec.describe 'Rails integration tests' do
       c.appsec.enabled = appsec_enabled
       c.appsec.instrument :rails
       c.appsec.ip_denylist = appsec_ip_denylist
+      c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
 
       # TODO: test with c.appsec.instrument :rack
     end
+  end
+
+  after do
+    Datadog::AppSec.settings.send(:reset!)
+    Datadog.registry[:rails].reset_configuration!
   end
 
   context 'for an application' do
@@ -116,6 +121,11 @@ RSpec.describe 'Rails integration tests' do
           end
 
           def success
+            head :ok
+          end
+
+          def set_user
+            Datadog::Kit::Identity.set_user(Datadog::Tracing.active_trace, id: 'blocked-user-id')
             head :ok
           end
         end
@@ -244,6 +254,7 @@ RSpec.describe 'Rails integration tests' do
         {
           '/success' => 'test#success',
           [:post, '/success'] => 'test#success',
+          '/set_user' => 'test#set_user',
         }
       end
 
@@ -346,6 +357,26 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a GET 404 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+        end
+
+        context 'with user blocking ID' do
+          let(:url) { '/set_user' }
+
+          it { is_expected.to be_ok }
+
+          it_behaves_like 'a GET 200 span'
+          it_behaves_like 'a trace with AppSec tags'
+          it_behaves_like 'a trace without AppSec events'
+
+          context 'with an event-triggering user ID' do
+            let(:appsec_user_id_denylist) { ['blocked-user-id'] }
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a GET 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
         end
       end
 

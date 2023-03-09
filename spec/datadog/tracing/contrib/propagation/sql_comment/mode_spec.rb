@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
 RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do

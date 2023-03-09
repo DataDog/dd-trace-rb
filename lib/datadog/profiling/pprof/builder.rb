@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: true
-
 require_relative '../flush'
 require_relative 'message_set'
 require_relative 'string_table'

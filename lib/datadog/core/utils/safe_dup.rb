@@ -1,5 +1,3 @@
-# typed: false
-
 module Datadog
   module Core
     module Utils

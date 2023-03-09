@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'benchmark'
@@ -81,10 +79,6 @@ RSpec.shared_examples 'thread-safe buffer' do
       context 'with #pop operations' do
         let(:barrier) { Concurrent::CyclicBarrier.new(thread_count + 1) }
 
-        before do
-          allow(Datadog).to receive(:logger).and_return(double)
-        end
-
         it 'executes without error' do
           threads
 
@@ -154,10 +148,6 @@ RSpec.shared_examples 'thread-safe buffer' do
 
       context 'with #pop operations' do
         let(:barrier) { Concurrent::CyclicBarrier.new(thread_count + 1) }
-
-        before do
-          allow(Datadog).to receive(:logger).and_return(double)
-        end
 
         it 'executes without error' do
           threads
@@ -446,13 +436,35 @@ end
 RSpec.describe Datadog::Tracing::ThreadSafeTraceBuffer do
   let(:items) { get_test_traces(items_count) }
 
+  before do
+    logger = double(Datadog::Core::Logger)
+    allow(logger).to receive(:debug?).and_return true
+    allow(logger).to receive(:debug)
+    allow(logger).to receive(:info)
+    allow(logger).to receive(:warn)
+    allow(logger).to receive(:error)
+
+    allow(Datadog).to receive(:logger).and_return(logger)
+  end
+
   it_behaves_like 'trace buffer'
   it_behaves_like 'thread-safe buffer'
   it_behaves_like 'performance'
 end
 
 RSpec.describe Datadog::Tracing::CRubyTraceBuffer do
-  before { skip unless PlatformHelpers.mri? }
+  before do
+    skip unless PlatformHelpers.mri?
+
+    logger = double(Datadog::Core::Logger)
+    allow(logger).to receive(:debug?).and_return true
+    allow(logger).to receive(:debug)
+    allow(logger).to receive(:info)
+    allow(logger).to receive(:warn)
+    allow(logger).to receive(:error)
+
+    allow(Datadog).to receive(:logger).and_return(logger)
+  end
 
   let(:items) { get_test_traces(items_count) }
 

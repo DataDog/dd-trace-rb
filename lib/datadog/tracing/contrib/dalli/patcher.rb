@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'ext'
 require_relative 'instrumentation'
 require_relative '../patcher'

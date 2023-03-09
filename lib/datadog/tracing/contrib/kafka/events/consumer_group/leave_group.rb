@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../ext'
 require_relative '../../event'
 require_relative '../../consumer_event'

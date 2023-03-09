@@ -1,5 +1,3 @@
-# typed: false
-
 require 'logger'
 
 require_relative 'base'
@@ -206,6 +204,7 @@ module Datadog
             # This should never be reduced, as it can cause the resulting profiles to become biased.
             # The current default should be enough for most services, allowing 16 threads to be sampled around 30 times
             # per second for a 60 second period.
+            # This setting is ignored when CPU Profiling 2.0 is in use.
             option :max_events, default: 32768
 
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
@@ -232,8 +231,8 @@ module Datadog
               end
             end
 
-            # Disable gathering of names and versions of gems in use by the service, used to power grouping and
-            # categorization of stack traces.
+            # Can be used to disable the gathering of names and versions of gems in use by the service, used to power
+            # grouping and categorization of stack traces.
             option :code_provenance_enabled, default: true
 
             # No longer does anything, and will be removed on dd-trace-rb 2.0.
@@ -249,7 +248,7 @@ module Datadog
               end
             end
 
-            # Forces enabling the new profiler. We do not yet recommend turning on this option.
+            # Forces enabling the new CPU Profiling 2.0 profiler (see ddtrace release notes for more details).
             #
             # Note that setting this to "false" (or not setting it) will not prevent the new profiler from
             # being automatically used in the future.
@@ -279,6 +278,16 @@ module Datadog
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
               o.lazy
             end
+
+            # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
+            #
+            # This feature is safe and enabled by default on Ruby 2.x, but
+            # on Ruby 3.x it can break in applications that make use of Ractors due to two Ruby VM bugs:
+            # https://bugs.ruby-lang.org/issues/19112 AND https://bugs.ruby-lang.org/issues/18464.
+            #
+            # If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
+            # feature is fully safe to enable and this toggle can be used to do so.
+            option :allocation_counting_enabled, default: RUBY_VERSION.start_with?('2.')
           end
 
           # @public_api

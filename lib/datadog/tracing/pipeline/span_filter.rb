@@ -1,5 +1,3 @@
-# typed: true
-
 require 'set'
 require_relative 'span_processor'
 

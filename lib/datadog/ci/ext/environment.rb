@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: true
-
 require_relative '../../core/git/ext'
 
 require 'open3'
@@ -12,8 +10,6 @@ module Datadog
     module Ext
       # Defines constants for CI tags
       module Environment
-        include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
-
         TAG_JOB_NAME = 'ci.job.name'
         TAG_JOB_URL = 'ci.job.url'
         TAG_PIPELINE_ID = 'ci.pipeline.id'
@@ -178,9 +174,6 @@ module Datadog
             TAG_PIPELINE_URL => url,
             TAG_PROVIDER_NAME => 'bitbucket',
             TAG_WORKSPACE_PATH => env['BITBUCKET_CLONE_DIR'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
           }
         end
 
@@ -269,9 +262,6 @@ module Datadog
             TAG_PIPELINE_URL => pipeline_url,
             TAG_PROVIDER_NAME => 'github',
             TAG_WORKSPACE_PATH => env['GITHUB_WORKSPACE'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE'],
             TAG_CI_ENV_VARS => {
               'GITHUB_SERVER_URL' => env['GITHUB_SERVER_URL'],
               'GITHUB_REPOSITORY' => env['GITHUB_REPOSITORY'],
@@ -329,9 +319,6 @@ module Datadog
             TAG_PIPELINE_URL => env['BUILD_URL'],
             TAG_PROVIDER_NAME => 'jenkins',
             TAG_WORKSPACE_PATH => env['WORKSPACE'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE'],
             TAG_CI_ENV_VARS => {
               'DD_CUSTOM_TRACE_ID' => env['DD_CUSTOM_TRACE_ID']
             }.to_json
@@ -341,17 +328,8 @@ module Datadog
         def extract_teamcity(env)
           {
             TAG_PROVIDER_NAME => 'teamcity',
-            Core::Git::Ext::TAG_REPOSITORY_URL => env['BUILD_VCS_URL'],
-            Core::Git::Ext::TAG_COMMIT_SHA => env['BUILD_VCS_NUMBER'],
-            TAG_WORKSPACE_PATH => env['BUILD_CHECKOUTDIR'],
-            TAG_PIPELINE_ID => env['BUILD_ID'],
-            TAG_PIPELINE_NUMBER => env['BUILD_NUMBER'],
-            TAG_PIPELINE_URL => (
-              env['SERVER_URL'] && env['BUILD_ID'] ? "#{env['SERVER_URL']}/viewLog.html?buildId=#{env['BUILD_ID']}" : nil
-            ),
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
-            Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
+            TAG_JOB_NAME => env['TEAMCITY_BUILDCONF_NAME'],
+            TAG_JOB_URL => env['BUILD_URL'],
           }
         end
 

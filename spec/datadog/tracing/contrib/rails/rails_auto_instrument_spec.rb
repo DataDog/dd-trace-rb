@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/tracing/contrib/rails/rails_helper'
 
 RSpec.describe 'Datadog::Tracing::Contrib::AutoInstrument' do

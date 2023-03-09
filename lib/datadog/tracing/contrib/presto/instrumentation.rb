@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../metadata/ext'
 require_relative 'ext'
 
@@ -81,6 +79,9 @@ module Datadog
               def decorate!(span, operation)
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, operation)
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+
+                span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
                 if (host_port = @options[:server])
                   host, port = Core::Utils.extract_host_port(host_port)

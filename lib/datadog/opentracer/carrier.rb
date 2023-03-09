@@ -1,5 +1,3 @@
-# typed: strict
-
 module Datadog
   module OpenTracer
     # @public_api

@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../action_cable/integration'
 require_relative '../action_mailer/integration'
 require_relative '../action_pack/integration'

@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../configuration/settings'
 require_relative 'env'
 require_relative 'ext'

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: true
-
 module Datadog
   module Tracing
     module Metadata
@@ -55,6 +53,11 @@ module Datadog
           # Trace tags with this prefix will propagate from a trace through distributed tracing.
           # Distributed headers tags with this prefix will be injected into the active trace.
           TAGS_PREFIX = '_dd.p.'
+
+          # The distributed tag to carry hex encoded high order 64 bits of 127 bits trace id during
+          # the context restricted with 64 bits. Such as, Datadog propagation and messagepack encoding
+          TID = 'tid'
+          TAG_TID = TAGS_PREFIX + TID
         end
 
         # @public_api
@@ -166,6 +169,7 @@ module Datadog
 
         # @public_api
         module SpanKind
+          TAG_PROXY = 'proxy'
           TAG_SERVER = 'server'
           TAG_CLIENT = 'client'
           TAG_PRODUCER = 'producer'

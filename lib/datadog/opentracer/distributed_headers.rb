@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../tracing/distributed/datadog'
 require_relative '../tracing/utils'
 

@@ -1,5 +1,3 @@
-# typed: false
-
 module Datadog
   module Core
     # Chunks list of elements into batches

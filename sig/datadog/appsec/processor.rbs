@@ -17,6 +17,19 @@ module Datadog
         def finalize: () -> void
       end
 
+      def self.active_context: () -> Context
+
+      private
+
+      def self.active_context=: (untyped context) -> untyped
+      def self.reset_active_context: () -> untyped
+
+      class NoActiveContextError < StandardError
+      end
+
+      class AlreadyActiveContextError < StandardError
+      end
+
       attr_reader ruleset_info: untyped
       attr_reader addresses: untyped
 
@@ -27,18 +40,21 @@ module Datadog
       def initialize: () -> void
       def ready?: () -> bool
       def new_context: () -> Context
+      def activate_context: () -> Context
+      def deactivate_context: () -> void
       def update_rule_data: (untyped data) -> untyped
       def toggle_rules: (untyped map) -> untyped
-      def update_ip_denylist: (?untyped denylist, ?id: ::String) -> untyped
       def finalize: () -> void
 
       attr_reader handle: untyped
 
       private
 
+      def apply_denylist_data: (Configuration::Settings settings) -> untyped
+      def denylist_data: (String id, ::Array[untyped] denylist) -> ::Hash[::String, untyped | "data_with_expiration"]
       def load_libddwaf: () -> bool
-      def load_ruleset: () -> bool
-      def create_waf_handle: () -> bool
+      def load_ruleset: (Configuration::Settings settings) -> bool
+      def create_waf_handle: (Configuration::Settings settings) -> bool
 
       def self.libddwaf_provides_waf?: () -> bool
       def self.require_libddwaf: () -> bool

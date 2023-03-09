@@ -1,5 +1,3 @@
-# typed: false
-
 require 'time'
 
 require 'datadog/tracing'

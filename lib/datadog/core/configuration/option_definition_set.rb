@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'dependency_resolver'
 
 module Datadog

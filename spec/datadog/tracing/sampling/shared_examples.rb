@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/tracing/trace_operation'
 
 RSpec.shared_examples 'sampler with sample rate' do |sample_rate|

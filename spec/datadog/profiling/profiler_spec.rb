@@ -1,6 +1,5 @@
-# typed: false
-
 require 'spec_helper'
+require 'datadog/profiling/spec_helper'
 
 require 'datadog/profiling'
 require 'datadog/profiling/profiler'
@@ -8,6 +7,8 @@ require 'datadog/profiling/collectors/old_stack'
 require 'datadog/profiling/scheduler'
 
 RSpec.describe Datadog::Profiling::Profiler do
+  before { skip_if_profiling_not_supported(self) }
+
   subject(:profiler) { described_class.new(collectors, scheduler) }
 
   let(:collectors) { Array.new(2) { instance_double(Datadog::Profiling::Collectors::OldStack) } }

@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/profiling/trace_identifiers/helper'
 require 'datadog/profiling/trace_identifiers/ddtrace'
 

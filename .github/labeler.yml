@@ -10,7 +10,7 @@ docs:
 
 # Only test changes
 dev/testing:
-  - all: [ '{spec/**,integration/**,benchmarks/**,sorbet/**}' ]
+  - all: [ '{spec/**,integration/**,benchmarks/**}' ]
 
 # Changes to Profiling
 profiling:

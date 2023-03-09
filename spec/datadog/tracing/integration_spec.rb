@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'spec_helper'
 
 require 'datadog/statsd'
@@ -548,11 +546,14 @@ RSpec.describe 'Tracer integration tests' do
             span.service = 'my.service'
           end
 
-          sleep(1)
+          write.write('!') # Signals that this fork is ready
+          sleep(5) # Should be interrupted
+          exit! # Should not be reached, will skip shutdown hooks
         end
 
-        # Give the fork a chance to setup and sleep
-        sleep(0.2)
+        # Wait for fork to get ready
+        IO.select([read], [], [], 5) # 5 second timeout
+        expect(read.getc).to eq('!') # Child process is ready
 
         # Kill the process
         write.close

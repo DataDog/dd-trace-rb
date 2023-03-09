@@ -32,6 +32,7 @@ static VALUE _native_sample(
   VALUE recorder_instance,
   VALUE metric_values_hash,
   VALUE labels_array,
+  VALUE numeric_labels_array,
   VALUE max_frames,
   VALUE in_gc
 );
@@ -39,7 +40,7 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 static void record_placeholder_stack_in_native_code(
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_I64 metric_values,
+  sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
@@ -48,7 +49,7 @@ static void sample_thread_internal(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_I64 metric_values,
+  sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
@@ -60,7 +61,7 @@ void collectors_stack_init(VALUE profiling_module) {
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
 
-  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 6);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 7);
 
   missing_string = rb_str_new2("");
   rb_global_variable(&missing_string);
@@ -74,36 +75,39 @@ static VALUE _native_sample(
   VALUE recorder_instance,
   VALUE metric_values_hash,
   VALUE labels_array,
+  VALUE numeric_labels_array,
   VALUE max_frames,
   VALUE in_gc
 ) {
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
+  ENFORCE_TYPE(numeric_labels_array, T_ARRAY);
 
-  if (RHASH_SIZE(metric_values_hash) != ENABLED_VALUE_TYPES_COUNT) {
-    rb_raise(
-      rb_eArgError,
-      "Mismatched values for metrics; expected %lu values and got %lu instead",
-      ENABLED_VALUE_TYPES_COUNT,
-      RHASH_SIZE(metric_values_hash)
-    );
-  }
+  VALUE zero = INT2NUM(0);
+  sample_values values = {
+    .cpu_time_ns   = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-time"),      zero)),
+    .cpu_samples   = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-samples"),   zero)),
+    .wall_time_ns  = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("wall-time"),     zero)),
+    .alloc_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("alloc-samples"), zero)),
+  };
 
-  int64_t metric_values[ENABLED_VALUE_TYPES_COUNT];
-  for (unsigned int i = 0; i < ENABLED_VALUE_TYPES_COUNT; i++) {
-    VALUE metric_value = rb_hash_fetch(metric_values_hash, rb_str_new_cstr(enabled_value_types[i].type_.ptr));
-    metric_values[i] = NUM2LONG(metric_value);
-  }
-
-  long labels_count = RARRAY_LEN(labels_array);
+  long labels_count = RARRAY_LEN(labels_array) + RARRAY_LEN(numeric_labels_array);
   ddog_prof_Label labels[labels_count];
 
-  for (int i = 0; i < labels_count; i++) {
+  for (int i = 0; i < RARRAY_LEN(labels_array); i++) {
     VALUE key_str_pair = rb_ary_entry(labels_array, i);
 
     labels[i] = (ddog_prof_Label) {
       .key = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 0)),
       .str = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 1))
+    };
+  }
+  for (int i = 0; i < RARRAY_LEN(numeric_labels_array); i++) {
+    VALUE key_str_pair = rb_ary_entry(numeric_labels_array, i);
+
+    labels[i + RARRAY_LEN(labels_array)] = (ddog_prof_Label) {
+      .key = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 0)),
+      .num = NUM2ULL(rb_ary_entry(key_str_pair, 1))
     };
   }
 
@@ -116,7 +120,7 @@ static VALUE _native_sample(
     thread,
     buffer,
     recorder_instance,
-    (ddog_Slice_I64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+    values,
     (ddog_prof_Slice_Label) {.ptr = labels, .len = labels_count},
     RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
   );
@@ -130,7 +134,7 @@ void sample_thread(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_I64 metric_values,
+  sample_values values,
   ddog_prof_Slice_Label labels,
   sample_type type
 ) {
@@ -138,7 +142,7 @@ void sample_thread(
   if (type == SAMPLE_REGULAR) {
     sampling_buffer *record_buffer = buffer;
     int extra_frames_in_record_buffer = 0;
-    sample_thread_internal(thread, buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+    sample_thread_internal(thread, buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
     return;
   }
 
@@ -162,7 +166,7 @@ void sample_thread(
     };
     sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
     int extra_frames_in_record_buffer = 1;
-    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
     return;
   }
 
@@ -192,7 +196,7 @@ static void sample_thread_internal(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_I64 metric_values,
+  sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
@@ -210,7 +214,7 @@ static void sample_thread_internal(
     record_placeholder_stack_in_native_code(
       buffer,
       recorder_instance,
-      metric_values,
+      values,
       labels,
       record_buffer,
       extra_frames_in_record_buffer
@@ -238,18 +242,7 @@ static void sample_thread_internal(
       filename = rb_profile_frame_path(buffer->stack_buffer[i]);
       line = buffer->lines_buffer[i];
     } else {
-      // **IMPORTANT**: Be very careful when calling any `rb_profile_frame_...` API with a non-Ruby frame, as legacy
-      // Rubies may assume that what's in a buffer will lead to a Ruby frame.
-      //
-      // In particular for Ruby 2.2 the buffer contains a Ruby string (see the notes on our custom
-      // rb_profile_frames for Ruby 2.2) and CALLING **ANY** OF THOSE APIs ON IT WILL CAUSE INSTANT VM CRASHES
-
-#ifndef USE_LEGACY_RB_PROFILE_FRAMES // Modern Rubies
       name = ddtrace_rb_profile_frame_method_name(buffer->stack_buffer[i]);
-#else // Ruby < 2.3
-      name = buffer->stack_buffer[i];
-#endif
-
       filename = NIL_P(last_ruby_frame) ? Qnil : rb_profile_frame_path(last_ruby_frame);
       line = last_ruby_line;
     }
@@ -278,11 +271,9 @@ static void sample_thread_internal(
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Sample) {
-      .locations = (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = captured_frames + extra_frames_in_record_buffer},
-      .values = metric_values,
-      .labels = labels,
-    }
+    (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = captured_frames + extra_frames_in_record_buffer},
+    values,
+    labels
   );
 }
 
@@ -330,7 +321,7 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 static void record_placeholder_stack_in_native_code(
   sampling_buffer* buffer,
   VALUE recorder_instance,
-  ddog_Slice_I64 metric_values,
+  sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
@@ -344,11 +335,9 @@ static void record_placeholder_stack_in_native_code(
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Sample) {
-      .locations = (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = 1 + extra_frames_in_record_buffer},
-      .values = metric_values,
-      .labels = labels,
-    }
+    (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = 1 + extra_frames_in_record_buffer},
+    values,
+    labels
   );
 }
 

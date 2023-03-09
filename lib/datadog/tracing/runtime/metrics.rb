@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../core'
 
 module Datadog

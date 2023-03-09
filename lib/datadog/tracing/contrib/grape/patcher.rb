@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'endpoint'
 require_relative 'ext'
 require_relative 'instrumentation'

@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'ddtrace'
@@ -64,6 +62,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_ERROR_COUNT)).to eq(0)
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_EXPIRED_AT)).to eq('')
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_FINISHED_AT)).to eq('')
+        expect(span.get_tag('messaging.system')).to eq('que')
       end
 
       it 'does not capture info for disabled tags' do
@@ -80,6 +79,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
         expect(span.end_time).not_to be_nil
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_TYPE)).to eq('StandardError')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_STACK)).not_to be_nil
+        expect(span.get_tag('messaging.system')).to eq('que')
       end
 
       it 'has span.kind tag with value consumer' do

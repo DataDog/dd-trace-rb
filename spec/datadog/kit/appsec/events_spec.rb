@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'spec_helper'
 
 require 'time'
@@ -33,6 +31,15 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         described_class.track_login_success(trace_op, user: { id: '42' }, foo: 'bar')
       end
       expect(meta).to include('usr.id' => '42', 'appsec.events.users.login.success.foo' => 'bar')
+    end
+
+    it 'maintains integrity of user argument' do
+      user_argument = { id: '42' }
+      user_argument_dup = user_argument.dup
+      trace_op.measure('root') do
+        described_class.track_login_success(trace_op, user: user_argument, foo: 'bar')
+      end
+      expect(user_argument).to eql(user_argument_dup)
     end
   end
 

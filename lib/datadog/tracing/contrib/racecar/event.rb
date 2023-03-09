@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../metadata/ext'
 require_relative '../active_support/notifications/event'
 require_relative '../analytics'
@@ -37,6 +35,7 @@ module Datadog
               span.service = configuration[:service_name]
               span.resource = payload[:consumer_class]
 
+              span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
               # Tag as an external peer service

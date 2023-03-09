@@ -20,82 +20,6 @@ RSpec.describe Datadog::Tracing::ClientIp do
     without_warnings { Datadog.configuration.reset! }
   end
 
-  describe '#valid_ip?' do
-    context 'when given valid ip addresses' do
-      ips =
-        [
-          '10.0.0.0',
-          '10.0.0.1',
-          '10.0.0.1:8080',
-          'FEDC:BA98:7654:3210:FEDC:BA98:7654:3210',
-          '1080:0000:0000:0000:0008:0800:200C:417A',
-          '1080:0:0:0:8:800:200C:417A',
-          '1080:0::8:800:200C:417A',
-          '1080::8:800:200C:417A',
-          'FF01:0:0:0:0:0:0:43',
-          'FF01:0:0::0:0:43',
-          'FF01::43',
-          '0:0:0:0:0:0:0:1',
-          '0:0:0::0:0:1',
-          '::1',
-          '0:0:0:0:0:0:0:0',
-          '0:0:0::0:0:0',
-          '::',
-          'fe80::208:74ff:feda:625c',
-          'fe80::208:74ff:feda:625c%eth0',
-          'ff80:03:02:01::',
-          '[fe80::208:74ff:feda:625c]',
-          '[fe80::208:74ff:feda:625c]:8080',
-          '[fe80::208:74ff:feda:625c%eth0]:8080'
-        ]
-
-      ips.each do |ip|
-        subject do
-          normalized = client_ip.strip_decorations(ip)
-
-          client_ip.valid_ip?(normalized)
-        end
-
-        it "returns true for #{ip}" do
-          is_expected.to be true
-        end
-      end
-    end
-
-    context 'when given invalid ip addresses' do
-      ips =
-        [
-          '',
-          '10.0.0.256',
-          '10.0.0.0.0',
-          '10.0.0',
-          '10.0',
-          '0.0.0.0/0',
-          '10.0.0.1/24',
-          '10.0.0.1/255.255.255.0',
-          ':1:2:3:4:5:6:7',
-          ':1:2:3:4:5:6:7',
-          '2002:516:2:200',
-          'dd',
-          '2001:db8::8:800:200c:417a/64',
-          '02001:0000:1234:0000:0000:C1C0:ABCD:0876',
-          '2001:0000:1234:0000:00001:C1C0:ABCD:0876'
-        ]
-
-      ips.each do |ip|
-        subject do
-          normalized = client_ip.strip_decorations(ip)
-
-          client_ip.valid_ip?(normalized)
-        end
-
-        it "returns false for #{ip}" do
-          is_expected.to be false
-        end
-      end
-    end
-  end
-
   describe '#set_client_ip_tag' do
     let(:span) do
       instance_double('Span')
@@ -106,7 +30,7 @@ RSpec.describe Datadog::Tracing::ClientIp do
 
       it 'does nothing' do
         expect(span).to_not receive(:set_tag)
-        client_ip.set_client_ip_tag(span, remote_ip: '1.1.1.1')
+        client_ip.set_client_ip_tag(span, remote_ip: '15.173.99.139')
       end
     end
 
@@ -117,16 +41,16 @@ RSpec.describe Datadog::Tracing::ClientIp do
       end
 
       it 'ignores default header names' do
-        headers = Datadog::Core::HeaderCollection.from_hash({ 'X-Forwarded-For' => '1.1.1.1' })
+        headers = Datadog::Core::HeaderCollection.from_hash({ 'X-Forwarded-For' => '15.173.99.139' })
 
         expect(span).to_not receive(:set_tag)
         client_ip.set_client_ip_tag(span, headers: headers)
       end
 
       it 'uses custom header value as client ip' do
-        headers = Datadog::Core::HeaderCollection.from_hash({ 'My-Custom-Header' => '1.1.1.1' })
+        headers = Datadog::Core::HeaderCollection.from_hash({ 'My-Custom-Header' => '15.173.99.139' })
 
-        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '1.1.1.1')
+        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '15.173.99.139')
         client_ip.set_client_ip_tag(span, headers: headers)
       end
 
@@ -157,22 +81,22 @@ RSpec.describe Datadog::Tracing::ClientIp do
         )
 
         expect(span).to_not receive(:set_tag)
-        client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '1.1.1.1')
+        client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '15.173.99.139')
       end
 
       it 'prefers ip from custom header over remote ip' do
-        headers = Datadog::Core::HeaderCollection.from_hash({ 'My-Custom-Header' => '1.1.1.1' })
+        headers = Datadog::Core::HeaderCollection.from_hash({ 'My-Custom-Header' => '15.173.99.139' })
 
-        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '1.1.1.1')
+        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '15.173.99.139')
         client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '2.2.2.2')
       end
     end
 
-    context 'when single ip header is present' do
+    context 'when an ip header is present' do
       it 'uses value from header as client ip' do
-        headers = Datadog::Core::HeaderCollection.from_hash({ 'X-Forwarded-For' => '1.1.1.1' })
+        headers = Datadog::Core::HeaderCollection.from_hash({ 'X-Forwarded-For' => '15.173.99.139' })
 
-        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '1.1.1.1')
+        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '15.173.99.139')
         client_ip.set_client_ip_tag(span, headers: headers)
       end
 
@@ -183,87 +107,18 @@ RSpec.describe Datadog::Tracing::ClientIp do
         client_ip.set_client_ip_tag(span, headers: headers)
       end
 
-      it 'does not use remote ip if header value is not a valid ip' do
+      it 'uses remote ip if header value is not a valid ip' do
         headers = Datadog::Core::HeaderCollection.from_hash({ 'X-Forwarded-For' => '1.11.1' })
 
-        expect(span).to_not receive(:set_tag)
-        client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '1.1.1.1')
+        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '15.173.99.139')
+        client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '15.173.99.139')
       end
 
       it 'prefers ip from header over remote ip' do
-        headers = Datadog::Core::HeaderCollection.from_hash({ 'X-Forwarded-For' => '1.1.1.1' })
+        headers = Datadog::Core::HeaderCollection.from_hash({ 'X-Forwarded-For' => '15.173.99.139' })
 
-        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '1.1.1.1')
+        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '15.173.99.139')
         client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '2.2.2.2')
-      end
-    end
-
-    context 'when multiple ip headers are present' do
-      it 'sets multiple ip headers tag only' do
-        headers = Datadog::Core::HeaderCollection.from_hash(
-          {
-            'X-Forwarded-For' => '1.1.1.1',
-            'X-Client-Ip' => '2.2.2.2'
-          }
-        )
-
-        expect(span).to_not receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, anything)
-        expect(span).to receive(:set_tag).with(client_ip::TAG_MULTIPLE_IP_HEADERS, 'x-forwarded-for,x-client-ip')
-        client_ip.set_client_ip_tag(span, headers: headers)
-      end
-
-      it 'sets multiple ip headers tag only even if all ips are the same' do
-        headers = Datadog::Core::HeaderCollection.from_hash(
-          {
-            'X-Forwarded-For' => '1.1.1.1',
-            'X-Client-Ip' => '1.1.1.1'
-          }
-        )
-
-        expect(span).to_not receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, anything)
-        expect(span).to receive(:set_tag).with(client_ip::TAG_MULTIPLE_IP_HEADERS, 'x-forwarded-for,x-client-ip')
-        client_ip.set_client_ip_tag(span, headers: headers)
-      end
-
-      it 'prefers multiple ip headers tag only over remote ip' do
-        headers = Datadog::Core::HeaderCollection.from_hash(
-          {
-            'X-Forwarded-For' => '1.1.1.1',
-            'X-Client-Ip' => '2.2.2.2'
-          }
-        )
-
-        expect(span).to_not receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, anything)
-        expect(span).to receive(:set_tag).with(client_ip::TAG_MULTIPLE_IP_HEADERS, 'x-forwarded-for,x-client-ip')
-        client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '3.3.3.3')
-      end
-
-      it 'includes ip headers with invalid ips in multiple ip headers tag' do
-        headers = Datadog::Core::HeaderCollection.from_hash(
-          {
-            'X-Forwarded-For' => '1.1.1.1',
-            'X-Client-Ip' => '2.2.2.2.3',
-            'X-Real-Ip' => '3.3.3.3'
-          }
-        )
-
-        expect(span).to_not receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, anything)
-        expect(span).to receive(:set_tag).with(client_ip::TAG_MULTIPLE_IP_HEADERS, 'x-forwarded-for,x-real-ip,x-client-ip')
-        client_ip.set_client_ip_tag(span, headers: headers)
-      end
-
-      it 'includes ip headers with invalid ips in multiple ip headers tag even if exactly one ip is valid' do
-        headers = Datadog::Core::HeaderCollection.from_hash(
-          {
-            'X-Forwarded-For' => '1.1.1.1',
-            'X-Client-Ip' => '2.22.2',
-            'X-Real-Ip' => 'dd'
-          }
-        )
-
-        expect(span).to_not receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, anything)
-        expect(span).to receive(:set_tag).with(client_ip::TAG_MULTIPLE_IP_HEADERS, 'x-forwarded-for,x-real-ip,x-client-ip')
-        client_ip.set_client_ip_tag(span, headers: headers)
       end
     end
 
@@ -271,8 +126,8 @@ RSpec.describe Datadog::Tracing::ClientIp do
       let(:headers) { Datadog::Core::HeaderCollection.from_hash({}) }
 
       it 'uses remote ip as client ip as fallback' do
-        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '1.1.1.1')
-        client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '1.1.1.1')
+        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '15.173.99.139')
+        client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '15.173.99.139')
       end
 
       it 'does nothing if remote ip is invalid' do
@@ -292,8 +147,8 @@ RSpec.describe Datadog::Tracing::ClientIp do
       end
 
       it 'uses remote ip as client ip as fallback' do
-        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '1.1.1.1')
-        client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '1.1.1.1')
+        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '15.173.99.139')
+        client_ip.set_client_ip_tag(span, headers: headers, remote_ip: '15.173.99.139')
       end
 
       it 'does nothing if remote ip is invalid' do
@@ -304,8 +159,8 @@ RSpec.describe Datadog::Tracing::ClientIp do
 
     context 'when ip' do
       it 'is plain ipv4' do
-        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '1.1.1.1')
-        client_ip.set_client_ip_tag(span, remote_ip: '1.1.1.1')
+        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '15.173.99.139')
+        client_ip.set_client_ip_tag(span, remote_ip: '15.173.99.139')
       end
 
       it 'is plain ipv6' do
@@ -317,8 +172,8 @@ RSpec.describe Datadog::Tracing::ClientIp do
       end
 
       it 'is ipv4 and port' do
-        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '1.1.1.1')
-        client_ip.set_client_ip_tag(span, remote_ip: '1.1.1.1:8080')
+        expect(span).to receive(:set_tag).with(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, '15.173.99.139')
+        client_ip.set_client_ip_tag(span, remote_ip: '15.173.99.139:8080')
       end
 
       it 'is ipv6 and port' do

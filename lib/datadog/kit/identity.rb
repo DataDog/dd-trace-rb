@@ -1,5 +1,6 @@
-# typed: false
 # frozen_string_literal: true
+
+require_relative '../appsec/instrumentation/gateway/argument'
 
 module Datadog
   module Kit
@@ -55,6 +56,11 @@ module Datadog
 
         others.each do |k, v|
           trace.set_tag("usr.#{k}", v) unless v.nil?
+        end
+
+        if Datadog.configuration.appsec.enabled
+          user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id)
+          ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
         end
       end
       # rubocop:enable Metrics/PerceivedComplexity
