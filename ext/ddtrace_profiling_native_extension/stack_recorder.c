@@ -151,19 +151,23 @@ static VALUE stack_recorder_class = Qnil;
 #define WALL_TIME_VALUE_ID 2
 #define ALLOC_SAMPLES_VALUE     {.type_ = VALUE_STRING("alloc-samples"),     .unit = VALUE_STRING("count")}
 #define ALLOC_SAMPLES_VALUE_ID 3
-#define CORES_POWER_VALUE       {.type_ = VALUE_STRING("cores-power"),       .unit = VALUE_STRING("milliwatts")}
+#define CORES_POWER_VALUE       {.type_ = VALUE_STRING("cores-power"),       .unit = VALUE_STRING("millijoules")}
 #define CORES_POWER_VALUE_ID 4
-#define PKG_POWER_VALUE         {.type_ = VALUE_STRING("pkg-power"),         .unit = VALUE_STRING("milliwatts")}
+#define PKG_POWER_VALUE         {.type_ = VALUE_STRING("pkg-power"),         .unit = VALUE_STRING("millijoules")}
 #define PKG_POWER_VALUE_ID 5
+#define CORES_POWER_MW_VALUE    {.type_ = VALUE_STRING("cores-power-mW"),    .unit = VALUE_STRING("milliwatts")}
+#define CORES_POWER_MW_VALUE_ID 6
+#define PKG_POWER_MW_VALUE      {.type_ = VALUE_STRING("pkg-power-mW"),      .unit = VALUE_STRING("milliwatts")}
+#define PKG_POWER_MW_VALUE_ID 7
 
 static const ddog_prof_ValueType all_value_types[] =
-  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, CORES_POWER_VALUE, PKG_POWER_VALUE};
+  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, CORES_POWER_VALUE, PKG_POWER_VALUE, CORES_POWER_MW_VALUE, PKG_POWER_MW_VALUE};
 
 // This array MUST be kept in sync with all_value_types above and is intended to act as a "hashmap" between VALUE_ID and the position it
 // occupies on the all_value_types array.
 // E.g. all_value_types_positions[CPU_TIME_VALUE_ID] => 0, means that CPU_TIME_VALUE was declared at position 0 of all_value_types.
 static const uint8_t all_value_types_positions[] =
-  {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, CORES_POWER_VALUE_ID, PKG_POWER_VALUE_ID};
+  {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, CORES_POWER_VALUE_ID, PKG_POWER_VALUE_ID, CORES_POWER_MW_VALUE_ID, PKG_POWER_MW_VALUE_ID};
 
 #define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
 
@@ -357,9 +361,15 @@ static VALUE _native_initialize(
     state->position_for[CORES_POWER_VALUE_ID] = next_enabled_pos++;
     enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) PKG_POWER_VALUE;
     state->position_for[PKG_POWER_VALUE_ID] = next_enabled_pos++;
+    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) CORES_POWER_MW_VALUE;
+    state->position_for[CORES_POWER_MW_VALUE_ID] = next_enabled_pos++;
+    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) PKG_POWER_MW_VALUE;
+    state->position_for[PKG_POWER_MW_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[CORES_POWER_VALUE_ID] = next_disabled_pos++;
     state->position_for[PKG_POWER_VALUE_ID] = next_disabled_pos++;
+    state->position_for[CORES_POWER_MW_VALUE_ID] = next_disabled_pos++;
+    state->position_for[PKG_POWER_MW_VALUE_ID] = next_disabled_pos++;
   }
 
   ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
@@ -445,6 +455,8 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   metric_values[position_for[CPU_SAMPLES_VALUE_ID]]   = values.cpu_samples;
   metric_values[position_for[WALL_TIME_VALUE_ID]]     = values.wall_time_ns;
   metric_values[position_for[ALLOC_SAMPLES_VALUE_ID]] = values.alloc_samples;
+  metric_values[position_for[CORES_POWER_VALUE_ID]]   = values.cores_power;
+  metric_values[position_for[PKG_POWER_VALUE_ID]]     = values.pkg_power;
 
   ddog_prof_Profile_AddResult result = ddog_prof_Profile_add(
     active_slot.profile,
