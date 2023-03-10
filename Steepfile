@@ -3,6 +3,10 @@ target :ddtrace do
 
   check 'lib/'
 
+  ignore 'lib/datadog/appsec/contrib/'
+  ignore 'lib/datadog/ci/contrib/'
+  ignore 'lib/datadog/tracing/contrib/'
+
   ignore 'lib/datadog/appsec.rb'
   ignore 'lib/datadog/appsec/component.rb'
   ignore 'lib/datadog/appsec/contrib/auto_instrument.rb'
