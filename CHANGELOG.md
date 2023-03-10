@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.10.1] - 2023-03-10
+
+### Fixed
+
+* CI: Update TeamCity environment variable support ([#2668][])
+* Core: Fix spurious dependency on AppSec when loading CI with `require 'datadog/ci'` ([#2679][])
+* Core: Allow multiple headers and multiple IPs per header for client IP ([#2665][])
+* AppSec: prevent side-effect on AppSec login event tracking method arguments ([#2663][]) ([@coneill-enhance][])
+
 ## [1.10.0] - 2023-03-06
 
 ### Added
@@ -2314,7 +2323,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.10.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.10.1...master
+[1.10.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.7.0...v1.8.0
@@ -3321,6 +3331,10 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2657]: https://github.com/DataDog/dd-trace-rb/issues/2657
 [#2659]: https://github.com/DataDog/dd-trace-rb/issues/2659
 [#2662]: https://github.com/DataDog/dd-trace-rb/issues/2662
+[#2663]: https://github.com/DataDog/dd-trace-rb/issues/2663
+[#2665]: https://github.com/DataDog/dd-trace-rb/issues/2665
+[#2668]: https://github.com/DataDog/dd-trace-rb/issues/2668
+[#2679]: https://github.com/DataDog/dd-trace-rb/issues/2679
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -3365,6 +3379,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@cjford]: https://github.com/cjford
 [@ck3g]: https://github.com/ck3g
 [@components]: https://github.com/components
+[@coneill-enhance]: https://github.com/coneill-enhance
 [@cswatt]: https://github.com/cswatt
 [@cwoodcox]: https://github.com/cwoodcox
 [@danhodge]: https://github.com/danhodge
