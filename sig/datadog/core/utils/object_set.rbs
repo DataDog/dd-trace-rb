@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Utils
       class ObjectSet
-        def initialize: (?::Integer seed) { () -> untyped } -> untyped
+        def initialize: (?::Integer seed) ?{ () -> untyped } -> untyped
 
         def fetch: (*untyped args) { (untyped, untyped) -> untyped } -> untyped
 

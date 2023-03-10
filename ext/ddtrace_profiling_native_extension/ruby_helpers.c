@@ -58,7 +58,7 @@ void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...) {
 
   rb_thread_call_with_gvl(trigger_raise, &args);
 
-  rb_bug("[DDTRACE] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", args.exception_message);
+  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", args.exception_message);
 }
 
 struct syserr_raise_arguments {
@@ -91,7 +91,7 @@ void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
 
   rb_thread_call_with_gvl(trigger_syserr_raise, &args);
 
-  rb_bug("[DDTRACE] Unexpected: Reached the end of grab_gvl_and_raise_syserr while raising '%s'\n", args.exception_message);
+  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise_syserr while raising '%s'\n", args.exception_message);
 }
 
 void raise_syserr(

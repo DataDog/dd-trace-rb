@@ -1,4 +1,6 @@
 require_relative '../core'
+require_relative 'utils'
+require_relative 'metadata/ext'
 
 module Datadog
   module Tracing
@@ -64,10 +66,22 @@ module Datadog
             attributes << "#{LOG_ATTR_ENV}=#{env}" unless env.nil?
             attributes << "#{LOG_ATTR_SERVICE}=#{service}"
             attributes << "#{LOG_ATTR_VERSION}=#{version}" unless version.nil?
-            attributes << "#{LOG_ATTR_TRACE_ID}=#{trace_id}"
+            attributes << "#{LOG_ATTR_TRACE_ID}=#{logging_trace_id}"
             attributes << "#{LOG_ATTR_SPAN_ID}=#{span_id}"
             attributes.join(' ')
           end
+        end
+
+        private
+
+        def logging_trace_id
+          @logging_trace_id ||=
+            if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
+                !Tracing::Utils::TraceId.to_high_order(@trace_id).zero?
+              Kernel.format('%032x', trace_id)
+            else
+              Tracing::Utils::TraceId.to_low_order(@trace_id)
+            end
         end
       end
 

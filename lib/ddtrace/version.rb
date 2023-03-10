@@ -1,8 +1,8 @@
 module DDTrace
   module VERSION
     MAJOR = 1
-    MINOR = 9
-    PATCH = 0
+    MINOR = 10
+    PATCH = 1
     PRE = nil
 
     STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')

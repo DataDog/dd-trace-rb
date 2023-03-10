@@ -69,7 +69,7 @@ module Datadog
         metrics: nil
       )
         # Attributes
-        @id = id || Tracing::Utils.next_id
+        @id = id || Tracing::Utils::TraceId.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? ? true : sampled

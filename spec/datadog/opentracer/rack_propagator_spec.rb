@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/tracing/context'
+require 'datadog/tracing/utils'
 require 'datadog/tracing/propagation/http'
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/trace_operation'
@@ -10,7 +11,7 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
   describe '#inject' do
     subject { described_class.inject(span_context, carrier) }
 
-    let(:trace_id) { double('trace ID') }
+    let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
     let(:span_id) { double('span ID') }
     let(:sampling_decision) { '-1' }
     let(:sampling_priority) { double('sampling priority') }

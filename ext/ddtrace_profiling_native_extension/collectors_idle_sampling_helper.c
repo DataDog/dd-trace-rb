@@ -170,15 +170,15 @@ static void interrupt_idle_sampling_loop(void *state_ptr) {
   // ask the thread to stop, instead of exiting early.
 
   error = pthread_mutex_lock(&state->wakeup_mutex);
-  if (error) { fprintf(stderr, "[DDTRACE] Error during pthread_mutex_lock in interrupt_idle_sampling_loop (%s)\n", strerror(error)); }
+  if (error) { fprintf(stderr, "[ddtrace] Error during pthread_mutex_lock in interrupt_idle_sampling_loop (%s)\n", strerror(error)); }
 
   state->requested_action = ACTION_STOP;
 
   error = pthread_mutex_unlock(&state->wakeup_mutex);
-  if (error) { fprintf(stderr, "[DDTRACE] Error during pthread_mutex_unlock in interrupt_idle_sampling_loop (%s)\n", strerror(error)); }
+  if (error) { fprintf(stderr, "[ddtrace] Error during pthread_mutex_unlock in interrupt_idle_sampling_loop (%s)\n", strerror(error)); }
 
   error = pthread_cond_broadcast(&state->wakeup);
-  if (error) { fprintf(stderr, "[DDTRACE] Error during pthread_cond_broadcast in interrupt_idle_sampling_loop (%s)\n", strerror(error)); }
+  if (error) { fprintf(stderr, "[ddtrace] Error during pthread_cond_broadcast in interrupt_idle_sampling_loop (%s)\n", strerror(error)); }
 }
 
 static VALUE _native_stop(DDTRACE_UNUSED VALUE self, VALUE self_instance) {

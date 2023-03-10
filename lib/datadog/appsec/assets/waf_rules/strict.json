@@ -1,7 +1,7 @@
 {
   "version": "2.2",
   "metadata": {
-    "rules_version": "1.5.0"
+    "rules_version": "1.5.2"
   },
   "rules": [
     {
@@ -157,6 +157,33 @@
       "transformers": [
         "lowercase"
       ]
+    },
+    {
+      "id": "crs-921-140",
+      "name": "HTTP Header Injection Attack via headers",
+      "tags": {
+        "type": "http_protocol_violation",
+        "crs_id": "921140",
+        "category": "attack_attempt"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.headers.no_cookies"
+              }
+            ],
+            "regex": "[\\n\\r]",
+            "options": {
+              "case_sensitive": true,
+              "min_length": 1
+            }
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": []
     },
     {
       "id": "crs-932-100",
@@ -1496,6 +1523,36 @@
       ],
       "transformers": [
         "removeNulls"
+      ]
+    },
+    {
+      "id": "sqr-000-007",
+      "name": "NoSQL: Detect common exploitation strategy",
+      "tags": {
+        "type": "nosql_injection",
+        "category": "attack_attempt"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              }
+            ],
+            "regex": "^\\$(eq|ne|(l|g)te?|n?in|not|(n|x|)or|and|regex|where|expr|exists)$"
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": [
+        "keys_only"
       ]
     },
     {

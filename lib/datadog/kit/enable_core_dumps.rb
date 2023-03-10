@@ -17,10 +17,10 @@ module Datadog
           end
 
         if maximum_size <= 0
-          Kernel.warn("[DDTRACE] Could not enable core dumps on crash, maximum size is #{maximum_size} (disabled).")
+          Kernel.warn("[ddtrace] Could not enable core dumps on crash, maximum size is #{maximum_size} (disabled).")
           return
         elsif maximum_size == current_size
-          Kernel.warn('[DDTRACE] Core dumps already enabled, nothing to do!')
+          Kernel.warn('[ddtrace] Core dumps already enabled, nothing to do!')
           return
         end
 
@@ -28,17 +28,17 @@ module Datadog
           Process.setrlimit(:CORE, maximum_size)
         rescue => e
           Kernel.warn(
-            "[DDTRACE] Failed to enable core dumps. Cause: #{e.class.name} #{e.message} " \
+            "[ddtrace] Failed to enable core dumps. Cause: #{e.class.name} #{e.message} " \
             "Location: #{Array(e.backtrace).first}"
           )
           return
         end
 
         if current_size == 0
-          Kernel.warn("[DDTRACE] Enabled core dumps. Maximum size: #{maximum_size} Output pattern: '#{core_pattern}'")
+          Kernel.warn("[ddtrace] Enabled core dumps. Maximum size: #{maximum_size} Output pattern: '#{core_pattern}'")
         else
           Kernel.warn(
-            "[DDTRACE] Raised core dump limit. Old size: #{current_size} " \
+            "[ddtrace] Raised core dump limit. Old size: #{current_size} " \
             "Maximum size: #{maximum_size} Output pattern: '#{core_pattern}'"
           )
         end

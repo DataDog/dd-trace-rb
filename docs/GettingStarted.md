@@ -28,8 +28,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
  - [Installation](#installation)
      - [Setup the Datadog Agent for tracing](#setup-the-datadog-agent-for-tracing)
      - [Instrument your application](#instrument-your-application)
-        - [Rails applications](#rails-applications)
-        - [Ruby applications](#ruby-applications)
+        - [Rails or Hanami applications](#rails-or-hanami-applications)
+        - [Other Ruby applications](#other-ruby-applications)
         - [Configuring OpenTracing](#configuring-opentracing)
         - [Configuring OpenTelemetry](#configuring-opentelemetry)
      - [Connect your application to the Datadog Agent](#connect-your-application-to-the-datadog-agent)
@@ -220,7 +220,7 @@ OR
 
 ### Instrument your application
 
-#### Rails/Hanami applications
+#### Rails or Hanami applications
 
 1. Add the `ddtrace` gem to your Gemfile:
 
@@ -245,7 +245,9 @@ OR
       - [Add additional configuration settings](#additional-configuration)
       - [Activate or reconfigure instrumentation](#integration-instrumentation)
 
-#### Ruby applications
+#### Other Ruby applications
+
+If your application does not use the supported gems (Rails or Hanami) above, you can set it up as follows:
 
 1. Add the `ddtrace` gem to your Gemfile:
 
@@ -412,7 +414,7 @@ end
 
 Calling `Datadog::Tracing.trace` without a block will cause the function to return a `Datadog::Tracing::SpanOperation` that is started, but not finished. You can then modify this span however you wish, then close it `finish`.
 
-*You must not leave any unfinished spans.* If any spans are left open when the trace completes, the trace will be discarded. You can [activate debug mode](#tracer-settings) to check for warnings if you suspect this might be happening.
+*You must not leave any unfinished spans.* If any spans are left open when the trace completes, the trace will be discarded. You can [activate debug mode](#additional-configuration) to check for warnings if you suspect this might be happening.
 
 To avoid this scenario when handling start/finish events, you can use `Datadog::Tracing.active_span` to get the current active span.
 
@@ -2147,7 +2149,7 @@ end
 | `env`                                                   | `DD_ENV`                       | `nil`                                                             | Your application environment. (e.g. `production`, `staging`, etc.) This value is set as a tag on all traces.                                                                                                                              |
 | `service`                                               | `DD_SERVICE`                   | *Ruby filename*                                                   | Your application's default service name. (e.g. `billing-api`) This value is set as a tag on all traces.                                                                                                                                   |
 | `tags`                                                  | `DD_TAGS`                      | `nil`                                                             | Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`) These tags are set on all traces. See [Environment and tags](#environment-and-tags) for more details.                                                          |
-| `time_now_provider`                                     |                                | `->{ Time.now }`                                                  | Changes how time is retrieved. See [Setting the time provider](#Setting the time provider) for more details.                                                                                                                              |
+| `time_now_provider`                                     |                                | `->{ Time.now }`                                                  | Changes how time is retrieved. See [Setting the time provider](#setting-the-time-provider) for more details.                                                                                                                              |
 | `version`                                               | `DD_VERSION`                   | `nil`                                                             | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                        |
 | `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED` | `false`                                                             | Allows you to enable sending telemetry data to Datadog. In a future release, we will be setting this to  `true` by default, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                          |
 | **Tracing**                                             |                                |                                                                   |                                                                                                                                                                                                                                           |
@@ -2164,6 +2166,7 @@ end
 | `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`         | `nil`                                                             | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%). See [Application-side sampling](#application-side-sampling) for details.                                                                                                  |
 | `tracing.sampling.rate_limit`                           | `DD_TRACE_RATE_LIMIT`          | `100` (per second)                                                | Sets a maximum number of traces per second to sample. Set a rate limit to avoid the ingestion volume overages in the case of traffic spikes.                                                                    |
 | `tracing.sampling.span_rules`                           | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `nil`                                    | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                              |
+| `tracing.trace_id_128_bit_generation_enabled` | `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` | `false` | `true` to generate 128 bits trace ID and `false` to generate 64 bits trace ID  |
 | `tracing.report_hostname`                               | `DD_TRACE_REPORT_HOSTNAME`     | `false`                                                           | Adds hostname tag to traces.                                                                                                                                                                                                              |
 | `tracing.test_mode.enabled`                             | `DD_TRACE_TEST_MODE_ENABLED`   | `false`                                                           | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                         |
 | `tracing.test_mode.trace_flush`                         |                                | `nil`                                                             | Object that determines trace flushing behavior.                                                                                                                                                                                           |
@@ -2569,6 +2572,12 @@ Datadog::Tracing.before_flush(MyCustomProcessor.new)
 ```
 
 In both cases, the processor method *must* return the `trace` object; this return value will be passed to the next processor in the pipeline.
+
+#### Caveats
+
+1. Removed spans will not generate trace metrics, affecting monitors and dashboards.
+2. Removing a span also removes all children spans from the removed span. This prevents orphan spans in the trace graph.
+3. The [debug mode logs](#enabling-debug-mode) reports the state of spans *before* the Processing Pipeline is executed: modified or removed spans will display their original state in debug mode logs.
 
 ### Trace correlation
 

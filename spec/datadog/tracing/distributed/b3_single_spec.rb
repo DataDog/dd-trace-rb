@@ -52,13 +52,28 @@ RSpec.shared_examples 'B3 Single distributed format' do
       context 'with origin' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            span_id: 100000,
-            trace_id: 90000,
+            trace_id: 0xabcdef,
+            span_id: 0xfedcba,
             trace_origin: 'synthetics'
           )
         end
 
-        it { expect(data).to eq(b3_single_header => '15f90-186a0') }
+        it { expect(data).to eq(b3_single_header => 'abcdef-fedcba') }
+      end
+    end
+
+    context 'with 128 bits trace id and distributed tag `_dd.p.tid`' do
+      let(:digest) do
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
+          span_id: 0xbbbbbbbbbbbbbbbb
+        )
+      end
+
+      it do
+        inject!
+
+        expect(data).to eq(b3_single_header => 'aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb')
       end
     end
   end
@@ -74,40 +89,78 @@ RSpec.shared_examples 'B3 Single distributed format' do
     end
 
     context 'with trace_id and span_id' do
-      let(:data) { { prepare_key[b3_single_header] => '15f90-186a0' } }
+      let(:data) { { prepare_key[b3_single_header] => 'abcdef-fedcba' } }
 
-      it { expect(digest.span_id).to eq(100000) }
-      it { expect(digest.trace_id).to eq(90000) }
+      it { expect(digest.trace_id).to eq(0xabcdef) }
+      it { expect(digest.span_id).to eq(0xfedcba) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to be nil }
 
       context 'with sampling priority' do
-        let(:data) { { prepare_key[b3_single_header] => '15f90-186a0-1' } }
+        let(:data) { { prepare_key[b3_single_header] => 'abcdef-fedcba-1' } }
 
-        it { expect(digest.span_id).to eq(100000) }
-        it { expect(digest.trace_id).to eq(90000) }
+        it { expect(digest.trace_id).to eq(0xabcdef) }
+        it { expect(digest.span_id).to eq(0xfedcba) }
         it { expect(digest.trace_origin).to be nil }
         it { expect(digest.trace_sampling_priority).to eq(1) }
 
         context 'with parent_id' do
           let(:data) do
             {
-              prepare_key[b3_single_header] => '15f90-186a0-1-4e20'
+              prepare_key[b3_single_header] => 'abcdef-fedcba-1-4e20'
             }
           end
 
-          it { expect(digest.trace_id).to eq(90000) }
-          it { expect(digest.span_id).to eq(100000) }
+          it { expect(digest.trace_id).to eq(0xabcdef) }
+          it { expect(digest.span_id).to eq(0xfedcba) }
           it { expect(digest.trace_sampling_priority).to eq(1) }
           it { expect(digest.trace_origin).to be nil }
+        end
+      end
+
+      context 'when given invalid trace id' do
+        [
+          ((1 << 128)).to_s(16), # 0
+          ((1 << 128) + 1).to_s(16),
+          '0',
+          '-1',
+        ].each do |invalid_trace_id|
+          context "when given trace id: #{invalid_trace_id}" do
+            let(:data) { { prepare_key[b3_single_header] => "#{invalid_trace_id}-fedcba" } }
+
+            it { is_expected.to be nil }
+          end
+        end
+      end
+
+      context 'when given invalid span id' do
+        [
+          ((1 << 64)).to_s(16),
+          ((1 << 64) + 1).to_s(16),
+          '0',
+        ].each do |invalid_span_id|
+          context "when given span id: #{invalid_span_id}" do
+            let(:data) { { prepare_key[b3_single_header] => "abcdef-#{invalid_span_id}" } }
+
+            it { is_expected.to be nil }
+          end
         end
       end
     end
 
     context 'with trace_id' do
-      let(:env) { { prepare_key[b3_single_header] => '15f90' } }
+      let(:data) { { prepare_key[b3_single_header] => 'abcdef' } }
 
       it { is_expected.to be nil }
+
+      context 'with 128 bits trace id and 64 bits span id' do
+        let(:data) do
+          { prepare_key[b3_single_header] => 'aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb' }
+        end
+
+        it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+        it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      end
     end
   end
 end

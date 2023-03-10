@@ -173,6 +173,26 @@ module Datadog
                 o.lazy
               end
 
+              # Enable 128 bit trace id generation.
+              #
+              # @default `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` environment variable, otherwise `false`
+              # @return [Boolean]
+              option :trace_id_128_bit_generation_enabled do |o|
+                o.default { env_to_bool(Tracing::Configuration::Ext::ENV_TRACE_ID_128_BIT_GENERATION_ENABLED, false) }
+                o.lazy
+              end
+
+              # Enable 128 bit trace id injected for logging.
+              #
+              # @default `DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED` environment variable, otherwise `false`
+              # @return [Boolean]
+              #
+              # It is not supported by our backend yet. Do not enable it.
+              option :trace_id_128_bit_logging_enabled do |o|
+                o.default { env_to_bool(Tracing::Configuration::Ext::Correlation::ENV_TRACE_ID_128_BIT_LOGGING_ENABLED, false) }
+                o.lazy
+              end
+
               # A custom tracer instance.
               #
               # It must respect the contract of {Datadog::Tracing::Tracer}.

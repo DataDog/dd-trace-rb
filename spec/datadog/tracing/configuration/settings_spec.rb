@@ -690,5 +690,89 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           .to(123)
       end
     end
+
+    describe '#trace_id_128_bit_generation_enabled' do
+      subject { settings.tracing.trace_id_128_bit_generation_enabled }
+
+      context 'when given environment variable `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED`' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED' => env_var
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var) { nil }
+
+          it { is_expected.to eq(false) }
+        end
+
+        context 'is `true`' do
+          let(:env_var) { 'true' }
+
+          it { is_expected.to eq(true) }
+        end
+
+        context 'is `false`' do
+          let(:env_var) { 'false' }
+
+          it { is_expected.to eq(false) }
+        end
+      end
+    end
+
+    describe '#trace_id_128_bit_generation_enabled=' do
+      it 'updates the #trace_id_128_bit_generation_enabled setting' do
+        expect do
+          settings.tracing.trace_id_128_bit_generation_enabled = true
+        end.to change { settings.tracing.trace_id_128_bit_generation_enabled }
+          .from(false)
+          .to(true)
+      end
+    end
+
+    describe '#trace_id_128_bit_logging_enabled' do
+      subject { settings.tracing.trace_id_128_bit_logging_enabled }
+
+      context 'when given environment variable `DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED ' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED' => env_var
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var) { nil }
+
+          it { is_expected.to eq(false) }
+        end
+
+        context 'is `true`' do
+          let(:env_var) { 'true' }
+
+          it { is_expected.to eq(true) }
+        end
+
+        context 'is `false`' do
+          let(:env_var) { 'false' }
+
+          it { is_expected.to eq(false) }
+        end
+      end
+    end
+
+    describe '#trace_id_128_bit_logging_enabled=' do
+      it 'updates the #trace_id_128_bit_logging_enabled setting' do
+        expect do
+          settings.tracing.trace_id_128_bit_logging_enabled = true
+        end.to change { settings.tracing.trace_id_128_bit_logging_enabled }
+          .from(false)
+          .to(true)
+      end
+    end
   end
 end

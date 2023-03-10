@@ -3,6 +3,7 @@ require 'spec_helper'
 require 'time'
 
 require 'datadog/core'
+require 'datadog/core/utils/time'
 require 'datadog/core/environment/identity'
 
 require 'datadog/tracing/sampling/ext'
@@ -85,6 +86,40 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       it do
         expect(trace_op.send(:metrics)).to eq({})
+      end
+
+      context 'when 128 bit trace id generation enabled' do
+        before do
+          allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_generation_enabled).and_return(true)
+        end
+
+        it '64 bits trace_id' do
+          expect(trace_op.id.bit_length).to be <= 128
+        end
+
+        it do
+          allow(Datadog::Core::Utils::Time).to receive(:now).and_return(0xffffffff)
+          allow(Datadog::Tracing::Utils).to receive(:next_id).and_return(0xaaaaaaaaaaaaaaaa)
+
+          expect(trace_op.id).to eq(0xffffffff00000000aaaaaaaaaaaaaaaa)
+        end
+      end
+
+      context 'when 128 bit trace id generation disabled' do
+        before do
+          allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_generation_enabled).and_return(false)
+        end
+
+        it '64 bits trace_id' do
+          expect(trace_op.id.bit_length).to be <= 64
+        end
+
+        it do
+          allow(Datadog::Tracing::Utils).to receive(:next_id).and_return(0xffffffffffffffff)
+
+          expect(trace_op.id).to eq(0xffffffffffffffff)
+          expect(trace_op).not_to have_tag('_dd.p.tid')
+        end
       end
     end
 

@@ -12,7 +12,8 @@ require 'ddtrace/transport/trace_formatter'
 
 RSpec.describe Datadog::Transport::TraceFormatter do
   subject(:trace_formatter) { described_class.new(trace) }
-  let(:trace_options) { {} }
+  let(:trace_options) { { id: trace_id } }
+  let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
 
   shared_context 'trace metadata' do
     let(:trace_tags) do
@@ -21,6 +22,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
 
     let(:trace_options) do
       {
+        id: trace_id,
         resource: resource,
         agent_sample_rate: agent_sample_rate,
         hostname: hostname,
@@ -57,6 +59,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         'foo' => 'bar',
         'baz' => 42,
         '_dd.p.dm' => '-1',
+        '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
       }
     end
   end
@@ -164,18 +167,26 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         context 'meta' do
           it 'sets root span tags from trace tags' do
             format!
-            expect(root_span.meta).to include({ 'foo' => 'bar', '_dd.p.dm' => '-1' })
+            expect(root_span.meta).to include(
+              {
+                'foo' => 'bar',
+                '_dd.p.dm' => '-1',
+                '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
+              }
+            )
           end
         end
       end
 
       shared_examples 'root span without generic tags' do
         context 'metrics' do
-          it { expect(root_span.metrics).to_not include({ 'baz' => 42 }) }
+          it { expect(root_span.metrics).to_not include('baz') }
         end
 
         context 'meta' do
-          it { expect(root_span.meta).to_not include({ 'foo' => 'bar', '_dd.p.dm' => '-1' }) }
+          it { expect(root_span.meta).to_not include('foo') }
+          it { expect(root_span.meta).to_not include('_dd.p.dm') }
+          it { expect(root_span.meta).to_not include('_dd.p.tid') }
         end
       end
 

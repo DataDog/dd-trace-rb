@@ -3,6 +3,8 @@
 require_relative '../metadata/ext'
 require_relative '../trace_digest'
 require_relative 'datadog_tags_codec'
+require_relative '../utils'
+require_relative 'helpers'
 
 module Datadog
   module Tracing
@@ -38,21 +40,26 @@ module Datadog
         def inject!(digest, data)
           return if digest.nil?
 
-          data[@trace_id_key] = digest.trace_id.to_s
+          data[@trace_id_key] = Tracing::Utils::TraceId.to_low_order(digest.trace_id).to_s
+
           data[@parent_id_key] = digest.span_id.to_s
           data[@sampling_priority_key] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
           data[@origin_key] = digest.trace_origin.to_s if digest.trace_origin
 
-          inject_tags(digest, data)
+          build_tags(digest).tap do |tags|
+            inject_tags!(tags, data) unless tags.empty?
+          end
 
           data
         end
 
         def extract(data)
           fetcher = @fetcher.new(data)
-          trace_id = fetcher.id(@trace_id_key)
-          parent_id = fetcher.id(@parent_id_key)
-          sampling_priority = fetcher.number(@sampling_priority_key)
+
+          trace_id  = parse_trace_id(fetcher)
+          parent_id = parse_parent_id(fetcher)
+
+          sampling_priority = Helpers.parse_decimal_id(fetcher[@sampling_priority_key])
           origin = fetcher[@origin_key]
 
           # Return early if this propagation is not valid
@@ -62,6 +69,10 @@ module Datadog
           return unless (trace_id && parent_id) || (origin && trace_id)
 
           trace_distributed_tags = extract_tags(fetcher)
+
+          # If trace id is 128 bits long,
+          # Concatentated high order 64 bit hex-encoded `tid` tag
+          trace_id = extract_trace_id!(trace_id, trace_distributed_tags)
 
           TraceDigest.new(
             span_id: parent_id,
@@ -74,20 +85,57 @@ module Datadog
 
         private
 
+        def parse_trace_id(fetcher_object)
+          trace_id = Helpers.parse_decimal_id(fetcher_object[@trace_id_key])
+
+          return unless trace_id
+          return if trace_id <= 0 || trace_id >= Tracing::Utils::EXTERNAL_MAX_ID
+
+          trace_id
+        end
+
+        def parse_parent_id(fetcher_object)
+          parent_id = Helpers.parse_decimal_id(fetcher_object[@parent_id_key])
+
+          return unless parent_id
+          return if parent_id <= 0 || parent_id >= Tracing::Utils::EXTERNAL_MAX_ID
+
+          parent_id
+        end
+
+        def build_tags(digest)
+          high_order = Tracing::Utils::TraceId.to_high_order(digest.trace_id)
+          tags = digest.trace_distributed_tags || {}
+
+          return tags if high_order == 0
+
+          tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => high_order.to_s(16))
+        end
+
+        # Side effect: Remove high order 64 bit hex-encoded `tid` tag from distributed tags
+        def extract_trace_id!(trace_id, tags)
+          return trace_id unless tags
+          return trace_id unless (high_order = tags.delete(Tracing::Metadata::Ext::Distributed::TAG_TID))
+
+          Tracing::Utils::TraceId.concatenate(high_order.to_i(16), trace_id)
+        end
+
         # Export trace distributed tags through the `x-datadog-tags` key.
         #
         # DEV: This method accesses global state (the active trace) to record its error state as a trace tag.
         # DEV: This means errors cannot be reported if there's not active span.
         # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
-        def inject_tags(digest, data)
-          return if digest.trace_distributed_tags.nil? || digest.trace_distributed_tags.empty?
+        def inject_tags!(tags, data)
           return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
 
-          tags = DatadogTagsCodec.encode(digest.trace_distributed_tags)
+          encoded_tags = DatadogTagsCodec.encode(tags)
 
-          return set_tags_propagation_error(reason: 'inject_max_size') if tags_too_large?(tags.size, scenario: 'inject')
+          return set_tags_propagation_error(reason: 'inject_max_size') if tags_too_large?(
+            encoded_tags.size,
+            scenario: 'inject'
+          )
 
-          data[@tags_key] = tags
+          data[@tags_key] = encoded_tags
         rescue => e
           set_tags_propagation_error(reason: 'encoding_error')
           ::Datadog.logger.warn(

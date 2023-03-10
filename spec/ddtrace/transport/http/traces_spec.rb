@@ -28,8 +28,8 @@ RSpec.describe Datadog::Transport::HTTP::Client do
 
   let(:api) { instance_double(Datadog::Transport::HTTP::API::Instance) }
 
-  describe '#send_payload' do
-    subject(:send_payload) { client.send_payload(request) }
+  describe '#send_traces_payload' do
+    subject(:send_traces_payload) { client.send_traces_payload(request) }
 
     let(:request) { instance_double(Datadog::Transport::Traces::Request) }
     let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response) }

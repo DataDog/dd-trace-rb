@@ -22,7 +22,7 @@ def report_to_dogstatsd_if_enabled_via_environment_variable(**args)
   end
 end
 
-class DogstatsdReporter < Benchmark::IPS::NoopSuite
+class DogstatsdReporter
   private
 
   attr_reader :benchmark_name
@@ -63,6 +63,11 @@ class DogstatsdReporter < Benchmark::IPS::NoopSuite
     statsd.close
     puts "Finished sending data to DogStatsD"
   end
+
+  # Unused, but called by benchmark-ips
+  def warming(a, b); end
+  def warmup_stats(a, b); end
+  def running(a, b); end
 
   private
 

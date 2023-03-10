@@ -38,7 +38,7 @@ module Datadog
         def extract(data)
           fetcher = @fetcher.new(data)
 
-          trace_id, dd_trace_id, parent_id, sampled, trace_flags = extract_traceparent(fetcher[@traceparent_key])
+          trace_id, parent_id, sampled, trace_flags = extract_traceparent(fetcher[@traceparent_key])
 
           return unless trace_id # Could not parse traceparent
 
@@ -48,11 +48,10 @@ module Datadog
 
           TraceDigest.new(
             span_id: parent_id,
-            trace_id: dd_trace_id,
+            trace_id: trace_id,
             trace_origin: origin,
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: tags,
-            trace_distributed_id: trace_id,
             trace_flags: trace_flags,
             trace_state: tracestate,
             trace_state_unknown_fields: unknown_fields,
@@ -92,7 +91,7 @@ module Datadog
         # @see https://www.w3.org/TR/trace-context/#traceparent-header
         def build_traceparent(digest)
           build_traceparent_string(
-            digest.trace_distributed_id || digest.trace_id,
+            digest.trace_id,
             digest.span_id,
             build_trace_flags(digest)
           )
@@ -229,10 +228,9 @@ module Datadog
           # Return unless all traceparent fields are valid.
           return unless trace_id && !trace_id.zero? && parent_id && !parent_id.zero? && trace_flags
 
-          dd_trace_id = parse_datadog_trace_id(trace_id)
           sampled = parse_sampled_flag(trace_flags)
 
-          [trace_id, dd_trace_id, parent_id, sampled, trace_flags]
+          [trace_id, parent_id, sampled, trace_flags]
         end
 
         def parse_traceparent_string(traceparent)
@@ -251,12 +249,6 @@ module Datadog
           [Integer(trace_id, 16), Integer(parent_id, 16), Integer(trace_flags, 16)]
         rescue ArgumentError # Conversion to integer failed
           nil
-        end
-
-        # Datadog only allows 64 bits for the trace id.
-        # We extract the lower 64 bits from the original 128-bit id.
-        def parse_datadog_trace_id(trace_id)
-          trace_id & 0xFFFFFFFFFFFFFFFF
         end
 
         def parse_sampled_flag(trace_flags)
@@ -298,6 +290,10 @@ module Datadog
               origin = value
             when /^t\./
               key.slice!(0..1) # Delete `t.` prefix
+
+              # Ignore the high order 64 bit trace id propagation tag to avoid confusion,
+              # the single source of truth is from traceparent
+              next if key == Tracing::Metadata::Ext::Distributed::TID
 
               value = deserialize_tag_value(value)
 

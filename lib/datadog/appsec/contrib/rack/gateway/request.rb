@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../../../instrumentation/gateway/argument'
+require_relative '../../../../core/header_collection'
 require_relative '../../../../tracing/client_ip'
-require_relative '../../../../tracing/contrib/rack/header_collection'
 
 module Datadog
   module AppSec
@@ -85,16 +85,9 @@ module Datadog
 
             def client_ip
               remote_ip = remote_addr
-              headers = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
+              header_collection = Datadog::Core::HeaderCollection.from_hash(headers)
 
-              result = Datadog::Tracing::ClientIp.raw_ip_from_request(headers, remote_ip)
-
-              if result.raw_ip
-                ip = Datadog::Tracing::ClientIp.strip_decorations(result.raw_ip)
-                return unless Datadog::Tracing::ClientIp.valid_ip?(ip)
-
-                ip
-              end
+              Datadog::Tracing::ClientIp.extract_client_ip(header_collection, remote_ip)
             end
           end
         end

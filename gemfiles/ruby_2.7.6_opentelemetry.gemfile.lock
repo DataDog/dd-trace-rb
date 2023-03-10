@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.9.0)
+    ddtrace (1.10.1)
       debase-ruby_core_source (>= 0.10.16, <= 3.2.0)
       libdatadog (~> 2.0.0.1.0)
       libddwaf (~> 1.6.2.0.0)
@@ -57,7 +57,7 @@ GEM
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
-    msgpack (1.6.0)
+    msgpack (1.6.1)
     opentelemetry-api (1.1.0)
     opentelemetry-common (0.19.6)
       opentelemetry-api (~> 1.0)
