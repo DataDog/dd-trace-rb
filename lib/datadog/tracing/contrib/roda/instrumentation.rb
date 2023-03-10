@@ -69,7 +69,6 @@ module Datadog
           def configuration
             Datadog.configuration.tracing[:roda]
           end
-
         end
       end
     end
