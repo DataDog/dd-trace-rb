@@ -195,7 +195,7 @@ static uint64_t cores_power_now(struct thread_context_collector_state *state);
 static uint64_t pkg_power_now(struct thread_context_collector_state *state);
 static void setup_power(struct thread_context_collector_state *state);
 static int read_power_type(void);
-static int read_event_config(char *path);
+static int read_event_config(const char *path);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -1064,7 +1064,7 @@ static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu
   return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
 }
 
-static int setup_power_event(char* event_config_path) {
+static int setup_power_event(const char* event_config_path) {
   struct perf_event_attr event_setup = {
     .type = read_power_type(),
     .size = sizeof(struct perf_event_attr),
@@ -1083,7 +1083,7 @@ static void setup_power(struct thread_context_collector_state *state) {
   state->power_tracking.pkg_file_descriptor = setup_power_event("/sys/bus/event_source/devices/power/events/energy-pkg");
 }
 
-static int read_event_config_new(char *path, char *event_format) {
+static int read_event_config_new(const char *path, const char *event_format) {
   FILE *event_config_file = fopen(path, "r");
   if (!event_config_file) { ENFORCE_SUCCESS_GVL(errno); }
 
@@ -1097,4 +1097,4 @@ static int read_event_config_new(char *path, char *event_format) {
 }
 
 static int read_power_type(void) { return read_event_config_new("/sys/bus/event_source/devices/power/type", "%d"); }
-static int read_event_config(char *path) { return read_event_config_new(path, "event=%x"); }
+static int read_event_config(const char *path) { return read_event_config_new(path, "event=%x"); }
