@@ -524,12 +524,6 @@ job_configuration:
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-dd
     resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
-  # TODO: Disabled for possible removal
-  # - &config-jruby-9_2_8_0 # Test with older 9.2 release because 9.2.9.0 changed behavior, see https://github.com/DataDog/dd-trace-rb/pull/1409
-  #   <<: *filters_all_branches_and_tags
-  #   ruby_version: 'jruby-9.2.8.0'
-  #   image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.8.0-dd
-  #   resource_class_to_use: medium+
   - &config-jruby-9_2 # More recent release of 9.2
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2.21.0'
@@ -565,8 +559,6 @@ workflows:
             - test-3.1
             - test-3.2
             # ADD NEW RUBIES HERE
-            # TODO: Disabled for possible removal
-            #- test-jruby-9.2.8.0
             - test-jruby-9.2
             - test-jruby-9.3
       - orb/changelog:
@@ -717,15 +709,6 @@ workflows:
           requires:
             - build-3.2
       # ADD NEW RUBIES HERE
-      # TODO: Disabled for possible removal
-      # - orb/build:
-      #     <<: *config-jruby-9_2_8_0
-      #     name: build-jruby-9.2.8.0
-      # - orb/test:
-      #     <<: *config-jruby-9_2_8_0
-      #     name: test-jruby-9.2.8.0
-      #     requires:
-      #       - build-jruby-9.2.8.0
       - orb/build:
           <<: *config-jruby-9_2
           name: build-jruby-9.2
@@ -758,8 +741,6 @@ workflows:
             - test-3.1
             - test-3.2
             # ADD NEW RUBIES HERE
-            # TODO: Disabled for possible removal
-            # - test-jruby-9.2.8.0
             - test-jruby-9.2
             - test-jruby-9.3
       - "deploy release":
@@ -777,8 +758,6 @@ workflows:
             - test-3.1
             - test-3.2
             # ADD NEW RUBIES HERE
-            # TODO: Disabled for possible removal
-            # - test-jruby-9.2.8.0
             - test-jruby-9.2
             - test-jruby-9.3
   # This workflow runs the same `build` and `test` jobs as above on a schedule.
@@ -941,16 +920,6 @@ workflows:
           requires:
             - build-3.2
       # ADD NEW RUBIES HERE
-      # TODO: Disabled for possible removal
-      # - orb/build:
-      #     <<: *config-jruby-9_2_8_0
-      #     name: build-jruby-9.2.8.0
-      #     edge: true
-      # - orb/test:
-      #     <<: *config-jruby-9_2_8_0
-      #     name: test-jruby-9.2.8.0
-      #     requires:
-      #       - build-jruby-9.2.8.0
       - orb/build:
           <<: *config-jruby-9_2
           name: build-jruby-9.2
