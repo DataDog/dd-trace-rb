@@ -526,6 +526,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         sampling_time_ns_max: nil,
         sampling_time_ns_total: nil,
         sampling_time_ns_avg: nil,
+        allocations_during_sample: 0,
       )
     end
   end
