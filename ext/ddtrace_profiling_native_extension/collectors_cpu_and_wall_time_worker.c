@@ -77,7 +77,7 @@
 
 // Contains state for a single CpuAndWallTimeWorker instance
 struct cpu_and_wall_time_worker_state {
-  atomic_bool should_run;
+  // These are immutable after initialization
 
   bool gc_profiling_enabled;
   bool allocation_counting_enabled;
@@ -86,17 +86,17 @@ struct cpu_and_wall_time_worker_state {
   VALUE idle_sampling_helper_instance;
   VALUE owner_thread;
   dynamic_sampling_rate_state dynamic_sampling_rate;
+  VALUE gc_tracepoint; // Used to get gc start/finish information
+  VALUE object_allocation_tracepoint; // Used to get allocation counts and allocation profiling
 
+  // These are mutable and used to signal things between the worker thread and other threads
+
+  atomic_bool should_run;
   // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
   // the CpuAndWallTimeWorker thread
   VALUE failure_exception;
   // Used by `_native_stop` to flag the worker thread to start (see comment on `_native_sampling_loop`)
   VALUE stop_thread;
-
-  // Used to get gc start/finish information
-  VALUE gc_tracepoint;
-
-  VALUE object_allocation_tracepoint;
 
   struct stats {
     // How many times we tried to trigger a sample
@@ -230,17 +230,19 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
 static VALUE _native_new(VALUE klass) {
   struct cpu_and_wall_time_worker_state *state = ruby_xcalloc(1, sizeof(struct cpu_and_wall_time_worker_state));
 
-  atomic_init(&state->should_run, false);
   state->gc_profiling_enabled = false;
   state->allocation_counting_enabled = false;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
   dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
-  state->failure_exception = Qnil;
-  state->stop_thread = Qnil;
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
+
+  atomic_init(&state->should_run, false);
+  state->failure_exception = Qnil;
+  state->stop_thread = Qnil;
+
   reset_stats(state);
 
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
