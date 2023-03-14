@@ -129,6 +129,10 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             include_examples 'records deprecated action', 'DD_PROPAGATION_STYLE_EXTRACT environment variable is deprecated'
           end
         end
+
+        context 'with propagation_style defined' do
+
+        end
       end
 
       describe '#propagation_inject_style' do
@@ -225,12 +229,11 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             it { is_expected.to contain_exactly('Datadog', 'b3') }
 
             it 'sets propagation_extract_style' do
-              expect { propagation_style }.to change { propagation_extract_style }
-                .from(%w[Datadog b3multi b3]).to(%w[Datadog b3])
+              expect(propagation_extract_style).to contain_exactly('Datadog', 'b3')
             end
 
             it 'sets propagation_inject_style' do
-              expect { propagation_style }.to change { propagation_inject_style }.from(['Datadog']).to(%w[Datadog b3])
+              expect(propagation_inject_style).to contain_exactly('Datadog', 'b3')
             end
           end
         end

@@ -52,6 +52,11 @@ module Datadog
                 # @return [Array<String>]
                 option :propagation_extract_style do |o|
                   o.default do
+                    # Default to `propagation_style`, if provided.
+                    if (global_style = propagation_style)
+                      next global_style
+                    end
+
                     # DEV-2.0: Change default value to `tracecontext, Datadog`.
                     # Look for all headers by default
                     env_to_list(
@@ -95,6 +100,11 @@ module Datadog
                 # @return [Array<String>]
                 option :propagation_inject_style do |o|
                   o.default do
+                    # Default to `propagation_style`, if provided.
+                    if (global_style = propagation_style)
+                      next global_style
+                    end
+
                     # DEV-2.0: Change default value to `tracecontext, Datadog`.
                     env_to_list(
                       [
