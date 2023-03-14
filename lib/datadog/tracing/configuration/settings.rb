@@ -77,13 +77,13 @@ module Datadog
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
                     styles.map! do |style|
-                      case style
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                      case style.downcase
+                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3.downcase
                         Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
+                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD.downcase
                         Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                       else
-                        style
+                        style.downcase
                       end
                     end
                   end
@@ -120,13 +120,13 @@ module Datadog
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
                     styles.map! do |style|
-                      case style
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                      case style.downcase
+                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3.downcase
                         Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
+                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD.downcase
                         Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                       else
-                        style
+                        style.downcase
                       end
                     end
                   end
@@ -153,13 +153,13 @@ module Datadog
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
                     styles.map! do |style|
-                      case style
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                      case style.downcase
+                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3.downcase
                         Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
+                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD.downcase
                         Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                       else
-                        style
+                        style.downcase
                       end
                     end
 
