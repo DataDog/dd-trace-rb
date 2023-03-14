@@ -22,6 +22,9 @@ module Datadog
           response = @transport.send_config(payload)
 
           if response.ok?
+            # when response is completely empty, do nothing as in: leave as is
+            return if response.empty?
+
             paths = response.client_configs.map do |path|
               Configuration::Path.parse(path)
             end
