@@ -180,6 +180,25 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
     end
 
+    it 'does not allocate Ruby objects during the regular operation of sampling' do
+      # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path"
+      # sampling.
+      # Note that when something does go wrong during sampling, we do allocate exceptions (and then raise them).
+
+      start
+
+      try_wait_until do
+        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+        samples if samples.any?
+      end
+
+      cpu_and_wall_time_worker.stop
+
+      stats = cpu_and_wall_time_worker.stats
+
+      expect(stats).to include(allocations_during_sample: 0)
+    end
+
     it 'records garbage collection cycles' do
       if RUBY_VERSION.start_with?('3.')
         skip(
