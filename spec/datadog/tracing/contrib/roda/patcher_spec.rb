@@ -26,6 +26,7 @@ RSpec.describe 'Roda instrumentation' do
   shared_context 'basic roda app' do
     let(:app) do
       Class.new(Roda) do
+        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
         plugin :all_verbs
         route do |r|
           r.root do
@@ -54,6 +55,7 @@ RSpec.describe 'Roda instrumentation' do
   shared_context 'Roda app with errors' do
     let(:app) do
       Class.new(Roda) do
+        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
         route do |r|
           r.root do
             r.get do
@@ -80,9 +82,9 @@ RSpec.describe 'Roda instrumentation' do
         context 'for a basic GET endpoint' do
           it do
             expect(response.status).to eq(200)
-            expect(spans).to have(1).items
-            expect(span.service).to eq('rspec')
-            expect(span.name).to eq('roda.request')
+            expect(spans).to have(2).items
+            expect(spans[1].service).to eq('rspec')
+            expect(spans[1].name).to eq('roda.request')
           end
         end
 
@@ -91,9 +93,9 @@ RSpec.describe 'Roda instrumentation' do
 
           it do
             expect(response.status).to eq(200)
-            expect(spans).to have(1).items
-            expect(span.service).to eq('rspec')
-            expect(span.name).to eq('roda.request')
+            expect(spans).to have(2).items
+            expect(spans[1].service).to eq('rspec')
+            expect(spans[1].name).to eq('roda.request')
           end
         end
 
@@ -102,9 +104,9 @@ RSpec.describe 'Roda instrumentation' do
 
           it do
             expect(response.status).to eq(200)
-            expect(spans).to have(1).items
-            expect(span.service).to eq('rspec')
-            expect(span.name).to eq('roda.request')
+            expect(spans).to have(2).items
+            expect(spans[1].service).to eq('rspec')
+            expect(spans[1].name).to eq('roda.request')
           end
         end
       end
@@ -115,9 +117,9 @@ RSpec.describe 'Roda instrumentation' do
           subject(:response) { get '/unsuccessful_endpoint' }
           it do
             expect(response.status).to eq(404)
-            expect(spans).to have(1).items
-            expect(span.service).to eq('rspec')
-            expect(span.name).to eq('roda.request')
+            expect(spans).to have(2).items
+            expect(spans[1].service).to eq('rspec')
+            expect(spans[1].name).to eq('roda.request')
           end
         end
 
@@ -127,11 +129,11 @@ RSpec.describe 'Roda instrumentation' do
           it do
             expect(response.status).to eq(500)
 
-            expect(spans).to have(1).items
-            expect(span.name).to eq('roda.request')
-            expect(span.status).to eq(1)
-            expect(span.service).to eq('rspec')
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
+            expect(spans).to have(2).items
+            expect(spans[1].name).to eq('roda.request')
+            expect(spans[1].status).to eq(1)
+            expect(spans[1].service).to eq('rspec')
+            expect(spans[1].get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
           end
         end
 
@@ -143,11 +145,11 @@ RSpec.describe 'Roda instrumentation' do
               expect(response.status).to eq(500)
             rescue => e
               expect(e.class.to_s).to eq('NameError')
-              expect(spans).to have(1).items
-              expect(span.name).to eq('roda.request')
-              expect(span.status).to eq(1)
-              expect(span.service).to eq('rspec')
-              expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
+              expect(spans).to have(2).items
+              expect(spans[1].name).to eq('roda.request')
+              expect(spans[1].status).to eq(1)
+              expect(spans[1].service).to eq('rspec')
+              expect(spans[1].get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
             end
           end
         end

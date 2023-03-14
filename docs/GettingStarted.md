@@ -1879,14 +1879,26 @@ end
 
 The Roda integration traces requests.
 
-It can be enabled through `Datadog.configure`:
+The **Roda** integration can be enabled through `Datadog.configure`. It is recommended to use this integration with **Rack** through `use Datadog::Tracing::Contrib::Rack::TraceMiddleware` for distributed tracing.
 
 ```ruby
-require 'roda'
-require 'ddtrace'
+require "roda"
+require "ddtrace"
 
-Datadog.configure do |c|
-  c.tracing.instrument :roda, **options
+class SampleApp < Roda
+  use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+
+  Datadog.configure do |c|
+    c.tracing.instrument :roda, **options
+  end
+
+  route do |r|
+    r.root do
+      r.get do
+        'Hello World!'
+      end
+    end
+  end
 end
 ```
 
@@ -1894,7 +1906,6 @@ end
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `roda` instrumentation. | `'nil'` |
 
 ### RSpec

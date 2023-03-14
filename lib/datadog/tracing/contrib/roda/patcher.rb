@@ -13,7 +13,6 @@ module Datadog
         # Patcher enables patching of 'roda'
         module Patcher
           include Contrib::Patcher
-          ::Roda.use Datadog::Tracing::Contrib::Rack::TraceMiddleware if defined? ::Roda
 
           module_function
 
