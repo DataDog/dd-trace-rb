@@ -1,6 +1,5 @@
 module Datadog
   module Transport
-    # Tracks statistics for transports
     module Statistics
       def stats: () -> untyped
 
@@ -12,7 +11,6 @@ module Datadog
 
       def metrics_for_exception: (untyped _exception) -> { api_errors: untyped }
 
-      # Stat counts
       class Counts
         attr_accessor success: untyped
 

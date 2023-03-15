@@ -1,7 +1,6 @@
 module Datadog
   module Transport
     module IO
-      # Encodes and writes tracer data to IO
       class Client
         include Transport::Statistics
 

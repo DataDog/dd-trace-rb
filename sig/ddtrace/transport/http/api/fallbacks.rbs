@@ -2,7 +2,6 @@ module Datadog
   module Transport
     module HTTP
       module API
-        # Extension for Map with adds fallback versions.
         module Fallbacks
           def fallbacks: () -> untyped
 

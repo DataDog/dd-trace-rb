@@ -3,7 +3,6 @@ module Datadog
     module Transport
       module HTTP
         module API
-          # An API configured with adapter and routes
           class Instance
             attr_reader adapter: untyped
 

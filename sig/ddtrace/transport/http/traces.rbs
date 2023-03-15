@@ -1,9 +1,7 @@
 module Datadog
   module Transport
     module HTTP
-      # HTTP transport behavior for traces
       module Traces
-        # Response from HTTP transport for traces
         class Response
           include HTTP::Response
 
@@ -12,13 +10,11 @@ module Datadog
           def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
         end
 
-        # Extensions for HTTP client
         module Client
           def send_traces_payload: (untyped request) -> untyped
         end
 
         module API
-          # Extensions for HTTP API Spec
           module Spec
             attr_reader traces: untyped
 
@@ -28,7 +24,6 @@ module Datadog
 
             def encoder: () -> untyped
 
-            # Raised when traces sent but no traces endpoint is defined
             class NoTraceEndpointDefinedError < StandardError
               attr_reader spec: untyped
 
@@ -38,11 +33,9 @@ module Datadog
             end
           end
 
-          # Extensions for HTTP API Instance
           module Instance
             def send_traces: (untyped env) -> untyped
 
-            # Raised when traces sent to API that does not support traces
             class TracesNotSupportedError < StandardError
               attr_reader spec: untyped
 
@@ -52,7 +45,6 @@ module Datadog
             end
           end
 
-          # Endpoint for submitting trace data
           class Endpoint < HTTP::API::Endpoint
             HEADER_CONTENT_TYPE: "Content-Type"
 

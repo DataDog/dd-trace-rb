@@ -1,8 +1,6 @@
 module Datadog
   module Transport
-    # @public_api
     module Ext
-      # @public_api
       module HTTP
         ADAPTER: :net_http
 
@@ -14,12 +12,6 @@ module Datadog
 
         HEADER_DD_API_KEY: ::String
 
-        # Tells agent that `_dd.top_level` metrics have been set by the tracer.
-        # The agent will not calculate top-level spans but instead trust the tracer tagging.
-        #
-        # This prevents partially flushed traces being mistakenly marked as top-level.
-        #
-        # Setting this header to any non-empty value enables this feature.
         HEADER_CLIENT_COMPUTED_TOP_LEVEL: ::String
 
         HEADER_META_LANG: ::String
@@ -31,12 +23,10 @@ module Datadog
         HEADER_META_TRACER_VERSION: ::String
       end
 
-      # @public_api
       module Test
         ADAPTER: :test
       end
 
-      # @public_api
       module UnixSocket
         ADAPTER: :unix
 

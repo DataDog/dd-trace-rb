@@ -2,7 +2,6 @@ module Datadog
   module Transport
     module HTTP
       module Adapters
-        # Adapter for Unix sockets
         class UnixSocket < Adapters::Net
           attr_reader filepath: untyped
 
@@ -10,7 +9,6 @@ module Datadog
 
           alias uds_path filepath
 
-          # @deprecated Positional parameters are deprecated. Use named parameters instead.
           def initialize: (?untyped? uds_path, **untyped options) -> void
 
           def self.build: (untyped agent_settings) -> untyped
@@ -19,7 +17,6 @@ module Datadog
 
           def url: () -> ::String
 
-          # Re-implements Net:HTTP with underlying Unix socket
           class HTTP < ::Net::HTTP
             DEFAULT_TIMEOUT: 1
 

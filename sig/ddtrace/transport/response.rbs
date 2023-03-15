@@ -1,6 +1,5 @@
 module Datadog
   module Transport
-    # Defines abstract response for transport operations
     module Response
       def payload: () -> nil
 
@@ -19,7 +18,6 @@ module Datadog
       def inspect: () -> ::String
     end
 
-    # A generic error response for internal errors
     class InternalErrorResponse
       include Response
 

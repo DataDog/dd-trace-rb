@@ -2,7 +2,6 @@ module Datadog
   module Core
     module Transport
       module HTTP
-        # Builds new instances of Transport::HTTP::Client
         class Builder
           REGISTRY: Datadog::Transport::HTTP::Adapters::Registry
 
@@ -22,12 +21,6 @@ module Datadog
 
           def headers: (?::Hash[untyped, untyped] values) -> untyped
 
-          # Adds a new API to the client
-          # Valid options:
-          #  - :adapter
-          #  - :default
-          #  - :fallback
-          #  - :headers
           def api: (untyped key, untyped spec, ?::Hash[untyped, untyped] options) -> untyped
 
           def default_api=: (untyped key) -> untyped
@@ -38,7 +31,6 @@ module Datadog
 
           def api_instance_class: () -> untyped
 
-          # Raised when the API key does not match known APIs.
           class UnknownApiError < StandardError
             attr_reader key: untyped
 
@@ -47,7 +39,6 @@ module Datadog
             def message: () -> ::String
           end
 
-          # Raised when the identifier cannot be matched to an adapter.
           class UnknownAdapterError < StandardError
             attr_reader type: untyped
 
@@ -56,7 +47,6 @@ module Datadog
             def message: () -> ::String
           end
 
-          # Raised when an adapter cannot be resolved for an API instance.
           class NoAdapterForApiError < StandardError
             attr_reader key: untyped
 
@@ -65,12 +55,10 @@ module Datadog
             def message: () -> ::String
           end
 
-          # Raised when built without defining APIs.
           class NoApisError < StandardError
             def message: () -> "No APIs configured for transport!"
           end
 
-          # Raised when client built without defining a default API.
           class NoDefaultApiError < StandardError
             def message: () -> "No default API configured for transport!"
           end

@@ -1,18 +1,14 @@
 module Datadog
   module Transport
     module HTTP
-      # Tracks statistics for HTTP transports
       module Statistics
         def self.included: (untyped base) -> untyped
 
-        # Instance methods for HTTP statistics
         module InstanceMethods
-          # Decorate metrics for HTTP responses
           def metrics_for_response: (untyped response) -> untyped
 
           private
 
-          # The most common status code on a healthy tracer
           STATUS_CODE_200: "status_code:200"
 
           def metrics_tag_value: (untyped status_code) -> (untyped | ::String)

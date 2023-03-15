@@ -1,7 +1,6 @@
 module Datadog
   module Transport
     module Traces
-      # Data transfer object for encoded traces
       class EncodedParcel
         include Datadog::Transport::Parcel
 
@@ -12,42 +11,24 @@ module Datadog
         def count: () -> untyped
       end
 
-      # Traces request
       class Request < Datadog::Transport::Request
       end
 
-      # Traces response
       module Response
         attr_reader service_rates: untyped
 
         attr_reader trace_count: untyped
       end
 
-      # Traces chunker
       class Chunker
-        # Trace agent limit payload size of 10 MiB (since agent v5.11.0):
-        # https://github.com/DataDog/datadog-agent/blob/6.14.1/pkg/trace/api/api.go#L46
-        #
-        # We set the value to a conservative 5 MiB, in case network speed is slow.
         DEFAULT_MAX_PAYLOAD_SIZE: untyped
 
         attr_reader encoder: untyped
 
         attr_reader max_size: untyped
 
-        #
-        # Single traces larger than +max_size+ will be discarded.
-        #
-        # @param encoder [Datadog::Core::Encoding::Encoder]
-        # @param max_size [String] maximum acceptable payload size
         def initialize: (untyped encoder, ?max_size: untyped) -> void
 
-        # Encodes a list of traces in chunks.
-        # Before serializing, all traces are normalized. Trace nesting is not changed.
-        #
-        # @param traces [Enumerable<Trace>] list of traces
-        # @return [Enumerable[Array[Bytes,Integer]]] list of encoded chunks: each containing a byte array and
-        #   number of traces
         def encode_in_chunks: (untyped traces) -> untyped
 
         private
@@ -55,16 +36,10 @@ module Datadog
         def encode_one: (untyped trace) -> (nil | untyped)
       end
 
-      # Encodes traces using {Datadog::Core::Encoding::Encoder} instances.
       module Encoder
         def self?.encode_trace: (untyped encoder, untyped trace) -> untyped
       end
 
-      # Sends traces based on transport API configuration.
-      #
-      # This class initializes the HTTP client, breaks down large
-      # batches of traces into smaller chunks and handles
-      # API version downgrade handshake.
       class Transport
         attr_reader client: untyped
 
@@ -90,7 +65,6 @@ module Datadog
 
         def change_api!: (untyped api_id) -> untyped
 
-        # Raised when configured with an unknown API version
         class UnknownApiVersionError < StandardError
           attr_reader version: untyped
 
@@ -99,7 +73,6 @@ module Datadog
           def message: () -> ::String
         end
 
-        # Raised when configured with an unknown API version
         class NoDowngradeAvailableError < StandardError
           attr_reader version: untyped
 

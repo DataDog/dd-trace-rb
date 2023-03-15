@@ -1,9 +1,7 @@
 module Datadog
   module Transport
     module HTTP
-      # Namespace for API components
       module API
-        # Default API versions
         V4: "v0.4"
 
         V3: "v0.3"

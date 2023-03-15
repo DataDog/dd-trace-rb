@@ -2,11 +2,9 @@ module Datadog
   module Core
     module Transport
       module Negotiation
-        # Negotiation request
         class Request < Datadog::Transport::Request
         end
 
-        # Negotiation response
         module Response
           attr_reader version: untyped
 
@@ -15,7 +13,6 @@ module Datadog
           attr_reader config: untyped
         end
 
-        # Negotiation transport
         class Transport
           attr_reader client: untyped
 

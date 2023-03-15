@@ -2,7 +2,6 @@ module Datadog
   module Transport
     module HTTP
       module Adapters
-        # Adapter for Net::HTTP
         class Net
           attr_reader hostname: untyped
 
@@ -12,10 +11,8 @@ module Datadog
 
           attr_reader ssl: untyped
 
-          # in seconds
           DEFAULT_TIMEOUT: 30
 
-          # @deprecated Positional parameters are deprecated. Use named parameters instead.
           def initialize: (?untyped? hostname, ?untyped? port, **untyped options) -> void
 
           def self.build: (untyped agent_settings) -> untyped
@@ -30,7 +27,6 @@ module Datadog
 
           def url: () -> ::String
 
-          # Raised when called with an unknown HTTP method
           class UnknownHTTPMethod < StandardError
             attr_reader verb: untyped
 
@@ -39,7 +35,6 @@ module Datadog
             def message: () -> ::String
           end
 
-          # A wrapped Net::HTTP response that implements the Transport::Response interface
           class Response
             include Datadog::Transport::Response
 

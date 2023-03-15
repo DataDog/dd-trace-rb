@@ -2,14 +2,11 @@ module Datadog
   module Transport
     module HTTP
       module Adapters
-        # Adapter for testing
         class Test
           attr_reader buffer: untyped
 
           attr_reader status: untyped
 
-          # @param buffer [Array] an optional array that will capture all spans sent to this adapter, defaults to +nil+
-          # @deprecated Positional parameters are deprecated. Use named parameters instead.
           def initialize: (?untyped? buffer, **untyped options) -> void
 
           def call: (untyped env) -> untyped
@@ -22,7 +19,6 @@ module Datadog
 
           def url: () -> nil
 
-          # Response for test adapter
           class Response
             include Datadog::Transport::Response
 

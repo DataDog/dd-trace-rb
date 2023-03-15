@@ -1,6 +1,5 @@
 module Datadog
   module Transport
-    # Prepares traces for transport
     class TraceFormatter
       attr_reader root_span: untyped
 
@@ -10,7 +9,6 @@ module Datadog
 
       def initialize: (untyped trace) -> void
 
-      # Modifies a trace so suitable for transport
       def format!: () -> (nil | untyped)
 
       def set_resource!: () -> (nil | untyped)

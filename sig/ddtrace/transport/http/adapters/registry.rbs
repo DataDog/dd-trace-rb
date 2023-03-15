@@ -8,7 +8,6 @@ module Datadog
           def build: (untyped) -> untyped
         end
 
-        # List of available adapters
         class Registry
           def initialize: () -> void
 

@@ -2,9 +2,7 @@ module Datadog
   module Core
     module Transport
       module HTTP
-        # Namespace for API components
         module API
-          # Default API versions
           ROOT: "root"
 
           def self?.defaults: () -> untyped

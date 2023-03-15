@@ -2,9 +2,7 @@ module Datadog
   module Core
     module Transport
       module HTTP
-        # HTTP transport behavior for agent feature negotiation
         module Negotiation
-          # Response from HTTP transport for agent feature negotiation
           class Response
             include Datadog::Transport::HTTP::Response
 
@@ -13,13 +11,11 @@ module Datadog
             def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
           end
 
-          # Extensions for HTTP client
           module Client : HTTP::Client
             def send_info_payload: (untyped request) -> untyped
           end
 
           module API
-            # Extensions for HTTP API Spec
             module Spec
               attr_reader info: untyped
 
@@ -27,7 +23,6 @@ module Datadog
 
               def send_info: (untyped env) ?{ () -> untyped } -> untyped
 
-              # Raised when traces sent but no traces endpoint is defined
               class NoNegotiationEndpointDefinedError < StandardError
                 attr_reader spec: untyped
 
@@ -37,11 +32,9 @@ module Datadog
               end
             end
 
-            # Extensions for HTTP API Instance
             module Instance : HTTP::API::Instance
               def send_info: (untyped env) -> untyped
 
-              # Raised when traces sent to API that does not support traces
               class NegotiationNotSupportedError < StandardError
                 attr_reader spec: untyped
 
@@ -51,7 +44,6 @@ module Datadog
               end
             end
 
-            # Endpoint for negotiation
             class Endpoint < Datadog::Transport::HTTP::API::Endpoint
               def initialize: (untyped path) -> void
 
