@@ -33,9 +33,6 @@ module Datadog
             @apis = apis
 
             @client = HTTP::Client.new(current_api)
-
-            # TODO: this should go in the high level remote config client
-            @client_id = SecureRandom.uuid
           end
 
           ##### there is only one transport! it's negotiation!

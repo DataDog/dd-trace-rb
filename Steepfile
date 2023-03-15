@@ -654,6 +654,8 @@ target :ddtrace do
   library 'json'
   library 'ipaddr'
   library 'net-http'
+  library 'securerandom'
+  library 'base64'
 
   # TODO: gem 'libddwaf'
 
