@@ -157,6 +157,8 @@ module Datadog
             attr_reader :key
 
             def initialize(key)
+              super()
+
               @key = key
             end
 
@@ -170,6 +172,8 @@ module Datadog
             attr_reader :type
 
             def initialize(type)
+              super()
+
               @type = type
             end
 
@@ -183,6 +187,8 @@ module Datadog
             attr_reader :key
 
             def initialize(key)
+              super()
+
               @key = key
             end
 

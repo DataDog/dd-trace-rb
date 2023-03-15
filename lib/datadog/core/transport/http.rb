@@ -89,7 +89,8 @@ module Datadog
             Datadog::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_TOP_LEVEL => '1',
             Datadog::Transport::Ext::HTTP::HEADER_META_LANG => Datadog::Core::Environment::Ext::LANG,
             Datadog::Transport::Ext::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Environment::Ext::LANG_VERSION,
-            Datadog::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Core::Environment::Ext::LANG_INTERPRETER,
+            Datadog::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER =>
+              Datadog::Core::Environment::Ext::LANG_INTERPRETER,
             Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
           }.tap do |headers|
             # Add container ID, if present.

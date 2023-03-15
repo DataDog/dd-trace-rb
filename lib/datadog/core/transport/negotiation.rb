@@ -47,12 +47,7 @@ module Datadog
           def send_info
             request = Request.new
 
-            response = @client.send_info_payload(request)
-
-            # TODO: not sure if we're supposed to do that as we don't chunk like traces
-            # Datadog.health_metrics.transport_chunked(responses.size)
-
-            response
+            @client.send_info_payload(request)
           end
 
           def current_api

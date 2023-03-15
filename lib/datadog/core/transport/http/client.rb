@@ -24,13 +24,13 @@ module Datadog
             env = build_env(request)
 
             # Get responses from API
-            response = yield(api, env)
-
-            response
+            yield(api, env)
           rescue StandardError => e
             message =
               "Internal error during #{self.class.name} request. Cause: #{e.class.name} #{e.message} " \
               "Location: #{Array(e.backtrace).first}"
+
+            Datadog.logger.error(message)
 
             Datadog::Transport::InternalErrorResponse.new(e)
           end
