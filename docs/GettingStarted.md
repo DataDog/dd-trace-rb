@@ -74,6 +74,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Redis](#redis)
      - [Resque](#resque)
      - [Rest Client](#rest-client)
+     - [Roda](#roda)
      - [RSpec](#rspec)
      - [Sequel](#sequel)
      - [Shoryuken](#shoryuken)
@@ -515,6 +516,7 @@ For a list of available integrations, and their configuration options, please re
 | Redis                      | `redis`                    | `>= 3.2`                 | `>= 3.2`                 | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
 | Resque                     | `resque`                   | `>= 1.0`                 | `>= 1.0`                  | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
 | Rest Client                | `rest-client`              | `>= 1.8`                 | `>= 1.8`                  | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
+| Roda                       | `roda`                     | `>= 2.1, <4`             | `>= 2.1, <4`              | *[Link](#roda)*                     | *[Link](https://github.com/jeremyevans/roda)*                                  |
 | Sequel                     | `sequel`                   | `>= 3.41`                | `>= 3.41`                 | *[Link](#sequel)*                   | *[Link](https://github.com/jeremyevans/sequel)*                                |
 | Shoryuken                  | `shoryuken`                | `>= 3.2`                 | `>= 3.2`                  | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*                                   |
 | Sidekiq                    | `sidekiq`                  | `>= 3.5.4`               | `>= 3.5.4`                | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
@@ -1872,6 +1874,39 @@ end
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `rest_client` instrumentation. | `'rest_client'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+
+### Roda
+
+The Roda integration traces requests.
+
+The **Roda** integration can be enabled through `Datadog.configure`. It is recommended to use this integration with **Rack** through `use Datadog::Tracing::Contrib::Rack::TraceMiddleware` for distributed tracing.
+
+```ruby
+require "roda"
+require "ddtrace"
+
+class SampleApp < Roda
+  use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+
+  Datadog.configure do |c|
+    c.tracing.instrument :roda, **options
+  end
+
+  route do |r|
+    r.root do
+      r.get do
+        'Hello World!'
+      end
+    end
+  end
+end
+```
+
+`options` are the following keyword arguments:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `service_name` | Service name for `roda` instrumentation. | `'nil'` |
 
 ### RSpec
 
