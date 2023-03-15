@@ -53,6 +53,18 @@ module Datadog
             end
           end
 
+          def get(env)
+            get = ::Net::HTTP::Get.new(env.path, env.headers)
+
+            # Connect and send the request
+            http_response = open do |http|
+              http.request(get)
+            end
+
+            # Build and return response
+            Response.new(http_response)
+          end
+
           def post(env)
             post = nil
 
