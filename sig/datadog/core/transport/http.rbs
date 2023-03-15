@@ -11,7 +11,7 @@ module Datadog
         DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS: untyped
 
         # Builds a new Transport::HTTP::Client
-        def self?.new: (untyped klass) ?{ () -> untyped } -> untyped
+        def self?.new: (untyped klass) ?{ (untyped) -> untyped } -> untyped
 
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.

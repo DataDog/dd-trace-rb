@@ -99,7 +99,7 @@ module Datadog
         end
 
         def default_adapter
-          Transport::Ext::HTTP::ADAPTER
+          Datadog::Transport::Ext::HTTP::ADAPTER
         end
 
         def default_hostname(logger: Datadog.logger)

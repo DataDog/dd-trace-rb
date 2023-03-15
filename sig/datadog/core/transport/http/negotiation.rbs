@@ -14,7 +14,7 @@ module Datadog
           end
 
           # Extensions for HTTP client
-          module Client
+          module Client : HTTP::Client
             def send_info_payload: (untyped request) -> untyped
           end
 
@@ -38,7 +38,7 @@ module Datadog
             end
 
             # Extensions for HTTP API Instance
-            module Instance
+            module Instance : HTTP::API::Instance
               def send_info: (untyped env) -> untyped
 
               # Raised when traces sent to API that does not support traces
@@ -55,7 +55,7 @@ module Datadog
             class Endpoint < Datadog::Transport::HTTP::API::Endpoint
               def initialize: (untyped path) -> void
 
-              def call: (untyped env) ?{ () -> untyped } -> untyped
+              def call: (untyped env) { (untyped) -> untyped } -> untyped
             end
           end
         end

@@ -10,9 +10,9 @@ module Datadog
 
         DEFAULT_PORT: 8126
 
-        HEADER_CONTAINER_ID: "Datadog-Container-ID"
+        HEADER_CONTAINER_ID: ::String
 
-        HEADER_DD_API_KEY: "DD-API-KEY"
+        HEADER_DD_API_KEY: ::String
 
         # Tells agent that `_dd.top_level` metrics have been set by the tracer.
         # The agent will not calculate top-level spans but instead trust the tracer tagging.
@@ -20,15 +20,15 @@ module Datadog
         # This prevents partially flushed traces being mistakenly marked as top-level.
         #
         # Setting this header to any non-empty value enables this feature.
-        HEADER_CLIENT_COMPUTED_TOP_LEVEL: "Datadog-Client-Computed-Top-Level"
+        HEADER_CLIENT_COMPUTED_TOP_LEVEL: ::String
 
-        HEADER_META_LANG: "Datadog-Meta-Lang"
+        HEADER_META_LANG: ::String
 
-        HEADER_META_LANG_VERSION: "Datadog-Meta-Lang-Version"
+        HEADER_META_LANG_VERSION: ::String
 
-        HEADER_META_LANG_INTERPRETER: "Datadog-Meta-Lang-Interpreter"
+        HEADER_META_LANG_INTERPRETER: ::String
 
-        HEADER_META_TRACER_VERSION: "Datadog-Meta-Tracer-Version"
+        HEADER_META_TRACER_VERSION: ::String
       end
 
       # @public_api

@@ -653,6 +653,7 @@ target :ddtrace do
   library 'tsort'
   library 'json'
   library 'ipaddr'
+  library 'net-http'
 
   # TODO: gem 'libddwaf'
 

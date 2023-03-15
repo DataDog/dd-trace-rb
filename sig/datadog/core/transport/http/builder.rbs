@@ -4,7 +4,7 @@ module Datadog
       module HTTP
         # Builds new instances of Transport::HTTP::Client
         class Builder
-          REGISTRY: untyped
+          REGISTRY: Datadog::Transport::HTTP::Adapters::Registry
 
           attr_reader apis: untyped
 
@@ -16,7 +16,7 @@ module Datadog
 
           attr_reader default_headers: untyped
 
-          def initialize: () { (untyped) -> untyped } -> void
+          def initialize: () ?{ (untyped) -> untyped } -> void
 
           def adapter: (untyped config, *untyped args, **untyped kwargs) -> untyped
 
