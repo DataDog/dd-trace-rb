@@ -122,11 +122,10 @@ group :check do
   # bundler that supports pathname as a default gem. (Gem::LoadError)
   #
   # @ivoanjo: For the life of me, I tried updating to the latest bundler, different ways of invoking rake (binstubs, ...)
-  # and could not fix this issue. As a final workaround, I decided to opt for not installing steep on the offending setups.
-  # Hopefully, if you want to run steep on macos, you can either manually remove this, or use a different Ruby (like 3.2)
-  # instead.
-  skip_versions_of_macos_that_fail_in_ci = RUBY_PLATFORM.include?('darwin') && RUBY_VERSION.start_with?('3.0.', '3.1.')
-  if RUBY_VERSION >= '2.7.0' && RUBY_PLATFORM != 'java' && !skip_versions_of_macos_that_fail_in_ci
+  # and could not fix this issue. As a final workaround, I decided to not install steep on the affected Ruby versions on
+  # GitHub Actions.
+  steep_ci_workaround = ENV['GITHUB_ACTIONS'] == 'true' && RUBY_VERSION.start_with?('3.0.', '3.1.')
+  if RUBY_VERSION >= '2.7.0' && RUBY_PLATFORM != 'java' && !steep_ci_workaround
     gem 'rbs', '~> 2.8.1', require: false
     gem 'steep', '~> 1.3.1', require: false
   end
