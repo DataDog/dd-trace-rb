@@ -35,7 +35,7 @@ module Datadog
             include Datadog::Transport::HTTP::Response
             include Core::Transport::Config::Response
 
-            def initialize(http_response, options = {})
+            def initialize(http_response, options = {}) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
               super(http_response)
 
               # TODO: these fallbacks should be improved
@@ -90,8 +90,8 @@ module Datadog
 
               @target_files = target_files.map do |h|
                 raise TypeError.new(Hash, h) unless h.is_a?(Hash)
-                raise KeyError.new(:raw) unless h.key?(:raw)
-                raise KeyError.new(:path) unless h.key?(:path)
+                raise KeyError.new(:raw) unless h.key?(:raw) # rubocop:disable Style/RaiseArgs
+                raise KeyError.new(:path) unless h.key?(:path) # rubocop:disable Style/RaiseArgs
 
                 raw = h[:raw]
 
@@ -116,6 +116,7 @@ module Datadog
               end.freeze
             end
 
+            # When an expected key is missing
             class KeyError < StandardError
               def initialize(key)
                 message = "key not found: #{key.inspect}"
@@ -124,6 +125,7 @@ module Datadog
               end
             end
 
+            # When an expected value type is incorrect
             class TypeError < StandardError
               def initialize(type, value)
                 message = "not a #{type}: #{value.inspect}"
@@ -132,6 +134,7 @@ module Datadog
               end
             end
 
+            # When value decoding fails
             class DecodeError < StandardError
               def initialize(key, value)
                 message = "could not decode key #{key.inspect}: #{value.inspect}"
@@ -140,6 +143,7 @@ module Datadog
               end
             end
 
+            # When value parsing fails
             class ParseError < StandardError
               def initialize(key, value)
                 message = "could not parse key #{key.inspect}: #{value.inspect}"

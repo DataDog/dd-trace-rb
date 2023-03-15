@@ -11,10 +11,6 @@ module Datadog
         class EncodedParcel
           include Datadog::Transport::Parcel
 
-          def initialize(data)
-            super(data)
-          end
-
           def count
             data.length
           end
@@ -29,6 +25,7 @@ module Datadog
           attr_reader :roots, :targets, :target_files, :client_configs
         end
 
+        # Config transport
         class Transport
           attr_reader :client, :apis, :default_api, :current_api_id
 
@@ -47,12 +44,7 @@ module Datadog
             parcel = EncodedParcel.new(json)
             request = Request.new(parcel)
 
-            response = @client.send_config_payload(request)
-
-            # TODO: not sure if we're supposed to do that as we don't chunk like traces
-            # Datadog.health_metrics.transport_chunked(responses.size)
-
-            response
+            @client.send_config_payload(request)
           end
 
           def current_api
