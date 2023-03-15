@@ -34,8 +34,8 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
             'transformers' => []
           }
         ]
-      }
-    ]
+      }.freeze
+    ].freeze
   end
 
   context 'rules' do
@@ -86,7 +86,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
                 ]
               },
             ]
-          }
+          }.freeze
 
           expected_result = {
             'version' => '2.2',
@@ -153,7 +153,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
             ]
           }
 
-          result = described_class.merge(rules: rules_dup)
+          result = described_class.merge(rules: rules_dup.freeze)
           expect(result).to eq(expected_result)
         end
 
@@ -202,9 +202,11 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
                 ]
               },
             ]
-          }
+          }.freeze
 
-          expect { described_class.merge(rules: rules_dup) }.to raise_error(described_class::RuleVersionMismatchError)
+          expect do
+            described_class.merge(rules: rules_dup.freeze)
+          end.to raise_error(described_class::RuleVersionMismatchError)
         end
       end
     end
@@ -259,138 +261,143 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
         result = described_class.merge(rules: rules, overrides: rules_overrides)
         expect(result).to eq(expected_result)
       end
+    end
+  end
 
-      it 'merges exclusions' do
-        rules_overrides = [
-          {
-            'exclusions' => [
-              {
-                'conditions' => [
-                  {
-                    'operator' => 'match_regex',
-                    'parameters' => {
-                      'inputs' => [
-                        {
-                          'address' => 'server.request.uri.raw'
-                        }
-                      ],
-                      'options' => {
-                        'case_sensitive' => false
-                      },
-                      'regex' => '^/api/v2/ci/pipeline/.*'
-                    }
+  context 'exclusions' do
+    it 'merges exclusions' do
+      exclusions = [
+        {
+          'exclusions' => [
+            {
+              'conditions' => [
+                {
+                  'operator' => 'match_regex',
+                  'parameters' => {
+                    'inputs' => [
+                      {
+                        'address' => 'server.request.uri.raw'
+                      }
+                    ],
+                    'options' => {
+                      'case_sensitive' => false
+                    },
+                    'regex' => '^/api/v2/ci/pipeline/.*'
                   }
-                ],
-                'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
-              }
-            ]
-          }
-        ]
-
-        expected_result = rules[0].merge(
-          {
-            'exclusions' => [
-              {
-                'conditions' => [
-                  {
-                    'operator' => 'match_regex',
-                    'parameters' => {
-                      'inputs' => [
-                        { 'address' => 'server.request.uri.raw' }
-                      ],
-                      'options' => { 'case_sensitive' => false },
-                      'regex' => '^/api/v2/ci/pipeline/.*'
-                    }
+                }
+              ],
+              'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
+            }
+          ]
+        },
+        {
+          'exclusions' => [
+            {
+              'conditions' => [
+                {
+                  'operator' => 'match_regex',
+                  'parameters' => {
+                    'inputs' => [
+                      {
+                        'address' => 'server.request.uri.raw'
+                      }
+                    ],
+                    'options' => {
+                      'case_sensitive' => false
+                    },
+                    'regex' => '^/api/v2/source-code-integration/enrich-stack-trace'
                   }
-                ],
-                'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
-              }
-            ]
-          }
-        )
+                }
+              ],
+              'id' => 'f40fbf52-baec-42bd-9868-cf002b6cdbed',
+              'inputs' => [
+                {
+                  'address' => 'server.request.query',
+                  'key_path' => [
+                    'stack'
+                  ]
+                },
+                {
+                  'address' => 'server.request.body',
+                  'key_path' => [
+                    'stack'
+                  ]
+                },
+                {
+                  'address' => 'server.request.path_params',
+                  'key_path' => [
+                    'stack'
+                  ]
+                }
+              ]
+            }
+          ],
+        }
+      ]
 
-        result = described_class.merge(rules: rules, overrides: rules_overrides)
-        expect(result).to eq(expected_result)
-      end
-
-      it 'merges rules_overrides and exclusions' do
-        rules_overrides = [
-          {
-            'rules_override' => [
-              {
-                'id' => 'usr-001-001',
-                'on_match' => ['block']
-              }
-            ]
-          },
-          {
-            'rules_override' => [
-              {
-                'id' => 'usr-001-001',
-                'enabled' => false,
-              }
-            ]
-          },
-          {
-            'exclusions' => [
-              {
-                'conditions' => [
-                  {
-                    'operator' => 'match_regex',
-                    'parameters' => {
-                      'inputs' => [
-                        {
-                          'address' => 'server.request.uri.raw'
-                        }
-                      ],
-                      'options' => {
-                        'case_sensitive' => false
-                      },
-                      'regex' => '^/api/v2/ci/pipeline/.*'
-                    }
+      expected_result = rules[0].merge(
+        {
+          'exclusions' => [
+            {
+              'conditions' => [
+                {
+                  'operator' => 'match_regex',
+                  'parameters' => {
+                    'inputs' => [
+                      { 'address' => 'server.request.uri.raw' }
+                    ],
+                    'options' => { 'case_sensitive' => false },
+                    'regex' => '^/api/v2/ci/pipeline/.*'
                   }
-                ],
-                'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
-              }
-            ]
-          }
-        ]
-
-        expected_result = rules[0].merge(
-          {
-            'exclusions' => [
-              {
-                'conditions' => [
-                  {
-                    'operator' => 'match_regex',
-                    'parameters' => {
-                      'inputs' => [
-                        { 'address' => 'server.request.uri.raw' }
-                      ],
-                      'options' => { 'case_sensitive' => false },
-                      'regex' => '^/api/v2/ci/pipeline/.*'
-                    }
+                }
+              ],
+              'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
+            },
+            {
+              'conditions' => [
+                {
+                  'operator' => 'match_regex',
+                  'parameters' => {
+                    'inputs' => [
+                      {
+                        'address' => 'server.request.uri.raw'
+                      }
+                    ],
+                    'options' => {
+                      'case_sensitive' => false
+                    },
+                    'regex' => '^/api/v2/source-code-integration/enrich-stack-trace'
                   }
-                ],
-                'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
-              }
-            ],
-            'rules_override' => [
-              {
-                'id' => 'usr-001-001',
-                'on_match' => ['block']
-              },
-              {
-                'id' => 'usr-001-001',
-                'enabled' => false
-              }
-            ]
-          }
-        )
+                }
+              ],
+              'id' => 'f40fbf52-baec-42bd-9868-cf002b6cdbed',
+              'inputs' => [
+                {
+                  'address' => 'server.request.query',
+                  'key_path' => [
+                    'stack'
+                  ]
+                },
+                {
+                  'address' => 'server.request.body',
+                  'key_path' => [
+                    'stack'
+                  ]
+                },
+                {
+                  'address' => 'server.request.path_params',
+                  'key_path' => [
+                    'stack'
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      )
 
-        result = described_class.merge(rules: rules, overrides: rules_overrides)
-        expect(result).to eq(expected_result)
-      end
+      result = described_class.merge(rules: rules, exclusions: exclusions)
+      expect(result).to eq(expected_result)
     end
   end
 
@@ -591,7 +598,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
         expect(result).to eq(expected_result)
       end
 
-      it 'keeps the entry without expiration' do
+      it 'removes expiration key if no experation is provided' do
         rules_data = [
           {
             'rules_data' => [
@@ -630,7 +637,6 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
                 'type' => 'data_with_expiration',
                 'data' => [
                   {
-                    'expiration' => 0,
                     'value' => 'this is a test'
                   }
                 ]
@@ -640,6 +646,135 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
         )
 
         result = described_class.merge(rules: rules, data: rules_data)
+        expect(result).to eq(expected_result)
+      end
+    end
+
+    context 'data, overrides, and exclusions' do
+      it 'merges all information' do
+        rules_data = [
+          {
+            'rules_data' => [
+              {
+                'data' => [
+                  {
+                    'expiration' => 1677171437,
+                    'value' => 'this is a test'
+                  }
+                ],
+                'id' => 'blocked_users',
+                'type' => 'data_with_expiration'
+              }
+            ]
+          },
+          {
+            'rules_data' => [
+              {
+                'data' => [
+                  {
+                    'value' => 'this is a test'
+                  }
+                ],
+                'id' => 'blocked_users',
+                'type' => 'data_with_expiration'
+              }
+            ]
+          }
+        ]
+
+        exclusions = [
+          {
+            'exclusions' => [
+              {
+                'conditions' => [
+                  {
+                    'operator' => 'match_regex',
+                    'parameters' => {
+                      'inputs' => [
+                        {
+                          'address' => 'server.request.uri.raw'
+                        }
+                      ],
+                      'options' => {
+                        'case_sensitive' => false
+                      },
+                      'regex' => '^/api/v2/ci/pipeline/.*'
+                    }
+                  }
+                ],
+                'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
+              }
+            ]
+          },
+        ]
+
+        rules_overrides = [
+          {
+            'rules_override' => [
+              {
+                'id' => 'usr-001-001',
+                'on_match' => ['block']
+              }
+            ]
+          },
+          {
+            'rules_override' => [
+              {
+                'id' => 'usr-001-001',
+                'enabled' => false,
+              }
+            ]
+          },
+        ]
+
+        expected_result = rules[0].merge(
+          {
+            'rules_data' => [
+              {
+                'id' => 'blocked_users',
+                'type' => 'data_with_expiration',
+                'data' => [
+                  {
+                    'value' => 'this is a test'
+                  }
+                ]
+              }
+            ],
+            'rules_override' => [
+              {
+                'id' => 'usr-001-001',
+                'on_match' => ['block']
+              },
+              {
+                'enabled' => false,
+                'id' => 'usr-001-001'
+              }
+            ],
+            'exclusions' => [
+              {
+                'conditions' => [
+                  {
+                    'operator' => 'match_regex',
+                    'parameters' => {
+                      'inputs' => [
+                        {
+                          'address' => 'server.request.uri.raw'
+                        }
+                      ],
+                      'options' => {
+                        'case_sensitive' => false
+                      },
+                      'regex' => '^/api/v2/ci/pipeline/.*'
+                    }
+                  }
+                ],
+                'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
+              }
+            ]
+          }
+        )
+
+        result = described_class.merge(rules: rules, data: rules_data, overrides: rules_overrides, exclusions: exclusions)
         expect(result).to eq(expected_result)
       end
     end
