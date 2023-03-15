@@ -1,0 +1,53 @@
+module Datadog
+  module Transport
+    module HTTP
+      module Adapters
+        # Adapter for testing
+        class Test
+          attr_reader buffer: untyped
+
+          attr_reader status: untyped
+
+          # @param buffer [Array] an optional array that will capture all spans sent to this adapter, defaults to +nil+
+          # @deprecated Positional parameters are deprecated. Use named parameters instead.
+          def initialize: (?untyped? buffer, **untyped options) -> void
+
+          def call: (untyped env) -> untyped
+
+          def buffer?: () -> untyped
+
+          def add_request: (untyped env) -> (untyped | nil)
+
+          def set_status!: (untyped status) -> untyped
+
+          def url: () -> nil
+
+          # Response for test adapter
+          class Response
+            include Datadog::Transport::Response
+
+            attr_reader body: untyped
+
+            attr_reader code: untyped
+
+            def initialize: (untyped code, ?untyped? body) -> void
+
+            def payload: () -> untyped
+
+            def ok?: () -> untyped
+
+            def unsupported?: () -> untyped
+
+            def not_found?: () -> untyped
+
+            def client_error?: () -> untyped
+
+            def server_error?: () -> untyped
+
+            def inspect: () -> ::String
+          end
+        end
+      end
+    end
+  end
+end

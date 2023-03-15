@@ -1,0 +1,36 @@
+module Datadog
+  module Transport
+    module HTTP
+      # Wraps an HTTP response from an adapter.
+      #
+      # Used by endpoints to wrap responses from adapters with
+      # fields or behavior that's specific to that endpoint.
+      module Response
+        def initialize: (untyped http_response) -> void
+
+        # (see Datadog::Transport::Response#payload)
+        def payload: () -> untyped
+
+        # (see Datadog::Transport::Response#internal_error?)
+        def internal_error?: () -> untyped
+
+        # (see Datadog::Transport::Response#unsupported?)
+        def unsupported?: () -> untyped
+
+        # (see Datadog::Transport::Response#ok?)
+        def ok?: () -> untyped
+
+        # (see Datadog::Transport::Response#not_found?)
+        def not_found?: () -> untyped
+
+        # (see Datadog::Transport::Response#client_error?)
+        def client_error?: () -> untyped
+
+        # (see Datadog::Transport::Response#server_error?)
+        def server_error?: () -> untyped
+
+        def code: () -> (untyped | nil)
+      end
+    end
+  end
+end

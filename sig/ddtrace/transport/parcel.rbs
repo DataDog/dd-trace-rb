@@ -1,0 +1,13 @@
+module Datadog
+  module Transport
+    # Data transfer object for generic data
+    # @abstract
+    module Parcel
+      attr_reader data: untyped
+
+      def initialize: (untyped data) -> void
+
+      def encode_with: (untyped encoder) -> untyped
+    end
+  end
+end

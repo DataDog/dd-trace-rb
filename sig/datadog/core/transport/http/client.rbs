@@ -1,0 +1,18 @@
+module Datadog
+  module Core
+    module Transport
+      module HTTP
+        # Routes, encodes, and sends tracer data to the trace agent via HTTP.
+        class Client
+          attr_reader api: untyped
+
+          def initialize: (untyped api) -> void
+
+          def send_request: (untyped request) { (untyped, untyped) -> untyped } -> untyped
+
+          def build_env: (untyped request) -> untyped
+        end
+      end
+    end
+  end
+end

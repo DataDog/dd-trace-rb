@@ -1,0 +1,44 @@
+module Datadog
+  module Transport
+    module IO
+      # IO transport behavior for traces
+      module Traces
+        # Response from HTTP transport for traces
+        class Response < IO::Response
+          include Transport::Traces::Response
+
+          def initialize: (untyped result, ?::Integer trace_count) -> void
+        end
+
+        # Extensions for HTTP client
+        module Client
+          def send_traces: (untyped traces) { (untyped, untyped) -> untyped } -> ::Array[untyped]
+        end
+
+        # Encoder for IO-specific trace encoding
+        # API compliant when used with {JSONEncoder}.
+        module Encoder
+          ENCODED_IDS: ::Array[:trace_id | :span_id | :parent_id]
+
+          # Encodes a list of traces
+          def encode_traces: (untyped encoder, untyped traces) -> untyped
+
+          private
+
+          def encode_trace: (untyped trace) -> untyped
+        end
+
+        # Transfer object for list of traces
+        class Parcel
+          include Transport::Parcel
+
+          include Encoder
+
+          def count: () -> untyped
+
+          def encode_with: (untyped encoder) -> untyped
+        end
+      end
+    end
+  end
+end

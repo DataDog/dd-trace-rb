@@ -1,0 +1,16 @@
+module Datadog
+  module Transport
+    module HTTP
+      module Adapters
+        # List of available adapters
+        class Registry
+          def initialize: () -> void
+
+          def get: (untyped name) -> untyped
+
+          def set: (untyped klass, ?untyped? name) -> (nil | untyped)
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,56 @@
+module Datadog
+  module Transport
+    # Adds serialization functions to a {Datadog::TraceSegment}
+    class SerializableTrace
+      attr_reader trace: untyped
+
+      def initialize: (untyped trace) -> void
+
+      # MessagePack serializer interface. Making this object
+      # respond to `#to_msgpack` allows it to be automatically
+      # serialized by MessagePack.
+      #
+      # This is more efficient than doing +MessagePack.pack(span.to_hash)+
+      # as we don't have to create an intermediate Hash.
+      #
+      # @param packer [MessagePack::Packer] serialization buffer, can be +nil+ with JRuby
+      def to_msgpack: (?untyped? packer) -> untyped
+
+      # JSON serializer interface.
+      # Used by older version of the transport.
+      def to_json: (*untyped args) -> untyped
+    end
+
+    # Adds serialization functions to a {Datadog::Span}
+    class SerializableSpan
+      attr_reader span: untyped
+
+      def initialize: (untyped span) -> void
+
+      # MessagePack serializer interface. Making this object
+      # respond to `#to_msgpack` allows it to be automatically
+      # serialized by MessagePack.
+      #
+      # This is more efficient than doing +MessagePack.pack(span.to_hash)+
+      # as we don't have to create an intermediate Hash.
+      #
+      # @param packer [MessagePack::Packer] serialization buffer, can be +nil+ with JRuby
+      # rubocop:disable Metrics/AbcSize
+      def to_msgpack: (?untyped? packer) -> untyped
+
+      # JSON serializer interface.
+      # Used by older version of the transport.
+      def to_json: (*untyped args) -> untyped
+
+      # Used for serialization
+      # @return [Integer] in nanoseconds since Epoch
+      def time_nano: (untyped time) -> untyped
+
+      def to_hash: () -> untyped
+
+      # Used for serialization
+      # @return [Integer] in nanoseconds since Epoch
+      def duration_nano: (untyped duration) -> untyped
+    end
+  end
+end
