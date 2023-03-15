@@ -6,7 +6,7 @@ require_relative '../../../../ddtrace/transport/http/api/map'
 
 # TODO: Decouple standard transport/http/api/instance
 #
-# Separate classes are needed because transport/http/trace includes
+# Separate classes are needed because transport/http/traces includes
 # Trace::API::Instance which closes over and uses a single spec, which is
 # negotiated as either /v3 or /v4 for the whole API at the spec level, but we
 # need an independent toplevel path at the endpoint level.

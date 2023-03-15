@@ -63,7 +63,7 @@ module Datadog
         )
           new(Transport::Negotiation::Transport) do |transport|
             transport.adapter(agent_settings)
-            transport.headers default_headers
+            transport.headers(default_headers)
 
             apis = API.defaults
 
