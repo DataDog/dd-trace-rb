@@ -3,43 +3,217 @@ require 'datadog/appsec/processor/rule_merger'
 
 RSpec.describe Datadog::AppSec::Processor::RuleMerger do
   let(:rules) do
-    {
-      'version' => '2.2',
-      'metadata' => {
-        'rules_version' => '1.4.3'
-      },
-      'rules' => [
-        {
-          'id' => 'usr-001-001',
-          'name' => 'Super rule',
-          'tags' => {
-            'type' => 'security_scanner',
-            'category' => 'scanners'
-          },
-          'conditions' => [
-            {
-              'parameters' => {
-                'inputs' => [
+    [
+      {
+        'version' => '2.2',
+        'metadata' => {
+          'rules_version' => '1.4.3'
+        },
+        'rules' => [
+          {
+            'id' => 'usr-001-001',
+            'name' => 'Super rule',
+            'tags' => {
+              'type' => 'security_scanner',
+              'category' => 'scanners'
+            },
+            'conditions' => [
+              {
+                'parameters' => {
+                  'inputs' => [
+                    {
+                      'address' => 'server.request.headers',
+                      'key_path' => ['user-agent']
+                    }
+                  ],
+                  'regex' => '^SuperScanner$'
+                },
+                'operator' => 'regex_match'
+              }
+            ],
+            'transformers' => []
+          }
+        ]
+      }
+    ]
+  end
+
+  context 'rules' do
+    context 'multiple rules files' do
+      context 'version' do
+        it 'merge rules files when the version is the same' do
+          rules_dup = rules.dup
+          rules_dup[1] = {
+            'version' => '2.2',
+            'metadata' => {
+              'rules_version' => '1.4.3'
+            },
+            'rules' => [
+              {
+                'id' => 'crs-942-100',
+                'name' => 'SQL Injection Attack Detected via libinjection',
+                'tags' => {
+                  'type' => 'sql_injection',
+                  'crs_id' => '942100',
+                  'category' => 'attack_attempt'
+                },
+                'conditions' => [
                   {
-                    'address' => 'server.request.headers',
-                    'key_path' => ['user-agent']
+                    'parameters' => {
+                      'inputs' => [
+                        {
+                          'address' => 'server.request.query'
+                        },
+                        {
+                          'address' => 'server.request.body'
+                        },
+                        {
+                          'address' => 'server.request.path_params'
+                        },
+                        {
+                          'address' => 'grpc.server.request.message'
+                        }
+                      ]
+                    },
+                    'operator' => 'is_sqli'
                   }
                 ],
-                'regex' => '^SuperScanner$'
+                'transformers' => [
+                  'removeNulls'
+                ],
+                'on_match' => [
+                  'block'
+                ]
               },
-              'operator' => 'regex_match'
-            }
-          ],
-          'transformers' => []
-        }
-      ]
-    }
+            ]
+          }
+
+          expected_result = {
+            'version' => '2.2',
+            'rules' => [
+              {
+                'id' => 'usr-001-001',
+                'name' => 'Super rule',
+                'tags' => {
+                  'type' => 'security_scanner',
+                  'category' => 'scanners'
+                },
+                'conditions' => [
+                  {
+                    'parameters' => {
+                      'inputs' => [
+                        {
+                          'address' => 'server.request.headers',
+                          'key_path' => ['user-agent']
+                        }
+                      ],
+                      'regex' => '^SuperScanner$'
+                    },
+                    'operator' => 'regex_match'
+                  }
+                ],
+                'transformers' => []
+              },
+              {
+                'id' => 'crs-942-100',
+                'name' => 'SQL Injection Attack Detected via libinjection',
+                'tags' => {
+                  'type' => 'sql_injection',
+                  'crs_id' => '942100',
+                  'category' => 'attack_attempt'
+                },
+                'conditions' => [
+                  {
+                    'parameters' => {
+                      'inputs' => [
+                        {
+                          'address' => 'server.request.query'
+                        },
+                        {
+                          'address' => 'server.request.body'
+                        },
+                        {
+                          'address' => 'server.request.path_params'
+                        },
+                        {
+                          'address' => 'grpc.server.request.message'
+                        }
+                      ]
+                    },
+                    'operator' => 'is_sqli'
+                  }
+                ],
+                'transformers' => [
+                  'removeNulls'
+                ],
+                'on_match' => [
+                  'block'
+                ]
+              },
+            ]
+          }
+
+          result = described_class.merge(rules: rules_dup)
+          expect(result).to eq(expected_result)
+        end
+
+        it 'raises RuleVersionMismatchError is the rules version is not the same' do
+          rules_dup = rules.dup
+          rules_dup[1] = {
+            'version' => '2.3',
+            'metadata' => {
+              'rules_version' => '1.4.3'
+            },
+            'rules' => [
+              {
+                'id' => 'crs-942-100',
+                'name' => 'SQL Injection Attack Detected via libinjection',
+                'tags' => {
+                  'type' => 'sql_injection',
+                  'crs_id' => '942100',
+                  'category' => 'attack_attempt'
+                },
+                'conditions' => [
+                  {
+                    'parameters' => {
+                      'inputs' => [
+                        {
+                          'address' => 'server.request.query'
+                        },
+                        {
+                          'address' => 'server.request.body'
+                        },
+                        {
+                          'address' => 'server.request.path_params'
+                        },
+                        {
+                          'address' => 'grpc.server.request.message'
+                        }
+                      ]
+                    },
+                    'operator' => 'is_sqli'
+                  }
+                ],
+                'transformers' => [
+                  'removeNulls'
+                ],
+                'on_match' => [
+                  'block'
+                ]
+              },
+            ]
+          }
+
+          expect { described_class.merge(rules: rules_dup) }.to raise_error(described_class::RuleVersionMismatchError)
+        end
+      end
+    end
   end
 
   context 'overrides' do
     context 'without overrides' do
       it 'does not merge rules_overrides or exclusions' do
-        expected_result = rules
+        expected_result = rules[0]
 
         result = described_class.merge(rules: rules)
         expect(result).to eq(expected_result)
@@ -67,7 +241,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           },
         ]
 
-        expected_result = rules.merge(
+        expected_result = rules[0].merge(
           {
             'rules_override' => [
               {
@@ -113,7 +287,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           }
         ]
 
-        expected_result = rules.merge(
+        expected_result = rules[0].merge(
           {
             'exclusions' => [
               {
@@ -182,7 +356,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           }
         ]
 
-        expected_result = rules.merge(
+        expected_result = rules[0].merge(
           {
             'exclusions' => [
               {
@@ -267,7 +441,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
         }
       ]
 
-      expected_result = rules.merge(
+      expected_result = rules[0].merge(
         {
           'rules_data' => [
             {
@@ -333,7 +507,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
         }
       ]
 
-      expected_result = rules.merge(
+      expected_result = rules[0].merge(
         {
           'rules_data' => [
             {
@@ -396,7 +570,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           }
         ]
 
-        expected_result = rules.merge(
+        expected_result = rules[0].merge(
           {
             'rules_data' => [
               {
@@ -448,7 +622,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           }
         ]
 
-        expected_result = rules.merge(
+        expected_result = rules[0].merge(
           {
             'rules_data' => [
               {

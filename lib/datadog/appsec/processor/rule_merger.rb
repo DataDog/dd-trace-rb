@@ -6,19 +6,54 @@ module Datadog
       # RuleMerger merge different sources of information
       # into the rules payload
       module RuleMerger
+        # RuleVersionMismatchError
+        class RuleVersionMismatchError < StandardError
+          def initialize(version1, version2)
+            msg = 'Merging rule files with different version could lead to unkown behaviour. '\
+              "We have receieve two rule files with versions: #{version1}, #{version2}. "\
+              'Please validate the configuration is correct and try again.'
+            super(msg)
+          end
+        end
+
         class << self
           def merge(rules:, data: nil, overrides: nil)
-            rules_dup = rules.dup
+            combined_rules = combine_rules(rules)
 
             rules_data = combine_data(data) if data
             rules_overrides_and_exclusions = combine_overrides(overrides) if overrides
 
-            rules_dup.merge!(rules_data) if rules_data
-            rules_dup.merge!(rules_overrides_and_exclusions) if rules_overrides_and_exclusions
-            rules_dup
+            combined_rules.merge!(rules_data) if rules_data
+            combined_rules.merge!(rules_overrides_and_exclusions) if rules_overrides_and_exclusions
+            combined_rules
           end
 
           private
+
+          def combine_rules(rules)
+            return rules[0] if rules.size == 1
+
+            final_rules = []
+            # @type var final_version: ::String
+            final_version = (_ = nil)
+
+            rules.each do |rule_file|
+              version = rule_file['version']
+
+              if version && !final_version
+                final_version = version
+              elsif final_version != version
+                raise RuleVersionMismatchError.new(final_version, version)
+              end
+
+              final_rules.concat(rule_file['rules'])
+            end
+
+            {
+              'version' => final_version,
+              'rules' => final_rules
+            }
+          end
 
           def combine_data(data)
             result = []
