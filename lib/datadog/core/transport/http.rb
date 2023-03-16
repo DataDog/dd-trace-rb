@@ -84,6 +84,35 @@ module Datadog
           end
         end
 
+        # Builds a new Transport::HTTP::Client with default settings
+        # Pass a block to override any settings.
+        def v7(
+          agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
+          **options
+        )
+          new(Transport::Config::Transport) do |transport|
+            transport.adapter(agent_settings)
+            transport.headers default_headers
+
+            apis = API.defaults
+
+            transport.api API::V7, apis[API::V7]
+
+            # Apply any settings given by options
+            unless options.empty?
+              transport.default_api = options[:api_version] if options.key?(:api_version)
+              transport.headers options[:headers] if options.key?(:headers)
+            end
+
+            if agent_settings.deprecated_for_removal_transport_configuration_proc
+              agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
+            end
+
+            # Call block to apply any customization, if provided
+            yield(transport) if block_given?
+          end
+        end
+
         def default_headers
           {
             Datadog::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_TOP_LEVEL => '1',

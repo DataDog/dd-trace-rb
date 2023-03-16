@@ -341,6 +341,7 @@ services:
       - "DD_API_KEY=${DD_API_KEY}"
       - DD_HOSTNAME=dd-trace-rb-ci
       - DD_APM_RECEIVER_SOCKET=/var/run/datadog/apm.socket
+      - DD_REMOTE_CONFIGURATION_ENABLED=true
     expose:
       - "8125/udp"
       - "8126"

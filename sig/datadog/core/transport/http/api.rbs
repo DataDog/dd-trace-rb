@@ -4,6 +4,7 @@ module Datadog
       module HTTP
         module API
           ROOT: "root"
+          V7: "v0.7"
 
           def self?.defaults: () -> untyped
         end

@@ -8,6 +8,8 @@ module Datadog
 
         def self?.root: (?agent_settings: untyped, **untyped options) { (untyped) -> untyped } -> untyped
 
+        def self?.v7: (?agent_settings: untyped, **untyped options) { (untyped) -> untyped } -> untyped
+
         def self?.default_headers: () -> untyped
 
         def self?.default_adapter: () -> untyped
