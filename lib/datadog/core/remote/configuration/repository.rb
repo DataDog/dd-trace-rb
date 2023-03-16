@@ -41,7 +41,21 @@ module Datadog
           end
 
           def commit(transaction)
-            transaction.operations.each { |op| op.apply(self) }
+            previous = contents.dup
+
+            touched = transaction.operations.each_with_object([]) do |op, touched|
+              touched << op.apply(self)
+            end
+
+            changes = ChangeSet.new
+
+            touched.uniq.each do |path|
+              next if path.nil?
+
+              changes.add(path, previous[path], @contents[path])
+            end
+
+            changes.freeze
           end
 
           def state
@@ -105,7 +119,11 @@ module Datadog
               end
 
               def apply(repository)
-                repository.contents.reject! { |c| c.path.eql?(@path) }
+                return if repository[@path].nil?
+
+                repository.contents.delete(@path)
+
+                @path
               end
             end
 
@@ -121,7 +139,11 @@ module Datadog
               end
 
               def apply(repository)
-                repository.contents << @content if repository[path].nil?
+                return unless repository[@path].nil?
+
+                repository.contents << @content
+
+                @path
               end
             end
 
@@ -137,7 +159,11 @@ module Datadog
               end
 
               def apply(repository)
-                repository.contents.map! { |c| c.path.eql?(@path) ? @content : c }
+                return if repository[@path].nil?
+
+                repository.contents[@path] = @content
+
+                @path
               end
             end
 
@@ -155,6 +181,64 @@ module Datadog
                 repository.instance_variable_set(:@opaque_backend_state, @opaque_backend_state) if @opaque_backend_state
 
                 repository.instance_variable_set(:@targets_version, @targets_version) if @targets_version
+
+                nil
+              end
+            end
+          end
+
+          class ChangeSet < Array
+            def paths
+              map { |c| c.path }
+            end
+
+            def add(path, previous, content)
+              return if previous.nil? && content.nil?
+
+              return deleted(path, previous) if content.nil?
+              return inserted(path, content) if previous.nil?
+              return updated(path, content, previous)
+            end
+
+            def deleted(path, previous)
+              self << Change::Deleted.new(path, previous).freeze
+            end
+
+            def inserted(path, content)
+              self << Change::Inserted.new(path, content).freeze
+            end
+
+            def updated(path, content, previous)
+              self << Change::Updated.new(path, content, previous).freeze
+            end
+          end
+
+          module Change
+            class Deleted
+              attr_reader :path, :previous
+
+              def initialize(path, previous)
+                @path = path
+                @previous = previous
+              end
+            end
+
+            class Inserted
+              attr_reader :path, :content
+
+              def initialize(path, content)
+                @path = path
+                @content = content
+              end
+            end
+
+            class Updated
+              attr_reader :path, :content, :previous
+
+              def initialize(path, content, previous)
+                @path = path
+                @content = content
+                @previous = previous
               end
             end
           end
