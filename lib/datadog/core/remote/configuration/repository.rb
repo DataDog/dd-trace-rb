@@ -6,6 +6,7 @@ module Datadog
   module Core
     module Remote
       class Configuration
+        # Repository
         class Repository
           attr_reader \
             :contents,
@@ -47,6 +48,7 @@ module Datadog
             State.new(self)
           end
 
+          # State store the repository state
           class State
             attr_reader \
               :root_version,
@@ -66,6 +68,7 @@ module Datadog
             end
           end
 
+          # Encapsulates transaction operations
           class Transaction
             attr_reader :operations
 
@@ -90,13 +93,16 @@ module Datadog
             end
           end
 
+          # Operation
           module Operation
+            # Base
             class Base
               def apply(repository)
                 raise NoMethodError
               end
             end
 
+            # Delete contents base on path
             class Delete < Base
               attr_reader :path
 
@@ -110,6 +116,7 @@ module Datadog
               end
             end
 
+            # Insert content into the reporistory contents
             class Insert < Base
               attr_reader :path, :target, :content
 
@@ -125,6 +132,7 @@ module Datadog
               end
             end
 
+            # Update existimng repository's contents
             class Update < Base
               attr_reader :path, :target, :content
 
@@ -140,6 +148,7 @@ module Datadog
               end
             end
 
+            # Set repository metadata
             class Set < Base
               attr_reader :opaque_backend_state, :targets_version
 

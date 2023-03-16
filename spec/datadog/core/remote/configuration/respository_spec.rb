@@ -41,7 +41,9 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
     end
 
     it 'commits transaction' do
-      expect(repository).to receive(:commit).with(instance_of(Datadog::Core::Remote::Configuration::Repository::Transaction))
+      expect(repository).to receive(:commit).with(
+        instance_of(Datadog::Core::Remote::Configuration::Repository::Transaction)
+      )
       repository.transaction(&proc {})
     end
 
