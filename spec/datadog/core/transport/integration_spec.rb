@@ -29,6 +29,8 @@ RSpec.describe Datadog::Core::Transport::HTTP do
   end
 
   describe '.v7' do
+    before { skip 'TODO: needs remote config on api key+agent+backend' if ENV['TEST_DATADOG_INTEGRATION'] }
+
     subject(:transport) { described_class.v7(&client_options) }
 
     let(:client_options) { proc { |_client| } }
