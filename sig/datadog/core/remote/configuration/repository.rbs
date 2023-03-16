@@ -17,7 +17,7 @@ module Datadog
 
           def initialize: () -> void
 
-          def paths: () -> ::Array[Path]?
+          def paths: () -> ::Array[Path]
 
           def []: (Configuration::Path path) -> Content?
 

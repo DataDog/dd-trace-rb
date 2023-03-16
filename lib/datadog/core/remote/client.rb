@@ -8,6 +8,8 @@ module Datadog
   module Core
     module Remote
       class Client
+        attr_reader :transport, :repository, :id
+
         def initialize(transport)
           @transport = transport
 
@@ -16,7 +18,7 @@ module Datadog
         end
 
         def sync
-          response = @transport.send_config(payload)
+          response = transport.send_config(payload)
 
           if response.ok?
             # when response is completely empty, do nothing as in: leave as is
@@ -33,7 +35,7 @@ module Datadog
             # TODO: sometimes it can strangely be so that paths.empty?
             # TODO: sometimes it can strangely be so that targets.empty?
 
-            @repository.transaction do |current, transaction|
+            repository.transaction do |current, transaction|
               # paths to be removed: previously applied paths minus ingress paths
               (current.paths - paths).each { |p| transaction.delete(p) }
 
@@ -54,18 +56,19 @@ module Datadog
 
                 # skip if unchanged
                 same = !new && !changed
-                next if same
 
-                # match content with path and target
-                content = contents.find_content(path, target)
+                unless same
+                  # match content with path and target
+                  content = contents.find_content(path, target)
 
-                # abort entirely if matching content not found
-                raise SyncError, "no valid content for target at path '#{path}'" if content.nil?
+                  # abort entirely if matching content not found
+                  raise SyncError, "no valid content for target at path '#{path}'" if content.nil?
 
-                # to be added or updated << config
-                # TODO: metadata (hash, version, etc...)
-                transaction.insert(path, target, content) if new
-                transaction.update(path, target, content) if changed
+                  # to be added or updated << config
+                  # TODO: metadata (hash, version, etc...)
+                  transaction.insert(path, target, content) if new
+                  transaction.update(path, target, content) if changed
+                end
               end
 
               # save backend opaque backend state
@@ -87,7 +90,7 @@ module Datadog
         private
 
         def payload
-          state = @repository.state
+          state = repository.state
 
           {
             client: {
@@ -99,7 +102,7 @@ module Datadog
                 error: state.error,
                 backend_client_state: state.opaque_backend_state,
               },
-              id: @id,
+              id: id,
               products: products,
               is_tracer: true,
               is_agent: false,
@@ -148,24 +151,28 @@ module Datadog
           ]
         end
 
+        CAPABILITIES = [
+          CAP_ASM_IP_BLOCKING,
+          CAP_ASM_USER_BLOCKING,
+          CAP_ASM_CUSTOM_RULES,
+          CAP_ASM_EXCLUSIONS,
+          CAP_ASM_REQUEST_BLOCKING,
+          CAP_ASM_RESPONSE_BLOCKING,
+          CAP_ASM_DD_RULES,
+        ].freeze
+
+
         # TODO: as a declaration, this should go in the AppSec namepsace
         # TODO: as serialization, this should go in the request serializer/encoder
         # TODO: condition by active configuration
         def capabilities
-          [
-            CAP_ASM_IP_BLOCKING,
-            CAP_ASM_USER_BLOCKING,
-            CAP_ASM_CUSTOM_RULES,
-            CAP_ASM_EXCLUSIONS,
-            CAP_ASM_REQUEST_BLOCKING,
-            CAP_ASM_RESPONSE_BLOCKING,
-            CAP_ASM_DD_RULES,
-          ].reduce(&:|)
+          CAPABILITIES.reduce(:|)
         end
 
         # TODO: this is serialization of capabilities, it should go in the request serializer/encoder
         def capabilities_binary
-          capabilities.to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/).map { |e| e.to_i(16) }.pack('C*')
+          cap_to_hexs = capabilities.to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
+          cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
         end
       end
     end
