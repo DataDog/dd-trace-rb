@@ -6,6 +6,7 @@ module Datadog
   module Core
     module Remote
       class Configuration
+        # Content stores the information associated with a specific Configuration::Path
         class Content
           class << self
             def parse(hash)
@@ -26,6 +27,8 @@ module Datadog
           private_class_method :new
         end
 
+        # ContentList stores a list of Conetnt instances
+        # It provides convinient methods for finding content base on Configuration::Path and Configuration::Target
         class ContentList < Array
           class << self
             def parse(array)

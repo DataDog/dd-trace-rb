@@ -658,6 +658,7 @@ target :ddtrace do
   library 'net-http'
   library 'securerandom'
   library 'base64'
+  library 'digest'
 
   # TODO: gem 'libddwaf'
 

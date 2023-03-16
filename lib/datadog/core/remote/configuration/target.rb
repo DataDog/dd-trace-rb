@@ -7,6 +7,7 @@ module Datadog
   module Core
     module Remote
       class Configuration
+        # TargetMap stores information regarding Configuration::Path and Configuration::Target
         class TargetMap < Hash
           class << self
             def parse(hash)
@@ -41,6 +42,7 @@ module Datadog
           private_class_method :new
         end
 
+        # Target stores digest information
         class Target
           class << self
             def parse(hash)
@@ -51,6 +53,8 @@ module Datadog
             end
           end
 
+          attr_reader :length, :digests
+
           def initialize(digests:, length:)
             @digests = digests
             @length = length
@@ -59,9 +63,10 @@ module Datadog
           private_class_method :new
 
           def check(content)
-            @digests.check(content.data)
+            digests.check(content.data)
           end
 
+          # Represent a list of Configuration::Target::Digest
           class DigestList < Array
             class << self
               def parse(hash)
@@ -76,6 +81,7 @@ module Datadog
 
           private_constant :DigestList
 
+          # Stores and validates different cryptographic hash functions
           class Digest
             attr_reader :type, :hexdigest
 

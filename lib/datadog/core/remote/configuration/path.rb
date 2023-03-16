@@ -4,6 +4,7 @@ module Datadog
   module Core
     module Remote
       class Configuration
+        # Path stores path information
         class Path
           class ParseError < StandardError; end
 
@@ -29,18 +30,21 @@ module Datadog
 
               raise ParseError, "could not parse: #{path.inspect}" if m.nil?
 
-              org_id = m['org_id']
+              # @type var org_id: ::Integer?
+              org_id = _ = m['org_id'] ? m['org_id'].to_i : nil
+              # @type var source: ::String
+              source = _ = m['source']
 
               if org_id
-                source = m['source'].delete("/#{org_id}")
-                org_id = Integer(org_id)
-              else
-                source = m['source']
+                source = _ = source.delete("/#{org_id}")
               end
 
-              product = m['product']
-              config_id = m['config_id']
-              name = m['name']
+              # @type var product: ::String
+              product = _ = m['product']
+              # @type var config_id: ::String
+              config_id = _ = m['config_id']
+              # @type var name: ::String
+              name = _ = m['name']
 
               new(source: source, org_id: org_id, product: product, config_id: config_id, name: name)
             end
