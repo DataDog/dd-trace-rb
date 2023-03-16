@@ -44,7 +44,7 @@ module Datadog
           end
 
           class Transaction
-            attr_reader operations: Array[Operation::Base]
+            attr_reader operations: Array[operation]
 
             def initialize: () -> void
 
@@ -57,12 +57,10 @@ module Datadog
             def set: (**untyped options) -> void
           end
 
-          module Operation
-            class Base
-              def apply: (Repository repository) -> void
-            end
+          type operation = Operation::Insert | Operation::Update | Operation::Delete | Operation::Set
 
-            class Delete < Base
+          module Operation
+            class Delete
               attr_reader path: Configuration::Path
 
               def initialize: (Configuration::Path path) -> void
@@ -70,7 +68,7 @@ module Datadog
               def apply: (Repository repository) -> void
             end
 
-            class Insert < Base
+            class Insert
               attr_reader path: Configuration::Path
 
               attr_reader target: Configuration::Target
@@ -82,7 +80,7 @@ module Datadog
               def apply: (Repository repository) -> void
             end
 
-            class Update < Base
+            class Update
               attr_reader path: Configuration::Path
 
               attr_reader target: Configuration::Target
@@ -94,7 +92,7 @@ module Datadog
               def apply: (Repository repository) -> void
             end
 
-            class Set < Base
+            class Set
               attr_reader opaque_backend_state: String?
 
               attr_reader targets_version: String?

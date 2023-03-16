@@ -95,15 +95,8 @@ module Datadog
 
           # Operation
           module Operation
-            # Base
-            class Base
-              def apply(repository)
-                raise NoMethodError
-              end
-            end
-
             # Delete contents base on path
-            class Delete < Base
+            class Delete
               attr_reader :path
 
               def initialize(path)
@@ -117,7 +110,7 @@ module Datadog
             end
 
             # Insert content into the reporistory contents
-            class Insert < Base
+            class Insert
               attr_reader :path, :target, :content
 
               def initialize(path, target, content)
@@ -133,7 +126,7 @@ module Datadog
             end
 
             # Update existimng repository's contents
-            class Update < Base
+            class Update
               attr_reader :path, :target, :content
 
               def initialize(path, target, content)
@@ -149,7 +142,7 @@ module Datadog
             end
 
             # Set repository metadata
-            class Set < Base
+            class Set
               attr_reader :opaque_backend_state, :targets_version
 
               def initialize(**options)
