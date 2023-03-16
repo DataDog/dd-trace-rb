@@ -2,10 +2,7 @@
 
 require 'securerandom'
 
-require_relative 'configuration/repository'
-require_relative 'configuration/path'
-require_relative 'configuration/target'
-require_relative 'configuration/content'
+require_relative 'configuration'
 
 module Datadog
   module Core
