@@ -91,10 +91,17 @@ module Datadog
           end
 
           module Operation
-            class Delete
+            class Base
+              def apply(repository)
+                raise NoMethodError
+              end
+            end
+
+            class Delete < Base
               attr_reader :path
 
               def initialize(path)
+                super()
                 @path = path
               end
 
@@ -103,10 +110,11 @@ module Datadog
               end
             end
 
-            class Insert
+            class Insert < Base
               attr_reader :path, :target, :content
 
               def initialize(path, target, content)
+                super()
                 @path = path
                 @target = target
                 @content = content
@@ -117,10 +125,11 @@ module Datadog
               end
             end
 
-            class Update
+            class Update < Base
               attr_reader :path, :target, :content
 
               def initialize(path, target, content)
+                super()
                 @path = path
                 @target = target
                 @content = content
@@ -131,10 +140,11 @@ module Datadog
               end
             end
 
-            class Set
+            class Set < Base
               attr_reader :opaque_backend_state, :targets_version
 
               def initialize(**options)
+                super()
                 @opaque_backend_state = options[:opaque_backend_state]
                 @targets_version = options[:targets_version]
               end
