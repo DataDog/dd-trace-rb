@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'content'
+
 module Datadog
   module Core
     module Remote
@@ -130,22 +132,22 @@ module Datadog
             end
 
             class Set
+              attr_reader :opaque_backend_state, :targets_version
+
               def initialize(**options)
                 @opaque_backend_state = options[:opaque_backend_state]
                 @targets_version = options[:targets_version]
               end
 
               def apply(repository)
-                if @opaque_backend_state
-                  repository.instance_variable_set(:@opaque_backend_state, @opaque_backend_state)
-                end
+                repository.instance_variable_set(:@opaque_backend_state, @opaque_backend_state) if @opaque_backend_state
 
-                if @targets_version
-                  repository.instance_variable_set(:@targets_version, @targets_version)
-                end
+                repository.instance_variable_set(:@targets_version, @targets_version) if @targets_version
               end
             end
           end
+
+          private_constant :Operation
         end
       end
     end
