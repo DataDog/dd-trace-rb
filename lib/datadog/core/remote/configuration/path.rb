@@ -5,33 +5,7 @@ module Datadog
     module Remote
       class Configuration
         class Path
-          attr_reader :source, :org_id, :product, :config_id, :name
-
-          def initialize(source:, product:, config_id:, name:, org_id: nil)
-            @source = source
-            @org_id = org_id
-            @product = product
-            @config_id = config_id
-            @name = name
-          end
-
-          def to_s
-            "#{source}/#{product}/#{config_id}/#{name}"
-          end
-
-          def ==(other)
-            return false unless other.is_a?(Path)
-
-            to_s == other.to_s
-          end
-
-          def hash
-            to_s.hash
-          end
-
-          def eql?(other)
-            hash == other.hash
-          end
+          class ParseError < StandardError; end
 
           class << self
             RE = %r{
@@ -55,8 +29,15 @@ module Datadog
 
               raise ParseError, "could not parse: #{path.inspect}" if m.nil?
 
-              source = m['source']
-              org_id = Integer(m['org_id']) unless m['org_id'].nil?
+              org_id = m['org_id']
+
+              if org_id
+                source = m['source'].delete("/#{org_id}")
+                org_id = Integer(org_id)
+              else
+                source = m['source']
+              end
+
               product = m['product']
               config_id = m['config_id']
               name = m['name']
@@ -65,7 +46,39 @@ module Datadog
             end
           end
 
-          class ParseError < StandardError; end
+          attr_reader :source, :org_id, :product, :config_id, :name
+
+          def initialize(source:, product:, config_id:, name:, org_id: nil)
+            @source = source
+            @org_id = org_id
+            @product = product
+            @config_id = config_id
+            @name = name
+          end
+
+          private_class_method :new
+
+          def to_s
+            if org_id
+              "#{source}/#{org_id}/#{product}/#{config_id}/#{name}"
+            else
+              "#{source}/#{product}/#{config_id}/#{name}"
+            end
+          end
+
+          def ==(other)
+            return false unless other.is_a?(Path)
+
+            to_s == other.to_s
+          end
+
+          def hash
+            to_s.hash
+          end
+
+          def eql?(other)
+            hash == other.hash
+          end
         end
       end
     end
