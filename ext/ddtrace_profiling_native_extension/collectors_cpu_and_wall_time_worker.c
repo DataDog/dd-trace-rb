@@ -77,7 +77,7 @@
 
 // Contains state for a single CpuAndWallTimeWorker instance
 struct cpu_and_wall_time_worker_state {
-  atomic_bool should_run;
+  // These are immutable after initialization
 
   bool gc_profiling_enabled;
   bool allocation_counting_enabled;
@@ -86,17 +86,23 @@ struct cpu_and_wall_time_worker_state {
   VALUE idle_sampling_helper_instance;
   VALUE owner_thread;
   dynamic_sampling_rate_state dynamic_sampling_rate;
+  VALUE gc_tracepoint; // Used to get gc start/finish information
+  VALUE object_allocation_tracepoint; // Used to get allocation counts and allocation profiling
 
+  // These are mutable and used to signal things between the worker thread and other threads
+
+  atomic_bool should_run;
   // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
   // the CpuAndWallTimeWorker thread
   VALUE failure_exception;
   // Used by `_native_stop` to flag the worker thread to start (see comment on `_native_sampling_loop`)
   VALUE stop_thread;
 
-  // Used to get gc start/finish information
-  VALUE gc_tracepoint;
+  // Others
 
-  VALUE object_allocation_tracepoint;
+  // Used to detect/avoid nested sampling, e.g. when the object_allocation_tracepoint gets triggered by a memory allocation
+  // that happens during another sample.
+  bool during_sample;
 
   struct stats {
     // How many times we tried to trigger a sample
@@ -115,6 +121,8 @@ struct cpu_and_wall_time_worker_state {
     uint64_t sampling_time_ns_min;
     uint64_t sampling_time_ns_max;
     uint64_t sampling_time_ns_total;
+    // How many times we saw allocations being done inside a sample
+    unsigned int allocations_during_sample;
   } stats;
 };
 
@@ -230,17 +238,21 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
 static VALUE _native_new(VALUE klass) {
   struct cpu_and_wall_time_worker_state *state = ruby_xcalloc(1, sizeof(struct cpu_and_wall_time_worker_state));
 
-  atomic_init(&state->should_run, false);
   state->gc_profiling_enabled = false;
   state->allocation_counting_enabled = false;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
   dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
-  state->failure_exception = Qnil;
-  state->stop_thread = Qnil;
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
+
+  atomic_init(&state->should_run, false);
+  state->failure_exception = Qnil;
+  state->stop_thread = Qnil;
+
+  state->during_sample = false;
+
   reset_stats(state);
 
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
@@ -485,8 +497,12 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
+  state->during_sample = true;
+
   // Rescue against any exceptions that happen during sampling
   safely_call(rescued_sample_from_postponed_job, state->self_instance, state->self_instance);
+
+  state->during_sample = false;
 }
 
 static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
@@ -672,8 +688,12 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   }
 
+  state->during_sample = true;
+
   // Trigger sampling using the Collectors::ThreadState; rescue against any exceptions that happen during sampling
   safely_call(thread_context_collector_sample_after_gc, state->thread_context_collector_instance, state->self_instance);
+
+  state->during_sample = false;
 }
 
 // Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
@@ -753,6 +773,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("sampling_time_ns_max")),                       /* => */ pretty_sampling_time_ns_max,
     ID2SYM(rb_intern("sampling_time_ns_total")),                     /* => */ pretty_sampling_time_ns_total,
     ID2SYM(rb_intern("sampling_time_ns_avg")),                       /* => */ pretty_sampling_time_ns_avg,
+    ID2SYM(rb_intern("allocations_during_sample")),                  /* => */ UINT2NUM(state->stats.allocations_during_sample),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -813,6 +834,29 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED
   } else {
     allocation_count++;
   }
+
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+  // This should not happen in a normal situation because the tracepoint is always enabled after the instance is set
+  // and disabled before it is cleared, but just in case...
+  if (state == NULL) return;
+
+  // In a few cases, we may actually be allocating an object as part of profiler sampling. We don't want to recursively
+  // sample, so we just return early
+  if (state->during_sample) {
+    state->stats.allocations_during_sample++;
+    return;
+  }
+
+  // @ivoanjo: Strictly speaking, this is not needed because Ruby should not call the same tracepoint while a previous
+  // invocation is still pending, (e.g. it wouldn't call `on_newobj_event` while it's already running), but I decided
+  // to keep this here for consistency -- every call to the thread context (other than the special gc calls which are
+  // defined as not being able to allocate) sets this.
+  state->during_sample = true;
+
+  // TODO: Sampling goes here (calling into `thread_context_collector_sample_allocation`)
+
+  state->during_sample = false;
 }
 
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
