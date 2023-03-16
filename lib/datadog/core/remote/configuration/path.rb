@@ -35,9 +35,7 @@ module Datadog
               # @type var source: ::String
               source = _ = m['source']
 
-              if org_id
-                source = _ = source.delete("/#{org_id}")
-              end
+              source = _ = source.delete("/#{org_id}") if org_id
 
               # @type var product: ::String
               product = _ = m['product']
