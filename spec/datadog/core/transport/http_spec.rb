@@ -138,17 +138,15 @@ RSpec.describe Datadog::Core::Transport::HTTP do
         }
       end
 
-      subject(:response) { transport.send_config(payload) }
-
       let(:request_verb) { :post }
 
       let(:response_code) { 200 }
       let(:response_body) do
-        encode = Proc.new do |obj|
+        encode = proc do |obj|
           Base64.strict_encode64(obj).chomp
         end
 
-        jencode = Proc.new do |obj|
+        jencode = proc do |obj|
           Base64.strict_encode64(JSON.dump(obj)).chomp
         end
 
@@ -158,21 +156,23 @@ RSpec.describe Datadog::Core::Transport::HTTP do
               jencode.call({}),
               jencode.call({}),
             ],
-            targets: jencode.call({
-              signed: {
-                expires: '2022-09-22T09:01:04Z',
-                targets: {
-                  'datadog/42/PRODUCT/foo/config' => {
-                    hashes: { sha256: 'd0b425e00e15a0d36b9b361f02bab63563aed6cb4665083905386c55d5b679fa' },
-                    length: 8,
-                  },
-                  'employee/PRODUCT/bar/config' => {
-                    hashes: { sha256: 'dab741b6289e7dccc1ed42330cae1accc2b755ce8079c2cd5d4b5366c9f769a6' },
-                    length: 8,
-                  },
+            targets: jencode.call(
+              {
+                signed: {
+                  expires: '2022-09-22T09:01:04Z',
+                  targets: {
+                    'datadog/42/PRODUCT/foo/config' => {
+                      hashes: { sha256: 'd0b425e00e15a0d36b9b361f02bab63563aed6cb4665083905386c55d5b679fa' },
+                      length: 8,
+                    },
+                    'employee/PRODUCT/bar/config' => {
+                      hashes: { sha256: 'dab741b6289e7dccc1ed42330cae1accc2b755ce8079c2cd5d4b5366c9f769a6' },
+                      length: 8,
+                    },
+                  }
                 }
               }
-            }),
+            ),
             target_files: [
               {
                 path: 'datadog/42/PRODUCT/foo/config',
@@ -190,6 +190,8 @@ RSpec.describe Datadog::Core::Transport::HTTP do
           }
         )
       end
+
+      subject(:response) { transport.send_config(payload) }
 
       it { is_expected.to be_a(Datadog::Core::Transport::HTTP::Config::Response) }
 
