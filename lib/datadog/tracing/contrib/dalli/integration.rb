@@ -10,7 +10,7 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('2.0.0')
+          MINIMUM_VERSION = Gem::Version.new('1.0.0')
           DALLI_PROTOCOL_BINARY_VERSION = Gem::Version.new('3.0.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
