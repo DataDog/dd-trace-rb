@@ -72,17 +72,12 @@ module Datadog
             recorder: recorder,
             max_frames: settings.profiling.advanced.max_frames,
             tracer: tracer,
-            gc_profiling_enabled: should_enable_gc_profiling?(settings),
+            gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           )
         else
-          trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
-            tracer: tracer,
-            endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
-          )
-
           recorder = build_profiler_old_recorder(settings)
-          collector = build_profiler_oldstack_collector(settings, recorder, trace_identifiers_helper)
+          collector = build_profiler_oldstack_collector(settings, recorder, tracer)
         end
 
         exporter = build_profiler_exporter(settings, recorder)
@@ -105,7 +100,12 @@ module Datadog
         Profiling::Exporter.new(pprof_recorder: recorder, code_provenance_collector: code_provenance_collector)
       end
 
-      def build_profiler_oldstack_collector(settings, old_recorder, trace_identifiers_helper)
+      def build_profiler_oldstack_collector(settings, old_recorder, tracer)
+        trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
+          tracer: tracer,
+          endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
+        )
+
         Profiling::Collectors::OldStack.new(
           old_recorder,
           trace_identifiers_helper: trace_identifiers_helper,
@@ -123,7 +123,7 @@ module Datadog
           )
       end
 
-      def should_enable_gc_profiling?(settings)
+      def enable_gc_profiling?(settings)
         # See comments on the setting definition for more context on why it exists.
         if settings.profiling.advanced.force_enable_gc_profiling
           if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3')
