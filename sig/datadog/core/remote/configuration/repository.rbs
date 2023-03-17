@@ -1,0 +1,109 @@
+module Datadog
+  module Core
+    module Remote
+      class Configuration
+        class Repository
+          attr_reader contents: ContentList
+
+          attr_reader opaque_backend_state: String?
+
+          attr_reader root_version: Integer
+
+          attr_reader targets_version: Integer
+
+          UNVERIFIED_ROOT_VERSION: 1
+
+          INITIAL_TARGETS_VERSION: 0
+
+          def initialize: () -> void
+
+          def paths: () -> ::Array[Path]?
+
+          def []: (Configuration::Path path) -> Content?
+
+          def transaction: () { (Repository, Transaction) -> void } -> void
+
+          def commit: (Transaction transaction) -> void
+
+          def state: () -> State
+
+          class State
+            attr_reader root_version: Integer
+
+            attr_reader targets_version: Integer
+
+            attr_reader config_states: Array[untyped]
+
+            attr_reader has_error: bool
+
+            attr_reader error: String
+
+            attr_reader opaque_backend_state: String?
+
+            def initialize: (Repository repository) -> void
+          end
+
+          class Transaction
+            attr_reader operations: Array[operation]
+
+            def initialize: () -> void
+
+            def delete: (Configuration::Path path) -> void
+
+            def insert: (Configuration::Path path, Configuration::Target target, Configuration::Content content) -> void
+
+            def update: (Configuration::Path path, Configuration::Target target, Configuration::Content content) -> void
+
+            def set: (**untyped options) -> void
+          end
+
+          type operation = Operation::Insert | Operation::Update | Operation::Delete | Operation::Set
+
+          module Operation
+            class Delete
+              attr_reader path: Configuration::Path
+
+              def initialize: (Configuration::Path path) -> void
+
+              def apply: (Repository repository) -> void
+            end
+
+            class Insert
+              attr_reader path: Configuration::Path
+
+              attr_reader target: Configuration::Target
+
+              attr_reader content: Configuration::Content
+
+              def initialize: (Configuration::Path path, Configuration::Target target, Configuration::Content content) -> void
+
+              def apply: (Repository repository) -> void
+            end
+
+            class Update
+              attr_reader path: Configuration::Path
+
+              attr_reader target: Configuration::Target
+
+              attr_reader content: Configuration::Content
+
+              def initialize: (Configuration::Path path, Configuration::Target target, Configuration::Content content) -> void
+
+              def apply: (Repository repository) -> void
+            end
+
+            class Set
+              attr_reader opaque_backend_state: String?
+
+              attr_reader targets_version: String?
+
+              def initialize: (**untyped options) -> void
+
+              def apply: (Repository repository) -> void
+            end
+          end
+        end
+      end
+    end
+  end
+end
