@@ -1,0 +1,8 @@
+module Datadog
+  module Core
+    module Buffer
+      class ThreadSafe < Datadog::Core::Buffer::Random
+      end
+    end
+  end
+end

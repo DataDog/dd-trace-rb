@@ -2,7 +2,7 @@
 
 module Datadog
   module Profiling
-    # Profiling component
+    # Responsible for wiring up the Profiler for execution
     module Component
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span

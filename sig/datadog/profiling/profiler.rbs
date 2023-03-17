@@ -1,0 +1,20 @@
+module Datadog
+  module Profiling
+    class Profiler
+      include Datadog::Core::Utils::Forking
+
+      attr_reader collectors: Array[untyped]
+
+      attr_reader scheduler: Datadog::Profiling::Scheduler
+
+      def initialize: (
+        [Datadog::Profiling::Collectors::OldStack | Datadog::Profiling::Collectors::CpuAndWallTimeWorker] collectors,
+        Datadog::Profiling::Scheduler scheduler,
+      ) -> void
+
+      def start: () -> void
+
+      def shutdown!: () -> void
+    end
+  end
+end

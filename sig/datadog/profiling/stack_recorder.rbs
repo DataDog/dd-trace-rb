@@ -1,0 +1,27 @@
+module Datadog
+  module Profiling
+    class StackRecorder
+      @no_concurrent_synchronize_mutex: ::Thread::Mutex
+
+      def initialize: (cpu_time_enabled: bool, alloc_samples_enabled: bool) -> void
+
+      def self._native_initialize: (
+        Datadog::Profiling::StackRecorder recorder_instance,
+        bool cpu_time_enabled,
+        bool alloc_samples_enabled,
+      ) -> true
+
+      def serialize: () -> untyped
+
+      def self._native_serialize: (Datadog::Profiling::StackRecorder recorder_instance) -> [:ok | :error, untyped]
+
+      def serialize!: () -> String
+
+      def clear: () -> ::Time?
+
+      def reset_after_fork: () -> true
+
+      def self._native_reset_after_fork: (Datadog::Profiling::StackRecorder recorder_instance) -> true
+    end
+  end
+end

@@ -1,0 +1,11 @@
+module Datadog
+  module Profiling
+    module Events
+      class Stack < Event
+      end
+
+      class StackSample < Stack
+      end
+    end
+  end
+end
