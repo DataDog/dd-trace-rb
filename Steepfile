@@ -164,7 +164,6 @@ target :ddtrace do
   ignore 'lib/datadog/opentracer/thread_local_scope.rb'
   ignore 'lib/datadog/opentracer/thread_local_scope_manager.rb'
   ignore 'lib/datadog/opentracer/tracer.rb'
-  ignore 'lib/datadog/profiling.rb'
   ignore 'lib/datadog/profiling/backtrace_location.rb'
   ignore 'lib/datadog/profiling/buffer.rb'
   ignore 'lib/datadog/profiling/collectors/code_provenance.rb'
@@ -668,4 +667,6 @@ target :ddtrace do
   library 'gem'
   library 'rails'
   library 'sinatra'
+  library 'google-protobuf'
+  library 'protobuf-cucumber'
 end

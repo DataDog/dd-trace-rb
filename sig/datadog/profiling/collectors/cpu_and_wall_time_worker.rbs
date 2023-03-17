@@ -1,0 +1,9 @@
+module Datadog
+  module Profiling
+    module Collectors
+      class CpuAndWallTimeWorker
+        def self._native_allocation_count: () -> ::Integer?
+      end
+    end
+  end
+end
