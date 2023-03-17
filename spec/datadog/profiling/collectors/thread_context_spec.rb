@@ -37,8 +37,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:samples) { samples_from_pprof(pprof_result) }
   let(:invalid_time) { -1 }
   let(:tracer) { nil }
+  let(:endpoint_collection_enabled) { true }
 
-  subject(:cpu_and_wall_time_collector) { described_class.new(recorder: recorder, max_frames: max_frames, tracer: tracer) }
+  subject(:cpu_and_wall_time_collector) do
+    described_class.new(
+      recorder: recorder,
+      max_frames: max_frames,
+      tracer: tracer,
+      endpoint_collection_enabled: endpoint_collection_enabled,
+    )
+  end
 
   after do
     [t1, t2, t3].each do |thread|
@@ -373,7 +381,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           it 'does not include the "trace endpoint" label' do
             sample
 
-            expect(t1_sample.labels.keys).to_not include(:'trace endpoint')
+            expect(t1_sample.labels).to_not include(:'trace endpoint' => anything)
           end
 
           context 'when local root span type is web' do
@@ -383,6 +391,25 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               sample
 
               expect(t1_sample.labels).to include(:'trace endpoint' => 'profiler.test')
+            end
+
+            context 'when endpoint_collection_enabled is false' do
+              let(:endpoint_collection_enabled) { false }
+
+              it 'still includes "local root span id" and "span id" labels in the samples' do
+                sample
+
+                expect(t1_sample.labels).to include(
+                  :'local root span id' => @t1_local_root_span_id.to_i,
+                  :'span id' => @t1_span_id.to_i,
+                )
+              end
+
+              it 'does not include the "trace endpoint" label' do
+                sample
+
+                expect(t1_sample.labels).to_not include(:'trace endpoint' => anything)
+              end
             end
 
             describe 'trace vs root span resource mutation' do

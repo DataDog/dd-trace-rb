@@ -97,6 +97,8 @@ struct thread_context_collector_state {
   unsigned int sample_count;
   // Reusable array to get list of threads
   VALUE thread_list_buffer;
+  // Used to omit endpoint names (retrieved from tracer) from collected data
+  bool endpoint_collection_enabled;
 
   struct stats {
     // Track how many garbage collection samples we've taken.
@@ -140,7 +142,14 @@ static void thread_context_collector_typed_data_free(void *state_ptr);
 static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _value, st_data_t _argument);
 static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument);
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames, VALUE tracer_context_key);
+static VALUE _native_initialize(
+  VALUE self,
+  VALUE collector_instance,
+  VALUE recorder_instance,
+  VALUE max_frames,
+  VALUE tracer_context_key,
+  VALUE endpoint_collection_enabled
+);
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
@@ -198,7 +207,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 4);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 5);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
@@ -284,11 +293,21 @@ static VALUE _native_new(VALUE klass) {
   state->recorder_instance = Qnil;
   state->tracer_context_key = MISSING_TRACER_CONTEXT_KEY;
   state->thread_list_buffer = rb_ary_new();
+  state->endpoint_collection_enabled = true;
 
   return TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
 }
 
-static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames, VALUE tracer_context_key) {
+static VALUE _native_initialize(
+  DDTRACE_UNUSED VALUE _self,
+  VALUE collector_instance,
+  VALUE recorder_instance,
+  VALUE max_frames,
+  VALUE tracer_context_key,
+  VALUE endpoint_collection_enabled
+) {
+  ENFORCE_BOOLEAN(endpoint_collection_enabled);
+
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -299,6 +318,7 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_inst
   state->sampling_buffer = sampling_buffer_new(max_frames_requested);
   // hash_map_per_thread_context is already initialized, nothing to do here
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
+  state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
 
   if (RTEST(tracer_context_key)) {
     ENFORCE_TYPE(tracer_context_key, T_SYMBOL);
@@ -732,6 +752,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" tracer_context_key=%+"PRIsVALUE, tracer_context_key));
   rb_str_concat(result, rb_sprintf(" sample_count=%u", state->sample_count));
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
+  rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
 
   return result;
 }
@@ -910,6 +931,8 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
   trace_identifiers_result->span_id = NUM2ULL(numeric_span_id);
 
   trace_identifiers_result->valid = true;
+
+  if (!state->endpoint_collection_enabled) return;
 
   VALUE root_span_type = rb_ivar_get(root_span, at_type_id /* @type */);
   if (root_span_type == Qnil || !is_type_web(root_span_type)) return;

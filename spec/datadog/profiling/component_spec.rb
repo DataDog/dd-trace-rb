@@ -106,6 +106,7 @@ RSpec.describe Datadog::Profiling::Component do
             recorder: instance_of(Datadog::Profiling::StackRecorder),
             max_frames: settings.profiling.advanced.max_frames,
             tracer: tracer,
+            endpoint_collection_enabled: anything,
             gc_profiling_enabled: anything,
             allocation_counting_enabled: anything,
           )
@@ -193,6 +194,28 @@ RSpec.describe Datadog::Profiling::Component do
           it 'initializes a CpuAndWallTimeWorker collector with allocation_counting_enabled set to false' do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
               allocation_counting_enabled: false,
+            )
+
+            build_profiler_component
+          end
+        end
+
+        it 'initializes a CpuAndWallTimeWorker collector with endpoint_collection_enabled set to true' do
+          expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+            endpoint_collection_enabled: true,
+          )
+
+          build_profiler_component
+        end
+
+        context 'when endpoint_collection_enabled is disabled' do
+          before do
+            settings.profiling.advanced.endpoint.collection.enabled = false
+          end
+
+          it 'initializes a CpuAndWallTimeWorker collector with endpoint_collection_enabled set to false' do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+              endpoint_collection_enabled: true,
             )
 
             build_profiler_component

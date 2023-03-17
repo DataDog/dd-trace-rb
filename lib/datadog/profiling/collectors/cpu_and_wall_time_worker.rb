@@ -17,9 +17,15 @@ module Datadog
           recorder:,
           max_frames:,
           tracer:,
+          endpoint_collection_enabled:,
           gc_profiling_enabled:,
           allocation_counting_enabled:,
-          thread_context_collector: ThreadContext.new(recorder: recorder, max_frames: max_frames, tracer: tracer),
+          thread_context_collector: ThreadContext.new(
+            recorder: recorder,
+            max_frames: max_frames,
+            tracer: tracer,
+            endpoint_collection_enabled: endpoint_collection_enabled,
+          ),
           idle_sampling_helper: IdleSamplingHelper.new
         )
           self.class._native_initialize(

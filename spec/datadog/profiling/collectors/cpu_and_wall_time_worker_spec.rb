@@ -5,6 +5,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   before { skip_if_profiling_not_supported(self) }
 
   let(:recorder) { build_stack_recorder }
+  let(:endpoint_collection_enabled) { true }
   let(:gc_profiling_enabled) { true }
   let(:allocation_counting_enabled) { true }
   let(:options) { {} }
@@ -14,6 +15,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       recorder: recorder,
       max_frames: 400,
       tracer: nil,
+      endpoint_collection_enabled: endpoint_collection_enabled,
       gc_profiling_enabled: gc_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       **options
@@ -23,6 +25,19 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe '.new' do
     it 'creates the garbage collection tracepoint in the disabled state' do
       expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+    end
+
+    [true, false].each do |value|
+      context "when endpoint_collection_enabled is #{value}" do
+        let(:endpoint_collection_enabled) { value }
+
+        it "initializes the ThreadContext collector with endpoint_collection_enabled: #{value}" do
+          expect(Datadog::Profiling::Collectors::ThreadContext)
+            .to receive(:new).with(hash_including(endpoint_collection_enabled: value)).and_call_original
+
+          cpu_and_wall_time_worker
+        end
+      end
     end
   end
 
@@ -498,7 +513,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     subject(:reset_after_fork) { cpu_and_wall_time_worker.reset_after_fork }
 
     let(:thread_context_collector) do
-      Datadog::Profiling::Collectors::ThreadContext.new(recorder: recorder, max_frames: 400, tracer: nil)
+      Datadog::Profiling::Collectors::ThreadContext.new(
+        recorder: recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: endpoint_collection_enabled,
+      )
     end
     let(:options) { { thread_context_collector: thread_context_collector } }
 
@@ -635,6 +652,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       recorder: build_stack_recorder,
       max_frames: 400,
       tracer: nil,
+      endpoint_collection_enabled: endpoint_collection_enabled,
       gc_profiling_enabled: gc_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
     )
