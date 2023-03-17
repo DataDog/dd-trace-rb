@@ -7,6 +7,7 @@ require_relative 'configuration'
 module Datadog
   module Core
     module Remote
+      # Client communicates with the agent and sync remote configuration
       class Client
         attr_reader :transport, :repository, :id
 

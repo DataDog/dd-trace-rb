@@ -8,8 +8,11 @@ require_relative 'configuration/repository'
 module Datadog
   module Core
     module Remote
+      # Configuration
+      # rubocop:disable Lint/EmptyClass
       class Configuration
       end
+      # rubocop:enable Lint/EmptyClass
     end
   end
 end
