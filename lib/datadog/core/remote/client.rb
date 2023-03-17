@@ -52,7 +52,7 @@ module Datadog
 
                 # updated paths are in previously applied paths
                 # but the content hash changed
-                changed = current.paths.include?(path) && !current.contents.find(path, target)
+                changed = current.paths.include?(path) && !current.contents.find_content(path, target)
 
                 # skip if unchanged
                 same = !new && !changed
