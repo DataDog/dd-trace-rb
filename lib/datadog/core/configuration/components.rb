@@ -67,27 +67,15 @@ module Datadog
           :appsec
 
         def initialize(settings)
-          # Logger
           @logger = self.class.build_logger(settings)
 
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
-          # Tracer
           @tracer = self.class.build_tracer(settings, agent_settings)
-
-          # Profiler
           @profiler = self.class.build_profiler(settings, agent_settings, @tracer)
-
-          # Runtime metrics
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
-
-          # Health metrics
           @health_metrics = self.class.build_health_metrics(settings)
-
-          # Telemetry
           @telemetry = self.class.build_telemetry(settings)
-
-          # AppSec
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
         end
 
