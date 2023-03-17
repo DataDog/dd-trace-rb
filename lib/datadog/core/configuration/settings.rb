@@ -204,6 +204,7 @@ module Datadog
             # This should never be reduced, as it can cause the resulting profiles to become biased.
             # The current default should be enough for most services, allowing 16 threads to be sampled around 30 times
             # per second for a 60 second period.
+            #
             # This setting is ignored when CPU Profiling 2.0 is in use.
             option :max_events, default: 32768
 
@@ -253,6 +254,8 @@ module Datadog
             # Note that setting this to "false" (or not setting it) will not prevent the new profiler from
             # being automatically used in the future.
             # This option will be deprecated for removal once the new profiler gets enabled by default for all customers.
+            #
+            # @default `DD_PROFILING_FORCE_ENABLE_NEW` environment variable, otherwise `false`
             option :force_enable_new_profiler do |o|
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_NEW', false) }
               o.lazy
@@ -274,6 +277,8 @@ module Datadog
             #
             # We expect the once the above issues are overcome, we'll automatically enable the feature on fixed Ruby
             # versions.
+            #
+            # @default `DD_PROFILING_FORCE_ENABLE_GC` environment variable, otherwise `false`
             option :force_enable_gc_profiling do |o|
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
               o.lazy
@@ -292,6 +297,9 @@ module Datadog
 
           # @public_api
           settings :upload do
+            # Network timeout for reporting profiling data to Datadog.
+            #
+            # @default `DD_PROFILING_UPLOAD_TIMEOUT` environment variable, otherwise `30.0`
             option :timeout_seconds do |o|
               o.setter { |value| value.nil? ? 30.0 : value.to_f }
               o.default { env_to_float(Profiling::Ext::ENV_UPLOAD_TIMEOUT, 30.0) }
