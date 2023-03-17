@@ -63,13 +63,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .with(settings, instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings))
         .and_return(tracer)
 
-      expect(described_class).to receive(:build_profiler)
-        .with(
-          settings,
-          instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings),
-          tracer
-        )
-        .and_return(profiler)
+      expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
+        settings: settings,
+        agent_settings: instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings),
+        optional_tracer: tracer,
+      ).and_return(profiler)
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
         .with(settings)

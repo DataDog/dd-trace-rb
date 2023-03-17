@@ -4,7 +4,10 @@ module Datadog
   module Profiling
     # Profiling component
     module Component
-      def build_profiler(settings, agent_settings, tracer)
+      # Passing in a `nil` tracer is supported and will disable the following profiling features:
+      # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
+      # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:)
         return unless settings.profiling.enabled
 
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
@@ -71,13 +74,13 @@ module Datadog
           collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
             recorder: recorder,
             max_frames: settings.profiling.advanced.max_frames,
-            tracer: tracer,
+            tracer: optional_tracer,
             gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           )
         else
           recorder = build_profiler_old_recorder(settings)
-          collector = build_profiler_oldstack_collector(settings, recorder, tracer)
+          collector = build_profiler_oldstack_collector(settings, recorder, optional_tracer)
         end
 
         exporter = build_profiler_exporter(settings, recorder)
@@ -87,20 +90,18 @@ module Datadog
         Profiling::Profiler.new([collector], scheduler)
       end
 
-      private
-
-      def build_profiler_old_recorder(settings)
+      private_class_method def self.build_profiler_old_recorder(settings)
         Profiling::OldRecorder.new([Profiling::Events::StackSample], settings.profiling.advanced.max_events)
       end
 
-      def build_profiler_exporter(settings, recorder)
+      private_class_method def self.build_profiler_exporter(settings, recorder)
         code_provenance_collector =
           (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
         Profiling::Exporter.new(pprof_recorder: recorder, code_provenance_collector: code_provenance_collector)
       end
 
-      def build_profiler_oldstack_collector(settings, old_recorder, tracer)
+      private_class_method def self.build_profiler_oldstack_collector(settings, old_recorder, tracer)
         trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
           tracer: tracer,
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
@@ -113,7 +114,7 @@ module Datadog
         )
       end
 
-      def build_profiler_transport(settings, agent_settings)
+      private_class_method def self.build_profiler_transport(settings, agent_settings)
         settings.profiling.exporter.transport ||
           Profiling::HttpTransport.new(
             agent_settings: agent_settings,
@@ -123,7 +124,7 @@ module Datadog
           )
       end
 
-      def enable_gc_profiling?(settings)
+      private_class_method def self.enable_gc_profiling?(settings)
         # See comments on the setting definition for more context on why it exists.
         if settings.profiling.advanced.force_enable_gc_profiling
           if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3')
@@ -139,7 +140,7 @@ module Datadog
         end
       end
 
-      def print_new_profiler_warnings
+      private_class_method def self.print_new_profiler_warnings
         if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
           Datadog.logger.warn(
             'New Ruby profiler has been force-enabled. This is a beta feature. Please report any issues ' \

@@ -12,12 +12,11 @@ RSpec.describe Datadog::Profiling::Component do
     end
   end
 
-  describe '::build_profiler' do
+  describe '.build_profiler_component' do
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
-    subject(:build_profiler) do
-      # Temporary hack until the component stops being directly included into Datadog::Core::Configuration::Components
-      double('Components').extend(described_class).build_profiler(settings, agent_settings, tracer)
+    subject(:build_profiler_component) do
+      described_class.build_profiler_component(settings: settings, agent_settings: agent_settings, optional_tracer: tracer)
     end
 
     context 'when profiling is not supported' do
@@ -56,7 +55,7 @@ RSpec.describe Datadog::Profiling::Component do
           anything,
         )
 
-        build_profiler
+        build_profiler_component
       end
 
       it 'initializes the OldStack collector with the max_frames setting' do
@@ -65,7 +64,7 @@ RSpec.describe Datadog::Profiling::Component do
           hash_including(max_frames: settings.profiling.advanced.max_frames),
         )
 
-        build_profiler
+        build_profiler_component
       end
 
       it 'initializes the OldRecorder with the correct event classes and max_events setting' do
@@ -74,14 +73,14 @@ RSpec.describe Datadog::Profiling::Component do
           .with([Datadog::Profiling::Events::StackSample], settings.profiling.advanced.max_events)
           .and_call_original
 
-        build_profiler
+        build_profiler_component
       end
 
       it 'sets up the Exporter with the OldRecorder' do
         expect(Datadog::Profiling::Exporter)
           .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::OldRecorder)))
 
-        build_profiler
+        build_profiler_component
       end
 
       context 'when force_enable_new_profiler is enabled' do
@@ -93,13 +92,13 @@ RSpec.describe Datadog::Profiling::Component do
         it 'does not initialize the OldStack collector' do
           expect(Datadog::Profiling::Collectors::OldStack).to_not receive(:new)
 
-          build_profiler
+          build_profiler_component
         end
 
         it 'does not initialize the OldRecorder' do
           expect(Datadog::Profiling::OldRecorder).to_not receive(:new)
 
-          build_profiler
+          build_profiler_component
         end
 
         it 'initializes a CpuAndWallTimeWorker collector' do
@@ -111,7 +110,7 @@ RSpec.describe Datadog::Profiling::Component do
             allocation_counting_enabled: anything,
           )
 
-          build_profiler
+          build_profiler_component
         end
 
         context 'on Ruby 2.6 and above' do
@@ -122,7 +121,7 @@ RSpec.describe Datadog::Profiling::Component do
               /New Ruby profiler has been force-enabled. This is a beta feature/
             )
 
-            build_profiler
+            build_profiler_component
           end
         end
 
@@ -134,7 +133,7 @@ RSpec.describe Datadog::Profiling::Component do
               /New Ruby profiler has been force-enabled on a legacy Ruby version \(< 2.6\). This is not recommended/
             )
 
-            build_profiler
+            build_profiler_component
           end
         end
 
@@ -143,7 +142,7 @@ RSpec.describe Datadog::Profiling::Component do
             gc_profiling_enabled: false,
           )
 
-          build_profiler
+          build_profiler_component
         end
 
         context 'when force_enable_gc_profiling is enabled' do
@@ -158,7 +157,7 @@ RSpec.describe Datadog::Profiling::Component do
               gc_profiling_enabled: true,
             )
 
-            build_profiler
+            build_profiler_component
           end
 
           context 'on Ruby 3.x' do
@@ -167,7 +166,7 @@ RSpec.describe Datadog::Profiling::Component do
             it 'logs a debug message' do
               expect(Datadog.logger).to receive(:debug).with(/Garbage Collection force enabled/)
 
-              build_profiler
+              build_profiler_component
             end
           end
         end
@@ -182,7 +181,7 @@ RSpec.describe Datadog::Profiling::Component do
               allocation_counting_enabled: true,
             )
 
-            build_profiler
+            build_profiler_component
           end
         end
 
@@ -196,7 +195,7 @@ RSpec.describe Datadog::Profiling::Component do
               allocation_counting_enabled: false,
             )
 
-            build_profiler
+            build_profiler_component
           end
         end
 
@@ -206,21 +205,21 @@ RSpec.describe Datadog::Profiling::Component do
             anything,
           )
 
-          build_profiler
+          build_profiler_component
         end
 
         it 'sets up the Exporter with the StackRecorder' do
           expect(Datadog::Profiling::Exporter)
             .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::StackRecorder)))
 
-          build_profiler
+          build_profiler_component
         end
 
         it 'sets up the StackRecorder with alloc_samples_enabled: false' do
           expect(Datadog::Profiling::StackRecorder)
             .to receive(:new).with(hash_including(alloc_samples_enabled: false)).and_call_original
 
-          build_profiler
+          build_profiler_component
         end
 
         context 'when on Linux' do
@@ -230,7 +229,7 @@ RSpec.describe Datadog::Profiling::Component do
             expect(Datadog::Profiling::StackRecorder)
               .to receive(:new).with(hash_including(cpu_time_enabled: true)).and_call_original
 
-            build_profiler
+            build_profiler_component
           end
         end
 
@@ -241,7 +240,7 @@ RSpec.describe Datadog::Profiling::Component do
             expect(Datadog::Profiling::StackRecorder)
               .to receive(:new).with(hash_including(cpu_time_enabled: false)).and_call_original
 
-            build_profiler
+            build_profiler_component
           end
         end
       end
@@ -249,7 +248,7 @@ RSpec.describe Datadog::Profiling::Component do
       it 'runs the setup task to set up any needed extensions for profiling' do
         expect(profiler_setup_task).to receive(:run)
 
-        build_profiler
+        build_profiler_component
       end
 
       it 'builds an HttpTransport with the current settings' do
@@ -260,7 +259,7 @@ RSpec.describe Datadog::Profiling::Component do
           upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
         )
 
-        build_profiler
+        build_profiler_component
       end
 
       it 'creates a scheduler with an HttpTransport' do
@@ -268,7 +267,7 @@ RSpec.describe Datadog::Profiling::Component do
           expect(transport).to be_a_kind_of(Datadog::Profiling::HttpTransport)
         end
 
-        build_profiler
+        build_profiler_component
       end
 
       [true, false].each do |value|
@@ -279,7 +278,7 @@ RSpec.describe Datadog::Profiling::Component do
             expect(Datadog::Profiling::TraceIdentifiers::Helper)
               .to receive(:new).with(tracer: tracer, endpoint_collection_enabled: value)
 
-            build_profiler
+            build_profiler_component
           end
         end
       end
@@ -289,7 +288,7 @@ RSpec.describe Datadog::Profiling::Component do
           expect(code_provenance_collector).to be_a_kind_of(Datadog::Profiling::Collectors::CodeProvenance)
         end
 
-        build_profiler
+        build_profiler_component
       end
 
       context 'when code provenance is disabled' do
@@ -300,7 +299,7 @@ RSpec.describe Datadog::Profiling::Component do
             expect(code_provenance_collector).to be nil
           end
 
-          build_profiler
+          build_profiler_component
         end
       end
 
@@ -314,7 +313,7 @@ RSpec.describe Datadog::Profiling::Component do
         it 'does not initialize an HttpTransport' do
           expect(Datadog::Profiling::HttpTransport).to_not receive(:new)
 
-          build_profiler
+          build_profiler_component
         end
 
         it 'sets up the scheduler to use the custom transport' do
@@ -322,7 +321,7 @@ RSpec.describe Datadog::Profiling::Component do
             expect(transport).to be custom_transport
           end
 
-          build_profiler
+          build_profiler_component
         end
       end
     end

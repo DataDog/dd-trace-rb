@@ -17,7 +17,6 @@ module Datadog
       class Components
         class << self
           include Datadog::Tracing::Component
-          include Datadog::Profiling::Component
 
           def build_health_metrics(settings)
             settings = settings.diagnostics.health_metrics
@@ -72,7 +71,11 @@ module Datadog
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
           @tracer = self.class.build_tracer(settings, agent_settings)
-          @profiler = self.class.build_profiler(settings, agent_settings, @tracer)
+          @profiler = Datadog::Profiling::Component.build_profiler_component(
+            settings: settings,
+            agent_settings: agent_settings,
+            optional_tracer: @tracer,
+          )
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
           @health_metrics = self.class.build_health_metrics(settings)
           @telemetry = self.class.build_telemetry(settings)
