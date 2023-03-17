@@ -40,7 +40,7 @@ module Datadog
 
               begin
                 payload = JSON.parse(http_response.payload, symbolize_names: true)
-              rescue JSON::ParseError => e
+              rescue JSON::ParserError => e
                 raise ParseError.new(:roots, e)
               end
 

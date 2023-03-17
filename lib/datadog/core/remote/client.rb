@@ -10,10 +10,10 @@ module Datadog
       class Client
         attr_reader :transport, :repository, :id
 
-        def initialize(transport)
+        def initialize(transport, repository: Configuration::Repository.new)
           @transport = transport
 
-          @repository = Configuration::Repository.new
+          @repository = repository
           @id = SecureRandom.uuid
         end
 
@@ -57,18 +57,18 @@ module Datadog
                 # skip if unchanged
                 same = !new && !changed
 
-                unless same
-                  # match content with path and target
-                  content = contents.find_content(path, target)
+                next if same
 
-                  # abort entirely if matching content not found
-                  raise SyncError, "no valid content for target at path '#{path}'" if content.nil?
+                # match content with path and target
+                content = contents.find_content(path, target)
 
-                  # to be added or updated << config
-                  # TODO: metadata (hash, version, etc...)
-                  transaction.insert(path, target, content) if new
-                  transaction.update(path, target, content) if changed
-                end
+                # abort entirely if matching content not found
+                raise SyncError, "no valid content for target at path '#{path}'" if content.nil?
+
+                # to be added or updated << config
+                # TODO: metadata (hash, version, etc...)
+                transaction.insert(path, target, content) if new
+                transaction.update(path, target, content) if changed
               end
 
               # save backend opaque backend state
@@ -160,7 +160,6 @@ module Datadog
           CAP_ASM_RESPONSE_BLOCKING,
           CAP_ASM_DD_RULES,
         ].freeze
-
 
         # TODO: as a declaration, this should go in the AppSec namepsace
         # TODO: as serialization, this should go in the request serializer/encoder

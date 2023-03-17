@@ -8,7 +8,7 @@ module Datadog
 
         attr_reader id: ::String
 
-        def initialize: (Datadog::Core::Transport::Config::Transport transport) -> void
+        def initialize: (Datadog::Core::Transport::Config::Transport transport, ?repository: Configuration::Repository) -> void
 
         def sync: () -> void
 
