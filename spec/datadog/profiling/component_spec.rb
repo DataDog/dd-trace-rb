@@ -3,7 +3,7 @@ require 'datadog/profiling/spec_helper'
 RSpec.describe Datadog::Profiling::Component do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
-  let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
+  let(:profiler_setup_task) { instance_double(Datadog::Profiling::Tasks::Setup) if Datadog::Profiling.supported? }
 
   before do
     # Ensure the real task never gets run (so it doesn't apply our thread patches and other extensions to our test env)
@@ -13,7 +13,6 @@ RSpec.describe Datadog::Profiling::Component do
   end
 
   describe '::build_profiler' do
-    let(:profiler) { build_profiler }
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
     subject(:build_profiler) do
