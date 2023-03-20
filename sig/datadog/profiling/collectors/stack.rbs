@@ -1,0 +1,8 @@
+module Datadog
+  module Profiling
+    module Collectors
+      class Stack
+      end
+    end
+  end
+end

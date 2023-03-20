@@ -48,24 +48,6 @@ module Datadog
         end
       end
 
-      def clear
-        status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_clear(self) }
-
-        if status == :ok
-          finish_timestamp = result
-
-          Datadog.logger.debug { "Cleared profile at #{finish_timestamp}" }
-
-          finish_timestamp
-        else
-          error_message = result
-
-          Datadog.logger.error("Failed to clear profiling data: #{error_message}")
-
-          nil
-        end
-      end
-
       def reset_after_fork
         self.class._native_reset_after_fork(self)
       end

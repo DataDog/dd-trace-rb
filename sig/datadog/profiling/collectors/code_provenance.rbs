@@ -1,0 +1,10 @@
+module Datadog
+  module Profiling
+    module Collectors
+      class CodeProvenance
+        def refresh: () -> self
+        def generate_json: () -> ::String
+      end
+    end
+  end
+end

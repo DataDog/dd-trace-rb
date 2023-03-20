@@ -11,4 +11,5 @@ end
 
 class Gem::BasicSpecification
   def platform: () -> Gem::Platform
+  def version: () -> String
 end

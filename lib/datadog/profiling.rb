@@ -113,6 +113,7 @@ module Datadog
 
     private_class_method def self.protobuf_already_loaded?
       defined?(::Google::Protobuf) && !defined?(::Protobuf)
+      !!(defined?(::Google::Protobuf) && !defined?(::Protobuf))
     end
 
     private_class_method def self.protobuf_failed_to_load?
@@ -157,7 +158,7 @@ module Datadog
       unless success
         if exception
           'There was an error loading the profiling native extension due to ' \
-          "'#{exception.class.name} #{exception.message}' at '#{exception.backtrace.first}'"
+          "'#{exception.class.name} #{exception.message}' at '#{Array(exception.backtrace).first}'"
         else
           'The profiling native extension did not load correctly. ' \
           'For help solving this issue, please contact Datadog support at <https://docs.datadoghq.com/help/>.' \
