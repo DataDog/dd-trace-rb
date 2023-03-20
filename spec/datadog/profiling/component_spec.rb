@@ -49,45 +49,59 @@ RSpec.describe Datadog::Profiling::Component do
         allow(profiler_setup_task).to receive(:run)
       end
 
-      it 'sets up the Profiler with the OldStack collector' do
-        expect(Datadog::Profiling::Profiler).to receive(:new).with(
-          [instance_of(Datadog::Profiling::Collectors::OldStack)],
-          anything,
-        )
+      context 'when using the legacy profiler' do
+        before { expect(described_class).to receive(:enable_new_profiler?).with(settings).and_return(false) }
 
-        build_profiler_component
-      end
+        it 'sets up the Profiler with the OldStack collector' do
+          expect(Datadog::Profiling::Profiler).to receive(:new).with(
+            [instance_of(Datadog::Profiling::Collectors::OldStack)],
+            anything,
+          )
 
-      it 'initializes the OldStack collector with the max_frames setting' do
-        expect(Datadog::Profiling::Collectors::OldStack).to receive(:new).with(
-          instance_of(Datadog::Profiling::OldRecorder),
-          hash_including(max_frames: settings.profiling.advanced.max_frames),
-        )
-
-        build_profiler_component
-      end
-
-      it 'initializes the OldRecorder with the correct event classes and max_events setting' do
-        expect(Datadog::Profiling::OldRecorder)
-          .to receive(:new)
-          .with([Datadog::Profiling::Events::StackSample], settings.profiling.advanced.max_events)
-          .and_call_original
-
-        build_profiler_component
-      end
-
-      it 'sets up the Exporter with the OldRecorder' do
-        expect(Datadog::Profiling::Exporter)
-          .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::OldRecorder)))
-
-        build_profiler_component
-      end
-
-      context 'when force_enable_new_profiler is enabled' do
-        before do
-          settings.profiling.advanced.force_enable_new_profiler = true
-          allow(Datadog.logger).to receive(:warn)
+          build_profiler_component
         end
+
+        it 'initializes the OldStack collector with the max_frames setting' do
+          expect(Datadog::Profiling::Collectors::OldStack).to receive(:new).with(
+            instance_of(Datadog::Profiling::OldRecorder),
+            hash_including(max_frames: settings.profiling.advanced.max_frames),
+          )
+
+          build_profiler_component
+        end
+
+        it 'initializes the OldRecorder with the correct event classes and max_events setting' do
+          expect(Datadog::Profiling::OldRecorder)
+            .to receive(:new)
+            .with([Datadog::Profiling::Events::StackSample], settings.profiling.advanced.max_events)
+            .and_call_original
+
+          build_profiler_component
+        end
+
+        it 'sets up the Exporter with the OldRecorder' do
+          expect(Datadog::Profiling::Exporter)
+            .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::OldRecorder)))
+
+          build_profiler_component
+        end
+
+        [true, false].each do |value|
+          context "when endpoint_collection_enabled is #{value}" do
+            before { settings.profiling.advanced.endpoint.collection.enabled = value }
+
+            it "initializes the TraceIdentifiers::Helper with endpoint_collection_enabled: #{value}" do
+              expect(Datadog::Profiling::TraceIdentifiers::Helper)
+                .to receive(:new).with(tracer: tracer, endpoint_collection_enabled: value)
+
+              build_profiler_component
+            end
+          end
+        end
+      end
+
+      context 'when using the new CPU Profiling 2.0 profiler' do
+        before { expect(described_class).to receive(:enable_new_profiler?).with(settings).and_return(true) }
 
         it 'does not initialize the OldStack collector' do
           expect(Datadog::Profiling::Collectors::OldStack).to_not receive(:new)
@@ -279,19 +293,6 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         build_profiler_component
-      end
-
-      [true, false].each do |value|
-        context "when endpoint_collection_enabled is #{value}" do
-          before { settings.profiling.advanced.endpoint.collection.enabled = value }
-
-          it "initializes the TraceIdentifiers::Helper with endpoint_collection_enabled: #{value}" do
-            expect(Datadog::Profiling::TraceIdentifiers::Helper)
-              .to receive(:new).with(tracer: tracer, endpoint_collection_enabled: value)
-
-            build_profiler_component
-          end
-        end
       end
 
       it 'initializes the exporter with a code provenance collector' do

@@ -64,7 +64,7 @@ module Datadog
 
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
-        if settings.profiling.advanced.force_enable_new_profiler
+        if enable_new_profiler?(settings)
           print_new_profiler_warnings
 
           recorder = Datadog::Profiling::StackRecorder.new(
