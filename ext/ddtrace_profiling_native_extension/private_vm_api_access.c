@@ -652,6 +652,7 @@ check_method_entry(VALUE obj, int can_be_svar)
         if (can_be_svar) {
             return check_method_entry(((struct vm_svar *)obj)->cref_or_me, FALSE);
         }
+        // fallthrough
       default:
 #if VM_CHECK_MODE > 0
         rb_bug("check_method_entry: svar should not be there:");
