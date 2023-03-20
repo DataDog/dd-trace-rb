@@ -137,7 +137,7 @@ RSpec.describe Datadog::Profiling::Component do
 
           it 'logs a warning message mentioning that profiler has been force-enabled AND that it may cause issues' do
             expect(Datadog.logger).to receive(:warn).with(
-              /New Ruby profiler has been force-enabled on a legacy Ruby version \(< 2.6\). This is not recommended/
+              /The new CPU Profiling 2.0 profiler has been force-enabled on a legacy Ruby version/
             )
 
             build_profiler_component
