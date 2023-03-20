@@ -38,7 +38,12 @@ module Datadog
             option :quantize, default: {}
             option :request_queuing, default: false
 
-            option :service_name
+            #option :service_name
+            option :service_name do |o|
+              o.default {:service}
+              #o.default { ENV.fetch(Core::Environment::Ext::ENV_SERVICE, Core::Environment::Ext::FALLBACK_SERVICE_NAME) }
+              o.lazy
+            end
 
             option :web_service_name, default: Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME
           end

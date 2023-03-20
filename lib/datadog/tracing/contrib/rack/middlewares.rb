@@ -81,7 +81,8 @@ module Datadog
             frontend_span = compute_queue_time(env)
 
             trace_options = { span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
-            trace_options[:service] = configuration[:service_name] if configuration[:service_name]
+            #trace_options[:service] = configuration[:service_name] if configuration[:service_name]
+            trace_options[:service] = :service
 
             # start a new request span and attach it to the current Rack environment;
             # we must ensure that the span `resource` is set later
@@ -257,7 +258,8 @@ module Datadog
               span_name,
               span_type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
               start_time: start_time,
-              service: configuration[:web_service_name]
+            #service: configuration[:web_service_name]
+              service: :service
             )
 
             # Set peer service (so its not believed to belong to this app)

@@ -82,7 +82,7 @@ module Datadog
               resource = statement_name || sql
 
               Tracing.trace(
-                name,
+                "postgres.query",
                 service: service,
                 resource: resource,
                 type: Tracing::Metadata::Ext::SQL::TYPE

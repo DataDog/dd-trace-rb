@@ -27,7 +27,8 @@ module Datadog
             option :distributed_tracing, default: true
 
             option :service_name do |o|
-              o.default { ENV.fetch(Ext::ENV_SERVICE_NAME, Ext::DEFAULT_PEER_SERVICE_NAME) }
+              o.default {:service}
+              #o.default { ENV.fetch(Core::Environment::Ext::ENV_SERVICE, Core::Environment::Ext::FALLBACK_SERVICE_NAME) }
               o.lazy
             end
 

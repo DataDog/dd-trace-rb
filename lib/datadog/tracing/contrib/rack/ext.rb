@@ -12,7 +12,7 @@ module Datadog
           SPAN_HTTP_PROXY_REQUEST = 'http.proxy.request'.freeze
           SPAN_HTTP_PROXY_QUEUE = 'http.proxy.queue'.freeze
           SPAN_HTTP_SERVER_QUEUE = 'http_server.queue'.freeze
-          SPAN_REQUEST = 'rack.request'.freeze
+          SPAN_REQUEST = 'http.server.request'.freeze
           TAG_COMPONENT = 'rack'.freeze
           TAG_COMPONENT_HTTP_PROXY = 'http_proxy'.freeze
           TAG_OPERATION_REQUEST = 'request'.freeze
