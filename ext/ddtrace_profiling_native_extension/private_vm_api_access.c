@@ -19,6 +19,7 @@
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
   #pragma GCC diagnostic ignored "-Wattributes"
+  #pragma GCC diagnostic ignored "-Wpragmas"
   #pragma GCC diagnostic ignored "-Wexpansion-to-defined"
     #include <vm_core.h>
   #pragma GCC diagnostic pop
