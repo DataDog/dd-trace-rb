@@ -205,7 +205,7 @@ module Datadog
             # The default should be enough for most services, allowing 16 threads to be sampled around 30 times
             # per second for a 60 second period.
             #
-            # This setting is ignored when CPU Profiling 2.0 is in use.
+            # Deprecated for removal: This setting is ignored when CPU Profiling 2.0 is in use.
             option :max_events, default: 32768
 
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
