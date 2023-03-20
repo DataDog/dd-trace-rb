@@ -142,21 +142,16 @@ module Datadog
       end
 
       private_class_method def self.print_new_profiler_warnings
-        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
-          Datadog.logger.warn(
-            'New Ruby profiler has been force-enabled. This is a beta feature. Please report any issues ' \
-            'you run into to Datadog support or via <https://github.com/datadog/dd-trace-rb/issues/new>!'
-          )
-        else
-          # For more details on the issue, see the "BIG Issue" comment on `gvl_owner` function in
-          # `private_vm_api_access.c`.
-          Datadog.logger.warn(
-            'New Ruby profiler has been force-enabled on a legacy Ruby version (< 2.6). This is not recommended in ' \
-            'production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes in very ' \
-            'rare situations. Please report any issues you run into to Datadog support or ' \
-            'via <https://github.com/datadog/dd-trace-rb/issues/new>!'
-          )
-        end
+        return if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+
+        # For more details on the issue, see the "BIG Issue" comment on `gvl_owner` function in
+        # `private_vm_api_access.c`.
+        Datadog.logger.warn(
+          'The new CPU Profiling 2.0 profiler has been force-enabled on a legacy Ruby version (< 2.6). This is not ' \
+          'recommended in production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes ' \
+          'in very rare situations. Please report any issues you run into to Datadog support or ' \
+          'via <https://github.com/datadog/dd-trace-rb/issues/new>!'
+        )
       end
 
       private_class_method def self.enable_new_profiler?(settings)

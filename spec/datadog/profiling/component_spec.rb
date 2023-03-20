@@ -114,18 +114,6 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        context 'on Ruby 2.6 and above' do
-          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '2.6.' }
-
-          it 'logs a warning message mentioning that profiler has been force-enabled' do
-            expect(Datadog.logger).to receive(:warn).with(
-              /New Ruby profiler has been force-enabled. This is a beta feature/
-            )
-
-            build_profiler_component
-          end
-        end
-
         context 'on Ruby 2.5 and below' do
           before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '2.6.' }
 
