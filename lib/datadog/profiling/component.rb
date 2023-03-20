@@ -75,7 +75,7 @@ module Datadog
             recorder: recorder,
             max_frames: settings.profiling.advanced.max_frames,
             tracer: optional_tracer,
-            endpoint_collection_enabled: true, # settings.profiling.advanced.endpoint.collection.enabled,
+            endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
             gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           )

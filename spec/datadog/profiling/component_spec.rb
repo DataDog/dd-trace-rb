@@ -215,7 +215,7 @@ RSpec.describe Datadog::Profiling::Component do
 
           it 'initializes a CpuAndWallTimeWorker collector with endpoint_collection_enabled set to false' do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-              endpoint_collection_enabled: true,
+              endpoint_collection_enabled: false,
             )
 
             build_profiler_component
