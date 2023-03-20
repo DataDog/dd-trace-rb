@@ -349,4 +349,70 @@ RSpec.describe Datadog::Profiling::Component do
       end
     end
   end
+
+  describe '.enable_new_profiler?' do
+    subject(:enable_new_profiler?) { described_class.send(:enable_new_profiler?, settings) }
+
+    context 'when force_enable_legacy_profiler is enabled' do
+      before do
+        settings.profiling.advanced.force_enable_legacy_profiler = true
+
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      it { is_expected.to be false }
+
+      it 'logs a warning message mentioning that the legacy profiler was enabled' do
+        expect(Datadog.logger).to receive(:warn).with(/Legacy profiler has been force-enabled/)
+
+        enable_new_profiler?
+      end
+    end
+
+    context 'when force_enable_legacy_profiler is not enabled' do
+      before { settings.profiling.advanced.force_enable_legacy_profiler = false }
+
+      context 'on Ruby 2.5 and below' do
+        before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '2.6.' }
+
+        it { is_expected.to be false }
+
+        context 'when force_enable_new_profiler is enabled' do
+          before { settings.profiling.advanced.force_enable_new_profiler = true }
+
+          it { is_expected.to be true }
+        end
+      end
+
+      context 'on Ruby 2.6 and above' do
+        before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '2.6.' }
+
+        context 'when mysql2 gem is available' do
+          include_context 'loaded gems', :mysql2 => Gem::Version.new('0.5.5')
+
+          before { allow(Datadog.logger).to receive(:warn) }
+
+          it { is_expected.to be false }
+
+          it 'logs a warning message mentioning that the legacy profiler is going to be used' do
+            expect(Datadog.logger).to receive(:warn).with(/Falling back to legacy profiler/)
+
+            enable_new_profiler?
+          end
+
+          context 'when force_enable_new_profiler is enabled' do
+            before { settings.profiling.advanced.force_enable_new_profiler = true }
+
+            it { is_expected.to be true }
+          end
+        end
+
+        context 'when mysql2 gem is not available' do
+          include_context 'loaded gems', :mysql2 => nil
+
+          it { is_expected.to be true }
+        end
+      end
+    end
+  end
 end

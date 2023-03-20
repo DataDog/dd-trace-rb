@@ -158,6 +158,33 @@ module Datadog
           )
         end
       end
+
+      private_class_method def self.enable_new_profiler?(settings)
+        if settings.profiling.advanced.force_enable_legacy_profiler
+          Datadog.logger.warn(
+            'Legacy profiler has been force-enabled via configuration. Do not use unless instructed to by support.'
+          )
+          return false
+        end
+
+        return true if settings.profiling.advanced.force_enable_new_profiler
+
+        return false if RUBY_VERSION.start_with?('2.3.', '2.4.', '2.5.')
+
+        if Gem.loaded_specs['mysql2']
+          Datadog.logger.warn(
+            'Falling back to legacy profiler because mysql2 gem is installed. Older versions of libmysqlclient (the C ' \
+            'library used by the mysql2 gem) have a bug in their signal handling code that the new profiler can trigger. ' \
+            'This bug (https://bugs.mysql.com/bug.php?id=83109) is fixed in libmysqlclient versions 8.0.0 and above. ' \
+            'If your Linux distribution provides a modern libmysqlclient, you can force-enable the new CPU Profiling 2.0 ' \
+            'profiler by using the `DD_PROFILING_FORCE_ENABLE_NEW` or `c.profiling.advanced.force_enable_new_profiler` ' \
+            'settings.'
+          )
+          return false
+        end
+
+        true
+      end
     end
   end
 end
