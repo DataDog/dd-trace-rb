@@ -101,7 +101,11 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       context 'when using the new CPU Profiling 2.0 profiler' do
-        before { expect(described_class).to receive(:enable_new_profiler?).with(settings).and_return(true) }
+        before do
+          expect(described_class).to receive(:enable_new_profiler?).with(settings).and_return(true)
+          # Silence warning spam about using the new profiler on legacy Rubies
+          allow(Datadog.logger).to receive(:warn) if RUBY_VERSION < '2.6.'
+        end
 
         it 'does not initialize the OldStack collector' do
           expect(Datadog::Profiling::Collectors::OldStack).to_not receive(:new)
