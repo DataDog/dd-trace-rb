@@ -342,6 +342,8 @@ RSpec.describe Datadog::Profiling::Component do
   describe '.enable_new_profiler?' do
     subject(:enable_new_profiler?) { described_class.send(:enable_new_profiler?, settings) }
 
+    before { skip_if_profiling_not_supported(self) }
+
     context 'when force_enable_legacy_profiler is enabled' do
       before do
         settings.profiling.advanced.force_enable_legacy_profiler = true
