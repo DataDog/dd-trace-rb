@@ -5,7 +5,8 @@ module Datadog
         def initialize: (
           recorder: Datadog::Profiling::StackRecorder,
           max_frames: ::Integer,
-          tracer: Datadog::Tracing::Tracer?
+          tracer: Datadog::Tracing::Tracer?,
+          endpoint_collection_enabled: bool,
         ) -> void
 
         def self._native_initialize: (
@@ -13,6 +14,7 @@ module Datadog
           Datadog::Profiling::StackRecorder recorder_instance,
           ::Integer max_frames,
           ::Symbol? tracer_context_key,
+          bool endpoint_collection_enabled,
         ) -> void
 
         def inspect: () -> ::String
