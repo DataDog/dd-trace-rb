@@ -3,6 +3,7 @@
 module Datadog
   module Core
     module Remote
+      # Worker executes a block every interval on a separate Thread
       class Worker
         def initialize(interval:, &block)
           @mutex = Mutex.new
