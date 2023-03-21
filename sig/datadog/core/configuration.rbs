@@ -1,8 +1,6 @@
 module Datadog
   module Core
     module Configuration
-      def configuration: () -> Settings
-
       def tracer: () -> Datadog::Tracing::Tracer
 
       def logger: () -> Datadog::Core::Logger
