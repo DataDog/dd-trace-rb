@@ -49,44 +49,62 @@ RSpec.describe Datadog::Profiling::Component do
         allow(profiler_setup_task).to receive(:run)
       end
 
-      it 'sets up the Profiler with the OldStack collector' do
-        expect(Datadog::Profiling::Profiler).to receive(:new).with(
-          [instance_of(Datadog::Profiling::Collectors::OldStack)],
-          anything,
-        )
+      context 'when using the legacy profiler' do
+        before { expect(described_class).to receive(:enable_new_profiler?).with(settings).and_return(false) }
 
-        build_profiler_component
+        it 'sets up the Profiler with the OldStack collector' do
+          expect(Datadog::Profiling::Profiler).to receive(:new).with(
+            [instance_of(Datadog::Profiling::Collectors::OldStack)],
+            anything,
+          )
+
+          build_profiler_component
+        end
+
+        it 'initializes the OldStack collector with the max_frames setting' do
+          expect(Datadog::Profiling::Collectors::OldStack).to receive(:new).with(
+            instance_of(Datadog::Profiling::OldRecorder),
+            hash_including(max_frames: settings.profiling.advanced.max_frames),
+          )
+
+          build_profiler_component
+        end
+
+        it 'initializes the OldRecorder with the correct event classes and max_events setting' do
+          expect(Datadog::Profiling::OldRecorder)
+            .to receive(:new)
+            .with([Datadog::Profiling::Events::StackSample], settings.profiling.advanced.max_events)
+            .and_call_original
+
+          build_profiler_component
+        end
+
+        it 'sets up the Exporter with the OldRecorder' do
+          expect(Datadog::Profiling::Exporter)
+            .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::OldRecorder)))
+
+          build_profiler_component
+        end
+
+        [true, false].each do |value|
+          context "when endpoint_collection_enabled is #{value}" do
+            before { settings.profiling.advanced.endpoint.collection.enabled = value }
+
+            it "initializes the TraceIdentifiers::Helper with endpoint_collection_enabled: #{value}" do
+              expect(Datadog::Profiling::TraceIdentifiers::Helper)
+                .to receive(:new).with(tracer: tracer, endpoint_collection_enabled: value)
+
+              build_profiler_component
+            end
+          end
+        end
       end
 
-      it 'initializes the OldStack collector with the max_frames setting' do
-        expect(Datadog::Profiling::Collectors::OldStack).to receive(:new).with(
-          instance_of(Datadog::Profiling::OldRecorder),
-          hash_including(max_frames: settings.profiling.advanced.max_frames),
-        )
-
-        build_profiler_component
-      end
-
-      it 'initializes the OldRecorder with the correct event classes and max_events setting' do
-        expect(Datadog::Profiling::OldRecorder)
-          .to receive(:new)
-          .with([Datadog::Profiling::Events::StackSample], settings.profiling.advanced.max_events)
-          .and_call_original
-
-        build_profiler_component
-      end
-
-      it 'sets up the Exporter with the OldRecorder' do
-        expect(Datadog::Profiling::Exporter)
-          .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::OldRecorder)))
-
-        build_profiler_component
-      end
-
-      context 'when force_enable_new_profiler is enabled' do
+      context 'when using the new CPU Profiling 2.0 profiler' do
         before do
-          settings.profiling.advanced.force_enable_new_profiler = true
-          allow(Datadog.logger).to receive(:warn)
+          expect(described_class).to receive(:enable_new_profiler?).with(settings).and_return(true)
+          # Silence warning spam about using the new profiler on legacy Rubies
+          allow(Datadog.logger).to receive(:warn) if RUBY_VERSION < '2.6.'
         end
 
         it 'does not initialize the OldStack collector' do
@@ -114,24 +132,12 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        context 'on Ruby 2.6 and above' do
-          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '2.6.' }
-
-          it 'logs a warning message mentioning that profiler has been force-enabled' do
-            expect(Datadog.logger).to receive(:warn).with(
-              /New Ruby profiler has been force-enabled. This is a beta feature/
-            )
-
-            build_profiler_component
-          end
-        end
-
         context 'on Ruby 2.5 and below' do
           before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '2.6.' }
 
           it 'logs a warning message mentioning that profiler has been force-enabled AND that it may cause issues' do
             expect(Datadog.logger).to receive(:warn).with(
-              /New Ruby profiler has been force-enabled on a legacy Ruby version \(< 2.6\). This is not recommended/
+              /The new CPU Profiling 2.0 profiler has been force-enabled on a legacy Ruby version/
             )
 
             build_profiler_component
@@ -293,19 +299,6 @@ RSpec.describe Datadog::Profiling::Component do
         build_profiler_component
       end
 
-      [true, false].each do |value|
-        context "when endpoint_collection_enabled is #{value}" do
-          before { settings.profiling.advanced.endpoint.collection.enabled = value }
-
-          it "initializes the TraceIdentifiers::Helper with endpoint_collection_enabled: #{value}" do
-            expect(Datadog::Profiling::TraceIdentifiers::Helper)
-              .to receive(:new).with(tracer: tracer, endpoint_collection_enabled: value)
-
-            build_profiler_component
-          end
-        end
-      end
-
       it 'initializes the exporter with a code provenance collector' do
         expect(Datadog::Profiling::Exporter).to receive(:new) do |code_provenance_collector:, **_|
           expect(code_provenance_collector).to be_a_kind_of(Datadog::Profiling::Collectors::CodeProvenance)
@@ -345,6 +338,74 @@ RSpec.describe Datadog::Profiling::Component do
           end
 
           build_profiler_component
+        end
+      end
+    end
+  end
+
+  describe '.enable_new_profiler?' do
+    subject(:enable_new_profiler?) { described_class.send(:enable_new_profiler?, settings) }
+
+    before { skip_if_profiling_not_supported(self) }
+
+    context 'when force_enable_legacy_profiler is enabled' do
+      before do
+        settings.profiling.advanced.force_enable_legacy_profiler = true
+
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      it { is_expected.to be false }
+
+      it 'logs a warning message mentioning that the legacy profiler was enabled' do
+        expect(Datadog.logger).to receive(:warn).with(/Legacy profiler has been force-enabled/)
+
+        enable_new_profiler?
+      end
+    end
+
+    context 'when force_enable_legacy_profiler is not enabled' do
+      before { settings.profiling.advanced.force_enable_legacy_profiler = false }
+
+      context 'on Ruby 2.5 and below' do
+        before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '2.6.' }
+
+        it { is_expected.to be false }
+
+        context 'when force_enable_new_profiler is enabled' do
+          before { settings.profiling.advanced.force_enable_new_profiler = true }
+
+          it { is_expected.to be true }
+        end
+      end
+
+      context 'on Ruby 2.6 and above' do
+        before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '2.6.' }
+
+        context 'when mysql2 gem is available' do
+          include_context 'loaded gems', :mysql2 => Gem::Version.new('0.5.5')
+
+          before { allow(Datadog.logger).to receive(:warn) }
+
+          it { is_expected.to be false }
+
+          it 'logs a warning message mentioning that the legacy profiler is going to be used' do
+            expect(Datadog.logger).to receive(:warn).with(/Falling back to legacy profiler/)
+
+            enable_new_profiler?
+          end
+
+          context 'when force_enable_new_profiler is enabled' do
+            before { settings.profiling.advanced.force_enable_new_profiler = true }
+
+            it { is_expected.to be true }
+          end
+        end
+
+        context 'when mysql2 gem is not available' do
+          include_context 'loaded gems', :mysql2 => nil
+
+          it { is_expected.to be true }
         end
       end
     end
