@@ -8,6 +8,8 @@ require_relative '../remote'
 module Datadog
   module Core
     module Remote
+      # Configures the HTTP transport to communicate with the agent
+      # to fetch and sync the remote configuration
       class Component
         attr_reader :client
 
