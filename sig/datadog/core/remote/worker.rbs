@@ -20,6 +20,10 @@ module Datadog
 
         private
 
+        def acquire_lock: () -> void
+
+        def release_lock: () -> void
+
         def poll: (Integer interval) -> void
 
         def call: () -> void

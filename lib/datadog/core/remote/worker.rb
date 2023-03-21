@@ -13,13 +13,15 @@ module Datadog
           @started = false
 
           @interval = interval
+          raise ArgumentError, 'can not initialize a worker without a block' unless block
+
           @block = block
         end
 
         def start
           Datadog.logger.debug { 'remote worker starting' }
 
-          @mutex.lock
+          acquire_lock
 
           return if @starting || @started
 
@@ -32,13 +34,14 @@ module Datadog
 
           Datadog.logger.debug { 'remote worker started' }
         ensure
-          @mutex.unlock
+          release_lock
         end
 
         def stop
           Datadog.logger.debug { 'remote worker stopping' }
 
-          @mutex.lock
+          acquire_lock
+
           @stopping = true
 
           thread = @thr
@@ -51,7 +54,7 @@ module Datadog
 
           Datadog.logger.debug { 'remote worker stopped' }
         ensure
-          @mutex.unlock
+          release_lock
         end
 
         def started?
@@ -59,6 +62,14 @@ module Datadog
         end
 
         private
+
+        def acquire_lock
+          @mutex.lock
+        end
+
+        def release_lock
+          @mutex.unlock
+        end
 
         def poll(interval)
           loop do

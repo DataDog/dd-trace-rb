@@ -166,7 +166,11 @@ RSpec.configure do |config|
         # teardown in those tests.
         # They currently flood the output, making our test
         # suite output unreadable.
-        if example.file_path.start_with?('./spec/datadog/core/workers/', './spec/ddtrace/workers/')
+        if example.file_path.start_with?(
+          './spec/datadog/core/workers/',
+          './spec/ddtrace/workers/',
+          './spec/datadog/core/remote/worker_spec.rb'
+        )
           puts # Add newline so we get better output when the progress formatter is being used
           RSpec.warning("FIXME: #{example.file_path}:#{example.metadata[:line_number]} is leaking threads")
           next
