@@ -15,9 +15,9 @@ module Datadog
           transport_options = {}
           transport_options[:agent_settings] = agent_settings if agent_settings
 
-          @transport_v7 = Datadog::Core::Transport::HTTP.v7(**transport_options.dup)
+          transport_v7 = Datadog::Core::Transport::HTTP.v7(**transport_options.dup)
 
-          @client = Client.new(@transport_v7)
+          @client = Client.new(transport_v7)
           @worker = Worker.new(interval: 1) { @client.sync }
         end
 

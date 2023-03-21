@@ -34,6 +34,8 @@ module Datadog
 
         attr_reader tracer: untyped
 
+        attr_reader remote: Datadog::Core::Remote::Component
+
         def initialize: (untyped settings) -> untyped
 
         def startup!: (untyped settings) -> untyped
