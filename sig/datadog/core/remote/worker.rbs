@@ -8,9 +8,9 @@ module Datadog
         attr_reader thr: Thread?
         attr_reader interval: Integer
         attr_reader mutex: ::Thread::Mutex
-        attr_reader block: (^() -> untyped)
+        attr_reader block: (^() -> void)
 
-        def initialize: (interval: Integer) { () -> untyped } -> void
+        def initialize: (interval: Integer) { () -> void } -> void
 
         def start: () -> void
 

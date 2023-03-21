@@ -47,7 +47,10 @@ module Datadog
 
           thread = @thr
 
-          thread.kill if thread
+          if thread
+            thread.kill
+            thread.join
+          end
 
           @started = false
           @stopping = false
