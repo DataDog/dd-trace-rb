@@ -22,6 +22,10 @@ module Datadog
           attr_reader target_files: untyped
 
           attr_reader client_configs: untyped
+
+          attr_reader empty: bool
+
+          def empty?: () -> bool
         end
 
         # Config transport

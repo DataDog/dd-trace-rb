@@ -6,6 +6,10 @@ module Datadog
 
         def initialize: (*untyped _) -> untyped
 
+        def env: -> String
+
+        def service: -> String
+
         def logger=: (untyped logger) -> untyped
 
         def runtime_metrics: (?untyped? options) -> untyped

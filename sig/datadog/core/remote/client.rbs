@@ -1,0 +1,50 @@
+module Datadog
+  module Core
+    module Remote
+      class Client
+        attr_reader transport: Datadog::Core::Transport::Config::Transport
+
+        attr_reader repository: Configuration::Repository
+
+        attr_reader id: ::String
+
+        def initialize: (Datadog::Core::Transport::Config::Transport transport, ?repository: Configuration::Repository) -> void
+
+        def sync: () -> void
+
+        class SyncError < StandardError
+        end
+
+        private
+
+        def payload: () ->  ::Hash[Symbol, untyped]
+
+        CAP_ASM_ACTIVATION: Integer
+
+        CAP_ASM_IP_BLOCKING: Integer
+
+        CAP_ASM_DD_RULES: Integer
+
+        CAP_ASM_EXCLUSIONS: Integer
+
+        CAP_ASM_REQUEST_BLOCKING: Integer
+
+        CAP_ASM_RESPONSE_BLOCKING: Integer
+
+        CAP_ASM_USER_BLOCKING: Integer
+
+        CAP_ASM_CUSTOM_RULES: Integer
+
+        CAP_ASM_CUSTOM_BLOCKING_RESPONSE: Integer
+
+        CAPABILITIES: Array[Integer]
+
+        def products: () -> ::Array[::String]
+
+        def capabilities: () -> Integer
+
+        def capabilities_binary: () -> String
+      end
+    end
+  end
+end
