@@ -39,13 +39,15 @@ module Datadog
           Datadog.logger.debug { 'remote worker stopping' }
 
           @mutex.lock
-
           @stopping = true
 
-          @thr.kill unless @thr.nil?
+          thread = @thr
+
+          thread.kill if thread
 
           @started = false
           @stopping = false
+          @thr = nil
 
           Datadog.logger.debug { 'remote worker stopped' }
         ensure

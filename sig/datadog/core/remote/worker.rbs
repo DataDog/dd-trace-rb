@@ -1,0 +1,29 @@
+module Datadog
+  module Core
+    module Remote
+      class Worker
+        attr_reader starting: bool
+        attr_reader stopping: bool
+        attr_reader started: bool
+        attr_reader thr: Thread?
+        attr_reader interval: Integer
+        attr_reader mutex: ::Thread::Mutex
+        attr_reader block: (^() -> untyped)
+
+        def initialize: (interval: Integer) { () -> untyped } -> void
+
+        def start: () -> void
+
+        def stop: () -> void
+
+        def started?: () -> bool
+
+        private
+
+        def poll: (Integer interval) -> void
+
+        def call: () -> void
+      end
+    end
+  end
+end
