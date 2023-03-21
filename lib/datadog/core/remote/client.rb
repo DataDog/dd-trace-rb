@@ -3,19 +3,22 @@
 require 'securerandom'
 
 require_relative 'configuration'
+require_relative 'dispatcher'
 
 module Datadog
   module Core
     module Remote
       # Client communicates with the agent and sync remote configuration
       class Client
-        attr_reader :transport, :repository, :id
+        attr_reader :transport, :repository, :id, :dispatcher
 
         def initialize(transport, repository: Configuration::Repository.new)
           @transport = transport
 
           @repository = repository
           @id = SecureRandom.uuid
+          @dispatcher = Dispatcher.new
+          register_receivers
         end
 
         def sync
@@ -79,6 +82,8 @@ module Datadog
               # upon transaction end, new list of applied config + metadata (add, change, remove) will be saved
               # TODO: also remove stale config (matching removed) from cache (client configs is exhaustive list of paths)
             end
+
+            dispatcher.dispatch(changes, repository)
           else
             raise SyncError, "unexpected transport response: #{response.inspect}"
           end
@@ -173,6 +178,14 @@ module Datadog
         def capabilities_binary
           cap_to_hexs = capabilities.to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
           cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
+        end
+
+        def register_receivers
+          matcher = Dispatcher::Matcher::Product.new(*products)
+
+          dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |repository, changes|
+            changes.each { |change| Datadog.logger.debug { "remote config change: #{change.path.inspect}" } }
+          end
         end
       end
     end
