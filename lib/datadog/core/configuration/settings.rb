@@ -205,7 +205,7 @@ module Datadog
             # The default should be enough for most services, allowing 16 threads to be sampled around 30 times
             # per second for a 60 second period.
             #
-            # Deprecated for removal: This setting is ignored when CPU Profiling 2.0 is in use.
+            # @deprecated This setting is ignored when CPU Profiling 2.0 is in use.
             option :max_events, default: 32768
 
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
@@ -236,7 +236,7 @@ module Datadog
             # grouping and categorization of stack traces.
             option :code_provenance_enabled, default: true
 
-            # No longer does anything, and will be removed on dd-trace-rb 2.0.
+            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
             #
             # This was added as a temporary support option in case of issues with the new `Profiling::HttpTransport` class
             # but we're now confident it's working nicely so we've removed the old code path.
