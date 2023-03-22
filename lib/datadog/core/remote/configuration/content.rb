@@ -44,6 +44,18 @@ module Datadog
             find { |c| c.path.eql?(path) }
           end
 
+          def []=(path, content)
+            map! { |c| c.path.eql?(path) ? content : c }
+          end
+
+          def delete(path)
+            idx = index { |e| e.path.eql?(path) }
+
+            return if idx.nil?
+
+            delete_at(idx)
+          end
+
           def paths
             map(&:path).uniq
           end

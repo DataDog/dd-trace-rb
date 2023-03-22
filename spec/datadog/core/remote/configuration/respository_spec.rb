@@ -48,47 +48,55 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
     end
 
     describe 'set operation' do
-      it 'set values' do
+      it 'set values and do not report changes' do
         expect(repository.opaque_backend_state).to be_nil
         expect(repository.targets_version).to eq(0)
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.set(opaque_backend_state: '1', targets_version: 3)
         end
 
         expect(repository.opaque_backend_state).to eq('1')
         expect(repository.targets_version).to eq(3)
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(0)
       end
     end
 
     describe 'insert operation' do
-      it 'store content' do
+      it 'store content and return ChangeSet instance' do
         expect(repository.contents.size).to eq(0)
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.insert(path, target, content)
         end
 
         expect(repository.contents.size).to eq(1)
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(1)
+        expect(changes.first).to be_a(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)
       end
 
       it 'does not store same path twice' do
         expect(repository.contents.size).to eq(0)
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.insert(path, target, content)
           transaction.insert(path, target, content)
         end
 
         expect(repository.contents.size).to eq(1)
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(1)
+        expect(changes.first).to be_a(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)
       end
     end
 
     describe 'update operation' do
-      it 'change the path\'s content' do
+      it 'change the path\'s content and return ChangeSet instance' do
         expect(repository.contents.size).to eq(0)
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.insert(path, target, content)
         end
 
@@ -99,11 +107,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
             :content => StringIO.new('hello world') }
         )
 
-        repository.transaction do |_repository, transaction|
+        updated_changes = repository.transaction do |_repository, transaction|
           transaction.update(path, target, new_content)
         end
-
+        expect(changes).to_not eq(updated_changes)
         expect(repository.contents[path]).to eq(new_content)
+        expect(updated_changes.size).to eq(1)
+        expect(updated_changes.first).to be_a(Datadog::Core::Remote::Configuration::Repository::Change::Updated)
       end
 
       it 'does not change the path\'s content if path doesn not exists' do
@@ -120,17 +130,19 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
             :content => StringIO.new('hello world') }
         )
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.update(new_path, target, new_content)
         end
 
         expect(repository.contents.size).to eq(1)
         expect(repository.contents[path]).to eq(content)
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(0)
       end
     end
 
     describe 'delete operation' do
-      it 'delete existing content base on path' do
+      it 'delete existing content base on path and return ChangeSet instance' do
         expect(repository.contents.size).to eq(0)
 
         repository.transaction do |_repository, transaction|
@@ -139,11 +151,14 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
 
         expect(repository.contents[path]).to eq(content)
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.delete(path)
         end
 
         expect(repository.contents[path]).to be_nil
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(1)
+        expect(changes.first).to be_a(Datadog::Core::Remote::Configuration::Repository::Change::Deleted)
       end
 
       it 'does not delete content if path does not match' do
@@ -157,11 +172,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
 
         new_path = Datadog::Core::Remote::Configuration::Path.parse('employee/ASM/exclusion_filters/config')
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.delete(new_path)
         end
 
         expect(repository.contents[path]).to eq(content)
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(0)
       end
     end
   end

@@ -105,6 +105,51 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
     end
   end
 
+  describe '#[]=' do
+    let(:updated_string_io) { StringIO.new('Hello World') }
+    let(:updated_content) do
+      Datadog::Core::Remote::Configuration::Content.parse(
+        {
+          :path => path.to_s,
+          :content => updated_string_io
+        }
+      )
+    end
+
+    it 'replaces content for an existing path' do
+      content = content_list[path]
+      expect(content.data).to eq(string_io_content)
+      content_list[path] = updated_content
+
+      content = content_list[path]
+      expect(content.data).to eq(updated_string_io)
+    end
+
+    it 'if path does not match does not updates it' do
+      non_existing_path = Datadog::Core::Remote::Configuration::Path.parse('employee/ASM/exclusion_filters/config')
+
+      content_list[non_existing_path] = updated_content
+      expect(content_list[non_existing_path]).to be_nil
+    end
+  end
+
+  describe '#delete' do
+    it 'removes content from list' do
+      content = content_list[path]
+      expect(content.data).to eq(string_io_content)
+
+      expect(content_list.delete(path)).to eq(content)
+
+      expect(content_list[path]).to be_nil
+    end
+
+    it 'if path does not exists returns nil' do
+      non_existing_path = Datadog::Core::Remote::Configuration::Path.parse('employee/ASM/exclusion_filters/config')
+
+      expect(content_list.delete(non_existing_path)).to be_nil
+    end
+  end
+
   describe '#paths' do
     it 'returns an array of paths instance' do
       paths = content_list.paths
