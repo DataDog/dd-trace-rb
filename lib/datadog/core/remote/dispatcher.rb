@@ -44,8 +44,9 @@ module Datadog
           end
 
           class Product < Matcher
-            def initialize(*products)
-              super() { |path| products.include?(path.product) }
+            def initialize(products)
+              block = -> (path) { products.include?(path.product) }
+              super(&block)
             end
           end
         end

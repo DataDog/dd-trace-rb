@@ -39,7 +39,7 @@ module Datadog
             # TODO: sometimes it can strangely be so that paths.empty?
             # TODO: sometimes it can strangely be so that targets.empty?
 
-            repository.transaction do |current, transaction|
+            changes = repository.transaction do |current, transaction|
               # paths to be removed: previously applied paths minus ingress paths
               (current.paths - paths).each { |p| transaction.delete(p) }
 
@@ -181,7 +181,7 @@ module Datadog
         end
 
         def register_receivers
-          matcher = Dispatcher::Matcher::Product.new(*products)
+          matcher = Dispatcher::Matcher::Product.new(products)
 
           dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |repository, changes|
             changes.each { |change| Datadog.logger.debug { "remote config change: #{change.path.inspect}" } }

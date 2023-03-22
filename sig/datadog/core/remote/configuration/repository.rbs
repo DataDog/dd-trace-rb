@@ -21,7 +21,7 @@ module Datadog
 
           def []: (Configuration::Path path) -> Content?
 
-          def transaction: () { (Repository, Transaction) -> void } -> void
+          def transaction: () { (Repository, Transaction) -> void } -> ChangeSet
 
           def commit: (Transaction transaction) -> ChangeSet
 
