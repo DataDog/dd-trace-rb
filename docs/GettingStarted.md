@@ -2780,15 +2780,17 @@ See the [Dogstatsd documentation](https://www.rubydoc.info/github/DataDog/dogsta
 
 The stats are VM specific and will include:
 
-| Name                        | Type    | Description                                              | Available on |
-| --------------------------  | ------- | -------------------------------------------------------- | ------------ |
-| `runtime.ruby.class_count`  | `gauge` | Number of classes in memory space.                       | CRuby        |
-| `runtime.ruby.gc.*`         | `gauge` | Garbage collection statistics: collected from `GC.stat`. | All runtimes |
-| `runtime.ruby.thread_count` | `gauge` | Number of threads.                                       | All runtimes |
+| Name                        | Type    | Description                                                   | Available on       |
+| --------------------------  | ------- | ------------------------------------------------------------- | ------------------ |
+| `runtime.ruby.class_count`  | `gauge` | Number of classes in memory space.                            | CRuby              |
+| `runtime.ruby.gc.*`         | `gauge` | Garbage collection statistics: collected from `GC.stat`.      | All runtimes       |
+| `runtime.ruby.yjit.*`       | `gauge` | YJIT statistics collected from `RubyVM::YJIT.runtime_stats`.  | CRuby (if enabled) |
+| `runtime.ruby.thread_count` | `gauge` | Number of threads.                                            | All runtimes       |
 | `runtime.ruby.global_constant_state`        | `gauge` | Global constant cache generation.                                                                     | CRuby ≤ 3.1                                                                                     |
 | `runtime.ruby.global_method_state`          | `gauge` | [Global method cache generation.](https://tenderlovemaking.com/2015/12/23/inline-caching-in-mri.html) | [CRuby 2.x](https://docs.ruby-lang.org/en/3.0.0/NEWS_md.html#label-Implementation+improvements) |
 | `runtime.ruby.constant_cache_invalidations` | `gauge` | Constant cache invalidations.                                                                         | CRuby ≥ 3.2                                                                                     |
 | `runtime.ruby.constant_cache_misses`        | `gauge` | Constant cache misses.                                                                                | CRuby ≥ 3.2                                                                                     |
+
 
 In addition, all metrics include the following tags:
 
