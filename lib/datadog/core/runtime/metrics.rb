@@ -5,6 +5,7 @@ require_relative '../environment/class_count'
 require_relative '../environment/gc'
 require_relative '../environment/thread_count'
 require_relative '../environment/vm_cache'
+require_relative '../environment/yjit'
 
 module Datadog
   module Core
@@ -75,6 +76,44 @@ module Datadog
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_CONSTANT_CACHE_MISSES,
                 Core::Environment::VMCache.constant_cache_misses
+              )
+            end
+          end
+
+          # Only on Ruby >= 3.2
+          try_flush do
+            if Core::Environment::YJIT.available?
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_CODE_GC_COUNT,
+                Core::Environment::YJIT.code_gc_count
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_CODE_REGION_SIZE,
+                Core::Environment::YJIT.code_region_size
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_FREED_CODE_SIZE,
+                Core::Environment::YJIT.freed_code_size
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_FREED_PAGE_COUNT,
+                Core::Environment::YJIT.freed_page_count
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_INLINE_CODE_SIZE,
+                Core::Environment::YJIT.inline_code_size
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_LIVE_PAGE_COUNT,
+                Core::Environment::YJIT.live_page_count
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_OBJECT_SHAPE_COUNT,
+                Core::Environment::YJIT.object_shape_count
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_OUTLINED_CODE_SIZE,
+                Core::Environment::YJIT.outlined_code_size
               )
             end
           end

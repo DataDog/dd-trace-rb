@@ -1,0 +1,64 @@
+# frozen_string_literal: true
+
+module Datadog
+  module Core
+    module Environment
+      # Reports YJIT primitive runtime statistics.
+      module YJIT
+        module_function
+
+        # Inline code size
+        def inline_code_size
+          ::RubyVM::YJIT.runtime_stats[:inline_code_size]
+        end
+
+        # Outlined code size
+        def outlined_code_size
+          ::RubyVM::YJIT.runtime_stats[:outlined_code_size]
+        end
+
+        # GCed pages
+        def freed_page_count
+          ::RubyVM::YJIT.runtime_stats[:freed_page_count]
+        end
+
+        # GCed code size
+        def freed_code_size
+          ::RubyVM::YJIT.runtime_stats[:freed_code_size]
+        end
+
+        # Live pages
+        def live_page_count
+          ::RubyVM::YJIT.runtime_stats[:live_page_count]
+        end
+
+        # Code GC count
+        def code_gc_count
+          ::RubyVM::YJIT.runtime_stats[:code_gc_count]
+        end
+
+        # Size of memory region allocated for JIT code
+        def code_region_size
+          ::RubyVM::YJIT.runtime_stats[:code_region_size]
+        end
+
+        # Total number of object shapes
+        def object_shape_count
+          ::RubyVM::YJIT.runtime_stats[:object_shape_count]
+        end
+
+        def available?
+          # Not available when --yjit-stats is enabled.
+          #
+          # RubyVM::YJIT.runtime_stats contains 8 keys when `.stats_enabled?` is false.
+          # However, when `.stats_enabled?` is true `.runtime_stats` returns 325 different
+          # statistics, and not all of them are Numeric.
+          defined?(::RubyVM::YJIT) \
+            && ::RubyVM::YJIT.enabled? \
+            && ::RubyVM::YJIT.respond_to?(:runtime_stats) \
+            && !::RubyVM::YJIT.stats_enabled?
+        end
+      end
+    end
+  end
+end
