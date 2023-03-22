@@ -43,8 +43,8 @@ module Datadog
           def commit(transaction)
             previous = contents.dup
 
-            touched = transaction.operations.each_with_object([]) do |op, touched|
-              touched << op.apply(self)
+            touched = transaction.operations.each_with_object([]) do |op, acc|
+              acc << op.apply(self)
             end
 
             changes = ChangeSet.new
@@ -190,6 +190,7 @@ module Datadog
           private_constant :Operation
 
           module Change
+            # Delete change
             class Deleted
               attr_reader :path, :previous
 
@@ -199,6 +200,7 @@ module Datadog
               end
             end
 
+            # Insert change
             class Inserted
               attr_reader :path, :content
 
@@ -208,6 +210,7 @@ module Datadog
               end
             end
 
+            # Update change
             class Updated
               attr_reader :path, :content, :previous
 
@@ -219,9 +222,10 @@ module Datadog
             end
           end
 
+          # Store list of Changes
           class ChangeSet < Array
             def paths
-              map { |c| c.path }
+              map(&:path)
             end
 
             def add(path, previous, content)

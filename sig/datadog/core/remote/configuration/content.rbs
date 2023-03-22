@@ -19,7 +19,7 @@ module Datadog
 
           def []: (Configuration::Path path) ->  Content?
 
-          def []=: (Configuration::Path path, Content content) -> Content
+          def []=: (Configuration::Path path, Content content) -> ContentList
 
           def delete: (Configuration::Path path) -> Content?
 

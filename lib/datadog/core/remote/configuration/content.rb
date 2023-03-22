@@ -46,8 +46,6 @@ module Datadog
 
           def []=(path, content)
             map! { |c| c.path.eql?(path) ? content : c }
-
-            content
           end
 
           def delete(path)

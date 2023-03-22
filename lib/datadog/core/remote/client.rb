@@ -36,7 +36,7 @@ module Datadog
             # TODO: sometimes it can strangely be so that paths.empty?
             # TODO: sometimes it can strangely be so that targets.empty?
 
-            changes = repository.transaction do |current, transaction|
+            repository.transaction do |current, transaction|
               # paths to be removed: previously applied paths minus ingress paths
               (current.paths - paths).each { |p| transaction.delete(p) }
 
