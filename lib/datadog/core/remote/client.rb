@@ -21,6 +21,7 @@ module Datadog
           register_receivers
         end
 
+        # rubocop:disable Metrics/AbcSize
         def sync
           response = transport.send_config(payload)
 
@@ -90,6 +91,7 @@ module Datadog
 
           # TODO: dispatch config updates to listeners
         end
+        # rubocop:enable Metrics/AbcSize
 
         class SyncError < StandardError; end
 
@@ -183,7 +185,7 @@ module Datadog
         def register_receivers
           matcher = Dispatcher::Matcher::Product.new(products)
 
-          dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |repository, changes|
+          dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |_repository, changes|
             changes.each { |change| Datadog.logger.debug { "remote config change: #{change.path.inspect}" } }
           end
         end

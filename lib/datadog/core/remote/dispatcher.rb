@@ -19,6 +19,7 @@ module Datadog
           end
         end
 
+        # Store Matcher and block to be executed on a match
         class Receiver
           def initialize(matcher, &block)
             @block = block
@@ -34,6 +35,7 @@ module Datadog
           end
         end
 
+        # Matcher checks if the path matches
         class Matcher
           def initialize(&block)
             @block = block
@@ -43,9 +45,10 @@ module Datadog
             @block.call(path)
           end
 
+          # Matches on the produc's path
           class Product < Matcher
             def initialize(products)
-              block = -> (path) { products.include?(path.product) }
+              block = ->(path) { products.include?(path.product) }
               super(&block)
             end
           end
