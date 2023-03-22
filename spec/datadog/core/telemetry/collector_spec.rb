@@ -295,7 +295,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       it 'sets integration as enabled' do
         expect(integrations).to include(
-          an_object_having_attributes(name: 'rake', enabled: true, compatible: true, error: nil)
+          an_object_having_attributes(name: 'rake', enabled: true, compatible: true)
         )
       end
 
@@ -333,7 +333,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
               name: 'redis',
               enabled: false,
               compatible: false,
-              error: { type: 'StandardError', message: nil, line: nil }.to_s
+              error: { type: 'StandardError' }.to_s
             )
           )
       end

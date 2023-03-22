@@ -1,9 +1,13 @@
+require_relative '../../utils/hash'
+
 module Datadog
   module Core
     module Telemetry
       module V1
         # Describes attributes for integration object
         class Integration
+          using Core::Utils::Hash::Refinement
+
           ERROR_NIL_ENABLED_MESSAGE = ':enabled must not be nil'.freeze
           ERROR_NIL_NAME_MESSAGE = ':name must not be nil'.freeze
 
@@ -32,7 +36,7 @@ module Datadog
           end
 
           def to_h
-            {
+            hash = {
               auto_enabled: @auto_enabled,
               compatible: @compatible,
               enabled: @enabled,
@@ -40,6 +44,8 @@ module Datadog
               name: @name,
               version: @version
             }
+            hash.compact!
+            hash
           end
 
           private

@@ -5,6 +5,7 @@ require 'etc'
 require_relative '../configuration/agent_settings_resolver'
 require_relative '../environment/ext'
 require_relative '../environment/platform'
+require_relative '../utils/hash'
 require_relative 'v1/application'
 require_relative 'v1/dependency'
 require_relative 'v1/host'
@@ -18,6 +19,7 @@ module Datadog
       # Module defining methods for collecting metadata for telemetry
       module Collector
         include Datadog::Core::Configuration
+        using Core::Utils::Hash::Refinement
 
         # Forms a hash of configuration key value pairs to be sent in the additional payload
         def additional_payload
@@ -41,12 +43,13 @@ module Datadog
 
         # Forms a hash of standard key value pairs to be sent in the app-started event configuration
         def configurations
-          configurations = {
+          hash = {
             DD_AGENT_HOST: Datadog.configuration.agent.host,
             DD_AGENT_TRANSPORT: agent_transport,
             DD_TRACE_SAMPLE_RATE: format_configuration_value(Datadog.configuration.tracing.sampling.default_rate),
           }
-          compact_hash(configurations)
+          hash.compact!
+          hash
         end
 
         # Forms a telemetry app-started dependencies object
@@ -134,7 +137,8 @@ module Datadog
           options['logger.instance'] = configuration.logger.instance.class.to_s
           options['appsec.enabled'] = configuration.dig('appsec', 'enabled') if configuration.respond_to?('appsec')
           options['tracing.opentelemetry.enabled'] = !defined?(Datadog::OpenTelemetry::LOADED).nil?
-          compact_hash(options)
+          options.compact!
+          options
         end
 
         def format_configuration_value(value)
@@ -145,11 +149,6 @@ module Datadog
           else
             value.to_s
           end
-        end
-
-        # Manual implementation of hash.compact used because it is unsupported by older Ruby versions (<2.4)
-        def compact_hash(hash)
-          hash.delete_if { |_k, v| v.nil? }
         end
 
         def env
@@ -222,7 +221,7 @@ module Datadog
             desc += ", Patchable? #{integration.klass.class.patchable?}"
             desc
           else
-            patch_error_result.to_s
+            patch_error_result.compact.to_s
           end
         end
       end

@@ -144,7 +144,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
 
       it do
         is_expected.to eq(
-          integrations: [{ auto_enabled: nil, compatible: nil, enabled: true, error: nil, name: 'pg', version: nil }]
+          integrations: [{ enabled: true, name: 'pg' }]
         )
       end
     end
@@ -161,8 +161,8 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
                                { name: 'profiling.enabled', value: false }],
           configuration: [{ name: 'DD_AGENT_HOST', value: 'localhost' },
                           { name: 'DD_TRACE_SAMPLE_RATE', value: '1' }],
-          dependencies: [{ hash: nil, name: 'pg', version: nil }],
-          integrations: [{ auto_enabled: nil, compatible: nil, enabled: true, error: nil, name: 'pg', version: nil }]
+          dependencies: [{ name: 'pg' }],
+          integrations: [{ enabled: true, name: 'pg' }]
         )
       end
     end
