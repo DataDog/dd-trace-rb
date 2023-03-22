@@ -19,6 +19,10 @@ module Datadog
 
           def []: (Configuration::Path path) ->  Content?
 
+          def []=: (Configuration::Path path, Content content) -> Content
+
+          def delete: (Configuration::Path path) -> Content?
+
           def paths: () -> ::Array[Path]
         end
       end

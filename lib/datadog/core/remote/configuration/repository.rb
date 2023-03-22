@@ -187,31 +187,7 @@ module Datadog
             end
           end
 
-          class ChangeSet < Array
-            def paths
-              map { |c| c.path }
-            end
-
-            def add(path, previous, content)
-              return if previous.nil? && content.nil?
-
-              return deleted(path, previous) if content.nil?
-              return inserted(path, content) if previous.nil?
-              return updated(path, content, previous)
-            end
-
-            def deleted(path, previous)
-              self << Change::Deleted.new(path, previous).freeze
-            end
-
-            def inserted(path, content)
-              self << Change::Inserted.new(path, content).freeze
-            end
-
-            def updated(path, content, previous)
-              self << Change::Updated.new(path, content, previous).freeze
-            end
-          end
+          private_constant :Operation
 
           module Change
             class Deleted
@@ -243,7 +219,31 @@ module Datadog
             end
           end
 
-          private_constant :Operation
+          class ChangeSet < Array
+            def paths
+              map { |c| c.path }
+            end
+
+            def add(path, previous, content)
+              return if previous.nil? && content.nil?
+
+              return deleted(path, previous) if previous && content.nil?
+              return inserted(path, content) if content && previous.nil?
+              return updated(path, content, previous) if content && previous
+            end
+
+            def deleted(path, previous)
+              self << Change::Deleted.new(path, previous).freeze
+            end
+
+            def inserted(path, content)
+              self << Change::Inserted.new(path, content).freeze
+            end
+
+            def updated(path, content, previous)
+              self << Change::Updated.new(path, content, previous).freeze
+            end
+          end
         end
       end
     end
