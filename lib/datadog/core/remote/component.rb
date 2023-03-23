@@ -20,7 +20,7 @@ module Datadog
           transport_v7 = Datadog::Core::Transport::HTTP.v7(**transport_options.dup)
 
           @client = Client.new(transport_v7)
-          @worker = Worker.new(interval: 10) { @client.sync }
+          @worker = Worker.new(interval: settings.remote.poll_interval_seconds) { @client.sync }
         end
 
         def sync
@@ -29,11 +29,13 @@ module Datadog
         end
 
         def shutdown!
-          @worker.stop
+          @worker.stop unless @worker.nil?
         end
 
         class << self
           def build(settings, agent_settings)
+            return unless settings.remote.enabled
+
             # TODO: condition with configuration
             new(settings, agent_settings)
           end
