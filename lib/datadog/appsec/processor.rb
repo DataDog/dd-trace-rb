@@ -1,4 +1,5 @@
 require_relative 'assets'
+require_relative 'processor/rule_merger'
 
 module Datadog
   module AppSec
@@ -73,8 +74,6 @@ module Datadog
 
           return
         end
-
-        apply_denylist_data(settings)
       end
 
       def ready?
@@ -102,14 +101,6 @@ module Datadog
         context.finalize
       end
 
-      def update_rule_data(data)
-        @handle.update_rule_data(data)
-      end
-
-      def toggle_rules(map)
-        @handle.toggle_rules(map)
-      end
-
       def finalize
         @handle.finalize
       end
@@ -120,12 +111,10 @@ module Datadog
 
       private
 
-      def apply_denylist_data(settings)
-        ruledata_setting = []
-        ruledata_setting << denylist_data('blocked_ips', settings.ip_denylist)
-        ruledata_setting << denylist_data('blocked_users', settings.user_id_denylist)
-
-        update_rule_data(ruledata_setting)
+      def combine_denylist_data(settings)
+        data = []
+        data << { 'rules_data' => [denylist_data('blocked_ips', settings.ip_denylist)] }
+        data << { 'rules_data' => [denylist_data('blocked_users', settings.user_id_denylist)] }
       end
 
       def denylist_data(id, denylist)
@@ -143,35 +132,42 @@ module Datadog
       def load_ruleset(settings)
         ruleset_setting = settings.ruleset
 
-        begin
-          @ruleset = case ruleset_setting
-                     when :recommended, :strict
-                       JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
-                     when :risky
-                       JSON.parse(Datadog::AppSec::Assets.waf_rules(:recommended))
-                       Datadog.logger.warn(
-                         'The :risky Application Security Management ruleset has been deprecated and no longer available.'\
-                         'The `:recommended` ruleset will be used instead.'\
-                         'Please remove the `appsec.ruleset = :risky` setting from your Datadog.configure block.'
-                       )
-                     when String
-                       JSON.parse(File.read(ruleset_setting))
-                     when File, StringIO
-                       JSON.parse(ruleset_setting.read || '').tap { ruleset_setting.rewind }
-                     when Hash
-                       ruleset_setting
-                     else
-                       raise ArgumentError, "unsupported value for ruleset setting: #{ruleset_setting.inspect}"
-                     end
-
-          true
+        ruleset = begin
+          case ruleset_setting
+          when :recommended, :strict
+            JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
+          when :risky
+            JSON.parse(Datadog::AppSec::Assets.waf_rules(:recommended))
+            Datadog.logger.warn(
+              'The :risky Application Security Management ruleset has been deprecated and no longer available.'\
+              'The `:recommended` ruleset will be used instead.'\
+              'Please remove the `appsec.ruleset = :risky` setting from your Datadog.configure block.'
+            )
+          when String
+            JSON.parse(File.read(ruleset_setting))
+          when File, StringIO
+            JSON.parse(ruleset_setting.read || '').tap { ruleset_setting.rewind }
+          when Hash
+            ruleset_setting
+          else
+            raise ArgumentError, "unsupported value for ruleset setting: #{ruleset_setting.inspect}"
+          end
         rescue StandardError => e
           Datadog.logger.error do
             "libddwaf ruleset failed to load, ruleset: #{ruleset_setting.inspect} error: #{e.inspect}"
           end
 
-          false
+          nil
         end
+
+        return false if ruleset.nil?
+
+        @ruleset = RuleMerger.merge(
+          rules: [ruleset],
+          data: combine_denylist_data(settings)
+        )
+
+        true
       end
 
       def create_waf_handle(settings)
