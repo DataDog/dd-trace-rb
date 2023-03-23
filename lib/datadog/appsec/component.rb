@@ -28,12 +28,28 @@ module Datadog
 
       def initialize(processor:)
         @processor = processor
+        @mutex = Mutex.new
+      end
+
+      def reconfigure(ruleset:)
+        @mutex.synchronize do
+          old = @processor
+          @processor = Processor.new(ruleset: ruleset)
+
+          old.finalize if processor && processor.ready?
+        end
+      end
+
+      def reconfigure_lock(&block)
+        @mutex.synchronize(&block)
       end
 
       def shutdown!
-        if processor && processor.ready?
-          processor.finalize
-          @processor = nil
+        @mutex.synchronize do
+          if processor && processor.ready?
+            processor.finalize
+            @processor = nil
+          end
         end
       end
     end

@@ -64,12 +64,12 @@ module Datadog
 
       attr_reader :ruleset_info, :addresses
 
-      def initialize
+      def initialize(ruleset: nil)
         @ruleset_info = nil
         @addresses = []
         settings = Datadog::AppSec.settings
 
-        unless load_libddwaf && load_ruleset(settings) && create_waf_handle(settings)
+        unless load_libddwaf && load_ruleset(settings, ruleset: ruleset) && create_waf_handle(settings)
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
 
           return
@@ -129,8 +129,8 @@ module Datadog
         Processor.require_libddwaf && Processor.libddwaf_provides_waf?
       end
 
-      def load_ruleset(settings)
-        ruleset_setting = settings.ruleset
+      def load_ruleset(settings, ruleset: nil)
+        ruleset_setting = ruleset || settings.ruleset
 
         ruleset = begin
           case ruleset_setting

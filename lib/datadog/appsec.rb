@@ -17,6 +17,22 @@ module Datadog
         appsec_component.processor if appsec_component
       end
 
+      def reconfigure(ruleset:)
+        appsec_component = components.appsec
+
+        return unless appsec_component
+
+        appsec_component.reconfigure(ruleset: ruleset)
+      end
+
+      def reconfigure_lock(&block)
+        appsec_component = components.appsec
+
+        return unless appsec_component
+
+        appsec_component.reconfigure_lock(&block)
+      end
+
       private
 
       def components

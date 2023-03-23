@@ -4,6 +4,7 @@ require 'securerandom'
 
 require_relative 'configuration'
 require_relative 'dispatcher'
+require_relative '../../appsec/processor/rule_merger'
 
 module Datadog
   module Core
@@ -193,8 +194,35 @@ module Datadog
         def register_receivers
           matcher = Dispatcher::Matcher::Product.new(products)
 
-          dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |_repository, changes|
-            changes.each { |change| Datadog.logger.debug { "remote config change: #{change.path.inspect}" } }
+          dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |repository, changes|
+            changes.each do |change|
+              Datadog.logger.debug { "remote config change: '#{change.path}'" }
+            end
+
+            rules = repository.contents.select do |content|
+              content.path.product == 'ASM_DD'
+            end.map! { |content| JSON.parse(content.data.read.tap { content.data.rewind }) }
+
+            data = repository.contents.select do |content|
+              content.path.product == 'ASM_DATA' && ['blocked_ips', 'blocked_users' ].include?(content.path.config_id)
+            end.map! { |content| JSON.parse(content.data.read.tap { content.data.rewind }) }
+
+            overrides = repository.contents.select do |content|
+              content.path.product == 'ASM' && ['blocking', 'disabled_rules'].include?(content.path.config_id)
+            end.map! { |content| JSON.parse(content.data.read.tap { content.data.rewind }) }
+
+            exclusions = repository.contents.select do |content|
+              content.path.product == 'ASM' && content.path.config_id == 'exclusion_filters'
+            end.map! { |content| JSON.parse(content.data.read.tap { content.data.rewind }) }
+
+            ruleset = AppSec::Processor::RuleMerger.merge(
+              rules: rules,
+              data: data,
+              overrides: overrides,
+              exclusions: exclusions,
+            )
+
+            Datadog::AppSec.reconfigure(ruleset: ruleset)
           end
         end
       end

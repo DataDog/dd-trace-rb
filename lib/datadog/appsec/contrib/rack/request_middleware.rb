@@ -29,12 +29,23 @@ module Datadog
             Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
             processor = Datadog::AppSec.processor
 
-            return @app.call(env) if processor.nil? || !processor.ready?
+            processor = nil
+            ready = false
+            context = nil
+
+            Datadog::AppSec.reconfigure_lock do
+              processor = Datadog::AppSec.processor
+
+              if !processor.nil? && processor.ready?
+                context = processor.activate_context
+                env['datadog.waf.context'] = context
+                ready = true
+              end
+            end
 
             # TODO: handle exceptions, except for @app.call
 
-            context = processor.activate_context
-            env['datadog.waf.context'] = context
+            return @app.call(env) unless ready
 
             gateway_request = Gateway::Request.new(env)
 
