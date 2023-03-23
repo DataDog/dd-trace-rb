@@ -260,6 +260,8 @@ if ENV.key?('CI')
 
   ThreadHelpers.with_leaky_thread_creation('Deadline thread') do
     Thread.new do
+      Thread.current.name = 'spec_helper.rb CI debugging Deadline thread' unless RUBY_VERSION.start_with('2.1.', '2.2.')
+
       sleep_time = 30 * 60 # 30 minutes
       sleep(sleep_time)
 
