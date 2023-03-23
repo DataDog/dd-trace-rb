@@ -26,6 +26,7 @@ module Datadog
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
+            Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
             processor = Datadog::AppSec.processor
 
             return @app.call(env) if processor.nil? || !processor.ready?
