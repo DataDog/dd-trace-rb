@@ -172,7 +172,11 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         context "{ 'key' => 'value=with=equals' }" do
           let(:tags) { { 'key' => 'value=with=equals' } }
-          it { expect(tracestate).to eq('dd=t.key:value:with:equals') }
+          it { expect(tracestate).to eq('dd=t.key:value~with~equals') }
+
+          it 'does not modify the original TraceDigest' do
+            expect(digest.trace_distributed_tags['key']).to eq('value=with=equals')
+          end
         end
 
         context 'too large' do
@@ -209,15 +213,18 @@ RSpec.shared_examples 'Trace Context distributed format' do
             "\u0000", # First unicode character
             "\u001F", # Last lower invalid character
             ',',
-            ':',
             ';',
-            "\u007F", # First upper invalid character
+            '~', # First upper invalid character
             "\u{10FFFF}" # Last unicode character
           ].each do |character|
             context character.inspect do
-              let(:tags) { { 'key' => character } }
+              let(:tags) { { 'key' => character.dup } }
 
               it { expect(tracestate).to eq('dd=t.key:_') }
+
+              it 'does not modify the original TraceDigest' do
+                expect(digest.trace_distributed_tags['key']).to eq(character)
+              end
             end
           end
         end
@@ -429,7 +436,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         context "{ 'key' => 'value=with=equals' }" do
           let(:tags) { 't.key:value:with:equals' }
-          it { is_expected.to eq('_dd.p.key' => 'value=with=equals') }
+          it { is_expected.to eq('_dd.p.key' => 'value:with:equals') }
         end
       end
 
