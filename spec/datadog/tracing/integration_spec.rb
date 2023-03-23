@@ -406,7 +406,7 @@ RSpec.describe 'Tracer integration tests' do
       it do
         expect(single_sampled_span.get_metric('_dd.span_sampling.mechanism')).to eq(8)
         expect(single_sampled_span.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
-        expect(single_sampled_span.get_metric('_dd.span_sampling.max_per_second')).to eq(-1)
+        expect(single_sampled_span.get_metric('_dd.span_sampling.max_per_second')).to be_nil
         expect(local_root_span.get_tag('_dd.p.dm')).to eq('-8')
       end
     end

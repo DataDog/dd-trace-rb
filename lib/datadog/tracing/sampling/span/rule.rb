@@ -22,7 +22,7 @@ module Datadog
           def initialize(
             matcher,
             sample_rate: Span::Ext::DEFAULT_SAMPLE_RATE,
-            rate_limit: Span::Ext::DEFAULT_MAX_PER_SECOND
+            rate_limit: nil
           )
 
             @matcher = matcher
@@ -35,7 +35,7 @@ module Datadog
             # The RateSampler initializer enforces non-zero, falling back to 100% sampling
             # if zero is provided.
             @sampler.sample_rate = sample_rate
-            @rate_limiter = Sampling::TokenBucket.new(rate_limit)
+            @rate_limiter = Sampling::TokenBucket.new(rate_limit || Span::Ext::DEFAULT_MAX_PER_SECOND)
           end
 
           # This method should only be invoked for spans that are part
@@ -61,7 +61,7 @@ module Datadog
             if @sampler.sample?(span_op) && @rate_limiter.allow?(1)
               span_op.set_metric(Span::Ext::TAG_MECHANISM, Sampling::Ext::Mechanism::SPAN_SAMPLING_RATE)
               span_op.set_metric(Span::Ext::TAG_RULE_RATE, @sample_rate)
-              span_op.set_metric(Span::Ext::TAG_MAX_PER_SECOND, @rate_limit)
+              span_op.set_metric(Span::Ext::TAG_MAX_PER_SECOND, @rate_limit) if @rate_limit
               :kept
             else
               :rejected
