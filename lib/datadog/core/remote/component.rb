@@ -20,7 +20,7 @@ module Datadog
           transport_v7 = Datadog::Core::Transport::HTTP.v7(**transport_options.dup)
 
           @client = Client.new(transport_v7)
-          @worker = Worker.new(interval: 1) { @client.sync }
+          @worker = Worker.new(interval: 10) { @client.sync }
         end
 
         def sync

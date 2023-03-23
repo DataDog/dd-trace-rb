@@ -8,6 +8,8 @@ module Datadog
 
         attr_reader id: ::String
 
+        attr_reader dispatcher: Remote::Dispatcher
+
         def initialize: (Datadog::Core::Transport::Config::Transport transport, ?repository: Configuration::Repository) -> void
 
         def sync: () -> void
@@ -44,6 +46,8 @@ module Datadog
         def capabilities: () -> Integer
 
         def capabilities_binary: () -> String
+
+        def register_receivers: () -> void
       end
     end
   end
