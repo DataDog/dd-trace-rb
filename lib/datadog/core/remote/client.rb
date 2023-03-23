@@ -27,7 +27,11 @@ module Datadog
 
           if response.ok?
             # when response is completely empty, do nothing as in: leave as is
-            return if response.empty?
+            if response.empty?
+              Datadog.logger.debug { 'remote: empty response => NOOP' }
+
+              return
+            end
 
             paths = response.client_configs.map do |path|
               Configuration::Path.parse(path)
@@ -84,7 +88,11 @@ module Datadog
               # TODO: also remove stale config (matching removed) from cache (client configs is exhaustive list of paths)
             end
 
-            dispatcher.dispatch(changes, repository)
+            if changes.empty?
+              Datadog.logger.debug { 'remote: no changes' }
+            else
+              dispatcher.dispatch(changes, repository)
+            end
           else
             raise SyncError, "unexpected transport response: #{response.inspect}"
           end
