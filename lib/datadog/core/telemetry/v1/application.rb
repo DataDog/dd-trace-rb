@@ -1,9 +1,13 @@
+require_relative '../../utils/hash'
+
 module Datadog
   module Core
     module Telemetry
       module V1
         # Describes attributes for application environment object
         class Application
+          using Core::Utils::Hash::Refinement
+
           ERROR_NIL_LANGUAGE_NAME_MESSAGE = ':language_name must not be nil'.freeze
           ERROR_NIL_LANGUAGE_VERSION_MESSAGE = ':language_version must not be nil'.freeze
           ERROR_NIL_SERVICE_NAME_MESSAGE = ':service_name must not be nil'.freeze
@@ -54,7 +58,7 @@ module Datadog
           end
 
           def to_h
-            {
+            hash = {
               env: @env,
               language_name: @language_name,
               language_version: @language_version,
@@ -66,6 +70,8 @@ module Datadog
               service_version: @service_version,
               tracer_version: @tracer_version
             }
+            hash.compact!
+            hash
           end
 
           private
