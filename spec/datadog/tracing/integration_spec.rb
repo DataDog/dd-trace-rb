@@ -910,6 +910,11 @@ RSpec.describe 'Tracer integration tests' do
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Transport::HTTP::Builder))
               .at_least(1).time
+            # For the remote component.
+            # TODO: make sure is only call when is enabled in the configuration
+            expect(double).to receive(:call)
+              .with(kind_of(Datadog::Core::Transport::HTTP::Builder))
+              .at_least(1).time
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Core::Configuration::AgentSettingsResolver::TransportOptionsResolver))
               .at_least(1).time

@@ -48,6 +48,11 @@ jobs:
     runs-on: ubuntu-latest
     name: System Tests (${{ matrix.weblog-variant }})
     steps:
+      - name: Setup python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
       - name: Checkout
         uses: actions/checkout@v3
         with:

@@ -81,6 +81,7 @@ struct cpu_and_wall_time_worker_state {
 
   bool gc_profiling_enabled;
   bool allocation_counting_enabled;
+  bool dynamic_sampling_rate_enabled;
   VALUE self_instance;
   VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
@@ -133,7 +134,8 @@ static VALUE _native_initialize(
   VALUE thread_context_collector_instance,
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
-  VALUE allocation_counting_enabled
+  VALUE allocation_counting_enabled,
+  VALUE dynamic_sampling_rate_enabled
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
@@ -205,7 +207,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 5);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 6);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -240,6 +242,7 @@ static VALUE _native_new(VALUE klass) {
 
   state->gc_profiling_enabled = false;
   state->allocation_counting_enabled = false;
+  state->dynamic_sampling_rate_enabled = true;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
@@ -264,16 +267,19 @@ static VALUE _native_initialize(
   VALUE thread_context_collector_instance,
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
-  VALUE allocation_counting_enabled
+  VALUE allocation_counting_enabled,
+  VALUE dynamic_sampling_rate_enabled
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
   ENFORCE_BOOLEAN(allocation_counting_enabled);
+  ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
 
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   state->gc_profiling_enabled = (gc_profiling_enabled == Qtrue);
   state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
+  state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
@@ -472,7 +478,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
     // `dynamic_sampling_rate_get_sleep` may have changed while the above sleep was ongoing.
     uint64_t extra_sleep =
       dynamic_sampling_rate_get_sleep(&state->dynamic_sampling_rate, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE));
-    if (extra_sleep > 0) sleep_for(extra_sleep);
+    if (state->dynamic_sampling_rate_enabled && extra_sleep > 0) sleep_for(extra_sleep);
   }
 
   return NULL; // Unused

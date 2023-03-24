@@ -12,19 +12,85 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         { 'c' => ['854b784e-64ae-4c82-ac9b-fc2aea723260'],
           'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => '854b784e-64ae-4c82-ac9b-fc2aea723260' }] },
           'v' => 21 },
-      'hashes' => { 'sha256' => 'c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de' },
+      'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw.to_json) },
       'length' => 645
     }
   end
 
   let(:target) { Datadog::Core::Remote::Configuration::Target.parse(raw_target) }
-  let(:path)  { Datadog::Core::Remote::Configuration::Path.parse('datadog/603646/ASM/exclusion_filters/config') }
+  let(:path) { Datadog::Core::Remote::Configuration::Path.parse('datadog/603646/ASM/exclusion_filters/config') }
 
-  # rubocop:disable Layout/LineLength
-  let(:raw) { 'eyJleGNsdXNpb25zIjpbeyJjb25kaXRpb25zIjpbeyJvcGVyYXRvciI6ImlwX21hdGNoIiwicGFyYW1ldGVycyI6eyJpbnB1dHMiOlt7ImFkZHJlc3MiOiJodHRwLmNsaWVudF9pcCJ9XSwibGlzdCI6WyI0LjQuNC40Il19fV0sImlkIjoiODc0NDU5YWUtMTM3Zi00Yzk5LTljNTQtMTA5YjFhMTE3Yjg2In0seyJjb25kaXRpb25zIjpbeyJvcGVyYXRvciI6Im1hdGNoX3JlZ2V4IiwicGFyYW1ldGVycyI6eyJpbnB1dHMiOlt7ImFkZHJlc3MiOiJzZXJ2ZXIucmVxdWVzdC51cmkucmF3In1dLCJvcHRpb25zIjp7ImNhc2Vfc2Vuc2l0aXZlIjpmYWxzZX0sInJlZ2V4IjoiXi93YWYifX1dLCJpZCI6ImQxMzkwOTQ5LWNmMWEtNDA4ZC1iYzNmLTA0M2QwNjg5ZDg5ZSJ9LHsiaWQiOiI1ZmU4ZTUzMC1kM2VjLTRlNmQtYmMwNi0wYTY2MzdjNmU3NjMiLCJydWxlc190YXJnZXQiOlt7InJ1bGVfaWQiOiJ1YTAtNjAwLTU1eCJ9XX0seyJjb25kaXRpb25zIjpbeyJvcGVyYXRvciI6ImlwX21hdGNoIiwicGFyYW1ldGVycyI6eyJpbnB1dHMiOlt7ImFkZHJlc3MiOiJodHRwLmNsaWVudF9pcCJ9XSwibGlzdCI6WyI4LjguOC44Il19fV0sImlkIjoiMDgxZTFmYmUtYzczYi00YWQyLWJiODMtNDc1MjM1NDI3MWJjIn1dLCJydWxlc19vdmVycmlkZSI6W119' }
-  # rubocop:enable Layout/LineLength
-
-  let(:string_io_content) { StringIO.new(Base64.strict_decode64(raw).freeze) }
+  let(:raw) do
+    {
+      exclusions: [
+        {
+          conditions: [
+            {
+              operator: 'ip_match',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'http.client_ip'
+                  }
+                ],
+                list: [
+                  '4.4.4.4'
+                ]
+              }
+            }
+          ],
+          id: '874459ae-137f-4c99-9c54-109b1a117b86'
+        },
+        {
+          conditions: [
+            {
+              operator: 'match_regex',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'server.request.uri.raw'
+                  }
+                ],
+                options: {
+                  case_sensitive: false
+                },
+                regex: '^/waf'
+              }
+            }
+          ],
+          id: 'd1390949-cf1a-408d-bc3f-043d0689d89e'
+        },
+        {
+          id: '5fe8e530-d3ec-4e6d-bc06-0a6637c6e763',
+          rules_target: [
+            {
+              rule_id: 'ua0-600-55x'
+            }
+          ]
+        },
+        {
+          conditions: [
+            {
+              operator: 'ip_match',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'http.client_ip'
+                  }
+                ],
+                list: [
+                  '8.8.8.8'
+                ]
+              }
+            }
+          ],
+          id: '081e1fbe-c73b-4ad2-bb83-4752354271bc'
+        }
+      ],
+      rules_override: []
+    }
+  end
+  let(:string_io_content) { StringIO.new(raw.to_json) }
 
   let(:content) do
     Datadog::Core::Remote::Configuration::Content.parse({ :path => path.to_s, :content => string_io_content })
@@ -48,47 +114,55 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
     end
 
     describe 'set operation' do
-      it 'set values' do
+      it 'set values and do not report changes' do
         expect(repository.opaque_backend_state).to be_nil
         expect(repository.targets_version).to eq(0)
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.set(opaque_backend_state: '1', targets_version: 3)
         end
 
         expect(repository.opaque_backend_state).to eq('1')
         expect(repository.targets_version).to eq(3)
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(0)
       end
     end
 
     describe 'insert operation' do
-      it 'store content' do
+      it 'store content and return ChangeSet instance' do
         expect(repository.contents.size).to eq(0)
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.insert(path, target, content)
         end
 
         expect(repository.contents.size).to eq(1)
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(1)
+        expect(changes.first).to be_a(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)
       end
 
       it 'does not store same path twice' do
         expect(repository.contents.size).to eq(0)
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.insert(path, target, content)
           transaction.insert(path, target, content)
         end
 
         expect(repository.contents.size).to eq(1)
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(1)
+        expect(changes.first).to be_a(Datadog::Core::Remote::Configuration::Repository::Change::Inserted)
       end
     end
 
     describe 'update operation' do
-      it 'change the path\'s content' do
+      it 'change the path\'s content and return ChangeSet instance' do
         expect(repository.contents.size).to eq(0)
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.insert(path, target, content)
         end
 
@@ -99,11 +173,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
             :content => StringIO.new('hello world') }
         )
 
-        repository.transaction do |_repository, transaction|
+        updated_changes = repository.transaction do |_repository, transaction|
           transaction.update(path, target, new_content)
         end
-
+        expect(changes).to_not eq(updated_changes)
         expect(repository.contents[path]).to eq(new_content)
+        expect(updated_changes.size).to eq(1)
+        expect(updated_changes.first).to be_a(Datadog::Core::Remote::Configuration::Repository::Change::Updated)
       end
 
       it 'does not change the path\'s content if path doesn not exists' do
@@ -120,17 +196,19 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
             :content => StringIO.new('hello world') }
         )
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.update(new_path, target, new_content)
         end
 
         expect(repository.contents.size).to eq(1)
         expect(repository.contents[path]).to eq(content)
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(0)
       end
     end
 
     describe 'delete operation' do
-      it 'delete existing content base on path' do
+      it 'delete existing content base on path and return ChangeSet instance' do
         expect(repository.contents.size).to eq(0)
 
         repository.transaction do |_repository, transaction|
@@ -139,11 +217,14 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
 
         expect(repository.contents[path]).to eq(content)
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.delete(path)
         end
 
         expect(repository.contents[path]).to be_nil
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(1)
+        expect(changes.first).to be_a(Datadog::Core::Remote::Configuration::Repository::Change::Deleted)
       end
 
       it 'does not delete content if path does not match' do
@@ -157,11 +238,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
 
         new_path = Datadog::Core::Remote::Configuration::Path.parse('employee/ASM/exclusion_filters/config')
 
-        repository.transaction do |_repository, transaction|
+        changes = repository.transaction do |_repository, transaction|
           transaction.delete(new_path)
         end
 
         expect(repository.contents[path]).to eq(content)
+        expect(changes).to be_a(Datadog::Core::Remote::Configuration::Repository::ChangeSet)
+        expect(changes.size).to eq(0)
       end
     end
   end
