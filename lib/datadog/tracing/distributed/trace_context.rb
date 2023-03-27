@@ -44,7 +44,12 @@ module Datadog
 
           tracestate, sampling_priority, origin, tags, unknown_fields = extract_tracestate(fetcher[@tracestate_key])
 
-          sampling_priority = parse_priority_sampling(sampled, sampling_priority)
+          sampling_priority, decision_maker = parse_priority_sampling(sampled, sampling_priority)
+
+          if decision_maker
+            # The decision maker has been overwritten
+            tags[Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = decision_maker
+          end
 
           TraceDigest.new(
             span_id: parent_id,
@@ -323,10 +328,11 @@ module Datadog
               (!Tracing::Sampling::PrioritySampler.sampled?(sampling_priority) && sampled == 0 || # Both drop
                 Tracing::Sampling::PrioritySampler.sampled?(sampling_priority) && sampled == 1) # Both keep
 
-            return sampling_priority # Return the richer `sampling_priority`
+            return sampling_priority, nil # Return the richer `sampling_priority`
           end
 
-          sampled # Sampled flag trumps `sampling_priority` on conflict
+          # Sampled flag trumps `sampling_priority` on conflict
+          [sampled, Datadog::Tracing::Sampling::Ext::Decision::DEFAULT]
         end
 
         def split_tracestate(tracestate)
