@@ -12,7 +12,7 @@ module Datadog
           attr_reader :id
 
           def initialize(id)
-            super
+            super()
             @id = id
           end
         end
