@@ -62,6 +62,8 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('command')
+
+        #if enabled
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
@@ -110,6 +112,8 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('command')
+
+        #if enabled
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))

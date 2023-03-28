@@ -25,7 +25,13 @@ module Datadog
             end
 
             option :service_name do |o|
-              o.default { ENV.fetch(Ext::ENV_SERVICE_NAME, Ext::DEFAULT_PEER_SERVICE_NAME) }
+              o.default { ENV.fetch(Ext::ENV_SERVICE_NAME) {
+                if Datadog.configuration
+                  Datadog.configuration.service
+                else
+                  Ext::DEFAULT_PEER_SERVICE_NAME
+                end
+              } }
               o.lazy
             end
           end
