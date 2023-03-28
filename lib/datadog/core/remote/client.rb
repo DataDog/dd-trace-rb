@@ -193,7 +193,7 @@ module Datadog
 
         def select_content(repository, product, config_ids = [])
           repository.contents.select do |content|
-            content.path.product == 'ASM_DATA' && (config_ids.empty? || config_ids.include?(content.path.config_id))
+            content.path.product == product && (config_ids.empty? || config_ids.include?(content.path.config_id))
           end
         end
 
@@ -229,6 +229,7 @@ module Datadog
             exclusions_contents = select_content(repository, 'ASM', ['exclusion_filters'])
             exclusions = exclusions_contents.map { |content| parse_content(content) }
 
+            binding.pry
             ruleset = AppSec::Processor::RuleMerger.merge(
               rules: rules,
               data: data,
