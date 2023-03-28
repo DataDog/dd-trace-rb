@@ -24,9 +24,17 @@ module Datadog
             # - then it will dup it more efficiently with +v
             v.frozen? ? v : +(-v)
           end
+
+          def self.frozen_dup(v)
+            -v if v
+          end
         else
           def self.frozen_or_dup(v)
             v.frozen? ? v : v.dup
+          end
+
+          def self.frozen_dup(v)
+            v.frozen? ? v : v.dup.freeze
           end
         end
       end
