@@ -5,6 +5,7 @@ require 'securerandom'
 require_relative 'configuration'
 require_relative 'dispatcher'
 require_relative '../../appsec/processor/rule_merger'
+require_relative '../../appsec/processor/rule_loader'
 
 module Datadog
   module Core
@@ -213,6 +214,14 @@ module Datadog
                 overrides << parse_content(content) if ['blocking', 'disabled_rules'].include?(content.path.config_id)
                 exclusions << parse_content(content) if content.path.config_id == 'exclusion_filters'
               end
+            end
+
+            if rules.empty?
+              settings_rules = AppSec::Processor::RuleLoader.load_rules(ruleset: Datadog.configuration.appsec.ruleset)
+
+              raise SyncError, 'no default rules available' unless settings_rules
+
+              rules = [settings_rules]
             end
 
             ruleset = AppSec::Processor::RuleMerger.merge(
