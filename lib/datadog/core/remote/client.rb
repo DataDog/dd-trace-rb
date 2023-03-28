@@ -191,6 +191,24 @@ module Datadog
           cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
         end
 
+        def select_content(repository, product, config_ids = [])
+          repository.contents.select do |content|
+            content.path.product == 'ASM_DATA' && (config_ids.empty? || config_ids.include?(content.path.config_id))
+          end
+        end
+
+        def parse_content(content)
+          data = content.data.read
+
+          content.data.rewind
+
+          raise ReadError, 'EOF reached' if data.nil?
+
+          JSON.parse(data)
+        end
+
+        class ReadError < StandardError; end
+
         def register_receivers
           matcher = Dispatcher::Matcher::Product.new(products)
 
@@ -199,21 +217,17 @@ module Datadog
               Datadog.logger.debug { "remote config change: '#{change.path}'" }
             end
 
-            rules = repository.contents.select do |content|
-              content.path.product == 'ASM_DD'
-            end.map! { |content| JSON.parse(content.data.read.tap { content.data.rewind }) }
+            rules_contents = select_content(repository, 'ASM_DD')
+            rules = rules_contents.map { |content| parse_content(content) }
 
-            data = repository.contents.select do |content|
-              content.path.product == 'ASM_DATA' && ['blocked_ips', 'blocked_users' ].include?(content.path.config_id)
-            end.map! { |content| JSON.parse(content.data.read.tap { content.data.rewind }) }
+            data_contents = select_content(repository, 'ASM_DATA', ['blocked_ips', 'blocked_users'])
+            data = data_contents.map { |content| parse_content(content) }
 
-            overrides = repository.contents.select do |content|
-              content.path.product == 'ASM' && ['blocking', 'disabled_rules'].include?(content.path.config_id)
-            end.map! { |content| JSON.parse(content.data.read.tap { content.data.rewind }) }
+            overrides_contents = select_content(repository, 'ASM', ['blocking', 'disabled_rules'])
+            overrides = overrides_contents.map { |content| parse_content(content) }
 
-            exclusions = repository.contents.select do |content|
-              content.path.product == 'ASM' && content.path.config_id == 'exclusion_filters'
-            end.map! { |content| JSON.parse(content.data.read.tap { content.data.rewind }) }
+            exclusions_contents = select_content(repository, 'ASM', ['exclusion_filters'])
+            exclusions = exclusions_contents.map { |content| parse_content(content) }
 
             ruleset = AppSec::Processor::RuleMerger.merge(
               rules: rules,

@@ -47,7 +47,14 @@ module Datadog
 
         def capabilities_binary: () -> String
 
+        def select_content: (Configuration::Repository, ::String, ?::Array[::String]) -> ::Array[Configuration::Content]
+
+        def parse_content: (Configuration::Content) -> untyped
+
         def register_receivers: () -> void
+
+        class ReadError < StandardError
+        end
       end
     end
   end

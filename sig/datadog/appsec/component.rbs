@@ -11,6 +11,10 @@ module Datadog
 
       def initialize: (processor: Datadog::AppSec::Processor?) -> void
 
+      def self.reconfigure: (ruleset: ::Hash[untyped, untyped]) -> void
+
+      def self.reconfigure_lock: () { () -> void } -> void
+
       def shutdown!: () -> untyped
     end
   end
