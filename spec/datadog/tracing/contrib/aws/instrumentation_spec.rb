@@ -11,7 +11,7 @@ require 'ddtrace'
 require 'datadog/tracing/contrib/aws/patcher'
 
 RSpec.describe 'AWS instrumentation' do
-  let(:configuration_options) {{}}
+  let(:configuration_options) { {} }
 
   before do
     Datadog.configure do |c|
@@ -150,9 +150,10 @@ RSpec.describe 'AWS instrumentation' do
       end
     end
   end
+
   context 'with span attribute schema v1' do
-    let(:configuration_options) {{}}
-    let(:span_attribute_schema) {'v1'}
+    let(:configuration_options) { {} }
+    let(:span_attribute_schema) { 'v1' }
     before do
       Datadog.configure do |c|
         c.tracing.instrument :aws, configuration_options
@@ -171,9 +172,9 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.service).to eq('rspec')
       end
-      #it 'has correct service name despite v1' do
+      # it 'has correct service name despite v1' do
       #  expect(presign).to start_with('https://bucket.s3.us-stubbed-1.amazonaws.com/key')
-      #end
+      # end
     end
   end
 end
