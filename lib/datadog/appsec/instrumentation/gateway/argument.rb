@@ -5,9 +5,7 @@ module Datadog
     module Instrumentation
       class Gateway
         # Base class for Gateway Arguments
-        class Argument
-          def initialize(*); end
-        end
+        class Argument; end
 
         # Gateway User argument
         class User < Argument
