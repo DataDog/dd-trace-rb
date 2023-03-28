@@ -229,7 +229,6 @@ module Datadog
             exclusions_contents = select_content(repository, 'ASM', ['exclusion_filters'])
             exclusions = exclusions_contents.map { |content| parse_content(content) }
 
-            binding.pry
             ruleset = AppSec::Processor::RuleMerger.merge(
               rules: rules,
               data: data,
