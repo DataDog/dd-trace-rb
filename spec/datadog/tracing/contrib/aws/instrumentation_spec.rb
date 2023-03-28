@@ -11,7 +11,7 @@ require 'ddtrace'
 require 'datadog/tracing/contrib/aws/patcher'
 
 RSpec.describe 'AWS instrumentation' do
-  let(:configuration_options) { {} }
+  let(:configuration_options) {{}}
 
   before do
     Datadog.configure do |c|
@@ -63,7 +63,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('command')
 
-        #if enabled
+        # if enabled
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
@@ -113,7 +113,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('command')
 
-        #if enabled
+        # if enabled
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
@@ -148,6 +148,32 @@ RSpec.describe 'AWS instrumentation' do
           expect(presign).to start_with('https://bucket.s3.us-stubbed-1.amazonaws.com/key')
         end
       end
+    end
+  end
+  context 'with span attribute schema v1' do
+    let(:configuration_options) {{}}
+    let(:span_attribute_schema) {'v1'}
+    before do
+      Datadog.configure do |c|
+        c.tracing.instrument :aws, configuration_options
+        c.tracing.span_attribute_schema = span_attribute_schema
+      end
+    end
+    describe '#default_v1_service_name' do
+      subject!(:list_buckets) { client.list_buckets }
+
+      let(:responses) do
+        { list_buckets: { buckets: [{ name: 'bucket1' }] } }
+      end
+
+      let(:client) { ::Aws::S3::Client.new(stub_responses: responses) }
+
+      it 'generates a span' do
+        expect(span.service).to eq('rspec')
+      end
+      #it 'has correct service name despite v1' do
+      #  expect(presign).to start_with('https://bucket.s3.us-stubbed-1.amazonaws.com/key')
+      #end
     end
   end
 end
