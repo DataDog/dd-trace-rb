@@ -22,7 +22,7 @@ module Datadog
           register_receivers
         end
 
-        # rubocop:disable Metrics/AbcSize
+        # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity
         def sync
           response = transport.send_config(payload)
 
@@ -100,7 +100,7 @@ module Datadog
 
           # TODO: dispatch config updates to listeners
         end
-        # rubocop:enable Metrics/AbcSize
+        # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity
 
         class SyncError < StandardError; end
 

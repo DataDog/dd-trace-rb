@@ -71,8 +71,6 @@ module Datadog
 
         unless load_libddwaf && load_ruleset(settings, ruleset: ruleset) && create_waf_handle(settings)
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
-
-          return
         end
       end
 

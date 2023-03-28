@@ -23,6 +23,7 @@ module Datadog
             @oneshot_tags_sent = false
           end
 
+          # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
@@ -88,6 +89,7 @@ module Datadog
               processor.deactivate_context
             end
           end
+          # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
 
           private
 

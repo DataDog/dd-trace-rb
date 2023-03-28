@@ -5,7 +5,7 @@ module Datadog
     module Instrumentation
       class Gateway
         # Base class for Gateway Arguments
-        class Argument; end
+        class Argument; end # rubocop:disable Lint/EmptyClass
 
         # Gateway User argument
         class User < Argument
