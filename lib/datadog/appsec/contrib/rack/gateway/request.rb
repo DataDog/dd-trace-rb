@@ -36,7 +36,7 @@ module Datadog
             # Rack < 2.0 does not have :each_header
             # TODO: We need access to Rack here. We must make sure we are able to load AppSec without Rack,
             # TODO: while still ensure correctness in ths code path.
-            if defined?(::Rack) && ::Rack::Request.instance_methods.include?(:each_header)
+            if defined?(::Rack::Request) && ::Rack::Request.instance_methods.include?(:each_header)
               def headers
                 request.each_header.each_with_object({}) do |(k, v), h|
                   h[k.gsub(/^HTTP_/, '').downcase.tr('_', '-')] = v if k =~ /^HTTP_/
