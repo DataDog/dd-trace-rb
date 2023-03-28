@@ -120,10 +120,10 @@ RSpec.describe Datadog::Core::Remote::Client do
     }
   end
   let(:exclusion_content) do
-    '{"exclusions":[{"conditions":[{"operator":"ip_match","parameters":{"inputs":[{"address":"http.client_ip"}]}}]]'
+    '{"exclusions":[{"conditions":[{"operator":"ip_match","parameters":{"inputs":[{"address":"http.client_ip"}]}}]}]}'
   end
   let(:blocked_ips_content) do
-    '{"rules_data":[{"data":[{"expiration":1678972458,"value":"42.42.42.1"}]}'
+    '{"rules_data":[{"data":[{"expiration":1678972458,"value":"42.42.42.1"}]}]}'
   end
   let(:response_body) do
     {
@@ -181,7 +181,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
           # We have to modify the response to trick the client into think on the second sync
           # the content for datadog/603646/ASM_DATA/blocked_ips/config have change
-          new_blocked_ips = '{"rules_data":[{"data":["fake new data"]'
+          new_blocked_ips = '{"rules_data":[{"data":["fake new data"]}]}'
           expect_any_instance_of(Datadog::Core::Transport::HTTP::Config::Response).to receive(:target_files).and_return(
             [
               {
