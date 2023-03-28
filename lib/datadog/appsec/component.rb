@@ -33,10 +33,13 @@ module Datadog
 
       def reconfigure(ruleset:)
         @mutex.synchronize do
-          old = @processor
-          @processor = Processor.new(ruleset: ruleset)
+          new = Processor.new(ruleset: ruleset)
 
-          old.finalize if processor && processor.ready?
+          if new && new.ready?
+            old = @processor
+            @processor = new
+            old.finalize
+          end
         end
       end
 
