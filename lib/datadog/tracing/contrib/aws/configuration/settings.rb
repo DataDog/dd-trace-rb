@@ -26,7 +26,7 @@ module Datadog
 
             option :service_name do |o|
               o.default { ENV.fetch(Ext::ENV_SERVICE_NAME) {
-                if Datadog.configuration
+                if Datadog.configuration.tracing.span_attribute_schema == "v1"
                   Datadog.configuration.service
                 else
                   Ext::DEFAULT_PEER_SERVICE_NAME
