@@ -40,10 +40,6 @@ module Datadog
       end
     end
 
-    def self.writer
-      @writer ||= Writer.new
-    end
-
     # Expose AppSec to global shared objects
     Extensions.activate!
   end
