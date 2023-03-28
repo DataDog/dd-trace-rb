@@ -101,6 +101,7 @@ module Datadog
         # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity
 
         class SyncError < StandardError; end
+        class ReadError < StandardError; end
 
         private
 
@@ -189,24 +190,6 @@ module Datadog
           cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
         end
 
-        def select_content(repository, product, config_ids = [])
-          repository.contents.select do |content|
-            content.path.product == product && (config_ids.empty? || config_ids.include?(content.path.config_id))
-          end
-        end
-
-        def parse_content(content)
-          data = content.data.read
-
-          content.data.rewind
-
-          raise ReadError, 'EOF reached' if data.nil?
-
-          JSON.parse(data)
-        end
-
-        class ReadError < StandardError; end
-
         def register_receivers
           matcher = Dispatcher::Matcher::Product.new(products)
 
@@ -215,17 +198,22 @@ module Datadog
               Datadog.logger.debug { "remote config change: '#{change.path}'" }
             end
 
-            rules_contents = select_content(repository, 'ASM_DD')
-            rules = rules_contents.map { |content| parse_content(content) }
+            rules = []
+            data = []
+            overrides = []
+            exclusions = []
 
-            data_contents = select_content(repository, 'ASM_DATA', ['blocked_ips', 'blocked_users'])
-            data = data_contents.map { |content| parse_content(content) }
-
-            overrides_contents = select_content(repository, 'ASM', ['blocking', 'disabled_rules'])
-            overrides = overrides_contents.map { |content| parse_content(content) }
-
-            exclusions_contents = select_content(repository, 'ASM', ['exclusion_filters'])
-            exclusions = exclusions_contents.map { |content| parse_content(content) }
+            repository.contents.each  do |content|
+              case content.path.product
+              when 'ASM_DD'
+                rules << parse_content(content)
+              when 'ASM_DATA'
+                data << parse_content(content) if ['blocked_ips', 'blocked_users' ].include?(content.path.config_id)
+              when 'ASM'
+                overrides << parse_content(content) if ['blocking', 'disabled_rules'].include?(content.path.config_id)
+                exclusions << parse_content(content) if content.path.config_id == 'exclusion_filters'
+              end
+            end
 
             ruleset = AppSec::Processor::RuleMerger.merge(
               rules: rules,
@@ -235,6 +223,16 @@ module Datadog
             )
 
             Datadog::AppSec.reconfigure(ruleset: ruleset)
+          end
+
+          def parse_content(content)
+            data = content.data.read
+
+            content.data.rewind
+
+            raise ReadError, 'EOF reached' if data.nil?
+
+            JSON.parse(data)
           end
         end
       end
