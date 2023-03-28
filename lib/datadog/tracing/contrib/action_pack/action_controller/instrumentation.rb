@@ -117,7 +117,8 @@ module Datadog
               rescue NameError => e
                 ONLY_ONCE.run do
                   Datadog.logger.error do
-                    "Unable to constantize #{exception_controller_class} from `exception_controller` option, please make sure to provide string can be constantized"
+                    "Unable to resolve #{e.name} from `exception_controller` option ends up with "\
+                    "`#{e.class}`. Please make sure to provide a string can be constantized."
                   end
                 end
                 !headers[:request_exception].nil?
