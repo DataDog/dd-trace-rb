@@ -97,8 +97,6 @@ module Datadog
           else
             raise SyncError, "unexpected transport response: #{response.inspect}"
           end
-
-          # TODO: dispatch config updates to listeners
         end
         # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity
 

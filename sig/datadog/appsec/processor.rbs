@@ -42,8 +42,6 @@ module Datadog
       def new_context: () -> Context
       def activate_context: () -> Context
       def deactivate_context: () -> void
-      def update_rule_data: (untyped data) -> untyped
-      def toggle_rules: (untyped map) -> untyped
       def finalize: () -> void
 
       attr_reader handle: untyped
