@@ -23,7 +23,15 @@ module Datadog
           capabilities = Client::Capabilities.new(settings)
 
           @client = Client.new(transport_v7, capabilities)
-          @worker = Worker.new(interval: settings.remote.poll_interval_seconds) { @client.sync }
+          @worker = Worker.new(interval: settings.remote.poll_interval_seconds) do
+            begin
+              @client.sync
+            rescue StandardError => e
+              Datadog.logger.error do
+                "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}"
+              end
+            end
+          end
         end
 
         def barrier(kind)
