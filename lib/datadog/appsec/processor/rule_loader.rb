@@ -9,13 +9,11 @@ module Datadog
       # that load appsec rules and data from  settings
       module RuleLoader
         class << self
-          def load_rules(settings)
-            ruleset_setting = settings.appsec.ruleset
-
+          def load_rules(ruleset:)
             begin
-              case ruleset_setting
+              case ruleset
               when :recommended, :strict
-                JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
+                JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset))
               when :risky
                 Datadog.logger.warn(
                   'The :risky Application Security Management ruleset has been deprecated and no longer available.'\
@@ -24,29 +22,27 @@ module Datadog
                 )
                 JSON.parse(Datadog::AppSec::Assets.waf_rules(:recommended))
               when String
-                JSON.parse(File.read(ruleset_setting))
+                JSON.parse(File.read(File.expand_path(ruleset)))
               when File, StringIO
-                JSON.parse(ruleset_setting.read || '').tap { ruleset_setting.rewind }
+                JSON.parse(ruleset.read || '').tap { ruleset.rewind }
               when Hash
-                ruleset_setting
+                ruleset
               else
-                raise ArgumentError, "unsupported value for ruleset setting: #{ruleset_setting.inspect}"
+                raise ArgumentError, "unsupported value for ruleset setting: #{ruleset.inspect}"
               end
             rescue StandardError => e
               Datadog.logger.error do
-                "libddwaf ruleset failed to load, ruleset: #{ruleset_setting.inspect} error: #{e.inspect}"
+                "libddwaf ruleset failed to load, ruleset: #{ruleset.inspect} error: #{e.inspect}"
               end
 
               nil
             end
           end
 
-          def load_data(settings)
-            appsec_settings = settings.appsec
-
+          def load_data(ip_denylist: [], user_id_denylist: [])
             data = []
-            data << { 'rules_data' => [denylist_data('blocked_ips', appsec_settings.ip_denylist)] } if appsec_settings.ip_denylist.any?
-            data << { 'rules_data' => [denylist_data('blocked_users', appsec_settings.user_id_denylist)] } if appsec_settings.user_id_denylist.any?
+            data << { 'rules_data' => [denylist_data('blocked_ips', ip_denylist)] } if ip_denylist.any?
+            data << { 'rules_data' => [denylist_data('blocked_users', user_id_denylist)] } if user_id_denylist.any?
 
             data.any? ? data : nil
           end

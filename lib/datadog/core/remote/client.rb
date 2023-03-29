@@ -204,14 +204,17 @@ module Datadog
             overrides = []
             exclusions = []
 
-            repository.contents.each  do |content|
+            asm_data_config_types = ['blocked_ips', 'blocked_users']
+            asm_overrides_config_types = ['blocking', 'disabled_rules']
+
+            repository.contents.each do |content|
               case content.path.product
               when 'ASM_DD'
                 rules << parse_content(content)
               when 'ASM_DATA'
-                data << parse_content(content) if ['blocked_ips', 'blocked_users' ].include?(content.path.config_id)
+                data << parse_content(content) if asm_data_config_types.include?(content.path.config_id)
               when 'ASM'
-                overrides << parse_content(content) if ['blocking', 'disabled_rules'].include?(content.path.config_id)
+                overrides << parse_content(content) if asm_overrides_config_types.include?(content.path.config_id)
                 exclusions << parse_content(content) if content.path.config_id == 'exclusion_filters'
               end
             end
@@ -233,16 +236,16 @@ module Datadog
 
             Datadog::AppSec.reconfigure(ruleset: ruleset)
           end
+        end
 
-          def parse_content(content)
-            data = content.data.read
+        def parse_content(content)
+          data = content.data.read
 
-            content.data.rewind
+          content.data.rewind
 
-            raise ReadError, 'EOF reached' if data.nil?
+          raise ReadError, 'EOF reached' if data.nil?
 
-            JSON.parse(data)
-          end
+          JSON.parse(data)
         end
       end
     end

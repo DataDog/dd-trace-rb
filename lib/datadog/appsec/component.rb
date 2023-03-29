@@ -19,9 +19,13 @@ module Datadog
         private
 
         def create_processor(settings)
-          rules = AppSec::Processor::RuleLoader.load_rules(settings)
+          rules = AppSec::Processor::RuleLoader.load_rules(ruleset: settings.appsec.ruleset)
           return nil unless rules
-          data = AppSec::Processor::RuleLoader.load_data(settings)
+
+          data = AppSec::Processor::RuleLoader.load_data(
+            ip_denylist: settings.appsec.ip_denylist,
+            user_id_denylist: settings.appsec.user_id_denylist
+          )
 
           ruleset = AppSec::Processor::RuleMerger.merge(
             rules: [rules],
