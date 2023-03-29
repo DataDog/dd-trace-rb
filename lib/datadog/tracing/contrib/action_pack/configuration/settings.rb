@@ -31,8 +31,8 @@ module Datadog
               o.on_set do |value|
                 if value
                   Datadog::Core.log_deprecation do
-                    "Option `#{o.instance_variable_get(:@name)}` has been deprecated and will be removed, "\
-                    'the value provided is no longer effective.'
+                    'The error controller is now automatically detected. '\
+                    "Option `#{o.instance_variable_get(:@name)}` is no longer required and will be removed."
                   end
                 end
               end
