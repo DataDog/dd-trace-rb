@@ -27,7 +27,7 @@ module Datadog
 
             private
 
-            def heartbeat
+            def ❤ # rubocop:disable Naming/AsciiIdentifiers, Naming/MethodName
               configuration = Datadog.configuration.tracing[:sidekiq]
 
               Datadog::Tracing.trace(Ext::SPAN_HEARTBEAT, service: configuration[:service_name]) do |span|
