@@ -157,6 +157,28 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionController::Metal' 
               expect(handle_err_span.get_tag('rails.route.action')).to eq('handle_error')
             end
           end
+
+          context 'when given a request to error handling endpoint with ActionDispatch exception' do
+            it 'renders within ErrorController and does not change trace resource' do
+              get '/error_handler', {}, 'action_dispatch.exception' => ArgumentError.new
+
+              expect(spans).to have(2).items
+
+              rack_span, handle_err_span = spans
+
+              expect(rack_span).to be_root_span
+              expect(rack_span.name).to eq('rack.request')
+              expect(rack_span.resource).to eq('GET 200')
+
+              expect(handle_err_span.parent_id).to eq(rack_span.id)
+              expect(handle_err_span.name).to eq('rails.action_controller')
+              expect(handle_err_span.resource).to eq('ErrorController#handle_error')
+              expect(handle_err_span.get_tag('component')).to eq('action_pack')
+              expect(handle_err_span.get_tag('operation')).to eq('controller')
+              expect(handle_err_span.get_tag('rails.route.controller')).to eq('ErrorController')
+              expect(handle_err_span.get_tag('rails.route.action')).to eq('handle_error')
+            end
+          end
         end
 
         context 'when configure exception_controller with a constant' do
@@ -233,6 +255,28 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionController::Metal' 
               expect(rack_span).to be_root_span
               expect(rack_span.name).to eq('rack.request')
               expect(rack_span.resource).to eq('ErrorController#handle_error')
+
+              expect(handle_err_span.parent_id).to eq(rack_span.id)
+              expect(handle_err_span.name).to eq('rails.action_controller')
+              expect(handle_err_span.resource).to eq('ErrorController#handle_error')
+              expect(handle_err_span.get_tag('component')).to eq('action_pack')
+              expect(handle_err_span.get_tag('operation')).to eq('controller')
+              expect(handle_err_span.get_tag('rails.route.controller')).to eq('ErrorController')
+              expect(handle_err_span.get_tag('rails.route.action')).to eq('handle_error')
+            end
+          end
+
+          context 'when given a request to error handling endpoint with ActionDispatch exception' do
+            it 'renders within ErrorController and does not change trace resource' do
+              get '/error_handler', {}, 'action_dispatch.exception' => ArgumentError.new
+
+              expect(spans).to have(2).items
+
+              rack_span, handle_err_span = spans
+
+              expect(rack_span).to be_root_span
+              expect(rack_span.name).to eq('rack.request')
+              expect(rack_span.resource).to eq('GET 200')
 
               expect(handle_err_span.parent_id).to eq(rack_span.id)
               expect(handle_err_span.name).to eq('rails.action_controller')
@@ -329,6 +373,28 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionController::Metal' 
               expect(handle_err_span.get_tag('rails.route.action')).to eq('handle_error')
             end
           end
+
+          context 'when given a request to error handling endpoint with ActionDispatch exception' do
+            it 'renders within ErrorController and does not change trace resource' do
+              get '/error_handler', {}, 'action_dispatch.exception' => ArgumentError.new
+
+              expect(spans).to have(2).items
+
+              rack_span, handle_err_span = spans
+
+              expect(rack_span).to be_root_span
+              expect(rack_span.name).to eq('rack.request')
+              expect(rack_span.resource).to eq('GET 200')
+
+              expect(handle_err_span.parent_id).to eq(rack_span.id)
+              expect(handle_err_span.name).to eq('rails.action_controller')
+              expect(handle_err_span.resource).to eq('ErrorController#handle_error')
+              expect(handle_err_span.get_tag('component')).to eq('action_pack')
+              expect(handle_err_span.get_tag('operation')).to eq('controller')
+              expect(handle_err_span.get_tag('rails.route.controller')).to eq('ErrorController')
+              expect(handle_err_span.get_tag('rails.route.action')).to eq('handle_error')
+            end
+          end
         end
 
         context 'when configure exception_controller with a wrong string' do
@@ -405,6 +471,28 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionController::Metal' 
               expect(rack_span).to be_root_span
               expect(rack_span.name).to eq('rack.request')
               expect(rack_span.resource).to eq('ErrorController#handle_error')
+
+              expect(handle_err_span.parent_id).to eq(rack_span.id)
+              expect(handle_err_span.name).to eq('rails.action_controller')
+              expect(handle_err_span.resource).to eq('ErrorController#handle_error')
+              expect(handle_err_span.get_tag('component')).to eq('action_pack')
+              expect(handle_err_span.get_tag('operation')).to eq('controller')
+              expect(handle_err_span.get_tag('rails.route.controller')).to eq('ErrorController')
+              expect(handle_err_span.get_tag('rails.route.action')).to eq('handle_error')
+            end
+          end
+
+          context 'when given a request to error handling endpoint with ActionDispatch exception' do
+            it 'renders within ErrorController and does not change trace resource' do
+              get '/error_handler', {}, 'action_dispatch.exception' => ArgumentError.new
+
+              expect(spans).to have(2).items
+
+              rack_span, handle_err_span = spans
+
+              expect(rack_span).to be_root_span
+              expect(rack_span.name).to eq('rack.request')
+              expect(rack_span.resource).to eq('GET 200')
 
               expect(handle_err_span.parent_id).to eq(rack_span.id)
               expect(handle_err_span.name).to eq('rails.action_controller')
