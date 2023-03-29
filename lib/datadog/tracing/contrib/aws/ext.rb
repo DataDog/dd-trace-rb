@@ -18,7 +18,7 @@ module Datadog
           TAG_OPERATION = 'aws.operation'.freeze
           TAG_OPERATION_COMMAND = 'command'.freeze
           TAG_PATH = 'path'.freeze
-          TAG_REGION = 'aws.region'.freeze
+          TAG_REGION = 'region'.freeze
         end
       end
     end
