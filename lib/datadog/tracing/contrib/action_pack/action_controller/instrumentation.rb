@@ -6,8 +6,6 @@ require_relative '../utils'
 require_relative '../../rack/middlewares'
 require_relative '../../analytics'
 
-require_relative '../../../../core/utils/only_once'
-
 module Datadog
   module Tracing
     module Contrib
@@ -15,8 +13,6 @@ module Datadog
         module ActionController
           # Instrumentation for ActionController components
           module Instrumentation
-            ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
-
             module_function
 
             def start_processing(payload)
@@ -39,7 +35,7 @@ module Datadog
               tracing_context[:dd_request_span] = span
 
               # We want the route to show up as the trace's resource
-              trace.resource = span.resource unless payload.fetch(:exception_controller?)
+              trace.resource = span.resource unless payload[:headers][:request_exception]
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
@@ -58,7 +54,7 @@ module Datadog
 
               begin
                 # We repeat this in both start and at finish because the resource may have changed during the request
-                trace.resource = span.resource unless payload.fetch(:exception_controller?)
+                trace.resource = span.resource unless payload[:headers][:request_exception]
 
                 # Set analytics sample rate
                 Utils.set_analytics_sample_rate(span)
@@ -85,46 +81,6 @@ module Datadog
               Datadog.logger.error(e.message)
             end
 
-            def exception_controller?(payload)
-              begin
-                exception_controller_class = Datadog.configuration.tracing[:action_pack][:exception_controller]
-
-                controller = payload.fetch(:controller)
-                headers = payload.fetch(:headers)
-
-                # If no exception controller class has been set,
-                # guess whether this is an exception controller from the headers.
-                return !headers[:request_exception].nil? if exception_controller_class.nil?
-
-                # If an exception controller class has been provided as a string,
-                # try to find the constant defined from string
-                if exception_controller_class.is_a?(String)
-                  exception_controller_class = Object.const_get(exception_controller_class)
-                end
-
-                # If an exception controller class has been specified,
-                # check if the controller is a kind of the exception controller class.
-                if exception_controller_class.is_a?(Module)
-                  controller <= exception_controller_class
-                # Otherwise if the exception controller class is some other value (like false)
-                # assume that this controller doesn't handle exceptions.
-                else
-                  false
-                end
-
-              # If an string cannot be constantized
-              # guess whether this is an exception controller from the headers.
-              rescue NameError => e
-                ONLY_ONCE.run do
-                  Datadog.logger.error do
-                    "Unable to resolve #{e.name} from `exception_controller` option ends up with "\
-                    "`#{e.class}`. Please make sure to provide a string can be constantized."
-                  end
-                end
-                !headers[:request_exception].nil?
-              end
-            end
-
             # Instrumentation for ActionController::Metal
             module Metal
               def process_action(*args)
@@ -144,8 +100,6 @@ module Datadog
                 }
 
                 begin
-                  payload[:exception_controller?] = Instrumentation.exception_controller?(payload)
-
                   # process and catch request exceptions
                   Instrumentation.start_processing(payload)
                   result = super(*args)
