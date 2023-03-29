@@ -1,5 +1,6 @@
 require_relative '../../configuration/settings'
 require_relative '../ext'
+require_relative '../../span_attribute_schema'
 
 module Datadog
   module Tracing
@@ -26,13 +27,10 @@ module Datadog
 
             option :service_name do |o|
               o.default do
-                ENV.fetch(Ext::ENV_SERVICE_NAME) do
-                  if Datadog.configuration.tracing.span_attribute_schema == 'v1'
-                    Datadog.configuration.service
-                  else
-                    Ext::DEFAULT_PEER_SERVICE_NAME
-                  end
-                end
+                Contrib::SpanAttributeSchema.fetch_service_name(
+                  Ext::ENV_SERVICE_NAME,
+                  Ext::DEFAULT_PEER_SERVICE_NAME
+                )
               end
               o.lazy
             end
