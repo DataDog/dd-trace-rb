@@ -1,8 +1,8 @@
 FROM ruby:2.1
 
 # Add Jessie repos
-# Fixes https://superuser.com/questions/1423486/issue-with-fetching-http-deb-debian-org-debian-dists-jessie-updates-inrelease
-RUN printf "deb http://archive.debian.org/debian/ jessie main\ndeb-src http://archive.debian.org/debian/ jessie main\ndeb http://security.debian.org jessie/updates main\ndeb-src http://security.debian.org jessie/updates main" > /etc/apt/sources.list
+# Fixes https://www.lucas-nussbaum.net/blog/?p=947
+RUN printf "deb http://archive.debian.org/debian/ jessie main\ndeb-src http://archive.debian.org/debian/ jessie main" > /etc/apt/sources.list
 
 ENV DEBIAN_FRONTEND=noninteractive
 

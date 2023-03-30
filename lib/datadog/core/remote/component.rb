@@ -20,20 +20,31 @@ module Datadog
           transport_v7 = Datadog::Core::Transport::HTTP.v7(**transport_options.dup)
 
           @client = Client.new(transport_v7)
-          @worker = Worker.new(interval: 10) { @client.sync }
+          @worker = Worker.new(interval: settings.remote.poll_interval_seconds) { @client.sync }
         end
 
-        def sync
-          # TODO: start elsewere, block smartly. this way makes it start on demand for now
+        def barrier(kind)
+          return if @worker.nil?
+
+          # Make it start on demand (for now)
           @worker.start
+
+          case kind
+          when :once
+            # TODO: block until first update has been received
+          when :next
+            # TODO: block until next update has been received
+          end
         end
 
         def shutdown!
-          @worker.stop
+          @worker.stop unless @worker.nil?
         end
 
         class << self
           def build(settings, agent_settings)
+            return unless settings.remote.enabled
+
             # TODO: condition with configuration
             new(settings, agent_settings)
           end

@@ -14,7 +14,7 @@ module Datadog
             attr_reader :env
 
             def initialize(env)
-              super
+              super()
               @env = env
             end
 

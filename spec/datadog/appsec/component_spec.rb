@@ -59,7 +59,115 @@ RSpec.describe Datadog::AppSec::Component do
     end
   end
 
+  describe '#reconfigure' do
+    context 'lock' do
+      it 'makes sure to synchronize' do
+        mutex = Mutex.new
+        processor = instance_double(Datadog::AppSec::Processor)
+        component = described_class.new(processor: processor)
+        component.instance_variable_set(:@mutex, mutex)
+        expect(mutex).to receive(:synchronize)
+        component.reconfigure(ruleset: {})
+      end
+    end
+
+    context 'when the new processor is ready' do
+      it 'swaps the processor instance and finalize the old processor' do
+        processor = instance_double(Datadog::AppSec::Processor)
+        component = described_class.new(processor: processor)
+
+        old_processor = component.processor
+
+        ruleset = {
+          'exclusions' => [{
+            'conditions' => [{
+              'operator' => 'ip_match',
+              'parameters' => {
+                'inputs' => [{
+                  'address' => 'http.client_ip'
+                }]
+              }
+            }]
+          }],
+          'metadata' => {
+            'rules_version' => '1.5.2'
+          },
+          'rules' => [{
+            'conditions' => [{
+              'operator' => 'ip_match',
+              'parameters' => {
+                'data' => 'blocked_ips',
+                'inputs' => [{
+                  'address' => 'http.client_ip'
+                }]
+              }
+            }],
+            'id' => 'blk-001-001',
+            'name' => 'Block IP Addresses',
+            'on_match' => ['block'],
+            'tags' => {
+              'category' => 'security_response', 'type' => 'block_ip'
+            },
+            'transformers' => []
+          }],
+          'rules_data' => [{
+            'data' => [{
+              'expiration' => 1678972458,
+              'value' => '42.42.42.1'
+            }]
+          }],
+          'version' => '2.2'
+        }
+
+        expect(old_processor).to receive(:finalize)
+        component.reconfigure(ruleset: ruleset)
+        new_processor = component.processor
+        expect(new_processor).to_not eq(old_processor)
+        new_processor.finalize
+      end
+    end
+
+    context 'when the new processor is not ready' do
+      it 'does not swap the processor instance and finalize the old processor' do
+        processor = instance_double(Datadog::AppSec::Processor)
+        component = described_class.new(processor: processor)
+
+        old_processor = component.processor
+
+        ruleset = { 'invalid_one' => true }
+
+        expect(old_processor).to_not receive(:finalize)
+        component.reconfigure(ruleset: ruleset)
+        expect(component.processor).to eq(old_processor)
+      end
+    end
+  end
+
+  describe '#reconfigure_lock' do
+    context 'lock' do
+      it 'makes sure to synchronize' do
+        mutex = Mutex.new
+        processor = instance_double(Datadog::AppSec::Processor)
+        component = described_class.new(processor: processor)
+        component.instance_variable_set(:@mutex, mutex)
+        expect(mutex).to receive(:synchronize)
+        component.reconfigure_lock(&proc {})
+      end
+    end
+  end
+
   describe '#shutdown!' do
+    context 'lock' do
+      it 'makes sure to synchronize' do
+        mutex = Mutex.new
+        processor = instance_double(Datadog::AppSec::Processor)
+        component = described_class.new(processor: processor)
+        component.instance_variable_set(:@mutex, mutex)
+        expect(mutex).to receive(:synchronize)
+        component.shutdown!
+      end
+    end
+
     context 'when processor is not nil and ready' do
       it 'finalizes the processor' do
         processor = instance_double(Datadog::AppSec::Processor)

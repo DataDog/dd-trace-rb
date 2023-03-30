@@ -4,6 +4,7 @@ require 'securerandom'
 
 require_relative 'configuration'
 require_relative 'dispatcher'
+require_relative '../../appsec/processor/rule_merger'
 
 module Datadog
   module Core
@@ -21,13 +22,17 @@ module Datadog
           register_receivers
         end
 
-        # rubocop:disable Metrics/AbcSize
+        # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity
         def sync
           response = transport.send_config(payload)
 
           if response.ok?
             # when response is completely empty, do nothing as in: leave as is
-            return if response.empty?
+            if response.empty?
+              Datadog.logger.debug { 'remote: empty response => NOOP' }
+
+              return
+            end
 
             paths = response.client_configs.map do |path|
               Configuration::Path.parse(path)
@@ -84,14 +89,16 @@ module Datadog
               # TODO: also remove stale config (matching removed) from cache (client configs is exhaustive list of paths)
             end
 
-            dispatcher.dispatch(changes, repository)
+            if changes.empty?
+              Datadog.logger.debug { 'remote: no changes' }
+            else
+              dispatcher.dispatch(changes, repository)
+            end
           else
             raise SyncError, "unexpected transport response: #{response.inspect}"
           end
-
-          # TODO: dispatch config updates to listeners
         end
-        # rubocop:enable Metrics/AbcSize
+        # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity
 
         class SyncError < StandardError; end
 
@@ -182,11 +189,52 @@ module Datadog
           cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
         end
 
+        def select_content(repository, product, config_ids = [])
+          repository.contents.select do |content|
+            content.path.product == product && (config_ids.empty? || config_ids.include?(content.path.config_id))
+          end
+        end
+
+        def parse_content(content)
+          data = content.data.read
+
+          content.data.rewind
+
+          raise ReadError, 'EOF reached' if data.nil?
+
+          JSON.parse(data)
+        end
+
+        class ReadError < StandardError; end
+
         def register_receivers
           matcher = Dispatcher::Matcher::Product.new(products)
 
-          dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |_repository, changes|
-            changes.each { |change| Datadog.logger.debug { "remote config change: #{change.path.inspect}" } }
+          dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |repository, changes|
+            changes.each do |change|
+              Datadog.logger.debug { "remote config change: '#{change.path}'" }
+            end
+
+            rules_contents = select_content(repository, 'ASM_DD')
+            rules = rules_contents.map { |content| parse_content(content) }
+
+            data_contents = select_content(repository, 'ASM_DATA', ['blocked_ips', 'blocked_users'])
+            data = data_contents.map { |content| parse_content(content) }
+
+            overrides_contents = select_content(repository, 'ASM', ['blocking', 'disabled_rules'])
+            overrides = overrides_contents.map { |content| parse_content(content) }
+
+            exclusions_contents = select_content(repository, 'ASM', ['exclusion_filters'])
+            exclusions = exclusions_contents.map { |content| parse_content(content) }
+
+            ruleset = AppSec::Processor::RuleMerger.merge(
+              rules: rules,
+              data: data,
+              overrides: overrides,
+              exclusions: exclusions,
+            )
+
+            Datadog::AppSec.reconfigure(ruleset: ruleset)
           end
         end
       end
