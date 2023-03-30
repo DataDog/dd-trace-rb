@@ -9,12 +9,12 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::Configuration::Settings do
     context 'when given a non `nil` value' do
       it do
         expect { described_class.new(exception_controller: '123') }
-          .to log_deprecation(include('Option `exception_controller` has been deprecated'))
+          .to log_deprecation(include('Option `exception_controller` is no longer required'))
       end
 
       it do
         expect { described_class.new.tap { |s| s.exception_controller = '123' } }
-          .to log_deprecation(include('Option `exception_controller` has been deprecated'))
+          .to log_deprecation(include('Option `exception_controller` is no longer required'))
       end
     end
   end
