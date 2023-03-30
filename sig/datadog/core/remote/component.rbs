@@ -5,13 +5,13 @@ module Datadog
         attr_reader client: Datadog::Core::Remote::Client
         attr_reader worker: Datadog::Core::Remote::Worker
 
-        def initialize: (Datadog::AppSec::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
+        def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
 
         def sync: () -> void
 
         def shutdown!: () -> void
 
-        def self.build: (Datadog::AppSec::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> Datadog::Core::Remote::Component
+        def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> Datadog::Core::Remote::Component?
       end
     end
   end

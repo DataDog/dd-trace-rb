@@ -303,27 +303,24 @@ RSpec.describe Datadog::AppSec::Processor do
         allow(Datadog::AppSec.settings).to receive(:user_id_denylist).and_return(['user3'])
       end
 
-      it 'calls #update_rule_data with the right value' do
-        expect_any_instance_of(described_class).to receive(:update_rule_data) do |_, args|
-          expect(args.size).to eq(2)
+      it 'stores the data as part of the @ruleset' do
+        processor = described_class.new
+        ruleset = processor.instance_variable_get(:@ruleset)
 
-          blocked_ips = args.find { |hash| hash['id'] == 'blocked_ips' }
-          blocked_users = args.find { |hash| hash['id'] == 'blocked_users' }
+        blocked_ips = ruleset['rules_data'].find { |hash| hash['id'] == 'blocked_ips' }
+        blocked_users = ruleset['rules_data'].find { |hash| hash['id'] == 'blocked_users' }
 
-          expect(blocked_ips).to_not be_nil
-          expect(blocked_users).to_not be_nil
-          expect(blocked_ips['type']).to eq('data_with_expiration')
-          expect(blocked_users['type']).to eq('data_with_expiration')
+        expect(blocked_ips).to_not be_nil
+        expect(blocked_users).to_not be_nil
+        expect(blocked_ips['type']).to eq('data_with_expiration')
+        expect(blocked_users['type']).to eq('data_with_expiration')
 
-          blocked_ips_data = blocked_ips['data']
-          blocked_user_data = blocked_users['data']
-          expect(blocked_ips_data.size).to eq(1)
-          expect(blocked_user_data.size).to eq(1)
-          expect(blocked_ips_data[0]['value']).to eq('192.192.1.1')
-          expect(blocked_user_data[0]['value']).to eq('user3')
-        end
-
-        described_class.new
+        blocked_ips_data = blocked_ips['data']
+        blocked_user_data = blocked_users['data']
+        expect(blocked_ips_data.size).to eq(1)
+        expect(blocked_user_data.size).to eq(1)
+        expect(blocked_ips_data[0]['value']).to eq('192.192.1.1')
+        expect(blocked_user_data[0]['value']).to eq('user3')
       end
     end
 
@@ -345,17 +342,7 @@ RSpec.describe Datadog::AppSec::Processor do
     let(:input_scanner) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' } } }
     let(:input_client_ip) { { 'http.client_ip' => '1.2.3.4' } }
 
-    let(:rule_data_client_ip) do
-      [
-        {
-          'id' => 'blocked_ips',
-          'type' => 'data_with_expiration',
-          'data' => [{ 'value' => '1.2.3.4', 'expiration' => (Time.now + 1000).to_i }]
-        }
-      ]
-    end
-
-    let(:rule_toggle_client_ip) { { 'blk-001-001' => false } }
+    let(:client_ip) { '1.2.3.4' }
 
     let(:input) { input_scanner }
 
@@ -389,12 +376,10 @@ RSpec.describe Datadog::AppSec::Processor do
         results.first
       end
 
-      let(:rule_data) { nil }
-      let(:rule_toggle) { nil }
+      let(:set_ip_denylist) { nil }
 
       before do
-        processor.update_rule_data(rule_data) if rule_data
-        processor.toggle_rules(rule_toggle) if rule_toggle
+        set_ip_denylist
         runs
       end
 
@@ -503,21 +488,14 @@ RSpec.describe Datadog::AppSec::Processor do
 
         context 'one blockable attack' do
           let(:input) { input_client_ip }
-          let(:rule_data) { rule_data_client_ip }
+
+          let(:set_ip_denylist) do
+            allow(Datadog::AppSec.settings).to receive(:ip_denylist).and_return([client_ip])
+          end
 
           it { expect(matches).to have_attributes(count: 1) }
           it { expect(data).to have_attributes(count: 1) }
           it { expect(actions).to eq [['block']] }
-        end
-
-        context 'one blockable attack on a disabled rule' do
-          let(:input) { input_client_ip }
-          let(:rule_data) { rule_data_client_ip }
-          let(:rule_toggle) { rule_toggle_client_ip }
-
-          it { expect(matches).to have_attributes(count: 0) }
-          it { expect(data).to have_attributes(count: 0) }
-          it { expect(actions).to have_attributes(count: 0) }
         end
       end
     end
