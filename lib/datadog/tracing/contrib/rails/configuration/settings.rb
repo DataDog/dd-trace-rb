@@ -44,24 +44,62 @@ module Datadog
               end
             end
 
-            option :distributed_tracing, default: true
-
-            option :request_queuing, default: false
-
             option :exception_controller do |o|
               o.on_set do |value|
+                Datadog.logger.warn(
+                  '[Deprecated] Using #exception_controller for configuration is deprecated and will ' \
+                  'be removed on a future ddtrace release. Please configure the option on action_pack instrumentation instead.'
+                )
                 # Update ActionPack exception controller too
                 Datadog.configuration.tracing[:action_pack][:exception_controller] = value
               end
             end
 
             option :middleware, default: true
-            option :middleware_names, default: false
+
             option :template_base_path do |o|
               o.default 'views/'
               o.on_set do |value|
+                Datadog.logger.warn(
+                  '[Deprecated] Using #template_base_path for configuration is deprecated and will ' \
+                  'be removed on a future ddtrace release. Please configure the option on action_view instrumentation instead.'
+                )
                 # Update ActionView template base path too
                 Datadog.configuration.tracing[:action_view][:template_base_path] = value
+              end
+            end
+
+            # Rack
+            option :distributed_tracing do |o|
+              o.default true
+              o.on_set do |value|
+                Datadog.logger.warn(
+                  '[Deprecated] Using #distributed_tracing for configuration is deprecated and will ' \
+                  'be removed on a future ddtrace release. Please configure the option on rack instrumentation instead.'
+                )
+                Datadog.configuration.tracing[:rack][:distributed_tracing] = value
+              end
+            end
+
+            option :request_queuing do |o|
+              o.default false
+              o.on_set do |value|
+                Datadog.logger.warn(
+                  '[Deprecated] Using #request_queuing for configuration is deprecated and will ' \
+                  'be removed on a future ddtrace release. Please configure the option on rack instrumentation instead.'
+                )
+                Datadog.configuration.tracing[:rack][:request_queuing] = value
+              end
+            end
+
+            option :middleware_names do |o|
+              o.default false
+              o.on_set do |value|
+                Datadog.logger.warn(
+                  '[Deprecated] Using #middleware_names for configuration is deprecated and will ' \
+                  'be removed on a future ddtrace release. Please configure the option on rack instrumentation instead.'
+                )
+                Datadog.configuration.tracing[:rack][:middleware_names] = value
               end
             end
           end
