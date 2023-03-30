@@ -30,6 +30,11 @@ module Datadog
               Datadog.logger.error do
                 "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}"
               end
+
+              # client state is unknown, state might be corrupted
+              @client = Client.new(transport_v7, capabilities)
+
+              # TODO: bail out if too many errors?
             end
           end
         end
