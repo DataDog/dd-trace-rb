@@ -2,6 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/v1_schema_examples_spec'
 
 require 'aws-sdk'
 
@@ -43,6 +44,7 @@ RSpec.describe 'AWS instrumentation' do
       it_behaves_like 'measured span for integration'
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'v1 schema test'
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -93,6 +95,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'measured span for integration'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'v1 schema test'
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -147,50 +150,6 @@ RSpec.describe 'AWS instrumentation' do
         it 'returns an unmodified response' do
           expect(presign).to start_with('https://bucket.s3.us-stubbed-1.amazonaws.com/key')
         end
-      end
-    end
-  end
-
-  context 'with span attribute schema v1' do
-    let(:configuration_options) { {} }
-    let(:span_attribute_schema) { 'v1' }
-
-    before do
-      Datadog.configure do |c|
-        c.tracing.instrument :aws, configuration_options
-        c.tracing.span_attribute_schema = span_attribute_schema
-      end
-    end
-
-    describe '#default_v1_service_name' do
-      subject!(:list_buckets) { client.list_buckets }
-      let(:responses) do
-        { list_buckets: { buckets: [{ name: 'bucket1' }] } }
-      end
-      let(:client) { ::Aws::S3::Client.new(stub_responses: responses) }
-      it 'generates a span' do
-        expect(span.service).to eq('rspec')
-      end
-    end
-
-    describe '#v1_unchanged_service_name' do
-      let(:configuration_options) { { service_name: 'test-service' } }
-      let(:responses) do
-        { list_buckets: { buckets: [{ name: 'bucket1' }] } }
-      end
-      let(:client) { ::Aws::S3::Client.new(stub_responses: responses) }
-      let(:span_attribute_schema) { 'v1' }
-
-      before do
-        Datadog.configure do |c|
-          c.tracing.instrument :aws, configuration_options
-          c.tracing.span_attribute_schema = span_attribute_schema
-        end
-      end
-
-      subject!(:list_buckets) { client.list_buckets }
-      it 'generates a span' do
-        expect(span.service).to eq('test-service')
       end
     end
   end
