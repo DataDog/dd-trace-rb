@@ -2,7 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
-require 'datadog/tracing/contrib/v1_schema_examples_spec'
+require 'datadog/tracing/contrib/v1_schema_examples'
 
 require 'aws-sdk'
 
