@@ -1,5 +1,4 @@
 RSpec.shared_examples 'v1 schema test' do
-
   around do |example|
     ClimateControl.modify DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
       example.run
@@ -21,4 +20,3 @@ RSpec.shared_examples 'v1 schema test' do
     it { expect(span.service).to eq(configuration_options[:service_name]) }
   end
 end
-
