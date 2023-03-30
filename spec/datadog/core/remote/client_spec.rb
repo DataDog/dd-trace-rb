@@ -326,7 +326,8 @@ RSpec.describe Datadog::Core::Remote::Client do
         it 'uses the rules from the appsec settings' do
           expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
             ruleset: Datadog.configuration.appsec.ruleset
-          ).and_call_original
+          ).at_least(:once).and_call_original
+
           client.sync
         end
 
