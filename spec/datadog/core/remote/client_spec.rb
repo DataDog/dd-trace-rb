@@ -74,7 +74,8 @@ RSpec.describe Datadog::Core::Remote::Client do
       },
     ]
   end
-  let(:target_content) do
+
+  let(:exclusions_filter_content) do
     {
       'datadog/603646/ASM/exclusion_filters/config' => {
         'custom' => {
@@ -84,18 +85,28 @@ RSpec.describe Datadog::Core::Remote::Client do
           },
           'v' => 21
         },
-        'hashes' => { 'sha256' => Digest::SHA256.hexdigest(exclusion_content) },
+        'hashes' => { 'sha256' => Digest::SHA256.hexdigest(exclusions) },
         'length' => 645
-      },
+      }
+    }
+  end
+
+  let(:blocked_ips_content) do
+    {
       'datadog/603646/ASM_DATA/blocked_ips/config' => {
         'custom' => {
           'c' => ['client_id'],
           'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => 'client_id' }] },
           'v' => 51
         },
-        'hashes' => { 'sha256' => Digest::SHA256.hexdigest(blocked_ips_content) },
+        'hashes' => { 'sha256' => Digest::SHA256.hexdigest(blocked_ips) },
         'length' => 1834
       },
+    }
+  end
+
+  let(:rules_content) do
+    {
       'datadog/603646/ASM_DD/latest/config' => {
         'custom' => {
           'c' => ['client_id'],
@@ -109,6 +120,9 @@ RSpec.describe Datadog::Core::Remote::Client do
       },
     }
   end
+
+  let(:target_content) { {} }
+
   let(:targets) do
     {
       'signatures' => [
@@ -130,12 +144,15 @@ RSpec.describe Datadog::Core::Remote::Client do
       }
     }
   end
-  let(:exclusion_content) do
+
+  let(:exclusions) do
     '{"exclusions":[{"conditions":[{"operator":"ip_match","parameters":{"inputs":[{"address":"http.client_ip"}]}}]}]}'
   end
-  let(:blocked_ips_content) do
+
+  let(:blocked_ips) do
     '{"rules_data":[{"data":[{"expiration":1678972458,"value":"42.42.42.1"}]}]}'
   end
+
   let(:rules_data) do
     {
       version: '2.2',
@@ -172,36 +189,62 @@ RSpec.describe Datadog::Core::Remote::Client do
     }.to_json
   end
 
+  let(:rules_data_response) do
+    {
+      'path' => 'datadog/603646/ASM_DD/latest/config',
+      'raw' => Base64.strict_encode64(rules_data).chomp
+    }
+  end
+
+  let(:blocked_ips_data_response) do
+    {
+      'path' => 'datadog/603646/ASM_DATA/blocked_ips/config',
+      'raw' => Base64.strict_encode64(blocked_ips).chomp
+    }
+  end
+
+  let(:exclusion_data_response) do
+    {
+      'path' => 'datadog/603646/ASM/exclusion_filters/config',
+      'raw' => Base64.strict_encode64(exclusions).chomp
+    }
+  end
+
+  let(:target_files) { [] }
+
+  let(:client_configs) { [] }
+
   let(:response_body) do
     {
       'roots' => roots.map { |r| Base64.strict_encode64(r.to_json).chomp },
       'targets' => Base64.strict_encode64(targets.to_json).chomp,
-      'target_files' => [
-        {
-          'path' => 'datadog/603646/ASM_DD/latest/config',
-          'raw' => Base64.strict_encode64(rules_data).chomp
-        },
-        {
-          'path' => 'datadog/603646/ASM_DATA/blocked_ips/config',
-          'raw' => Base64.strict_encode64(blocked_ips_content).chomp
-        },
-        {
-          'path' => 'datadog/603646/ASM/exclusion_filters/config',
-          'raw' => Base64.strict_encode64(exclusion_content).chomp
-        }
-      ],
-      'client_configs' => [
-        'datadog/603646/ASM_DATA/blocked_ips/config',
-        'datadog/603646/ASM_DD/latest/config',
-        'datadog/603646/ASM/exclusion_filters/config'
-      ]
+      'target_files' => target_files,
+      'client_configs' => client_configs,
     }.to_json
   end
+
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
+
   subject(:client) { described_class.new(transport, repository: repository) }
 
   describe '#sync' do
     include_context 'HTTP connection stub'
+
+    let(:client_configs) do
+      [
+        'datadog/603646/ASM_DATA/blocked_ips/config',
+        'datadog/603646/ASM_DD/latest/config',
+        'datadog/603646/ASM/exclusion_filters/config'
+      ]
+    end
+
+    let(:target_files) do
+      [rules_data_response, blocked_ips_data_response, exclusion_data_response]
+    end
+
+    let(:target_content) do
+      {}.merge(exclusions_filter_content).merge(blocked_ips_content).merge(rules_content)
+    end
 
     context 'valid response' do
       let(:response_code) { 200 }
@@ -260,8 +303,41 @@ RSpec.describe Datadog::Core::Remote::Client do
           'version' => '2.2'
         }
 
-        expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: expected_ruleset)
+        expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: expected_ruleset).and_call_original
         client.sync
+      end
+
+      context 'when there is no ASM_DD information' do
+        let(:client_configs) do
+          [
+            'datadog/603646/ASM_DATA/blocked_ips/config',
+            'datadog/603646/ASM/exclusion_filters/config'
+          ]
+        end
+
+        let(:target_files) do
+          [blocked_ips_data_response, exclusion_data_response]
+        end
+
+        let(:target_content) do
+          {}.merge(exclusions_filter_content).merge(blocked_ips_content)
+        end
+
+        it 'uses the rules from the appsec settings' do
+          expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
+            ruleset: Datadog.configuration.appsec.ruleset
+          ).at_least(:once).and_call_original
+
+          client.sync
+        end
+
+        it 'raises SyncError if no default rules available' do
+          expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
+            ruleset: Datadog.configuration.appsec.ruleset
+          ).and_return(nil)
+
+          expect { client.sync }.to raise_error(described_class::SyncError)
+        end
       end
 
       context 'when the data is the same' do
@@ -288,7 +364,7 @@ RSpec.describe Datadog::Core::Remote::Client do
               },
               {
                 :path => 'datadog/603646/ASM/exclusion_filters/config',
-                :content => StringIO.new(exclusion_content)
+                :content => StringIO.new(exclusions)
               },
               {
                 :path => 'datadog/603646/ASM_DD/latest/config',
@@ -313,7 +389,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                     'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => 'client_id' }] },
                     'v' => 21
                   },
-                  'hashes' => { 'sha256' => Digest::SHA256.hexdigest(exclusion_content) },
+                  'hashes' => { 'sha256' => Digest::SHA256.hexdigest(exclusions) },
                   'length' => 645
                 },
                 'datadog/603646/ASM_DATA/blocked_ips/config' => {
@@ -367,7 +443,7 @@ RSpec.describe Datadog::Core::Remote::Client do
             'target_files' => [
               {
                 'path' => 'datadog/603646/ASM/exclusion_filters/config',
-                'raw' => Base64.strict_encode64(exclusion_content).chomp
+                'raw' => Base64.strict_encode64(exclusions).chomp
               }
             ],
             'client_configs' => [
@@ -403,7 +479,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   },
                   'v' => 21
                 },
-                'hashes' => { 'sha256' => Digest::SHA256.hexdigest(exclusion_content) },
+                'hashes' => { 'sha256' => Digest::SHA256.hexdigest(exclusions) },
                 'length' => 645
               },
             }

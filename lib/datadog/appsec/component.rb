@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative 'processor'
+require_relative 'processor/rule_merger'
+require_relative 'processor/rule_loader'
 
 module Datadog
   module AppSec
@@ -10,14 +12,27 @@ module Datadog
         def build_appsec_component(settings)
           return unless settings.respond_to?(:appsec) && settings.appsec.enabled
 
-          processor = create_processor
+          processor = create_processor(settings)
           new(processor: processor)
         end
 
         private
 
-        def create_processor
-          processor = Processor.new
+        def create_processor(settings)
+          rules = AppSec::Processor::RuleLoader.load_rules(ruleset: settings.appsec.ruleset)
+          return nil unless rules
+
+          data = AppSec::Processor::RuleLoader.load_data(
+            ip_denylist: settings.appsec.ip_denylist,
+            user_id_denylist: settings.appsec.user_id_denylist
+          )
+
+          ruleset = AppSec::Processor::RuleMerger.merge(
+            rules: [rules],
+            data: data,
+          )
+
+          processor = Processor.new(ruleset: ruleset)
           return nil unless processor.ready?
 
           processor

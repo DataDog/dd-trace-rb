@@ -5,6 +5,7 @@ require 'securerandom'
 require_relative 'configuration'
 require_relative 'dispatcher'
 require_relative '../../appsec/processor/rule_merger'
+require_relative '../../appsec/processor/rule_loader'
 
 module Datadog
   module Core
@@ -101,6 +102,7 @@ module Datadog
         # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity
 
         class SyncError < StandardError; end
+        class ReadError < StandardError; end
 
         private
 
@@ -189,9 +191,50 @@ module Datadog
           cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
         end
 
-        def select_content(repository, product, config_ids = [])
-          repository.contents.select do |content|
-            content.path.product == product && (config_ids.empty? || config_ids.include?(content.path.config_id))
+        def register_receivers
+          matcher = Dispatcher::Matcher::Product.new(products)
+
+          dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |repository, changes|
+            changes.each do |change|
+              Datadog.logger.debug { "remote config change: '#{change.path}'" }
+            end
+
+            rules = []
+            data = []
+            overrides = []
+            exclusions = []
+
+            asm_data_config_types = ['blocked_ips', 'blocked_users']
+            asm_overrides_config_types = ['blocking', 'disabled_rules']
+
+            repository.contents.each do |content|
+              case content.path.product
+              when 'ASM_DD'
+                rules << parse_content(content)
+              when 'ASM_DATA'
+                data << parse_content(content) if asm_data_config_types.include?(content.path.config_id)
+              when 'ASM'
+                overrides << parse_content(content) if asm_overrides_config_types.include?(content.path.config_id)
+                exclusions << parse_content(content) if content.path.config_id == 'exclusion_filters'
+              end
+            end
+
+            if rules.empty?
+              settings_rules = AppSec::Processor::RuleLoader.load_rules(ruleset: Datadog.configuration.appsec.ruleset)
+
+              raise SyncError, 'no default rules available' unless settings_rules
+
+              rules = [settings_rules]
+            end
+
+            ruleset = AppSec::Processor::RuleMerger.merge(
+              rules: rules,
+              data: data,
+              overrides: overrides,
+              exclusions: exclusions,
+            )
+
+            Datadog::AppSec.reconfigure(ruleset: ruleset)
           end
         end
 
@@ -203,39 +246,6 @@ module Datadog
           raise ReadError, 'EOF reached' if data.nil?
 
           JSON.parse(data)
-        end
-
-        class ReadError < StandardError; end
-
-        def register_receivers
-          matcher = Dispatcher::Matcher::Product.new(products)
-
-          dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |repository, changes|
-            changes.each do |change|
-              Datadog.logger.debug { "remote config change: '#{change.path}'" }
-            end
-
-            rules_contents = select_content(repository, 'ASM_DD')
-            rules = rules_contents.map { |content| parse_content(content) }
-
-            data_contents = select_content(repository, 'ASM_DATA', ['blocked_ips', 'blocked_users'])
-            data = data_contents.map { |content| parse_content(content) }
-
-            overrides_contents = select_content(repository, 'ASM', ['blocking', 'disabled_rules'])
-            overrides = overrides_contents.map { |content| parse_content(content) }
-
-            exclusions_contents = select_content(repository, 'ASM', ['exclusion_filters'])
-            exclusions = exclusions_contents.map { |content| parse_content(content) }
-
-            ruleset = AppSec::Processor::RuleMerger.merge(
-              rules: rules,
-              data: data,
-              overrides: overrides,
-              exclusions: exclusions,
-            )
-
-            Datadog::AppSec.reconfigure(ruleset: ruleset)
-          end
         end
       end
     end

@@ -40,6 +40,16 @@ RSpec.describe Datadog::AppSec::Component do
           expect(component.processor).to be_nil
         end
       end
+
+      context 'when loading ruleset from settings fails' do
+        it 'returns a Datadog::AppSec::Component with a nil processor' do
+          expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).and_return(nil)
+
+          component = described_class.build_appsec_component(settings_with_appsec)
+
+          expect(component.processor).to be_nil
+        end
+      end
     end
 
     context 'when appsec is not enabled' do
