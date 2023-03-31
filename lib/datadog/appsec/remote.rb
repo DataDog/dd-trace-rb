@@ -6,6 +6,7 @@ require_relative 'processor/rule_loader'
 
 module Datadog
   module AppSec
+    # Remote
     module Remote
       class ReadError < StandardError; end
       class NoRulesError < StandardError; end
@@ -47,10 +48,12 @@ module Datadog
           remote_features_enabled? ? ASM_PRODUCTS : []
         end
 
+        # rubocop:disable Metrics/MethodLength
         def receivers
           return [] unless remote_features_enabled?
 
-          receiver = Core::Remote::Dispatcher::Receiver.new(Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)) do |repository, changes|
+          matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
+          receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
             changes.each do |change|
               Datadog.logger.debug { "remote config change: '#{change.path}'" }
             end
@@ -95,10 +98,17 @@ module Datadog
 
           [receiver]
         end
+        # rubocop:enable Metrics/MethodLength
+
+        private
 
         def remote_features_enabled?
           # TODO: Only checking ENV is not enough, since customers could configure the ruleset via Datadog.configure
-          ENV['DD_APPSEC_RULES'].nil? || ENV['DD_APPSEC_RULES'].empty?
+          appsec_rules = ENV['DD_APPSEC_RULES']
+
+          return true unless appsec_rules
+
+          appsec_rules.empty?
         end
 
         def parse_content(content)

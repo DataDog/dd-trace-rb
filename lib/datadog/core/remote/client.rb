@@ -21,6 +21,7 @@ module Datadog
           @id = SecureRandom.uuid
           @dispatcher = Dispatcher.new
           @capabilities = capabilities
+
           @capabilities.receivers.each do |receiver|
             dispatcher.receivers << receiver
           end
@@ -121,7 +122,7 @@ module Datadog
                 backend_client_state: state.opaque_backend_state,
               },
               id: id,
-              products:  @capabilities.products,
+              products: @capabilities.products,
               is_tracer: true,
               is_agent: false,
               client_tracer: {
@@ -134,7 +135,7 @@ module Datadog
                 tags: [], # TODO: add nice tags!
               },
               # base64 is needed otherwise the Go agent fails with an unmarshal error
-              capabilities:  @capabilities.binary_capabilities
+              capabilities: @capabilities.binary_capabilities
             },
             cached_target_files: [
               # TODO: to be implemented once we cache configuration content

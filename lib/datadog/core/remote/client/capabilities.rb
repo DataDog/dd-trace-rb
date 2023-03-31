@@ -6,23 +6,18 @@ module Datadog
   module Core
     module Remote
       class Client
+        # Capbailities
         class Capabilities
-          attr_reader :products, :capabilities, :receivers
+          attr_reader :products, :capabilities, :receivers, :binary_capabilities
 
           def initialize(settings)
             @capabilities = []
             @products = []
             @receivers = []
+
             register(settings)
-          end
 
-          def binary_capabilities
-            return @binary_capabilities if defined?(@binary_capabilities)
-
-            cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
-            binary = cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
-
-            @binary_capabilities = Base64.encode64(binary).chomp
+            @binary_capabilities = compute_capabilities
           end
 
           private
@@ -30,8 +25,8 @@ module Datadog
           def register(settings)
             if settings.appsec.enabled
               register_capabilities(Datadog::AppSec::Remote.capabilities)
-              register_receivers(Datadog::AppSec::Remote.receivers)
               register_products(Datadog::AppSec::Remote.products)
+              register_receivers(Datadog::AppSec::Remote.receivers)
             end
           end
 
@@ -45,6 +40,15 @@ module Datadog
 
           def register_products(products)
             @products.concat(products)
+          end
+
+          def compute_capabilities
+            return '' if capabilities.empty?
+
+            cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
+            binary = cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
+
+            Base64.encode64(binary).chomp
           end
         end
       end
