@@ -39,18 +39,18 @@ module Datadog
           'ASM_DATA',     # config files (IP addresses or users for blocking)
         ].freeze
 
-        def remote_capabilities
+        def capabilities
           remote_features_enabled? ? ASM_CAPABILITIES : []
         end
 
-        def remote_products
+        def products
           remote_features_enabled? ? ASM_PRODUCTS : []
         end
 
-        def remote_receivers
+        def receivers
           return [] unless remote_features_enabled?
 
-          receiver = Dispatcher::Receiver.new(Dispatcher::Matcher::Product.new(ASM_PRODUCTS)) do |repository, changes|
+          receiver = Core::Remote::Dispatcher::Receiver.new(Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)) do |repository, changes|
             changes.each do |change|
               Datadog.logger.debug { "remote config change: '#{change.path}'" }
             end

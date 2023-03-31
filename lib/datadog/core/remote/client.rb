@@ -12,47 +12,16 @@ module Datadog
       class Client
         class SyncError < StandardError; end
 
-        class << self
-          attr_reader :products, :capabilities, :receivers
-
-          def init
-            @capabilities = []
-            @products = []
-            @receivers = []
-          end
-
-          def register_capabilities(capabilities)
-            @capabilities.concat(capabilities)
-          end
-
-          def register_receivers(receivers)
-            @receivers.concat(receivers)
-          end
-
-          def register_products(products)
-            @products.concat(products)
-          end
-
-          def binary_capabilities
-            return @binary_capabilities if defined?(@binary_capabilities)
-
-            cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
-            binary = cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
-
-            @binary_capabilities = Base64.encode64(binary).chomp
-          end
-        end
-
         attr_reader :transport, :repository, :id, :dispatcher
 
-        def initialize(transport, repository: Configuration::Repository.new)
+        def initialize(transport, capabilities, repository: Configuration::Repository.new)
           @transport = transport
 
           @repository = repository
           @id = SecureRandom.uuid
           @dispatcher = Dispatcher.new
-
-          self.class.receivers do |receiver|
+          @capabilities = capabilities
+          @capabilities.receivers.each do |receiver|
             dispatcher.receivers << receiver
           end
         end
@@ -60,7 +29,6 @@ module Datadog
         # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity
         def sync
           # TODO: Skip sync if no capabilities are registered
-
           response = transport.send_config(payload)
 
           if response.ok?
@@ -153,7 +121,7 @@ module Datadog
                 backend_client_state: state.opaque_backend_state,
               },
               id: id,
-              products: Client.products,
+              products:  @capabilities.products,
               is_tracer: true,
               is_agent: false,
               client_tracer: {
@@ -166,7 +134,7 @@ module Datadog
                 tags: [], # TODO: add nice tags!
               },
               # base64 is needed otherwise the Go agent fails with an unmarshal error
-              capabilities: Client.binary_capabilities
+              capabilities:  @capabilities.binary_capabilities
             },
             cached_target_files: [
               # TODO: to be implemented once we cache configuration content

@@ -10,7 +10,6 @@ require_relative '../remote/component'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
 require_relative '../../appsec/component'
-require_relative '../../appsec/remote'
 
 module Datadog
   module Core
@@ -84,7 +83,6 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings)
           @telemetry = self.class.build_telemetry(settings)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
-          register_remote_functionality
         end
 
         # Starts up components
@@ -150,18 +148,6 @@ module Datadog
 
           telemetry.stop!
           telemetry.emit_closing! unless replacement
-        end
-
-        private
-
-        def register_remote_functionality
-          return unless remote
-
-          if appsec
-            Datadog::Core::Remote.register_capabilities(Datadog::AppSec::Remote.capabilities)
-            Datadog::Core::Remote.register_receivers(Datadog::AppSec::Remote.receivers)
-            Datadog::Core::Remote.register_products(Datadog::AppSec::Remote.products)
-          end
         end
       end
     end
