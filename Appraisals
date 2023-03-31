@@ -152,6 +152,7 @@ if ruby_version?('2.1')
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '< 2.5'
     gem 'mysql2', '0.3.21'
+    gem 'opensearch-ruby'
     gem 'pg', '>= 0.18.4', '< 1.0'
     gem 'rack', '1.4.7'
     gem 'rack-contrib'
@@ -339,6 +340,7 @@ elsif ruby_version?('2.2')
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '< 0.5'
+    gem 'opensearch-ruby'
     gem 'pg', '>= 0.18.4'
     gem 'presto-client', '>=  0.5.14'
     gem 'racecar', '>= 0.3.5'
@@ -942,6 +944,7 @@ elsif ruby_version?('2.5')
     gem 'makara'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 1', platform: :ruby
+    gem 'opencsearch-ruby'
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
     gem 'pg', '>= 0.18.4', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
@@ -1428,6 +1431,7 @@ elsif ruby_version?('2.7')
       gem 'makara'
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
+      gem 'opensearch-ruby'
       gem 'pg', '>= 0.18.4', platform: :ruby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -1563,6 +1567,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2')
     gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '>= 0.5.3', platform: :ruby
+    gem 'opensearch-ruby'
     gem 'activerecord-jdbcmysql-adapter', platform: :jruby
     gem 'pg', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby

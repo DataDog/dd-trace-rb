@@ -45,6 +45,7 @@ if RUBY_VERSION >= '2.2.0'
 else
   gem 'rake', '~> 12.3'
 end
+gem 'opensearch-ruby'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.12'

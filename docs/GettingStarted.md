@@ -63,6 +63,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#nethttp)
+     - [Opensearch](#opensearch)
      - [Postgres](#postgres)
      - [Presto](#presto)
      - [Qless](#qless)
@@ -505,6 +506,7 @@ For a list of available integrations, and their configuration options, please re
 | MongoDB                    | `mongo`                    | `>= 2.1`                 | `>= 2.1`                  | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                     | `mysql2`                   | `>= 0.3.21`              | *gem not available*       | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP                   | `http`                     | *(Any supported Ruby)*   | *(Any supported Ruby)*    | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
+| Opensearch                 | `opensearch-ruby`          | `>= 1.0`                 | `>= 1.0`                  | *[Link](#opensearch)*            | *[Link](https://github.com/opensearch-project/opensearch-ruby)*                        |
 | Postgres                     | `pg`                   | `>= 0.18.4`              | *gem not available*       | *[Link](#postgres)*                   | *[Link](https://github.com/ged/ruby-pg)*                  |
 | Presto                     | `presto`                   | `>= 0.5.14`              | `>= 0.5.14`               | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
 | Qless                      | `qless`                    | `>= 0.10.0`              | `>= 0.10.0`               | *[Link](#qless)*                    | *[Link](https://github.com/seomoz/qless)*                                      |
@@ -1408,6 +1410,34 @@ If you wish to configure each connection object individually, you may use the `D
 client = Net::HTTP.new(host, port)
 Datadog.configure_onto(client, **options)
 ```
+
+### Opensearch
+
+The Opensearch integration will trace any call to `perform_request` in the `Client` object:
+
+```ruby
+require 'opensearch/transport'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.tracing.instrument :elasticsearch, **options
+end
+
+# Perform a query to Opensearch
+client = OpenSearch::Client.new url: 'http://127.0.0.1:9200'
+response = client.perform_request 'GET', '_cluster/health'
+
+# In case you want to override the global configuration for a certain client instance
+Datadog.configure_onto(client.transport, **options)
+```
+
+`options` are the following keyword arguments:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `quantize` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{}` |
+| `service_name` | Service name used for `opensearch` instrumentation | `'opensearch'` |
+
 ### Postgres
 
 The PG integration traces SQL commands sent through the `pg` gem via:

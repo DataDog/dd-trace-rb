@@ -13,7 +13,7 @@ desc 'Run RSpec'
 namespace :spec do
   task all: [:main, :benchmark,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
-             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument]
+             :elasticsearch, :opensearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument]
 
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
@@ -149,6 +149,7 @@ namespace :spec do
     :lograge,
     :mongodb,
     :mysql2,
+    :opensearch,
     :pg,
     :presto,
     :qless,
