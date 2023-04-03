@@ -16,35 +16,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - library: ruby
-            weblog-variant: rack
-          - library: ruby
-            weblog-variant: sinatra14
-          - library: ruby
-            weblog-variant: sinatra20
-          - library: ruby
-            weblog-variant: sinatra21
-          - library: ruby
-            weblog-variant: rails32
-          - library: ruby
-            weblog-variant: rails40
-          - library: ruby
-            weblog-variant: rails41
-          - library: ruby
-            weblog-variant: rails42
-          - library: ruby
-            weblog-variant: rails50
-          - library: ruby
-            weblog-variant: rails51
-          - library: ruby
-            weblog-variant: rails52
-          - library: ruby
-            weblog-variant: rails60
-          - library: ruby
-            weblog-variant: rails61
-          - library: ruby
-            weblog-variant: rails70
+        library:
+          - ruby
+        weblog-variant:
+          - rack
+          - sinatra14
+          - sinatra20
+          - sinatra21
+          - rails32
+          - rails40
+          - rails41
+          - rails42
+          - rails50
+          - rails51
+          - rails52
+          - rails60
+          - rails61
+          - rails70
     runs-on: ubuntu-latest
     name: System Tests (${{ matrix.weblog-variant }})
     steps:
