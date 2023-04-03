@@ -33,8 +33,25 @@ jobs:
           - rails60
           - rails61
           - rails70
+        scenario:
+          - DEFAULT
+          - APPSEC_CUSTOM_RULES
+          - REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
+          - REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES
+          - REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE
+          - REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE
+          - APPSEC_MISSING_RULES
+          - APPSEC_CORRUPTED_RULES
+          - APPSEC_DISABLED
+          - APPSEC_LOW_WAF_TIMEOUT
+          - APPSEC_CUSTOM_OBFUSCATION
+          - APPSEC_RATE_LIMITER
+          - APPSEC_IP_BLOCKING
+          - APPSEC_REQUEST_BLOCKING
+          - SAMPLING
+          - PROFILING
     runs-on: ubuntu-latest
-    name: System Tests (${{ matrix.weblog-variant }})
+    name: System Tests (${{ matrix.scenario }}, ${{ matrix.weblog-variant }})
     steps:
       - name: Setup python 3.9
         uses: actions/setup-python@v4
@@ -59,72 +76,7 @@ jobs:
         run: ./build.sh --library ${{ matrix.library }} --weblog-variant ${{ matrix.weblog-variant }}
 
       - name: Run default scenario
-        run: ./run.sh
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run APPSEC_CUSTOM_RULES scenario
-        run: ./run.sh APPSEC_CUSTOM_RULES
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run APPSEC_CUSTOM_RULES scenario
-        run: ./run.sh APPSEC_CUSTOM_RULES
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD scenario
-        run: ./run.sh REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE scenario
-        run: ./run.sh REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run REMOTE_CONFIG_MOCKED_BACKEND_LIVE_DEBUGGING_NOCACHE scenario
-        run: ./run.sh REMOTE_CONFIG_MOCKED_BACKEND_LIVE_DEBUGGING_NOCACHE
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE scenario
-        run: ./run.sh REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run APPSEC_MISSING_RULES scenario
-        run: ./run.sh APPSEC_MISSING_RULES
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run APPSEC_CORRUPTED_RULES scenario
-        if: steps.build.outcome == 'success' && github.event.action != 'opened' && !contains(github.event.pull_request.labels.*.name, 'run-default-scenario')
-        run: ./run.sh APPSEC_CORRUPTED_RULES
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run APPSEC_DISABLED scenario
-        run: ./run.sh APPSEC_DISABLED
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run APPSEC_LOW_WAF_TIMEOUT scenario
-        run: ./run.sh APPSEC_LOW_WAF_TIMEOUT
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run APPSEC_CUSTOM_OBFUSCATION scenario
-        run: ./run.sh APPSEC_CUSTOM_OBFUSCATION
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run APPSEC_RATE_LIMITER scenario
-        run: ./run.sh APPSEC_RATE_LIMITER
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run APPSEC_IP_BLOCKING scenario
-        run: ./run.sh APPSEC_IP_BLOCKING
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run APPSEC_REQUEST_BLOCKING scenario
-        run: ./run.sh APPSEC_REQUEST_BLOCKING
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run SAMPLING scenario
-        run: ./run.sh SAMPLING
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Run PROFILING scenario
-        run: ./run.sh PROFILING
+        run: ./run.sh ${{ matrix.scenario }}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
 
@@ -132,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: system-tests-${{ matrix.library }}-${{ matrix.weblog-variant }}-logs-${{ github.run_id }}-${{ github.sha }}
+          name: system-tests-${{ matrix.library }}-${{ matrix.scenario }}-${{ matrix.weblog-variant }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: logs*
 
       - name: Print fancy log report
