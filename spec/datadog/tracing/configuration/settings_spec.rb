@@ -774,5 +774,32 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           .to(true)
       end
     end
+
+    describe '#span_attributes_schema' do
+      subject { settings.tracing.span_attribute_schema}
+
+      context "when #{Datadog::Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA}" do
+        around do |example|
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA => env_var
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var) { nil }
+
+          it { is_expected.to eq(Datadog::Tracing::Configuration::Ext::SpanAttributeSchema::ENV_DEFAULT_SCHEMA) }
+        end
+
+        context 'is defined' do
+          let(:env_var) { 'v1' }
+
+          it { is_expected.to eq('v1') }
+        end
+      end
+    end
+
   end
 end
