@@ -776,7 +776,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     end
 
     describe '#span_attributes_schema' do
-      subject { settings.tracing.span_attribute_schema}
+      subject { settings.tracing.span_attribute_schema }
 
       context "when #{Datadog::Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA}" do
         around do |example|
@@ -800,6 +800,5 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
       end
     end
-
   end
 end
