@@ -1,4 +1,6 @@
-require 'datadog/appsec/spec_helper'
+# frozen_string_literal: true
+
+require 'spec_helper'
 
 RSpec.describe Datadog::AppSec::Extensions do
   shared_context 'registry with integration' do
@@ -31,19 +33,18 @@ RSpec.describe Datadog::AppSec::Extensions do
           subject(:configure) { described_class.configure(&block) }
 
           context 'that calls #instrument for an integration' do
-            let(:block) { proc { |c| c.appsec.instrument integration_name } }
+            let(:block) do
+              proc do |c|
+                c.appsec.enabled = true
+                c.appsec.instrument integration_name
+              end
+            end
 
             it 'configures the integration' do
               # If integration_class.loaded? is invoked, it means the correct integration is being activated.
-              begin
-                old_appsec_enabled = ENV['DD_APPSEC_ENABLED']
-                ENV['DD_APPSEC_ENABLED'] = 'true'
-                expect(integration_class).to receive(:loaded?).and_return(false)
+              expect(integration_class).to receive(:loaded?).and_return(false)
 
-                configure
-              ensure
-                ENV['DD_APPSEC_ENABLED'] = old_appsec_enabled
-              end
+              configure
             end
           end
         end
@@ -59,12 +60,12 @@ RSpec.describe Datadog::AppSec::Extensions do
 
       describe '#enabled' do
         subject(:enabled) { settings.enabled }
-        it { is_expected.to eq(true) }
+        it { is_expected.to eq(false) }
       end
 
       describe '#enabled=' do
-        subject(:enabled_) { settings.enabled = false }
-        it { expect { enabled_ }.to change { settings.enabled }.from(true).to(false) }
+        subject(:enabled_) { settings.enabled = true }
+        it { expect { enabled_ }.to change { settings.enabled }.from(false).to(true) }
       end
 
       describe '#ruleset' do
