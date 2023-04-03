@@ -79,6 +79,10 @@ module Datadog
           settings
         end
 
+        def default_setting?(setting)
+          settings.default?(setting)
+        end
+
         def settings
           @settings ||= Settings.new
         end

@@ -25,6 +25,7 @@ module Datadog
 
         @options: options
         @integrations: ::Array[Integration]
+        @configured: Set[Symbol]
 
         def enabled: () -> bool
         def ruleset: () -> (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO)
@@ -35,6 +36,7 @@ module Datadog
         def trace_rate_limit: () -> ::Integer
         def obfuscator_key_regex: () -> ::String
         def obfuscator_value_regex: () -> ::String
+        def default?: (Symbol option) -> bool
 
         def []: (::Symbol integration_name) -> options
 

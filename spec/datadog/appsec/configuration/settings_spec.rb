@@ -259,6 +259,34 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           it { expect { obfuscator_value_regex_ }.to change { settings.obfuscator_value_regex }.from('bar').to('baz') }
         end
       end
+
+      describe '#default?' do
+        context 'when the configuration option is configured via ENV var' do
+          before do
+            allow(ENV).to receive(:[]).with('DD_APPSEC_ENABLED').and_return('1')
+          end
+
+          it 'return false' do
+            expect(settings.default?(:enabled)).to eq(false)
+          end
+        end
+
+        context 'when the configuration option is configured via merge' do
+          before do
+            settings.merge(dsl.tap { |c| c.enabled = true })
+          end
+
+          it 'returns false' do
+            expect(settings.default?(:enabled)).to eq(false)
+          end
+        end
+
+        context 'when the configuration option is not configured' do
+          it 'returns true' do
+            expect(settings.default?(:enabled)).to eq(true)
+          end
+        end
+      end
     end
   end
 end
