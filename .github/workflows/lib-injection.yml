@@ -51,7 +51,7 @@ jobs:
     steps:
       - name: lib-injection test runner
         id: lib-injection-test-runner
-        uses: DataDog/system-tests/lib-injection/runner@4eb1ec01b61c1c7e84f219127a91d07f03b0f85e
+        uses: DataDog/system-tests/lib-injection/runner@584bf76f7a5c6f6e466346ba8a68a6b7a6293d9b
         with:
           docker-registry: ghcr.io
           docker-registry-username: ${{ github.repository_owner }}
@@ -73,6 +73,7 @@ jobs:
         with:
           repository: DataDog/system-tests
           path: system-tests
+          ref: tonycthsu/fix-ruby-images-for-lib-injection-tests
       - name: Overwrite auto inject script with commit SHA
         run: |
           sed -i "s~<DD_TRACE_SHA_TO_BE_REPLACED>~${{github.sha}}~g" lib-injection/auto_inject.rb
