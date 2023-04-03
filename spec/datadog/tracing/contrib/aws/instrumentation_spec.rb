@@ -97,10 +97,13 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.service).to eq('aws')
         expect(span.span_type).to eq('http')
         expect(span.resource).to eq('s3.list_buckets')
-
+        
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('list_buckets')
         expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('s3')
+        #expect(span.get_tag('bucketname')).to eq('bucket1')
         expect(span.get_tag('path')).to eq('/')
         expect(span.get_tag('host')).to eq('s3.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('GET')
@@ -120,6 +123,40 @@ RSpec.describe 'AWS instrumentation' do
 
       it 'returns an unmodified response' do
         expect(list_buckets.buckets.map(&:name)).to eq(['bucket1'])
+      end
+    end
+
+    describe '#list_objects' do
+      subject!(:list_objects) { client.list_objects(bucket: "bucketname", max_keys:2) }
+
+      let(:responses) do
+        { list_objects: {} }
+      end
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('s3.list_objects')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('list_objects')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('s3')
+        expect(span.get_tag('bucketname')).to eq('bucketname')
+        expect(span.get_tag('path')).to eq('/')
+        expect(span.get_tag('host')).to eq('bucketname.s3.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('GET')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('bucketname.s3.us-stubbed-1.amazonaws.com')
       end
     end
 
@@ -143,6 +180,812 @@ RSpec.describe 'AWS instrumentation' do
         it 'returns an unmodified response' do
           expect(presign).to start_with('https://bucket.s3.us-stubbed-1.amazonaws.com/key')
         end
+      end
+    end
+  end
+  context 'with an SQS client' do
+    let(:client) { ::Aws::SQS::Client.new(stub_responses: responses) }
+
+    describe '#send_message' do
+      subject!(:send_message) { client.send_message({
+        queue_url: "https://sqs.us-stubbed-1.amazonaws.com/123456789012/MyQueueName",
+        message_body: "Hello, world!"
+      }) }
+
+      let(:responses) do
+        { send_message: { 
+          md5_of_message_body: "msg body",  
+          md5_of_message_attributes: "msg attributes",
+          md5_of_message_system_attributes: "message system attributes",
+          message_id: "123",
+          sequence_number: "456"
+          } }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('sqs.send_message')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('send_message')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('sqs')
+        expect(span.get_tag('aws_account')).to eq('123456789012')
+        expect(span.get_tag('queuename')).to eq('MyQueueName')
+        expect(span.get_tag('path')).to eq('/123456789012/MyQueueName')
+        expect(span.get_tag('host')).to eq('sqs.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('sqs.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#send_message_batch' do
+      subject!(:send_message_batch) { client.send_message_batch({
+        queue_url: "https://sqs.us-stubbed-1.amazonaws.com/123456789012/MyQueueName",
+        entries: [ # required
+            {
+              id: "String", # required
+              message_body: "String", # required
+              delay_seconds: 1,
+              message_attributes: {
+                "String" => {
+                  string_value: "String",
+                  binary_value: "data",
+                  string_list_values: ["String"],
+                  binary_list_values: ["data"],
+                  data_type: "String", # required
+                },
+              },
+              message_system_attributes: {
+                "AWSTraceHeader" => {
+                  string_value: "String",
+                  binary_value: "data",
+                  string_list_values: ["String"],
+                  binary_list_values: ["data"],
+                  data_type: "String", # required
+                },
+              },
+              message_deduplication_id: "String",
+              message_group_id: "String",
+            },
+          ],
+        }) }
+
+      let(:responses) do
+        { send_message_batch: { 
+          successful: [],
+          failed: []
+        } }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('sqs.send_message_batch')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('send_message_batch')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('sqs')
+        expect(span.get_tag('aws_account')).to eq('123456789012')
+        expect(span.get_tag('queuename')).to eq('MyQueueName')
+        expect(span.get_tag('path')).to eq('/123456789012/MyQueueName')
+        expect(span.get_tag('host')).to eq('sqs.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('sqs.us-stubbed-1.amazonaws.com')
+      end
+    end
+  end
+
+  context 'with an SNS client' do
+    let(:client) { ::Aws::SNS::Client.new(stub_responses: responses) }
+
+    describe '#publish' do
+      subject!(:publish) { client.publish({
+        topic_arn: "arn:aws:sns:us-west-2:123456789012:my-topic-name",
+        message: 'Hello, world!'
+      }) }
+
+      let(:responses) do
+        { publish: { 
+            message_id: "1234",
+            sequence_number: "5678"
+          } 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('sns.publish')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('publish')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('sns')
+        expect(span.get_tag('aws_account')).to eq('123456789012')
+        expect(span.get_tag('topicname')).to eq('my-topic-name')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('sns.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('sns.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#publish_batch' do
+      subject!(:publish_batch) { client.publish_batch({
+        topic_arn: "arn:aws:sns:us-west-2:123456789012:my-topic-name",
+        publish_batch_request_entries: [ # required
+          {
+            id: "String", # required
+            message: "message", # required
+            subject: "subject",
+            message_structure: "messageStructure",
+            message_attributes: {
+              "String" => {
+                data_type: "String", # required
+                string_value: "String",
+                binary_value: "data",
+              },
+            },
+            message_deduplication_id: "String",
+            message_group_id: "String",
+          },
+        ],      }) }
+
+      let(:responses) do
+        { publish_batch: { 
+
+          } 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('sns.publish_batch')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('publish_batch')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('sns')
+        expect(span.get_tag('aws_account')).to eq('123456789012')
+        expect(span.get_tag('topicname')).to eq('my-topic-name')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('sns.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('sns.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#create_topic' do
+      subject!(:create_topic) { client.create_topic({
+          name: "topicName", # required
+          attributes: {
+            "attributeName" => "attributeValue",
+          },
+          tags: [
+            {
+              key: "TagKey", # required
+              value: "TagValue", # required
+            },
+          ],
+          data_protection_policy: "attributeValue",
+        }) 
+      }
+
+      let(:responses) do
+        { create_topic: { 
+
+          } 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('sns.create_topic')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('create_topic')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('sns')
+        expect(span.get_tag('topicname')).to eq('topicName')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('sns.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('sns.us-stubbed-1.amazonaws.com')
+      end
+    end
+  end
+
+  context 'with an dynamodb client' do
+    let(:client) { ::Aws::DynamoDB::Client.new(stub_responses: responses) }
+
+    describe '#get_item' do
+      subject!(:get_item) { client.get_item(table_name: "my-table-name", key: {'id':'1234'}) }
+
+      let(:responses) do
+        { get_item: { 
+            item: {
+            "AlbumTitle" => "Songs About Life", 
+            "Artist" => "Acme Band", 
+            "SongTitle" => "Happy Day", 
+            }
+          } 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('dynamodb.get_item')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('get_item')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('dynamodb')
+        expect(span.get_tag('tablename')).to eq('my-table-name')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('dynamodb.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('dynamodb.us-stubbed-1.amazonaws.com')
+      end
+    end
+  end
+
+  context 'with an kinesis client' do
+    let(:client) { ::Aws::Kinesis::Client.new(stub_responses: responses) }
+
+    describe '#put_record' do
+      subject!(:put_record) { client.put_record(
+        stream_name: "my-stream-name",
+        stream_arn: "arn:aws:kinesis:us-east-1:123456789012:stream/my-stream-name",
+        partition_key: "parition-1",
+        data: "Hello world!"
+        ) 
+      }
+
+      let(:responses) do
+        { put_record: { 
+            shard_id: "1234",
+            sequence_number: "5678",
+            encryption_type: "NONE"
+          } 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('kinesis.put_record')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('put_record')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('kinesis')
+        expect(span.get_tag('aws_account')).to eq('123456789012')
+        expect(span.get_tag('streamname')).to eq('my-stream-name')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('123456789012.data-kinesis.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('123456789012.data-kinesis.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+
+    describe '#get_shard_iterator' do
+      subject!(:get_shard_iterator) { client.get_shard_iterator(
+          stream_name: "StreamName", # required
+          shard_id: "ShardId", # required
+          shard_iterator_type: "AT_SEQUENCE_NUMBER", # required
+        ) 
+      }
+
+      let(:responses) do
+        { get_shard_iterator: { 
+            shard_iterator: "shard-iterator"
+          } 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('kinesis.get_shard_iterator')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('get_shard_iterator')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('kinesis')
+        expect(span.get_tag('streamname')).to eq('StreamName')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('kinesis.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('kinesis.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+  end
+
+  context 'with an eventbridge client' do
+    let(:client) { ::Aws::EventBridge::Client.new(stub_responses: responses) }
+
+    describe '#put_rule' do
+      subject!(:put_rule) { client.put_rule({
+        name: "RuleName", # required
+        tags: [
+          {
+            key: "TagKey", # required
+            value: "TagValue", # required
+          },
+        ],
+      })
+      }
+
+      let(:responses) do
+        { put_rule: { 
+          rule_arn: "my-rule-arn"
+          } 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('eventbridge.put_rule')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('put_rule')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('eventbridge')
+        expect(span.get_tag('rulename')).to eq('RuleName')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('events.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('events.us-stubbed-1.amazonaws.com')
+      end
+    end
+  end
+
+  context 'with a stepfunction client' do
+    let(:client) { ::Aws::States::Client.new(stub_responses: responses) }
+
+    describe '#start_execution' do
+      subject!(:start_execution) { client.start_execution({
+        state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine" # required
+      })
+      }
+
+      let(:responses) do
+        { start_execution: { 
+          execution_arn: "execution-arn",
+          start_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00")
+          } 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('states.start_execution')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('start_execution')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('states')
+        expect(span.get_tag('statemachinearn')).to eq('arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine')
+
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+
+        expect(span.get_tag('statemachinename')).to eq('MyStateMachine')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('states.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#create_state_machine' do
+      subject!(:create_state_machine) { client.create_state_machine({
+        name: "my-state-machine-name", # required
+        definition: "Definition", # required
+        role_arn: "Arn", # required
+      })
+      }
+
+      let(:responses) do
+        { create_state_machine: { 
+          state_machine_arn: "arn",
+          creation_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00")
+          } 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('states.create_state_machine')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('create_state_machine')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('states')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+
+        expect(span.get_tag('statemachinename')).to eq('my-state-machine-name')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('states.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#describe_state_machine' do
+      subject!(:describe_state_machine) { client.describe_state_machine({
+          state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
+        })
+      }
+
+      let(:responses) do
+        { describe_state_machine: {
+            state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:example-state-machine",
+            name: "example-state-machine",
+            status: "ACTIVE",
+            definition: "{\"Comment\":\"An example state machine\",\"StartAt\":\"HelloWorld\",\"States\":{\"HelloWorld\":{\"Type\":\"Task\",\"Resource\":\"arn:aws:lambda:us-east-1:123456789012:function:hello-world\",\"End\":true}}}",
+            role_arn: "arn:aws:iam::123456789012:role/StateExecutionRole",
+            type: "STANDARD",
+            creation_date: Time.now,
+            logging_configuration: {
+              level: "ERROR",
+              include_execution_data: true,
+              destinations: [
+                {
+                  cloud_watch_logs_log_group: {
+                    log_group_arn: "arn:aws:logs:us-east-1:123456789012:log-group:/aws/states/example-state-machine"
+                  }
+                }
+              ]
+            },
+            tracing_configuration: {
+              enabled: true
+            },
+            label: "v1"
+        }
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('states.describe_state_machine')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('describe_state_machine')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('states')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+
+        expect(span.get_tag('statemachinename')).to eq('my-state-machine-name')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('states.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#update_state_machine' do
+      subject!(:update_state_machine) { client.update_state_machine({
+        state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
+      })
+      }
+
+      let(:responses) do
+        { update_state_machine: { 
+          update_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00")
+          } 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('states.update_state_machine')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('update_state_machine')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('states')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+
+        expect(span.get_tag('statemachinename')).to eq('my-state-machine-name')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('states.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#delete_state_machine' do
+      subject!(:delete_state_machine) { client.delete_state_machine({
+        state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
+      })
+      }
+
+      let(:responses) do
+        { delete_state_machine: {} 
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('states.delete_state_machine')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('delete_state_machine')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('states')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+
+        expect(span.get_tag('statemachinename')).to eq('my-state-machine-name')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('states.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#describe_execution' do
+      subject!(:describe_execution) { client.describe_execution({
+        execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution",
+        })
+      }
+
+      let(:responses) do
+        { describe_execution: {
+          execution_arn: "string",
+          state_machine_arn: "string",
+          name: "string",
+          status: "string",
+          start_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00"),
+          stop_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00"),
+          input: "string",
+          input_details: {
+            included: true|false,
+          },
+          output: "string",
+          output_details: {
+            included: true|false,
+          },
+          trace_header: "string",
+          map_run_arn: "string",
+          error: "string",
+          cause: "string",
+        }
+        
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('states.describe_execution')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('describe_execution')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('states')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+
+        expect(span.get_tag('statemachinename')).to eq('example-state-machine')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('states.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#stop_execution' do
+      subject!(:stop_execution) { client.stop_execution({
+        execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution",
+        })
+      }
+
+      let(:responses) do
+        { stop_execution: {
+          stop_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00"),
+        }
+        
+        }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('states.stop_execution')
+        
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('stop_execution')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('states')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+
+        expect(span.get_tag('statemachinename')).to eq('example-state-machine')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('states.us-stubbed-1.amazonaws.com')
       end
     end
   end
