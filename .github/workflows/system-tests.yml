@@ -12,13 +12,92 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  system-tests:
+  build-harness:
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - runner
+          - agent
+    runs-on: ubuntu-latest
+    name: Build (${{ matrix.image }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          repository: 'DataDog/system-tests'
+      - name: Build image
+        run: ./build.sh --images ${{ matrix.image }}
+      - name: Export image
+        run: |
+          docker image list
+          mkdir -p images
+          docker save system_tests/${{ matrix.image }} > images/${{ matrix.image }}.tar
+      - name: Save image
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-image-${{ matrix.image }}
+          path: images/*
+          retention-days: 1
+
+  build-apps:
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - weblog
+        library:
+          - ruby
+        app:
+          - rack
+          - sinatra14
+          - sinatra20
+          - sinatra21
+          - rails32
+          - rails40
+          - rails41
+          - rails42
+          - rails50
+          - rails51
+          - rails52
+          - rails60
+          - rails61
+          - rails70
+    runs-on: ubuntu-latest
+    name: Build (${{ matrix.app }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          repository: 'DataDog/system-tests'
+      - name: Checkout dd-trace-rb
+        uses: actions/checkout@v3
+        with:
+          path: 'binaries/dd-trace-rb'
+      - name: Log in to the Container registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+      - name: Build
+        run: ./build.sh --library ${{ matrix.library }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }}
+      - name: Export image
+        run: |
+          docker image list
+          mkdir -p images
+          docker save system_tests/${{ matrix.image }} > images/${{ matrix.image }}-${{ matrix.app }}.tar
+      - name: Save image
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-image-${{ matrix.image }}-${{ matrix.app }}
+          path: images/*
+          retention-days: 1
+
+  test:
     strategy:
       fail-fast: false
       matrix:
         library:
           - ruby
-        weblog-variant:
+        app:
           - rack
           - sinatra14
           - sinatra20
@@ -35,11 +114,11 @@ jobs:
           - rails70
         scenario:
           - DEFAULT
-          - APPSEC_CUSTOM_RULES
           - REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
           - REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES
           - REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE
           - REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE
+          - APPSEC_CUSTOM_RULES
           - APPSEC_MISSING_RULES
           - APPSEC_CORRUPTED_RULES
           - APPSEC_DISABLED
@@ -51,42 +130,52 @@ jobs:
           - SAMPLING
           - PROFILING
     runs-on: ubuntu-latest
-    name: System Tests (${{ matrix.scenario }}, ${{ matrix.weblog-variant }})
+    needs:
+      - build-harness
+      - build-apps
+    name: Test (${{ matrix.app }}, ${{ matrix.scenario }})
     steps:
       - name: Setup python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-
       - name: Checkout
         uses: actions/checkout@v3
         with:
           repository: 'DataDog/system-tests'
-
-      - name: Checkout dd-trace-rb
-        uses: actions/checkout@v3
+      - name: Retrieve agent image
+        uses: actions/download-artifact@v3
         with:
-          path: 'binaries/dd-trace-rb'
-
-      - name: Log in to the Container registry
+          name: docker-image-agent
+          path: images
+      - name: Retrieve runner image
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image-runner
+          path: images
+      - name: Retrieve app image
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image-weblog-${{ matrix.app }}
+          path: images
+      - name: Load images
         run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-
-      - name: Build
-        run: ./build.sh --library ${{ matrix.library }} --weblog-variant ${{ matrix.weblog-variant }}
-
+          cd images
+          ls -l
+          docker load < agent.tar
+          docker load < runner.tar
+          docker load < weblog-${{ matrix.app }}.tar
+          docker image list
       - name: Run default scenario
         run: ./run.sh ${{ matrix.scenario }}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-
       - name: Archive logs
         uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: system-tests-${{ matrix.library }}-${{ matrix.scenario }}-${{ matrix.weblog-variant }}-logs-${{ github.run_id }}-${{ github.sha }}
+          name: system-tests-${{ matrix.library }}-${{ matrix.scenario }}-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: logs*
-
       - name: Print fancy log report
         if: ${{ always() }}
         run: python utils/scripts/markdown_logs.py >> $GITHUB_STEP_SUMMARY
