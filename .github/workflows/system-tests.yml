@@ -160,8 +160,8 @@ jobs:
           path: images
       - name: Load images
         run: |
+          find images
           cd images
-          ls -l
           docker load < agent.tar
           docker load < runner.tar
           docker load < weblog-${{ matrix.app }}.tar
@@ -298,5 +298,5 @@ jobs:
         continue-on-error: true
       - name: Print fancy log report
         run: |
-          ls -l logs
+          find logs*
           python utils/scripts/markdown_logs.py >> $GITHUB_STEP_SUMMARY
