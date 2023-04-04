@@ -32,12 +32,12 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
     describe '#enabled' do
       subject(:enabled) { settings.enabled }
-      it { is_expected.to eq(true) }
+      it { is_expected.to eq(false) }
     end
 
     describe '#enabled=' do
-      subject(:enabled_) { settings.merge(dsl.tap { |c| c.enabled = false }) }
-      it { expect { enabled_ }.to change { settings.enabled }.from(true).to(false) }
+      subject(:enabled_) { settings.merge(dsl.tap { |c| c.enabled = true }) }
+      it { expect { enabled_ }.to change { settings.enabled }.from(false).to(true) }
     end
 
     describe '#ruleset' do

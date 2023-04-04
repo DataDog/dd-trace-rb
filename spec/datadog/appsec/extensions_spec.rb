@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require 'datadog/appsec/spec_helper'
 
 RSpec.describe Datadog::AppSec::Extensions do
   shared_context 'registry with integration' do

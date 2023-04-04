@@ -1,6 +1,6 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-require 'datadog/appsec'
+require 'datadog/appsec/spec_helper'
 
 RSpec.describe Datadog::AppSec do
   describe '#default_setting?' do
