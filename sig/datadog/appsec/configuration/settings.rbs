@@ -36,13 +36,14 @@ module Datadog
         def trace_rate_limit: () -> ::Integer
         def obfuscator_key_regex: () -> ::String
         def obfuscator_value_regex: () -> ::String
-        def default?: (Symbol option) -> bool
 
         def []: (::Symbol integration_name) -> options
 
         def merge: (DSL) -> Settings
 
         private
+
+        def default?: (Symbol option) -> bool
 
         def reset!: () -> void
       end

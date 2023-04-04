@@ -277,8 +277,8 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
             end
           end
 
-          it 'return false' do
-            expect(settings.default?(:enabled)).to eq(false)
+          it 'returns false' do
+            expect(settings.send(:default?, :enabled)).to eq(false)
           end
         end
 
@@ -288,13 +288,13 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           end
 
           it 'returns false' do
-            expect(settings.default?(:enabled)).to eq(false)
+            expect(settings.send(:default?, :enabled)).to eq(false)
           end
         end
 
         context 'when the configuration option is not configured' do
           it 'returns true' do
-            expect(settings.default?(:enabled)).to eq(true)
+            expect(settings.send(:default?, :enabled)).to eq(true)
           end
         end
       end

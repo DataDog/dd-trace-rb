@@ -189,10 +189,6 @@ module Datadog
           integration.options
         end
 
-        def default?(option)
-          !@configured.include?(option)
-        end
-
         def merge(dsl)
           dsl.options.each do |k, v|
             unless v.nil?
@@ -221,6 +217,10 @@ module Datadog
         end
 
         private
+
+        def default?(option)
+          !@configured.include?(option)
+        end
 
         # Restore to original state, for testing only.
         def reset!

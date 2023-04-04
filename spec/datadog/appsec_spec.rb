@@ -9,7 +9,7 @@ RSpec.describe Datadog::AppSec do
 
     context 'when the configuration option is not configured' do
       it 'returns true' do
-        expect(described_class.default_setting?(:enabled)).to eq(true)
+        expect(described_class.send(:default_setting?, :enabled)).to eq(true)
       end
     end
 
@@ -18,7 +18,7 @@ RSpec.describe Datadog::AppSec do
         described_class.configure do |c|
           c.enabled = true
         end
-        expect(described_class.default_setting?(:enabled)).to eq(false)
+        expect(described_class.send(:default_setting?, :enabled)).to eq(false)
       end
     end
   end
