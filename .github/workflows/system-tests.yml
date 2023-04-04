@@ -31,7 +31,7 @@ jobs:
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest
           docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest system_tests/${{ matrix.image }}:latest
       - name: Build image
-        run: ./build.sh --images ${{ matrix.image }}
+        run: ./build.sh --images ${{ matrix.image }} --extra-docker-args --cache-from=ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest
       - name: Export image
         run: |
           docker image list
@@ -95,7 +95,7 @@ jobs:
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
       - name: Build
-        run: ./build.sh --library ${{ matrix.library }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }}
+        run: ./build.sh --library ${{ matrix.library }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }} --extra-docker-args --cache-from=ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:${{ matrix.app }}
       - name: Export image
         run: |
           docker image list
