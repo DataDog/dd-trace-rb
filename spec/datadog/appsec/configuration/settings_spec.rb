@@ -143,14 +143,11 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     end
 
     context 'with env vars' do
-      before do
-        stub_const('ENV', {})
-        allow(ENV).to receive(:[]).and_call_original
-      end
-
       describe 'DD_APPSEC_ENABLED' do
-        before do
-          allow(ENV).to receive(:[]).with('DD_APPSEC_ENABLED').and_return('1')
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_ENABLED' => '1') do
+            example.run
+          end
         end
 
         describe '#enabled' do
@@ -165,8 +162,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
 
       describe 'DD_APPSEC_RULES' do
-        before do
-          allow(ENV).to receive(:[]).with('DD_APPSEC_RULES').and_return('/some/path')
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_RULES' => '/some/path') do
+            example.run
+          end
         end
 
         describe '#ruleset' do
@@ -181,8 +180,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
 
       describe 'DD_APPSEC_WAF_TIMEOUT' do
-        before do
-          allow(ENV).to receive(:[]).with('DD_APPSEC_WAF_TIMEOUT').and_return('42')
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_WAF_TIMEOUT' => '42') do
+            example.run
+          end
         end
 
         describe '#waf_timeout' do
@@ -197,8 +198,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
 
       describe 'DD_APPSEC_WAF_DEBUG' do
-        before do
-          allow(ENV).to receive(:[]).with('DD_APPSEC_WAF_DEBUG').and_return('1')
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_WAF_DEBUG' => '1') do
+            example.run
+          end
         end
 
         describe '#waf_debug' do
@@ -213,8 +216,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
 
       describe 'DD_APPSEC_TRACE_RATE_LIMIT' do
-        before do
-          allow(ENV).to receive(:[]).with('DD_APPSEC_TRACE_RATE_LIMIT').and_return('1024')
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_TRACE_RATE_LIMIT' => '1024') do
+            example.run
+          end
         end
 
         describe '#trace_rate_limit' do
@@ -229,8 +234,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
 
       describe 'DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP' do
-        before do
-          allow(ENV).to receive(:[]).with('DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP').and_return('bar')
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP' => 'bar') do
+            example.run
+          end
         end
 
         describe '#obfuscator_key_regex' do
@@ -245,8 +252,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
 
       describe 'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP' do
-        before do
-          allow(ENV).to receive(:[]).with('DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP').and_return('bar')
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP' => 'bar') do
+            example.run
+          end
         end
 
         describe '#obfuscator_value_regex' do
@@ -262,8 +271,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
       describe '#default?' do
         context 'when the configuration option is configured via ENV var' do
-          before do
-            allow(ENV).to receive(:[]).with('DD_APPSEC_ENABLED').and_return('1')
+          around do |example|
+            ClimateControl.modify('DD_APPSEC_ENABLED' => '1') do
+              example.run
+            end
           end
 
           it 'return false' do
