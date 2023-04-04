@@ -249,54 +249,63 @@ jobs:
           name: system-tests-${{ matrix.library }}-REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
           name: system-tests-${{ matrix.library }}-REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
           name: system-tests-${{ matrix.library }}-REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
           name: system-tests-${{ matrix.library }}-REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
           name: system-tests-${{ matrix.library }}-APPSEC_MISSING_RULES-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
           name: system-tests-${{ matrix.library }}-APPSEC_CORRUPTED_RULES-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
           name: system-tests-${{ matrix.library }}-APPSEC_LOW_WAF_TIMEOUT-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
           name: system-tests-${{ matrix.library }}-APPSEC_CUSTOM_OBFUSCATION-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
           name: system-tests-${{ matrix.library }}-APPSEC_RATE_LIMITER-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
@@ -315,12 +324,14 @@ jobs:
           name: system-tests-${{ matrix.library }}-SAMPLING-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
           name: system-tests-${{ matrix.library }}-PROFILING-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
         continue-on-error: true
+        if: ${{ matrix.app == 'rack' }}
       - name: Print fancy log report
         run: |
           find logs*
