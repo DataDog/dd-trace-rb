@@ -254,10 +254,9 @@ end
 
 Thread.prepend(DatadogThreadDebugger)
 
+require 'spec/support/thread_helpers'
 # Enforce test time limit, to allow us to debug why some test runs get stuck in CI
 if ENV.key?('CI')
-  require 'spec/support/thread_helpers'
-
   ThreadHelpers.with_leaky_thread_creation('Deadline thread') do
     Thread.new do
       Thread.current.name = 'spec_helper.rb CI debugging Deadline thread' unless RUBY_VERSION.start_with?('2.1.', '2.2.')
