@@ -55,6 +55,7 @@ module Datadog
           def config
             context.config
           end
+
           def host
             context.http_request.endpoint.host
           end
