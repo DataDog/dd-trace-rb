@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative 'assets'
 require_relative 'utils/http/media_range'
 

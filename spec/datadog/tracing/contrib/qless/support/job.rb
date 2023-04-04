@@ -1,5 +1,3 @@
-# typed: ignore
-
 LogHelpers.without_warnings do
   require 'qless'
 end

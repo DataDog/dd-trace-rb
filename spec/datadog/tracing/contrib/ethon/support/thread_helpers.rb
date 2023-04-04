@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec/support/thread_helpers'
 require 'ethon'
 

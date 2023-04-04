@@ -10,7 +10,6 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Running tests](#running-tests)
      - [Checking code quality](#checking-code-quality)
      - [Running benchmarks](#running-benchmarks)
-     - [Type checking](#type-checking)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
      - [Custom transport adapters](#custom-transport-adapters)
@@ -35,7 +34,7 @@ docker-compose run --rm tracer-3.0 /bin/bash
 bundle install
 
 # Install build targets
-appraisal install
+bundle exec appraisal install
 ```
 
 Then within this container you can [run tests](#running-tests), or [run code quality checks](#checking-code-quality).
@@ -75,13 +74,18 @@ Integrations which interact with dependencies not listed in the `ddtrace` gemspe
 
 To do so, load the dependencies using [Appraisal](https://github.com/thoughtbot/appraisal). You can see a list of available appraisals with `bundle exec appraisal list`, or examine the `Appraisals` file.
 
-Then to run tests, prefix the test commain with the appraisal. For example:
+Then to run tests, prefix the test commain with the appraisal.
+
+`bundle exec appraisal <appraisal_name> rake <test_comand>`
+
+
+For example:
 
 ```
-# Runs tests for Rails 3.2 + Postgres
-$ bundle exec appraisal rails32-postgres spec:rails
+# Runs tests for Rails 6.1 + Postgres
+$ bundle exec appraisal ruby-3.0.4-rails61-postgres rake spec:rails
 # Runs tests for Redis
-$ bundle exec appraisal contrib rake spec:redis
+$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis
 ```
 
 **Passing arguments to tests**
@@ -90,7 +94,7 @@ When running RSpec tests, you may pass additional args as parameters to the Rake
 
 ```
 # Runs Redis tests with seed 1234
-$ bundle exec appraisal contrib rake spec:redis'[--seed,1234]'
+$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis'[--seed,1234]'
 ```
 
 This can be useful for replicating conditions from CI or isolating certain tests.
@@ -100,7 +104,7 @@ This can be useful for replicating conditions from CI or isolating certain tests
 You can check test code coverage by creating a report _after_ running a test suite:
 ```
 # Run the desired test suite
-$ bundle exec appraisal contrib rake spec:redis
+$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis
 # Generate report for the suite executed
 $ bundle exec rake coverage:report
 ```
@@ -154,23 +158,10 @@ $ bundle exec rake rubocop
 If your changes can have a measurable performance impact, we recommend running our benchmark suite:
 
 ```
-$ bundle exec rake spec:benchmark
+$ bundle exec appraisal ruby-3.0.4-contrib rake spec:benchmark
 ```
 
 Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
-
-## Type checking
-
-This library uses the [Sorbet](https://sorbet.org/) type checker. Sorbet can be run with `bundle exec srb tc` (or `bundle exec rake
-typecheck`). There's also Language Server Protocol support, if your editor supports it.
-
-Type checking can be controlled on a file-by-file manner, using a `# typed: ...` comment. The default (when none is provided) is assuming `# typed: false`.
-
-Things to note:
-
-* For compatibility with older Rubies, we use Sorbet but do not yet allow type annotations in the codebase. If Sorbet is blocking you, feel free to use `# typed: false` or `# typed: ignore` with a quick note on why this was needed. In many cases, Sorbet can typecheck a file correctly with no extra type annotations.
-
-* Most integration-specific code will reference optional external dependencies which Sorbet cannot see into. You'll probably need to use `# typed: false` or `# typed: ignore`  for those files as well.
 
 ## Appendix
 

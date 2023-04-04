@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module Tracing
     module Configuration
@@ -7,6 +5,7 @@ module Datadog
       # e.g. Env vars, default values, enums, etc...
       module Ext
         ENV_ENABLED = 'DD_TRACE_ENABLED'.freeze
+        ENV_TRACE_ID_128_BIT_GENERATION_ENABLED = 'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED'.freeze
 
         # @public_api
         module Analytics
@@ -16,6 +15,7 @@ module Datadog
         # @public_api
         module Correlation
           ENV_LOGS_INJECTION_ENABLED = 'DD_LOGS_INJECTION'.freeze
+          ENV_TRACE_ID_128_BIT_LOGGING_ENABLED = 'DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED'.freeze
         end
 
         # @public_api
@@ -48,7 +48,7 @@ module Datadog
           ENV_PROPAGATION_STYLE_EXTRACT_OLD = 'DD_PROPAGATION_STYLE_EXTRACT'.freeze
 
           # A no-op propagator. Compatible with OpenTelemetry's `none` propagator.
-          # @see https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#otel_propagators
+          # @see https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#get_otel__propagators
           PROPAGATION_STYLE_NONE = 'none'.freeze
 
           ENV_X_DATADOG_TAGS_MAX_LENGTH = 'DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH'.freeze

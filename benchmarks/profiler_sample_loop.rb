@@ -1,5 +1,3 @@
-# typed: false
-
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 
@@ -23,6 +21,7 @@ class ProfilerSampleLoopBenchmark
       c.profiling.enabled = true
       c.profiling.exporter.transport = MockProfilerTransport.new
       c.tracing.transport_options = proc { |t| t.adapter :test }
+      c.profiling.advanced.force_enable_legacy_profiler = true
     end
 
     # Stop background threads

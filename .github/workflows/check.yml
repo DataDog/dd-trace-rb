@@ -6,8 +6,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - uses: ruby/setup-ruby@03b78bdda287ae04217ee12e4b64996630a03542 # v1.131.0
+      - uses: ruby/setup-ruby@31a7f6d628878b80bc63375a93ae079ec50a1601 # v1.143.0
         with:
-          ruby-version: '3.1'
+          ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-      - run: bundle exec steep check
+      - run: bundle exec rake typecheck

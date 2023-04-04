@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-# typed: false
 
 require_relative '../configuration/ext'
 require_relative '../trace_digest'

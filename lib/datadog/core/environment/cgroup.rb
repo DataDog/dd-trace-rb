@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'ext'
 
 module Datadog
@@ -10,8 +8,6 @@ module Datadog
       # about the current Linux container identity.
       # @see https://man7.org/linux/man-pages/man7/cgroups.7.html
       module Cgroup
-        include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
-
         LINE_REGEX = /^(\d+):([^:]*):(.+)$/.freeze
 
         Descriptor = Struct.new(

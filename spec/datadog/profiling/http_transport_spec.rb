@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/profiling/spec_helper'
 
 require 'datadog/profiling/http_transport'
@@ -308,6 +306,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'end' => end_timestamp,
           'family' => 'ruby',
           'version' => '4',
+          'endpoint_counts' => nil,
         )
       end
 
@@ -354,6 +353,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'end' => end_timestamp,
           'family' => 'ruby',
           'version' => '4',
+          'endpoint_counts' => nil,
         )
 
         expect(body[code_provenance_file_name]).to be nil
@@ -372,16 +372,6 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           StartCallback: -> { init_signal.push(1) }
         )
         server.listeners << unix_domain_socket
-
-        if RUBY_VERSION.start_with?('2.2.')
-          # Workaround for webrick bug in Ruby 2.2.
-          # This `setup_shutdown_pipe` method was added in 2.2 but it had a bug when webrick
-          # was configured with `DoNotListen: true` and was never called, which led to failures as webrick requires and
-          # expects it to have been called.
-          # In Ruby 2.3 this was fixed and this method always gets called, even with `DoNotListen: true`.
-          server.send(:setup_shutdown_pipe)
-        end
-
         server
       end
       let(:adapter) { Datadog::Transport::Ext::UnixSocket::ADAPTER }

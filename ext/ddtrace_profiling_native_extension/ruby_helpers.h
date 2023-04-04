@@ -12,7 +12,7 @@ static inline VALUE process_pending_interruptions(DDTRACE_UNUSED VALUE _) {
   return Qnil;
 }
 
-// RB_UNLIKELY is not supported on Ruby 2.2 and 2.3
+// RB_UNLIKELY is not supported on Ruby 2.3
 #ifndef RB_UNLIKELY
   #define RB_UNLIKELY(x) x
 #endif

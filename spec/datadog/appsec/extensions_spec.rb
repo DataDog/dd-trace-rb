@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/appsec/spec_helper'
 
 RSpec.describe Datadog::AppSec::Extensions do
@@ -37,9 +35,15 @@ RSpec.describe Datadog::AppSec::Extensions do
 
             it 'configures the integration' do
               # If integration_class.loaded? is invoked, it means the correct integration is being activated.
-              expect(integration_class).to receive(:loaded?).and_return(false)
+              begin
+                old_appsec_enabled = ENV['DD_APPSEC_ENABLED']
+                ENV['DD_APPSEC_ENABLED'] = 'true'
+                expect(integration_class).to receive(:loaded?).and_return(false)
 
-              configure
+                configure
+              ensure
+                ENV['DD_APPSEC_ENABLED'] = old_appsec_enabled
+              end
             end
           end
         end
@@ -69,8 +73,8 @@ RSpec.describe Datadog::AppSec::Extensions do
       end
 
       describe '#ruleset=' do
-        subject(:ruleset_) { settings.ruleset = :risky }
-        it { expect { ruleset_ }.to change { settings.ruleset }.from(:recommended).to(:risky) }
+        subject(:ruleset_) { settings.ruleset = :strict }
+        it { expect { ruleset_ }.to change { settings.ruleset }.from(:recommended).to(:strict) }
       end
 
       describe '#waf_timeout' do
@@ -101,6 +105,26 @@ RSpec.describe Datadog::AppSec::Extensions do
       describe '#trace_rate_limit=' do
         subject(:trace_rate_limit_) { settings.trace_rate_limit = 2 }
         it { expect { trace_rate_limit_ }.to change { settings.trace_rate_limit }.from(100).to(2) }
+      end
+
+      describe '#ip_denylist' do
+        subject(:ip_denylist) { settings.ip_denylist }
+        it { is_expected.to eq([]) }
+      end
+
+      describe '#ip_denylist=' do
+        subject(:ip_denylist_) { settings.ip_denylist = ['192.192.1.1'] }
+        it { expect { ip_denylist_ }.to change { settings.ip_denylist }.from([]).to(['192.192.1.1']) }
+      end
+
+      describe '#user_id_denylist' do
+        subject(:user_id_denylist) { settings.user_id_denylist }
+        it { is_expected.to eq([]) }
+      end
+
+      describe '#user_id_denylist=' do
+        subject(:user_id_denylist_) { settings.user_id_denylist = ['24528736564812'] }
+        it { expect { user_id_denylist_ }.to change { settings.user_id_denylist }.from([]).to(['24528736564812']) }
       end
 
       describe '#[]' do

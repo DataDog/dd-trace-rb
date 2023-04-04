@@ -4,16 +4,30 @@ gemspec
 
 # Development dependencies
 gem 'addressable', '~> 2.4.0' # locking transitive dependency of webmock
-gem 'appraisal', '~> 2.2'
+if RUBY_VERSION < '2.3'
+  gem 'appraisal', '~> 2.2.0'
+else
+  gem 'appraisal', '~> 2.4.0'
+end
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
 gem 'builder'
 gem 'climate_control', '~> 0.2.0'
 # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
-gem 'concurrent-ruby'
+if RUBY_VERSION >= '2.2.0'
+  gem 'concurrent-ruby'
+else
+  gem 'concurrent-ruby', '< 1.1.10'
+end
 gem 'extlz4', '~> 0.3', '>= 0.3.3' if RUBY_PLATFORM != 'java' # Used to test lz4 compression done by libdatadog
+gem 'json', '< 2.6' if RUBY_VERSION < '2.3.0'
 gem 'json-schema', '< 3' # V3 only works with 2.5+
-gem 'memory_profiler', '~> 0.9'
+if RUBY_VERSION >= '2.3.0'
+  gem 'memory_profiler', '~> 0.9'
+else
+  gem 'memory_profiler', '= 0.9.12'
+end
+
 gem 'os', '~> 1.1'
 gem 'pimpmychangelog', '>= 0.1.2'
 gem 'pry'
@@ -22,15 +36,20 @@ if RUBY_PLATFORM != 'java'
   # There's also a few temproary incompatibilities with newer rubies
   gem 'pry-byebug' if RUBY_VERSION >= '2.6.0' && RUBY_ENGINE != 'truffleruby' && RUBY_VERSION < '3.2.0'
   gem 'pry-nav' if RUBY_VERSION < '2.6.0'
-  gem 'pry-stack_explorer'
+  gem 'pry-stack_explorer' if RUBY_VERSION >= '2.5.0'
 else
   gem 'pry-debugger-jruby'
 end
-gem 'rake', '>= 10.5'
+if RUBY_VERSION >= '2.2.0'
+  gem 'rake', '>= 10.5'
+else
+  gem 'rake', '~> 12.3'
+end
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.12'
 gem 'rspec-collection_matchers', '~> 1.1'
+gem 'rspec-wait', '~> 0'
 if RUBY_VERSION >= '2.3.0'
   gem 'rspec_junit_formatter', '>= 0.5.1'
 else
@@ -50,13 +69,18 @@ else
   # with a newer version when the reports are merged.
   gem 'simplecov', '~> 0.17'
 end
+gem 'simplecov-html', '~> 0.10.2' if RUBY_VERSION < '2.4.0'
 gem 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 gem 'webmock', '>= 3.10.0'
 if RUBY_VERSION < '2.3.0'
   gem 'rexml', '< 3.2.5' # Pinned due to https://github.com/ruby/rexml/issues/69
 end
 gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
-gem 'yard', '~> 0.9'
+if RUBY_VERSION >= '2.3.0'
+  gem 'yard', '~> 0.9'
+else
+  gem 'yard', ['~> 0.9', '< 0.9.27'] # yard 0.9.27 starts pulling webrick as a gem dependency
+end
 
 if RUBY_VERSION >= '2.4.0'
   gem 'rubocop', ['~> 1.10', '< 1.33.0'], require: false
@@ -78,27 +102,35 @@ gem 'opentracing', '>= 0.4.1'
 #       Since most of our customers won't have BUNDLE_FORCE_RUBY_PLATFORM=true, it's not something we want to add
 #       to our CI, so we just shortcut and exclude specific versions that were affecting our CI.
 if RUBY_PLATFORM != 'java'
-  if RUBY_VERSION >= '2.5.0' # Bundler 1.x fails to recognize that version >= 3.19.2 is not compatible with older rubies
+  if RUBY_VERSION >= '2.5.0' # Bundler 1.x fails to find that versions >= 3.8.0 are not compatible because of binary gems
     gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1']
-  else
+  elsif RUBY_VERSION >= '2.3.0'
     gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.19.2']
+  else
+    gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.8.0']
   end
 end
 
 group :check do
-  # For type checking
-  # Sorbet releases almost daily, with new checks introduced that can make a
-  # previously-passing codebase start failing. Thus, we need to lock to a specific
-  # version and bump it from time to time.
-  # Also, there's no support for windows
-  if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
-    gem 'sorbet', '= 0.5.9672'
-    gem 'spoom', '~> 1.1'
-  end
-
-  # type checking with steep
-  if RUBY_VERSION >= '2.6.0' && RUBY_PLATFORM != 'java'
+  # The steep gem requires pathname >= 0.2.1, which clashes with the default 0.1.0 (on Ruby 3.0) and 0.2.0 (on Ruby 3.1)
+  # on github actions.
+  #
+  # The full error is:
+  # /Users/runner/hostedtoolcache/Ruby/3.1.3/x64/lib/ruby/gems/3.1.0/gems/bundler-2.4.7/lib/bundler/runtime.rb:304:in
+  # `check_for_activated_spec!': You have already activated pathname 0.2.0, but your Gemfile requires pathname 0.2.1.
+  # Since pathname is a default gem, you can either remove your dependency on it or try updating to a newer version of
+  # bundler that supports pathname as a default gem. (Gem::LoadError)
+  #
+  # @ivoanjo: For the life of me, I tried updating to the latest bundler, different ways of invoking rake (binstubs, ...)
+  # and could not fix this issue. As a final workaround, I decided to not install steep on the affected Ruby versions on
+  # GitHub Actions.
+  steep_ci_workaround = ENV['GITHUB_ACTIONS'] == 'true' && RUBY_VERSION.start_with?('3.0.', '3.1.')
+  if RUBY_VERSION >= '2.7.0' && RUBY_PLATFORM != 'java' && !steep_ci_workaround
     gem 'rbs', '~> 2.8.1', require: false
-    gem 'steep', '~> 1.3.0', require: false
+    gem 'steep', '~> 1.3.1', require: false
   end
 end
+
+gem 'docile', '~> 1.3.5' if RUBY_VERSION < '2.5'
+gem 'ffi', '~> 1.12.2' if RUBY_VERSION < '2.3'
+gem 'msgpack', '~> 1.3.3' if RUBY_VERSION < '2.4'

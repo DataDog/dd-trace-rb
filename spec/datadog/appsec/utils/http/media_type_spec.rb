@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/appsec/utils/http/media_type'
 
 RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do

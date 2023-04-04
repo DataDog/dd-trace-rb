@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/profiling/exporter'
 require 'datadog/profiling/old_recorder'
 require 'datadog/profiling/collectors/code_provenance'

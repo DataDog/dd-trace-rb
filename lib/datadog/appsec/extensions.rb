@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative 'configuration'
 
 module Datadog
@@ -54,6 +52,12 @@ module Datadog
           @settings.merge(dsl)
         end
 
+        def user_id_denylist=(arg)
+          dsl = AppSec::Configuration::DSL.new
+          dsl.user_id_denylist = arg
+          @settings.merge(dsl)
+        end
+
         def waf_timeout=(arg)
           dsl = AppSec::Configuration::DSL.new
           dsl.waf_timeout = arg
@@ -100,6 +104,10 @@ module Datadog
 
         def ip_denylist
           @settings.ip_denylist
+        end
+
+        def user_id_denylist
+          @settings.user_id_denylist
         end
 
         def waf_timeout

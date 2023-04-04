@@ -1,5 +1,3 @@
-# typed: ignore
-
 # This file is used to load the profiling native extension. It works in two steps:
 #
 # 1. Load the ddtrace_profiling_loader extension. This extension will be used to load the actual extension, but in

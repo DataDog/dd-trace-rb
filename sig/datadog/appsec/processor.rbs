@@ -17,6 +17,19 @@ module Datadog
         def finalize: () -> void
       end
 
+      def self.active_context: () -> Context
+
+      private
+
+      def self.active_context=: (untyped context) -> untyped
+      def self.reset_active_context: () -> untyped
+
+      class NoActiveContextError < StandardError
+      end
+
+      class AlreadyActiveContextError < StandardError
+      end
+
       attr_reader ruleset_info: untyped
       attr_reader addresses: untyped
 
@@ -24,12 +37,11 @@ module Datadog
       @ruleset: ::Hash[::String, untyped]
       @addresses: ::Array[::String]
 
-      def initialize: () -> void
+      def initialize: (ruleset: ::Hash[untyped, untyped]) -> void
       def ready?: () -> bool
       def new_context: () -> Context
-      def update_rule_data: (untyped data) -> untyped
-      def toggle_rules: (untyped map) -> untyped
-      def update_ip_denylist: (?untyped denylist, ?id: ::String) -> untyped
+      def activate_context: () -> Context
+      def deactivate_context: () -> void
       def finalize: () -> void
 
       attr_reader handle: untyped
@@ -37,8 +49,7 @@ module Datadog
       private
 
       def load_libddwaf: () -> bool
-      def load_ruleset: () -> bool
-      def create_waf_handle: () -> bool
+      def create_waf_handle: (Configuration::Settings settings, ::Hash[String, untyped] ruleset) -> bool
 
       def self.libddwaf_provides_waf?: () -> bool
       def self.require_libddwaf: () -> bool

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: false
-
 require_relative '../patcher'
 require_relative 'tracer'
 

@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'configuration/components'
 require_relative 'configuration/settings'
 require_relative 'telemetry/emitter'
@@ -10,8 +8,6 @@ module Datadog
   module Core
     # Configuration provides a unique access point for configurations
     module Configuration
-      include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
-
       # Used to ensure that @components initialization/reconfiguration is performed one-at-a-time, by a single thread.
       #
       # This is important because components can end up being accessed from multiple application threads (for instance on

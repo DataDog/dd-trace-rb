@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/ci/contrib/support/spec_helper'
 
 require 'datadog/ci/contrib/cucumber/integration'

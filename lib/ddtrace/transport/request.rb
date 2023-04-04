@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module Transport
     # Defines request for transport operations
@@ -7,7 +5,7 @@ module Datadog
       attr_reader \
         :parcel
 
-      def initialize(parcel)
+      def initialize(parcel = nil)
         @parcel = parcel
       end
     end

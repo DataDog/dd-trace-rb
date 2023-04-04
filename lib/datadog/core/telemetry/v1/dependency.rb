@@ -1,9 +1,13 @@
+require_relative '../../utils/hash'
+
 module Datadog
   module Core
     module Telemetry
       module V1
         # Describes attributes for dependency object
         class Dependency
+          using Core::Utils::Hash::Refinement
+
           ERROR_NIL_NAME_MESSAGE = ':name must not be nil'.freeze
 
           attr_reader \
@@ -23,11 +27,13 @@ module Datadog
           end
 
           def to_h
-            {
+            hash = {
               hash: @hash,
               name: @name,
               version: @version
             }
+            hash.compact!
+            hash
           end
         end
       end

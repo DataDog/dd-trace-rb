@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
 require_relative '../analytics'
@@ -42,7 +40,7 @@ module Datadog
                 end
 
                 # Add additional response specific tags to the span.
-                annotate_span_with_response!(span, res)
+                annotate_span_with_response!(span, res, request_options)
 
                 res
               end
@@ -72,13 +70,12 @@ module Datadog
               set_analytics_sample_rate(span, req_options)
             end
 
-            def annotate_span_with_response!(span, response)
+            def annotate_span_with_response!(span, response, request_options)
               return unless response && response.status
 
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
 
-              case response.status.to_i
-              when 400...599
+              if request_options[:error_status_codes].include? response.code.to_i
                 span.set_error(["Error #{response.status}", response.body])
               end
             end

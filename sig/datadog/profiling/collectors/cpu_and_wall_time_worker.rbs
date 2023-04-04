@@ -1,0 +1,21 @@
+module Datadog
+  module Profiling
+    module Collectors
+      class CpuAndWallTimeWorker
+        def self._native_allocation_count: () -> ::Integer?
+
+        def initialize: (
+          recorder: Datadog::Profiling::StackRecorder,
+          max_frames: ::Integer,
+          tracer: Datadog::Tracing::Tracer?,
+          endpoint_collection_enabled: bool,
+          gc_profiling_enabled: bool,
+          allocation_counting_enabled: bool,
+          ?thread_context_collector: Datadog::Profiling::Collectors::ThreadContext,
+          ?idle_sampling_helper: Datadog::Profiling::Collectors::IdleSamplingHelper,
+          ?dynamic_sampling_rate_enabled: bool,
+        ) -> void
+      end
+    end
+  end
+end

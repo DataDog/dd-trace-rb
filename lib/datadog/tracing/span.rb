@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: true
-
 require_relative '../core/utils/safe_dup'
 require_relative 'utils'
 

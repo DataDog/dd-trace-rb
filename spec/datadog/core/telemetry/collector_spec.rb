@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'spec_helper'
 
 require 'datadog/core/configuration'
@@ -86,6 +84,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
           Datadog.configuration.appsec.enabled = false
           stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
         end
+
         after do
           Datadog.configuration.profiling.send(:reset!)
           Datadog.configuration.appsec.send(:reset!)
@@ -99,11 +98,13 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         require 'datadog/appsec'
 
         before do
+          allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start) if PlatformHelpers.mri?
           Datadog.configure do |c|
             c.profiling.enabled = true
             c.appsec.enabled = true
           end
         end
+
         after do
           Datadog.configuration.profiling.send(:reset!)
           Datadog.configuration.appsec.send(:reset!)
@@ -223,6 +224,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     context 'when profiling is enabled' do
       before do
         stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+        allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start)
         Datadog.configure do |c|
           c.profiling.enabled = true
         end
@@ -244,6 +246,14 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       after { Datadog.configuration.appsec.send(:reset!) }
 
       it { is_expected.to include('appsec.enabled' => true) }
+    end
+
+    context 'when OpenTelemetry is enabled' do
+      before do
+        stub_const('Datadog::OpenTelemetry::LOADED', true)
+      end
+
+      it { is_expected.to include('tracing.opentelemetry.enabled' => true) }
     end
   end
 
@@ -285,7 +295,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       it 'sets integration as enabled' do
         expect(integrations).to include(
-          an_object_having_attributes(name: 'rake', enabled: true, compatible: true, error: nil)
+          an_object_having_attributes(name: 'rake', enabled: true, compatible: true)
         )
       end
 
@@ -323,7 +333,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
               name: 'redis',
               enabled: false,
               compatible: false,
-              error: { type: 'StandardError', message: nil, line: nil }.to_s
+              error: { type: 'StandardError' }.to_s
             )
           )
       end

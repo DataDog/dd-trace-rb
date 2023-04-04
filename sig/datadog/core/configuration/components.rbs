@@ -12,7 +12,7 @@ module Datadog
 
         def self.build_tracer: (untyped settings, untyped agent_settings) -> untyped
 
-        def self.build_profiler: (untyped settings, untyped agent_settings, untyped tracer) -> (nil | untyped)
+        def self.build_telemetry: (untyped settings) -> untyped
 
         private
 
@@ -21,14 +21,6 @@ module Datadog
         def self.build_tracer_options: (untyped settings, untyped agent_settings) -> untyped
 
         def self.build_tracer_test_mode_options: (untyped tracer_options, untyped settings, untyped agent_settings) -> untyped
-
-        def self.build_profiler_recorder: (untyped settings) -> untyped
-
-        def self.build_profiler_collectors: (untyped settings, untyped recorder, untyped trace_identifiers_helper) -> ::Array[untyped]
-
-        def self.build_profiler_exporters: (untyped settings, untyped agent_settings) -> ::Array[untyped]
-
-        def self.build_profiler_scheduler: (untyped settings, untyped recorder, untyped exporters) -> untyped
 
         public
 
@@ -41,6 +33,8 @@ module Datadog
         attr_reader runtime_metrics: untyped
 
         attr_reader tracer: untyped
+
+        attr_reader remote: Datadog::Core::Remote::Component
 
         def initialize: (untyped settings) -> untyped
 

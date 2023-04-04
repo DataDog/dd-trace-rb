@@ -4,6 +4,8 @@ module Datadog
       def tracer: () -> Datadog::Tracing::Tracer
 
       def logger: () -> Datadog::Core::Logger
+
+      def configuration: () -> Datadog::Core::Configuration::Settings
     end
   end
 end

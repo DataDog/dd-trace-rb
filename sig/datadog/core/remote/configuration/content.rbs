@@ -1,0 +1,31 @@
+module Datadog
+  module Core
+    module Remote
+      class Configuration
+        class Content
+          def self.parse: (::Hash[Symbol, untyped] hash) -> Content
+
+          attr_reader path: Configuration::Path
+
+          attr_reader data: StringIO
+
+          def initialize: (path: Configuration::Path, data: StringIO) -> void
+        end
+
+        class ContentList < Array[Content]
+          def self.parse: (::Array[::Hash[Symbol, untyped]] array) -> ContentList
+
+          def find_content: (Configuration::Path path, Configuration::Target target) -> Content?
+
+          def []: (Configuration::Path path) ->  Content?
+
+          def []=: (Configuration::Path path, Content content) -> ContentList
+
+          def delete: (Configuration::Path path) -> Content?
+
+          def paths: () -> ::Array[Path]
+        end
+      end
+    end
+  end
+end

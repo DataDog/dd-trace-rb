@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 require 'datadog/core/environment/cgroup'
 
@@ -10,11 +8,11 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
 
     context 'when the \'/proc/self/cgroup\' file is not present' do
       before do
+        expect(Datadog.logger).to_not receive(:error)
+
         expect(File).to receive(:exist?)
           .with('/proc/self/cgroup')
           .and_return(false)
-
-        expect(Datadog.logger).to_not receive(:error)
       end
 
       it do

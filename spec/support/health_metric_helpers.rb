@@ -1,5 +1,3 @@
-# typed: false
-
 require 'support/metric_helpers'
 require 'ddtrace'
 require 'datadog/tracing/diagnostics/ext'

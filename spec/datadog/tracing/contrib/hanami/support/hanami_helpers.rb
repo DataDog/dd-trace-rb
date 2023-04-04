@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'ddtrace'
 require 'rack'
 require 'hanami'

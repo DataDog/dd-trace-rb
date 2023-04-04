@@ -1,5 +1,3 @@
-# typed: ignore
-
 # rubocop:disable Style/StderrPuts
 # rubocop:disable Style/GlobalVars
 
@@ -28,7 +26,7 @@ def skip_building_extension!(reason)
   if fail_install_if_missing_extension
     require 'mkmf'
     Logging.message(
-      ' [ddtrace] Failure cause: ' \
+      '[ddtrace] Failure cause: ' \
       "#{Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason)}\n"
     )
   else
@@ -67,9 +65,9 @@ $stderr.puts(
 # that may fail on an environment not properly setup for building Ruby extensions.
 require 'mkmf'
 
-Logging.message(" [ddtrace] Using compiler:\n")
+Logging.message("[ddtrace] Using compiler:\n")
 xsystem("#{CONFIG['CC']} -v")
-Logging.message(" [ddtrace] End of compiler information\n")
+Logging.message("[ddtrace] End of compiler information\n")
 
 # mkmf on modern Rubies actually has an append_cflags that does something similar
 # (see https://github.com/ruby/ruby/pull/5760), but as usual we need a bit more boilerplate to deal with legacy Rubies
@@ -125,7 +123,7 @@ if RUBY_PLATFORM.include?('linux')
   # have_library 'pthread'
   # have_func 'pthread_getcpuclockid'
   # ```
-  # but it broke the build on Windows and on older Ruby versions (2.2)
+  # but a) it broke the build on Windows, b) on older Ruby versions (2.2 and below) and c) It's slower to build
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
@@ -162,19 +160,10 @@ if RUBY_VERSION < '2.4'
   $defs << '-DUSE_LEGACY_RB_VM_FRAME_METHOD_ENTRY'
 end
 
-# For REALLY OLD Rubies...
-if RUBY_VERSION < '2.3'
-  # ...there was no rb_time_timespec_new function
-  $defs << '-DNO_RB_TIME_TIMESPEC_NEW'
-  # ...the VM changed enough that we need an alternative legacy rb_profile_frames
-  $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
-  # ... you couldn't name threads
-  $defs << '-DNO_THREAD_NAMES'
-end
-
 # If we got here, libdatadog is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
-Logging.message(" [ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
+Logging.message("[ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
+$stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
 unless pkg_config('datadog_profiling_with_rpath')
   skip_building_extension!(
@@ -197,7 +186,7 @@ end
 $LDFLAGS += \
   ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/' \
   "#{Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder}"
-Logging.message(" [ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
+Logging.message("[ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that

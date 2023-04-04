@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../response'
 require_relative '../../../../datadog/core/vendor/multipart-post/net/http/post/multipart'
 
@@ -53,6 +51,18 @@ module Datadog
             else
               raise UnknownHTTPMethod, env
             end
+          end
+
+          def get(env)
+            get = ::Net::HTTP::Get.new(env.path, env.headers)
+
+            # Connect and send the request
+            http_response = open do |http|
+              http.request(get)
+            end
+
+            # Build and return response
+            Response.new(http_response)
           end
 
           def post(env)

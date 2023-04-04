@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'securerandom'
@@ -462,6 +460,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#force_enable_legacy_profiler' do
+        subject(:force_enable_legacy_profiler) { settings.profiling.advanced.force_enable_legacy_profiler }
+
+        context 'when DD_PROFILING_FORCE_ENABLE_LEGACY' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_FORCE_ENABLE_LEGACY' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          { 'true' => true, 'false' => false }.each do |string, value|
+            context "is defined as #{string}" do
+              let(:environment) { string }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#force_enable_legacy_profiler=' do
+        it 'updates the #force_enable_legacy_profiler setting' do
+          expect { settings.profiling.advanced.force_enable_legacy_profiler = true }
+            .to change { settings.profiling.advanced.force_enable_legacy_profiler }
+            .from(false)
+            .to(true)
+        end
+      end
+
       describe '#force_enable_gc_profiling' do
         subject(:force_enable_gc_profiling) { settings.profiling.advanced.force_enable_gc_profiling }
 
@@ -494,6 +527,33 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.force_enable_gc_profiling }
             .from(false)
             .to(true)
+        end
+      end
+
+      describe '#allocation_counting_enabled' do
+        subject(:allocation_counting_enabled) { settings.profiling.advanced.allocation_counting_enabled }
+
+        context 'on Ruby 2.x' do
+          before { skip("Spec doesn't run on Ruby 3.x") unless RUBY_VERSION.start_with?('2.') }
+
+          it { is_expected.to be true }
+        end
+
+        context 'on Ruby 3.x' do
+          before { skip("Spec doesn't run on Ruby 2.x") if RUBY_VERSION.start_with?('2.') }
+
+          it { is_expected.to be false }
+        end
+      end
+
+      describe '#allocation_counting_enabled=' do
+        it 'updates the #allocation_counting_enabled setting' do
+          settings.profiling.advanced.allocation_counting_enabled = true
+
+          expect { settings.profiling.advanced.allocation_counting_enabled = false }
+            .to change { settings.profiling.advanced.allocation_counting_enabled }
+            .from(true)
+            .to(false)
         end
       end
     end
@@ -911,6 +971,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
+  # Important note: These settings are used as inputs of the AgentSettingsResolver and are used by all components
+  # that consume its result (e.g. tracing, profiling, and telemetry, as of January 2023).
   describe '#agent' do
     describe '#host' do
       subject(:host) { settings.agent.host }
@@ -926,6 +988,25 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.agent.host }
           .from(nil)
           .to(host)
+      end
+    end
+
+    describe '#tracer' do
+      describe '#port' do
+        subject(:port) { settings.agent.port }
+
+        it { is_expected.to be nil }
+      end
+
+      describe '#port=' do
+        let(:port) { 1234 }
+
+        it 'updates the #port setting' do
+          expect { settings.agent.port = port }
+            .to change { settings.agent.port }
+            .from(nil)
+            .to(port)
+        end
       end
     end
   end
@@ -1005,7 +1086,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:environment) { nil }
 
-          it { is_expected.to be true }
+          it { is_expected.to be false }
         end
 
         { 'true' => true, 'false' => false }.each do |string, value|
@@ -1025,6 +1106,74 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.telemetry.enabled }
           .from(true)
           .to(false)
+      end
+    end
+  end
+
+  describe '#remote' do
+    describe '#enabled' do
+      subject(:enabled) { settings.remote.enabled }
+
+      context "when #{Datadog::Core::Remote::Ext::ENV_ENABLED}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Remote::Ext::ENV_ENABLED => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'true' }
+
+          it { is_expected.to be true }
+        end
+      end
+    end
+
+    describe '#enabled=' do
+      it 'updates the #enabled setting' do
+        expect { settings.remote.enabled = true }
+          .to change { settings.remote.enabled }
+          .from(false)
+          .to(true)
+      end
+    end
+
+    describe '#poll_interval_seconds' do
+      subject(:enabled) { settings.remote.poll_interval_seconds }
+
+      context "when #{Datadog::Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to eq 5.0 }
+        end
+
+        context 'is defined' do
+          let(:environment) { '1' }
+
+          it { is_expected.to eq 1.0 }
+        end
+      end
+    end
+
+    describe '#poll_interval_seconds=' do
+      it 'updates the #poll_interval_seconds setting' do
+        expect { settings.remote.poll_interval_seconds = 1 }
+          .to change { settings.remote.poll_interval_seconds }
+          .from(5.0)
+          .to(1.0)
       end
     end
   end

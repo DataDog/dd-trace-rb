@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative 'configuration/settings'
 
 module Datadog
@@ -38,6 +36,10 @@ module Datadog
 
         def ip_denylist=(value)
           options[:ip_denylist] = value
+        end
+
+        def user_id_denylist=(value)
+          options[:user_id_denylist] = value
         end
 
         # in microseconds

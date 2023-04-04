@@ -1,5 +1,3 @@
-# typed: false
-
 module CoreHelpers
   # Asserts that a deprecated action is recorded by the `subject` execution.
   RSpec.shared_examples 'records deprecated action' do |matcher = nil|

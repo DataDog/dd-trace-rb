@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../../datadog/core/encoding'
 
 require_relative 'api/map'

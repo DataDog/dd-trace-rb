@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative '../analytics'
 require_relative 'ext'
 require_relative 'configuration/settings'

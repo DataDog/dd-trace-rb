@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'ext'
 
 require_relative '../metrics/client'
@@ -57,15 +55,27 @@ module Datadog
 
           try_flush do
             if Core::Environment::VMCache.available?
-              gauge(
+              # Only on Ruby < 3.2
+              gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_GLOBAL_CONSTANT_STATE,
                 Core::Environment::VMCache.global_constant_state
               )
 
-              # global_method_state is not available since Ruby >= 3.0,
-              # as method caching was moved to a per-class basis.
-              global_method_state = Core::Environment::VMCache.global_method_state
-              gauge(Core::Runtime::Ext::Metrics::METRIC_GLOBAL_METHOD_STATE, global_method_state) if global_method_state
+              # Only on Ruby 2.x
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_GLOBAL_METHOD_STATE,
+                Core::Environment::VMCache.global_method_state
+              )
+
+              # Only on Ruby >= 3.2
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_CONSTANT_CACHE_INVALIDATIONS,
+                Core::Environment::VMCache.constant_cache_invalidations
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_CONSTANT_CACHE_MISSES,
+                Core::Environment::VMCache.constant_cache_misses
+              )
             end
           end
         end
@@ -119,6 +129,10 @@ module Datadog
 
         def to_metric_name(str)
           str.downcase.gsub(/[-\s]/, '_')
+        end
+
+        def gauge_if_not_nil(metric_name, metric_value)
+          gauge(metric_name, metric_value) if metric_value
         end
       end
     end

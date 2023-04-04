@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
@@ -77,7 +75,11 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       }
 
       it {
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
+        expect(span.get_tag('component')).to eq('elasticsearch')
+      }
+
+      it {
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq('client')
       }
 
       it {
@@ -139,7 +141,11 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       }
 
       it {
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
+        expect(span.get_tag('component')).to eq('elasticsearch')
+      }
+
+      it {
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq('client')
       }
 
       it {

@@ -1,5 +1,3 @@
-# typed: strict
-
 require_relative 'core'
 require_relative 'tracing'
 require_relative 'tracing/contrib'

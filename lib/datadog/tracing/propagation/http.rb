@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../contrib/http/distributed/propagation'
 
 module Datadog
