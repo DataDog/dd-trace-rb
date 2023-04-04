@@ -194,13 +194,13 @@ module Datadog
         # Serialize `_dd.p.{key}` by first removing the `_dd.p.` prefix.
         # Then replacing invalid characters with `_`.
         #
-        # Returns a new object if modified given `name` is a Hash key, thus always frozen.
+        # Returns a new object, given `name` is a Hash key thus always frozen.
         def serialize_tag_key(name)
           key = name.delete_prefix(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX)
 
           # DEV: It's unlikely that characters will be out of range, as they mostly
           # DEV: come from Datadog-controlled sources.
-          # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
+          # DEV: Trying to `match?` is measurably faster than a `gsub!` that does not match.
           key.gsub!(INVALID_TAG_KEY_CHARS, '_') if INVALID_TAG_KEY_CHARS.match?(key)
 
           key

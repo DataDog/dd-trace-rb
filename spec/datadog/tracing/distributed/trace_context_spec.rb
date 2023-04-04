@@ -214,7 +214,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
             "\u001F", # Last lower invalid character
             ',',
             ';',
-            '~', # First upper invalid character
+            '~', # First upper invalid character (\u007E)
             "\u{10FFFF}" # Last unicode character
           ].each do |character|
             context character.inspect do
