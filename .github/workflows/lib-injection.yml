@@ -73,7 +73,6 @@ jobs:
         with:
           repository: DataDog/system-tests
           path: system-tests
-          ref: tonycthsu/fix-ruby-images-for-lib-injection-tests
       - name: Overwrite auto inject script with commit SHA
         run: |
           sed -i "s~<DD_TRACE_SHA_TO_BE_REPLACED>~${{github.sha}}~g" lib-injection/auto_inject.rb
