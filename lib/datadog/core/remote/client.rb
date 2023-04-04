@@ -135,7 +135,7 @@ module Datadog
                 tags: [], # TODO: add nice tags!
               },
               # base64 is needed otherwise the Go agent fails with an unmarshal error
-              capabilities: @capabilities.binary_capabilities
+              capabilities: @capabilities.base64_capabilities
             },
             cached_target_files: [
               # TODO: to be implemented once we cache configuration content

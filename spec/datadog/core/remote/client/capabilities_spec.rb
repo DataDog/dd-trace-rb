@@ -30,9 +30,9 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.receivers).to be_empty
     end
 
-    describe '#binary_capabilities' do
+    describe '#base64_capabilities' do
       it 'returns an empty string' do
-        expect(capabilities.binary_capabilities).to eq('')
+        expect(capabilities.base64_capabilities).to eq('')
       end
     end
   end
@@ -56,9 +56,9 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       expect(capabilities.receivers).to_not be_empty
     end
 
-    describe '#binary_capabilities' do
+    describe '#base64_capabilities' do
       it 'returns binary capabilities' do
-        expect(capabilities.binary_capabilities).to eq('Afw=')
+        expect(capabilities.base64_capabilities).to eq('Afw=')
       end
     end
   end

@@ -9,7 +9,7 @@ module Datadog
 
           attr_reader receivers: Array[Core::Remote::Dispatcher::Receiver]
 
-          attr_reader binary_capabilities: String
+          attr_reader base64_capabilities: String
 
           def initialize: (Datadog::Core::Configuration::Settings settings) -> void
 
@@ -24,7 +24,7 @@ module Datadog
 
           def register_products: (Array[String] products) -> void
 
-          def compute_capabilities: () -> String
+          def capabilities_to_base64: () -> String
         end
       end
     end

@@ -8,7 +8,7 @@ module Datadog
       class Client
         # Capbailities
         class Capabilities
-          attr_reader :products, :capabilities, :receivers, :binary_capabilities
+          attr_reader :products, :capabilities, :receivers, :base64_capabilities
 
           def initialize(settings)
             @capabilities = []
@@ -17,7 +17,7 @@ module Datadog
 
             register(settings)
 
-            @binary_capabilities = compute_capabilities
+            @base64_capabilities = capabilities_to_base64
           end
 
           private
@@ -42,7 +42,7 @@ module Datadog
             @products.concat(products)
           end
 
-          def compute_capabilities
+          def capabilities_to_base64
             return '' if capabilities.empty?
 
             cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
