@@ -17,7 +17,6 @@ module Datadog
           # sending the request to the server.
           class Client < Base
             def trace(keywords)
-              keywords[:metadata] ||= {}
               formatter = GRPC::Formatting::FullMethodStringFormatter.new(keywords[:method])
 
               options = {
@@ -45,7 +44,7 @@ module Datadog
             private
 
             def annotate!(trace, span, keywords, formatter)
-              metadata = keywords[:metadata]
+              metadata = keywords[:metadata] || {}
               call = keywords[:call]
 
               span.set_tags(metadata)
