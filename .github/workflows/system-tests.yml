@@ -36,7 +36,7 @@ jobs:
       - name: Save image
         uses: actions/upload-artifact@v3
         with:
-          name: docker-image-${{ matrix.image }}
+          name: docker-image-${{ matrix.image }}-${{ github.run_id }}-${{ github.sha }}
           path: images/*
           retention-days: 1
 
@@ -87,7 +87,7 @@ jobs:
       - name: Save image
         uses: actions/upload-artifact@v3
         with:
-          name: docker-image-${{ matrix.image }}-${{ matrix.app }}
+          name: docker-image-${{ matrix.image }}-${{ matrix.app }}-${{ github.run_id }}-${{ github.sha }}
           path: images/*
           retention-days: 1
 
@@ -146,17 +146,17 @@ jobs:
       - name: Retrieve agent image
         uses: actions/download-artifact@v3
         with:
-          name: docker-image-agent
+          name: docker-image-agent-${{ github.run_id }}-${{ github.sha }}
           path: images
       - name: Retrieve runner image
         uses: actions/download-artifact@v3
         with:
-          name: docker-image-runner
+          name: docker-image-runner-${{ github.run_id }}-${{ github.sha }}
           path: images
       - name: Retrieve app image
         uses: actions/download-artifact@v3
         with:
-          name: docker-image-weblog-${{ matrix.app }}
+          name: docker-image-weblog-${{ matrix.app }}-${{ github.run_id }}-${{ github.sha }}
           path: images
       - name: Load images
         run: |
