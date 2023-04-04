@@ -402,8 +402,28 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context 'when mysql2 gem is not available' do
-          include_context 'loaded gems', :mysql2 => nil
+        context 'when rugged gem is available' do
+          include_context 'loaded gems', :rugged => Gem::Version.new('1.6.3')
+
+          before { allow(Datadog.logger).to receive(:warn) }
+
+          it { is_expected.to be false }
+
+          it 'logs a warning message mentioning that the legacy profiler is going to be used' do
+            expect(Datadog.logger).to receive(:warn).with(/Falling back to legacy profiler/)
+
+            enable_new_profiler?
+          end
+
+          context 'when force_enable_new_profiler is enabled' do
+            before { settings.profiling.advanced.force_enable_new_profiler = true }
+
+            it { is_expected.to be true }
+          end
+        end
+
+        context 'when mysql2 / rugged gem are not available' do
+          include_context('loaded gems', mysql2: nil, rugged: nil)
 
           it { is_expected.to be true }
         end
