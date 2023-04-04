@@ -41,6 +41,10 @@ module Datadog
         def configure: () { (DSL) -> void } -> void
 
         def settings: () -> Settings
+
+        private
+
+        def default_setting?: (Symbol setting) -> bool
       end
     end
   end

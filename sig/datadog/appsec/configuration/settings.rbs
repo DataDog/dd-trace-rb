@@ -25,6 +25,7 @@ module Datadog
 
         @options: options
         @integrations: ::Array[Integration]
+        @configured: Set[Symbol]
 
         def enabled: () -> bool
         def ruleset: () -> (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO)
@@ -41,6 +42,8 @@ module Datadog
         def merge: (DSL) -> Settings
 
         private
+
+        def default?: (Symbol option) -> bool
 
         def reset!: () -> void
       end
