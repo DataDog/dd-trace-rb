@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'ext'
 require_relative 'parsers'
 require_relative 'subscribers'
