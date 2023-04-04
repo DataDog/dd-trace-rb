@@ -170,6 +170,7 @@ static void sleep_for(uint64_t time_ns);
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state);
+static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 
 // Note on sampler global state safety:
 //
@@ -222,6 +223,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
   rb_define_singleton_method(testing_module, "_native_simulate_sample_from_postponed_job", _native_simulate_sample_from_postponed_job, 0);
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
+  rb_define_singleton_method(testing_module, "_native_with_blocked_sigprof", _native_with_blocked_sigprof, 0);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_worker_state
@@ -868,4 +870,17 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
   rb_tracepoint_disable(state->gc_tracepoint);
   rb_tracepoint_disable(state->object_allocation_tracepoint);
+}
+
+static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
+  block_sigprof_signal_handler_from_running_in_current_thread();
+  int exception_state;
+  VALUE result = rb_protect(rb_yield, Qundef, &exception_state);
+  unblock_sigprof_signal_handler_from_running_in_current_thread();
+
+  if (exception_state) {
+    rb_jump_tag(exception_state);
+  } else {
+    return result;
+  }
 }
