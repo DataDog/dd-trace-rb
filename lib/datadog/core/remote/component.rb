@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'worker'
+require_relative 'client/capabilities'
 require_relative 'client'
 require_relative '../transport/http'
 require_relative '../remote'
@@ -19,7 +20,9 @@ module Datadog
 
           transport_v7 = Datadog::Core::Transport::HTTP.v7(**transport_options.dup)
 
-          @client = Client.new(transport_v7)
+          capabilities = Client::Capabilities.new(settings)
+
+          @client = Client.new(transport_v7, capabilities)
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds) { @client.sync }
         end
 
@@ -45,7 +48,6 @@ module Datadog
           def build(settings, agent_settings)
             return unless settings.remote.enabled
 
-            # TODO: condition with configuration
             new(settings, agent_settings)
           end
         end

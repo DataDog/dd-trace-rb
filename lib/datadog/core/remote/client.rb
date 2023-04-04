@@ -4,27 +4,32 @@ require 'securerandom'
 
 require_relative 'configuration'
 require_relative 'dispatcher'
-require_relative '../../appsec/processor/rule_merger'
-require_relative '../../appsec/processor/rule_loader'
 
 module Datadog
   module Core
     module Remote
       # Client communicates with the agent and sync remote configuration
       class Client
+        class SyncError < StandardError; end
+
         attr_reader :transport, :repository, :id, :dispatcher
 
-        def initialize(transport, repository: Configuration::Repository.new)
+        def initialize(transport, capabilities, repository: Configuration::Repository.new)
           @transport = transport
 
           @repository = repository
           @id = SecureRandom.uuid
           @dispatcher = Dispatcher.new
-          register_receivers
+          @capabilities = capabilities
+
+          @capabilities.receivers.each do |receiver|
+            dispatcher.receivers << receiver
+          end
         end
 
         # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity
         def sync
+          # TODO: Skip sync if no capabilities are registered
           response = transport.send_config(payload)
 
           if response.ok?
@@ -101,9 +106,6 @@ module Datadog
         end
         # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity
 
-        class SyncError < StandardError; end
-        class ReadError < StandardError; end
-
         private
 
         def payload
@@ -120,7 +122,7 @@ module Datadog
                 backend_client_state: state.opaque_backend_state,
               },
               id: id,
-              products: products,
+              products: @capabilities.products,
               is_tracer: true,
               is_agent: false,
               client_tracer: {
@@ -133,7 +135,7 @@ module Datadog
                 tags: [], # TODO: add nice tags!
               },
               # base64 is needed otherwise the Go agent fails with an unmarshal error
-              capabilities: Base64.encode64(capabilities_binary).chomp,
+              capabilities: @capabilities.base64_capabilities
             },
             cached_target_files: [
               # TODO: to be implemented once we cache configuration content
@@ -144,108 +146,6 @@ module Datadog
               # }
             ],
           }
-        end
-
-        # TODO: this is serialization of capabilities, it should go in the request serializer/encoder
-        CAP_ASM_ACTIVATION                = 1 << 1 # Remote activation via ASM_FEATURES product
-        CAP_ASM_IP_BLOCKING               = 1 << 2 # accept IP blocking data from ASM_DATA product
-        CAP_ASM_DD_RULES                  = 1 << 3 # read ASM rules from ASM_DD product
-        CAP_ASM_EXCLUSIONS                = 1 << 4 # exclusion filters (passlist) via ASM product
-        CAP_ASM_REQUEST_BLOCKING          = 1 << 5 # can block on request info
-        CAP_ASM_RESPONSE_BLOCKING         = 1 << 6 # can block on response info
-        CAP_ASM_USER_BLOCKING             = 1 << 7 # accept user blocking data from ASM_DATA product
-        CAP_ASM_CUSTOM_RULES              = 1 << 8 # accept custom rules
-        CAP_ASM_CUSTOM_BLOCKING_RESPONSE  = 1 << 9 # supports custom http code or redirect sa blocking response
-
-        # TODO: this should go in the AppSec namespace
-        # TODO: condition by active configuration
-        def products
-          [
-            'ASM_DD',       # Datadog employee issued configuration
-            'ASM',          # customer issued configuration (rulesets, passlist...)
-            'ASM_FEATURES', # capabilities
-            'ASM_DATA',     # config files (IP addresses or users for blocking)
-          ]
-        end
-
-        CAPABILITIES = [
-          CAP_ASM_IP_BLOCKING,
-          CAP_ASM_USER_BLOCKING,
-          CAP_ASM_CUSTOM_RULES,
-          CAP_ASM_EXCLUSIONS,
-          CAP_ASM_REQUEST_BLOCKING,
-          CAP_ASM_RESPONSE_BLOCKING,
-          CAP_ASM_DD_RULES,
-        ].freeze
-
-        # TODO: as a declaration, this should go in the AppSec namepsace
-        # TODO: as serialization, this should go in the request serializer/encoder
-        # TODO: condition by active configuration
-        def capabilities
-          CAPABILITIES.reduce(:|)
-        end
-
-        # TODO: this is serialization of capabilities, it should go in the request serializer/encoder
-        def capabilities_binary
-          cap_to_hexs = capabilities.to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
-          cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
-        end
-
-        def register_receivers
-          matcher = Dispatcher::Matcher::Product.new(products)
-
-          dispatcher.receivers << Dispatcher::Receiver.new(matcher) do |repository, changes|
-            changes.each do |change|
-              Datadog.logger.debug { "remote config change: '#{change.path}'" }
-            end
-
-            rules = []
-            data = []
-            overrides = []
-            exclusions = []
-
-            asm_data_config_types = ['blocked_ips', 'blocked_users']
-            asm_overrides_config_types = ['blocking', 'disabled_rules']
-
-            repository.contents.each do |content|
-              case content.path.product
-              when 'ASM_DD'
-                rules << parse_content(content)
-              when 'ASM_DATA'
-                data << parse_content(content) if asm_data_config_types.include?(content.path.config_id)
-              when 'ASM'
-                overrides << parse_content(content) if asm_overrides_config_types.include?(content.path.config_id)
-                exclusions << parse_content(content) if content.path.config_id == 'exclusion_filters'
-              end
-            end
-
-            if rules.empty?
-              settings_rules = AppSec::Processor::RuleLoader.load_rules(ruleset: Datadog.configuration.appsec.ruleset)
-
-              raise SyncError, 'no default rules available' unless settings_rules
-
-              rules = [settings_rules]
-            end
-
-            ruleset = AppSec::Processor::RuleMerger.merge(
-              rules: rules,
-              data: data,
-              overrides: overrides,
-              exclusions: exclusions,
-            )
-
-            Datadog::AppSec.reconfigure(ruleset: ruleset)
-          end
-        end
-
-        def parse_content(content)
-          data = content.data.read
-
-          content.data.rewind
-
-          raise ReadError, 'EOF reached' if data.nil?
-
-          JSON.parse(data)
         end
       end
     end
