@@ -103,12 +103,7 @@ module Datadog
         private
 
         def remote_features_enabled?
-          # TODO: Only checking ENV is not enough, since customers could configure the ruleset via Datadog.configure
-          appsec_rules = ENV['DD_APPSEC_RULES']
-
-          return true unless appsec_rules
-
-          appsec_rules.empty?
+          Datadog::AppSec.send(:default_setting?, :ruleset)
         end
 
         def parse_content(content)
