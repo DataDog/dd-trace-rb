@@ -114,21 +114,46 @@ jobs:
           - rails70
         scenario:
           - DEFAULT
-          - REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
-          - REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES
-          - REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE
-          - REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE
-          - APPSEC_CUSTOM_RULES
-          - APPSEC_MISSING_RULES
-          - APPSEC_CORRUPTED_RULES
           - APPSEC_DISABLED
-          - APPSEC_LOW_WAF_TIMEOUT
-          - APPSEC_CUSTOM_OBFUSCATION
-          - APPSEC_RATE_LIMITER
           - APPSEC_IP_BLOCKING
           - APPSEC_REQUEST_BLOCKING
-          - SAMPLING
-          - PROFILING
+        include:
+          - library: ruby
+            app: rack
+            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
+          - library: ruby
+            app: rack
+            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES
+          - library: ruby
+            app: rack
+            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE
+          - library: ruby
+            app: rack
+            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE
+          - library: ruby
+            app: rack
+            scenario: APPSEC_CUSTOM_RULES
+          - library: ruby
+            app: rack
+            scenario: APPSEC_MISSING_RULES
+          - library: ruby
+            app: rack
+            scenario: APPSEC_CORRUPTED_RULES
+          - library: ruby
+            app: rack
+            scenario: APPSEC_LOW_WAF_TIMEOUT
+          - library: ruby
+            app: rack
+            scenario: APPSEC_CUSTOM_OBFUSCATION
+          - library: ruby
+            app: rack
+            scenario: APPSEC_RATE_LIMITER
+          - library: ruby
+            app: rack
+            scenario: SAMPLING
+          - library: ruby
+            app: rack
+            scenario: PROFILING
     runs-on: ubuntu-latest
     needs:
       - build-harness
