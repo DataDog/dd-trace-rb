@@ -37,6 +37,11 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
 
+            span.set_tag(
+              Tracing::Metadata::Ext::SpanAttributeSchema::TAG_SCHEMA_VAR,
+              Datadog.configuration.tracing.span_attribute_schema
+            )
+
             # Tag as an external peer service
             if Contrib::SpanAttributeSchema.default_span_attribute_schema?
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
