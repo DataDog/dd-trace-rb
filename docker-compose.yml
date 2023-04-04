@@ -206,7 +206,7 @@ services:
       TEST_POSTGRES_HOST: postgres
       TEST_REDIS_HOST: redis
       TEST_REDIS_OLD_HOST: redis_old
-      TEST_REDIS_OLD_PORT: 6379
+      TEST_REDIS_OLD_PORT: 6380
       DDTRACE_CI: true
     stdin_open: true
     tty: true
