@@ -1,0 +1,53 @@
+# -----------------------------------------------------
+# Benchmarking Platform configuration
+# -----------------------------------------------------
+
+variables:
+  KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
+  GITLAB_BENCHMARKS_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-gitlab
+
+.benchmarks:
+  stage: benchmarks
+  when: manual
+  tags: ["runner:apm-k8s-same-cpu"]
+  timeout: 1h
+
+  # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
+  image: $GITLAB_BENCHMARKS_CI_IMAGE
+
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/reports" && (mkdir "${ARTIFACTS_DIR}" || :)
+    - export DD_API_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.dd-trace-rb.dd_api_key --with-decryption --query "Parameter.Value" --out text)
+    - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform && cd /platform
+    - ./steps/capture-hardware-software-info.sh
+    - ./steps/run-benchmarks.sh
+    - "./steps/upload-results-to-s3.sh || :"
+  artifacts:
+    name: "reports"
+    paths:
+      - reports/
+    expire_in: 3 months
+  variables:
+    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
+    DD_RELENV_DDTRACE_COMMIT_ID: $CI_COMMIT_SHORT_SHA
+    K6_RUN_ID_PREFIX: ci_rb
+
+baseline-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: baseline
+
+only-tracing-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: only-tracing
+
+only-profiling-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: only-profiling
+
+profiling-and-tracing-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: profiling-and-tracing

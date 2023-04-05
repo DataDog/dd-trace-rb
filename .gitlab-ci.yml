@@ -1,5 +1,12 @@
 stages:
   - deploy
+  - benchmarks
+
+include: ".gitlab/benchmarks.yml"
+
+# -----------------------------------------------------
+# Reliability Environment configuration
+# -----------------------------------------------------
 
 variables:
   DOWNSTREAM_BRANCH:
