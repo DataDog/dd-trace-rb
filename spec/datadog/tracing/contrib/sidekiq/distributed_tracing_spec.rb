@@ -60,7 +60,8 @@ RSpec.describe 'Sidekiq distributed tracing' do
         expect(job['x-datadog-trace-id']).to eq(span.trace_id.to_s)
         expect(job['x-datadog-parent-id']).to eq(span.id.to_s)
         expect(job['x-datadog-sampling-priority']).to eq('1')
-        # expect(job["x-datadog-tags"]).to eq("_dd.p.dm=-0")
+        expect(job['x-datadog-tags']).to eq('_dd.p.dm=-0')
+        expect(job).not_to include 'x-datadog-origin'
       end
     end
 
@@ -79,8 +80,9 @@ RSpec.describe 'Sidekiq distributed tracing' do
             'jid' => jid,
             'x-datadog-trace-id' => trace_id.to_s,
             'x-datadog-parent-id' => span_id.to_s,
-            'x-datadog-sampling-priority' => '1',
-            'x-datadog-tags' => '_dd.p.dm=-0',
+            'x-datadog-sampling-priority' => '2',
+            'x-datadog-tags' => '_dd.p.dm=-99',
+            'x-datadog-origin' => 'my-origin'
           )
         )
 
@@ -96,8 +98,9 @@ RSpec.describe 'Sidekiq distributed tracing' do
         expect(span.get_tag('operation')).to eq('job')
         expect(span.get_tag('span.kind')).to eq('consumer')
 
-        # "x-datadog-sampling-priority" => "1",
-        # "x-datadog-tags" => "_dd.p.dm=-0",
+        expect(trace.send(:meta)['_dd.p.dm']).to eq('-99')
+        expect(trace.sampling_priority).to eq(2)
+        expect(trace.origin).to eq('my-origin')
       end
     end
 
@@ -111,6 +114,7 @@ RSpec.describe 'Sidekiq distributed tracing' do
         job_span, push_span = spans
 
         expect(push_span).to be_root_span
+        expect(push_span.get_tag('sidekiq.job.id')).to eq(job_span.get_tag('sidekiq.job.id'))
 
         expect(job_span.trace_id).to eq(push_span.trace_id)
         expect(job_span.parent_id).to eq(push_span.id)
@@ -144,6 +148,7 @@ RSpec.describe 'Sidekiq distributed tracing' do
         expect(job).to_not include('x-datadog-parent-id')
         expect(job).to_not include('x-datadog-sampling-priority')
         expect(job).to_not include('x-datadog-tags')
+        expect(job).to_not include('x-datadog-origin')
       end
     end
 
@@ -162,8 +167,9 @@ RSpec.describe 'Sidekiq distributed tracing' do
             'jid' => jid,
             'x-datadog-trace-id' => trace_id.to_s,
             'x-datadog-parent-id' => span_id.to_s,
-            'x-datadog-sampling-priority' => '1',
-            'x-datadog-tags' => '_dd.p.dm=-0',
+            'x-datadog-sampling-priority' => '2',
+            'x-datadog-tags' => '_dd.p.dm=99',
+            'x-datadog-origin' => 'my-origin'
           )
         )
 
@@ -180,8 +186,9 @@ RSpec.describe 'Sidekiq distributed tracing' do
         expect(span.get_tag('operation')).to eq('job')
         expect(span.get_tag('span.kind')).to eq('consumer')
 
-        # "x-datadog-sampling-priority" => "1",
-        # "x-datadog-tags" => "_dd.p.dm=-0",
+        expect(trace.send(:meta)['_dd.p.dm']).to eq('-0')
+        expect(trace.sampling_priority).to eq(1)
+        expect(trace.origin).to be_nil
       end
     end
 
