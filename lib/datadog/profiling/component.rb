@@ -172,8 +172,19 @@ module Datadog
             'library used by the mysql2 gem) have a bug in their signal handling code that the new profiler can trigger. ' \
             'This bug (https://bugs.mysql.com/bug.php?id=83109) is fixed in libmysqlclient versions 8.0.0 and above. ' \
             'If your Linux distribution provides a modern libmysqlclient, you can force-enable the new CPU Profiling 2.0 ' \
-            'profiler by using the `DD_PROFILING_FORCE_ENABLE_NEW` or `c.profiling.advanced.force_enable_new_profiler` ' \
-            'settings.'
+            'profiler by using the `DD_PROFILING_FORCE_ENABLE_NEW` environment variable or the ' \
+            '`c.profiling.advanced.force_enable_new_profiler` setting.' \
+          )
+          return false
+        end
+
+        if Gem.loaded_specs['rugged']
+          Datadog.logger.warn(
+            'Falling back to legacy profiler because rugged gem is installed. Some operations on this gem are ' \
+            'currently incompatible with the new CPU Profiling 2.0 profiler, as detailed in ' \
+            '<https://github.com/datadog/dd-trace-rb/issues/2721>. If you still want to try out the new profiler, you ' \
+            'can force-enable it by using the `DD_PROFILING_FORCE_ENABLE_NEW` environment variable or the ' \
+            '`c.profiling.advanced.force_enable_new_profiler` setting.'
           )
           return false
         end
