@@ -2,7 +2,7 @@ require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'distributed/propagation'
 require_relative 'ext'
-require_relative 'tracing'
+require_relative 'utils'
 
 module Datadog
   module Tracing
@@ -10,7 +10,7 @@ module Datadog
       module Sidekiq
         # Tracer is a Sidekiq client-side middleware which traces job enqueues/pushes
         class ClientTracer
-          include Tracing
+          include Utils
 
           def initialize(options = {})
             @sidekiq_service = options[:client_service_name] || configuration[:client_service_name]
@@ -55,7 +55,7 @@ module Datadog
           end
 
           def propagation
-            Sidekiq::Distributed::Propagation::INSTANCE
+            @propagation ||= Contrib::Sidekiq::Distributed::Propagation.new
           end
         end
       end

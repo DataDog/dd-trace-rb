@@ -7,6 +7,7 @@ require_relative '../../../distributed/b3_single'
 require_relative '../../../distributed/datadog'
 require_relative '../../../distributed/none'
 require_relative '../../../distributed/trace_context'
+require_relative '../../../configuration/ext'
 
 module Datadog
   module Tracing
@@ -29,8 +30,6 @@ module Datadog
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_NONE => Tracing::Distributed::None.new
                 })
             end
-
-            INSTANCE = Propagation.new
           end
         end
       end

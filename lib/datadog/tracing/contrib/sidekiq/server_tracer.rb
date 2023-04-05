@@ -1,7 +1,7 @@
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
-require_relative 'tracing'
+require_relative 'utils'
 require_relative '../utils/quantization/hash'
 require_relative 'distributed/propagation'
 
@@ -11,7 +11,7 @@ module Datadog
       module Sidekiq
         # Tracer is a Sidekiq server-side middleware which traces executed jobs
         class ServerTracer
-          include Tracing
+          include Utils
 
           QUANTIZE_SHOW_ALL = { args: { show: :all } }.freeze
 
@@ -83,7 +83,7 @@ module Datadog
           private
 
           def propagation
-            Sidekiq::Distributed::Propagation::INSTANCE
+            @propagation ||= Contrib::Sidekiq::Distributed::Propagation.new
           end
 
           def quantize_args(quantize, args)
