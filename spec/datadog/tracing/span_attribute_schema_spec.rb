@@ -1,6 +1,6 @@
-require 'datadog/tracing/contrib/span_attribute_schema'
+require 'datadog/tracing/span_attribute_schema'
 
-RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
+RSpec.describe Datadog::Tracing::SpanAttributeSchema do
   describe '#default_span_attribute_schema?' do
     context 'when default schema is set' do
       it 'returns true' do

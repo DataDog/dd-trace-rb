@@ -29,7 +29,7 @@ module Datadog
 
         subscribe_to_writer_events!(writer, sampler, settings.tracing.test_mode.enabled)
 
-        current_schema_version = Contrib::SpanAttributeSchema
+        current_schema_version = SpanAttributeSchema
                                    .get_schema_version_numeric(Datadog.configuration.tracing.span_attribute_schema)
 
         Tracing::Tracer.new(

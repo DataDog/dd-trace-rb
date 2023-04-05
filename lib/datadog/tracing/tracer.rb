@@ -58,7 +58,7 @@ module Datadog
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
         writer: Writer.new,
-        schema_version: Contrib::SpanAttributeSchema.get_schema_version_numeric
+        schema_version: SpanAttributeSchema.get_schema_version_numeric
       )
         @trace_flush = trace_flush
         @default_service = default_service

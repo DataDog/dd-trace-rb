@@ -392,7 +392,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
         let(:writer) { Datadog::Tracing::Writer.new }
         let(:trace_flush) { be_a(Datadog::Tracing::Flush::Finished) }
-        let(:schema_version) {Datadog::Tracing::Contrib::SpanAttributeSchema.get_schema_version_numeric}
+        let(:schema_version) {Datadog::Tracing::SpanAttributeSchema.get_schema_version_numeric}
         let(:sampler) do
           if defined?(super)
             super()
