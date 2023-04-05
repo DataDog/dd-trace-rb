@@ -130,6 +130,7 @@ RSpec.describe 'Rack integration tests' do
       c.tracing.instrument :rack
 
       c.appsec.enabled = appsec_enabled
+      c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.instrument :rack
       c.appsec.ip_denylist = appsec_ip_denylist
       c.appsec.user_id_denylist = appsec_user_id_denylist
