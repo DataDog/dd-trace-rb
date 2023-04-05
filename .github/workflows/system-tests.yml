@@ -26,31 +26,31 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: 'DataDog/system-tests'
-      - name: Pull image
+      - name: Pull released image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest
           docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest system_tests/${{ matrix.image }}:latest
       - name: Build image
         run: ./build.sh --images ${{ matrix.image }}
-      - name: Export image
+      - name: List images
         run: |
           docker image list
-          mkdir -p images
-          docker save system_tests/${{ matrix.image }} > images/${{ matrix.image }}.tar
-      - name: Save image
-        uses: actions/upload-artifact@v3
-        with:
-          name: docker-image-${{ matrix.image }}-${{ github.run_id }}-${{ github.sha }}
-          path: images/*
-          retention-days: 1
       - name: Log in to the Container registry
-        if: ${{ github.ref == 'refs/heads/master' }}
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-      - name: Push image
+      - name: Tag image for CI run
+        run:
+          docker tag system_tests/${{ matrix.image }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:gha${{ github.run_id }}-g${{ github.sha }}
+      - name: Push image for CI run
+        run: |
+          docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:gha${{ github.run_id }}-g${{ github.sha }}
+      - name: Tag image for release
+        if: ${{ github.ref == 'refs/heads/master' }}
+        run:
+          docker tag system_tests/${{ matrix.image }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest
+      - name: Push image for release
         if: ${{ github.ref == 'refs/heads/master' }}
         run: |
-          docker tag system_tests/${{ matrix.image }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest
           docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest
 
   build-apps:
@@ -87,31 +87,29 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: 'binaries/dd-trace-rb'
-      - name: Pull image
+      - name: Pull released image
         run: |
-          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:${{ matrix.app }}
-          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:${{ matrix.app }} system_tests/${{ matrix.image }}
+          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:latest
+          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:latest system_tests/${{ matrix.image }}:latest
       - name: Log in to the Container registry
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
       - name: Build
         run: ./build.sh --library ${{ matrix.library }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }}
-      - name: Export image
+      - name: Tag image for CI run
+        run:
+          docker tag system_tests/${{ matrix.image }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
+      - name: Push image for CI run
         run: |
-          docker image list
-          mkdir -p images
-          docker save system_tests/${{ matrix.image }} > images/${{ matrix.image }}-${{ matrix.app }}.tar
-      - name: Save image
-        uses: actions/upload-artifact@v3
-        with:
-          name: docker-image-${{ matrix.image }}-${{ matrix.app }}-${{ github.run_id }}-${{ github.sha }}
-          path: images/*
-          retention-days: 1
-      - name: Push image
+          docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
+      - name: Tag image for release
+        if: ${{ github.ref == 'refs/heads/master' }}
+        run:
+          docker tag system_tests/${{ matrix.image }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:latest
+      - name: Push image for release
         if: ${{ github.ref == 'refs/heads/master' }}
         run: |
-          docker tag system_tests/${{ matrix.image }} ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:${{ matrix.app }}
-          docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:${{ matrix.app }}
+          docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:latest
 
   test:
     strategy:
@@ -190,28 +188,20 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: 'DataDog/system-tests'
-      - name: Retrieve agent image
-        uses: actions/download-artifact@v3
-        with:
-          name: docker-image-agent-${{ github.run_id }}-${{ github.sha }}
-          path: images
-      - name: Retrieve runner image
-        uses: actions/download-artifact@v3
-        with:
-          name: docker-image-runner-${{ github.run_id }}-${{ github.sha }}
-          path: images
-      - name: Retrieve app image
-        uses: actions/download-artifact@v3
-        with:
-          name: docker-image-weblog-${{ matrix.app }}-${{ github.run_id }}-${{ github.sha }}
-          path: images
-      - name: Load images
+      - name: Pull agent image
         run: |
-          find images
-          cd images
-          docker load < agent.tar
-          docker load < runner.tar
-          docker load < weblog-${{ matrix.app }}.tar
+          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
+          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }} system_tests/agent:latest
+      - name: Pull runner image
+        run: |
+          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/runner:gha${{ github.run_id }}-g${{ github.sha }}
+          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/runner:gha${{ github.run_id }}-g${{ github.sha }} system_tests/runner:latest
+      - name: Pull app image
+        run: |
+          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/weblog-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
+          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/weblog-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }} system_tests/weblog:latest
+      - name: List images
+        run: |
           docker image list
       - name: Run scenario
         run: ./run.sh ${{ matrix.scenario }}
