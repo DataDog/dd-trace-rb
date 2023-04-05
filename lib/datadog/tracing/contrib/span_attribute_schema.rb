@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Tracing
     module Contrib
@@ -7,7 +9,8 @@ module Datadog
 
         def fetch_service_name(env, default)
           ENV.fetch(env) do
-            if Datadog.configuration.tracing.span_attribute_schema == 'v1'
+            if Datadog.configuration.tracing.span_attribute_schema ==
+                Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SCHEMA_VERSION_ONE
               Datadog.configuration.service
             else
               default

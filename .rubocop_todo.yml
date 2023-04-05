@@ -680,7 +680,6 @@ Style/FrozenStringLiteralComment:
     - 'lib/datadog/tracing/contrib/sinatra/patcher.rb'
     - 'lib/datadog/tracing/contrib/sinatra/tracer.rb'
     - 'lib/datadog/tracing/contrib/sinatra/tracer_middleware.rb'
-    - 'lib/datadog/tracing/contrib/span_attribute_schema.rb'
     - 'lib/datadog/tracing/contrib/status_code_matcher.rb'
     - 'lib/datadog/tracing/contrib/sucker_punch/configuration/settings.rb'
     - 'lib/datadog/tracing/contrib/sucker_punch/exception_handler.rb'

@@ -11,6 +11,7 @@ module Datadog
         module SpanAttributeSchema
           ENV_SPAN_ATTRIBUTE_SCHEMA = 'DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'.freeze
           ENV_DEFAULT_SCHEMA = 'v0'.freeze
+          ENV_SCHEMA_VERSION_ONE = 'v1'.freeze
         end
 
         # @public_api

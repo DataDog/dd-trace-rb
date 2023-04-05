@@ -180,7 +180,7 @@ module Datadog
         # @public_api
         module SpanAttributeSchema
           # current span attribute schema version
-          TAG_SCHEMA_VAR = '_dd.trace_span_attribute_schema'
+          TAG_SCHEMA_VERSION = '_dd.trace_span_attribute_schema'
         end
       end
     end
