@@ -5,6 +5,7 @@ require 'datadog/tracing/contrib/sidekiq/client_tracer'
 require 'datadog/tracing/contrib/sidekiq/server_tracer'
 
 require 'sidekiq/testing'
+require_relative 'support/legacy_test_helpers' if Sidekiq::VERSION < '4'
 require 'sidekiq/api'
 
 RSpec.describe 'Sidekiq distributed tracing' do
