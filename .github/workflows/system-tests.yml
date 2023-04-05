@@ -270,7 +270,6 @@ jobs:
         with:
           name: system-tests-${{ matrix.library }}-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
           path: .
-        continue-on-error: true
       - name: Print fancy log report
         run: |
           find logs*
