@@ -225,7 +225,14 @@ RSpec.describe Datadog::Core::Remote::Client do
 
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
-  subject(:client) { described_class.new(transport, repository: repository) }
+  let(:capabilities) do
+    capabilities = Datadog::Core::Remote::Client::Capabilities.new(Datadog::Core::Configuration::Settings.new)
+    capabilities.send(:register_products, ['ASM_DATA', 'ASM_DD', 'ASM'])
+
+    capabilities
+  end
+
+  subject(:client) { described_class.new(transport, capabilities, repository: repository) }
 
   describe '#sync' do
     include_context 'HTTP connection stub'
@@ -261,83 +268,11 @@ RSpec.describe Datadog::Core::Remote::Client do
         expect(repository.contents.size).to_not eq(0)
       end
 
-      it 'propagates changes to AppSec' do
-        expected_ruleset = {
-          'exclusions' => [{
-            'conditions' => [{
-              'operator' => 'ip_match',
-              'parameters' => {
-                'inputs' => [{
-                  'address' => 'http.client_ip'
-                }]
-              }
-            }]
-          }],
-          'metadata' => {
-            'rules_version' => '1.5.2'
-          },
-          'rules' => [{
-            'conditions' => [{
-              'operator' => 'ip_match',
-              'parameters' => {
-                'data' => 'blocked_ips',
-                'inputs' => [{
-                  'address' => 'http.client_ip'
-                }]
-              }
-            }],
-            'id' => 'blk-001-001',
-            'name' => 'Block IP Addresses',
-            'on_match' => ['block'],
-            'tags' => {
-              'category' => 'security_response', 'type' => 'block_ip'
-            },
-            'transformers' => []
-          }],
-          'rules_data' => [{
-            'data' => [{
-              'expiration' => 1678972458,
-              'value' => '42.42.42.1'
-            }]
-          }],
-          'version' => '2.2'
-        }
-
-        expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: expected_ruleset).and_call_original
+      it 'propagates changes to the dispatcher' do
+        expect_any_instance_of(Datadog::Core::Remote::Dispatcher).to receive(:dispatch).with(
+          instance_of(Datadog::Core::Remote::Configuration::Repository::ChangeSet), repository
+        )
         client.sync
-      end
-
-      context 'when there is no ASM_DD information' do
-        let(:client_configs) do
-          [
-            'datadog/603646/ASM_DATA/blocked_ips/config',
-            'datadog/603646/ASM/exclusion_filters/config'
-          ]
-        end
-
-        let(:target_files) do
-          [blocked_ips_data_response, exclusion_data_response]
-        end
-
-        let(:target_content) do
-          {}.merge(exclusions_filter_content).merge(blocked_ips_content)
-        end
-
-        it 'uses the rules from the appsec settings' do
-          expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
-            ruleset: Datadog.configuration.appsec.ruleset
-          ).at_least(:once).and_call_original
-
-          client.sync
-        end
-
-        it 'raises SyncError if no default rules available' do
-          expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
-            ruleset: Datadog.configuration.appsec.ruleset
-          ).and_return(nil)
-
-          expect { client.sync }.to raise_error(described_class::SyncError)
-        end
       end
 
       context 'when the data is the same' do
