@@ -29,6 +29,9 @@ module Datadog
 
         subscribe_to_writer_events!(writer, sampler, settings.tracing.test_mode.enabled)
 
+        schema_ver = Datadog.configuration.tracing.span_attribute_schema ==
+          Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE ? 1 : 0
+
         Tracing::Tracer.new(
           default_service: settings.service,
           enabled: settings.tracing.enabled,
@@ -37,6 +40,7 @@ module Datadog
           span_sampler: build_span_sampler(settings),
           writer: writer,
           tags: build_tracer_tags(settings),
+          schema_version: schema_ver
         )
       end
 

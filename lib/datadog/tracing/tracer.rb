@@ -57,7 +57,8 @@ module Datadog
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
-        writer: Writer.new
+        writer: Writer.new,
+        schema_version: Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
       )
         @trace_flush = trace_flush
         @default_service = default_service
@@ -67,6 +68,7 @@ module Datadog
         @span_sampler = span_sampler
         @tags = tags
         @writer = writer
+        @schema_version = schema_version
       end
 
       # Return a {Datadog::Tracing::SpanOperation span_op} and {Datadog::Tracing::TraceOperation trace_op}
@@ -327,6 +329,7 @@ module Datadog
             sampling_priority: digest.trace_sampling_priority,
             # Distributed tags are just regular trace tags with special meaning to Datadog
             tags: digest.trace_distributed_tags,
+            metrics: {Tracing::Metadata::Ext::SpanAttributeSchema::TAG_SCHEMA_VERSION => @schema_version}
           )
         else
           TraceOperation.new(
