@@ -264,3 +264,40 @@ jobs:
         run: |
           find logs*
           python utils/scripts/markdown_logs.py >> $GITHUB_STEP_SUMMARY
+
+  cleanup:
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - runner
+          - agent
+          - weblog-rack
+          - weblog-sinatra14
+          - weblog-sinatra20
+          - weblog-sinatra21
+          - weblog-rails32
+          - weblog-rails40
+          - weblog-rails41
+          - weblog-rails42
+          - weblog-rails50
+          - weblog-rails51
+          - weblog-rails52
+          - weblog-rails60
+          - weblog-rails61
+          - weblog-rails70
+    runs-on: ubuntu-latest
+    needs:
+      - test
+    if: ${{ always() }}
+    name: Cleanup (${{ matrix.image }})
+    steps:
+      - name: Log in to the Container registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+      - uses: actions/delete-package-versions@v4
+        with:
+          package-version-ids: gha${{ github.run_id }}-g${{ github.sha }}
+          package-name: system-tests/${{ matrix.image }}
+          package-type: 'container'
+        continue-on-error: true
