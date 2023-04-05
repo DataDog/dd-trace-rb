@@ -20,6 +20,28 @@ module Datadog
           transport_options = {}
           transport_options[:agent_settings] = agent_settings if agent_settings
 
+          transport_root = Datadog::Core::Transport::HTTP.root(**transport_options.dup)
+
+          res = transport_root.send_info
+          if res.ok?
+            if res.endpoints.include?('/v0.7/config')
+              Datadog.logger.debug { 'agent reachable and reports remote configuration endpoint' }
+            else
+              Datadog.logger.error do
+                'agent reachable but does not report remote configuration endpoint: ' \
+                  'disabling remote configuration for this process.'
+              end
+
+              return
+            end
+          else
+            Datadog.logger.error do
+              'agent unreachable: disabling remote configuration for this process.'
+            end
+
+            return
+          end
+
           transport_v7 = Datadog::Core::Transport::HTTP.v7(**transport_options.dup)
 
           capabilities = Client::Capabilities.new(settings)
