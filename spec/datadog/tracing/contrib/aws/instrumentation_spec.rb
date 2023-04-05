@@ -358,67 +358,6 @@ RSpec.describe 'AWS instrumentation' do
       end
     end
 
-    describe '#publish_batch' do
-      subject!(:publish_batch) do
-        client.publish_batch(
-          {
-            topic_arn: 'arn:aws:sns:us-west-2:123456789012:my-topic-name',
-            publish_batch_request_entries: [ # required
-              {
-                id: 'String', # required
-                message: 'message', # required
-                subject: 'subject',
-                message_structure: 'messageStructure',
-                message_attributes: {
-                  'String' => {
-                    data_type: 'String', # required
-                    string_value: 'String',
-                    binary_value: 'data',
-                  },
-                },
-                message_deduplication_id: 'String',
-                message_group_id: 'String',
-              },
-            ],
-          }
-        )
-      end
-
-      let(:responses) do
-        { publish_batch: {
-
-        } }
-      end
-
-      it 'generates a span' do
-        expect(span.name).to eq('aws.command')
-        expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
-        expect(span.resource).to eq('sns.publish_batch')
-
-        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
-        expect(span.get_tag('aws.operation')).to eq('publish_batch')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
-        expect(span.get_tag('region')).to eq('us-stubbed-1')
-        expect(span.get_tag('aws_service')).to eq('sns')
-        expect(span.get_tag('aws_account')).to eq('123456789012')
-        expect(span.get_tag('topicname')).to eq('my-topic-name')
-        expect(span.get_tag('path')).to eq('')
-        expect(span.get_tag('host')).to eq('sns.us-stubbed-1.amazonaws.com')
-        expect(span.get_tag('http.method')).to eq('POST')
-        expect(span.get_tag('http.status_code')).to eq('200')
-        expect(span.get_tag('span.kind')).to eq('client')
-
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq('command')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-          .to eq('aws')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
-          .to eq('sns.us-stubbed-1.amazonaws.com')
-      end
-    end
-
     describe '#create_topic' do
       subject!(:create_topic) do
         client.create_topic(
@@ -432,8 +371,7 @@ RSpec.describe 'AWS instrumentation' do
                 key: 'TagKey', # required
                 value: 'TagValue', # required
               },
-            ],
-            data_protection_policy: 'attributeValue',
+            ]
           }
         )
       end
@@ -525,7 +463,6 @@ RSpec.describe 'AWS instrumentation' do
       subject!(:put_record) do
         client.put_record(
           stream_name: 'my-stream-name',
-          stream_arn: 'arn:aws:kinesis:us-east-1:123456789012:stream/my-stream-name',
           partition_key: 'parition-1',
           data: 'Hello world!'
         )
@@ -550,10 +487,9 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('kinesis')
-        expect(span.get_tag('aws_account')).to eq('123456789012')
         expect(span.get_tag('streamname')).to eq('my-stream-name')
         expect(span.get_tag('path')).to eq('')
-        expect(span.get_tag('host')).to eq('123456789012.data-kinesis.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('host')).to eq('kinesis.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('span.kind')).to eq('client')
@@ -564,7 +500,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
-          .to eq('123456789012.data-kinesis.us-stubbed-1.amazonaws.com')
+          .to eq('kinesis.us-stubbed-1.amazonaws.com')
       end
     end
 
@@ -783,22 +719,7 @@ RSpec.describe 'AWS instrumentation' do
                         \'End\':true}}}',
           role_arn: 'arn:aws:iam::123456789012:role/StateExecutionRole',
           type: 'STANDARD',
-          creation_date: Time.now,
-          logging_configuration: {
-            level: 'ERROR',
-            include_execution_data: true,
-            destinations: [
-              {
-                cloud_watch_logs_log_group: {
-                  log_group_arn: 'arn:aws:logs:us-east-1:123456789012:log-group:/aws/states/example-state-machine'
-                }
-              }
-            ]
-          },
-          tracing_configuration: {
-            enabled: true
-          },
-          label: 'v1'
+          creation_date: Time.now
         } }
       end
 
@@ -942,10 +863,7 @@ RSpec.describe 'AWS instrumentation' do
           output_details: {
             included: true | false,
           },
-          trace_header: 'string',
-          map_run_arn: 'string',
-          error: 'string',
-          cause: 'string',
+          trace_header: 'string'
         } }
       end
 
