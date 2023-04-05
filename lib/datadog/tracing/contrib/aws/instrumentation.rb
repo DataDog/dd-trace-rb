@@ -1,6 +1,7 @@
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
+require_relative '../span_attribute_schema'
 
 module Datadog
   module Tracing
@@ -37,8 +38,10 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
 
             # Tag as an external peer service
-            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, context.safely(:host))
+            if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, context.safely(:host))
+            end
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -86,6 +89,7 @@ module Datadog
 
             super(*args, &block)
           end
+
           ruby2_keywords :sign_but_dont_send if respond_to?(:ruby2_keywords, true)
         end
       end
