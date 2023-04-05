@@ -79,6 +79,24 @@ RSpec.describe Datadog::Tracing::SpanAttributeSchema do
     end
   end
 
+  describe '#schema_version_numeric' do
+    context 'when default parameters are used' do
+      it 'returns default schema version' do
+        expect(described_class.schema_version_numeric).to eq(0)
+      end
+    end
+
+    context 'when parameters are used' do
+      it 'returns 0' do
+        expect(described_class.schema_version_numeric('v0')).to eq(0)
+      end
+
+      it 'returns 1' do
+        expect(described_class.schema_version_numeric('v1')).to eq(1)
+      end
+    end
+  end
+
   def with_modified_env(options = {}, &block)
     ClimateControl.modify(options, &block)
   end

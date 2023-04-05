@@ -25,7 +25,7 @@ module Datadog
         Datadog.configuration.tracing.span_attribute_schema == Ext::DEFAULT_VERSION
       end
 
-      def get_schema_version_numeric(version = Ext::DEFAULT_VERSION)
+      def schema_version_numeric(version = Ext::DEFAULT_VERSION)
         return 1 if version == Ext::VERSION_ONE
 
         0

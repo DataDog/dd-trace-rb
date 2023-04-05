@@ -815,6 +815,7 @@ RSpec.describe Datadog::Tracing::Tracer do
             sampling_priority: digest.trace_sampling_priority,
           )
 
+          expect(trace.send(:metrics)).to eq('_dd.trace_span_attribute_schema' => 0)
           expect(trace.send(:distributed_tags)).to eq('_dd.p.test' => 'value')
 
           expect(span).to have_attributes(

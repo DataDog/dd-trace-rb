@@ -46,6 +46,7 @@ module Datadog
       # @param sampler [Datadog::Tracing::Sampler] a tracer sampler, responsible for filtering out spans when needed
       # @param tags [Hash] default tags added to all spans
       # @param writer [Datadog::Tracing::Writer] consumes traces returned by the provided +trace_flush+
+      # @param schema_version [Numeric] Version for the Span Attribute Schema set by user
       def initialize(
         trace_flush: Flush::Finished.new,
         context_provider: DefaultContextProvider.new,
@@ -58,7 +59,7 @@ module Datadog
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
         writer: Writer.new,
-        schema_version: SpanAttributeSchema.get_schema_version_numeric
+        schema_version: SpanAttributeSchema.schema_version_numeric
       )
         @trace_flush = trace_flush
         @default_service = default_service
