@@ -297,7 +297,7 @@ jobs:
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
       - uses: actions/delete-package-versions@v4
         with:
-          package-version-ids: gha${{ github.run_id }}-g${{ github.sha }}
-          package-name: system-tests/${{ matrix.image }}
+          package-version-ids: 'gha${{ github.run_id }}-g${{ github.sha }}'
+          package-name: 'system-tests/${{ matrix.image }}'
           package-type: 'container'
         continue-on-error: true
