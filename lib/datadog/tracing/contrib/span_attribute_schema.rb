@@ -22,6 +22,14 @@ module Datadog
           Datadog.configuration.tracing.span_attribute_schema ==
             Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
         end
+
+        def get_schema_version_numeric(version = "v0")
+          if version == "v1"
+            return 1
+          end
+          return 0
+        end
+
       end
     end
   end
