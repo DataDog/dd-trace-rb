@@ -446,7 +446,7 @@ module Datadog
                 o.default do
                   ENV.fetch(
                     Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA,
-                    Tracing::Configuration::Ext::SpanAttributeSchema::ENV_DEFAULT_SCHEMA
+                    Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
                   )
                 end
                 o.lazy

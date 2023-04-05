@@ -10,7 +10,7 @@ module Datadog
         def fetch_service_name(env, default)
           ENV.fetch(env) do
             if Datadog.configuration.tracing.span_attribute_schema ==
-                Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SCHEMA_VERSION_ONE
+                Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE
               Datadog.configuration.service
             else
               default
@@ -20,7 +20,7 @@ module Datadog
 
         def default_span_attribute_schema?
           Datadog.configuration.tracing.span_attribute_schema ==
-            Tracing::Configuration::Ext::SpanAttributeSchema::ENV_DEFAULT_SCHEMA
+            Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
         end
       end
     end
