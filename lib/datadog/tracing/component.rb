@@ -37,6 +37,7 @@ module Datadog
           span_sampler: build_span_sampler(settings),
           writer: writer,
           tags: build_tracer_tags(settings),
+          schema_version: settings.tracing.schema_version,
         )
       end
 
