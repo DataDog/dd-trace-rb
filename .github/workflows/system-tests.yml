@@ -211,13 +211,13 @@ jobs:
         uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: system-tests-${{ matrix.library }}-${{ matrix.app }}-${{ matrix.scenario }}-logs-${{ github.run_id }}-${{ github.sha }}
+          name: system-tests-${{ matrix.library }}-${{ matrix.app }}-${{ matrix.scenario }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
           path: logs*
       - name: Archive logs (aggregated)
         uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: system-tests-${{ matrix.library }}-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
+          name: system-tests-${{ matrix.library }}-${{ matrix.app }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
           path: logs*
 
   aggregate:
@@ -258,7 +258,7 @@ jobs:
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
-          name: system-tests-${{ matrix.library }}-${{ matrix.app }}-logs-${{ github.run_id }}-${{ github.sha }}
+          name: system-tests-${{ matrix.library }}-${{ matrix.app }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
           path: .
       - name: Print fancy log report
         run: |
