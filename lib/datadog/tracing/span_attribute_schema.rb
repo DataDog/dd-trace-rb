@@ -5,8 +5,8 @@ module Datadog
     # Contains methods for fetching values according to span attributes schema
     module SpanAttributeSchema
       module Ext
-       DEFAULT_VERSION = 'v0'.freeze
-       VERSION_ONE = 'v1'.freeze
+        DEFAULT_VERSION = 'v0'
+        VERSION_ONE = 'v1'
       end
 
       module_function
@@ -26,12 +26,10 @@ module Datadog
       end
 
       def get_schema_version_numeric(version = Ext::DEFAULT_VERSION)
-        if version == Ext::VERSION_ONE
-          return 1
-        end
-        return 0
-      end
+        return 1 if version == Ext::VERSION_ONE
 
+        0
+      end
     end
   end
 end

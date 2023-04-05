@@ -329,7 +329,7 @@ module Datadog
             sampling_priority: digest.trace_sampling_priority,
             # Distributed tags are just regular trace tags with special meaning to Datadog
             tags: digest.trace_distributed_tags,
-            metrics: {Tracing::Metadata::Ext::SpanAttributeSchema::TAG_SCHEMA_VERSION => @schema_version}
+            metrics: { Tracing::Metadata::Ext::SpanAttributeSchema::TAG_SCHEMA_VERSION => @schema_version }
           )
         else
           TraceOperation.new(
