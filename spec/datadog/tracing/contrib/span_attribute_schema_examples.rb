@@ -1,4 +1,4 @@
-RSpec.shared_examples 'span attributes schema' do
+RSpec.shared_examples 'schema version span' do |_default_service_name|
   before do
     subject
   end

@@ -95,7 +95,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'measured span for integration'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'span attributes schema'
+      it_behaves_like 'schema version span', 'rspec'
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
