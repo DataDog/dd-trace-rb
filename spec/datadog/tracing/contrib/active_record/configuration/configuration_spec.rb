@@ -11,7 +11,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Settings 
     context 'when without service_name v0' do # default to include base
       it do
         with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-          expect(described_class.new.service_name).to eq('aws')
+          expect(described_class.new.service_name).to eq('defaultdb')
         end
       end
     end
