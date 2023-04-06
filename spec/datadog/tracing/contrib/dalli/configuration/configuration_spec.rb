@@ -1,6 +1,6 @@
-require 'datadog/tracing/contrib/aws/configuration/settings'
+require 'datadog/tracing/contrib/dalli/configuration/settings'
 
-RSpec.describe Datadog::Tracing::Contrib::Aws::Configuration::Settings do
+RSpec.describe Datadog::Tracing::Contrib::Dalli::Configuration::Settings do
   describe 'Option `service_name`' do
     context 'when with service_name' do # default to include base
       it do
@@ -11,7 +11,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Configuration::Settings do
     context 'when without service_name v0' do # default to include base
       it do
         with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-          expect(described_class.new.service_name).to eq('aws')
+          expect(described_class.new.service_name).to eq('memcached')
         end
       end
     end
