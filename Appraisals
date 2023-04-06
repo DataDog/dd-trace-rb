@@ -1622,8 +1622,8 @@ elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2')
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-  # ----------------------------------------------------------------------------------------------------------------------
-  # ADD NEW RUBIES HERE
+# ----------------------------------------------------------------------------------------------------------------------
+# ADD NEW RUBIES HERE
 end
 
 ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
