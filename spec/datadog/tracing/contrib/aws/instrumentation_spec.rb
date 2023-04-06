@@ -74,7 +74,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an S3 client' do
+  context 'with an S3 client' if: RUBY_VERSION >= '2.2.0' do
     let(:client) { ::Aws::S3::Client.new(stub_responses: responses) }
 
     describe '#list_buckets' do
@@ -184,7 +184,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an SQS client' do
+  context 'with an SQS client' if: RUBY_VERSION >= '2.2.0' do
     let(:client) { ::Aws::SQS::Client.new(stub_responses: responses) }
 
     describe '#send_message' do
@@ -309,7 +309,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an SNS client' do
+  context 'with an SNS client' if: RUBY_VERSION >= '2.2.0' do
     let(:client) { ::Aws::SNS::Client.new(stub_responses: responses) }
 
     describe '#publish' do
@@ -411,7 +411,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an dynamodb client' do
+  context 'with an dynamodb client' if: RUBY_VERSION >= '2.2.0' do
     let(:client) { ::Aws::DynamoDB::Client.new(stub_responses: responses) }
 
     describe '#get_item' do
@@ -456,7 +456,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an kinesis client' do
+  context 'with an kinesis client' if: RUBY_VERSION >= '2.2.0' do
     let(:client) { ::Aws::Kinesis::Client.new(stub_responses: responses) }
 
     describe '#put_record' do
@@ -548,7 +548,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an eventbridge client' do
+  context 'with an eventbridge client' if: RUBY_VERSION >= '2.2.0' do
     let(:client) { ::Aws::EventBridge::Client.new(stub_responses: responses) }
 
     describe '#put_rule' do
@@ -601,7 +601,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with a stepfunction client' do
+  context 'with a stepfunction client' if: RUBY_VERSION >= '2.2.0' do
     let(:client) { ::Aws::States::Client.new(stub_responses: responses) }
 
     describe '#start_execution' do
