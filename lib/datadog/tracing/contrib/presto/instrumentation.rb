@@ -104,8 +104,9 @@ module Datadog
                 set_nilable_tag!(span, :http_proxy, Ext::TAG_PROXY)
                 set_nilable_tag!(span, :model_version, Ext::TAG_MODEL_VERSION)
 
-                # Tag as an external peer service
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+                if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+                end
 
                 # Set analytics sample rate
                 if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
