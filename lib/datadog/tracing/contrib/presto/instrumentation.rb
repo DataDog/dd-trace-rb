@@ -105,6 +105,7 @@ module Datadog
                 set_nilable_tag!(span, :model_version, Ext::TAG_MODEL_VERSION)
 
                 if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+                  # Tag as an external peer service
                   span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
                 end
 
