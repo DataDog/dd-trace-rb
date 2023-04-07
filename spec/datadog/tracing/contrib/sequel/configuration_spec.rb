@@ -115,14 +115,14 @@ RSpec.describe 'Sequel configuration' do
 
       context 'when without service_name v1' do # default to include base
         before do
-          Datadog.configure { |c| c.tracing.instrument :sequel }
-          perform_query!
+          with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
+            Datadog.configure { |c| c.tracing.instrument :sequel }
+            perform_query!
+          end
         end
 
         it do
-          with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
-            expect(span.service).to eq('rspec')
-          end
+          expect(span.service).to eq('rspec')
         end
       end
     end
