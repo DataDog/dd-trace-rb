@@ -81,6 +81,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port.to_s)
 
               if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+                # Tag as an external peer service
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
               end
 
