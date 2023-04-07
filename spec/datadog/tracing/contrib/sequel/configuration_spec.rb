@@ -108,7 +108,7 @@ RSpec.describe 'Sequel configuration' do
 
         it do
           with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
-            expect(described_class.new.service_name).to eq('sqlite')
+            expect(span.service).to eq('sqlite')
           end
         end
       end
@@ -121,7 +121,7 @@ RSpec.describe 'Sequel configuration' do
 
         it do
           with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
-            expect(described_class.new.service_name).to eq('rspec')
+            expect(span.service).to eq('rspec')
           end
         end
       end
