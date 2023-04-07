@@ -48,9 +48,10 @@ module Datadog
               # Tag as an external peer service
               if Contrib::SpanAttributeSchema.default_span_attribute_schema?
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-                # TODO: Populate hostname for JDBC connections
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, config[:host]) if config[:host]
               end
+
+              # TODO: Populate hostname for JDBC connections
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, config[:host]) if config[:host]
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
