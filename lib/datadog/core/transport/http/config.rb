@@ -32,11 +32,54 @@ module Datadog
         module Config
           # Response from HTTP transport for remote configuration
           class Response
+            # When an expected key is missing
+            class KeyError < StandardError
+              def initialize(key)
+                message = "key not found: #{key.inspect}"
+
+                super(message)
+              end
+            end
+
+            # When an expected value type is incorrect
+            class TypeError < StandardError
+              def initialize(type, value)
+                message = "not a #{type}: #{value.inspect}"
+
+                super(message)
+              end
+            end
+
+            # When value decoding fails
+            class DecodeError < StandardError
+              def initialize(key, value)
+                message = "could not decode key #{key.inspect}: #{value.inspect}"
+
+                super(message)
+              end
+            end
+
+            # When value parsing fails
+            class ParseError < StandardError
+              def initialize(key, value)
+                message = "could not parse key #{key.inspect}: #{value.inspect}"
+
+                super(message)
+              end
+            end
+
             include Datadog::Transport::HTTP::Response
             include Core::Transport::Config::Response
 
             def initialize(http_response, options = {}) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
               super(http_response)
+              @empty = false
+
+              if !http_response.ok? || http_response.payload.nil?
+                Datadog.logger.debug { "remote: unexpected response: #{http_response.inspect}" }
+                @empty = true
+                return
+              end
 
               begin
                 payload = JSON.parse(http_response.payload, symbolize_names: true)
@@ -46,7 +89,10 @@ module Datadog
 
               raise TypeError.new(Hash, payload) unless payload.is_a?(Hash)
 
-              @empty = true if payload.empty?
+              if payload.empty?
+                @empty = true
+                return
+              end
 
               # TODO: these fallbacks should be improved
               roots = payload[:roots] || []
@@ -60,7 +106,7 @@ module Datadog
                 raise TypeError.new(String, root) unless root.is_a?(String)
 
                 decoded = begin
-                  Base64.strict_decode64(root) # TODO: unprocessed, don't symbolize_names
+                  Base64.strict_decode64(root)
                 rescue ArgumentError
                   raise DecodeError.new(:roots, root)
                 end
@@ -86,7 +132,7 @@ module Datadog
                 end
 
                 parsed = begin
-                  JSON.parse(decoded) # TODO: unprocessed, don't symbolize_names
+                  JSON.parse(decoded)
                 rescue JSON::ParserError
                   raise ParseError.new(:targets, decoded)
                 end
@@ -124,42 +170,6 @@ module Datadog
 
                 s.freeze
               end.freeze
-            end
-
-            # When an expected key is missing
-            class KeyError < StandardError
-              def initialize(key)
-                message = "key not found: #{key.inspect}"
-
-                super(message)
-              end
-            end
-
-            # When an expected value type is incorrect
-            class TypeError < StandardError
-              def initialize(type, value)
-                message = "not a #{type}: #{value.inspect}"
-
-                super(message)
-              end
-            end
-
-            # When value decoding fails
-            class DecodeError < StandardError
-              def initialize(key, value)
-                message = "could not decode key #{key.inspect}: #{value.inspect}"
-
-                super(message)
-              end
-            end
-
-            # When value parsing fails
-            class ParseError < StandardError
-              def initialize(key, value)
-                message = "could not parse key #{key.inspect}: #{value.inspect}"
-
-                super(message)
-              end
             end
           end
 
@@ -246,12 +256,22 @@ module Datadog
                 env.body = env.request.parcel.data
 
                 # Query for response
-                http_response = super(env, &block)
+                begin
+                  http_response = super(env, &block)
+                rescue SocketError => e
+                  Datadog.logger.debug { "remote: fail to reach agent. #{e}" }
+                  return nil
+                end
 
                 response_options = {}
 
                 # Build and return a response
-                Config::Response.new(http_response, response_options)
+                begin
+                  Config::Response.new(http_response, response_options)
+                rescue StandardError => e
+                  Datadog.logger.debug { "remote: fail to parse response. #{e}" }
+                  nil
+                end
               end
             end
           end

@@ -643,6 +643,7 @@ target :ddtrace do
   library 'tsort'
   library 'json'
   library 'ipaddr'
+  library 'socket'
   library 'net-http'
   library 'securerandom'
   library 'base64'

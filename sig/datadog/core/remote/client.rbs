@@ -21,6 +21,8 @@ module Datadog
 
         private
 
+        def fetch_remote_configuration: () -> Datadog::Core::Transport::Config::Response?
+
         def payload: () ->  ::Hash[Symbol, untyped]
       end
     end

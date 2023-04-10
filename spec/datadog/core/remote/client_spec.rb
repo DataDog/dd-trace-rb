@@ -364,8 +364,9 @@ RSpec.describe Datadog::Core::Remote::Client do
       context 'not a 200 response' do
         let(:response_code) { 401 }
 
-        it 'raises SyncError' do
-          expect { client.sync }.to raise_error(described_class::SyncError)
+        it 'does nothing' do
+          expect(client.repository).to_not receive(:transaction)
+          client.sync
         end
       end
 

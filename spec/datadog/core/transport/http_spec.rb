@@ -27,10 +27,16 @@ RSpec.describe Datadog::Core::Transport::HTTP do
 
       allow(http_connection).to receive(:start).and_yield(http_connection)
 
-      http_response = instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
-      allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
+      if socket_error
+        allow(http_connection).to receive(:request).with(http_request).and_raise(SocketError)
+      else
+        http_response = instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
+        allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
+      end
     end
   end
+
+  let(:socket_error) { false }
 
   describe '.root' do
     subject(:transport) { described_class.root(&client_options) }
@@ -42,10 +48,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
     describe '#send_info' do
       include_context 'HTTP connection stub'
 
-      subject(:response) { transport.send_info }
-
       let(:request_verb) { :get }
-
       let(:response_code) { 200 }
       let(:response_body) do
         JSON.dump(
@@ -61,6 +64,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
           }
         )
       end
+      subject(:response) { transport.send_info }
 
       it { is_expected.to be_a(Datadog::Core::Transport::HTTP::Negotiation::Response) }
 
@@ -81,6 +85,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
     describe '#send_config' do
       include_context 'HTTP connection stub'
 
+      let(:request_verb) { :post }
       let(:state) do
         OpenStruct.new(
           {
@@ -93,13 +98,9 @@ RSpec.describe Datadog::Core::Transport::HTTP do
           }
         )
       end
-
       let(:id) { SecureRandom.uuid }
-
       let(:products) { [] }
-
       let(:capabilities) { 0 }
-
       let(:capabilities_binary) do
         capabilities
           .to_s(16)
@@ -108,7 +109,6 @@ RSpec.describe Datadog::Core::Transport::HTTP do
           .map { |e| e.to_i(16) }
           .pack('C*')
       end
-
       let(:payload) do
         {
           client: {
@@ -137,9 +137,6 @@ RSpec.describe Datadog::Core::Transport::HTTP do
           cached_target_files: [],
         }
       end
-
-      let(:request_verb) { :post }
-
       let(:response_code) { 200 }
       let(:response_body) do
         encode = proc do |obj|
@@ -190,15 +187,58 @@ RSpec.describe Datadog::Core::Transport::HTTP do
           }
         )
       end
-
       subject(:response) { transport.send_config(payload) }
 
-      it { is_expected.to be_a(Datadog::Core::Transport::HTTP::Config::Response) }
+      context 'valid response' do
+        it { is_expected.to be_a(Datadog::Core::Transport::HTTP::Config::Response) }
 
-      it { is_expected.to be_ok }
-      it { is_expected.to have_attributes(:roots => be_a(Array)) }
-      it { is_expected.to have_attributes(:targets => be_a(Hash)) }
-      it { is_expected.to have_attributes(:target_files => be_a(Array)) }
+        it { is_expected.to be_ok }
+        it { is_expected.to have_attributes(:roots => be_a(Array)) }
+        it { is_expected.to have_attributes(:targets => be_a(Hash)) }
+        it { is_expected.to have_attributes(:target_files => be_a(Array)) }
+      end
+
+      context 'socket error' do
+        let(:socket_error) { true }
+
+        it { is_expected.to be_nil }
+      end
+
+      context 'non 200 response' do
+        let(:response_code) { 400 }
+        it { is_expected.to be_a(Datadog::Core::Transport::HTTP::Config::Response) }
+
+        it { is_expected.to be_empty }
+      end
+
+      context 'empty response body' do
+        let(:response_body) { nil }
+        it { is_expected.to be_a(Datadog::Core::Transport::HTTP::Config::Response) }
+
+        it { is_expected.to be_empty }
+      end
+
+      context 'invalid response body' do
+        context 'invalid JSON payload' do
+          let(:response_body) { '' }
+
+          it { is_expected.to be_nil }
+        end
+
+        context 'invalid roots type' do
+          let(:response_body) do
+            JSON.dump(
+              {
+                roots: 'roots'
+              }
+            )
+          end
+
+          it { is_expected.to be_nil }
+        end
+
+        # TODO: test for the rest of the payload keys
+      end
     end
   end
 end

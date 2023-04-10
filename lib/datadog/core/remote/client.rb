@@ -27,86 +27,88 @@ module Datadog
           end
         end
 
-        # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity
         def sync
-          # TODO: Skip sync if no capabilities are registered
-          response = transport.send_config(payload)
+          response = fetch_remote_configuration
 
-          if response.ok?
-            # when response is completely empty, do nothing as in: leave as is
-            if response.empty?
-              Datadog.logger.debug { 'remote: empty response => NOOP' }
+          return unless response
 
-              return
+          paths = response.client_configs.map do |path|
+            Configuration::Path.parse(path)
+          end
+
+          targets = Configuration::TargetMap.parse(response.targets)
+
+          contents = Configuration::ContentList.parse(response.target_files)
+
+          # TODO: sometimes it can strangely be so that paths.empty?
+          # TODO: sometimes it can strangely be so that targets.empty?
+
+          changes = repository.transaction do |current, transaction|
+            # paths to be removed: previously applied paths minus ingress paths
+            (current.paths - paths).each { |p| transaction.delete(p) }
+
+            # go through each ingress path
+            paths.each do |path|
+              # match target with path
+              target = targets[path]
+
+              # abort entirely if matching target not found
+              raise SyncError, "no target for path '#{path}'" if target.nil?
+
+              # new paths are not in previously applied paths
+              new = !current.paths.include?(path)
+
+              # updated paths are in previously applied paths
+              # but the content hash changed
+              changed = current.paths.include?(path) && !current.contents.find_content(path, target)
+
+              # skip if unchanged
+              same = !new && !changed
+
+              next if same
+
+              # match content with path and target
+              content = contents.find_content(path, target)
+
+              # abort entirely if matching content not found
+              raise SyncError, "no valid content for target at path '#{path}'" if content.nil?
+
+              # to be added or updated << config
+              # TODO: metadata (hash, version, etc...)
+              transaction.insert(path, target, content) if new
+              transaction.update(path, target, content) if changed
             end
 
-            paths = response.client_configs.map do |path|
-              Configuration::Path.parse(path)
-            end
+            # save backend opaque backend state
+            transaction.set(opaque_backend_state: targets.opaque_backend_state)
+            transaction.set(targets_version: targets.version)
 
-            targets = Configuration::TargetMap.parse(response.targets)
+            # upon transaction end, new list of applied config + metadata (add, change, remove) will be saved
+            # TODO: also remove stale config (matching removed) from cache (client configs is exhaustive list of paths)
+          end
 
-            contents = Configuration::ContentList.parse(response.target_files)
-
-            # TODO: sometimes it can strangely be so that paths.empty?
-            # TODO: sometimes it can strangely be so that targets.empty?
-
-            changes = repository.transaction do |current, transaction|
-              # paths to be removed: previously applied paths minus ingress paths
-              (current.paths - paths).each { |p| transaction.delete(p) }
-
-              # go through each ingress path
-              paths.each do |path|
-                # match target with path
-                target = targets[path]
-
-                # abort entirely if matching target not found
-                raise SyncError, "no target for path '#{path}'" if target.nil?
-
-                # new paths are not in previously applied paths
-                new = !current.paths.include?(path)
-
-                # updated paths are in previously applied paths
-                # but the content hash changed
-                changed = current.paths.include?(path) && !current.contents.find_content(path, target)
-
-                # skip if unchanged
-                same = !new && !changed
-
-                next if same
-
-                # match content with path and target
-                content = contents.find_content(path, target)
-
-                # abort entirely if matching content not found
-                raise SyncError, "no valid content for target at path '#{path}'" if content.nil?
-
-                # to be added or updated << config
-                # TODO: metadata (hash, version, etc...)
-                transaction.insert(path, target, content) if new
-                transaction.update(path, target, content) if changed
-              end
-
-              # save backend opaque backend state
-              transaction.set(opaque_backend_state: targets.opaque_backend_state)
-              transaction.set(targets_version: targets.version)
-
-              # upon transaction end, new list of applied config + metadata (add, change, remove) will be saved
-              # TODO: also remove stale config (matching removed) from cache (client configs is exhaustive list of paths)
-            end
-
-            if changes.empty?
-              Datadog.logger.debug { 'remote: no changes' }
-            else
-              dispatcher.dispatch(changes, repository)
-            end
+          if changes.empty?
+            Datadog.logger.debug { 'remote: no changes' }
           else
-            raise SyncError, "unexpected transport response: #{response.inspect}"
+            dispatcher.dispatch(changes, repository)
           end
         end
-        # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity
 
         private
+
+        def fetch_remote_configuration
+          response = transport.send_config(payload)
+
+          return nil unless response
+
+          if response.empty?
+            Datadog.logger.debug { 'remote: empty response' }
+
+            return nil
+          end
+
+          response
+        end
 
         def payload
           state = repository.state
