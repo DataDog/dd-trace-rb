@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../test'
 
 require_relative '../../ext/app_types'

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module DDTrace
   module VERSION
     MAJOR = 1
@@ -7,7 +9,7 @@ module DDTrace
 
     STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')
 
-    MINIMUM_RUBY_VERSION = '2.1.0'.freeze
+    MINIMUM_RUBY_VERSION = '2.1.0'
 
     # A maximum version was initially added in https://github.com/DataDog/dd-trace-rb/pull/1495 because we expected
     # the `ruby2_keywords` method to be removed (see the PR for the discussion).
@@ -20,6 +22,6 @@ module DDTrace
     # So for now let's bump the maximum version to < 3.3 to allow the Ruby 3.2 series to be supported and we can keep
     # an eye on the Ruby 3.2 test releases to see if anything changes. (Otherwise, once Ruby 3.2.0 stable is out, we
     # should probably bump this to 3.4, and so on...)
-    MAXIMUM_RUBY_VERSION = '3.3'.freeze
+    MAXIMUM_RUBY_VERSION = '3.3'
   end
 end

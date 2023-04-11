@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../../tracing'
 require_relative '../../../metadata/ext'
 require_relative '../../analytics'
@@ -13,7 +15,7 @@ module Datadog
           module RenderTemplate
             include ActionView::Event
 
-            EVENT_NAME = 'render_template.action_view'.freeze
+            EVENT_NAME = 'render_template.action_view'
 
             module_function
 

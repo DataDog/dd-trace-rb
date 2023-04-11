@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../environment/variable_helpers'
 require_relative 'options'
 

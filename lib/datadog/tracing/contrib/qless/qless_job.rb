@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'qless'
 
 require_relative '../../metadata/ext'

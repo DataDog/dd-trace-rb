@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../ext'
 require_relative '../../event'
 
@@ -11,7 +13,7 @@ module Datadog
             module Request
               include Kafka::Event
 
-              EVENT_NAME = 'request.connection.kafka'.freeze
+              EVENT_NAME = 'request.connection.kafka'
 
               def self.process(span, _event, _id, payload)
                 super
