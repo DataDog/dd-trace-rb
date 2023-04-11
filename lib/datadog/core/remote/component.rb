@@ -36,25 +36,63 @@ module Datadog
 
               # TODO: bail out if too many errors?
             end
+
+            @barrier.lift
+          end
+
+          @barrier = Barrier.new do
+            next if @worker.nil?
+
+            @worker.start
+
+            true
           end
         end
 
         def barrier(kind)
-          return if @worker.nil?
-
-          # Make it start on demand (for now)
-          @worker.start
-
           case kind
           when :once
-            # TODO: block until first update has been received
+            @barrier.wait_once
           when :next
-            # TODO: block until next update has been received
+            @barrier.wait_next
           end
         end
 
         def shutdown!
           @worker.stop unless @worker.nil?
+        end
+
+        # Barrier provides a mechanism to fence execution until a condition happens
+        class Barrier
+          def initialize(&block)
+            @block = block
+            @once = false
+
+            @mutex = Mutex.new
+            @condition = ConditionVariable.new
+          end
+
+          def wait_once
+            return if @once
+
+            wait_next
+          end
+
+          def wait_next
+            return unless @block.call
+
+            @mutex.synchronize do
+              @condition.wait(@mutex)
+            end
+          end
+
+          def lift
+            @mutex.synchronize do
+              @once ||= true
+
+              @condition.broadcast
+            end
+          end
         end
 
         class << self

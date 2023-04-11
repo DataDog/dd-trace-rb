@@ -5,6 +5,8 @@ module Datadog
         attr_reader client: Datadog::Core::Remote::Client
         attr_reader worker: Datadog::Core::Remote::Worker
 
+        @barrier: Barrier
+
         def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
 
         def sync: () -> void
@@ -12,6 +14,22 @@ module Datadog
         def shutdown!: () -> void
 
         def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> Datadog::Core::Remote::Component?
+
+        class Barrier
+          type condition = ^() -> bool?
+
+          @block: condition
+          @once: bool
+
+          @mutex: ::Thread::Mutex
+          @condition: ::Thread::ConditionVariable
+
+          def initialize: () { () -> bool? } -> void
+
+          def wait_once: () -> void
+          def wait_next: () -> void
+          def lift: () -> void
+        end
       end
     end
   end

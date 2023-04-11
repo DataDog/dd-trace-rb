@@ -20,8 +20,6 @@ RSpec.describe Datadog::Core::Remote::Component do
 
       expect(worker).to receive(:start).and_call_original
       expect(worker).to receive(:stop).and_call_original
-
-      component.barrier(:once)
     end
 
     after do
@@ -37,8 +35,7 @@ RSpec.describe Datadog::Core::Remote::Component do
       it 'does not log any error' do
         expect(Datadog.logger).to_not receive(:error)
 
-        Thread.pass # allow worker thread to work
-        sleep 0.1
+        component.barrier(:once)
       end
     end
 
@@ -55,8 +52,7 @@ RSpec.describe Datadog::Core::Remote::Component do
 
         expect(Datadog.logger).to receive(:error).and_return(nil)
 
-        Thread.pass # allow worker thread to work
-        sleep 0.1
+        component.barrier(:once)
       end
 
       it 'catches exceptions' do
@@ -64,8 +60,7 @@ RSpec.describe Datadog::Core::Remote::Component do
 
         # if the error is uncaught it will crash the test, so a mere passing is good
 
-        Thread.pass # allow worker thread to work
-        sleep 0.1
+        component.barrier(:once)
       end
 
       it 'creates a new client' do
@@ -73,10 +68,172 @@ RSpec.describe Datadog::Core::Remote::Component do
 
         expect(component.client.object_id).to eql(client.object_id)
 
-        Thread.pass # allow worker thread to work
-        sleep 0.1
+        component.barrier(:once)
 
         expect(component.client.object_id).to eql(second_client.object_id)
+      end
+    end
+  end
+end
+
+RSpec.describe Datadog::Core::Remote::Component::Barrier do
+  let(:delay) { 0.5 }
+  let(:block) { -> { true } }
+
+  subject(:barrier) { described_class.new(&block) }
+
+  shared_context('recorder') do
+    let(:record) { [] }
+  end
+
+  shared_context('waiter thread') do
+    include_context 'recorder'
+
+    let(:thr) do
+      Thread.new do
+        loop do
+          record << :wait
+          barrier.wait_next
+        end
+      end
+    end
+
+    before do
+      record
+      thr.run
+    end
+
+    after do
+      thr.kill
+      thr.join
+    end
+  end
+
+  shared_context('lifter thread') do
+    include_context 'recorder'
+
+    let(:thr) do
+      Thread.new do
+        loop do
+          sleep delay
+          record << :lift
+          barrier.lift
+        end
+      end
+    end
+
+    before do
+      record
+      thr.run
+    end
+
+    after do
+      thr.kill
+      thr.join
+    end
+  end
+
+  describe '#lift' do
+    context 'without waiters' do
+      include_context 'recorder'
+
+      it 'does not block' do
+        record << :one
+        barrier.lift
+        record << :two
+
+        expect(record).to eq [:one, :two]
+      end
+    end
+
+    context 'with waiters' do
+      include_context 'waiter thread'
+
+      it 'unblocks waiters' do
+        sleep delay
+        record << :one
+        barrier.lift
+
+        sleep delay
+        record << :two
+        barrier.lift
+
+        # there may be an additional :wait if waiter thread gets switched to
+        recorded = record[0, 4]
+
+        expect(recorded).to eq [:wait, :one, :wait, :two]
+      end
+    end
+  end
+
+  describe '#wait_once' do
+    include_context 'lifter thread'
+
+    it 'blocks once' do
+      record << :one
+      barrier.wait_once
+      record << :two
+
+      expect(record).to eq [:one, :lift, :two]
+    end
+
+    it 'blocks only once' do
+      record << :one
+      barrier.wait_once
+      record << :two
+      barrier.wait_once
+      record << :three
+
+      expect(record).to eq [:one, :lift, :two, :three]
+    end
+
+    context 'with unsatisfied requirement' do
+      let(:block) { -> { false } }
+
+      it 'does not block' do
+        record << :one
+        barrier.wait_next
+        record << :two
+        barrier.wait_next
+        record << :three
+
+        expect(record).to eq [:one, :two, :three]
+      end
+    end
+  end
+
+  describe '#wait_next' do
+    include_context 'lifter thread'
+
+    it 'blocks once' do
+      record << :one
+      barrier.wait_next
+      record << :two
+
+      expect(record).to eq [:one, :lift, :two]
+    end
+
+    it 'blocks each time' do
+      record << :one
+      barrier.wait_next
+      record << :two
+      barrier.wait_next
+      record << :three
+
+      expect(record).to eq [:one, :lift, :two, :lift, :three]
+    end
+
+    context 'with unsatisfied requirement' do
+      let(:block) { -> { false } }
+
+      it 'does not block' do
+        record << :one
+        barrier.wait_next
+        record << :two
+        barrier.wait_next
+        record << :three
+
+        expect(record).to eq [:one, :two, :three]
       end
     end
   end
