@@ -133,7 +133,7 @@ module Datadog
           end
 
           def inspect_middlewares(app)
-            Datadog.logger.debug { 'Rails middlewares: ' << app.middleware.map(&:inspect).inspect }
+            Datadog.logger.debug { "Rails middlewares: #{app.middleware.map(&:inspect).inspect}" }
           end
 
           def patch_after_intialize
