@@ -1,0 +1,30 @@
+module Datadog
+  module AppSec
+    class Processor
+      module RuleMerger
+        class RuleVersionMismatchError < StandardError
+          def initialize: (::String version1, ::String version2) -> void
+        end
+
+        type rules = ::Hash[::String, untyped]
+        type data = ::Hash[::String, untyped]
+        type overrides = ::Hash[::String, untyped]
+        type exclusions = ::Hash[::String, untyped]
+
+        def self.merge: (rules: ::Array[rules], ?data: ::Array[data]?, ?overrides: ::Array[overrides]?, ?exclusions: ::Array[exclusions]?) -> rules
+
+        private
+
+        def self.combine_rules: (::Array[rules] rules) -> untyped
+
+        def self.combine_data: (::Array[data] data) -> ::Array[data]?
+
+        def self.merge_data_base_on_expiration: (::Array[data] data1, ::Array[data] data2) -> ::Array[data]
+
+        def self.combine_overrides: (::Array[overrides] overrides) -> ::Array[overrides]?
+
+        def self.combine_exclusions: (::Array[exclusions] exclusions) -> ::Array[exclusions]?
+      end
+    end
+  end
+end

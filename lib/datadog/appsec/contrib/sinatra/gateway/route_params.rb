@@ -12,7 +12,7 @@ module Datadog
             attr_reader :params
 
             def initialize(params)
-              super
+              super()
               @params = params
             end
           end

@@ -6,9 +6,9 @@ module Datadog
 
         def self?.new: (untyped klass) ?{ (untyped) -> untyped } -> untyped
 
-        def self?.root: (?agent_settings: untyped, **untyped options) { (untyped) -> untyped } -> untyped
+        def self?.root: (?agent_settings: untyped, **untyped options) ?{ (untyped) -> untyped } -> untyped
 
-        def self?.v7: (?agent_settings: untyped, **untyped options) { (untyped) -> untyped } -> untyped
+        def self?.v7: (?agent_settings: untyped, **untyped options) ?{ (untyped) -> untyped } -> untyped
 
         def self?.default_headers: () -> untyped
 

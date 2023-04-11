@@ -9,7 +9,7 @@ databases and microservices so that developers have high visibility into bottlen
 
 For the general APM documentation, see our [setup documentation][setup docs].
 
-For more information about what APM looks like once your application is sending information to Datadog, take a look at [Visualizing your APM data][visualization docs].
+For more information about what APM looks like once your application is sending information to Datadog, take a look at [Terms and Concepts][visualization docs].
 
 For the library API documentation, see our [YARD documentation][yard docs].
 
@@ -17,7 +17,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 [setup docs]: https://docs.datadoghq.com/tracing/
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/README.md#development
-[visualization docs]: https://docs.datadoghq.com/tracing/visualization/
+[visualization docs]: https://docs.datadoghq.com/tracing/glossary/
 [contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
 [yard docs]: https://www.rubydoc.info/gems/ddtrace/
@@ -1644,7 +1644,6 @@ end
 | --- | ----------- | ------- |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. | `false` |
-| `exception_controller` | Class or Module which identifies a custom exception controller class. Tracer provides improved error behavior when it can identify custom exception controllers. By default, without this option, it 'guesses' what a custom exception controller looks like. Providing this option aids this identification. | `nil` |
 | `middleware` | Add the trace middleware to the Rails application. Set to `false` if you don't want the middleware to load. | `true` |
 | `middleware_names` | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace. | `false` |
 | `service_name` | Service name used when tracing application requests (on the `rack` level) | `'<app_name>'` (inferred from your Rails application namespace) |

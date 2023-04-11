@@ -6,14 +6,83 @@ require 'datadog/core/remote/configuration/target'
 RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
   let(:version) { 46761194 }
   let(:opaque_backend_state) { 'eyJ2ZXJzaW9uIjoyLCJzdGF0ZSI6eyJmaWxlX2hhc2hlcyI6eyJkYXRhZG3FOMU44PSJdfX19' }
+  let(:raw) do
+    {
+      exclusions: [
+        {
+          conditions: [
+            {
+              operator: 'ip_match',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'http.client_ip'
+                  }
+                ],
+                list: [
+                  '4.4.4.4'
+                ]
+              }
+            }
+          ],
+          id: '874459ae-137f-4c99-9c54-109b1a117b86'
+        },
+        {
+          conditions: [
+            {
+              operator: 'match_regex',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'server.request.uri.raw'
+                  }
+                ],
+                options: {
+                  case_sensitive: false
+                },
+                regex: '^/waf'
+              }
+            }
+          ],
+          id: 'd1390949-cf1a-408d-bc3f-043d0689d89e'
+        },
+        {
+          id: '5fe8e530-d3ec-4e6d-bc06-0a6637c6e763',
+          rules_target: [
+            {
+              rule_id: 'ua0-600-55x'
+            }
+          ]
+        },
+        {
+          conditions: [
+            {
+              operator: 'ip_match',
+              parameters: {
+                inputs: [
+                  {
+                    address: 'http.client_ip'
+                  }
+                ],
+                list: [
+                  '8.8.8.8'
+                ]
+              }
+            }
+          ],
+          id: '081e1fbe-c73b-4ad2-bb83-4752354271bc'
+        }
+      ],
+      rules_override: []
+    }
+  end
 
-  # rubocop:disable Layout/LineLength
-  let(:raw_target) do
+  let(:raw_target_map) do
     {
       'signatures' => [
         {
           'keyid' => '44de082b06652b24c3ccfecba7dcbdb82f1cc58e3813f824665a6085a6d6b6a3',
-          'sig' => '0a66cbda8de50af143708a8811892786727260b707144b910c07d00e7950d01804835dbd56e789fe8f89f1d0355bb653b8f2a8e41ab90f24d88f2c458438cd00'
+          'sig' => '0a66cbda8de50af143708a8811892786727260b707144b910c07d00e7950d'
         }
       ],
       'signed' =>
@@ -26,21 +95,6 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
           'expires' => '2023-06-15T15:25:56Z',
           'spec_version' => '1.0.0',
           'targets' => {
-            'datadog/603646/ASM/blocking/config' => {
-              'custom' => {
-                'c' => ['5bb79ec4-0f50-464c-8400-b88521e1b96e'],
-                'tracer-predicates' => {
-                  'tracer_predicates_v1' => [
-                    {
-                      'clientID' => '5bb79ec4-0f50-464c-8400-b88521e1b96e'
-                    }
-                  ]
-                },
-                'v' => 245
-              },
-              'hashes' => { 'sha256' => 'e39c699e5e626da1a43369ab3e7f17cce6a21c0ce1d2261280c7f2ac61c5db1b' },
-              'length' => 4605
-            },
             'datadog/603646/ASM/exclusion_filters/config' => {
               'custom' => {
                 'c' => ['5bb79ec4-0f50-464c-8400-b88521e1b96e'],
@@ -52,7 +106,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
                   ]
                 }, 'v' => 21
               },
-              'hashes' => { 'sha256' => 'c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de' },
+              'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw.to_json) },
               'length' => 645
             },
           },
@@ -60,12 +114,10 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         }
     }
   end
-  # rubocop:enable Layout/LineLength
-
   describe '.parse' do
     context 'with valid target hash' do
       it 'returns a TargetMap instance' do
-        target_map = described_class.parse(raw_target)
+        target_map = described_class.parse(raw_target_map)
         expect(target_map).to be_a(described_class)
 
         expect(target_map.opaque_backend_state).to eq(opaque_backend_state)
@@ -73,7 +125,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       end
 
       it 'uses path instances as key and target instance as value' do
-        target_map = described_class.parse(raw_target)
+        target_map = described_class.parse(raw_target_map)
 
         path = Datadog::Core::Remote::Configuration::Path.parse('datadog/603646/ASM/exclusion_filters/config')
         expect(target_map[path]).to be_a(Datadog::Core::Remote::Configuration::Target)
@@ -114,57 +166,54 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       end
     end
   end
-end
 
-RSpec.describe Datadog::Core::Remote::Configuration::Target do
-  let(:raw_target) do
-    {
-      'custom' =>
-        { 'c' => ['854b784e-64ae-4c82-ac9b-fc2aea723260'],
-          'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => '854b784e-64ae-4c82-ac9b-fc2aea723260' }] },
-          'v' => 21 },
-      'hashes' => { 'sha256' => 'c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de' },
-      'length' => 645
-    }
-  end
-
-  subject(:target) { described_class.parse(raw_target) }
-
-  describe '.parse' do
-    context 'with valid target' do
-      it 'returns a Target instance' do
-        expect(target).to be_a(described_class)
-      end
+  describe Datadog::Core::Remote::Configuration::Target do
+    let(:raw_target) do
+      {
+        'custom' =>
+          { 'c' => ['854b784e-64ae-4c82-ac9b-fc2aea723260'],
+            'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => '854b784e-64ae-4c82-ac9b-fc2aea723260' }] },
+            'v' => 21 },
+        'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw.to_json) },
+        'length' => 645
+      }
     end
-  end
 
-  describe '#check' do
-    context 'valid content' do
-      it 'returns true' do
-        # rubocop:disable Layout/LineLength
-        raw = 'eyJleGNsdXNpb25zIjpbeyJjb25kaXRpb25zIjpbeyJvcGVyYXRvciI6ImlwX21hdGNoIiwicGFyYW1ldGVycyI6eyJpbnB1dHMiOlt7ImFkZHJlc3MiOiJodHRwLmNsaWVudF9pcCJ9XSwibGlzdCI6WyI0LjQuNC40Il19fV0sImlkIjoiODc0NDU5YWUtMTM3Zi00Yzk5LTljNTQtMTA5YjFhMTE3Yjg2In0seyJjb25kaXRpb25zIjpbeyJvcGVyYXRvciI6Im1hdGNoX3JlZ2V4IiwicGFyYW1ldGVycyI6eyJpbnB1dHMiOlt7ImFkZHJlc3MiOiJzZXJ2ZXIucmVxdWVzdC51cmkucmF3In1dLCJvcHRpb25zIjp7ImNhc2Vfc2Vuc2l0aXZlIjpmYWxzZX0sInJlZ2V4IjoiXi93YWYifX1dLCJpZCI6ImQxMzkwOTQ5LWNmMWEtNDA4ZC1iYzNmLTA0M2QwNjg5ZDg5ZSJ9LHsiaWQiOiI1ZmU4ZTUzMC1kM2VjLTRlNmQtYmMwNi0wYTY2MzdjNmU3NjMiLCJydWxlc190YXJnZXQiOlt7InJ1bGVfaWQiOiJ1YTAtNjAwLTU1eCJ9XX0seyJjb25kaXRpb25zIjpbeyJvcGVyYXRvciI6ImlwX21hdGNoIiwicGFyYW1ldGVycyI6eyJpbnB1dHMiOlt7ImFkZHJlc3MiOiJodHRwLmNsaWVudF9pcCJ9XSwibGlzdCI6WyI4LjguOC44Il19fV0sImlkIjoiMDgxZTFmYmUtYzczYi00YWQyLWJiODMtNDc1MjM1NDI3MWJjIn1dLCJydWxlc19vdmVycmlkZSI6W119'
-        # rubocop:enable Layout/LineLength
-        string_io_content = StringIO.new(Base64.strict_decode64(raw).freeze)
+    subject(:target) { described_class.parse(raw_target) }
 
-        content_hash = {
-          :path => 'datadog/603646/ASM/exclusion_filters/config',
-          :content => string_io_content
-        }
-        content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
-
-        expect(target.check(content)).to be_truthy
+    describe '.parse' do
+      context 'with valid target' do
+        it 'returns a Target instance' do
+          expect(target).to be_a(described_class)
+        end
       end
     end
 
-    context 'invalid content' do
-      it 'returns false' do
-        content_hash = {
-          :path => 'datadog/603646/ASM/exclusion_filters/config',
-          :content => StringIO.new('Hello World')
-        }
-        content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
+    describe '#check' do
+      context 'valid content' do
+        it 'returns true' do
+          string_io_content = StringIO.new(raw.to_json)
 
-        expect(target.check(content)).to be_falsy
+          content_hash = {
+            :path => 'datadog/603646/ASM/exclusion_filters/config',
+            :content => string_io_content
+          }
+          content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
+
+          expect(target.check(content)).to be_truthy
+        end
+      end
+
+      context 'invalid content' do
+        it 'returns false' do
+          content_hash = {
+            :path => 'datadog/603646/ASM/exclusion_filters/config',
+            :content => StringIO.new('Hello World')
+          }
+          content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
+
+          expect(target.check(content)).to be_falsy
+        end
       end
     end
   end

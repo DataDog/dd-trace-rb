@@ -2,6 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'aws-sdk'
 
@@ -43,6 +44,7 @@ RSpec.describe 'AWS instrumentation' do
       it_behaves_like 'measured span for integration'
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'span attributes schema'
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -62,6 +64,8 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('command')
+
+        # TODO: add testing for v0 and v1 `peer.service` when added
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
@@ -91,6 +95,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'measured span for integration'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'span attributes schema'
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -110,6 +115,8 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('command')
+
+        # TODO: add testing for v0 and v1 `peer.service` when added
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))

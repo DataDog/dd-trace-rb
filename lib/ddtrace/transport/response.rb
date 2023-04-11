@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Transport
     # Defines abstract response for transport operations

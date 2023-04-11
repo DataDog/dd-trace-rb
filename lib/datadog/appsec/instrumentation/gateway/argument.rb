@@ -5,16 +5,14 @@ module Datadog
     module Instrumentation
       class Gateway
         # Base class for Gateway Arguments
-        class Argument
-          def initialize(*); end
-        end
+        class Argument; end # rubocop:disable Lint/EmptyClass
 
         # Gateway User argument
         class User < Argument
           attr_reader :id
 
           def initialize(id)
-            super
+            super()
             @id = id
           end
         end

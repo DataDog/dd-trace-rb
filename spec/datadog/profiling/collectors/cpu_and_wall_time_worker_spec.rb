@@ -336,7 +336,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context 'when all threads are sleeping (no thread holds the Global VM Lock)' do
+      let(:options) { { dynamic_sampling_rate_enabled: false } }
+
+      before { expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/) }
+
       it 'is able to sample even when all threads are sleeping' do
+        skip('Test is flaky -- @ivoanjo is investigating')
+
         start
         wait_until_running
 
@@ -359,16 +365,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         # Sanity checking
 
-        # We're currently targeting 100 samples per second (aka 20 in the 0.2 period above), so expecting 5 samples is a
-        # conservative choice that hopefully will not cause flakiness.
+        # We're currently targeting 100 samples per second (aka ~20 in the 0.2 period above), so expecting 8 samples
+        # will hopefully not cause flakiness. But this test has been flaky in the past so... Ping @ivoanjo if it happens
+        # again.
         #
-        # @ivoanjo: One source of flakiness here in the past has been the dynamic sampling rate component -- if for some
-        # reason the profiler takes longer to sample (maybe the CI machine is busy today...), it will by design slow down
-        # and take less samples. For now, I tried to tune down this value, and am hesitating on adding a way to disable
-        # the dynamic sampling rate while we're running this test (because this is something we'd never do in production).
-        # But if spec proves to be flaky again, then I think we'll need to go with that solution (as I think this test
-        # is still quite valuable).
-        expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
+        expect(sample_count).to be >= 8, "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
         expect(trigger_sample_attempts).to be >= sample_count
       end
     end

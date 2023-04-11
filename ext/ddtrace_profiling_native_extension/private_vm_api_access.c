@@ -19,6 +19,8 @@
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
   #pragma GCC diagnostic ignored "-Wattributes"
+  #pragma GCC diagnostic ignored "-Wpragmas"
+  #pragma GCC diagnostic ignored "-Wexpansion-to-defined"
     #include <vm_core.h>
   #pragma GCC diagnostic pop
   #include <iseq.h>
@@ -651,6 +653,7 @@ check_method_entry(VALUE obj, int can_be_svar)
         if (can_be_svar) {
             return check_method_entry(((struct vm_svar *)obj)->cref_or_me, FALSE);
         }
+        // fallthrough
       default:
 #if VM_CHECK_MODE > 0
         rb_bug("check_method_entry: svar should not be there:");

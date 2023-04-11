@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'logger'
 
 require_relative 'base'
@@ -5,6 +7,7 @@ require_relative 'ext'
 require_relative '../environment/ext'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
+require_relative '../remote/ext'
 require_relative '../../profiling/ext'
 
 require_relative '../../tracing/configuration/settings'
@@ -202,10 +205,10 @@ module Datadog
           # @public_api
           settings :advanced do
             # This should never be reduced, as it can cause the resulting profiles to become biased.
-            # The current default should be enough for most services, allowing 16 threads to be sampled around 30 times
+            # The default should be enough for most services, allowing 16 threads to be sampled around 30 times
             # per second for a 60 second period.
             #
-            # This setting is ignored when CPU Profiling 2.0 is in use.
+            # @deprecated This setting is ignored when CPU Profiling 2.0 is in use.
             option :max_events, default: 32768
 
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
@@ -236,7 +239,7 @@ module Datadog
             # grouping and categorization of stack traces.
             option :code_provenance_enabled, default: true
 
-            # No longer does anything, and will be removed on dd-trace-rb 2.0.
+            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
             #
             # This was added as a temporary support option in case of issues with the new `Profiling::HttpTransport` class
             # but we're now confident it's working nicely so we've removed the old code path.
@@ -252,12 +255,24 @@ module Datadog
             # Forces enabling the new CPU Profiling 2.0 profiler (see ddtrace release notes for more details).
             #
             # Note that setting this to "false" (or not setting it) will not prevent the new profiler from
-            # being automatically used in the future.
-            # This option will be deprecated for removal once the new profiler gets enabled by default for all customers.
+            # being automatically used.
+            # This option will be deprecated for removal once the legacy profiler is removed.
             #
             # @default `DD_PROFILING_FORCE_ENABLE_NEW` environment variable, otherwise `false`
             option :force_enable_new_profiler do |o|
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_NEW', false) }
+              o.lazy
+            end
+
+            # Forces enabling the *legacy* (non-CPU Profiling 2.0 profiler) even when it would otherwise NOT be enabled.
+            #
+            # Temporarily added to ease migration to the new CPU Profiling 2.0 profiler, and will be removed soon.
+            # Do not use unless instructed to by support.
+            # This option will be deprecated for removal once the legacy profiler is removed.
+            #
+            # @default `DD_PROFILING_FORCE_ENABLE_LEGACY` environment variable, otherwise `false`
+            option :force_enable_legacy_profiler do |o|
+              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_LEGACY', false) }
               o.lazy
             end
 
@@ -266,14 +281,13 @@ module Datadog
             # Note that setting this to "false" (or not setting it) will not prevent the feature from being
             # being automatically enabled in the future.
             #
-            # This toggle was added because, although this feature is safe and enabled by default on Ruby 2.x,
-            # on Ruby 3.x it can break in applications that make use of Ractors due to two Ruby VM bugs:
-            # https://bugs.ruby-lang.org/issues/19112 AND https://bugs.ruby-lang.org/issues/18464.
-            #
-            # If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
-            # feature is fully safe to enable and this toggle can be used to do so.
-            #
-            # Furthermore, currently this feature can add a lot of overhead for GC-heavy workloads.
+            # This feature defaults to off for two reasons:
+            # 1. Currently this feature can add a lot of overhead for GC-heavy workloads.
+            # 2. Although this feature is safe on Ruby 2.x, on Ruby 3.x it can break in applications that make use of
+            #    Ractors due to two Ruby VM bugs:
+            #    https://bugs.ruby-lang.org/issues/19112 AND https://bugs.ruby-lang.org/issues/18464.
+            #    If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
+            #    feature is fully safe to enable and this toggle can be used to do so.
             #
             # We expect the once the above issues are overcome, we'll automatically enable the feature on fixed Ruby
             # versions.
@@ -292,6 +306,8 @@ module Datadog
             #
             # If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
             # feature is fully safe to enable and this toggle can be used to do so.
+            #
+            # @default `true` on Ruby 2.x, `false` on Ruby 3.x
             option :allocation_counting_enabled, default: RUBY_VERSION.start_with?('2.')
           end
 
@@ -449,6 +465,29 @@ module Datadog
           # @return [Boolean]
           option :enabled do |o|
             o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, false) }
+            o.lazy
+          end
+        end
+
+        # Remote configuration
+        # @public_api
+        settings :remote do
+          # Enable remote configuration. This allows fetching of remote configuration for live updates.
+          #
+          # @default `DD_REMOTE_CONFIGURATION_ENABLED` environment variable, otherwise `false`. In a future release,
+          #   this value will be changed to `true` by default.
+          # @return [Boolean]
+          option :enabled do |o|
+            o.default { env_to_bool(Core::Remote::Ext::ENV_ENABLED, false) }
+            o.lazy
+          end
+
+          # Tune remote configuration polling interval.
+          #
+          # @default `DD_REMOTE_CONFIGURATION_POLL_INTERVAL_SECONDS` environment variable, otherwise `5.0` seconds.
+          # @return [Float]
+          option :poll_interval_seconds do |o|
+            o.default { env_to_float(Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS, 5.0) }
             o.lazy
           end
         end

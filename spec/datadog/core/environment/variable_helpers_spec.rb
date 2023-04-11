@@ -69,12 +69,14 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
       include_context 'env var'
 
       # True values
-      %w[
-        true
-        TRUE
+      [
+        'true',
+        'TRUE',
+        '1',
+        ' 1 ',
       ].each do |value|
-        context value.to_s do
-          let(:env_value) { value.to_s }
+        context "'#{value}'" do
+          let(:env_value) { value }
 
           it { is_expected.to be true }
         end
@@ -85,11 +87,11 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
         '',
         'false',
         'FALSE',
-        0,
-        1
+        '0',
+        'arbitrary string',
       ].each do |value|
-        context value.to_s do
-          let(:env_value) { value.to_s }
+        context "'#{value}'" do
+          let(:env_value) { value }
 
           it { is_expected.to be false }
         end

@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Remote
+      module Ext
+        ENV_ENABLED: ::String
+
+        ENV_POLL_INTERVAL_SECONDS: ::String
+      end
+    end
+  end
+end

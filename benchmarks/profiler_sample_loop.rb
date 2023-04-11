@@ -21,6 +21,7 @@ class ProfilerSampleLoopBenchmark
       c.profiling.enabled = true
       c.profiling.exporter.transport = MockProfilerTransport.new
       c.tracing.transport_options = proc { |t| t.adapter :test }
+      c.profiling.advanced.force_enable_legacy_profiler = true
     end
 
     # Stop background threads

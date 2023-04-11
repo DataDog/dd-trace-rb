@@ -1,15 +1,20 @@
 module Datadog
   module AppSec
     class Component
-      def self.build_appsec_component: (Datadog::AppSec::Configuration::Settings settings) -> Datadog::AppSec::Component?
+      def self.build_appsec_component: (Datadog::Core::Configuration::Settings settings) -> Datadog::AppSec::Component?
 
       private
 
       def self.create_processor: () -> Datadog::AppSec::Processor?
 
       attr_reader processor: Datadog::AppSec::Processor?
+      attr_reader mutex: Thread::Mutex
 
       def initialize: (processor: Datadog::AppSec::Processor?) -> void
+
+      def self.reconfigure: (ruleset: ::Hash[untyped, untyped]) -> void
+
+      def self.reconfigure_lock: () { () -> void } -> void
 
       def shutdown!: () -> untyped
     end

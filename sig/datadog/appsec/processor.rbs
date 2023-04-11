@@ -37,24 +37,19 @@ module Datadog
       @ruleset: ::Hash[::String, untyped]
       @addresses: ::Array[::String]
 
-      def initialize: () -> void
+      def initialize: (ruleset: ::Hash[untyped, untyped]) -> void
       def ready?: () -> bool
       def new_context: () -> Context
       def activate_context: () -> Context
       def deactivate_context: () -> void
-      def update_rule_data: (untyped data) -> untyped
-      def toggle_rules: (untyped map) -> untyped
       def finalize: () -> void
 
       attr_reader handle: untyped
 
       private
 
-      def apply_denylist_data: (Configuration::Settings settings) -> untyped
-      def denylist_data: (String id, ::Array[untyped] denylist) -> ::Hash[::String, untyped | "data_with_expiration"]
       def load_libddwaf: () -> bool
-      def load_ruleset: (Configuration::Settings settings) -> bool
-      def create_waf_handle: (Configuration::Settings settings) -> bool
+      def create_waf_handle: (Configuration::Settings settings, ::Hash[String, untyped] ruleset) -> bool
 
       def self.libddwaf_provides_waf?: () -> bool
       def self.require_libddwaf: () -> bool

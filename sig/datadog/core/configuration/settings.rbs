@@ -4,13 +4,29 @@ module Datadog
       class Settings
         include Base
 
+        interface _Remote
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def poll_interval_seconds: () -> ::Float
+
+          def poll_interval_seconds=: (::Float) -> void
+        end
+
         def initialize: (*untyped _) -> untyped
+
+        def env: -> String
+
+        def service: -> String
 
         def logger=: (untyped logger) -> untyped
 
         def runtime_metrics: (?untyped? options) -> untyped
 
         def appsec: (?untyped? options) -> Datadog::AppSec::Configuration::Settings
+
+        def remote: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Remote
       end
     end
   end

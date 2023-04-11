@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Profiling
     module Collectors
@@ -26,14 +28,24 @@ module Datadog
             tracer: tracer,
             endpoint_collection_enabled: endpoint_collection_enabled,
           ),
-          idle_sampling_helper: IdleSamplingHelper.new
+          idle_sampling_helper: IdleSamplingHelper.new,
+          # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
+          # profiler overhead!
+          dynamic_sampling_rate_enabled: true
         )
+          unless dynamic_sampling_rate_enabled
+            Datadog.logger.warn(
+              'Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!'
+            )
+          end
+
           self.class._native_initialize(
             self,
             thread_context_collector,
             gc_profiling_enabled,
             idle_sampling_helper,
-            allocation_counting_enabled
+            allocation_counting_enabled,
+            dynamic_sampling_rate_enabled,
           )
           @worker_thread = nil
           @failure_exception = nil

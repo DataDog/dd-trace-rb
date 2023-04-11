@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../ext'
 require_relative '../../event'
 require_relative '../../consumer_event'
@@ -13,7 +15,7 @@ module Datadog
               include Kafka::Event
               extend Kafka::ConsumerEvent
 
-              EVENT_NAME = 'process_batch.consumer.kafka'.freeze
+              EVENT_NAME = 'process_batch.consumer.kafka'
 
               def self.process(span, _event, _id, payload)
                 super

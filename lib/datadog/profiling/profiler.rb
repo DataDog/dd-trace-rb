@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Profiling
     # Profiling entry point, which coordinates collectors and a scheduler

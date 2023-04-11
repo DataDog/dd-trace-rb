@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'msgpack'
 
@@ -27,7 +29,7 @@ module Datadog
       module JSONEncoder
         extend Encoder
 
-        CONTENT_TYPE = 'application/json'.freeze
+        CONTENT_TYPE = 'application/json'
 
         module_function
 
@@ -50,7 +52,7 @@ module Datadog
 
         module_function
 
-        CONTENT_TYPE = 'application/msgpack'.freeze
+        CONTENT_TYPE = 'application/msgpack'
 
         def content_type
           CONTENT_TYPE

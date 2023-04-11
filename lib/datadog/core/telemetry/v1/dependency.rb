@@ -1,10 +1,16 @@
+# frozen_string_literal: true
+
+require_relative '../../utils/hash'
+
 module Datadog
   module Core
     module Telemetry
       module V1
         # Describes attributes for dependency object
         class Dependency
-          ERROR_NIL_NAME_MESSAGE = ':name must not be nil'.freeze
+          using Core::Utils::Hash::Refinement
+
+          ERROR_NIL_NAME_MESSAGE = ':name must not be nil'
 
           attr_reader \
             :hash,
@@ -23,11 +29,13 @@ module Datadog
           end
 
           def to_h
-            {
+            hash = {
               hash: @hash,
               name: @name,
               version: @version
             }
+            hash.compact!
+            hash
           end
         end
       end

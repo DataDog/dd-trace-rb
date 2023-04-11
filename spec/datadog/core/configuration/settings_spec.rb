@@ -460,6 +460,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#force_enable_legacy_profiler' do
+        subject(:force_enable_legacy_profiler) { settings.profiling.advanced.force_enable_legacy_profiler }
+
+        context 'when DD_PROFILING_FORCE_ENABLE_LEGACY' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_FORCE_ENABLE_LEGACY' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          { 'true' => true, 'false' => false }.each do |string, value|
+            context "is defined as #{string}" do
+              let(:environment) { string }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#force_enable_legacy_profiler=' do
+        it 'updates the #force_enable_legacy_profiler setting' do
+          expect { settings.profiling.advanced.force_enable_legacy_profiler = true }
+            .to change { settings.profiling.advanced.force_enable_legacy_profiler }
+            .from(false)
+            .to(true)
+        end
+      end
+
       describe '#force_enable_gc_profiling' do
         subject(:force_enable_gc_profiling) { settings.profiling.advanced.force_enable_gc_profiling }
 
@@ -1071,6 +1106,74 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.telemetry.enabled }
           .from(true)
           .to(false)
+      end
+    end
+  end
+
+  describe '#remote' do
+    describe '#enabled' do
+      subject(:enabled) { settings.remote.enabled }
+
+      context "when #{Datadog::Core::Remote::Ext::ENV_ENABLED}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Remote::Ext::ENV_ENABLED => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'true' }
+
+          it { is_expected.to be true }
+        end
+      end
+    end
+
+    describe '#enabled=' do
+      it 'updates the #enabled setting' do
+        expect { settings.remote.enabled = true }
+          .to change { settings.remote.enabled }
+          .from(false)
+          .to(true)
+      end
+    end
+
+    describe '#poll_interval_seconds' do
+      subject(:enabled) { settings.remote.poll_interval_seconds }
+
+      context "when #{Datadog::Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to eq 5.0 }
+        end
+
+        context 'is defined' do
+          let(:environment) { '1' }
+
+          it { is_expected.to eq 1.0 }
+        end
+      end
+    end
+
+    describe '#poll_interval_seconds=' do
+      it 'updates the #poll_interval_seconds setting' do
+        expect { settings.remote.poll_interval_seconds = 1 }
+          .to change { settings.remote.poll_interval_seconds }
+          .from(5.0)
+          .to(1.0)
       end
     end
   end

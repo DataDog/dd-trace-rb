@@ -64,7 +64,7 @@ module Datadog
 
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
-        if settings.profiling.advanced.force_enable_new_profiler
+        if enable_new_profiler?(settings)
           print_new_profiler_warnings
 
           recorder = Datadog::Profiling::StackRecorder.new(
@@ -142,21 +142,54 @@ module Datadog
       end
 
       private_class_method def self.print_new_profiler_warnings
-        if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+        return if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+
+        # For more details on the issue, see the "BIG Issue" comment on `gvl_owner` function in
+        # `private_vm_api_access.c`.
+        Datadog.logger.warn(
+          'The new CPU Profiling 2.0 profiler has been force-enabled on a legacy Ruby version (< 2.6). This is not ' \
+          'recommended in production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes ' \
+          'in very rare situations. Please report any issues you run into to Datadog support or ' \
+          'via <https://github.com/datadog/dd-trace-rb/issues/new>!'
+        )
+      end
+
+      private_class_method def self.enable_new_profiler?(settings)
+        if settings.profiling.advanced.force_enable_legacy_profiler
           Datadog.logger.warn(
-            'New Ruby profiler has been force-enabled. This is a beta feature. Please report any issues ' \
-            'you run into to Datadog support or via <https://github.com/datadog/dd-trace-rb/issues/new>!'
+            'Legacy profiler has been force-enabled via configuration. Do not use unless instructed to by support.'
           )
-        else
-          # For more details on the issue, see the "BIG Issue" comment on `gvl_owner` function in
-          # `private_vm_api_access.c`.
-          Datadog.logger.warn(
-            'New Ruby profiler has been force-enabled on a legacy Ruby version (< 2.6). This is not recommended in ' \
-            'production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes in very ' \
-            'rare situations. Please report any issues you run into to Datadog support or ' \
-            'via <https://github.com/datadog/dd-trace-rb/issues/new>!'
-          )
+          return false
         end
+
+        return true if settings.profiling.advanced.force_enable_new_profiler
+
+        return false if RUBY_VERSION.start_with?('2.3.', '2.4.', '2.5.')
+
+        if Gem.loaded_specs['mysql2']
+          Datadog.logger.warn(
+            'Falling back to legacy profiler because mysql2 gem is installed. Older versions of libmysqlclient (the C ' \
+            'library used by the mysql2 gem) have a bug in their signal handling code that the new profiler can trigger. ' \
+            'This bug (https://bugs.mysql.com/bug.php?id=83109) is fixed in libmysqlclient versions 8.0.0 and above. ' \
+            'If your Linux distribution provides a modern libmysqlclient, you can force-enable the new CPU Profiling 2.0 ' \
+            'profiler by using the `DD_PROFILING_FORCE_ENABLE_NEW` environment variable or the ' \
+            '`c.profiling.advanced.force_enable_new_profiler` setting.' \
+          )
+          return false
+        end
+
+        if Gem.loaded_specs['rugged']
+          Datadog.logger.warn(
+            'Falling back to legacy profiler because rugged gem is installed. Some operations on this gem are ' \
+            'currently incompatible with the new CPU Profiling 2.0 profiler, as detailed in ' \
+            '<https://github.com/datadog/dd-trace-rb/issues/2721>. If you still want to try out the new profiler, you ' \
+            'can force-enable it by using the `DD_PROFILING_FORCE_ENABLE_NEW` environment variable or the ' \
+            '`c.profiling.advanced.force_enable_new_profiler` setting.'
+          )
+          return false
+        end
+
+        true
       end
     end
   end

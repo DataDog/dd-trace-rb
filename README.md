@@ -3,7 +3,7 @@
 [![Gem](https://img.shields.io/gem/v/ddtrace)](https://rubygems.org/gems/ddtrace/)
 [![CircleCI](https://circleci.com/gh/DataDog/dd-trace-rb/tree/master.svg?style=svg&circle-token=b0bd5ef866ec7f7b018f48731bb495f2d1372cc1)](https://circleci.com/gh/DataDog/dd-trace-rb/tree/master)
 [![codecov](https://codecov.io/gh/DataDog/dd-trace-rb/branch/master/graph/badge.svg)](https://app.codecov.io/gh/DataDog/dd-trace-rb/branch/master)
-[![YARD documentation](https://img.shields.io/badge/YARD-documentation-blue)](https://s3.amazonaws.com/gems.datadoghq.com/trace/docs/index.html)
+[![YARD documentation](https://img.shields.io/badge/YARD-documentation-blue)][api docs]
 
 ``ddtrace`` is Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
 databases and microservices so that developers have great visiblity into bottlenecks and troublesome requests.
@@ -22,7 +22,7 @@ For contributing, checkout the [contribution guidelines][contribution docs] and 
 
 [setup docs]: https://docs.datadoghq.com/tracing/setup/ruby/
 [api docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/GettingStarted.md
-[gem docs]: https://s3.amazonaws.com/gems.datadoghq.com/trace/docs/index.html
+[gem docs]: https://datadog.github.io/dd-trace-rb/
 [visualization docs]: https://docs.datadoghq.com/tracing/visualization/
 [contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md

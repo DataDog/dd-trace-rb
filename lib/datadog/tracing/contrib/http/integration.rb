@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../configuration/resolvers/pattern_resolver'
 require_relative 'circuit_breaker'
 require_relative 'configuration/settings'

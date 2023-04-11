@@ -38,11 +38,21 @@ module Datadog
             def initialize(http_response, options = {}) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
               super(http_response)
 
+              begin
+                payload = JSON.parse(http_response.payload, symbolize_names: true)
+              rescue JSON::ParserError => e
+                raise ParseError.new(:roots, e)
+              end
+
+              raise TypeError.new(Hash, payload) unless payload.is_a?(Hash)
+
+              @empty = true if payload.empty?
+
               # TODO: these fallbacks should be improved
-              roots = options[:roots] || []
-              targets = options[:targets] || ''
-              target_files = options[:target_files] || []
-              client_configs = options[:client_configs] || []
+              roots = payload[:roots] || []
+              targets = payload[:targets] || Base64.encode64('{}').chomp
+              target_files = payload[:target_files] || []
+              client_configs = payload[:client_configs] || []
 
               raise TypeError.new(Array, roots) unless roots.is_a?(Array)
 
@@ -238,13 +248,9 @@ module Datadog
                 # Query for response
                 http_response = super(env, &block)
 
-                # Process the response
-                body = JSON.parse(http_response.payload, symbolize_names: true)
+                response_options = {}
 
-                # TODO: there should be more processing here to ensure a proper response_options
-                response_options = body.is_a?(Hash) ? body : {}
-
-                # Build and return a trace response
+                # Build and return a response
                 Config::Response.new(http_response, response_options)
               end
             end

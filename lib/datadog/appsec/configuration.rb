@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'configuration/settings'
 
 module Datadog
@@ -81,6 +83,12 @@ module Datadog
 
         def settings
           @settings ||= Settings.new
+        end
+
+        private
+
+        def default_setting?(setting)
+          settings.send(:default?, setting)
         end
       end
     end
