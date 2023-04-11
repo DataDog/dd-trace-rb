@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'events/render'
 require_relative 'events/serialize'
 

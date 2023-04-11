@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../core'
 
 require_relative 'pipeline/span_filter'

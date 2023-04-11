@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../datadog/core/chunker'
 require_relative 'parcel'
 require_relative 'request'

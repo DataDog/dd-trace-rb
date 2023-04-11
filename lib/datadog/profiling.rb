@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'core'
 require_relative 'core/environment/variable_helpers'
 require_relative 'core/utils/only_once'

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../analytics'
 require_relative 'ext'
 require_relative 'configuration/settings'

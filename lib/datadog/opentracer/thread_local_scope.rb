@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module OpenTracer
     # OpenTracing adapter for thread local scopes
