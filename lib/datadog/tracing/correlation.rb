@@ -48,18 +48,18 @@ module Datadog
           version: nil
         )
           # Dup and freeze strings so they aren't modified by reference.
-          @env = Core::Utils::SafeDup.frozen_or_dup(env || Datadog.configuration.env).freeze
-          @service = Core::Utils::SafeDup.frozen_or_dup(service || Datadog.configuration.service).freeze
+          @env = Core::Utils::SafeDup.frozen_dup(env || Datadog.configuration.env)
+          @service = Core::Utils::SafeDup.frozen_dup(service || Datadog.configuration.service)
           @span_id = span_id || 0
-          @span_name = Core::Utils::SafeDup.frozen_or_dup(span_name).freeze
-          @span_resource = Core::Utils::SafeDup.frozen_or_dup(span_resource).freeze
-          @span_service = Core::Utils::SafeDup.frozen_or_dup(span_service).freeze
-          @span_type = Core::Utils::SafeDup.frozen_or_dup(span_type).freeze
+          @span_name = Core::Utils::SafeDup.frozen_dup(span_name)
+          @span_resource = Core::Utils::SafeDup.frozen_dup(span_resource)
+          @span_service = Core::Utils::SafeDup.frozen_dup(span_service)
+          @span_type = Core::Utils::SafeDup.frozen_dup(span_type)
           @trace_id = trace_id || 0
-          @trace_name = Core::Utils::SafeDup.frozen_or_dup(trace_name).freeze
-          @trace_resource = Core::Utils::SafeDup.frozen_or_dup(trace_resource).freeze
-          @trace_service = Core::Utils::SafeDup.frozen_or_dup(trace_service).freeze
-          @version = Core::Utils::SafeDup.frozen_or_dup(version || Datadog.configuration.version).freeze
+          @trace_name = Core::Utils::SafeDup.frozen_dup(trace_name)
+          @trace_resource = Core::Utils::SafeDup.frozen_dup(trace_resource)
+          @trace_service = Core::Utils::SafeDup.frozen_dup(trace_service)
+          @version = Core::Utils::SafeDup.frozen_dup(version || Datadog.configuration.version)
         end
 
         def to_log_format
