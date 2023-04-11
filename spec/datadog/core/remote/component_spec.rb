@@ -41,10 +41,12 @@ RSpec.describe Datadog::Core::Remote::Component do
 
     context 'when client sync raises' do
       let(:second_client) { double }
+      let(:exception) { Class.new(StandardError) }
 
       before do
         expect(worker).to receive(:call).and_call_original
-        expect(client).to receive(:sync).and_raise(StandardError, 'test')
+        expect(client).to receive(:sync).and_raise(exception, 'test')
+        allow(Datadog.logger).to receive(:error).and_return(nil)
       end
 
       it 'logs an error' do
