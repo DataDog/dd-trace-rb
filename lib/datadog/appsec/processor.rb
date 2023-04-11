@@ -14,9 +14,12 @@ module Datadog
           @time_ext_ns = 0.0
           @timeouts = 0
           @events = []
+          @run_mutex = Mutex.new
         end
 
         def run(input, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+          @run_mutex.lock
+
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
           # TODO: remove multiple assignment
@@ -30,6 +33,8 @@ module Datadog
           @timeouts += 1 if res.timeout
 
           res
+        ensure
+          @run_mutex.unlock
         end
 
         def finalize
