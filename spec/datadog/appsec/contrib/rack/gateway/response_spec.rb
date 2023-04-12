@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/contrib/rack/gateway/request'
+require 'datadog/appsec/contrib/rack/gateway/response'
 require 'datadog/appsec/processor'
 require 'rack'
 
