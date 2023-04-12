@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'logger'
 
 module Datadog
@@ -10,7 +8,7 @@ module Datadog
     # @public_api
     class Logger < ::Logger
       # TODO: Consider renaming this to 'datadog'
-      PREFIX = 'ddtrace'
+      PREFIX = 'ddtrace'.freeze
 
       def initialize(*args, &block)
         super

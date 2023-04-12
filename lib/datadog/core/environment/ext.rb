@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../../ddtrace/version'
 
 module Datadog
@@ -15,12 +13,12 @@ module Datadog
                            RUBY_VERSION
                          end
 
-        ENV_API_KEY = 'DD_API_KEY'
-        ENV_ENVIRONMENT = 'DD_ENV'
-        ENV_SERVICE = 'DD_SERVICE'
-        ENV_SITE = 'DD_SITE'
-        ENV_TAGS = 'DD_TAGS'
-        ENV_VERSION = 'DD_VERSION'
+        ENV_API_KEY = 'DD_API_KEY'.freeze
+        ENV_ENVIRONMENT = 'DD_ENV'.freeze
+        ENV_SERVICE = 'DD_SERVICE'.freeze
+        ENV_SITE = 'DD_SITE'.freeze
+        ENV_TAGS = 'DD_TAGS'.freeze
+        ENV_VERSION = 'DD_VERSION'.freeze
         FALLBACK_SERVICE_NAME =
           begin
             File.basename($PROGRAM_NAME, '.*')
@@ -28,15 +26,15 @@ module Datadog
             'ruby'
           end.freeze
 
-        LANG = 'ruby'
+        LANG = 'ruby'.freeze
         LANG_ENGINE = RUBY_ENGINE
-        LANG_INTERPRETER = "#{RUBY_ENGINE}-#{RUBY_PLATFORM}"
+        LANG_INTERPRETER = "#{RUBY_ENGINE}-#{RUBY_PLATFORM}".freeze
         LANG_PLATFORM = RUBY_PLATFORM
         LANG_VERSION = RUBY_VERSION
         RUBY_ENGINE = ::RUBY_ENGINE # e.g. 'ruby', 'jruby', 'truffleruby'
-        TAG_ENV = 'env'
-        TAG_SERVICE = 'service'
-        TAG_VERSION = 'version'
+        TAG_ENV = 'env'.freeze
+        TAG_SERVICE = 'service'.freeze
+        TAG_VERSION = 'version'.freeze
 
         # TODO: Migrate to Datadog::Tracing
         TRACER_VERSION = DDTrace::VERSION::STRING

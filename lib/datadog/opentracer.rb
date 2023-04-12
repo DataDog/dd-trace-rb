@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'opentracing'
 require 'opentracing/carrier'
 require_relative 'tracing'

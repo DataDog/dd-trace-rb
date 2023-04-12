@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../tracing/context'
 require_relative '../tracing/propagation/http'
 require_relative '../tracing/trace_operation'
@@ -11,8 +9,8 @@ module Datadog
     module RackPropagator
       extend Propagator
 
-      BAGGAGE_PREFIX = 'ot-baggage-'
-      BAGGAGE_PREFIX_FORMATTED = 'HTTP_OT_BAGGAGE_'
+      BAGGAGE_PREFIX = 'ot-baggage-'.freeze
+      BAGGAGE_PREFIX_FORMATTED = 'HTTP_OT_BAGGAGE_'.freeze
 
       class << self
         # Inject a SpanContext into the given carrier

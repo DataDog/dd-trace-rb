@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Datadog
   module Profiling
     # Used to report profiling data to Datadog.

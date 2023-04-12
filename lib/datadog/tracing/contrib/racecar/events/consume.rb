@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../ext'
 require_relative '../event'
 
@@ -12,7 +10,7 @@ module Datadog
           module Consume
             include Racecar::Event
 
-            EVENT_NAME = 'main_loop.racecar'
+            EVENT_NAME = 'main_loop.racecar'.freeze
 
             module_function
 

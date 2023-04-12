@@ -1,35 +1,33 @@
-# frozen_string_literal: true
-
 module Datadog
   module CI
     module Ext
       # Defines constants for test tags
       module Test
-        CONTEXT_ORIGIN = 'ciapp-test'
+        CONTEXT_ORIGIN = 'ciapp-test'.freeze
 
-        TAG_ARGUMENTS = 'test.arguments'
-        TAG_FRAMEWORK = 'test.framework'
-        TAG_FRAMEWORK_VERSION = 'test.framework_version'
-        TAG_NAME = 'test.name'
-        TAG_SKIP_REASON = 'test.skip_reason' # DEV: Not populated yet
-        TAG_STATUS = 'test.status'
-        TAG_SUITE = 'test.suite'
-        TAG_TRAITS = 'test.traits'
-        TAG_TYPE = 'test.type'
+        TAG_ARGUMENTS = 'test.arguments'.freeze
+        TAG_FRAMEWORK = 'test.framework'.freeze
+        TAG_FRAMEWORK_VERSION = 'test.framework_version'.freeze
+        TAG_NAME = 'test.name'.freeze
+        TAG_SKIP_REASON = 'test.skip_reason'.freeze # DEV: Not populated yet
+        TAG_STATUS = 'test.status'.freeze
+        TAG_SUITE = 'test.suite'.freeze
+        TAG_TRAITS = 'test.traits'.freeze
+        TAG_TYPE = 'test.type'.freeze
 
         # Environment runtime tags
-        TAG_OS_ARCHITECTURE = 'os.architecture'
-        TAG_OS_PLATFORM = 'os.platform'
-        TAG_RUNTIME_NAME = 'runtime.name'
-        TAG_RUNTIME_VERSION = 'runtime.version'
+        TAG_OS_ARCHITECTURE = 'os.architecture'.freeze
+        TAG_OS_PLATFORM = 'os.platform'.freeze
+        TAG_RUNTIME_NAME = 'runtime.name'.freeze
+        TAG_RUNTIME_VERSION = 'runtime.version'.freeze
 
         # TODO: is there a better place for SPAN_KIND?
-        TAG_SPAN_KIND = 'span.kind'
+        TAG_SPAN_KIND = 'span.kind'.freeze
 
         module Status
-          PASS = 'pass'
-          FAIL = 'fail'
-          SKIP = 'skip'
+          PASS = 'pass'.freeze
+          FAIL = 'fail'.freeze
+          SKIP = 'skip'.freeze
         end
       end
     end

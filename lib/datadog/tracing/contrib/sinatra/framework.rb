@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Datadog
   module Tracing
     module Contrib
@@ -107,7 +105,7 @@ module Datadog
           end
 
           def self.inspect_middlewares(builder)
-            Datadog.logger.debug { "Sinatra middlewares: #{middlewares(builder).map(&:inspect).inspect}}" }
+            Datadog.logger.debug { 'Sinatra middlewares: ' << middlewares(builder).map(&:inspect).inspect }
           end
         end
       end

@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'concurrent/executor/executor_service'
 
 module Datadog

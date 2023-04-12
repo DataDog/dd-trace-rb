@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative 'media_type'
 
 module Datadog
@@ -11,7 +9,7 @@ module Datadog
           class ParseError < ::StandardError
           end
 
-          WILDCARD = '*'
+          WILDCARD = '*'.freeze
           WILDCARD_RE = ::Regexp.escape(WILDCARD)
 
           # See: https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6
@@ -186,7 +184,7 @@ module Datadog
           end
 
           def to_s
-            s = "#{@type}/#{@subtype}".dup
+            s = "#{@type}/#{@subtype}"
 
             s << ';' << @parameters.map { |k, v| "#{k}=#{v}" }.join(';') if @parameters.count > 0
             s << ";q=#{@quality}" if @quality < 1.0

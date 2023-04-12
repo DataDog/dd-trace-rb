@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../../metadata/ext'
 require_relative '../ext'
 require_relative '../event'
@@ -13,7 +11,7 @@ module Datadog
           module Deliver
             include ActionMailer::Event
 
-            EVENT_NAME = 'deliver.action_mailer'
+            EVENT_NAME = 'deliver.action_mailer'.freeze
 
             module_function
 

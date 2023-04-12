@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../configuration/settings'
 require_relative 'env'
 require_relative 'ext'

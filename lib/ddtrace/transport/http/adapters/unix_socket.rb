@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'net/http'
 require_relative '../../ext'
 require_relative 'net'

@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'date'
 
 require_relative '../../../core/environment/variable_helpers'

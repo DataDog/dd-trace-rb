@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'time'
 
 require_relative '../core'
@@ -423,7 +421,7 @@ module Datadog
       # Error when the span attempts to start again after being started
       class AlreadyStartedError < StandardError
         def message
-          'Cannot measure an already started span!'
+          'Cannot measure an already started span!'.freeze
         end
       end
 

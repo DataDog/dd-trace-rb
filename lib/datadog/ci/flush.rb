@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../tracing/metadata/ext'
 require_relative '../tracing/flush'
 

@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../../../tracing'
 require_relative '../../../metadata/ext'
 require_relative '../event'
@@ -16,8 +14,8 @@ module Datadog
           module SQL
             include ActiveRecord::Event
 
-            EVENT_NAME = 'sql.active_record'
-            PAYLOAD_CACHE = 'CACHE'
+            EVENT_NAME = 'sql.active_record'.freeze
+            PAYLOAD_CACHE = 'CACHE'.freeze
 
             module_function
 

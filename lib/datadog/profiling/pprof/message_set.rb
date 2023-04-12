@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../core/utils/object_set'
 
 module Datadog

@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../ext'
 require_relative '../events/stack'
 require_relative 'builder'
@@ -79,7 +77,7 @@ module Datadog
           )
 
           Perftools::Profiles::Sample.new(
-            location_id: locations.collect { |location| location['id'] },
+            location_id: locations.collect { |location| location['id'.freeze] },
             value: values,
             label: build_sample_labels(stack_sample)
           )
