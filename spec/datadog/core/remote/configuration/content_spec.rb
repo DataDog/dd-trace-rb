@@ -245,6 +245,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
     describe '#hash' do
       before do
         content.hash(:sha256)
+        content.hash(:sha512)
       end
 
       context 'compute hash of content' do
@@ -256,6 +257,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
           expect(content.hashes).to eq(
             {
               :sha256 => 'c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de',
+              :sha512 => '546b5325ec8559dda0b34f3e628e99c7b9d18eb59b23ec87f672b1ed8c4ac9ac'\
+                '11ac6ffb15e6b4d71f5f343ec243d142db61aaf60f4a0410e39dc916c623cc82'
             }
           )
         end

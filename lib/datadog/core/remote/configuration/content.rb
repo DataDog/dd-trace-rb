@@ -44,6 +44,8 @@ module Datadog
             d = case type
                 when :sha256
                   ::Digest::SHA256.new
+                when :sha512
+                  ::Digest::SHA512.new
                 else
                   raise InvalidHashTypeError, type
                 end
