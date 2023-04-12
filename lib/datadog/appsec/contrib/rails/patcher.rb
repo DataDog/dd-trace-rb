@@ -3,14 +3,6 @@
 require_relative '../../../core/utils/only_once'
 
 require_relative '../patcher'
-require_relative 'framework'
-require_relative '../../response'
-require_relative '../rack/request_middleware'
-require_relative '../rack/request_body_middleware'
-require_relative 'gateway/watcher'
-require_relative 'gateway/request'
-
-require_relative '../../../tracing/contrib/rack/middlewares'
 
 module Datadog
   module AppSec
@@ -34,6 +26,14 @@ module Datadog
           end
 
           def patch
+            require_relative 'framework'
+            require_relative '../../response'
+            require_relative '../rack/request_middleware'
+            require_relative '../rack/request_body_middleware'
+            require_relative 'gateway/watcher'
+            require_relative 'gateway/request'
+            require_relative '../../../tracing/contrib/rack/middlewares'
+
             Gateway::Watcher.watch
             patch_before_intialize
             patch_after_intialize

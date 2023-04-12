@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../patcher'
-require_relative '../../monitor'
-require_relative 'gateway/watcher'
 
 module Datadog
   module AppSec
@@ -23,6 +21,11 @@ module Datadog
           end
 
           def patch
+            require_relative 'gateway/watcher'
+            require_relative '../../monitor'
+            require_relative 'request_middleware'
+            require_relative 'request_body_middleware'
+
             Monitor::Gateway::Watcher.watch
             Gateway::Watcher.watch
             Patcher.instance_variable_set(:@patched, true)

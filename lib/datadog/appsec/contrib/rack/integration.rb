@@ -4,8 +4,6 @@ require_relative '../integration'
 
 require_relative 'configuration/settings'
 require_relative 'patcher'
-require_relative 'request_middleware'
-require_relative 'request_body_middleware'
 
 module Datadog
   module AppSec
@@ -24,7 +22,7 @@ module Datadog
           end
 
           def self.loaded?
-            !defined?(::Rack).nil?
+            !defined?(::Rack::Request).nil?
           end
 
           def self.compatible?

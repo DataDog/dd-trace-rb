@@ -1,15 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../tracing/contrib/rack/middlewares'
-
 require_relative '../patcher'
-require_relative '../../response'
-require_relative '../rack/request_middleware'
-require_relative 'framework'
-require_relative 'gateway/watcher'
-require_relative 'gateway/route_params'
-require_relative 'gateway/request'
-require_relative '../../../tracing/contrib/sinatra/framework'
 
 module Datadog
   module AppSec
@@ -131,6 +122,14 @@ module Datadog
           end
 
           def patch
+            require_relative '../../response'
+            require_relative '../rack/request_middleware'
+            require_relative 'framework'
+            require_relative 'gateway/watcher'
+            require_relative 'gateway/route_params'
+            require_relative 'gateway/request'
+            require_relative '../../../tracing/contrib/sinatra/framework'
+
             Gateway::Watcher.watch
             patch_default_middlewares
             patch_dispatch
