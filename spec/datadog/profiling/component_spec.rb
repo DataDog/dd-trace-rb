@@ -383,7 +383,7 @@ RSpec.describe Datadog::Profiling::Component do
         before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '2.6.' }
 
         context 'when mysql2 gem is available' do
-          include_context 'loaded gems', :mysql2 => Gem::Version.new('0.5.5')
+          include_context('loaded gems', mysql2: Gem::Version.new('0.5.5'), rugged: nil)
 
           before do
             allow(Datadog.logger).to receive(:warn)
@@ -488,7 +488,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context 'when rugged gem is available' do
-          include_context 'loaded gems', :rugged => Gem::Version.new('1.6.3')
+          include_context('loaded gems', rugged: Gem::Version.new('1.6.3'), mysql2: nil)
 
           before { allow(Datadog.logger).to receive(:warn) }
 
