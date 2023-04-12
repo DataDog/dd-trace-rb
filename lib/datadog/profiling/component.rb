@@ -76,6 +76,8 @@ module Datadog
             endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
             gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
+            # TODO: automatically enable this when needed
+            no_signals_workaround_enabled: !settings.profiling.advanced.no_signals_workaround_enabled.nil?,
           )
         else
           recorder = build_profiler_old_recorder(settings)

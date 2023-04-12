@@ -130,6 +130,7 @@ RSpec.describe Datadog::Profiling::Component do
             endpoint_collection_enabled: anything,
             gc_profiling_enabled: anything,
             allocation_counting_enabled: anything,
+            no_signals_workaround_enabled: eq(true).or(eq(false)),
           )
 
           build_profiler_component
