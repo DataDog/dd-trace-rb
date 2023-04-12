@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'framework'
 require_relative 'middlewares'
 require_relative '../rack/middlewares'

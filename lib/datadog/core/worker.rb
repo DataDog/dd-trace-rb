@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Core
     # Base class for work tasks

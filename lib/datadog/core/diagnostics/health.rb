@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../metrics/client'
 require_relative '../../tracing/diagnostics/health'
 

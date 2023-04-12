@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Core
     # A {Datadog::Core::Pin} sets metadata on a particular object.

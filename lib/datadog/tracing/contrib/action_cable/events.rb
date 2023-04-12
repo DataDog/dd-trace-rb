@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'event'
 require_relative 'events/broadcast'
 require_relative 'events/perform_action'
