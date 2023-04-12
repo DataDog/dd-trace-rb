@@ -35,7 +35,7 @@ module Datadog
               tracing_context[:dd_request_span] = span
 
               # We want the route to show up as the trace's resource
-              trace.resource = span.resource
+              trace.resource = span.resource unless payload[:headers][:request_exception]
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
@@ -54,7 +54,7 @@ module Datadog
 
               begin
                 # We repeat this in both start and at finish because the resource may have changed during the request
-                trace.resource = span.resource
+                trace.resource = span.resource unless payload[:headers][:request_exception]
 
                 # Set analytics sample rate
                 Utils.set_analytics_sample_rate(span)
@@ -81,26 +81,6 @@ module Datadog
               Datadog.logger.error(e.message)
             end
 
-            def exception_controller?(payload)
-              exception_controller_class = Datadog.configuration.tracing[:action_pack][:exception_controller]
-              controller = payload.fetch(:controller)
-              headers = payload.fetch(:headers)
-
-              # If no exception controller class has been set,
-              # guess whether this is an exception controller from the headers.
-              if exception_controller_class.nil?
-                !headers[:request_exception].nil?
-              # If an exception controller class has been specified,
-              # check if the controller is a kind of the exception controller class.
-              elsif exception_controller_class.is_a?(Class) || exception_controller_class.is_a?(Module)
-                controller <= exception_controller_class
-              # Otherwise if the exception controller class is some other value (like false)
-              # assume that this controller doesn't handle exceptions.
-              else
-                false
-              end
-            end
-
             # Instrumentation for ActionController::Metal
             module Metal
               def process_action(*args)
@@ -120,8 +100,6 @@ module Datadog
                 }
 
                 begin
-                  payload[:exception_controller?] = Instrumentation.exception_controller?(payload)
-
                   # process and catch request exceptions
                   Instrumentation.start_processing(payload)
                   result = super(*args)

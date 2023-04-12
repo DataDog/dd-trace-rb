@@ -82,5 +82,7 @@ module Acme
 
     config.cache_store = :redis_cache_store, { url: ENV['REDIS_URL'] }
     config.action_controller.perform_caching = true
+
+    config.exceptions_app = self.routes
   end
 end

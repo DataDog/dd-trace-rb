@@ -118,6 +118,7 @@ target :ddtrace do
   ignore 'lib/datadog/core/utils.rb'
   ignore 'lib/datadog/core/utils/compression.rb'
   ignore 'lib/datadog/core/utils/forking.rb'
+  ignore 'lib/datadog/core/utils/hash.rb' # Refinement module
   ignore 'lib/datadog/core/utils/network.rb'
   ignore 'lib/datadog/core/utils/object_set.rb'
   ignore 'lib/datadog/core/utils/only_once.rb'
@@ -647,8 +648,6 @@ target :ddtrace do
   library 'base64'
   library 'digest'
 
-  # TODO: gem 'libddwaf'
-
   repo_path 'vendor/rbs'
   library 'ffi'
   library 'jruby'
@@ -657,4 +656,8 @@ target :ddtrace do
   library 'sinatra'
   library 'google-protobuf'
   library 'protobuf-cucumber'
+  library 'mysql2'
+
+  # TODO: gem 'libddwaf'
+  library 'libddwaf'
 end

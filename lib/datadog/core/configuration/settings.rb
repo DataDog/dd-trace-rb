@@ -5,6 +5,7 @@ require_relative 'ext'
 require_relative '../environment/ext'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
+require_relative '../remote/ext'
 require_relative '../../profiling/ext'
 
 require_relative '../../tracing/configuration/settings'
@@ -306,6 +307,16 @@ module Datadog
             #
             # @default `true` on Ruby 2.x, `false` on Ruby 3.x
             option :allocation_counting_enabled, default: RUBY_VERSION.start_with?('2.')
+
+            # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.
+            #
+            # This setting is only used when the `mysql2` gem is installed.
+            #
+            # @default `DD_PROFILING_SKIP_MYSQL2_CHECK` environment variable, otherwise `false`
+            option :skip_mysql2_check do |o|
+              o.default { env_to_bool('DD_PROFILING_SKIP_MYSQL2_CHECK', false) }
+              o.lazy
+            end
           end
 
           # @public_api
@@ -462,6 +473,29 @@ module Datadog
           # @return [Boolean]
           option :enabled do |o|
             o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, false) }
+            o.lazy
+          end
+        end
+
+        # Remote configuration
+        # @public_api
+        settings :remote do
+          # Enable remote configuration. This allows fetching of remote configuration for live updates.
+          #
+          # @default `DD_REMOTE_CONFIGURATION_ENABLED` environment variable, otherwise `false`. In a future release,
+          #   this value will be changed to `true` by default.
+          # @return [Boolean]
+          option :enabled do |o|
+            o.default { env_to_bool(Core::Remote::Ext::ENV_ENABLED, false) }
+            o.lazy
+          end
+
+          # Tune remote configuration polling interval.
+          #
+          # @default `DD_REMOTE_CONFIGURATION_POLL_INTERVAL_SECONDS` environment variable, otherwise `5.0` seconds.
+          # @return [Float]
+          option :poll_interval_seconds do |o|
+            o.default { env_to_float(Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS, 5.0) }
             o.lazy
           end
         end

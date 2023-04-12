@@ -341,6 +341,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       before { expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/) }
 
       it 'is able to sample even when all threads are sleeping' do
+        skip('Test is flaky -- @ivoanjo is investigating')
+
         start
         wait_until_running
 

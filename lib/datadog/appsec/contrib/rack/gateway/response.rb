@@ -12,7 +12,7 @@ module Datadog
             attr_reader :body, :status, :headers, :active_context
 
             def initialize(body, status, headers, active_context:)
-              super
+              super()
               @body = body
               @status = status
               @headers = headers.each_with_object({}) { |(k, v), h| h[k.downcase] = v }

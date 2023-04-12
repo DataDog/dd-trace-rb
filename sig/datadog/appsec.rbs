@@ -6,10 +6,12 @@ module Datadog
 
     def self.processor: () -> Datadog::AppSec::Processor?
 
+    def self.reconfigure: (ruleset: ::Hash[untyped, untyped]) -> void
+
+    def self.reconfigure_lock: () { () -> void } -> void
+
     private
 
     def self.components: () -> Datadog::Core::Configuration::Components
   end
 end
-
-

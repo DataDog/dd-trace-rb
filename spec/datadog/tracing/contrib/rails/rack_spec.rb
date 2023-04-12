@@ -118,7 +118,8 @@ RSpec.describe 'Rails Rack' do
       'ErrorsController',
       Class.new(ActionController::Base) do
         def internal_server_error
-          head :internal_server_error
+          # Return 200, since the error been handled
+          head :ok
         end
       end
     )
@@ -502,31 +503,62 @@ RSpec.describe 'Rails Rack' do
   end
 
   context 'with custom error controllers' do
-    subject do
-      # Simulate an error being passed to the exception controller
-      get '/internal_server_error', {}, 'action_dispatch.exception' => ArgumentError.new
+    context 'when given an exception from headers' do
+      subject do
+        # Simulate an error being passed to the exception controller,
+        # but the error status would be set from the original span before redirect to error controller
+        get '/internal_server_error', {}, 'action_dispatch.exception' => ArgumentError.new
+      end
+
+      it 'does not override trace resource names' do
+        is_expected.to be_ok
+
+        expect(trace).to_not be nil
+        expect(spans).to have(2).items
+        request_span, controller_span = spans
+
+        expect(trace.resource).to eq('GET 200')
+
+        expect(request_span).not_to have_error
+        expect(request_span.resource).to eq('GET 200')
+        expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+          .to eq('rack')
+        expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('request')
+
+        expect(controller_span).not_to have_error
+        expect(controller_span.resource).to eq('ErrorsController#internal_server_error')
+        expect(controller_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('action_pack')
+        expect(controller_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('controller')
+      end
     end
 
-    it 'does not override trace resource names' do
-      is_expected.to be_server_error
+    context 'when given without an exception' do
+      subject do
+        get '/internal_server_error'
+      end
 
-      expect(trace).to_not be nil
-      expect(spans).to have(2).items
-      request_span, controller_span = spans
+      it 'does override trace resource names' do
+        is_expected.to be_ok
 
-      expect(trace.resource).to eq('ErrorsController#internal_server_error')
+        expect(trace).to_not be nil
+        expect(spans).to have(2).items
+        request_span, controller_span = spans
 
-      expect(request_span).to have_error
-      expect(request_span.resource).to eq('ErrorsController#internal_server_error')
-      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-        .to eq('rack')
-      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-        .to eq('request')
+        expect(trace.resource).to eq('ErrorsController#internal_server_error')
 
-      expect(controller_span).to have_error
-      expect(controller_span.resource).to eq('ErrorsController#internal_server_error')
-      expect(controller_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('action_pack')
-      expect(controller_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('controller')
+        expect(request_span).not_to have_error
+        expect(request_span.resource).to eq('ErrorsController#internal_server_error')
+        expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+          .to eq('rack')
+        expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('request')
+
+        expect(controller_span).not_to have_error
+        expect(controller_span.resource).to eq('ErrorsController#internal_server_error')
+        expect(controller_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('action_pack')
+        expect(controller_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('controller')
+      end
     end
   end
 

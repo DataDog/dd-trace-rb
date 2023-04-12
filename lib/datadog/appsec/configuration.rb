@@ -82,6 +82,12 @@ module Datadog
         def settings
           @settings ||= Settings.new
         end
+
+        private
+
+        def default_setting?(setting)
+          settings.send(:default?, setting)
+        end
       end
     end
   end

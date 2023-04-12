@@ -1,6 +1,8 @@
 require_relative '../../configuration/settings'
 require_relative '../ext'
 
+require_relative '../../../../core'
+
 module Datadog
   module Tracing
     module Contrib
@@ -24,7 +26,18 @@ module Datadog
               o.lazy
             end
 
-            option :exception_controller
+            # DEV-2.0: Breaking changes for removal.
+            option :exception_controller do |o|
+              o.on_set do |value|
+                if value
+                  Datadog::Core.log_deprecation do
+                    'The error controller is now automatically detected. '\
+                    "Option `#{o.instance_variable_get(:@name)}` is no longer required and will be removed."
+                  end
+                end
+              end
+            end
+
             option :service_name
           end
         end

@@ -204,29 +204,18 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
       is_expected.to eq(
         api_version: api_version,
         application: {
-          env: nil,
           language_name: 'ruby',
           language_version: '3.0',
           products: {},
-          runtime_name: nil,
-          runtime_patches: nil,
-          runtime_version: nil,
           service_name: 'myapp',
-          service_version: nil,
           tracer_version: '1.0'
         },
         debug: debug,
         host: {
           container_id: 'd39b145254d1f9c337fdd2be132f6',
-          hostname: nil,
-          kernel_name: nil,
-          kernel_release: nil,
-          kernel_version: nil,
-          os: nil,
-          os_version: nil
         },
         payload: {
-          integrations: [{ auto_enabled: nil, compatible: nil, enabled: true, error: nil, name: 'pg', version: nil }]
+          integrations: [{ enabled: true, name: 'pg' }]
         },
         request_type: request_type,
         runtime_id: dummy_runtime_id,
