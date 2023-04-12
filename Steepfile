@@ -648,8 +648,6 @@ target :ddtrace do
   library 'base64'
   library 'digest'
 
-  # TODO: gem 'libddwaf'
-
   repo_path 'vendor/rbs'
   library 'ffi'
   library 'jruby'
@@ -658,4 +656,7 @@ target :ddtrace do
   library 'sinatra'
   library 'google-protobuf'
   library 'protobuf-cucumber'
+
+  # TODO: gem 'libddwaf'
+  library 'libddwaf'
 end
