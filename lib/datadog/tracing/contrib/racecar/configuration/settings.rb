@@ -25,8 +25,6 @@ module Datadog
               o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
               o.lazy
             end
-
-            option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
           end
         end
       end
