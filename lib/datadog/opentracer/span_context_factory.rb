@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Datadog
   module OpenTracer
     # Creates new Datadog::OpenTracer::SpanContext

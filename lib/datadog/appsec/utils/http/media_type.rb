@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Datadog
   module AppSec
     module Utils
@@ -13,7 +11,7 @@ module Datadog
           class ParseError < ::StandardError
           end
 
-          WILDCARD = '*'
+          WILDCARD = '*'.freeze
 
           # See: https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6
           TOKEN_RE = /[-#$%&'*+.^_`|~A-Za-z0-9]+/.freeze
@@ -74,7 +72,7 @@ module Datadog
           end
 
           def to_s
-            s = "#{@type}/#{@subtype}".dup
+            s = "#{@type}/#{@subtype}"
 
             s << ';' << @parameters.map { |k, v| "#{k}=#{v}" }.join(';') if @parameters.count > 0
 

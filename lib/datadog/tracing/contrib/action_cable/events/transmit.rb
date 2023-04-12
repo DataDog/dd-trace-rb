@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../../metadata/ext'
 require_relative '../event'
 require_relative '../ext'
@@ -16,7 +14,7 @@ module Datadog
           module Transmit
             include ActionCable::Event
 
-            EVENT_NAME = 'transmit.action_cable'
+            EVENT_NAME = 'transmit.action_cable'.freeze
 
             module_function
 

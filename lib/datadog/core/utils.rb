@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative 'utils/forking'
 
 module Datadog
@@ -20,7 +18,7 @@ module Datadog
       # If `omission.size` is larger than `size`, the output
       # will still be `omission.size` in length.
       # @!visibility private
-      def self.truncate(value, size, omission = '...')
+      def self.truncate(value, size, omission = '...'.freeze)
         string = value.to_s
 
         return string if string.size <= size

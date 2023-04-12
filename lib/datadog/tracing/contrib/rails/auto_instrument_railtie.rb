@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../auto_instrument'
 
 # Railtie to include AutoInstrumentation in rails loading

@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative 'context_composite_executor_service'
 
 module Datadog

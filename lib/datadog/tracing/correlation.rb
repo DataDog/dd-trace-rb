@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../core'
 require_relative 'utils'
 require_relative 'metadata/ext'
@@ -12,11 +10,11 @@ module Datadog
       # Represents current trace state with key identifiers
       # @public_api
       class Identifier
-        LOG_ATTR_ENV = 'dd.env'
-        LOG_ATTR_SERVICE = 'dd.service'
-        LOG_ATTR_SPAN_ID = 'dd.span_id'
-        LOG_ATTR_TRACE_ID = 'dd.trace_id'
-        LOG_ATTR_VERSION = 'dd.version'
+        LOG_ATTR_ENV = 'dd.env'.freeze
+        LOG_ATTR_SERVICE = 'dd.service'.freeze
+        LOG_ATTR_SPAN_ID = 'dd.span_id'.freeze
+        LOG_ATTR_TRACE_ID = 'dd.trace_id'.freeze
+        LOG_ATTR_VERSION = 'dd.version'.freeze
 
         attr_reader \
           :env,

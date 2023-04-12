@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../../span_operation'
 require_relative '../../configuration/settings'
 require_relative '../ext'

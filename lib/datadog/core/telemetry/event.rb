@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative 'collector'
 require_relative 'v1/app_event'
 require_relative 'v1/telemetry_request'
@@ -11,7 +9,7 @@ module Datadog
       class Event
         include Telemetry::Collector
 
-        API_VERSION = 'v1'
+        API_VERSION = 'v1'.freeze
 
         attr_reader \
           :api_version

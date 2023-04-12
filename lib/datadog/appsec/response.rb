@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative 'assets'
 require_relative 'utils/http/media_range'
 

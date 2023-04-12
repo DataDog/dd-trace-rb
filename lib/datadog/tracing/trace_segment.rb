@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../core/runtime/ext'
 require_relative '../core/utils/safe_dup'
 
@@ -13,9 +11,9 @@ module Datadog
     # Serializable construct representing a trace
     # @public_api
     class TraceSegment
-      TAG_NAME = 'name'
-      TAG_RESOURCE = 'resource'
-      TAG_SERVICE = 'service'
+      TAG_NAME = 'name'.freeze
+      TAG_RESOURCE = 'resource'.freeze
+      TAG_SERVICE = 'service'.freeze
 
       attr_reader \
         :id,

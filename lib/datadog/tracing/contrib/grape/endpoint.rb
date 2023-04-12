@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../../core'
 require_relative '../../metadata/ext'
 require_relative '../analytics'
@@ -12,8 +10,8 @@ module Datadog
         # Endpoint module includes a list of subscribers to create
         # traces when a Grape endpoint is hit
         module Endpoint
-          KEY_RUN = 'datadog_grape_endpoint_run'
-          KEY_RENDER = 'datadog_grape_endpoint_render'
+          KEY_RUN = 'datadog_grape_endpoint_run'.freeze
+          KEY_RENDER = 'datadog_grape_endpoint_render'.freeze
 
           class << self
             def subscribe
