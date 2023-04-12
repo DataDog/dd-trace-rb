@@ -262,12 +262,6 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
             }
           )
         end
-
-        context 'when hash type is not supported' do
-          it 'raises InvalidHashTypeError' do
-            expect { content.hash(:invalid) }.to raise_error(described_class::InvalidHashTypeError)
-          end
-        end
       end
     end
   end

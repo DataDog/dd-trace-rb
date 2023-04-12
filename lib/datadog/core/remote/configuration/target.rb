@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'path'
+require_relative 'digest'
 
 module Datadog
   module Core
@@ -46,7 +47,7 @@ module Datadog
           class << self
             def parse(hash)
               length = Integer(hash['length'])
-              digests = DigestList.parse(hash['hashes'])
+              digests = Configuration::DigestList.parse(hash['hashes'])
 
               new(digests: digests, length: length)
             end
@@ -64,37 +65,6 @@ module Datadog
           def check(content)
             digests.check(content)
           end
-
-          # Represent a list of Configuration::Target::Digest
-          class DigestList < Array
-            class << self
-              def parse(hash)
-                new.concat(hash.map { |type, hexdigest| Digest.new(type, hexdigest) })
-              end
-            end
-
-            def check(content)
-              map { |digest| digest.check(content) }.reduce(:&)
-            end
-          end
-
-          private_constant :DigestList
-
-          # Stores and validates different cryptographic hash functions
-          class Digest
-            attr_reader :type, :hexdigest
-
-            def initialize(type, hexdigest)
-              @type = type.to_sym
-              @hexdigest = hexdigest
-            end
-
-            def check(content)
-              content.hash(@type) == hexdigest
-            end
-          end
-
-          private_constant :DigestList
         end
       end
     end

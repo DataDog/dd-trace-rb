@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'digest/sha2'
 require_relative 'path'
+require_relative 'digest'
 
 module Datadog
   module Core
@@ -9,8 +9,6 @@ module Datadog
       class Configuration
         # Content stores the information associated with a specific Configuration::Path
         class Content
-          class InvalidHashTypeError < StandardError; end
-
           class << self
             def parse(hash)
               path = Path.parse(hash[:path])
@@ -28,8 +26,6 @@ module Datadog
             @hashes = {}
           end
 
-          DIGEST_CHUNK = 1024
-
           def hash(type)
             @hashes[type] || compute_and_store_hash(type)
           end
@@ -41,20 +37,7 @@ module Datadog
           private
 
           def compute_and_store_hash(type)
-            d = case type
-                when :sha256
-                  ::Digest::SHA256.new
-                when :sha512
-                  ::Digest::SHA512.new
-                else
-                  raise InvalidHashTypeError, type
-                end
-
-            while (buf = @data.read(DIGEST_CHUNK))
-              d.update(buf)
-            end
-
-            result = d.hexdigest
+            result = Digest.hexdigest(type, @data)
             @hashes[type] = result
             result
           ensure

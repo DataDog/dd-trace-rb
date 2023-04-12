@@ -3,11 +3,6 @@ module Datadog
     module Remote
       class Configuration
         class Content
-          class InvalidHashTypeError < StandardError
-          end
-
-          DIGEST_CHUNK: 1024
-
           def self.parse: (::Hash[Symbol, untyped] hash) -> Content
 
           attr_reader path: Configuration::Path
