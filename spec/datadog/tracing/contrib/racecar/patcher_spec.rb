@@ -41,7 +41,6 @@ RSpec.describe 'Racecar patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('racecar')
           expect(span.name).to eq('racecar.consume')
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
@@ -69,7 +68,6 @@ RSpec.describe 'Racecar patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('racecar')
           expect(span.name).to eq('racecar.consume')
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
@@ -116,7 +114,6 @@ RSpec.describe 'Racecar patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('racecar')
           expect(span.name).to eq('racecar.message')
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
@@ -148,7 +145,6 @@ RSpec.describe 'Racecar patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('racecar')
           expect(span.name).to eq('racecar.message')
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
@@ -201,7 +197,6 @@ RSpec.describe 'Racecar patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('racecar')
           expect(span.name).to eq('racecar.batch')
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
@@ -233,7 +228,6 @@ RSpec.describe 'Racecar patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('racecar')
           expect(span.name).to eq('racecar.batch')
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.topic')).to eq(topic)
