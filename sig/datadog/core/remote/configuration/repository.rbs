@@ -32,7 +32,9 @@ module Datadog
 
             attr_reader targets_version: Integer
 
-            attr_reader config_states: Array[untyped]
+            attr_reader repository: Repository
+
+            @config_states: Array[Hash[Symbol, untyped]]
 
             attr_reader has_error: bool
 
@@ -41,6 +43,8 @@ module Datadog
             attr_reader opaque_backend_state: String?
 
             def initialize: (Repository repository) -> void
+
+            def config_states: () -> Array[Hash[Symbol, untyped]]
           end
 
           class Transaction

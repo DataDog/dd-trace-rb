@@ -15,6 +15,7 @@ module Datadog
             :targets_version
 
           UNVERIFIED_ROOT_VERSION = 1
+
           INITIAL_TARGETS_VERSION = 0
 
           def initialize
@@ -67,18 +68,38 @@ module Datadog
             attr_reader \
               :root_version,
               :targets_version,
-              :config_states,
               :has_error,
               :error,
-              :opaque_backend_state
+              :opaque_backend_state,
+              :repository
 
             def initialize(repository)
+              @repository = repository
               @root_version = repository.root_version
               @targets_version = repository.targets_version
               @config_states = []
               @has_error = false
               @error = ''
               @opaque_backend_state = repository.opaque_backend_state
+            end
+
+            def config_states
+              return [] if @repository.contents.empty?
+
+              @repository.contents.each_with_object([]) do |content, acc|
+                config_state = {
+                  path: content.path.to_s,
+                  length: content.length,
+                  hashes: content.hashes.each_with_object([]) do |(key, value), hashes_acc|
+                    hashes_acc << {
+                      algorithm: key,
+                      hash: value
+                    }
+                    hashes_acc
+                  end
+                }
+                acc << config_state
+              end
             end
           end
 
