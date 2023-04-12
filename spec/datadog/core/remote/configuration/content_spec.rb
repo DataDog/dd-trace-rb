@@ -223,4 +223,49 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
       expect(paths[0].to_s).to eq('datadog/603646/ASM/exclusion_filters/config')
     end
   end
+
+  describe Datadog::Core::Remote::Configuration::Content do
+    subject(:content) do
+      described_class.parse(
+        {
+          :path => path.to_s,
+          :content => string_io_content
+        }
+      )
+    end
+
+    describe '#hashes' do
+      context 'when no hash has been computed' do
+        it 'return {}' do
+          expect(content.hashes).to eq({})
+        end
+      end
+    end
+
+    describe '#hash' do
+      before do
+        content.hash(:sha256)
+      end
+
+      context 'compute hash of content' do
+        it 'returns hash value' do
+          expect(content.hash(:sha256)).to eq('c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de')
+        end
+
+        it 'stores the value in hashes' do
+          expect(content.hashes).to eq(
+            {
+              :sha256 => 'c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de',
+            }
+          )
+        end
+
+        context 'when hash type is not supported' do
+          it 'raises InvalidHashTypeError' do
+            expect { content.hash(:invalid) }.to raise_error(described_class::InvalidHashTypeError)
+          end
+        end
+      end
+    end
+  end
 end

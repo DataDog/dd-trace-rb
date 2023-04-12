@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'digest/sha2'
 require_relative 'path'
 
 module Datadog
@@ -63,7 +62,7 @@ module Datadog
           private_class_method :new
 
           def check(content)
-            digests.check(content.data)
+            digests.check(content)
           end
 
           # Represent a list of Configuration::Target::Digest
@@ -74,8 +73,8 @@ module Datadog
               end
             end
 
-            def check(data)
-              map { |digest| digest.check(data) }.reduce(:&)
+            def check(content)
+              map { |digest| digest.check(content) }.reduce(:&)
             end
           end
 
@@ -90,29 +89,8 @@ module Datadog
               @hexdigest = hexdigest
             end
 
-            def check(data)
-              case @type
-              when :sha256
-                chunked_hexdigest(data) == hexdigest
-              else
-                raise
-              end
-            ensure
-              data.rewind
-            end
-
-            private
-
-            DIGEST_CHUNK = 1024
-
-            def chunked_hexdigest(io)
-              d = ::Digest::SHA256.new
-
-              while (buf = io.read(DIGEST_CHUNK))
-                d.update(buf)
-              end
-
-              d.hexdigest
+            def check(content)
+              content.hash(@type) == hexdigest
             end
           end
 

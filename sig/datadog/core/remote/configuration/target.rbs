@@ -27,7 +27,7 @@ module Datadog
           class DigestList < Array[Digest]
             def self.parse: (::Hash[::String, untyped] hash) -> DigestList
 
-            def check: (StringIO data) -> bool
+            def check: (Datadog::Core::Remote::Configuration::Content content) -> bool
           end
 
           class Digest
@@ -37,13 +37,7 @@ module Datadog
 
             def initialize: (::String type, ::String hexdigest) -> void
 
-            def check: (StringIO data) -> bool
-
-            private
-
-            DIGEST_CHUNK: 1024
-
-            def chunked_hexdigest: (StringIO io) -> ::String
+            def check: (Datadog::Core::Remote::Configuration::Content content) -> bool
           end
         end
       end
