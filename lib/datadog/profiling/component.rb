@@ -166,7 +166,7 @@ module Datadog
 
         return false if RUBY_VERSION.start_with?('2.3.', '2.4.', '2.5.')
 
-        if Gem.loaded_specs['mysql2'] && !compatible_libmysqlclient_version?(settings)
+        if Gem.loaded_specs['mysql2'] && incompatible_libmysqlclient_version?(settings)
           Datadog.logger.warn(
             'Falling back to legacy profiler because an incompatible version of the mysql2 gem is installed. ' \
             'Older versions of libmysqlclient (the C ' \
@@ -199,8 +199,8 @@ module Datadog
       #
       # The `mysql2` gem's `info` method can be used to determine which `libmysqlclient` version is in use, and thus to
       # detect if it's safe for the profiler to use signals or if we need to employ a fallback.
-      private_class_method def self.compatible_libmysqlclient_version?(settings)
-        return false if settings.profiling.advanced.skip_mysql2_check
+      private_class_method def self.incompatible_libmysqlclient_version?(settings)
+        return true if settings.profiling.advanced.skip_mysql2_check
 
         Datadog.logger.debug(
           'Requiring `mysql2` to check if the `libmysqlclient` version it uses is compatible with profiling'
@@ -209,7 +209,7 @@ module Datadog
         begin
           require 'mysql2'
 
-          return false unless defined?(Mysql2::Client) && Mysql2::Client.respond_to?(:info)
+          return true unless defined?(Mysql2::Client) && Mysql2::Client.respond_to?(:info)
 
           libmysqlclient_version = Gem::Version.new(Mysql2::Client.info[:version])
 
@@ -220,14 +220,14 @@ module Datadog
             "the `libmysqlclient` library (#{libmysqlclient_version})"
           )
 
-          compatible
+          !compatible
         rescue StandardError, LoadError => e
           Datadog.logger.warn(
             'Failed to probe `mysql2` gem information. ' \
             "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
           )
 
-          false
+          true
         end
       end
     end
