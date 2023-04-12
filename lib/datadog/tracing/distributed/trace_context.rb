@@ -194,7 +194,8 @@ module Datadog
         # Serialize `_dd.p.{key}` by first removing the `_dd.p.` prefix.
         # Then replacing invalid characters with `_`.
         #
-        # Returns a new object, given `name` is a Hash key thus always frozen.
+        # The argument `name` is always frozen.
+        # Returns a new String object for the serialized key.
         def serialize_tag_key(name)
           key = name.delete_prefix(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX)
 
@@ -208,7 +209,8 @@ module Datadog
 
         # Replaces invalid characters with `_`, then replaces `=` with `~`.
         #
-        # Returns a new object if modified given `value` belongs to the {TraceDigest} being serialized.
+        # The argument `value` belongs to {TraceDigest}, thus should not be directly modified.
+        # Returns a new String object for the serialized value.
         def serialize_tag_value(value)
           # DEV: It's unlikely that characters will be out of range, as they mostly
           # DEV: come from Datadog-controlled sources.
