@@ -656,6 +656,7 @@ target :ddtrace do
   library 'sinatra'
   library 'google-protobuf'
   library 'protobuf-cucumber'
+  library 'mysql2'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'

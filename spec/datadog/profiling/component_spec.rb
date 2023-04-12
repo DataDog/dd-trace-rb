@@ -383,16 +383,101 @@ RSpec.describe Datadog::Profiling::Component do
         before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '2.6.' }
 
         context 'when mysql2 gem is available' do
-          include_context 'loaded gems', :mysql2 => Gem::Version.new('0.5.5')
+          include_context('loaded gems', mysql2: Gem::Version.new('0.5.5'), rugged: nil)
 
-          before { allow(Datadog.logger).to receive(:warn) }
+          before do
+            allow(Datadog.logger).to receive(:warn)
+            allow(Datadog.logger).to receive(:debug)
+          end
 
-          it { is_expected.to be false }
+          context 'when skip_mysql2_check is enabled' do
+            before { settings.profiling.advanced.skip_mysql2_check = true }
 
-          it 'logs a warning message mentioning that the legacy profiler is going to be used' do
-            expect(Datadog.logger).to receive(:warn).with(/Falling back to legacy profiler/)
+            it { is_expected.to be false }
 
-            enable_new_profiler?
+            it 'logs a warning message mentioning that the legacy profiler is going to be used' do
+              expect(Datadog.logger).to receive(:warn).with(/Falling back to legacy profiler/)
+
+              enable_new_profiler?
+            end
+          end
+
+          context 'when there is an issue requiring mysql2' do
+            before { allow(described_class).to receive(:require).and_raise(LoadError.new('Simulated require failure')) }
+
+            it { is_expected.to be false }
+
+            it 'logs a warning' do
+              expect(Datadog.logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
+
+              enable_new_profiler?
+            end
+          end
+
+          context 'when mysql2 is required successfully' do
+            before { allow(described_class).to receive(:require).with('mysql2') }
+
+            it 'logs a debug message stating mysql2 will be required' do
+              expect(Datadog.logger).to receive(:debug).with(/Requiring `mysql2` to check/)
+
+              enable_new_profiler?
+            end
+
+            context 'when mysql2 gem does not provide the info method' do
+              before do
+                stub_const('Mysql2::Client', double('Fake Mysql2::Client'))
+              end
+
+              it { is_expected.to be false }
+            end
+
+            context 'when an error is raised while probing the mysql2 gem' do
+              before do
+                fake_client = double('Fake Mysql2::Client')
+                stub_const('Mysql2::Client', fake_client)
+                expect(fake_client).to receive(:info).and_raise(ArgumentError.new('Simulated call failure'))
+              end
+
+              it { is_expected.to be false }
+
+              it 'logs a warning including the error details' do
+                expect(Datadog.logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
+
+                enable_new_profiler?
+              end
+            end
+
+            context 'when mysql2 gem is using a version of libmysqlclient < 8.0.0' do
+              before do
+                fake_client = double('Fake Mysql2::Client')
+                stub_const('Mysql2::Client', fake_client)
+                expect(fake_client).to receive(:info).and_return({ version: '7.9.9' })
+              end
+
+              it { is_expected.to be false }
+
+              it 'logs a warning message mentioning that the legacy profiler is going to be used' do
+                expect(Datadog.logger).to receive(:warn).with(/Falling back to legacy profiler/)
+
+                enable_new_profiler?
+              end
+            end
+
+            context 'when mysql2 gem is using a version of libmysqlclient >= 8.0.0' do
+              before do
+                fake_client = double('Fake Mysql2::Client')
+                stub_const('Mysql2::Client', fake_client)
+                expect(fake_client).to receive(:info).and_return({ version: '8.0.0' })
+              end
+
+              it { is_expected.to be true }
+
+              it 'does not log any warning message' do
+                expect(Datadog.logger).to_not receive(:warn)
+
+                enable_new_profiler?
+              end
+            end
           end
 
           context 'when force_enable_new_profiler is enabled' do
@@ -403,7 +488,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context 'when rugged gem is available' do
-          include_context 'loaded gems', :rugged => Gem::Version.new('1.6.3')
+          include_context('loaded gems', rugged: Gem::Version.new('1.6.3'), mysql2: nil)
 
           before { allow(Datadog.logger).to receive(:warn) }
 
