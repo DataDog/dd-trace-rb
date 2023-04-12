@@ -6,7 +6,14 @@ require 'datadog/opentracer'
 RSpec.describe Datadog::OpenTracer::Tracer do
   subject(:tracer) { described_class.new(writer: writer) }
 
-  let(:writer) { FauxWriter.new }
+  let(:writer) { get_test_writer }
+
+  before do
+    writer_ = writer
+    Datadog.configure do |c|
+      c.tracing.writer = writer_
+    end
+  end
 
   after { writer.stop }
 
@@ -16,16 +23,12 @@ RSpec.describe Datadog::OpenTracer::Tracer do
     context 'when given options' do
       subject(:tracer) { described_class.new(**options) }
 
-      let(:options) { { enabled: double } }
-      let(:datadog_tracer) { double('datadog_tracer') }
+      let(:options) { { enabled: false } }
 
-      before do
-        expect(Datadog::Tracing::Tracer).to receive(:new)
-          .with(**options)
-          .and_return(datadog_tracer)
+      it 'ignores legacy options' do
+        expect(tracer.datadog_tracer).to be(Datadog.send(:components).tracer)
+        expect(tracer.datadog_tracer.enabled).to eq(true)
       end
-
-      it { expect(tracer.datadog_tracer).to be(datadog_tracer) }
     end
   end
 

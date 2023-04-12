@@ -3,11 +3,19 @@ require 'spec_helper'
 require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::Tracer do
-  subject(:tracer) { described_class.new(writer: writer) }
+  subject(:tracer) { described_class.new }
 
-  let(:writer) { FauxWriter.new }
+  let(:writer) { get_test_writer }
+  # let(:writer) { FauxWriter.new }
   let(:datadog_tracer) { tracer.datadog_tracer }
   let(:datadog_spans) { datadog_tracer.writer.spans(:keep) }
+
+  before do
+    writer_ = writer
+    Datadog.configure do |c|
+      c.tracing.writer = writer_
+    end
+  end
 
   after { writer.stop }
 

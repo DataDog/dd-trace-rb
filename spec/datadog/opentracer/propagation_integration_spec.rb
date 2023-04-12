@@ -4,11 +4,19 @@ require 'datadog/tracing/utils'
 require 'datadog/opentracer'
 
 RSpec.describe 'OpenTracer context propagation' do
-  subject(:tracer) { Datadog::OpenTracer::Tracer.new(writer: FauxWriter.new) }
+  subject(:tracer) { Datadog::OpenTracer::Tracer.new }
 
+  let(:writer) { get_test_writer }
   let(:datadog_tracer) { tracer.datadog_tracer }
   let(:datadog_traces) { datadog_tracer.writer.traces(:keep) }
   let(:datadog_spans) { datadog_tracer.writer.spans(:keep) }
+
+  before do
+    writer_ = writer
+    Datadog.configure do |c|
+      c.tracing.writer = writer_
+    end
+  end
 
   after do
     # Ensure tracer is shutdown between test, as to not leak threads.

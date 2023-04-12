@@ -15,10 +15,14 @@ module Datadog
       attr_reader \
         :datadog_tracer
 
-      # (see Datadog::Tracer#initialize)
-      def initialize(**options)
+      # Create an OpenTracing::Trace instance that is bound to the active
+      # Datadog tracer instance.
+      # To configure this tracer, use the global tracing configuration.
+      #
+      # DEV-2.0: Remove options as configuration is done through the global tracing configuration.
+      def initialize(**_legacy_options)
         super()
-        @datadog_tracer = Datadog::Tracing::Tracer.new(**options)
+        @datadog_tracer = Datadog.send(:components).tracer
       end
 
       # @return [ScopeManager] the current ScopeManager.
