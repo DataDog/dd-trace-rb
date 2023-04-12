@@ -574,7 +574,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       describe '#skip_mysql2_check' do
-        subject(:force_enable_gc_profiling) { settings.profiling.advanced.skip_mysql2_check }
+        subject(:skip_mysql2_check) { settings.profiling.advanced.skip_mysql2_check }
 
         context 'when DD_PROFILING_SKIP_MYSQL2_CHECK' do
           around do |example|
@@ -605,6 +605,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.skip_mysql2_check }
             .from(false)
             .to(true)
+        end
+      end
+
+      describe '#no_signals_workaround_enabled' do
+        subject(:no_signals_workaround_enabled) { settings.profiling.advanced.no_signals_workaround_enabled }
+
+        context 'when DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be :auto }
+          end
+
+          { 'true' => true, 'false' => false }.each do |string, value|
+            context "is defined as #{string}" do
+              let(:environment) { string }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#no_signals_workaround_enabled=' do
+        it 'updates the #no_signals_workaround_enabled setting' do
+          expect { settings.profiling.advanced.no_signals_workaround_enabled = false }
+            .to change { settings.profiling.advanced.no_signals_workaround_enabled }
+            .from(:auto)
+            .to(false)
         end
       end
     end

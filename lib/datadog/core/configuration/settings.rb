@@ -320,6 +320,30 @@ module Datadog
               o.default { env_to_bool('DD_PROFILING_SKIP_MYSQL2_CHECK', false) }
               o.lazy
             end
+
+            # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
+            #
+            # Sending `SIGPROF` is a common profiling approach, and may cause system calls from native
+            # extensions/libraries to be interrupted with a system
+            # [EINTR error code.](https://man7.org/linux/man-pages/man7/signal.7.html#:~:text=Interruption%20of%20system%20calls%20and%20library%20functions%20by%20signal%20handlers)
+            # Rarely, native extensions or libraries called by them may have missing or incorrect error handling for the
+            # `EINTR` error code.
+            #
+            # The "no signals" workaround, when enabled, enables an alternative mode for the profiler where it does not
+            # send `SIGPROF` unix signals. The downside of this approach is that the profiler data will have lower
+            # quality.
+            #
+            # This workaround is automatically enabled when gems that are known to have issues handling
+            # `EINTR` error codes are detected. If you suspect you may be seeing an issue due to the profiler's use of
+            # signals, you can try manually enabling this mode as a fallback.
+            # Please also report these issues to us on <https://github.com/DataDog/dd-trace-rb/issues/new>, so we can
+            # work with the gem authors to fix them!
+            #
+            # @default `DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED` environment variable as a boolean, otherwise `:auto`
+            option :no_signals_workaround_enabled do |o|
+              o.default { env_to_bool('DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED', :auto) }
+              o.lazy
+            end
           end
 
           # @public_api
