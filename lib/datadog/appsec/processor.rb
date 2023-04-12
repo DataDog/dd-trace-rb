@@ -23,8 +23,7 @@ module Datadog
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
           # TODO: remove multiple assignment
-          _code, res = _ = @context.run(input, timeout)
-          # @type var res: WAF::Result
+          _code, res = @context.run(input, timeout)
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
