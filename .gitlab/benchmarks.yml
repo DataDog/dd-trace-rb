@@ -56,3 +56,13 @@ profiling-and-tracing-benchmarks:
   extends: .benchmarks
   variables:
     DD_RELENV_CONFIGURATION: profiling-and-tracing
+
+tracing-and-appsec-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: tracing-and-appsec
+
+profiling-and-tracing-and-appsec-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: profiling-and-tracing-and-appsec
