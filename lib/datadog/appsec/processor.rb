@@ -14,22 +14,28 @@ module Datadog
           @time_ext_ns = 0.0
           @timeouts = 0
           @events = []
+          @run_mutex = Mutex.new
         end
 
         def run(input, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+          @run_mutex.lock
+
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
+          # this WAF::Context#run call is not thread safe as it mutates the context
           # TODO: remove multiple assignment
-          _code, res = _ = @context.run(input, timeout)
-          # @type var res: WAF::Result
+          _code, res = @context.run(input, timeout)
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
+          # these updates are not thread safe and should be protected
           @time_ns += res.total_runtime
           @time_ext_ns += (stop_ns - start_ns)
           @timeouts += 1 if res.timeout
 
           res
+        ensure
+          @run_mutex.unlock
         end
 
         def finalize

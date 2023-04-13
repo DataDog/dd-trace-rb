@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Profiling
     # This module contains classes and methods which are implemented using native code in the

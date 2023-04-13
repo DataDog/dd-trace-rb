@@ -176,6 +176,12 @@ module Datadog
           TAG_CONSUMER = 'consumer'
           TAG_INTERNAL = 'internal'
         end
+
+        # @public_api
+        module SpanAttributeSchema
+          # current span attribute schema version
+          TAG_SCHEMA_VERSION = '_dd.trace_span_attribute_schema'
+        end
       end
     end
   end

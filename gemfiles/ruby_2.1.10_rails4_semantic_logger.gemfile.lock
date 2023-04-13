@@ -79,6 +79,8 @@ GEM
       addressable (>= 2.4)
     libdatadog (2.0.0.1.0-aarch64-linux)
     libddwaf (1.8.2.0.0-aarch64-linux)
+    libdatadog (2.0.0.1.0)
+    libddwaf (1.8.2.0.0)
       ffi (~> 1.0)
     loofah (2.19.1)
       crass (~> 1.0.2)

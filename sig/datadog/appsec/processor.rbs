@@ -12,6 +12,8 @@ module Datadog
 
         @context: WAF::Context
 
+        @run_mutex: ::Thread::Mutex
+
         def initialize: (Processor processor) -> void
         def run: (data input, ?::Integer timeout) -> WAF::Result
         def finalize: () -> void

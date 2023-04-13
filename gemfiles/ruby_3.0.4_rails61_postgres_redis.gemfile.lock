@@ -122,6 +122,11 @@ GEM
     libdatadog (2.0.0.1.0-aarch64-linux)
     libdatadog (2.0.0.1.0-x86_64-linux)
     libddwaf (1.8.2.0.0-aarch64-linux)
+<<<<<<< HEAD
+=======
+      ffi (~> 1.0)
+    libddwaf (1.8.2.0.0-x86_64-linux)
+>>>>>>> master
       ffi (~> 1.0)
     lograge (0.12.0)
       actionpack (>= 4)

@@ -21,7 +21,7 @@ module Datadog
               /
               (?<config_id>[^/]+)
               /
-              (?<name>config)
+              (?<name>[^/]+)
               $
             }mx.freeze
 

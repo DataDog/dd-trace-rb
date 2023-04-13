@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Core
     # A some-what abstract class representing a collection of headers.

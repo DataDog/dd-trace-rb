@@ -74,6 +74,7 @@ module Datadog
         def self.ddwaf_object_get_unsigned: (LibDDWAF::Object, SizeTPtr) -> ::Integer
         def self.ddwaf_object_get_signed: (LibDDWAF::Object, SizeTPtr) -> ::Integer
         def self.ddwaf_object_get_index: (LibDDWAF::Object, ::Integer) -> LibDDWAF::Object
+        def self.ddwaf_object_get_bool: (LibDDWAF::Object) -> bool
 
         # freeers
 
@@ -100,6 +101,7 @@ module Datadog
         def self.ddwaf_ruleset_info_free: (RuleSetInfo) -> void
 
         def self.ddwaf_init: (top, Config, RuleSetInfo) -> ::FFI::Pointer
+        def self.ddwaf_update: (::FFI::Pointer, LibDDWAF::Object, RuleSetInfo) -> ::FFI::Pointer
         def self.ddwaf_destroy: (::FFI::Pointer) -> void
 
         def self.ddwaf_required_addresses: (::FFI::Pointer, UInt32Ptr) -> ::FFI::Pointer
@@ -108,9 +110,6 @@ module Datadog
         # updating
 
         DDWAF_RET_CODE: ::FFI::Enum
-
-        def self.ddwaf_update_rule_data: (::FFI::Pointer, LibDDWAF::Object) -> ::Symbol
-        def self.ddwaf_toggle_rules: (::FFI::Pointer, LibDDWAF::Object) -> ::Symbol
 
         # running
 
@@ -167,27 +166,22 @@ module Datadog
       class Handle
         attr_reader handle_obj: ::FFI::Pointer
         attr_reader ruleset_info: Hash[Symbol, untyped]
+        attr_reader config: WAF::LibDDWAF::Config
 
         def initialize: (data rule, ?limits: ::Hash[::Symbol, ::Integer], ?obfuscator: ::Hash[::Symbol, ::String]) -> void
         def finalize: () -> untyped
         def required_addresses: () -> ::Array[::String]
-        def update_rule_data: (::Array[untyped]) -> ::Symbol
-        def toggle_rules: (::Hash[::String, bool]) -> ::Symbol
+        def update: (untyped data) -> Handle
 
         private
 
         @valid: bool
 
+        def new_from_handle: (::FFI::Pointer handle_object, Hash[Symbol, untyped] info, WAF::LibDDWAF::Config config) -> untyped
         def validate!: () -> void
         def invalidate!: () -> void
         def valid?: () -> (nil | bool)
         def valid!: () -> void
-
-        @retained: Array[untyped]
-
-        def retained: () -> Array[untyped]
-        def retain: (top object) -> void
-        def release: (top object) -> void
       end
 
       type result_data = Array[untyped] | nil
@@ -208,7 +202,7 @@ module Datadog
         def initialize: (Handle handle) -> void
         def finalize: () -> void
 
-        def run: (data input, ?::Integer timeout) -> ::Array[top]
+        def run: (data input, ?::Integer timeout) -> [::Symbol, Result]
 
         private
 
