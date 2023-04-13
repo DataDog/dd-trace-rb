@@ -29,6 +29,16 @@ RSpec.describe Datadog::OpenTracer::Tracer do
         expect(tracer.datadog_tracer).to be(Datadog.send(:components).tracer)
         expect(tracer.datadog_tracer.enabled).to eq(true)
       end
+
+      it 'logs deprecation warning' do
+        expect { described_class.new(**options) }.to log_deprecation(include('Configure the global tracer instead'))
+      end
+    end
+
+    context 'without options' do
+      it 'does not log deprecation warning' do
+        expect { described_class.new }.to_not log_deprecation
+      end
     end
   end
 

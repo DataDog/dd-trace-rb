@@ -2,6 +2,7 @@ require 'time'
 
 require_relative '../tracing/context'
 require_relative '../tracing/tracer'
+require_relative '../core'
 
 module Datadog
   module OpenTracer
@@ -18,9 +19,16 @@ module Datadog
       # To configure this tracer, use the global tracing configuration.
       #
       # DEV-2.0: Remove options as configuration is done through the global tracing configuration.
-      def initialize(**_legacy_options)
+      def initialize(**ignored_options)
         super()
         @datadog_tracer = Datadog.send(:components).tracer
+
+        unless ignored_options.empty?
+          Datadog::Core.log_deprecation do
+            'Datadog::OpenTracer::Tracer does not accept options.' \
+            'Configure the global tracer instead.'
+          end
+        end
       end
 
       # @return [ScopeManager] the current ScopeManager.
