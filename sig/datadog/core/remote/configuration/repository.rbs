@@ -34,7 +34,7 @@ module Datadog
 
             attr_reader repository: Repository
 
-            @config_states: Array[Hash[Symbol, untyped]]
+            attr_reader config_states: Array[Hash[Symbol, untyped]]
 
             attr_reader has_error: bool
 
@@ -44,7 +44,9 @@ module Datadog
 
             def initialize: (Repository repository) -> void
 
-            def config_states: () -> Array[Hash[Symbol, untyped]]
+            private
+
+            def contents_to_config_states: (ContentList contents) -> Array[Hash[Symbol, untyped]]
           end
 
           class Transaction

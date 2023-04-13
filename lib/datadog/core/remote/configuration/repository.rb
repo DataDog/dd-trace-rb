@@ -68,37 +68,37 @@ module Datadog
             attr_reader \
               :root_version,
               :targets_version,
+              :config_states,
               :has_error,
               :error,
-              :opaque_backend_state,
-              :repository
+              :opaque_backend_state
 
             def initialize(repository)
               @repository = repository
               @root_version = repository.root_version
               @targets_version = repository.targets_version
-              @config_states = []
+              @config_states = contents_to_config_states(repository.contents)
               @has_error = false
               @error = ''
               @opaque_backend_state = repository.opaque_backend_state
             end
 
-            def config_states
-              return [] if @repository.contents.empty?
+            private
 
-              @repository.contents.each_with_object([]) do |content, acc|
-                config_state = {
+            def contents_to_config_states(contents)
+              return [] if contents.empty?
+
+              contents.map do |content|
+                {
                   path: content.path.to_s,
                   length: content.length,
-                  hashes: content.hashes.each_with_object([]) do |(key, value), hashes_acc|
-                    hashes_acc << {
-                      algorithm: key,
-                      hash: value
+                  hashes: content.hashes.map do |algorithm, hexdigest|
+                    {
+                      algorithm: algorithm,
+                      hash: hexdigest
                     }
-                    hashes_acc
                   end
                 }
-                acc << config_state
               end
             end
           end

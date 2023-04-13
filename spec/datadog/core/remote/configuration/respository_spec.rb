@@ -264,19 +264,18 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
 
   describe Datadog::Core::Remote::Configuration::Repository::State do
     let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
-    subject(:state) { repository.state }
 
     describe '#config_states' do
       context 'without changes' do
         it 'return empty array' do
-          expect(state.config_states).to eq([])
+          expect(repository.state.config_states).to eq([])
         end
       end
 
       context 'with changes' do
         before do
-          content.hash(:sha256)
-          new_content.hash(:sha256)
+          content.hexdigest(:sha256)
+          new_content.hexdigest(:sha256)
         end
 
         let(:expected_config_states) do
@@ -285,7 +284,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
               :hashes => [
                 {
                   algorithm: :sha256,
-                  hash: content.hash(:sha256)
+                  hash: content.hexdigest(:sha256)
                 }
               ],
               :length => 645,
@@ -300,7 +299,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
               transaction.insert(path, target, content)
             end
 
-            expect(state.config_states).to eq(expected_config_states)
+            expect(repository.state.config_states).to eq(expected_config_states)
           end
         end
 
@@ -310,7 +309,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
               transaction.insert(path, target, content)
             end
 
-            expect(state.config_states).to eq(expected_config_states)
+            expect(repository.state.config_states).to eq(expected_config_states)
 
             repository.transaction do |_repository, transaction|
               transaction.update(path, target, new_content)
@@ -321,7 +320,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
                 :hashes => [
                   {
                     algorithm: :sha256,
-                    hash: new_content.hash(:sha256)
+                    hash: new_content.hexdigest(:sha256)
                   }
                 ],
                 :length => new_content_string_io_content.length,
@@ -329,8 +328,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
               }
             ]
 
-            expect(state.config_states).to_not eq(expected_config_states)
-            expect(state.config_states).to eq(expected_updated_config_states)
+            expect(repository.state.config_states).to_not eq(expected_config_states)
+            expect(repository.state.config_states).to eq(expected_updated_config_states)
           end
         end
 
@@ -340,13 +339,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
               transaction.insert(path, target, content)
             end
 
-            expect(state.config_states).to eq(expected_config_states)
+            expect(repository.state.config_states).to eq(expected_config_states)
 
             repository.transaction do |_repository, transaction|
               transaction.delete(path)
             end
 
-            expect(state.config_states).to eq([])
+            expect(repository.state.config_states).to eq([])
           end
         end
       end

@@ -26,22 +26,18 @@ module Datadog
             @hashes = {}
           end
 
-          def hash(type)
+          def hexdigest(type)
             @hashes[type] || compute_and_store_hash(type)
           end
 
           def length
-            @data.size
+            @length ||= @data.size
           end
 
           private
 
           def compute_and_store_hash(type)
-            result = Digest.hexdigest(type, @data)
-            @hashes[type] = result
-            result
-          ensure
-            @data.rewind
+            @hashes[type] = Digest.hexdigest(type, @data)
           end
 
           private_class_method :new

@@ -40,6 +40,8 @@ module Datadog
               end
 
               d.hexdigest
+            ensure
+              data.rewind
             end
           end
 
@@ -49,7 +51,7 @@ module Datadog
           end
 
           def check(content)
-            content.hash(@type) == hexdigest
+            content.hexdigest(@type) == hexdigest
           end
         end
       end

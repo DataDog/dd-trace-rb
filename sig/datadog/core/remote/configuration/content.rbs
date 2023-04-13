@@ -11,9 +11,11 @@ module Datadog
 
           attr_reader hashes: Hash[Symbol, String]
 
+          @length: Integer
+
           def initialize: (path: Configuration::Path, data: StringIO) -> void
 
-          def hash: (Symbol type) -> String
+          def hexdigest: (Symbol type) -> String
 
           def length: () -> Integer
 
