@@ -188,20 +188,6 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
       expect(record).to eq [:one, :lift, :two, :three]
     end
-
-    context 'with unsatisfied requirement' do
-      let(:block) { -> { false } }
-
-      it 'does not block' do
-        record << :one
-        barrier.wait_next
-        record << :two
-        barrier.wait_next
-        record << :three
-
-        expect(record).to eq [:one, :two, :three]
-      end
-    end
   end
 
   describe '#wait_next' do
@@ -223,20 +209,6 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       record << :three
 
       expect(record).to eq [:one, :lift, :two, :lift, :three]
-    end
-
-    context 'with unsatisfied requirement' do
-      let(:block) { -> { false } }
-
-      it 'does not block' do
-        record << :one
-        barrier.wait_next
-        record << :two
-        barrier.wait_next
-        record << :three
-
-        expect(record).to eq [:one, :two, :three]
-      end
     end
   end
 end

@@ -16,15 +16,12 @@ module Datadog
         def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> Datadog::Core::Remote::Component?
 
         class Barrier
-          type condition = ^() -> bool?
-
-          @block: condition
           @once: bool
 
           @mutex: ::Thread::Mutex
           @condition: ::Thread::ConditionVariable
 
-          def initialize: () { () -> bool? } -> void
+          def initialize: () -> void
 
           def wait_once: () -> void
           def wait_next: () -> void

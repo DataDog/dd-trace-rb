@@ -22,6 +22,8 @@ module Datadog
 
           capabilities = Client::Capabilities.new(settings)
 
+          @barrier = Barrier.new
+
           @client = Client.new(transport_v7, capabilities)
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds) do
             begin
@@ -39,17 +41,13 @@ module Datadog
 
             @barrier.lift
           end
-
-          @barrier = Barrier.new do
-            next if @worker.nil?
-
-            @worker.start
-
-            true
-          end
         end
 
         def barrier(kind)
+          return if @worker.nil?
+
+          @worker.start
+
           case kind
           when :once
             @barrier.wait_once
@@ -64,23 +62,22 @@ module Datadog
 
         # Barrier provides a mechanism to fence execution until a condition happens
         class Barrier
-          def initialize(&block)
-            @block = block
+          def initialize
             @once = false
 
             @mutex = Mutex.new
             @condition = ConditionVariable.new
           end
 
+          # Wait for first lift to happen, otherwise don't wait
           def wait_once
             return if @once
 
             wait_next
           end
 
+          # Wait for next lift to happen
           def wait_next
-            return unless @block.call
-
             @mutex.synchronize do
               @condition.wait(@mutex)
             end
