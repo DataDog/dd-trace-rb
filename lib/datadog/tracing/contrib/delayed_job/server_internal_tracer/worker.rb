@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 module Datadog
   module Tracing
@@ -12,6 +12,8 @@ module Datadog
 
               Datadog::Tracing.trace(Ext::SPAN_RESERVE_JOB, service: configuration[:service_name]) do |span|
                 span.span_type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
+
+                span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
 
                 span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RESERVE_JOB)

@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'option'
 
 module Datadog
@@ -17,7 +15,8 @@ module Datadog
           :name,
           :on_set,
           :resetter,
-          :setter
+          :setter,
+          :type
 
         def initialize(name, meta = {}, &block)
           @default = meta[:default]
@@ -28,6 +27,7 @@ module Datadog
           @on_set = meta[:on_set]
           @resetter = meta[:resetter]
           @setter = meta[:setter] || block || IDENTITY
+          @type = meta[:type]
         end
 
         # Creates a new Option, bound to the context provided.
@@ -51,6 +51,7 @@ module Datadog
             @on_set = nil
             @resetter = nil
             @setter = OptionDefinition::IDENTITY
+            @type = nil
 
             # If options were supplied, apply them.
             apply_options!(options)
@@ -91,6 +92,10 @@ module Datadog
             @setter = block
           end
 
+          def type(value = nil)
+            @type = value
+          end
+
           # For applying options for OptionDefinition
           def apply_options!(options = {})
             return if options.nil? || options.empty?
@@ -102,6 +107,7 @@ module Datadog
             on_set(&options[:on_set]) if options.key?(:on_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
             setter(&options[:setter]) if options.key?(:setter)
+            type(&options[:type]) if options.key?(:type)
           end
 
           def to_definition
@@ -116,7 +122,8 @@ module Datadog
               lazy: @lazy,
               on_set: @on_set,
               resetter: @resetter,
-              setter: @setter
+              setter: @setter,
+              type: @type
             }
           end
         end

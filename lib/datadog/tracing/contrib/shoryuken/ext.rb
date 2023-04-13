@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module Tracing
     module Contrib
@@ -18,6 +16,7 @@ module Datadog
           TAG_JOB_BODY = 'shoryuken.body'.freeze
           TAG_COMPONENT = 'shoryuken'.freeze
           TAG_OPERATION_JOB = 'job'.freeze
+          TAG_MESSAGING_SYSTEM = 'amazonsqs'.freeze
         end
       end
     end

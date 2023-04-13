@@ -7,14 +7,14 @@ services:
     expose:
       - "80"
     ports:
-      - "80:80"
+      - "127.0.0.1:80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
   app:
     build:
       context: .
       args:
-        BASE_IMAGE: datadog/dd-apm-demo:rb-2.7
+        BASE_IMAGE: "datadog/dd-apm-demo:rb-${RUBY_VERSION}"
     depends_on:
       - ddagent
       - mysql
@@ -62,6 +62,7 @@ services:
       - DD_PROCESS_AGENT_ENABLED=false
       - DD_BIND_HOST=0.0.0.0
       - DD_API_KEY
+      - "DD_HOSTNAME=${DD_HOSTNAME}"
       - LOG_LEVEL=DEBUG
       - DD_LOGS_STDOUT=yes
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true

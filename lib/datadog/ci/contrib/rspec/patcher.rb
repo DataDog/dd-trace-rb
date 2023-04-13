@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../../tracing/contrib/patcher'
 require_relative 'example'
 

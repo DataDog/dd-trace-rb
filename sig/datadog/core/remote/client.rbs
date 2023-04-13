@@ -1,0 +1,28 @@
+module Datadog
+  module Core
+    module Remote
+      class Client
+        class SyncError < StandardError
+        end
+
+        attr_reader transport: Datadog::Core::Transport::Config::Transport
+
+        attr_reader repository: Configuration::Repository
+
+        attr_reader id: ::String
+
+        attr_reader dispatcher: Remote::Dispatcher
+
+        attr_reader capabilities: Capabilities
+
+        def initialize: (Datadog::Core::Transport::Config::Transport transport, Capabilities capabilities, ?repository: Configuration::Repository) -> void
+
+        def sync: () -> void
+
+        private
+
+        def payload: () ->  ::Hash[Symbol, untyped]
+      end
+    end
+  end
+end

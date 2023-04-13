@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'datadog/statsd'
@@ -219,7 +217,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         let(:value) { 'my-hostname' }
 
         around do |example|
-          ClimateControl.modify(Datadog::Core::Metrics::Ext::ENV_DEFAULT_HOST => value) do
+          ClimateControl.modify(Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST => value) do
             example.run
           end
         end
@@ -229,7 +227,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
       context 'not set' do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Metrics::Ext::ENV_DEFAULT_HOST => nil) do
+          ClimateControl.modify(Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST => nil) do
             example.run
           end
         end
@@ -247,7 +245,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         let(:value) { '1234' }
 
         around do |example|
-          ClimateControl.modify(Datadog::Core::Metrics::Ext::ENV_DEFAULT_PORT => value) do
+          ClimateControl.modify(Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => value) do
             example.run
           end
         end
@@ -257,7 +255,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
       context 'not set' do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Metrics::Ext::ENV_DEFAULT_PORT => nil) do
+          ClimateControl.modify(Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => nil) do
             example.run
           end
         end
@@ -281,20 +279,9 @@ RSpec.describe Datadog::Core::Metrics::Client do
     end
 
     before do
-      # @ivoanjo: This seems to be a bug in RSpec on Ruby 2.7
-      # <Datadog::Statsd (class)> received :new with unexpected arguments
-      #   expected: ("127.0.0.1", 8125, {})
-      #        got: ("127.0.0.1", 8125)
-      # ...but the workaround is so trivial that I don't think it's worth chasing this down further
-      if options.empty? && RUBY_VERSION.start_with?('2.7.')
-        expect(Datadog::Statsd).to receive(:new)
-          .with(metrics.default_hostname, metrics.default_port)
-          .and_return(statsd_client)
-      else
-        expect(Datadog::Statsd).to receive(:new)
-          .with(metrics.default_hostname, metrics.default_port, **options)
-          .and_return(statsd_client)
-      end
+      expect(Datadog::Statsd).to receive(:new)
+        .with(metrics.default_hostname, metrics.default_port, **options)
+        .and_return(statsd_client)
     end
 
     it { is_expected.to be(statsd_client) }

@@ -1,5 +1,3 @@
-# typed: true
-
 require 'datadog/tracing/writer'
 
 require 'support/faux_transport'

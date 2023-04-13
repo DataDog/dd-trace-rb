@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 require_relative 'support/helper'
 
@@ -16,8 +14,6 @@ RSpec.describe 'Server tracer' do
     Sidekiq::Testing.server_middleware do |chain|
       chain.add(Datadog::Tracing::Contrib::Sidekiq::ServerTracer)
     end
-
-    Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0' && Sidekiq::VERSION < '7.0.0'
   end
 
   it 'traces async job run' do
@@ -26,6 +22,7 @@ RSpec.describe 'Server tracer' do
     expect(spans).to have(2).items
 
     span, _push = spans
+
     expect(span.service).to eq(tracer.default_service)
     expect(span.resource).to eq('EmptyWorker')
     expect(span.get_tag('sidekiq.job.queue')).to eq('default')
@@ -37,6 +34,7 @@ RSpec.describe 'Server tracer' do
     expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
     expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
     expect(span.get_tag('span.kind')).to eq('consumer')
+    expect(span.get_tag('messaging.system')).to eq('sidekiq')
   end
 
   context 'with job run failing' do
@@ -71,6 +69,7 @@ RSpec.describe 'Server tracer' do
       expect(span.get_tag('sidekiq.job.args')).to be_nil
       expect(span.get_metric('_dd.measured')).to eq(1.0)
       expect(span.get_tag('span.kind')).to eq('consumer')
+      expect(span.get_tag('messaging.system')).to eq('sidekiq')
     end
   end
 
@@ -113,6 +112,7 @@ RSpec.describe 'Server tracer' do
       expect(custom.get_tag('sidekiq.job.args')).to eq(['?'].to_s)
       expect(custom.get_metric('_dd.measured')).to eq(1.0)
       expect(custom.get_tag('span.kind')).to eq('consumer')
+      expect(custom.get_tag('messaging.system')).to eq('sidekiq')
     end
 
     context 'with tag_args' do
@@ -163,6 +163,7 @@ RSpec.describe 'Server tracer' do
         expect(empty).to be_root_span
         expect(empty.get_metric('_dd.measured')).to eq(1.0)
         expect(empty.get_tag('span.kind')).to eq('consumer')
+        expect(empty.get_tag('messaging.system')).to eq('sidekiq')
 
         expect(custom.service).to eq('sidekiq-slow')
         expect(custom.resource).to eq('CustomWorker')
@@ -172,6 +173,7 @@ RSpec.describe 'Server tracer' do
         expect(custom.get_tag('sidekiq.job.args')).to eq(['random_id'].to_s)
         expect(custom.get_metric('_dd.measured')).to eq(1.0)
         expect(custom.get_tag('span.kind')).to eq('consumer')
+        expect(custom.get_tag('messaging.system')).to eq('sidekiq')
       end
     end
   end
@@ -183,6 +185,8 @@ RSpec.describe 'Server tracer' do
       if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1.0')
         pending 'Broken in Ruby 3.1.0-preview1, see https://github.com/mperham/sidekiq/issues/5064'
       end
+
+      Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
 
       stub_const(
         'DelayableClass',

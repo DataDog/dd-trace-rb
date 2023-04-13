@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'appsec/configuration'
 require_relative 'appsec/extensions'
 
@@ -8,8 +6,38 @@ module Datadog
   module AppSec
     include Configuration
 
-    def self.writer
-      @writer ||= Writer.new
+    class << self
+      def enabled?
+        Datadog.configuration.appsec.enabled
+      end
+
+      def processor
+        appsec_component = components.appsec
+
+        appsec_component.processor if appsec_component
+      end
+
+      def reconfigure(ruleset:)
+        appsec_component = components.appsec
+
+        return unless appsec_component
+
+        appsec_component.reconfigure(ruleset: ruleset)
+      end
+
+      def reconfigure_lock(&block)
+        appsec_component = components.appsec
+
+        return unless appsec_component
+
+        appsec_component.reconfigure_lock(&block)
+      end
+
+      private
+
+      def components
+        Datadog.send(:components)
+      end
     end
 
     # Expose AppSec to global shared objects
@@ -21,3 +49,5 @@ end
 require_relative 'appsec/contrib/rack/integration'
 require_relative 'appsec/contrib/sinatra/integration'
 require_relative 'appsec/contrib/rails/integration'
+
+require_relative 'appsec/autoload'

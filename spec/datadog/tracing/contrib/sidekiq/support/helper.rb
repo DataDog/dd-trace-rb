@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/core/utils'
 require 'datadog/tracing'
 require 'datadog/tracing/contrib/sidekiq/client_tracer'
@@ -81,7 +79,7 @@ module SidekiqServerExpectations
   end
 
   def expect_after_stopping_sidekiq_server
-    # expect_in_fork do
+    expect_in_fork do
       # NB: This is needed because we want to patch within a forked process.
       if Datadog::Tracing::Contrib::Sidekiq::Patcher.instance_variable_get(:@patch_only_once)
         Datadog::Tracing::Contrib::Sidekiq::Patcher
@@ -93,13 +91,8 @@ module SidekiqServerExpectations
 
       configure_sidekiq
 
-      cli = Sidekiq::CLI.instance
-
       # Change options and constants for Sidekiq to stop faster:
       # Reduce number of threads and shutdown timeout.
-
-      # binding.pry
-      puts Sidekiq::VERSION
 
       options = if Sidekiq.respond_to? :default_configuration
         Sidekiq.default_configuration.tap do |c|
@@ -135,6 +128,6 @@ module SidekiqServerExpectations
       launcher.stop
 
       yield
-    # end
+    end
   end
 end

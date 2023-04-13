@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 require_relative '../support/helper'
 
@@ -43,6 +41,7 @@ RSpec.describe 'Server internal tracer' do
       expect(span).to_not have_error
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('scheduled_push')
+      expect(span.get_tag('messaging.system')).to eq('sidekiq')
     end
   end
 
@@ -57,6 +56,7 @@ RSpec.describe 'Server internal tracer' do
       expect(span).to_not have_error
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('scheduled_poller_wait')
+      expect(span.get_tag('messaging.system')).to eq('sidekiq')
     end
   end
 end

@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'datadog/tracing/contrib/elasticsearch/integration'

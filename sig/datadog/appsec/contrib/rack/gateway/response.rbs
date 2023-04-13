@@ -1,0 +1,23 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        module Gateway
+          class Response < Instrumentation::Gateway::Argument
+            attr_reader body: String
+
+            attr_reader status: untyped
+
+            attr_reader headers: untyped
+
+            attr_reader active_context: Datadog::AppSec::Processor::Context
+
+            def initialize: (untyped body, untyped status, untyped headers, active_context: Datadog::AppSec::Processor::Context) -> void
+
+            def response: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

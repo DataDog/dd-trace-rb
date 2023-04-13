@@ -1,5 +1,3 @@
-# typed: true
-
 require 'objspace'
 
 module ObjectSpaceHelper

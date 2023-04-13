@@ -1,5 +1,3 @@
-# typed: true
-
 require 'logger'
 require 'json'
 

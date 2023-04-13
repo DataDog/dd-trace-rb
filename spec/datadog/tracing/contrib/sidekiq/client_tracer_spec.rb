@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 require_relative 'support/helper'
 
@@ -19,7 +17,6 @@ RSpec.describe 'ClientTracerTest' do
     end
 
     Sidekiq::Testing.server_middleware.clear
-    Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0' && Sidekiq::VERSION < '7.0.0'
   end
 
   it 'traces job push' do
@@ -34,6 +31,7 @@ RSpec.describe 'ClientTracerTest' do
     expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
     expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('push')
     expect(span.get_tag('span.kind')).to eq('producer')
+    expect(span.get_tag('messaging.system')).to eq('sidekiq')
   end
 
   context 'with nested trace' do
@@ -57,6 +55,7 @@ RSpec.describe 'ClientTracerTest' do
       expect(child_span.parent_id).to eq(parent_span.span_id)
       expect(child_span.get_metric('_dd.measured')).to be_nil
       expect(child_span.get_tag('span.kind')).to eq('producer')
+      expect(child_span.get_tag('messaging.system')).to eq('sidekiq')
     end
   end
 
@@ -67,6 +66,8 @@ RSpec.describe 'ClientTracerTest' do
       if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1.0')
         pending 'Broken in Ruby 3.1.0-preview1, see https://github.com/mperham/sidekiq/issues/5064'
       end
+
+      Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
 
       stub_const(
         'DelayableClass',

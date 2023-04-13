@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../ext'

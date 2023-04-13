@@ -1,12 +1,10 @@
-# typed: true
+# frozen_string_literal: true
 
 module Datadog
   module Transport
     # Data transfer object for generic data
     # @abstract
     module Parcel
-      include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
-
       attr_reader \
         :data
 

@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-# typed: false
 
 module Datadog
   module Tracing
@@ -39,23 +38,23 @@ module Datadog
         def extract(data)
           fetcher = @fetcher.new(data)
 
-          trace_id, dd_trace_id, parent_id, sampled, trace_flags = extract_traceparent(fetcher[@traceparent_key])
+          trace_id, parent_id, sampled, trace_flags = extract_traceparent(fetcher[@traceparent_key])
 
           return unless trace_id # Could not parse traceparent
 
-          tracestate, sampling_priority, origin, tags = extract_tracestate(fetcher[@tracestate_key])
+          tracestate, sampling_priority, origin, tags, unknown_fields = extract_tracestate(fetcher[@tracestate_key])
 
           sampling_priority = parse_priority_sampling(sampled, sampling_priority)
 
           TraceDigest.new(
             span_id: parent_id,
-            trace_id: dd_trace_id,
+            trace_id: trace_id,
             trace_origin: origin,
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: tags,
-            trace_distributed_id: trace_id,
+            trace_flags: trace_flags,
             trace_state: tracestate,
-            trace_flags: trace_flags
+            trace_state_unknown_fields: unknown_fields,
           )
         end
 
@@ -92,7 +91,7 @@ module Datadog
         # @see https://www.w3.org/TR/trace-context/#traceparent-header
         def build_traceparent(digest)
           build_traceparent_string(
-            digest.trace_distributed_id || digest.trace_id,
+            digest.trace_id,
             digest.span_id,
             build_trace_flags(digest)
           )
@@ -151,6 +150,8 @@ module Datadog
               tracestate << tag
             end
           end
+
+          tracestate << digest.trace_state_unknown_fields if digest.trace_state_unknown_fields
 
           # Is there any Datadog-specific information to propagate.
           # Check for > 3 size because the empty prefix `dd=` has 3 characters.
@@ -227,10 +228,9 @@ module Datadog
           # Return unless all traceparent fields are valid.
           return unless trace_id && !trace_id.zero? && parent_id && !parent_id.zero? && trace_flags
 
-          dd_trace_id = parse_datadog_trace_id(trace_id)
           sampled = parse_sampled_flag(trace_flags)
 
-          [trace_id, dd_trace_id, parent_id, sampled, trace_flags]
+          [trace_id, parent_id, sampled, trace_flags]
         end
 
         def parse_traceparent_string(traceparent)
@@ -251,12 +251,6 @@ module Datadog
           nil
         end
 
-        # Datadog only allows 64 bits for the trace id.
-        # We extract the lower 64 bits from the original 128-bit id.
-        def parse_datadog_trace_id(trace_id)
-          trace_id & 0xFFFFFFFFFFFFFFFF
-        end
-
         def parse_sampled_flag(trace_flags)
           trace_flags & TRACE_FLAGS_SAMPLED
         end
@@ -268,21 +262,23 @@ module Datadog
           vendors = split_tracestate(tracestate)
 
           # Find Datadog's `dd=` tracestate field.
-          dd_tracestate = vendors.find { |v| v.start_with?('dd=') }
-          return tracestate unless dd_tracestate
+          idx = vendors.index { |v| v.start_with?('dd=') }
+          return tracestate unless idx
 
           # Delete `dd=` prefix
+          dd_tracestate = vendors.delete_at(idx)
           dd_tracestate.slice!(0..2)
 
-          origin, sampling_priority, tags = extract_datadog_fields(dd_tracestate)
+          origin, sampling_priority, tags, unknown_fields = extract_datadog_fields(dd_tracestate)
 
-          [tracestate, sampling_priority, origin, tags]
+          [vendors.join(','), sampling_priority, origin, tags, unknown_fields]
         end
 
         def extract_datadog_fields(dd_tracestate)
           sampling_priority = nil
           origin = nil
           tags = nil
+          unknown_fields = nil
 
           # DEV: Since Ruby 2.6 `split` can receive a block, so `each` can be removed then.
           dd_tracestate.split(';').each do |pair|
@@ -295,14 +291,22 @@ module Datadog
             when /^t\./
               key.slice!(0..1) # Delete `t.` prefix
 
+              # Ignore the high order 64 bit trace id propagation tag to avoid confusion,
+              # the single source of truth is from traceparent
+              next if key == Tracing::Metadata::Ext::Distributed::TID
+
               value = deserialize_tag_value(value)
 
               tags ||= {}
               tags["#{Tracing::Metadata::Ext::Distributed::TAGS_PREFIX}#{key}"] = value
+            else
+              unknown_fields ||= String.new
+              unknown_fields << pair
+              unknown_fields << ';'
             end
           end
 
-          [origin, sampling_priority, tags]
+          [origin, sampling_priority, tags, unknown_fields]
         end
 
         # Restore `:` back to `=`.

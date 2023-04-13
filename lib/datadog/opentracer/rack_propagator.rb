@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../tracing/context'
 require_relative '../tracing/propagation/http'
 require_relative '../tracing/trace_operation'

@@ -1,7 +1,5 @@
 require_relative '../utils/quantization/hash'
 
-# typed: true
-
 module Datadog
   module Tracing
     module Contrib

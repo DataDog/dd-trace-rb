@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'datadog/tracing/distributed/trace_context'
@@ -29,13 +27,6 @@ RSpec.shared_examples 'Trace Context distributed format' do
       let(:options) { {} }
 
       it { expect(traceparent).to eq('00-00000000000000000000000000c0ffee-0000000000000bee-00') }
-
-      context 'with trace_distributed_id' do
-        let(:options) { { trace_distributed_id: 0xACE00000000000000000000000C0FFEE } }
-        it 'prioritizes the original trace_distributed_id' do
-          expect(traceparent).to eq('00-ace00000000000000000000000c0ffee-0000000000000bee-00')
-        end
-      end
 
       context 'with trace_flags' do
         context 'with a dropped trace' do
@@ -132,6 +123,21 @@ RSpec.shared_examples 'Trace Context distributed format' do
               it { expect(tracestate).to eq('dd=o:_') }
             end
           end
+        end
+      end
+
+      context 'with 128 bit trace id' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
+            span_id: 0xbbbbbbbbbbbbbbbb
+          )
+        end
+
+        it do
+          inject!
+
+          expect(traceparent).to eq('00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00')
         end
       end
 
@@ -253,6 +259,14 @@ RSpec.shared_examples 'Trace Context distributed format' do
               expect(tracestate).to eq('dd=o:origin,' + Array.new(31) { |i| "other=vendor#{i}" }.join(','))
             end
           end
+
+          context 'and unknown `dd=` tracestate values' do
+            let(:options) { super().merge(trace_origin: 'origin', trace_state_unknown_fields: 'future=field;') }
+
+            it 'joins known and unknown `dd=` fields' do
+              expect(tracestate).to eq('dd=o:origin;future=field,other=vendor')
+            end
+          end
         end
       end
     end
@@ -305,6 +319,44 @@ RSpec.shared_examples 'Trace Context distributed format' do
       it { is_expected.to be nil }
     end
 
+    context 'with traceparent and distributed_tag `t.tid` in tracestate' do
+      let(:data) do
+        {
+          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
+          prepare_key['tracestate'] => 'dd=t.tid:cccccccccccccccc'
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).to be_nil }
+    end
+
+    context 'with traceparent without tracestate' do
+      let(:data) do
+        {
+          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).to be_nil }
+    end
+
+    context 'with traceparent and with empty tracestate' do
+      let(:data) do
+        {
+          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
+          prepare_key['tracestate'] => ''
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).to be_nil }
+    end
+
     context 'with valid trace_id and parent_id' do
       it { expect(digest.trace_id).to eq(0xC0FFEE) }
       it { expect(digest.span_id).to eq(0xBEE) }
@@ -314,8 +366,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
       context 'and trace_id larger than 64 bits' do
         let(:trace_id) { 'ace00000000000000000000000c0ffee' }
 
-        it { expect(digest.trace_id).to eq(0xC0FFEE) }
-        it { expect(digest.trace_distributed_id).to eq(0xACE00000000000000000000000C0FFEE) }
+        it { expect(digest.trace_id).to eq(0xACE00000000000000000000000C0FFEE) }
       end
 
       context 'with sampling priority' do
@@ -383,12 +434,22 @@ RSpec.shared_examples 'Trace Context distributed format' do
       end
 
       context 'with unknown tracestate fields' do
-        let(:tracestate) { "dd=i_don't_know_this:field;o:origin;s:0" }
+        let(:tracestate) { "dd=i_don't_know_this:field;o:origin" }
+
+        it { expect(digest.trace_state_unknown_fields).to eq("i_don't_know_this:field;") }
 
         it { expect(digest.trace_id).to eq(0xC0FFEE) }
         it { expect(digest.span_id).to eq(0xBEE) }
         it { expect(digest.trace_origin).to eq('origin') }
-        it { expect(digest.trace_sampling_priority).to eq(0) }
+      end
+
+      context 'with multiple tracestate vendors' do
+        let(:tracestate) { 'dd=o:origin,v1=1,v2=2' }
+
+        it { expect(digest.trace_id).to eq(0xC0FFEE) }
+        it { expect(digest.span_id).to eq(0xBEE) }
+        it { expect(digest.trace_state).to eq('v1=1,v2=2') }
+        it { expect(digest.trace_origin).to eq('origin') }
       end
 
       context 'trailing whitespace' do

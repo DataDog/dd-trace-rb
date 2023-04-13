@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../core/environment/ext'
 
 require_relative 'ext'
@@ -108,6 +106,12 @@ module Datadog
         # This method removes a metric for the given key. It acts like {#clear_tag}.
         def clear_metric(key)
           metrics.delete(key)
+        end
+
+        # Returns a copy of all metadata.
+        # Keys for `@meta` and `@metrics` don't collide, by construction.
+        def tags
+          @meta.merge(@metrics)
         end
 
         protected

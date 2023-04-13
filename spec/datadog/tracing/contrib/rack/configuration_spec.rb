@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'rack/test'
@@ -68,9 +66,8 @@ RSpec.describe 'Rack integration configuration' do
       let(:queue_value) { nil }
     end
 
-    shared_examples_for 'a Rack request with queuing' do
-      let(:queue_span) { spans.first }
-      let(:rack_span) { spans.last }
+    shared_examples_for 'a Rack request with queuing including the request' do
+      let(:configuration_options) { super().merge(request_queuing: :include_request) }
 
       it 'produces a queued Rack trace' do
         is_expected.to be_ok
@@ -79,17 +76,19 @@ RSpec.describe 'Rack integration configuration' do
 
         expect(spans).to have(2).items
 
+        server_queue_span = spans[0]
+        rack_span = spans[1]
+
         web_service_name = Datadog.configuration.tracing[:rack][:web_service_name]
-        expect(queue_span.name).to eq('http_server.queue')
-        expect(queue_span.span_type).to eq('proxy')
-        expect(queue_span.service).to eq(web_service_name)
-        expect(queue_span.start_time.to_i).to eq(queue_time)
-        expect(queue_span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)).to be_nil
-        expect(queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(web_service_name)
-        expect(queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-          .to eq('rack')
-        expect(queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq('queue')
+
+        expect(server_queue_span.name).to eq('http_server.queue')
+        expect(server_queue_span.span_type).to eq('proxy')
+        expect(server_queue_span.service).to eq(web_service_name)
+        expect(server_queue_span.start_time.to_i).to eq(queue_time)
+        expect(server_queue_span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)).to be_nil
+        expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(web_service_name)
+        expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
+        expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('queue')
 
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
@@ -99,12 +98,58 @@ RSpec.describe 'Rack integration configuration' do
         expect(rack_span.get_tag('http.status_code')).to eq('200')
         expect(rack_span.get_tag('http.url')).to eq('/')
         expect(rack_span.status).to eq(0)
-        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-          .to eq('rack')
-        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq('request')
+        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
+        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
+        expect(rack_span.parent_id).to eq(server_queue_span.span_id)
+      end
+    end
 
-        expect(queue_span.span_id).to eq(rack_span.parent_id)
+    shared_examples_for 'a Rack request with queuing excluding the request' do
+      let(:configuration_options) { super().merge(request_queuing: :exclude_request) }
+
+      it 'produces a queued Rack trace' do
+        is_expected.to be_ok
+
+        expect(trace.resource).to eq('GET 200')
+
+        expect(spans).to have(3).items
+
+        server_request_span = spans[1]
+        server_queue_span = spans[0]
+        rack_span = spans[2]
+
+        web_service_name = Datadog.configuration.tracing[:rack][:web_service_name]
+
+        expect(server_request_span.name).to eq('http.proxy.request')
+        expect(server_request_span.span_type).to eq('proxy')
+        expect(server_request_span.service).to eq(web_service_name)
+        expect(server_request_span.start_time.to_i).to eq(queue_time)
+        expect(server_request_span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)).to be_nil
+        expect(server_request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(web_service_name)
+        expect(server_request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('http_proxy')
+        expect(server_request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
+
+        expect(server_queue_span.name).to eq('http.proxy.queue')
+        expect(server_queue_span.span_type).to eq('proxy')
+        expect(server_queue_span.service).to eq(web_service_name)
+        expect(server_queue_span.start_time.to_i).to eq(queue_time)
+        expect(server_queue_span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)).to be_nil
+        expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(web_service_name)
+        expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('http_proxy')
+        expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('queue')
+        expect(server_queue_span.parent_id).to eq(server_request_span.span_id)
+
+        expect(rack_span.name).to eq('rack.request')
+        expect(rack_span.span_type).to eq('web')
+        expect(rack_span.service).to eq(Datadog.configuration.service)
+        expect(rack_span.resource).to eq('GET 200')
+        expect(rack_span.get_tag('http.method')).to eq('GET')
+        expect(rack_span.get_tag('http.status_code')).to eq('200')
+        expect(rack_span.get_tag('http.url')).to eq('/')
+        expect(rack_span.status).to eq(0)
+        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
+        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
+        expect(rack_span.parent_id).to eq(server_request_span.span_id)
       end
     end
 
@@ -135,7 +180,7 @@ RSpec.describe 'Rack integration configuration' do
     end
 
     context 'when enabled' do
-      let(:configuration_options) { super().merge(request_queuing: true) }
+      let(:configuration_options) { super().merge(request_queuing: :exclude_request) }
 
       context 'and a request is received' do
         include_context 'an incoming HTTP request'
@@ -145,15 +190,29 @@ RSpec.describe 'Rack integration configuration' do
             let(:queue_header) { 'X-Request-Start' }
           end
 
-          it_behaves_like 'a Rack request with queuing'
+          it_behaves_like 'a Rack request with queuing including the request'
+          it_behaves_like 'a Rack request with queuing excluding the request'
 
           context 'given a custom web service name' do
             let(:configuration_options) { super().merge(web_service_name: web_service_name) }
             let(:web_service_name) { 'nginx' }
 
-            it_behaves_like 'a Rack request with queuing' do
+            it_behaves_like 'a Rack request with queuing including the request' do
               it 'sets the custom service name' do
                 is_expected.to be_ok
+
+                queue_span = spans.find { |s| s.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_SERVER_QUEUE }
+
+                expect(queue_span.service).to eq(web_service_name)
+              end
+            end
+
+            it_behaves_like 'a Rack request with queuing excluding the request' do
+              it 'sets the custom service name' do
+                is_expected.to be_ok
+
+                queue_span = spans.find { |s| s.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_QUEUE }
+
                 expect(queue_span.service).to eq(web_service_name)
               end
             end
@@ -165,7 +224,8 @@ RSpec.describe 'Rack integration configuration' do
             let(:queue_header) { 'X-Queue-Start' }
           end
 
-          it_behaves_like 'a Rack request with queuing'
+          it_behaves_like 'a Rack request with queuing including the request'
+          it_behaves_like 'a Rack request with queuing excluding the request'
         end
 
         # Ensure a queuing Span is NOT created if there is a clock skew

@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'datadog/core/worker'
@@ -475,11 +473,14 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
           skip 'Not supported on old Rubies' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
         end
 
-        class AsyncSpecThreadNaming < Datadog::Core::Worker
-          include Datadog::Core::Workers::Async::Thread
+        let(:worker_class) do
+          stub_const(
+            'AsyncSpecThreadNaming',
+            Class.new(Datadog::Core::Worker) do
+              include Datadog::Core::Workers::Async::Thread
+            end
+          )
         end
-
-        let(:worker_class) { AsyncSpecThreadNaming }
 
         it 'sets the name of the created thread to match the worker class name' do
           worker.perform

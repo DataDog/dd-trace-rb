@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 module Datadog
   module Tracing
@@ -59,15 +59,22 @@ module Datadog
       #   This attribute will preserve the original id, while `trace_id` will only contain the lower 64 bits.
       #   @return [Integer]
       #   @see https://www.w3.org/TR/trace-context/#trace-id
-      # @!attribute [r] trace_tracestate
-      #   The W3C "tracestate" extracted from a distributed context.
-      #   This field is a string representing vendor-specific distribution data.
-      #   @return [String]
-      #   @see https://www.w3.org/TR/trace-context/#tracestate-header
       # @!attribute [r] trace_flags
       #   The W3C "trace-flags" extracted from a distributed context. This field is an 8-bit unsigned integer.
       #   @return [Integer]
       #   @see https://www.w3.org/TR/trace-context/#trace-flags
+      # @!attribute [r] trace_state
+      #   The W3C "tracestate" extracted from a distributed context.
+      #   This field is a string representing vendor-specific distribution data.
+      #   The `dd=` entry is removed from `trace_state` as its value is dynamically calculated
+      #   on every propagation injection.
+      #   @return [String]
+      #   @see https://www.w3.org/TR/trace-context/#tracestate-header
+      # @!attribute [r] trace_state_unknown_fields
+      #   From W3C "tracestate"'s `dd=` entry, when keys are not recognized they are stored here long with their values.
+      #   This allows later propagation to include those unknown fields, as they can represent future versions of the spec
+      #   sending data through this service. This value ends in a trailing `;` to facilitate serialization.
+      #   @return [String]
       # TODO: The documentation for the last attribute above won't be rendered.
       # TODO: This might be a YARD bug as adding an attribute, making it now second-last attribute, renders correctly.
       attr_reader \
@@ -88,7 +95,8 @@ module Datadog
         :trace_service,
         :trace_distributed_id,
         :trace_flags,
-        :trace_state
+        :trace_state,
+        :trace_state_unknown_fields
 
       def initialize(
         span_id: nil,
@@ -108,7 +116,8 @@ module Datadog
         trace_service: nil,
         trace_distributed_id: nil,
         trace_flags: nil,
-        trace_state: nil
+        trace_state: nil,
+        trace_state_unknown_fields: nil
       )
         @span_id = span_id
         @span_name = span_name && span_name.dup.freeze
@@ -128,6 +137,7 @@ module Datadog
         @trace_distributed_id = trace_distributed_id
         @trace_flags = trace_flags
         @trace_state = trace_state && trace_state.dup.freeze
+        @trace_state_unknown_fields = trace_state_unknown_fields && trace_state_unknown_fields.dup.freeze
 
         freeze
       end

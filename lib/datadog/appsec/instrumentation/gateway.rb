@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 module Datadog
   module AppSec
@@ -15,10 +15,12 @@ module Datadog
             @block = block
           end
 
-          def call(*args, **kwargs, &block)
-            @block.call(*args, **kwargs, &block)
+          def call(stack, env)
+            @block.call(stack, env)
           end
         end
+
+        private_constant :Middleware
 
         def initialize
           @middlewares = Hash.new { |h, k| h[k] = [] }
@@ -27,16 +29,16 @@ module Datadog
         def push(name, env, &block)
           block ||= -> {}
 
-          middlewares = @middlewares[name]
+          middlewares_for_name = middlewares[name]
 
-          return [block.call, nil] if middlewares.empty?
+          return [block.call, nil] if middlewares_for_name.empty?
 
           wrapped = lambda do |_env|
             [block.call, nil]
           end
 
           # TODO: handle exceptions, except for wrapped
-          stack = middlewares.reverse.reduce(wrapped) do |next_, middleware|
+          stack = middlewares_for_name.reverse.reduce(wrapped) do |next_, middleware|
             lambda do |env_|
               middleware.call(next_, env_)
             end
@@ -46,8 +48,12 @@ module Datadog
         end
 
         def watch(name, key, &block)
-          @middlewares[name] << Middleware.new(key, &block) unless @middlewares[name].any? { |m| m.key == key }
+          @middlewares[name] << Middleware.new(key, &block) unless middlewares[name].any? { |m| m.key == key }
         end
+
+        private
+
+        attr_reader :middlewares
       end
 
       def self.gateway

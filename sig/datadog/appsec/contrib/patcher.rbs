@@ -1,0 +1,8 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Patcher
+      end
+    end
+  end
+end

@@ -2,6 +2,16 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ddtrace/version'
 
+module DisableBundleCheck
+  def check_command
+    ['bundle', 'exec', 'false']
+  end
+end
+
+if ['true', 'y', 'yes', '1'].include?(ENV['APPRAISAL_SKIP_BUNDLE_CHECK'])
+  ::Appraisal::Appraisal.prepend(DisableBundleCheck)
+end
+
 def ruby_version?(version)
   full_version = "#{version}.0" # Turn 2.1 into 2.1.0 otherwise #bump below doesn't work as expected
 
@@ -11,17 +21,35 @@ end
 
 alias original_appraise appraise
 
+REMOVED_GEMS = {
+  :check => [
+    'rbs',
+    'steep',
+  ],
+}
+
 def appraise(group, &block)
   # Specify the environment variable APPRAISAL_GROUP to load only a specific appraisal group.
   if ENV['APPRAISAL_GROUP'].nil? || ENV['APPRAISAL_GROUP'] == group
-    original_appraise(group, &block)
+    original_appraise(group) do
+      instance_exec(&block)
+
+      REMOVED_GEMS.each do |group_name, gems|
+        group(group_name) do
+          gems.each do |gem_name|
+            # appraisal 2.2 doesn't have remove_gem, which applies to ruby 2.1 and 2.2
+            remove_gem gem_name if respond_to?(:remove_gem)
+          end
+        end
+      end
+    end
   end
 end
 
 def self.gem_cucumber(version)
   appraise "cucumber#{version}" do
     gem 'cucumber', "~>#{version}"
-
+    # Locks the profiler's protobuf dependency to avoid conflict with cucumber.
     # Without this, we can get this error:
     # > TypeError:
     # >   superclass mismatch for class FileDescriptorSet
@@ -32,10 +60,9 @@ def self.gem_cucumber(version)
     #
     # DEV: Ideally, the profiler would not be loaded when running cucumber tests as it is unrelated.
     if Gem::Version.new(version) >= Gem::Version.new('4.0.0') &&
-        Gem::Version.new(version) < Gem::Version.new('7.0.0') &&
-        RUBY_PLATFORM != 'java' &&
-        Bundler::VERSION > '2.0.0'
-      gem 'google-protobuf', force_ruby_platform: true
+      Gem::Version.new(version) < Gem::Version.new('7.0.0')
+      gem 'google-protobuf', '3.10.1' if RUBY_PLATFORM != 'java'
+      gem 'protobuf-cucumber', '3.10.8'
     end
   end
 end
@@ -73,6 +100,7 @@ if ruby_version?('2.1')
     gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
+    gem 'connection_pool', '2.2.3'
   end
 
   appraise 'rails4-mysql2' do
@@ -116,6 +144,7 @@ if ruby_version?('2.1')
     gem 'delayed_job_active_record'
     gem 'elasticsearch'
     gem 'presto-client', '>=  0.5.14'
+    gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
     gem 'ethon'
     gem 'excon'
     gem 'http'
@@ -131,6 +160,7 @@ if ruby_version?('2.1')
     gem 'rake', '< 12.3'
     gem 'rest-client'
     gem 'resque', '< 2.0'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -190,6 +220,7 @@ elsif ruby_version?('2.2')
     gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
+    gem 'connection_pool', '2.2.3'
   end
 
   appraise 'rails4-mysql2' do
@@ -269,7 +300,7 @@ elsif ruby_version?('2.2')
   appraise 'rails5-postgres-sidekiq' do
     gem 'rails', '5.2.3'
     gem 'pg', '< 1.0'
-    gem 'sidekiq'
+    gem 'sidekiq', '~> 5.0'
     gem 'activejob'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -298,6 +329,7 @@ elsif ruby_version?('2.2')
     gem 'ethon'
     gem 'excon'
     gem 'faraday'
+    gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
     gem 'grape'
     gem 'graphql'
     gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
@@ -315,13 +347,15 @@ elsif ruby_version?('2.2')
     gem 'rack-test'
     gem 'rake', '>= 12.3'
     gem 'rest-client'
+    gem 'redis', '~> 3'
     gem 'resque', '< 2.0'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
-    gem 'sidekiq', '~> 5.2.9'
+    gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
@@ -514,21 +548,24 @@ elsif ruby_version?('2.3')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
-    gem 'sidekiq', '~> 5.2.9'
+    gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
+    gem 'stripe', '~> 5.15'
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0', '< 2.0.0'
   end
 
   appraise 'sinatra' do
-    gem 'sinatra'
+    gem 'sinatra', '< 3.0'
+    gem 'mustermann', '< 3.0'
     gem 'rack-test'
   end
 
@@ -646,14 +683,16 @@ elsif ruby_version?('2.4')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
-    gem 'sidekiq', '~> 5.2.9'
+    gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
+    gem 'stripe', '~> 6.0'
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0', '< 2.0.0'
@@ -673,7 +712,7 @@ elsif ruby_version?('2.4')
   appraise 'contrib-old' do
     gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'faraday', '0.17'
-    gem 'graphql', '>= 1.12.0', '< 2.0'
+    gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
     gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   end
 
@@ -695,6 +734,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
   end
 
   appraise 'rails5-postgres' do
@@ -729,7 +769,8 @@ elsif ruby_version?('2.5')
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-    gem 'redis', '>= 4.0.1'
+    gem 'redis', '~> 4'
+    gem 'redis-store', '~> 1.9'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
@@ -754,6 +795,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
   end
 
   appraise 'rails6-postgres' do
@@ -788,7 +830,8 @@ elsif ruby_version?('2.5')
     gem 'rails', '~> 6.0.0'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
-    gem 'redis', '>= 4.0.1'
+    gem 'redis', '~> 4'
+    gem 'redis-store', '~> 1.9'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
@@ -813,6 +856,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
   end
 
   appraise 'rails61-postgres' do
@@ -908,14 +952,17 @@ elsif ruby_version?('2.5')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
+    gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
-    gem 'sidekiq', '~> 5.2.9'
+    gem 'sidekiq'
     gem 'sneakers', '>= 2.12.0'
+    gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
+    gem 'stripe', '~> 7.0'
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'
     gem 'typhoeus'
@@ -937,7 +984,7 @@ elsif ruby_version?('2.5')
     gem 'dalli', '< 3.0.0'
     gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'faraday', '0.17'
-    gem 'graphql', '>= 1.12.0', '< 2.0'
+    gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
     gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
     if RUBY_PLATFORM == 'java'
@@ -996,7 +1043,7 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1050,7 +1097,7 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1156,14 +1203,16 @@ elsif ruby_version?('2.6')
       gem 'redis', '~> 4' # TODO: Support redis 5.x
       gem 'rest-client'
       gem 'resque'
+      gem 'roda', '>= 2.0.0'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
       gem 'semantic_logger', '~> 4.0'
       gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
       gem 'shoryuken'
-      gem 'sidekiq', '~> 6.4.1' # TODO: Support sidekiq 6.5.8
+      gem 'sidekiq', '~> 6.5'
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1', platform: :ruby
+      gem 'stripe', '~> 8.0'
       gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
       gem 'sucker_punch'
       gem 'typhoeus'
@@ -1173,6 +1222,10 @@ elsif ruby_version?('2.6')
     appraise 'sinatra' do
       gem 'sinatra', '>= 3'
       gem 'rack-test'
+    end
+
+    appraise 'opentelemetry' do
+      gem 'opentelemetry-sdk', '~> 1.1'
     end
 
     [3, 4, 5].each do |n|
@@ -1231,7 +1284,7 @@ elsif ruby_version?('2.7')
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1239,7 +1292,7 @@ elsif ruby_version?('2.7')
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1279,7 +1332,7 @@ elsif ruby_version?('2.7')
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1287,7 +1340,7 @@ elsif ruby_version?('2.7')
     appraise 'rails6-postgres-redis-activesupport' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1383,6 +1436,7 @@ elsif ruby_version?('2.7')
       gem 'rake', '>= 12.3'
       gem 'rest-client'
       gem 'resque'
+      gem 'roda', '>= 2.0.0'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
       gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
@@ -1391,6 +1445,7 @@ elsif ruby_version?('2.7')
       gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1'
+      gem 'stripe'
       gem 'sucker_punch'
       gem 'typhoeus'
       gem 'que', '>= 1.0.0'
@@ -1399,6 +1454,10 @@ elsif ruby_version?('2.7')
     appraise 'sinatra' do
       gem 'sinatra', '>= 3'
       gem 'rack-test'
+    end
+
+    appraise 'opentelemetry' do
+      gem 'opentelemetry-sdk', '~> 1.1'
     end
 
     [3, 4, 5].each do |n|
@@ -1420,7 +1479,7 @@ elsif ruby_version?('2.7')
       gem 'dogstatsd-ruby', '~> 4'
     end
 # ----------------------------------------------------------------------------------------------------------------------
-elsif ruby_version?('3.0') || ruby_version?('3.1')
+elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2')
   appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
     gem 'mysql2', '~> 0.5', platform: :ruby
@@ -1482,10 +1541,10 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
   (3..5).each { |v| gem_cucumber(v) }
 
   appraise 'contrib' do
-    gem 'actionpack'
-    gem 'actionview'
+    gem 'actionpack', '~> 7'
+    gem 'actionview', '~> 7'
     gem 'active_model_serializers', '>= 0.10.0'
-    gem 'activerecord'
+    gem 'activerecord', '~> 7'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
@@ -1500,7 +1559,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
     gem 'http'
     gem 'httpclient'
-    # gem 'lograge', '~> 0.11'  # creates conflict with qless dependancy on thor ~0.19.1
+    gem 'lograge'
     gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '>= 0.5.3', platform: :ruby
@@ -1514,6 +1573,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
+    gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
     gem 'semantic_logger', '~> 4.0'
@@ -1522,6 +1582,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'sidekiq', '~> 7'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '>= 1.4.2', platform: :ruby
+    gem 'stripe'
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'
     gem 'typhoeus'
@@ -1535,15 +1596,13 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     end
   end
 
-  [5,6,7].each do |n|
-    appraise "sidekiq-#{n}" do
-      gem 'sidekiq', "~> #{n}"
-    end
-  end
-
   appraise 'sinatra' do
     gem 'sinatra', '>= 3'
     gem 'rack-test'
+  end
+
+  appraise 'opentelemetry' do
+    gem 'opentelemetry-sdk', '~> 1.1'
   end
 
   appraise 'contrib-old' do
@@ -1564,132 +1623,8 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'dogstatsd-ruby', '~> 4'
   end
 # ----------------------------------------------------------------------------------------------------------------------
-elsif ruby_version?('3.2')
-  appraise 'rails61-mysql2' do
-    gem 'rails', '~> 6.1.0'
-    # gem 'mysql2', '~> 0.5', platform: :ruby # broken on Ruby 3.2.0-preview1
-    gem 'sprockets', '< 4'
-    gem 'lograge', '~> 0.11'
-    gem 'net-smtp'
-  end
-
-  appraise 'rails61-postgres' do
-    gem 'rails', '~> 6.1.0'
-    gem 'pg', '>= 1.1', platform: :ruby
-    gem 'sprockets', '< 4'
-    gem 'lograge', '~> 0.11'
-    gem 'net-smtp'
-  end
-
-  appraise 'rails61-postgres-redis' do
-    gem 'rails', '~> 6.1.0'
-    gem 'pg', '>= 1.1', platform: :ruby
-    gem 'redis', '>= 4.2.5'
-    gem 'sprockets', '< 4'
-    gem 'lograge', '~> 0.11'
-    gem 'net-smtp'
-  end
-
-  appraise 'rails61-postgres-sidekiq' do
-    gem 'rails', '~> 6.1.0'
-    gem 'pg', '>= 1.1', platform: :ruby
-    gem 'sidekiq', '>= 6.1.2'
-    gem 'sprockets', '< 4'
-    gem 'lograge', '~> 0.11'
-    gem 'rails_semantic_logger', '~> 4.0'
-    gem 'net-smtp'
-  end
-
-  appraise 'rails61-semantic-logger' do
-    gem 'rails', '~> 6.1.0'
-    gem 'pg', '>= 1.1', platform: :ruby
-    gem 'sprockets', '< 4'
-    gem 'rails_semantic_logger', '~> 4.0'
-    gem 'net-smtp'
-  end
-
-  appraise 'resque2-redis3' do
-    gem 'redis', '< 4.0'
-    gem 'resque', '>= 2.0'
-  end
-
-  appraise 'resque2-redis4' do
-    gem 'redis', '>= 4.0'
-    gem 'resque', '>= 2.0'
-  end
-
-  (3..5).each { |v| gem_cucumber(v) }
-
-  appraise 'contrib' do
-    gem 'actionpack'
-    gem 'actionview'
-    gem 'active_model_serializers', '>= 0.10.0'
-    gem 'activerecord'
-    gem 'aws-sdk'
-    gem 'concurrent-ruby'
-    gem 'cucumber'
-    gem 'dalli', '>= 3.0.0'
-    gem 'delayed_job'
-    gem 'delayed_job_active_record'
-    gem 'elasticsearch', '>= 8.0.0'
-    gem 'ethon'
-    gem 'excon'
-    gem 'grape'
-    gem 'graphql', '>= 2.0'
-    gem 'grpc', '>= 1.38.0' # Minimum version with Ruby 3.0 support
-    gem 'http'
-    gem 'httpclient'
-    # gem 'lograge', '~> 0.11'  # creates conflict with qless dependancy on thor ~0.19.1
-    gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
-    gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-    # gem 'mysql2', '>= 0.5.3', platform: :ruby # broken on Ruby 3.2.0-preview1
-    gem 'pg', '>= 1.1', platform: :ruby
-    gem 'racecar', '>= 0.3.5'
-    gem 'rack'
-    gem 'rack-contrib'
-    gem 'rack-test'
-    gem 'rake', '>= 12.3'
-    gem 'rest-client'
-    gem 'resque'
-    gem 'ruby-kafka', '>= 0.7.10'
-    gem 'rspec', '>= 3.0.0'
-    gem 'semantic_logger', '~> 4.0'
-    gem 'sequel'
-    gem 'shoryuken'
-    gem 'sidekiq'
-    gem 'sneakers', '>= 2.12.0'
-    gem 'sqlite3', '>= 1.4.2'
-    gem 'sucker_punch'
-    gem 'typhoeus'
-    gem 'que', '>= 1.0.0'
-    gem 'net-smtp'
-    gem 'nokogiri', platform: :ruby # TODO: binary gem has max ruby version constraint excluding previews, switch to using minimum version constraint once a non-3.2-excluding binary gem is released
-  end
-
-  appraise 'sinatra' do
-    gem 'sinatra', '>= 3'
-    gem 'rack-test'
-  end
-
-  [3, 4, 5].each do |n|
-    appraise "redis-#{n}" do
-      gem 'redis', "~> #{n}"
-    end
-  end
-
-  appraise 'contrib-old' do
-    gem 'dalli', '< 3.0.0'
-    gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
-    gem 'graphql', '>= 1.12.0', '< 2.0'
-    gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
-    gem 'qless', '0.12.0'
-  end
-
-  appraise 'core-old' do
-    gem 'dogstatsd-ruby', '~> 4'
-  end
-end
 # ADD NEW RUBIES HERE
+end
 
 ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
                  "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
@@ -1700,3 +1635,5 @@ ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
 appraisals.each do |appraisal|
   appraisal.name.prepend("#{ruby_runtime}-")
 end
+
+# vim: ft=ruby

@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/rails/rails_helper'
 require 'datadog/tracing/contrib/rails/framework'
 require 'datadog/tracing/contrib/rails/middlewares'

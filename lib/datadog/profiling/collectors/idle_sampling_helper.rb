@@ -1,12 +1,10 @@
-# typed: false
-
 module Datadog
   module Profiling
     module Collectors
       # Used by the Collectors::CpuAndWallTimeWorker to gather samples when the Ruby process is idle.
       # Almost all of this class is implemented as native code.
       #
-      # Methods prefixed with _native_ are implemented in `collecetors_idle_sampling_helper.c`
+      # Methods prefixed with _native_ are implemented in `collectors_idle_sampling_helper.c`
       class IdleSamplingHelper
         private
 
@@ -31,7 +29,7 @@ module Datadog
 
             @worker_thread = Thread.new do
               begin
-                Thread.current.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+                Thread.current.name = self.class.name
 
                 self.class._native_idle_sampling_loop(self)
 
@@ -49,7 +47,7 @@ module Datadog
           true
         end
 
-        def stop(*_)
+        def stop(*_unused)
           @start_stop_mutex.synchronize do
             Datadog.logger.debug('Requesting IdleSamplingHelper thread shut down')
 

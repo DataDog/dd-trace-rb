@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module AppSec
     module Contrib

@@ -1,5 +1,3 @@
-# typed: true
-
 module Datadog
   module Core
     # A {Datadog::Core::Pin} sets metadata on a particular object.

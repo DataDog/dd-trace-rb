@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../test'
 require_relative '../../ext/app_types'
 require_relative '../../ext/environment'

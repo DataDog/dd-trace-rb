@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'ddtrace'
@@ -138,6 +136,21 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
   end
 
+  describe '#type' do
+    subject(:type) { definition.type }
+
+    context 'when given a value' do
+      let(:meta) { { type: type_value } }
+      let(:type_value) { double('type') }
+
+      it { is_expected.to be type_value }
+    end
+
+    context 'when not initialized' do
+      it { is_expected.to be nil }
+    end
+  end
+
   describe '#build' do
     subject(:build) { definition.build(context) }
 
@@ -184,7 +197,8 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               name: name,
               on_set: nil,
               resetter: nil,
-              setter: Datadog::Core::Configuration::OptionDefinition::IDENTITY
+              setter: Datadog::Core::Configuration::OptionDefinition::IDENTITY,
+              type: nil
             )
           end
         end
@@ -329,6 +343,19 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     it { is_expected.to be block }
   end
 
+  describe '#type' do
+    subject(:type) { builder.type(value) }
+
+    let(:value) { nil }
+
+    context 'given a value' do
+      let(:value) { String }
+
+      it { is_expected.to be value }
+      it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
+    end
+  end
+
   describe '#apply_options!' do
     subject(:apply_options!) { builder.apply_options!(options) }
 
@@ -444,7 +471,8 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         :lazy,
         :on_set,
         :resetter,
-        :setter
+        :setter,
+        :type
       )
     end
   end

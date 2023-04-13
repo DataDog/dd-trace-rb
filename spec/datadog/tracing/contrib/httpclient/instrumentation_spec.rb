@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'httpclient'
 require 'webrick'
 require 'json'
@@ -15,6 +13,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/http_examples'
 require 'spec/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
@@ -288,6 +287,24 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
       end
     end
 
+    context 'with custom error codes' do
+      let(:code) { status_code }
+      before { response }
+
+      include_examples 'with error status code configuration'
+    end
+
     it_behaves_like 'instrumented request'
+
+    context 'when basic auth in url' do
+      let(:host) { 'username:password@localhost' }
+
+      it 'does not collect auth info' do
+        response
+
+        expect(span.get_tag('http.url')).to eq('/sample/path')
+        expect(span.get_tag('out.host')).to eq('localhost')
+      end
+    end
   end
 end

@@ -1,5 +1,3 @@
-# typed: false
-
 require 'net/http'
 require_relative '../../ext'
 require_relative 'net'

@@ -1,6 +1,5 @@
-# typed: false
-
 require_relative 'assets'
+require_relative 'utils/http/media_range'
 
 module Datadog
   module AppSec
@@ -37,16 +36,24 @@ module Datadog
 
         private
 
-        def format(env)
-          format = env['HTTP_ACCEPT'] && env['HTTP_ACCEPT'].split(',').any? do |accept|
-            if accept.start_with?('text/html')
-              break :html
-            elsif accept.start_with?('application/json')
-              break :json
-            end
-          end
+        FORMAT_MAP = {
+          'text/html' => :html,
+          'application/json' => :json,
+          'text/plain' => :text,
+        }.freeze
 
-          format || :text
+        DEFAULT_FORMAT = :text
+
+        def format(env)
+          return DEFAULT_FORMAT unless env.key?('HTTP_ACCEPT')
+
+          accepted = env['HTTP_ACCEPT'].split(',').map { |m| Utils::HTTP::MediaRange.new(m) }.sort
+
+          accepted.each_with_object(DEFAULT_FORMAT) do |_default, range|
+            format = FORMAT_MAP.keys.find { |type, _format| range === type }
+
+            return FORMAT_MAP[format] if format
+          end
         end
       end
     end

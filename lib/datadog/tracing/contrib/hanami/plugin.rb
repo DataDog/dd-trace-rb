@@ -1,4 +1,4 @@
-# typed: ignore
+# frozen_string_literal: true
 
 ::Hanami.plugin do
   Datadog.configure do |c|

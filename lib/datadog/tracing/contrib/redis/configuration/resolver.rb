@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../vendor/resolver'
 
 module Datadog

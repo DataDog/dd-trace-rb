@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'rack/test'
@@ -89,12 +87,9 @@ RSpec.describe 'Rack integration distributed tracing' do
         include_context 'distributed tracing headers'
         it_behaves_like 'a Rack request with distributed tracing'
 
-        context 'and request_queuing is enabled' do
-          let(:rack_options) { super().merge(request_queuing: true, web_service_name: web_service_name) }
+        context 'and request_queuing is enabled including the request time' do
+          let(:rack_options) { super().merge(request_queuing: :include_request, web_service_name: web_service_name) }
           let(:web_service_name) { 'frontend_web_server' }
-
-          let(:server_span) { spans.first }
-          let(:rack_span) { spans.last }
 
           before do
             header 'X-Request-Start', "t=#{Time.now.to_f}"
@@ -102,16 +97,54 @@ RSpec.describe 'Rack integration distributed tracing' do
 
           it 'contains a request_queuing span that belongs to the distributed trace' do
             is_expected.to be_ok
+
+            expect(trace.sampling_priority).to eq(sampling_priority)
+
             expect(spans).to have(2).items
 
-            expect(server_span.name).to eq('http_server.queue')
-            expect(server_span.trace_id).to eq(trace_id)
-            expect(server_span.parent_id).to eq(parent_id)
-            expect(trace.sampling_priority).to eq(sampling_priority)
+            server_queue_span = spans[0]
+            rack_span = spans[1]
+
+            expect(server_queue_span.name).to eq('http_server.queue')
+            expect(server_queue_span.trace_id).to eq(trace_id)
+            expect(server_queue_span.parent_id).to eq(parent_id)
 
             expect(rack_span.name).to eq('rack.request')
             expect(rack_span.trace_id).to eq(trace_id)
-            expect(rack_span.parent_id).to eq(server_span.span_id)
+            expect(rack_span.parent_id).to eq(server_queue_span.span_id)
+          end
+        end
+
+        context 'and request_queuing is enabled excluding the request time' do
+          let(:rack_options) { super().merge(request_queuing: :exclude_request, web_service_name: web_service_name) }
+          let(:web_service_name) { 'frontend_web_server' }
+
+          before do
+            header 'X-Request-Start', "t=#{Time.now.to_f}"
+          end
+
+          it 'contains request and request_queuing spans that belongs to the distributed trace' do
+            is_expected.to be_ok
+
+            expect(trace.sampling_priority).to eq(sampling_priority)
+
+            expect(spans).to have(3).items
+
+            server_request_span = spans[1]
+            server_queue_span = spans[0]
+            rack_span = spans[2]
+
+            expect(server_request_span.name).to eq('http.proxy.request')
+            expect(server_request_span.trace_id).to eq(trace_id)
+            expect(server_request_span.parent_id).to eq(parent_id)
+
+            expect(server_queue_span.name).to eq('http.proxy.queue')
+            expect(server_queue_span.trace_id).to eq(trace_id)
+            expect(server_queue_span.parent_id).to eq(server_request_span.span_id)
+
+            expect(rack_span.name).to eq('rack.request')
+            expect(rack_span.trace_id).to eq(trace_id)
+            expect(rack_span.parent_id).to eq(server_request_span.span_id)
           end
         end
       end

@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'grpc'
 
 require 'spec/support/thread_helpers'
@@ -82,7 +80,7 @@ module GRPCHelper
 
     def stream_from_client(call)
       call.output_metadata.update(@trailing_metadata)
-      call.each_remote_read.each { |r| r }
+      call.each_remote_read.each {} # Consume data
       TestMessage.new
     end
 
@@ -93,7 +91,7 @@ module GRPCHelper
 
     def stream_both_ways(_requests, call)
       call.output_metadata.update(@trailing_metadata)
-      call.each_remote_read.each { |r| r }
+      call.each_remote_read.each {} # Consume data
       [TestMessage.new, TestMessage.new]
     end
   end

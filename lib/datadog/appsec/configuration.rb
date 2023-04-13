@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'configuration/settings'
 
 module Datadog
@@ -14,7 +12,9 @@ module Datadog
 
       # Configuration DSL implementation
       class DSL
-        Instrument = Struct.new(:name, :options)
+        # Struct constant whisker cast for Steep
+        Instrument = _ = Struct.new(:name, :options) # rubocop:disable Naming/ConstantName
+
         def initialize
           @instruments = []
           @options = {}
@@ -36,6 +36,10 @@ module Datadog
 
         def ip_denylist=(value)
           options[:ip_denylist] = value
+        end
+
+        def user_id_denylist=(value)
+          options[:user_id_denylist] = value
         end
 
         # in microseconds
@@ -77,6 +81,12 @@ module Datadog
 
         def settings
           @settings ||= Settings.new
+        end
+
+        private
+
+        def default_setting?(setting)
+          settings.send(:default?, setting)
         end
       end
     end

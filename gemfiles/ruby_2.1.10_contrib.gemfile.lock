@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.7.0)
-      debase-ruby_core_source (>= 0.10.16, <= 0.10.18)
-      libdatadog (~> 0.9.0.1.0)
-      libddwaf (~> 1.5.1.0.0)
+    ddtrace (1.10.1)
+      debase-ruby_core_source (>= 0.10.16, <= 3.2.0)
+      libdatadog (~> 2.0.0.1.0)
+      libddwaf (~> 1.8.2.0.0)
       msgpack
 
 GEM
@@ -44,11 +44,9 @@ GEM
       aws-sdk-core (= 2.11.632)
     aws-sigv4 (1.2.4)
       aws-eventstream (~> 1, >= 1.0.2)
-    benchmark-ips (2.10.0)
+    benchmark-ips (2.11.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
-    binding_of_caller (0.8.0)
-      debug_inspector (>= 0.0.1)
     bson (4.5.0)
     builder (3.0.4)
     celluloid (0.17.4)
@@ -75,18 +73,17 @@ GEM
     crack (0.4.5)
       rexml
     dalli (2.7.11)
-    debase-ruby_core_source (0.10.18)
-    debug_inspector (1.1.0)
-    delayed_job (4.1.9)
-      activesupport (>= 3.0, < 6.2)
-    delayed_job_active_record (4.1.6)
-      activerecord (>= 3.0, < 6.2)
+    debase-ruby_core_source (3.2.0)
+    delayed_job (4.1.11)
+      activesupport (>= 3.0, < 8.0)
+    delayed_job_active_record (4.1.7)
+      activerecord (>= 3.0, < 8.0)
       delayed_job (>= 3.0, < 5)
     diff-lcs (1.5.0)
     digest-crc (0.6.4)
       rake (>= 12.0.0, < 14.0.0)
     docile (1.3.5)
-    dogstatsd-ruby (5.4.0)
+    dogstatsd-ruby (5.5.0)
     domain_name (0.5.20190701)
       unf (>= 0.0.5, < 1.0.0)
     elasticsearch (7.5.0)
@@ -99,14 +96,15 @@ GEM
       multi_json
     ethon (0.12.0)
       ffi (>= 1.3.0)
-    excon (0.85.0)
+    excon (0.99.0)
     extlz4 (0.3.3)
-    faraday (0.17.4)
+    faraday (0.17.6)
       multipart-post (>= 1.2, < 3)
     faraday_middleware (0.12.2)
       faraday (>= 0.7.4, < 1.0)
     ffi (1.12.2)
     google-protobuf (3.6.1)
+    google-protobuf (3.6.1-x86_64-linux)
     hashdiff (1.0.1)
     hitimes (1.3.0)
     http (3.0.0)
@@ -115,27 +113,27 @@ GEM
       http-form_data (>= 2.0.0.pre.pre2, < 3)
       http_parser.rb (~> 0.6.0)
     http-accept (1.7.0)
-    http-cookie (1.0.4)
+    http-cookie (1.0.5)
       domain_name (~> 0.5)
     http-form_data (2.3.0)
     http_parser.rb (0.6.0)
     httpclient (2.8.3)
     i18n (0.9.5)
       concurrent-ruby (~> 1.0)
-    jmespath (1.4.0)
+    jmespath (1.6.2)
     json (1.8.6)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (0.9.0.1.0)
-    libddwaf (1.5.1.0.0)
+    libdatadog (2.0.0.1.0)
+    libddwaf (1.8.2.0.0)
       ffi (~> 1.0)
     makara (0.4.1)
       activerecord (>= 3.0.0)
     memory_profiler (0.9.12)
     method_source (1.0.0)
-    mime-types (3.3.1)
+    mime-types (3.4.1)
       mime-types-data (~> 3.2015)
-    mime-types-data (3.2021.0901)
+    mime-types-data (3.2023.0218.1)
     mongo (2.4.3)
       bson (>= 4.2.1, < 5.0.0)
     mono_logger (1.1.1)
@@ -153,14 +151,11 @@ GEM
       faraday (~> 0.12)
       faraday_middleware (~> 0.12.2)
       msgpack (>= 0.7.0)
-    pry (0.14.1)
+    pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
     pry-nav (1.0.0)
       pry (>= 0.9.10, < 0.15)
-    pry-stack_explorer (0.4.12)
-      binding_of_caller (~> 0.7)
-      pry (~> 0.13)
     rack (1.4.7)
     rack-cache (1.7.1)
       rack (>= 0.4)
@@ -171,9 +166,9 @@ GEM
     rack-test (0.7.0)
       rack (>= 1.0, < 3)
     rake (12.2.1)
-    rake-compiler (1.1.9)
+    rake-compiler (1.2.1)
       rake
-    redcarpet (3.5.1)
+    redcarpet (3.6.0)
     redis (3.3.5)
     redis-namespace (1.6.0)
       redis (>= 3.0.4)
@@ -189,29 +184,33 @@ GEM
       mime-types (>= 1.16, < 4.0)
       netrc (~> 0.8)
     rexml (3.2.4)
+    roda (3.65.0)
+      rack
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
       rspec-mocks (~> 3.12.0)
     rspec-collection_matchers (1.2.0)
       rspec-expectations (>= 2.99.0.beta1)
-    rspec-core (3.12.0)
+    rspec-core (3.12.1)
       rspec-support (~> 3.12.0)
-    rspec-expectations (3.12.0)
+    rspec-expectations (3.12.2)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.12.0)
-    rspec-mocks (3.12.0)
+    rspec-mocks (3.12.3)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.12.0)
     rspec-support (3.12.0)
+    rspec-wait (0.0.9)
+      rspec (>= 3, < 4)
     rspec_junit_formatter (0.4.1)
       rspec-core (>= 2, < 4, != 2.12.0)
-    ruby-kafka (1.4.0)
+    ruby-kafka (1.5.0)
       digest-crc
     semantic_logger (4.2.0)
       concurrent-ruby (~> 1.0)
     sequel (4.36.0)
-    shoryuken (5.2.3)
+    shoryuken (6.0.0)
       aws-sdk-core (>= 2)
       concurrent-ruby
       thor
@@ -226,20 +225,20 @@ GEM
       json (>= 1.8, < 3)
       simplecov-html (~> 0.10.0)
     simplecov-html (0.10.2)
-    sinatra (1.4.5)
+    sinatra (1.4.6)
       rack (~> 1.4)
       rack-protection (~> 1.4)
-      tilt (~> 1.3, >= 1.3.4)
+      tilt (>= 1.3, < 3)
     sqlite3 (1.3.13)
-    sucker_punch (3.0.1)
+    sucker_punch (3.1.0)
       concurrent-ruby (~> 1.0)
     thor (1.2.1)
-    tilt (1.4.1)
+    tilt (2.1.0)
     timers (4.1.2)
       hitimes
     typhoeus (1.4.0)
       ethon (>= 0.9.0)
-    tzinfo (0.3.60)
+    tzinfo (0.3.61)
     unf (0.1.4)
       unf_ext
     unf_ext (0.0.7.7)
@@ -252,14 +251,16 @@ GEM
     yard (0.9.26)
 
 PLATFORMS
+  aarch64-linux
   ruby
+  x86_64-linux
 
 DEPENDENCIES
   active_model_serializers (~> 0.9.0)
   activerecord (= 3.2.22.5)
   activerecord-mysql-adapter
   addressable (~> 2.4.0)
-  appraisal (~> 2.2)
+  appraisal (~> 2.2.0)
   aws-sdk (~> 2.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
@@ -270,18 +271,23 @@ DEPENDENCIES
   ddtrace!
   delayed_job
   delayed_job_active_record
+  docile (~> 1.3.5)
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   elasticsearch
   ethon
   excon
   extlz4 (~> 0.3, >= 0.3.3)
-  google-protobuf (~> 3.0, < 3.19.2, != 3.7.1, != 3.7.0)
+  ffi (~> 1.12.2)
+  google-protobuf (~> 3.0, < 3.8.0, != 3.7.1, != 3.7.0)
   http
   httpclient
+  json (< 2.6)
   json-schema (< 3)
   makara (< 0.5.0)
-  memory_profiler (~> 0.9)
+  memory_profiler (= 0.9.12)
   mongo (< 2.5)
+  msgpack (~> 1.3.3)
+  multipart-post (~> 2.1.1)
   mysql2 (= 0.3.21)
   opentracing (>= 0.4.1)
   os (~> 1.1)
@@ -290,7 +296,6 @@ DEPENDENCIES
   presto-client (>= 0.5.14)
   pry
   pry-nav
-  pry-stack_explorer
   rack (= 1.4.7)
   rack-cache (= 1.7.1)
   rack-contrib
@@ -301,8 +306,10 @@ DEPENDENCIES
   resque (< 2.0)
   rest-client
   rexml (< 3.2.5)
+  roda (>= 2.0.0)
   rspec (>= 3.0.0)
   rspec-collection_matchers (~> 1.1)
+  rspec-wait (~> 0)
   rspec_junit_formatter (<= 0.4.1)
   ruby-kafka (>= 0.7.10)
   semantic_logger (~> 4.0)
@@ -310,12 +317,13 @@ DEPENDENCIES
   shoryuken
   sidekiq (~> 3.5.4)
   simplecov (~> 0.17)
+  simplecov-html (~> 0.10.2)
   sqlite3 (~> 1.3.6)
   sucker_punch
   timers (< 4.2)
   typhoeus
   webmock (>= 3.10.0)
-  yard (~> 0.9)
+  yard (~> 0.9, < 0.9.27)
 
 BUNDLED WITH
    1.17.3

@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'ddtrace'
@@ -27,11 +25,23 @@ RSpec.describe Datadog::Core::Configuration::Base do
 
             it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinition) }
 
+            it 'sets default properties' do
+              expect(definition.type).to be_a_kind_of(Class)
+              expect(definition.type.ancestors).to include(described_class)
+
+              is_expected.to have_attributes(
+                default: kind_of(Proc),
+                lazy: true,
+                resetter: kind_of(Proc)
+              )
+            end
+
             describe 'when instantiated' do
               subject(:option) { Datadog::Core::Configuration::Option.new(definition, self) }
+              let(:settings_object) { option.default_value }
 
-              it { expect(option.default_value).to be_a_kind_of(described_class) }
-              it { expect(option.default_value.option_defined?(:enabled)).to be true }
+              it { expect(settings_object).to be_a_kind_of(described_class) }
+              it { expect(settings_object.option_defined?(:enabled)).to be true }
             end
           end
         end

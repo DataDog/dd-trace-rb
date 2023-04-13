@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../datadog/core/chunker'
 require_relative 'parcel'
 require_relative 'request'
@@ -130,7 +128,7 @@ module Datadog
           responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
             request = Request.new(EncodedParcel.new(encoded_traces, trace_count))
 
-            client.send_payload(request).tap do |response|
+            client.send_traces_payload(request).tap do |response|
               if downgrade?(response)
                 downgrade!
                 return send_traces(traces)

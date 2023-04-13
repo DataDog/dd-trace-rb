@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/ci/contrib/support/spec_helper'
 require 'datadog/ci/contrib/rspec/patcher'
 

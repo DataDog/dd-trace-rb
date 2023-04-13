@@ -1,12 +1,10 @@
-# typed: false
-
 module Datadog
   module Profiling
     # Stores stack samples in a native libdatadog data structure and expose Ruby-level serialization APIs
     # Note that `record_sample` is only accessible from native code.
     # Methods prefixed with _native_ are implemented in `stack_recorder.c`
     class StackRecorder
-      def initialize
+      def initialize(cpu_time_enabled:, alloc_samples_enabled:)
         # This mutex works in addition to the fancy C-level mutexes we have in the native side (see the docs there).
         # It prevents multiple Ruby threads calling serialize at the same time -- something like
         # `10.times { Thread.new { stack_recorder.serialize } }`.
@@ -14,6 +12,8 @@ module Datadog
         # C-level mutexes (that there is a single serializer thread), we add it here as an extra safeguard against it
         # accidentally happening.
         @no_concurrent_synchronize_mutex = Mutex.new
+
+        self.class._native_initialize(self, cpu_time_enabled, alloc_samples_enabled)
       end
 
       def serialize
@@ -46,29 +46,6 @@ module Datadog
 
           raise("Failed to serialize profiling data: #{error_message}")
         end
-      end
-
-      def clear
-        status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_clear(self) }
-
-        if status == :ok
-          finish_timestamp = result
-
-          Datadog.logger.debug { "Cleared profile at #{finish_timestamp}" }
-
-          finish_timestamp
-        else
-          error_message = result
-
-          Datadog.logger.error("Failed to clear profiling data: #{error_message}")
-
-          nil
-        end
-      end
-
-      # Used only for Ruby 2.2 which doesn't have the native `rb_time_timespec_new` API; called from native code
-      def self.ruby_time_from(timespec_seconds, timespec_nanoseconds)
-        Time.at(0).utc + timespec_seconds + (timespec_nanoseconds.to_r / 1_000_000_000)
       end
 
       def reset_after_fork

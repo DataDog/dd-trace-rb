@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/tracing/metadata/ext'
 
 module SpanHelpers

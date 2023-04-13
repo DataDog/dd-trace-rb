@@ -1,5 +1,3 @@
-# typed: true
-
 module NetworkHelpers
   # Returns a TCP "host:port" endpoint currently available
   # for listening in the local machine

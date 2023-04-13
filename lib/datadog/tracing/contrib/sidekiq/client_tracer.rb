@@ -1,9 +1,8 @@
-# typed: true
-
 require_relative '../../metadata/ext'
 require_relative '../analytics'
+require_relative 'distributed/propagation'
 require_relative 'ext'
-require_relative 'tracing'
+require_relative 'utils'
 
 module Datadog
   module Tracing
@@ -11,7 +10,7 @@ module Datadog
       module Sidekiq
         # Tracer is a Sidekiq client-side middleware which traces job enqueues/pushes
         class ClientTracer
-          include Tracing
+          include Utils
 
           def initialize(options = {})
             @sidekiq_service = options[:client_service_name] || configuration[:client_service_name]
@@ -22,8 +21,12 @@ module Datadog
           def call(worker_class, job, queue, redis_pool)
             resource = job_resource(job)
 
-            Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span|
+            Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span, trace_op|
+              propagation.inject!(trace_op, job) if configuration[:distributed_tracing]
+
               span.resource = resource
+
+              span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
 
               span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_PUSH)
@@ -49,6 +52,10 @@ module Datadog
 
           def configuration
             Datadog.configuration.tracing[:sidekiq]
+          end
+
+          def propagation
+            @propagation ||= Contrib::Sidekiq::Distributed::Propagation.new
           end
         end
       end

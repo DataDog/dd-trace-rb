@@ -1,0 +1,84 @@
+module Datadog
+  module Core
+    module Configuration
+      class AgentSettingsResolver
+        class AgentSettings < ::Struct[untyped]
+          def initialize: (adapter: untyped, ssl: untyped, hostname: untyped, port: untyped, uds_path: untyped, timeout_seconds: untyped, deprecated_for_removal_transport_configuration_proc: untyped) -> void
+          def merge: (**::Hash[untyped, untyped] member_values) -> AgentSettingsResolver
+
+          attr_reader adapter: untyped
+          attr_reader ssl: untyped
+          attr_reader hostname: untyped
+          attr_reader port: untyped
+          attr_reader uds_path: untyped
+          attr_reader timeout_seconds: untyped
+          attr_reader deprecated_for_removal_transport_configuration_proc: untyped
+        end
+
+        def self.call: (untyped settings, ?logger: untyped) -> untyped
+
+        private
+
+        attr_reader logger: untyped
+
+        attr_reader settings: untyped
+
+        def initialize: (untyped settings, ?logger: untyped) -> void
+
+        def call: () -> untyped
+
+        def adapter: () -> untyped
+
+        def configured_hostname: () -> untyped
+
+        def configured_port: () -> untyped
+
+        def try_parsing_as_integer: (value: untyped, friendly_name: untyped) -> untyped
+
+        def ssl?: () -> untyped
+
+        def hostname: () -> untyped
+
+        def port: () -> untyped
+
+        def uds_path: () -> untyped
+
+        def timeout_seconds: () -> untyped
+
+        def deprecated_for_removal_transport_configuration_proc: () -> (untyped | nil)
+
+        def uds_fallback: () -> untyped
+
+        def should_use_uds_fallback?: () -> untyped
+
+        def parsed_url: () -> untyped
+
+        def pick_from: (*untyped configurations_in_priority_order) -> untyped
+
+        def warn_if_configuration_mismatch: (untyped detected_configurations_in_priority_order) -> (nil | untyped)
+
+        def log_warning: (untyped message) -> (untyped | nil)
+
+        def transport_options: () -> untyped
+
+        class DetectedConfiguration
+          attr_reader friendly_name: untyped
+
+          attr_reader value: untyped
+
+          def initialize: (friendly_name: untyped, value: untyped) -> void
+
+          def value?: () -> untyped
+        end
+
+        TransportOptions: untyped
+
+        class TransportOptionsResolver
+          def initialize: (untyped transport_options) -> void
+
+          def adapter: (untyped kind_or_custom_adapter, *untyped args, **untyped kwargs) -> nil
+        end
+      end
+    end
+  end
+end
