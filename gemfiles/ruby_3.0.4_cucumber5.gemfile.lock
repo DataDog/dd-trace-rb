@@ -94,11 +94,8 @@ GEM
     libdatadog (2.0.0.1.0-aarch64-linux)
     libdatadog (2.0.0.1.0-x86_64-linux)
     libddwaf (1.8.2.0.0-aarch64-linux)
-<<<<<<< HEAD
-=======
       ffi (~> 1.0)
     libddwaf (1.8.2.0.0-x86_64-linux)
->>>>>>> master
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
