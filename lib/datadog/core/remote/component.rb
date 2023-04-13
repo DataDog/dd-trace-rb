@@ -44,8 +44,6 @@ module Datadog
         end
 
         def barrier(kind)
-          return if @worker.nil?
-
           @worker.start
 
           case kind
@@ -57,7 +55,7 @@ module Datadog
         end
 
         def shutdown!
-          @worker.stop unless @worker.nil?
+          @worker.stop
         end
 
         # Barrier provides a mechanism to fence execution until a condition happens
