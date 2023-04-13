@@ -316,7 +316,7 @@ RSpec.describe 'AWS instrumentation' do
 
       let(:responses) do
         { get_queue_url: {
-          queue_url: "myQueueURL"
+          queue_url: 'myQueueURL'
         } }
       end
 
@@ -550,13 +550,13 @@ RSpec.describe 'AWS instrumentation' do
 
       let(:responses) do
         { describe_stream_consumer: {
-            consumer_description: {
-              consumer_name: "John Doe",
-              consumer_arn: "consumerArn",
-              consumer_status: "CREATING",
-              consumer_creation_timestamp: Time.new(2023, 3, 31, 12, 30, 0, '-04:00'),
-              stream_arn: "streamArn"
-            }
+          consumer_description: {
+            consumer_name: 'John Doe',
+            consumer_arn: 'consumerArn',
+            consumer_status: 'CREATING',
+            consumer_creation_timestamp: Time.new(2023, 3, 31, 12, 30, 0, '-04:00'),
+            stream_arn: 'streamArn'
+          }
         } }
       end
 
