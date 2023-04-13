@@ -586,6 +586,7 @@ RSpec.describe 'AWS instrumentation' do
           .to eq('123456789012.control-kinesis.us-stubbed-1.amazonaws.com')
       end
     end
+    
     describe '#describe_stream_consumer', if: RUBY_VERSION < '2.2.0' do
       subject!(:describe_stream_consumer) do
         client.describe_stream_consumer(
