@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'yaml'
 
 require_relative '../../../core'
@@ -8,7 +10,7 @@ module Datadog
     module Contrib
       module Sidekiq
         # Common functionality used by both client-side and server-side tracers.
-        module Tracing
+        module Utils
           protected
 
           # If class is wrapping something else, the interesting resource info
