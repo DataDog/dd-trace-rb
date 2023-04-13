@@ -44,18 +44,6 @@ module Datadog
             context.http_request.endpoint.path
           end
 
-          def endpoint
-            context.http_request.endpoint
-          end
-
-          def metadata
-            context.metadata
-          end
-
-          def config
-            context.config
-          end
-
           def host
             context.http_request.endpoint.host
           end
