@@ -69,26 +69,32 @@ module Datadog
 
           # Wait for first lift to happen, otherwise don't wait
           def wait_once
-            @mutex.synchronize do
-              return if @once
+            @mutex.lock
 
-              @condition.wait(@mutex)
-            end
+            return if @once
+
+            @condition.wait(@mutex)
+          ensure
+            @mutex.unlock
           end
 
           # Wait for next lift to happen
           def wait_next
-            @mutex.synchronize do
-              @condition.wait(@mutex)
-            end
+            @mutex.lock
+
+            @condition.wait(@mutex)
+          ensure
+            @mutex.unlock
           end
 
           def lift
-            @mutex.synchronize do
-              @once ||= true
+            @mutex.lock
 
-              @condition.broadcast
-            end
+            @once ||= true
+
+            @condition.broadcast
+          ensure
+            @mutex.unlock
           end
         end
 
