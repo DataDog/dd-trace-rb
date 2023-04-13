@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'delayed/plugin'
 
 require_relative '../../metadata/ext'

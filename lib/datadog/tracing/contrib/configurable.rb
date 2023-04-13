@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative 'configuration/resolver'
 require_relative 'configuration/settings'
 

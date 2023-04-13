@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../vendor/resolver'
 
 module Datadog
@@ -7,7 +5,7 @@ module Datadog
     module Contrib
       module Redis
         module Configuration
-          UNIX_SCHEME = 'unix'
+          UNIX_SCHEME = 'unix'.freeze
 
           # Converts String URLs and Hashes to a normalized connection settings Hash.
           class Resolver < Contrib::Configuration::Resolver

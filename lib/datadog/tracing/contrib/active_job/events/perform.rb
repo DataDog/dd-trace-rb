@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../../metadata/ext'
 require_relative '../../analytics'
 require_relative '../ext'
@@ -14,7 +12,7 @@ module Datadog
           module Perform
             include ActiveJob::Event
 
-            EVENT_NAME = 'perform.active_job'
+            EVENT_NAME = 'perform.active_job'.freeze
 
             module_function
 

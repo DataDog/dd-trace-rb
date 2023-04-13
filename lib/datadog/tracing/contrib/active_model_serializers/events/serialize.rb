@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../ext'
 require_relative '../event'
 
@@ -12,7 +10,7 @@ module Datadog
           module Serialize
             include ActiveModelSerializers::Event
 
-            EVENT_NAME = '!serialize.active_model_serializers'
+            EVENT_NAME = '!serialize.active_model_serializers'.freeze
 
             module_function
 

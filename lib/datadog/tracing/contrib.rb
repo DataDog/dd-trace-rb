@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../tracing'
 require_relative 'contrib/registry'
 require_relative 'contrib/extensions'

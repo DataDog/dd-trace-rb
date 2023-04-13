@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'uri'
 require 'set'
 
@@ -10,7 +8,7 @@ module Datadog
         module Quantization
           # Quantization for HTTP resources
           module HTTP
-            PLACEHOLDER = '?'
+            PLACEHOLDER = '?'.freeze
 
             # taken from Ruby https://github.com/ruby/uri/blob/ffbab83de6d8748c9454414e02db5317609166eb/lib/uri/rfc3986_parser.rb
             # but adjusted to parse only <scheme>://<host>:<port>/ components
@@ -128,7 +126,7 @@ module Datadog
 
             private_class_method :obfuscate_query
 
-            OBFUSCATOR_WITH = '<redacted>'
+            OBFUSCATOR_WITH = '<redacted>'.freeze
 
             # rubocop:disable Layout/LineLength
             OBFUSCATOR_REGEX = %r{

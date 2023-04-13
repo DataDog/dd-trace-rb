@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../../metadata/ext'
 require_relative '../../analytics'
 require_relative '../event'
@@ -16,7 +14,7 @@ module Datadog
           module PerformAction
             include ActionCable::RootContextEvent
 
-            EVENT_NAME = 'perform_action.action_cable'
+            EVENT_NAME = 'perform_action.action_cable'.freeze
 
             module_function
 

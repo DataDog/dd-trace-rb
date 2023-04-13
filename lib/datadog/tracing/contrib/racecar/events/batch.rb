@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../ext'
 require_relative '../event'
 
@@ -12,7 +10,7 @@ module Datadog
           module Batch
             include Racecar::Event
 
-            EVENT_NAME = 'process_batch.racecar'
+            EVENT_NAME = 'process_batch.racecar'.freeze
 
             module_function
 

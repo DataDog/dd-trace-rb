@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../response'
 require_relative '../../../../datadog/core/vendor/multipart-post/net/http/post/multipart'
 

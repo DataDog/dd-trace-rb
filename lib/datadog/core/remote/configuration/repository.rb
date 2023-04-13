@@ -15,6 +15,7 @@ module Datadog
             :targets_version
 
           UNVERIFIED_ROOT_VERSION = 1
+
           INITIAL_TARGETS_VERSION = 0
 
           def initialize
@@ -73,12 +74,32 @@ module Datadog
               :opaque_backend_state
 
             def initialize(repository)
+              @repository = repository
               @root_version = repository.root_version
               @targets_version = repository.targets_version
-              @config_states = []
+              @config_states = contents_to_config_states(repository.contents)
               @has_error = false
               @error = ''
               @opaque_backend_state = repository.opaque_backend_state
+            end
+
+            private
+
+            def contents_to_config_states(contents)
+              return [] if contents.empty?
+
+              contents.map do |content|
+                {
+                  path: content.path.to_s,
+                  length: content.length,
+                  hashes: content.hashes.map do |algorithm, hexdigest|
+                    {
+                      algorithm: algorithm,
+                      hash: hexdigest
+                    }
+                  end
+                }
+              end
             end
           end
 

@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../utils/quantization/hash'
 
 module Datadog
@@ -15,7 +13,7 @@ module Datadog
 
         # skipped keys are related to command names, since they are already
         # extracted by the query_builder
-        PLACEHOLDER = '?'
+        PLACEHOLDER = '?'.freeze
 
         # returns a formatted and normalized query
         def query_builder(command_name, database_name, command)

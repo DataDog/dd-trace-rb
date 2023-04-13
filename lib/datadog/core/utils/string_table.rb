@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative 'sequence'
 
 module Datadog
@@ -9,7 +7,7 @@ module Datadog
       class StringTable
         def initialize
           @sequence = Sequence.new
-          @ids = { '' => @sequence.next }
+          @ids = { ''.freeze => @sequence.next }
         end
 
         # Returns an ID for the string

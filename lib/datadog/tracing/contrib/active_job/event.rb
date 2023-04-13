@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../../metadata/ext'
 require_relative '../active_support/notifications/event'
 require_relative 'ext'

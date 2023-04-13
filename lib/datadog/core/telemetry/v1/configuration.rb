@@ -1,12 +1,10 @@
-# frozen_string_literal: true
-
 module Datadog
   module Core
     module Telemetry
       module V1
         # Describes attributes for additional payload or configuration object
         class Configuration
-          ERROR_NIL_NAME_MESSAGE = ':name must not be nil'
+          ERROR_NIL_NAME_MESSAGE = ':name must not be nil'.freeze
 
           attr_reader \
             :name,

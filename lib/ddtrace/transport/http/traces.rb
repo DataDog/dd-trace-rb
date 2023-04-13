@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require 'json'
 
 require_relative '../traces'
@@ -93,9 +91,9 @@ module Datadog
 
           # Endpoint for submitting trace data
           class Endpoint < HTTP::API::Endpoint
-            HEADER_CONTENT_TYPE = 'Content-Type'
-            HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'
-            SERVICE_RATE_KEY = 'rate_by_service'
+            HEADER_CONTENT_TYPE = 'Content-Type'.freeze
+            HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'.freeze
+            SERVICE_RATE_KEY = 'rate_by_service'.freeze
 
             attr_reader \
               :encoder

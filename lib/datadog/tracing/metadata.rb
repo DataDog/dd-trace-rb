@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative 'metadata/analytics'
 require_relative 'metadata/tagging'
 require_relative 'metadata/errors'

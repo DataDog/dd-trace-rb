@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Datadog
   module Tracing
     module Contrib
@@ -95,7 +93,7 @@ module Datadog
                   %(
                 Rack :middleware_names requires you to also pass :application.
                 Middleware names have NOT been patched; please provide :application.
-                e.g. use: :rack, middleware_names: true, application: my_rack_app)
+                e.g. use: :rack, middleware_names: true, application: my_rack_app).freeze
                 )
               end
             end

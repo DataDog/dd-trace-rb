@@ -6,24 +6,23 @@
 [![YARD documentation](https://img.shields.io/badge/YARD-documentation-blue)][api docs]
 
 ``ddtrace`` is Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
-databases and microservices so that developers have great visiblity into bottlenecks and troublesome requests.
+databases and microservices so that developers have great visibility into bottlenecks and troublesome requests.
 
 ## Getting started
 
 **If you're upgrading from a 0.x version, check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10).**
 
-For a basic product overview, check out our [setup documentation][setup docs].
+For a product overview, installation, and configuration check out our [documentation][public docs].
 
-For installation, configuration, and details about using the API, check out our [API documentation][api docs] and [gem documentation][gem docs].
+For the gem API, check out our [API documentation][api docs].
 
-For descriptions of terminology used in APM, take a look at the [official documentation][visualization docs].
+For descriptions of terminology used in APM, take a look at the [APM Terms and Concepts][APM glossary].
 
 For contributing, checkout the [contribution guidelines][contribution docs] and [development guide][development docs].
 
-[setup docs]: https://docs.datadoghq.com/tracing/setup/ruby/
-[api docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/GettingStarted.md
-[gem docs]: https://datadog.github.io/dd-trace-rb/
-[visualization docs]: https://docs.datadoghq.com/tracing/visualization/
+[public docs]: https://docs.datadoghq.com/tracing/setup/ruby/
+[api docs]: https://datadog.github.io/dd-trace-rb/
+[APM glossary]: https://docs.datadoghq.com/tracing/glossary/
 [contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
 

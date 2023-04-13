@@ -14,8 +14,6 @@ RSpec.describe 'Server tracer' do
     Sidekiq::Testing.server_middleware do |chain|
       chain.add(Datadog::Tracing::Contrib::Sidekiq::ServerTracer)
     end
-
-    Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
   end
 
   it 'traces async job run' do
@@ -24,6 +22,7 @@ RSpec.describe 'Server tracer' do
     expect(spans).to have(2).items
 
     span, _push = spans
+
     expect(span.service).to eq(tracer.default_service)
     expect(span.resource).to eq('EmptyWorker')
     expect(span.get_tag('sidekiq.job.queue')).to eq('default')
@@ -186,6 +185,8 @@ RSpec.describe 'Server tracer' do
       if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1.0')
         pending 'Broken in Ruby 3.1.0-preview1, see https://github.com/mperham/sidekiq/issues/5064'
       end
+
+      Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'
 
       stub_const(
         'DelayableClass',

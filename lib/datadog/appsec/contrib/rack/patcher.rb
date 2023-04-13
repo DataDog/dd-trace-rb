@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../patcher'
 require_relative '../../monitor'
 require_relative 'gateway/watcher'
