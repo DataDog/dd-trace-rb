@@ -12,10 +12,6 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
   end
   let(:raw_target) do
     {
-      'custom' =>
-        { 'c' => ['854b784e-64ae-4c82-ac9b-fc2aea723260'],
-          'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => '854b784e-64ae-4c82-ac9b-fc2aea723260' }] },
-          'v' => 21 },
       'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw.to_json) },
       'length' => 645
     }

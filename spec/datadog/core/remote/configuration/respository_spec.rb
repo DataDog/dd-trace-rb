@@ -199,8 +199,10 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         expect(repository.contents[path]).to eq(content)
         new_path = Datadog::Core::Remote::Configuration::Path.parse('employee/ASM/exclusion_filters/config')
         new_content = Datadog::Core::Remote::Configuration::Content.parse(
-          { :path => new_path.to_s,
-            :content => StringIO.new('hello world') }
+          {
+            :path => new_path.to_s,
+            :content => StringIO.new('hello world')
+          }
         )
 
         changes = repository.transaction do |_repository, transaction|

@@ -26,65 +26,12 @@ RSpec.describe Datadog::Core::Remote::Client do
   end
 
   let(:transport) { Datadog::Core::Transport::HTTP.v7(&proc { |_client| }) }
-  let(:roots) do
-    [
-      {
-        'signatures' => [
-          {
-            'keyid' => 'bla1',
-            'sig' => 'fake sig'
-          },
-        ],
-        'signed' => {
-          '_type' => 'root',
-          'consistent_snapshot' => true,
-          'expires' => '2022-02-01T00:00:00Z',
-          'keys' => {
-            'foo' => {
-              'keyid_hash_algorithms' => ['sha256', 'sha512'],
-              'keytype' => 'ed25519',
-              'keyval' => {
-                'public' => 'blabla'
-              },
-              'scheme' => 'ed25519'
-            }
-          },
-          'roles' => {
-            'root' => {
-              'keyids' => ['bla1',
-                           'bla2'],
-              'threshold' => 2
-            },
-            'snapshot' => {
-              'keyids' => ['foo'],
-              'threshold' => 1 \
-            },
-            'targets' => { \
-              'keyids' => ['foo'],
-              'threshold' => 1 \
-            },
-            'timestamp' => {
-              'keyids' => ['foo'],
-              'threshold' => 1
-            }
-          },
-          'spec_version' => '1.0',
-          'version' => 2
-        }
-      },
-    ]
-  end
-
+  # In the current version of remote configuration roots need to be an array
+  # but the content is not used
+  let(:roots) { [] }
   let(:exclusions_filter_content) do
     {
       'datadog/603646/ASM/exclusion_filters/config' => {
-        'custom' => {
-          'c' => ['client_id'],
-          'tracer-predicates' => {
-            'tracer_predicates_v1' => [{ 'clientID' => 'client_id' }]
-          },
-          'v' => 21
-        },
         'hashes' => { 'sha256' => Digest::SHA256.hexdigest(exclusions) },
         'length' => 645
       }
@@ -94,11 +41,6 @@ RSpec.describe Datadog::Core::Remote::Client do
   let(:blocked_ips_content) do
     {
       'datadog/603646/ASM_DATA/blocked_ips/config' => {
-        'custom' => {
-          'c' => ['client_id'],
-          'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => 'client_id' }] },
-          'v' => 51
-        },
         'hashes' => { 'sha256' => Digest::SHA256.hexdigest(blocked_ips) },
         'length' => 1834
       },
@@ -108,13 +50,6 @@ RSpec.describe Datadog::Core::Remote::Client do
   let(:rules_content) do
     {
       'datadog/603646/ASM_DD/latest/config' => {
-        'custom' => {
-          'c' => ['client_id'],
-          'tracer-predicates' => {
-            'tracer_predicates_v1' => [{ 'clientID' => 'client_id' }]
-          },
-          'v' => 21
-        },
         'hashes' => { 'sha256' => Digest::SHA256.hexdigest(rules_data) },
         'length' => 645
       },
@@ -125,20 +60,11 @@ RSpec.describe Datadog::Core::Remote::Client do
 
   let(:targets) do
     {
-      'signatures' => [
-        {
-          'keyid' => 'hello',
-          'sig' => 'sig'
-        }
-      ],
       'signed' => {
-        '_type' => 'targets',
         'custom' => {
           'agent_refresh_interval' => 50,
           'opaque_backend_state' => 'iuycygweiuegciwbiecwbicw'
         },
-        'expires' => '2023-06-17T10:16:42Z',
-        'spec_version' => '1.0.0',
         'targets' => target_content,
         'version' => 46915439
       }
@@ -310,38 +236,20 @@ RSpec.describe Datadog::Core::Remote::Client do
 
           updated_targets = {
             'signed' => {
-              '_type' => 'targets',
               'custom' => {
                 'agent_refresh_interval' => 50,
                 'opaque_backend_state' => 'iucwgi'
               },
-              'expires' => '2023-06-17T10:16:42Z',
-              'spec_version' => '1.0.0',
               'targets' => {
                 'datadog/603646/ASM/exclusion_filters/config' => {
-                  'custom' => {
-                    'c' => ['client_id'],
-                    'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => 'client_id' }] },
-                    'v' => 21
-                  },
                   'hashes' => { 'sha256' => Digest::SHA256.hexdigest(exclusions) },
                   'length' => 645
                 },
                 'datadog/603646/ASM_DATA/blocked_ips/config' => {
-                  'custom' => {
-                    'c' => ['client_id'],
-                    'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => 'client_id' }] },
-                    'v' => 51
-                  },
                   'hashes' => { 'sha256' => Digest::SHA256.hexdigest(new_blocked_ips) },
                   'length' => 1834
                 },
                 'datadog/603646/ASM_DD/latest/config' => {
-                  'custom' => {
-                    'c' => ['client_id'],
-                    'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => 'client_id' }] },
-                    'v' => 51
-                  },
                   'hashes' => { 'sha256' => Digest::SHA256.hexdigest(rules_data) },
                   'length' => 1834
                 }
@@ -400,25 +308,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
         context 'missing target for path from the response' do
           let(:response_code) { 200 }
-          let(:target_content) do
-            {
-              'datadog/603646/ASM/exclusion_filters/config' => {
-                'custom' => {
-                  'c' => ['client_id'],
-                  'tracer-predicates' => {
-                    'tracer_predicates_v1' => [
-                      {
-                        'clientID' => 'client_id'
-                      }
-                    ]
-                  },
-                  'v' => 21
-                },
-                'hashes' => { 'sha256' => Digest::SHA256.hexdigest(exclusions) },
-                'length' => 645
-              },
-            }
-          end
+          let(:target_content) { {}.merge(exclusions_filter_content) }
 
           it 'raises SyncError' do
             expect do
@@ -434,15 +324,6 @@ RSpec.describe Datadog::Core::Remote::Client do
           let(:target_content) do
             {
               'invalid path' => {
-                'custom' => {
-                  'c' => ['client_id'],
-                  'tracer-predicates' => {
-                    'tracer_predicates_v1' => [
-                      { 'clientID' => 'client_id' }
-                    ]
-                  },
-                  'v' => 21
-                },
                 'hashes' => { 'sha256' => 'fake sha' },
                 'length' => 645
               },

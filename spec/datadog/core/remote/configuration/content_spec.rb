@@ -7,10 +7,6 @@ require 'datadog/core/remote/configuration/target'
 RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
   let(:raw_target) do
     {
-      'custom' =>
-        { 'c' => ['854b784e-64ae-4c82-ac9b-fc2aea723260'],
-          'tracer-predicates' => { 'tracer_predicates_v1' => [{ 'clientID' => '854b784e-64ae-4c82-ac9b-fc2aea723260' }] },
-          'v' => 21 },
       'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw.to_json) },
       'length' => 645
     }
@@ -136,17 +132,6 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
     it 'returns nil if target does not check' do
       wrong_target = Datadog::Core::Remote::Configuration::Target.parse(
         {
-          'custom' => {
-            'c' => ['5bb79ec4-0f50-464c-8400-b88521e1b96e'],
-            'tracer-predicates' => {
-              'tracer_predicates_v1' => [
-                {
-                  'clientID' => '5bb79ec4-0f50-464c-8400-b88521e1b96e'
-                }
-              ]
-            },
-            'v' => 245
-          },
           'hashes' => { 'sha256' => 'e39c699e5e626da1a43369ab3e7f17cce6a21c0ce1d2261280c7f2ac61c5db1b' },
           'length' => 4605
         }
