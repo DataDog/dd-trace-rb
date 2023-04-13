@@ -26,7 +26,7 @@ RSpec.describe 'AWS instrumentation' do
     Datadog.registry[:aws].reset_configuration!
   end
 
-  context 'with a core AWS SDK client', if: RUBY_VERSION >= '2.3.0' do
+  context 'with a core AWS SDK client', if: RUBY_VERSION >= '2.2.0' do
     before { hide_const('Aws::S3') }
 
     let(:client) { ::Aws::STS::Client.new(stub_responses: responses) } # STS is part of aws-sdk-core
@@ -74,7 +74,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an S3 client', if: RUBY_VERSION >= '2.3.0' do
+  context 'with an S3 client' do
     let(:client) { ::Aws::S3::Client.new(stub_responses: responses) }
 
     describe '#list_buckets' do
@@ -182,7 +182,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an SQS client', if: RUBY_VERSION >= '2.3.0' do
+  context 'with an SQS client' do
     let(:client) { ::Aws::SQS::Client.new(stub_responses: responses) }
 
     describe '#send_message' do
@@ -348,7 +348,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an SNS client', if: RUBY_VERSION >= '2.3.0' do
+  context 'with an SNS client' do
     let(:client) { ::Aws::SNS::Client.new(stub_responses: responses) }
 
     describe '#publish' do
@@ -448,7 +448,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an dynamodb client', if: RUBY_VERSION >= '2.3.0' do
+  context 'with an dynamodb client' do
     let(:client) { ::Aws::DynamoDB::Client.new(stub_responses: responses) }
 
     describe '#get_item' do
@@ -492,7 +492,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with an kinesis client', if: RUBY_VERSION >= '2.3.0' do
+  context 'with an kinesis client' do
     let(:client) { ::Aws::Kinesis::Client.new(stub_responses: responses) }
 
     describe '#put_record' do
@@ -572,7 +572,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('aws_service')).to eq('kinesis')
         expect(span.get_tag('streamname')).to eq('my-stream')
         expect(span.get_tag('path')).to eq('')
-        expect(span.get_tag('host')).to eq('123456789012.control-kinesis.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('host')).to eq('kinesis.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('span.kind')).to eq('client')
@@ -583,12 +583,12 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
-          .to eq('123456789012.control-kinesis.us-stubbed-1.amazonaws.com')
+          .to eq('kinesis.us-stubbed-1.amazonaws.com')
       end
     end
   end
 
-  context 'with an eventbridge client', if: RUBY_VERSION >= '2.3.0' do
+  context 'with an eventbridge client' do
     let(:client) { ::Aws::EventBridge::Client.new(stub_responses: responses) }
 
     describe '#put_rule' do
@@ -682,7 +682,7 @@ RSpec.describe 'AWS instrumentation' do
     end
   end
 
-  context 'with a stepfunction client', if: RUBY_VERSION >= '2.3.0' do
+  context 'with a stepfunction client' do
     let(:client) { ::Aws::States::Client.new(stub_responses: responses) }
 
     describe '#start_execution' do
