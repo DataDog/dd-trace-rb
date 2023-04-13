@@ -539,7 +539,7 @@ RSpec.describe 'AWS instrumentation' do
       end
     end
 
-    describe '#describe_stream_consumer', if: RUBY_VERSION >= '2.2.0' do
+    describe '#describe_stream_consumer', if: RUBY_VERSION >= '2.3.0' do
       subject!(:describe_stream_consumer) do
         client.describe_stream_consumer(
           stream_arn: 'arn:aws:kinesis:us-east-1:123456789012:stream/my-stream', # required
@@ -587,7 +587,7 @@ RSpec.describe 'AWS instrumentation' do
       end
     end
 
-    describe '#describe_stream_consumer', if: RUBY_VERSION < '2.2.0' do
+    describe '#describe_stream_consumer', if: RUBY_VERSION < '2.3.0' do
       subject!(:describe_stream_consumer) do
         client.describe_stream_consumer(
           stream_arn: 'arn:aws:kinesis:us-east-1:123456789012:stream/my-stream', # required
