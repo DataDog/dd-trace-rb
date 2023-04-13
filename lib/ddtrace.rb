@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Load tracing
 require_relative 'datadog/tracing'
 require_relative 'datadog/tracing/contrib'

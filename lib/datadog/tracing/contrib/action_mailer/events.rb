@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'events/process'
 require_relative 'events/deliver'
 
