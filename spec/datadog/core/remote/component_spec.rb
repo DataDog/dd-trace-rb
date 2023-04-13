@@ -80,9 +80,8 @@ end
 
 RSpec.describe Datadog::Core::Remote::Component::Barrier do
   let(:delay) { 0.5 }
-  let(:block) { -> { true } }
 
-  subject(:barrier) { described_class.new(&block) }
+  subject(:barrier) { described_class.new }
 
   shared_context('recorder') do
     let(:record) { [] }
@@ -101,7 +100,6 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
     end
 
     before do
-      record
       thr.run
     end
 
