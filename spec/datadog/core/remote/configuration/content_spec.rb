@@ -223,4 +223,46 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
       expect(paths[0].to_s).to eq('datadog/603646/ASM/exclusion_filters/config')
     end
   end
+
+  describe Datadog::Core::Remote::Configuration::Content do
+    subject(:content) do
+      described_class.parse(
+        {
+          :path => path.to_s,
+          :content => string_io_content
+        }
+      )
+    end
+
+    describe '#hashes' do
+      context 'when no hash has been computed' do
+        it 'return {}' do
+          expect(content.hashes).to eq({})
+        end
+      end
+    end
+
+    describe '#hexdigest' do
+      before do
+        content.hexdigest(:sha256)
+        content.hexdigest(:sha512)
+      end
+
+      context 'compute hash of content' do
+        it 'returns hash value' do
+          expect(content.hexdigest(:sha256)).to eq('c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de')
+        end
+
+        it 'stores the value in hashes' do
+          expect(content.hashes).to eq(
+            {
+              :sha256 => 'c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de',
+              :sha512 => '546b5325ec8559dda0b34f3e628e99c7b9d18eb59b23ec87f672b1ed8c4ac9ac'\
+                '11ac6ffb15e6b4d71f5f343ec243d142db61aaf60f4a0410e39dc916c623cc82'
+            }
+          )
+        end
+      end
+    end
+  end
 end
