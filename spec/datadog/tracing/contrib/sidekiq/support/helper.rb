@@ -95,16 +95,16 @@ module SidekiqServerExpectations
       # Reduce number of threads and shutdown timeout.
 
       options = if Sidekiq.respond_to? :default_configuration
-        Sidekiq.default_configuration.tap do |c|
-          c[:concurrency] = 1
-          c[:timeout] = 0
-        end
-      else
-        Sidekiq.options.tap do |c|
-          c[:concurrency] = 1
-          c[:timeout] = 0
-        end
-      end
+                  Sidekiq.default_configuration.tap do |c|
+                    c[:concurrency] = 1
+                    c[:timeout] = 0
+                  end
+                else
+                  Sidekiq.options.tap do |c|
+                    c[:concurrency] = 1
+                    c[:timeout] = 0
+                  end
+                end
 
       # `Sidekiq::Launcher#stop` sleeps before actually starting to shutting down Sidekiq.
       # Settings `Manager::PAUSE_TIME` to zero removes that wait.
