@@ -52,7 +52,7 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('get_access_key_info')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('path')).to eq('')
         expect(span.get_tag('host')).to eq('sts.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('POST')
@@ -100,7 +100,6 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('list_buckets')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('s3')
         # expect(span.get_tag('bucketname')).to eq('bucket1')
@@ -140,7 +139,6 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('list_objects')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('s3')
         expect(span.get_tag('bucketname')).to eq('bucketname')
@@ -215,7 +213,6 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('send_message')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('sqs')
         expect(span.get_tag('aws_account')).to eq('123456789012')
@@ -287,12 +284,54 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('send_message_batch')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('sqs')
         expect(span.get_tag('aws_account')).to eq('123456789012')
         expect(span.get_tag('queuename')).to eq('MyQueueName')
         expect(span.get_tag('path')).to eq('/123456789012/MyQueueName')
+        expect(span.get_tag('host')).to eq('sqs.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('sqs.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#get_queue_url' do
+      subject!(:get_queue_url) do
+        client.get_queue_url(
+          {
+            queue_name: 'MyQueueName',
+            queue_owner_aws_account_id: '1234',
+          }
+        )
+      end
+
+      let(:responses) do
+        { get_queue_url: {
+          queue_url: "myQueueURL"
+        } }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('sqs.get_queue_url')
+
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('get_queue_url')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('sqs')
+        expect(span.get_tag('queuename')).to eq('MyQueueName')
+        expect(span.get_tag('path')).to eq('')
         expect(span.get_tag('host')).to eq('sqs.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
@@ -337,7 +376,6 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('publish')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('sns')
         expect(span.get_tag('aws_account')).to eq('123456789012')
@@ -390,7 +428,6 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('create_topic')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('sns')
         expect(span.get_tag('topicname')).to eq('topicName')
@@ -435,7 +472,6 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('get_item')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('dynamodb')
         expect(span.get_tag('tablename')).to eq('my-table-name')
@@ -484,7 +520,6 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('put_record')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('kinesis')
         expect(span.get_tag('streamname')).to eq('my-stream-name')
@@ -504,18 +539,24 @@ RSpec.describe 'AWS instrumentation' do
       end
     end
 
-    describe '#get_shard_iterator' do
-      subject!(:get_shard_iterator) do
-        client.get_shard_iterator(
-          stream_name: 'StreamName', # required
-          shard_id: 'ShardId', # required
-          shard_iterator_type: 'AT_SEQUENCE_NUMBER', # required
+    describe '#describe_stream_consumer' do
+      subject!(:describe_stream_consumer) do
+        client.describe_stream_consumer(
+          stream_arn: 'arn:aws:kinesis:us-east-1:123456789012:stream/my-stream', # required
+          consumer_name: 'cosumerName', # required
+          consumer_arn: 'consumerArn', # required
         )
       end
 
       let(:responses) do
-        { get_shard_iterator: {
-          shard_iterator: 'shard-iterator'
+        { describe_stream_consumer: {
+            consumer_description: {
+              consumer_name: "John Doe",
+              consumer_arn: "consumerArn",
+              consumer_status: "CREATING",
+              consumer_creation_timestamp: Time.new(2023, 3, 31, 12, 30, 0, '-04:00'),
+              stream_arn: "streamArn"
+            }
         } }
       end
 
@@ -523,16 +564,15 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
         expect(span.span_type).to eq('http')
-        expect(span.resource).to eq('kinesis.get_shard_iterator')
+        expect(span.resource).to eq('kinesis.describe_stream_consumer')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
-        expect(span.get_tag('aws.operation')).to eq('get_shard_iterator')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws.operation')).to eq('describe_stream_consumer')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('kinesis')
-        expect(span.get_tag('streamname')).to eq('StreamName')
+        expect(span.get_tag('streamname')).to eq('my-stream')
         expect(span.get_tag('path')).to eq('')
-        expect(span.get_tag('host')).to eq('kinesis.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('host')).to eq('123456789012.control-kinesis.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('span.kind')).to eq('client')
@@ -543,7 +583,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
-          .to eq('kinesis.us-stubbed-1.amazonaws.com')
+          .to eq('123456789012.control-kinesis.us-stubbed-1.amazonaws.com')
       end
     end
   end
@@ -580,7 +620,48 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('put_rule')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('eventbridge')
+        expect(span.get_tag('rulename')).to eq('RuleName')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('events.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('events.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#list_targets_by_rule' do
+      subject!(:list_targets_by_rule) do
+        client.list_targets_by_rule(
+          {
+            rule: 'RuleName', # required
+          }
+        )
+      end
+
+      let(:responses) do
+        { list_targets_by_rule: {
+          targets: []
+        } }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.span_type).to eq('http')
+        expect(span.resource).to eq('eventbridge.list_targets_by_rule')
+
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('list_targets_by_rule')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('eventbridge')
         expect(span.get_tag('rulename')).to eq('RuleName')
@@ -628,12 +709,9 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('start_execution')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('states')
-        expect(span.get_tag('statemachinearn')).to eq('arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine')
         expect(span.get_tag('aws_account')).to eq('123456789012')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
-
         expect(span.get_tag('statemachinename')).to eq('MyStateMachine')
         expect(span.get_tag('path')).to eq('')
         expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
@@ -677,10 +755,8 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('create_state_machine')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('states')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
-
         expect(span.get_tag('statemachinename')).to eq('my-state-machine-name')
         expect(span.get_tag('path')).to eq('')
         expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
@@ -731,10 +807,8 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('describe_state_machine')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('states')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
-
         expect(span.get_tag('statemachinename')).to eq('my-state-machine-name')
         expect(span.get_tag('path')).to eq('')
         expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
@@ -775,10 +849,8 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('update_state_machine')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('states')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
-
         expect(span.get_tag('statemachinename')).to eq('my-state-machine-name')
         expect(span.get_tag('path')).to eq('')
         expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
@@ -817,10 +889,8 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('delete_state_machine')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('states')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
-
         expect(span.get_tag('statemachinename')).to eq('my-state-machine-name')
         expect(span.get_tag('path')).to eq('')
         expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
@@ -875,10 +945,8 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('describe_execution')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('states')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
-
         expect(span.get_tag('statemachinename')).to eq('example-state-machine')
         expect(span.get_tag('path')).to eq('')
         expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')
@@ -919,10 +987,8 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('stop_execution')
-        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('states')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
-
         expect(span.get_tag('statemachinename')).to eq('example-state-machine')
         expect(span.get_tag('path')).to eq('')
         expect(span.get_tag('host')).to eq('states.us-stubbed-1.amazonaws.com')

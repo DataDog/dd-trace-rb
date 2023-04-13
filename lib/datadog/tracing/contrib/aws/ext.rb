@@ -18,8 +18,16 @@ module Datadog
           TAG_OPERATION = 'aws.operation'.freeze
           TAG_OPERATION_COMMAND = 'command'.freeze
           TAG_PATH = 'path'.freeze
-          TAG_REGION = 'aws.region'.freeze
-          TAG_TOP_LEVEL_REGION = 'region'.freeze
+          TAG_REGION = 'region'.freeze
+          TAG_AWS_SERVICE = 'aws_service'.freeze
+          TAG_AWS_ACCOUNT = 'aws_account'.freeze
+          TAG_QUEUE_NAME = 'queuename'.freeze
+          TAG_TOPIC_NAME = 'topicname'.freeze
+          TAG_TABLE_NAME = 'tablename'.freeze
+          TAG_STREAM_NAME = 'streamname'.freeze
+          TAG_RULE_NAME = 'rulename'.freeze
+          TAG_STATE_MACHINE_NAME = 'statemachinename'.freeze
+          TAG_BUCKET_NAME = 'bucketname'.freeze
         end
       end
     end

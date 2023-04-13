@@ -31,7 +31,7 @@ module Datadog
             span.name = Ext::SPAN_COMMAND
             span.resource = context.safely(:resource)
             aws_service = span.resource.split('.')[0]
-            span.set_tag('aws_service', aws_service)
+            span.set_tag(Ext::TAG_AWS_SERVICE, aws_service)
             params = context.safely(:params)
             add_service_specific_tags(span, aws_service, params)
 
@@ -53,9 +53,7 @@ module Datadog
             span.set_tag(Ext::TAG_AGENT, Ext::TAG_DEFAULT_AGENT)
             span.set_tag(Ext::TAG_OPERATION, context.safely(:operation))
             span.set_tag(Ext::TAG_REGION, context.safely(:region))
-            span.set_tag(Ext::TAG_TOP_LEVEL_REGION, context.safely(:region))
             span.set_tag(Ext::TAG_PATH, context.safely(:path))
-            span.set_tag('httpEndpoint', context.safely(:endpoint))
             span.set_tag(Ext::TAG_HOST, context.safely(:host))
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, context.safely(:http_method))
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, context.safely(:status_code))
@@ -81,15 +79,15 @@ module Datadog
           end
 
           def add_sqs_tags(span, params)
-            queue_url = params.fetch(:queue_url, '')
-            queue_name = params.fetch(:queue_name, '')
+            queue_url = params.fetch(:queue_url, nil)
+            queue_name = params.fetch(:queue_name, nil)
             if queue_url
               # example queue_url: https://sqs.sa-east-1.amazonaws.com/12345678/MyQueueName
               queue_name = queue_url.split('/')[-1]
               aws_account = queue_url.split('/')[-2]
-              span.set_tag('aws_account', aws_account)
+              span.set_tag(Ext::TAG_AWS_ACCOUNT, aws_account)
             end
-            span.set_tag('queuename', queue_name)
+            span.set_tag(Ext::TAG_QUEUE_NAME, queue_name)
           end
 
           def add_sns_tags(span, params)
@@ -99,14 +97,14 @@ module Datadog
               # example topic_arn: arn:aws:sns:us-west-2:123456789012:my-topic-name
               topic_name = topic_arn.split(':')[-1]
               aws_account = topic_arn.split(':')[-2]
-              span.set_tag('aws_account', aws_account)
+              span.set_tag(Ext::TAG_AWS_ACCOUNT, aws_account)
             end
-            span.set_tag('topicname', topic_name)
+            span.set_tag(Ext::TAG_TOPIC_NAME, topic_name)
           end
 
           def add_dynamodb_tags(span, params)
             table_name = params.fetch(:table_name, '')
-            span.set_tag('tablename', table_name)
+            span.set_tag(Ext::TAG_TABLE_NAME, table_name)
           end
 
           def add_kinesis_tags(span, params)
@@ -116,14 +114,14 @@ module Datadog
               # example stream_arn: arn:aws:kinesis:us-east-1:123456789012:stream/my-stream
               stream_name = stream_arn.split('/')[-1] rescue ''
               aws_account = stream_arn.split(':')[-2] rescue ''
-              span.set_tag('aws_account', aws_account)
+              span.set_tag(Ext::TAG_AWS_ACCOUNT, aws_account)
             end
-            span.set_tag('streamname', stream_name)
+            span.set_tag(Ext::TAG_STREAM_NAME, stream_name)
           end
 
           def add_eventbridge_tags(span, params)
             rule_name = params.fetch(:name, nil) || params.fetch(:rule, nil)
-            span.set_tag('rulename', rule_name)
+            span.set_tag(Ext::TAG_RULE_NAME, rule_name)
           end
 
           def add_states_tags(span, params)
@@ -137,19 +135,18 @@ module Datadog
             end
 
             if state_machine_arn
-              span.set_tag('statemachinearn', state_machine_arn)
               # example statemachinearn: arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine
               state_machine_name = state_machine_arn.split(':')[-1]
               state_machine_account_id = state_machine_arn.split(':')[-3]
             end
-            span.set_tag('aws_account', state_machine_account_id)
+            span.set_tag(Ext::TAG_AWS_ACCOUNT, state_machine_account_id)
             # state_machine_name = create_state_machine_name || start_execution_state_machine_name
-            span.set_tag('statemachinename', state_machine_name)
+            span.set_tag(Ext::TAG_STATE_MACHINE_NAME, state_machine_name)
           end
 
           def add_s3_tags(span, params)
             bucket_name = params.fetch(:bucket, nil)
-            span.set_tag('bucketname', bucket_name)
+            span.set_tag(Ext::TAG_BUCKET_NAME, bucket_name)
           end
 
           def configuration
