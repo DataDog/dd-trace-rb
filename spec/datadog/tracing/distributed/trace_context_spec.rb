@@ -434,9 +434,9 @@ RSpec.shared_examples 'Trace Context distributed format' do
           it { is_expected.to eq('_dd.p.dm' => '-1') }
         end
 
-        context "{ 'key' => 'value=with=equals' }" do
-          let(:tags) { 't.key:value:with:equals' }
-          it { is_expected.to eq('_dd.p.key' => 'value:with:equals') }
+        context "{ 'key' => 'value~with~tilde' }" do
+          let(:tags) { 't.key:value~with~tilde' }
+          it { is_expected.to eq('_dd.p.key' => 'value=with=tilde') }
         end
       end
 
