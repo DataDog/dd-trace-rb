@@ -137,14 +137,7 @@ module Datadog
               # base64 is needed otherwise the Go agent fails with an unmarshal error
               capabilities: @capabilities.base64_capabilities
             },
-            cached_target_files: [
-              # TODO: to be implemented once we cache configuration content
-              # {
-              #   path: '',
-              #   length: 0,
-              #   hashes: '';
-              # }
-            ],
+            cached_target_files: state.cached_target_files,
           }
         end
       end
