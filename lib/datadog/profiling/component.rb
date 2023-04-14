@@ -65,8 +65,6 @@ module Datadog
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
         if enable_new_profiler?(settings)
-          print_new_profiler_warnings
-
           recorder = Datadog::Profiling::StackRecorder.new(
             cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
             alloc_samples_enabled: false, # Always disabled for now -- work in progress
@@ -141,19 +139,6 @@ module Datadog
         end
       end
 
-      private_class_method def self.print_new_profiler_warnings
-        return if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
-
-        # For more details on the issue, see the "BIG Issue" comment on `gvl_owner` function in
-        # `private_vm_api_access.c`.
-        Datadog.logger.warn(
-          'The new CPU Profiling 2.0 profiler has been force-enabled on a legacy Ruby version (< 2.6). This is not ' \
-          'recommended in production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes ' \
-          'in very rare situations. Please report any issues you run into to Datadog support or ' \
-          'via <https://github.com/datadog/dd-trace-rb/issues/new>!'
-        )
-      end
-
       private_class_method def self.enable_new_profiler?(settings)
         if settings.profiling.advanced.force_enable_legacy_profiler
           Datadog.logger.warn(
@@ -162,7 +147,18 @@ module Datadog
           return false
         end
 
-        return true if settings.profiling.advanced.force_enable_new_profiler
+        if settings.profiling.advanced.force_enable_new_profiler
+          unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+            Datadog.logger.warn(
+              'The new CPU Profiling 2.0 profiler has been force-enabled on a legacy Ruby version (< 2.6). This is not ' \
+              'recommended in production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes ' \
+              'in very rare situations. Please report any issues you run into to Datadog support or ' \
+              'via <https://github.com/datadog/dd-trace-rb/issues/new>!'
+            )
+          end
+
+          return true
+        end
 
         return false if RUBY_VERSION.start_with?('2.3.', '2.4.', '2.5.')
 

@@ -50,7 +50,10 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       context 'when using the legacy profiler' do
-        before { expect(described_class).to receive(:enable_new_profiler?).with(settings).and_return(false) }
+        before do
+          settings.profiling.advanced.force_enable_legacy_profiler = true
+          allow(Datadog.logger).to receive(:warn).with(/Legacy profiler has been force-enabled/)
+        end
 
         it 'sets up the Profiler with the OldStack collector' do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
@@ -102,7 +105,7 @@ RSpec.describe Datadog::Profiling::Component do
 
       context 'when using the new CPU Profiling 2.0 profiler' do
         before do
-          expect(described_class).to receive(:enable_new_profiler?).with(settings).and_return(true)
+          settings.profiling.advanced.force_enable_new_profiler = true
           # Silence warning spam about using the new profiler on legacy Rubies
           allow(Datadog.logger).to receive(:warn) if RUBY_VERSION < '2.6.'
         end
@@ -371,12 +374,6 @@ RSpec.describe Datadog::Profiling::Component do
         before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '2.6.' }
 
         it { is_expected.to be false }
-
-        context 'when force_enable_new_profiler is enabled' do
-          before { settings.profiling.advanced.force_enable_new_profiler = true }
-
-          it { is_expected.to be true }
-        end
       end
 
       context 'on Ruby 2.6 and above' do
