@@ -49,8 +49,6 @@ module Datadog
           case kind
           when :once
             @barrier.wait_once
-          when :next
-            @barrier.wait_next
           end
         end
 
