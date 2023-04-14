@@ -19,11 +19,13 @@ module Datadog
           end
 
           attr_reader :path, :data, :hashes
+          attr_accessor :version
 
           def initialize(path:, data:)
             @path = path
             @data = data
             @hashes = {}
+            @version = 0
           end
 
           def hexdigest(type)

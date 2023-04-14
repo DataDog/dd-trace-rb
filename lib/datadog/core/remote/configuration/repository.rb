@@ -78,7 +78,7 @@ module Datadog
               @repository = repository
               @root_version = repository.root_version
               @targets_version = repository.targets_version
-              @config_states = []
+              @config_states = contents_to_config_states(repository.contents)
               @has_error = false
               @error = ''
               @opaque_backend_state = repository.opaque_backend_state
@@ -86,6 +86,18 @@ module Datadog
             end
 
             private
+
+            def contents_to_config_states(contents)
+              return [] if contents.empty?
+
+              contents.map do |content|
+                {
+                  id: content.path.config_id,
+                  version: content.version,
+                  product: content.path.product
+                }
+              end
+            end
 
             def contents_to_cached_target_files(contents)
               return [] if contents.empty?
@@ -164,6 +176,7 @@ module Datadog
               def apply(repository)
                 return unless repository[@path].nil?
 
+                @content.version = @target.version
                 repository.contents << @content
 
                 @path
@@ -184,6 +197,7 @@ module Datadog
               def apply(repository)
                 return if repository[@path].nil?
 
+                @content.version = @target.version
                 repository.contents[@path] = @content
 
                 @path
