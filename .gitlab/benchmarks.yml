@@ -7,7 +7,7 @@ variables:
   GITLAB_DDPROF_BENCHMARK_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-ddprof-benchmark
 
 .benchmarks:
-  stage: benchmarks
+  stage: macrobenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
   timeout: 1h
   rules:
@@ -72,7 +72,7 @@ profiling-and-tracing-and-appsec-benchmarks:
 # Microbenchmarks that report to statsd
 # -----------------------------------------------------
 ddprof-benchmark:
-  stage: benchmarks
+  stage: microbenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
   timeout: 1h
   when: manual
