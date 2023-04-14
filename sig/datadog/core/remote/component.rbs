@@ -2,8 +2,12 @@ module Datadog
   module Core
     module Remote
       class Component
+        BARRIER_TIMEOUT: Barrier::timeout_s
+
         attr_reader client: Datadog::Core::Remote::Client
         attr_reader worker: Datadog::Core::Remote::Worker
+
+        @barrier: Barrier
 
         def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
 
@@ -12,6 +16,22 @@ module Datadog
         def shutdown!: () -> void
 
         def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> Datadog::Core::Remote::Component?
+
+        class Barrier
+          type timeout_s = ::Integer | ::Float
+
+          @once: bool
+          @timeout: timeout_s?
+
+          @mutex: ::Thread::Mutex
+          @condition: ::Thread::ConditionVariable
+
+          def initialize: (?timeout_s? timeout) -> void
+
+          def wait_once: (?timeout_s? timeout) -> void
+          def wait_next: (?timeout_s? timeout) -> void
+          def lift: () -> void
+        end
       end
     end
   end
