@@ -265,10 +265,10 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
   describe Datadog::Core::Remote::Configuration::Repository::State do
     let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
-    describe '#config_states' do
+    describe '#cached_target_files' do
       context 'without changes' do
         it 'return empty array' do
-          expect(repository.state.config_states).to eq([])
+          expect(repository.state.cached_target_files).to eq([])
         end
       end
 
@@ -278,7 +278,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
           new_content.hexdigest(:sha256)
         end
 
-        let(:expected_config_states) do
+        let(:expected_cached_target_files) do
           [
             {
               :hashes => [
@@ -294,28 +294,28 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         end
 
         context 'insert' do
-          it 'return config_states' do
+          it 'return cached_target_files' do
             repository.transaction do |_repository, transaction|
               transaction.insert(path, target, content)
             end
 
-            expect(repository.state.config_states).to eq(expected_config_states)
+            expect(repository.state.cached_target_files).to eq(expected_cached_target_files)
           end
         end
 
         context 'update' do
-          it 'return config_states' do
+          it 'return cached_target_files' do
             repository.transaction do |_repository, transaction|
               transaction.insert(path, target, content)
             end
 
-            expect(repository.state.config_states).to eq(expected_config_states)
+            expect(repository.state.cached_target_files).to eq(expected_cached_target_files)
 
             repository.transaction do |_repository, transaction|
               transaction.update(path, target, new_content)
             end
 
-            expected_updated_config_states = [
+            expected_updated_cached_target_files = [
               {
                 :hashes => [
                   {
@@ -328,24 +328,24 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
               }
             ]
 
-            expect(repository.state.config_states).to_not eq(expected_config_states)
-            expect(repository.state.config_states).to eq(expected_updated_config_states)
+            expect(repository.state.cached_target_files).to_not eq(expected_cached_target_files)
+            expect(repository.state.cached_target_files).to eq(expected_updated_cached_target_files)
           end
         end
 
         context 'delete' do
-          it 'return config_states' do
+          it 'return cached_target_files' do
             repository.transaction do |_repository, transaction|
               transaction.insert(path, target, content)
             end
 
-            expect(repository.state.config_states).to eq(expected_config_states)
+            expect(repository.state.cached_target_files).to eq(expected_cached_target_files)
 
             repository.transaction do |_repository, transaction|
               transaction.delete(path)
             end
 
-            expect(repository.state.config_states).to eq([])
+            expect(repository.state.cached_target_files).to eq([])
           end
         end
       end
