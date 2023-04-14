@@ -38,6 +38,10 @@ module Datadog
             )
           end
 
+          if no_signals_workaround_enabled
+            Datadog.logger.debug('Profiling no signals workaround is in use. Profiling data will have lower precision.')
+          end
+
           self.class._native_initialize(
             self,
             thread_context_collector,

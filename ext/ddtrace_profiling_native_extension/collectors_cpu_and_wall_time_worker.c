@@ -482,22 +482,34 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
 
-    current_gvl_owner owner = gvl_owner();
-    if (owner.valid) {
-      // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
-      // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
-      // includes a check to see if it got called in the right thread
-      pthread_kill(owner.owner, SIGPROF);
+    if (!state->no_signals_workaround_enabled) {
+      current_gvl_owner owner = gvl_owner();
+      if (owner.valid) {
+        // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
+        // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
+        // includes a check to see if it got called in the right thread
+        pthread_kill(owner.owner, SIGPROF);
+      } else {
+        // If no thread owns the Global VM Lock, the application is probably idle at the moment. We still want to sample
+        // so we "ask a friend" (the IdleSamplingHelper component) to grab the GVL and simulate getting a SIGPROF.
+        //
+        // In a previous version of the code, we called `grab_gvl_and_sample` directly BUT this was problematic because
+        // Ruby may concurrently get busy and so the CpuAndWallTimeWorker would be blocked in line to acquire the GVL
+        // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
+        // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
+        state->stats.trigger_simulated_signal_delivery_attempts++;
+        idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
+      }
     } else {
-      // If no thread owns the Global VM Lock, the application is probably idle at the moment. We still want to sample
-      // so we "ask a friend" (the IdleSamplingHelper component) to grab the GVL and simulate getting a SIGPROF.
+      // In the no_signals_workaround_enabled mode, the profiler never sends SIGPROF signals.
       //
-      // In a previous version of the code, we called `grab_gvl_and_sample` directly BUT this was problematic because
-      // Ruby may concurrently get busy and so the CpuAndWallTimeWorker would be blocked in line to acquire the GVL
-      // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
-      // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
+      // This is a fallback for a few incompatibilities and limitations -- see the code that decides when to enable
+      // `no_signals_workaround_enabled` in `Profiling::Component` for details.
+      //
+      // Thus, we instead pretty please ask Ruby to let us run. This means profiling data can be biased by when the Ruby
+      // scheduler chooses to schedule us.
       state->stats.trigger_simulated_signal_delivery_attempts++;
-      idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
+      grab_gvl_and_sample();
     }
 
     sleep_for(minimum_time_between_signals);

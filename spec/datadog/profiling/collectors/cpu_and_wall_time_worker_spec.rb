@@ -41,6 +41,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
       end
     end
+
+    context 'when using the no signals workaround' do
+      let(:no_signals_workaround_enabled) { true }
+
+      it 'logs a debug message' do
+        expect(Datadog.logger).to receive(:debug).with(/no signals workaround is in use/)
+
+        cpu_and_wall_time_worker
+      end
+    end
   end
 
   describe '#start' do
@@ -373,6 +383,34 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         #
         expect(sample_count).to be >= 8, "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
         expect(trigger_sample_attempts).to be >= sample_count
+      end
+    end
+
+    context 'when using the no signals workaround' do
+      let(:no_signals_workaround_enabled) { true }
+
+      it 'always simulates signal delivery' do
+        start
+
+        all_samples = try_wait_until do
+          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+          samples if samples.any?
+        end
+
+        cpu_and_wall_time_worker.stop
+
+        sample_count =
+          samples_for_thread(all_samples, Thread.current)
+            .map { |it| it.values.fetch(:'cpu-samples') }
+            .reduce(:+)
+
+        stats = cpu_and_wall_time_worker.stats
+
+        expect(sample_count).to be > 0
+        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:trigger_simulated_signal_delivery_attempts))
+        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:simulated_signal_delivery))
+        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:signal_handler_enqueued_sample))
+        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:postponed_job_success))
       end
     end
   end
