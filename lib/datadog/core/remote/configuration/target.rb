@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'digest/sha2'
 require_relative 'path'
+require_relative 'digest'
 
 module Datadog
   module Core
@@ -47,7 +47,7 @@ module Datadog
           class << self
             def parse(hash)
               length = Integer(hash['length'])
-              digests = DigestList.parse(hash['hashes'])
+              digests = Configuration::DigestList.parse(hash['hashes'])
 
               new(digests: digests, length: length)
             end
@@ -63,60 +63,8 @@ module Datadog
           private_class_method :new
 
           def check(content)
-            digests.check(content.data)
+            digests.check(content)
           end
-
-          # Represent a list of Configuration::Target::Digest
-          class DigestList < Array
-            class << self
-              def parse(hash)
-                new.concat(hash.map { |type, hexdigest| Digest.new(type, hexdigest) })
-              end
-            end
-
-            def check(data)
-              map { |digest| digest.check(data) }.reduce(:&)
-            end
-          end
-
-          private_constant :DigestList
-
-          # Stores and validates different cryptographic hash functions
-          class Digest
-            attr_reader :type, :hexdigest
-
-            def initialize(type, hexdigest)
-              @type = type.to_sym
-              @hexdigest = hexdigest
-            end
-
-            def check(data)
-              case @type
-              when :sha256
-                chunked_hexdigest(data) == hexdigest
-              else
-                raise
-              end
-            ensure
-              data.rewind
-            end
-
-            private
-
-            DIGEST_CHUNK = 1024
-
-            def chunked_hexdigest(io)
-              d = ::Digest::SHA256.new
-
-              while (buf = io.read(DIGEST_CHUNK))
-                d.update(buf)
-              end
-
-              d.hexdigest
-            end
-          end
-
-          private_constant :DigestList
         end
       end
     end

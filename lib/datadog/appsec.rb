@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'appsec/configuration'
 require_relative 'appsec/extensions'
 
