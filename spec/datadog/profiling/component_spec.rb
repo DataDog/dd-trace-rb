@@ -104,12 +104,6 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       context 'when using the new CPU Profiling 2.0 profiler' do
-        before do
-          settings.profiling.advanced.force_enable_new_profiler = true
-          # Silence warning spam about using the new profiler on legacy Rubies
-          allow(Datadog.logger).to receive(:warn) if RUBY_VERSION < '2.6.'
-        end
-
         it 'does not initialize the OldStack collector' do
           expect(Datadog::Profiling::Collectors::OldStack).to_not receive(:new)
 
@@ -134,18 +128,6 @@ RSpec.describe Datadog::Profiling::Component do
           )
 
           build_profiler_component
-        end
-
-        context 'on Ruby 2.5 and below' do
-          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '2.6.' }
-
-          it 'logs a warning message mentioning that profiler has been force-enabled AND that it may cause issues' do
-            expect(Datadog.logger).to receive(:warn).with(
-              /The new CPU Profiling 2.0 profiler has been force-enabled on a legacy Ruby version/
-            )
-
-            build_profiler_component
-          end
         end
 
         it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to false' do
@@ -371,10 +353,64 @@ RSpec.describe Datadog::Profiling::Component do
     context 'when force_enable_legacy_profiler is not enabled' do
       before { settings.profiling.advanced.force_enable_legacy_profiler = false }
 
+      it { is_expected.to be true }
+    end
+  end
+
+  describe '.no_signals_workaround_enabled?' do
+    subject(:no_signals_workaround_enabled?) { described_class.send(:no_signals_workaround_enabled?, settings) }
+
+    context 'when no_signals_workaround_enabled is false' do
+      before do
+        settings.profiling.advanced.no_signals_workaround_enabled = false
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      it { is_expected.to be false }
+
       context 'on Ruby 2.5 and below' do
         before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '2.6.' }
 
-        it { is_expected.to be false }
+        it 'logs a warning message mentioning that this is is not recommended' do
+          expect(Datadog.logger).to receive(:warn).with(
+            /workaround has been disabled via configuration.*This is not recommended/
+          )
+
+          no_signals_workaround_enabled?
+        end
+      end
+
+      context 'on Ruby 2.6 and above' do
+        before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '2.6.' }
+
+        it 'logs a warning message mentioning that the no signals mode has been disabled' do
+          expect(Datadog.logger).to receive(:warn).with('Profiling "no signals" workaround disabled via configuration')
+
+          no_signals_workaround_enabled?
+        end
+      end
+    end
+
+    context 'when no_signals_workaround_enabled is true' do
+      before do
+        settings.profiling.advanced.no_signals_workaround_enabled = true
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      it { is_expected.to be true }
+
+      it 'logs a warning message mentioning that this setting is active' do
+        expect(Datadog.logger).to receive(:warn).with(/Profiling "no signals" workaround enabled via configuration/)
+
+        no_signals_workaround_enabled?
+      end
+    end
+
+    shared_examples 'no_signals_workaround_enabled :auto behavior' do
+      context 'on Ruby 2.5 and below' do
+        before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '2.6.' }
+
+        it { is_expected.to be true }
       end
 
       context 'on Ruby 2.6 and above' do
@@ -391,24 +427,24 @@ RSpec.describe Datadog::Profiling::Component do
           context 'when skip_mysql2_check is enabled' do
             before { settings.profiling.advanced.skip_mysql2_check = true }
 
-            it { is_expected.to be false }
+            it { is_expected.to be true }
 
-            it 'logs a warning message mentioning that the legacy profiler is going to be used' do
-              expect(Datadog.logger).to receive(:warn).with(/Falling back to legacy profiler/)
+            it 'logs a warning message mentioning that the no signals workaround is going to be used' do
+              expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
-              enable_new_profiler?
+              no_signals_workaround_enabled?
             end
           end
 
           context 'when there is an issue requiring mysql2' do
             before { allow(described_class).to receive(:require).and_raise(LoadError.new('Simulated require failure')) }
 
-            it { is_expected.to be false }
+            it { is_expected.to be true }
 
-            it 'logs a warning' do
+            it 'logs that probing mysql2 failed' do
               expect(Datadog.logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
 
-              enable_new_profiler?
+              no_signals_workaround_enabled?
             end
           end
 
@@ -418,7 +454,7 @@ RSpec.describe Datadog::Profiling::Component do
             it 'logs a debug message stating mysql2 will be required' do
               expect(Datadog.logger).to receive(:debug).with(/Requiring `mysql2` to check/)
 
-              enable_new_profiler?
+              no_signals_workaround_enabled?
             end
 
             context 'when mysql2 gem does not provide the info method' do
@@ -426,7 +462,7 @@ RSpec.describe Datadog::Profiling::Component do
                 stub_const('Mysql2::Client', double('Fake Mysql2::Client'))
               end
 
-              it { is_expected.to be false }
+              it { is_expected.to be true }
             end
 
             context 'when an error is raised while probing the mysql2 gem' do
@@ -436,12 +472,12 @@ RSpec.describe Datadog::Profiling::Component do
                 expect(fake_client).to receive(:info).and_raise(ArgumentError.new('Simulated call failure'))
               end
 
-              it { is_expected.to be false }
+              it { is_expected.to be true }
 
               it 'logs a warning including the error details' do
                 expect(Datadog.logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
 
-                enable_new_profiler?
+                no_signals_workaround_enabled?
               end
             end
 
@@ -452,12 +488,12 @@ RSpec.describe Datadog::Profiling::Component do
                 expect(fake_client).to receive(:info).and_return({ version: '7.9.9' })
               end
 
-              it { is_expected.to be false }
+              it { is_expected.to be true }
 
-              it 'logs a warning message mentioning that the legacy profiler is going to be used' do
-                expect(Datadog.logger).to receive(:warn).with(/Falling back to legacy profiler/)
+              it 'logs a warning message mentioning that the no signals workaround is going to be used' do
+                expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
-                enable_new_profiler?
+                no_signals_workaround_enabled?
               end
             end
 
@@ -468,20 +504,14 @@ RSpec.describe Datadog::Profiling::Component do
                 expect(fake_client).to receive(:info).and_return({ version: '8.0.0' })
               end
 
-              it { is_expected.to be true }
+              it { is_expected.to be false }
 
               it 'does not log any warning message' do
                 expect(Datadog.logger).to_not receive(:warn)
 
-                enable_new_profiler?
+                no_signals_workaround_enabled?
               end
             end
-          end
-
-          context 'when force_enable_new_profiler is enabled' do
-            before { settings.profiling.advanced.force_enable_new_profiler = true }
-
-            it { is_expected.to be true }
           end
         end
 
@@ -490,27 +520,42 @@ RSpec.describe Datadog::Profiling::Component do
 
           before { allow(Datadog.logger).to receive(:warn) }
 
-          it { is_expected.to be false }
+          it { is_expected.to be true }
 
-          it 'logs a warning message mentioning that the legacy profiler is going to be used' do
-            expect(Datadog.logger).to receive(:warn).with(/Falling back to legacy profiler/)
+          it 'logs a warning message mentioning that the no signals workaround is going to be used' do
+            expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
-            enable_new_profiler?
-          end
-
-          context 'when force_enable_new_profiler is enabled' do
-            before { settings.profiling.advanced.force_enable_new_profiler = true }
-
-            it { is_expected.to be true }
+            no_signals_workaround_enabled?
           end
         end
 
         context 'when mysql2 / rugged gem are not available' do
           include_context('loaded gems', mysql2: nil, rugged: nil)
 
-          it { is_expected.to be true }
+          it { is_expected.to be false }
         end
       end
+    end
+
+    context 'when no_signals_workaround_enabled is :auto' do
+      before { settings.profiling.advanced.no_signals_workaround_enabled = :auto }
+
+      include_examples 'no_signals_workaround_enabled :auto behavior'
+    end
+
+    context 'when no_signals_workaround_enabled is an invalid value' do
+      before do
+        settings.profiling.advanced.no_signals_workaround_enabled = 'invalid value'
+        allow(Datadog.logger).to receive(:error)
+      end
+
+      it 'logs an error message mentioning that the invalid value will be ignored' do
+        expect(Datadog.logger).to receive(:error).with(/Ignoring invalid value/)
+
+        no_signals_workaround_enabled?
+      end
+
+      include_examples 'no_signals_workaround_enabled :auto behavior'
     end
   end
 end

@@ -76,8 +76,7 @@ module Datadog
             endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
             gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
-            # TODO: automatically enable this when needed
-            no_signals_workaround_enabled: !settings.profiling.advanced.no_signals_workaround_enabled.nil?,
+            no_signals_workaround_enabled: no_signals_workaround_enabled?(settings),
           )
         else
           recorder = build_profiler_old_recorder(settings)
@@ -149,43 +148,70 @@ module Datadog
           return false
         end
 
-        if settings.profiling.advanced.force_enable_new_profiler
-          unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+        true
+      end
+
+      private_class_method def self.no_signals_workaround_enabled?(settings) # rubocop:disable Metrics/MethodLength
+        setting_value = settings.profiling.advanced.no_signals_workaround_enabled
+        legacy_ruby_that_should_use_workaround = RUBY_VERSION.start_with?('2.3.', '2.4.', '2.5.')
+
+        unless [true, false, :auto].include?(setting_value)
+          Datadog.logger.error(
+            "Ignoring invalid value for profiling no_signals_workaround_enabled setting: #{setting_value.inspect}"
+          )
+
+          setting_value = :auto
+        end
+
+        if setting_value == false
+          if legacy_ruby_that_should_use_workaround
             Datadog.logger.warn(
-              'The new CPU Profiling 2.0 profiler has been force-enabled on a legacy Ruby version (< 2.6). This is not ' \
-              'recommended in production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes ' \
+              'The profiling "no signals" workaround has been disabled via configuration on a legacy Ruby version ' \
+              '(< 2.6). This is not recommended ' \
+              'in production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes ' \
               'in very rare situations. Please report any issues you run into to Datadog support or ' \
               'via <https://github.com/datadog/dd-trace-rb/issues/new>!'
             )
+          else
+            Datadog.logger.warn('Profiling "no signals" workaround disabled via configuration')
           end
+
+          return false
+        end
+
+        if setting_value == true
+          Datadog.logger.warn(
+            'Profiling "no signals" workaround enabled via configuration. Profiling data will have lower quality.'
+          )
 
           return true
         end
 
-        return false if RUBY_VERSION.start_with?('2.3.', '2.4.', '2.5.')
+        # Setting is in auto mode. Let's probe to see if we should enable it:
+
+        # We don't warn users in this situation because "upgrade your Ruby" is not a great warning
+        return true if legacy_ruby_that_should_use_workaround
 
         if Gem.loaded_specs['mysql2'] && incompatible_libmysqlclient_version?(settings)
           Datadog.logger.warn(
-            'Falling back to legacy profiler because an incompatible version of the mysql2 gem is installed. ' \
-            'Older versions of libmysqlclient (the C ' \
-            'library used by the mysql2 gem) have a bug in their signal handling code that the new profiler can trigger. ' \
-            'This bug (https://bugs.mysql.com/bug.php?id=83109) is fixed in libmysqlclient versions 8.0.0 and above. '
+            'Enabling the profiling "no signals" workaround because an incompatible version of the mysql2 gem is ' \
+            'installed. Profiling data will have lower quality.' \
+            'To fix this, upgrade the libmysqlclient in your OS image to version 8.0.0 or above.'
           )
-          return false
+          return true
         end
 
         if Gem.loaded_specs['rugged']
           Datadog.logger.warn(
-            'Falling back to legacy profiler because rugged gem is installed. Some operations on this gem are ' \
-            'currently incompatible with the new CPU Profiling 2.0 profiler, as detailed in ' \
-            '<https://github.com/datadog/dd-trace-rb/issues/2721>. If you still want to try out the new profiler, you ' \
-            'can force-enable it by using the `DD_PROFILING_FORCE_ENABLE_NEW` environment variable or the ' \
-            '`c.profiling.advanced.force_enable_new_profiler` setting.'
+            'Enabling the profiling "no signals" workaround because the rugged gem is installed. ' \
+            'This is needed because some operations on this gem are currently incompatible with the normal working mode ' \
+            'of the profiler, as detailed in <https://github.com/datadog/dd-trace-rb/issues/2721>. ' \
+            'Profiling data will have lower quality.'
           )
-          return false
+          return true
         end
 
-        true
+        false
       end
 
       # Versions of libmysqlclient prior to 8.0.0 are known to have buggy handling of system call interruptions.
