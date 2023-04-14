@@ -12,6 +12,8 @@ module Datadog
       # Configures the HTTP transport to communicate with the agent
       # to fetch and sync the remote configuration
       class Component
+        BARRIER_TIMEOUT = 1.0 # second
+
         attr_reader :client
 
         def initialize(settings, agent_settings)
@@ -22,7 +24,7 @@ module Datadog
 
           capabilities = Client::Capabilities.new(settings)
 
-          @barrier = Barrier.new
+          @barrier = Barrier.new(BARRIER_TIMEOUT)
 
           @client = Client.new(transport_v7, capabilities)
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds) do
@@ -58,15 +60,16 @@ module Datadog
 
         # Barrier provides a mechanism to fence execution until a condition happens
         class Barrier
-          def initialize
+          def initialize(timeout = nil)
             @once = false
+            @timeout = timeout
 
             @mutex = Mutex.new
             @condition = ConditionVariable.new
           end
 
           # Wait for first lift to happen, otherwise don't wait
-          def wait_once
+          def wait_once(timeout = nil)
             # TTAS (Test and Test-And-Set) optimisation
             # Since @once only ever goes from false to true, this is semantically valid
             return if @once
@@ -76,21 +79,28 @@ module Datadog
 
               return if @once
 
-              @condition.wait(@mutex)
+              timeout ||= @timeout
+
+              # rbs/core has a bug, timeout type is incorrectly ?Integer
+              @condition.wait(@mutex, _ = timeout)
             ensure
               @mutex.unlock
             end
           end
 
           # Wait for next lift to happen
-          def wait_next
+          def wait_next(timeout = nil)
             @mutex.lock
 
-            @condition.wait(@mutex)
+            timeout ||= @timeout
+
+            # rbs/core has a bug, timeout type is incorrectly ?Integer
+            @condition.wait(@mutex, _ = timeout)
           ensure
             @mutex.unlock
           end
 
+          # Release all current waiters
           def lift
             @mutex.lock
 

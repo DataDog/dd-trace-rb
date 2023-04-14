@@ -80,8 +80,10 @@ end
 
 RSpec.describe Datadog::Core::Remote::Component::Barrier do
   let(:delay) { 0.5 }
+  let(:timeout) { nil }
+  let(:instance_timeout) { nil }
 
-  subject(:barrier) { described_class.new }
+  subject(:barrier) { described_class.new(instance_timeout) }
 
   shared_context('recorder') do
     let(:record) { [] }
@@ -130,6 +132,16 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
     after do
       thr.kill
       thr.join
+    end
+  end
+
+  describe '#initialize' do
+    it 'accepts one argument' do
+      expect { described_class.new(instance_timeout) }.to_not raise_error
+    end
+
+    it 'accepts zero argument' do
+      expect { described_class.new }.to_not raise_error
     end
   end
 
@@ -186,6 +198,65 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
       expect(record).to eq [:one, :lift, :two, :three]
     end
+
+    context('with a local timeout') do
+      let(:timeout) { delay / 4 }
+
+      context('shorter than lift') do
+        it 'unblocks on timeout' do
+          record << :one
+          barrier.wait_once(timeout)
+          record << :two
+          barrier.wait_once(timeout)
+          record << :three
+
+          expect(record).to eq [:one, :two, :three]
+        end
+      end
+
+      context('longer than lift') do
+        let(:delay) { 0.2 }
+        let(:timeout) { delay * 2 }
+
+        it 'unblocks before timeout' do
+          record << :one
+          barrier.wait_once(timeout)
+          record << :two
+          barrier.wait_once(timeout)
+          record << :three
+
+          expect(record).to eq [:one, :lift, :two, :three]
+        end
+      end
+
+      context('and an instance timeout') do
+        let(:instance_timeout) { delay * 2 }
+
+        it 'prefers the local timeout' do
+          record << :one
+          barrier.wait_once(timeout)
+          record << :two
+          barrier.wait_once(timeout)
+          record << :three
+
+          expect(record).to eq [:one, :two, :three]
+        end
+      end
+    end
+
+    context('with an instance timeout') do
+      let(:instance_timeout) { delay / 4 }
+
+      it 'unblocks on timeout' do
+        record << :one
+        barrier.wait_once
+        record << :two
+        barrier.wait_once
+        record << :three
+
+        expect(record).to eq [:one, :two, :three]
+      end
+    end
   end
 
   describe '#wait_next' do
@@ -207,6 +278,65 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       record << :three
 
       expect(record).to eq [:one, :lift, :two, :lift, :three]
+    end
+
+    context('with a local timeout') do
+      let(:timeout) { delay / 4 }
+
+      context('shorter than lift') do
+        it 'unblocks on timeout' do
+          record << :one
+          barrier.wait_next(timeout)
+          record << :two
+          barrier.wait_next(timeout)
+          record << :three
+
+          expect(record).to eq [:one, :two, :three]
+        end
+      end
+
+      context('longer than lift') do
+        let(:delay) { 0.2 }
+        let(:timeout) { delay * 2 }
+
+        it 'unblocks before timeout' do
+          record << :one
+          barrier.wait_next(timeout)
+          record << :two
+          barrier.wait_next(timeout)
+          record << :three
+
+          expect(record).to eq [:one, :lift, :two, :lift, :three]
+        end
+      end
+
+      context('and an instance timeout') do
+        let(:instance_timeout) { delay * 2 }
+
+        it 'prefers the local timeout' do
+          record << :one
+          barrier.wait_next(timeout)
+          record << :two
+          barrier.wait_next(timeout)
+          record << :three
+
+          expect(record).to eq [:one, :two, :three]
+        end
+      end
+    end
+
+    context('with an instance timeout') do
+      let(:instance_timeout) { delay / 4 }
+
+      it 'unblocks on timeout' do
+        record << :one
+        barrier.wait_next
+        record << :two
+        barrier.wait_next
+        record << :three
+
+        expect(record).to eq [:one, :two, :three]
+      end
     end
   end
 end
