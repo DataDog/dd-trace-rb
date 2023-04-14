@@ -67,13 +67,19 @@ module Datadog
 
           # Wait for first lift to happen, otherwise don't wait
           def wait_once
-            @mutex.lock
-
+            # TTAS (Test and Test-And-Set) optimisation
+            # Since @once only ever goes from false to true, this is semantically valid
             return if @once
 
-            @condition.wait(@mutex)
-          ensure
-            @mutex.unlock
+            begin
+              @mutex.lock
+
+              return if @once
+
+              @condition.wait(@mutex)
+            ensure
+              @mutex.unlock
+            end
           end
 
           # Wait for next lift to happen
