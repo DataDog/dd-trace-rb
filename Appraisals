@@ -137,7 +137,7 @@ if ruby_version?('2.1')
     gem 'active_model_serializers', '~> 0.9.0'
     gem 'activerecord', '3.2.22.5'
     gem 'activerecord-mysql-adapter'
-    gem 'aws-sdk', '~> 2'
+    gem 'aws-sdk', '~> 2.0'
     gem 'concurrent-ruby'
     gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
@@ -313,10 +313,6 @@ elsif ruby_version?('2.2')
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
-  end
-
-  appraise 'aws' do
-    gem 'aws-sdk'
   end
 
   appraise 'contrib' do
