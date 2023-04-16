@@ -320,6 +320,7 @@ elsif ruby_version?('2.2')
     gem 'actionview'
     gem 'active_model_serializers', '>= 0.10.0'
     gem 'activerecord', '< 5.1.5'
+    gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
