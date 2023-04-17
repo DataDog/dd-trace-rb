@@ -69,4 +69,24 @@ RSpec.describe Datadog::Core::Environment::Identity do
 
     it { is_expected.to eq(Datadog::Core::Environment::Ext::TRACER_VERSION) }
   end
+
+  describe '::tracer_version_semver2' do
+    subject(:tracer_version) { described_class.tracer_version_semver2 }
+
+    context 'when not prerelease' do
+      before do
+        expect(described_class).to receive(:tracer_version).and_return('10.20.30')
+      end
+
+      it { is_expected.to eq('10.20.30') }
+    end
+
+    context 'when prerelease' do
+      before do
+        expect(described_class).to receive(:tracer_version).and_return('10.20.30.beta40')
+      end
+
+      it { is_expected.to eq('10.20.30-beta40') }
+    end
+  end
 end

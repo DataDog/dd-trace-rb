@@ -49,8 +49,17 @@ module Datadog
           Core::Environment::Ext::LANG_VERSION
         end
 
+        # Returns tracer version, rubygems-style
         def tracer_version
           Core::Environment::Ext::TRACER_VERSION
+        end
+
+        # Returns tracer version, comforming to https://semver.org/spec/v2.0.0.html
+        def tracer_version_semver2
+          # from ddtrace/version.rb, we have MAJOR.MINOR.PATCH plus an optional .PRE
+          # - transform .PRE to -PRE if present
+          # - keep triplet before that
+          tracer_version.sub(/\.([a-zA-Z0-9]*[a-zA-Z][a-zA-Z0-9]*.*)$/, '-\1')
         end
       end
     end
