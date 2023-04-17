@@ -449,8 +449,8 @@ RSpec.describe Datadog::Core::Remote::Client do
             }
           end
 
-          it 'raises Path::ParseError' do
-            expect { client.sync }.to raise_error(Datadog::Core::Remote::Configuration::Path::ParseError)
+          it 'raises TargetMap::ParseError' do
+            expect { client.sync }.to raise_error(Datadog::Core::Remote::Configuration::TargetMap::ParseError)
           end
         end
       end

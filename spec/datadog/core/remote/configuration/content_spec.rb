@@ -89,13 +89,15 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
       rules_override: []
     }
   end
+  let(:expires) { DateTime.now.new_offset.to_date.next_year }
   let(:string_io_content) { StringIO.new(raw.to_json) }
   subject(:content_list) do
     described_class.parse(
       [{
         :path => path.to_s,
         :content => string_io_content
-      }]
+      }],
+      expires
     )
   end
 
@@ -113,7 +115,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
             [{
               :path => 'invalid path',
               :content => string_io_content
-            }]
+            }],
+            expires
           )
         end.to raise_error(Datadog::Core::Remote::Configuration::Path::ParseError)
       end
@@ -178,7 +181,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
         {
           :path => path.to_s,
           :content => updated_string_io
-        }
+        },
+        expires
       )
     end
 
@@ -230,7 +234,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
         {
           :path => path.to_s,
           :content => string_io_content
-        }
+        },
+        expires
       )
     end
 

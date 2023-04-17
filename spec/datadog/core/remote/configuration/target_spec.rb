@@ -77,6 +77,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
     }
   end
 
+  let(:expires) { '2023-06-15T15:25:56Z' }
+
   let(:raw_target_map) do
     {
       'signatures' => [
@@ -92,7 +94,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
             'agent_refresh_interval' => 50,
             'opaque_backend_state' => opaque_backend_state
           },
-          'expires' => '2023-06-15T15:25:56Z',
+          'expires' => expires,
           'spec_version' => '1.0.0',
           'targets' => {
             'datadog/603646/ASM/exclusion_filters/config' => {
@@ -114,6 +116,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         }
     }
   end
+
   describe '.parse' do
     context 'with valid target hash' do
       it 'returns a TargetMap instance' do
@@ -135,39 +138,33 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
       end
     end
 
-    context 'with valid target path' do
-      it 'raises Path::ParseError' do
-        invalid_data = {
-          'signatures' => [
-            {
-              'keyid' => '44de082b06652b24c3ccfecba7dcbdb82f1cc58e3813f824665a6085a6d6b6a3',
-              'sig' => '0a66cbda8de50af143708a881189278672'
-            }
-          ],
-          'signed' =>
-            {
-              '_type' => 'targets',
-              'custom' => {
-                'agent_refresh_interval' => 50,
-                'opaque_backend_state' => opaque_backend_state
-              },
-              'expires' => '2023-06-15T15:25:56Z',
-              'spec_version' => '1.0.0',
-              'targets' => {
-                'invalid_path' => {}
-              },
-              'version' => version,
-            }
+    context 'with invalid target path' do
+      it 'raises ParseError' do
+        raw_target_map_dup = raw_target_map.dup
+        raw_target_map_dup['signed']['targets'] = {
+          'invalid_path' => {}
         }
 
-        expect { described_class.parse(invalid_data) }.to raise_error(
-          Datadog::Core::Remote::Configuration::Path::ParseError
+        expect { described_class.parse(raw_target_map_dup) }.to raise_error(
+          described_class::ParseError
+        )
+      end
+    end
+
+    context 'invalid expires information' do
+      it 'raises ParseError' do
+        raw_target_map_dup = raw_target_map.dup
+        raw_target_map_dup['signed']['expires'] = 'invalid date'
+
+        expect { described_class.parse(raw_target_map_dup) }.to raise_error(
+          described_class::ParseError
         )
       end
     end
   end
 
   describe Datadog::Core::Remote::Configuration::Target do
+    let(:expires) { DateTime.now.new_offset.to_date.next_year }
     let(:raw_target) do
       {
         'custom' => {
@@ -193,11 +190,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         it 'returns true' do
           string_io_content = StringIO.new(raw.to_json)
 
-          content_hash = {
-            :path => 'datadog/603646/ASM/exclusion_filters/config',
-            :content => string_io_content
-          }
-          content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
+          content = Datadog::Core::Remote::Configuration::Content.parse(
+            {
+              :path => 'datadog/603646/ASM/exclusion_filters/config',
+              :content => string_io_content
+            },
+            expires
+          )
 
           expect(target.check(content)).to be_truthy
         end
@@ -205,11 +204,13 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
 
       context 'invalid content' do
         it 'returns false' do
-          content_hash = {
-            :path => 'datadog/603646/ASM/exclusion_filters/config',
-            :content => StringIO.new('Hello World')
-          }
-          content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
+          content = Datadog::Core::Remote::Configuration::Content.parse(
+            {
+              :path => 'datadog/603646/ASM/exclusion_filters/config',
+              :content => StringIO.new('Hello World')
+            },
+            expires
+          )
 
           expect(target.check(content)).to be_falsy
         end

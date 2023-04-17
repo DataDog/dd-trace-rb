@@ -10,20 +10,21 @@ module Datadog
         # Content stores the information associated with a specific Configuration::Path
         class Content
           class << self
-            def parse(hash)
+            def parse(hash, expires)
               path = Path.parse(hash[:path])
               data = hash[:content]
 
-              new(path: path, data: data)
+              new(path: path, data: data, expires: expires)
             end
           end
 
-          attr_reader :path, :data, :hashes
+          attr_reader :path, :data, :hashes, :expires
           attr_accessor :version
 
-          def initialize(path:, data:)
+          def initialize(path:, data:, expires:)
             @path = path
             @data = data
+            @expires = expires
             @hashes = {}
             @version = 0
           end
@@ -49,8 +50,8 @@ module Datadog
         # It provides convinient methods for finding content base on Configuration::Path and Configuration::Target
         class ContentList < Array
           class << self
-            def parse(array)
-              new.concat(array.map { |c| Content.parse(c) })
+            def parse(array, expires)
+              new.concat(array.map { |c| Content.parse(c, expires) })
             end
           end
 

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'date'
 require_relative 'content'
 
 module Datadog
@@ -90,8 +91,12 @@ module Datadog
             def contents_to_config_states(contents)
               return [] if contents.empty?
 
-              contents.map do |content|
-                {
+              contents.each_with_object([]) do |content, acc|
+                # content expires datetime has zero offset
+                # new_offset return the current time with zero offset
+                next if content.expires && (content.expires < DateTime.now.new_offset)
+
+                acc << {
                   id: content.path.config_id,
                   version: content.version,
                   product: content.path.product
