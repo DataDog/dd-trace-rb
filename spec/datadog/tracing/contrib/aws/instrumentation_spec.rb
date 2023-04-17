@@ -27,7 +27,7 @@ RSpec.describe 'AWS instrumentation' do
     Datadog.registry[:aws].reset_configuration!
   end
 
-  context 'with a core AWS SDK client', if: RUBY_VERSION >= '2.2.0' do
+  context 'with a core AWS SDK client' do
     before { hide_const('Aws::S3') }
 
     let(:client) { ::Aws::STS::Client.new(stub_responses: responses) } # STS is part of aws-sdk-core
