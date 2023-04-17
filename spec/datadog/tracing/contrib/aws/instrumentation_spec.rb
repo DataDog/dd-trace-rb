@@ -107,7 +107,6 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('aws.operation')).to eq('list_buckets')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('s3')
-        # expect(span.get_tag('bucketname')).to eq('bucket1')
         expect(span.get_tag('path')).to eq('/')
         expect(span.get_tag('host')).to eq('s3.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('GET')

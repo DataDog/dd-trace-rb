@@ -1410,7 +1410,7 @@ elsif ruby_version?('2.7')
       gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
       gem 'activerecord'
-      gem 'aws-sdk', '~> 2'
+      gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
       gem 'dalli', '>= 3.0.0'
