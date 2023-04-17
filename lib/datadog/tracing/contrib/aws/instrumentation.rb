@@ -86,10 +86,12 @@ module Datadog
           def add_sqs_tags(span, params)
             queue_url = params[:queue_url]
             queue_name = params[:queue_name]
-            if queue_url 
-              # example queue_url: https://sqs.sa-east-1.amazonaws.com/12345678/MyQueueName
-              queue_name = queue_url.split('/')[-1]
-              aws_account = queue_url.split('/')[-2]
+            # Regular expression to match the SQS queue URL pattern
+            # https://sqs.sa-east-1.amazonaws.com/12345678/MyQueueName
+            pattern = %r{https://sqs\.[^/]+\.amazonaws\.com/(\d+)/([^/]+)}
+
+            if queue_url && (match = queue_url.match(pattern))
+              aws_account, queue_name = match.captures
               span.set_tag(Ext::TAG_AWS_ACCOUNT, aws_account)
             end
             span.set_tag(Ext::TAG_QUEUE_NAME, queue_name)
