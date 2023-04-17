@@ -119,8 +119,8 @@ module Datadog
             stream_name = params[:stream_name]
             if stream_arn
               # example stream_arn: arn:aws:kinesis:us-east-1:123456789012:stream/my-stream
-              stream_name = stream_arn.split('/')[-1] rescue ''
-              aws_account = stream_arn.split(':')[-2] rescue ''
+              stream_name = stream_arn.split('/')[-1]
+              aws_account = stream_arn.split(':')[-2]
               span.set_tag(Ext::TAG_AWS_ACCOUNT, aws_account)
             end
             span.set_tag(Ext::TAG_STREAM_NAME, stream_name)
