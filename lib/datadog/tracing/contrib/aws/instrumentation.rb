@@ -84,9 +84,9 @@ module Datadog
           end
 
           def add_sqs_tags(span, params)
-            queue_url = params.fetch(:queue_url, nil)
-            queue_name = params.fetch(:queue_name, nil)
-            if queue_url
+            queue_url = params[:queue_url]
+            queue_name = params[:queue_name]
+            if queue_url 
               # example queue_url: https://sqs.sa-east-1.amazonaws.com/12345678/MyQueueName
               queue_name = queue_url.split('/')[-1]
               aws_account = queue_url.split('/')[-2]
@@ -96,8 +96,8 @@ module Datadog
           end
 
           def add_sns_tags(span, params)
-            topic_arn = params.fetch(:topic_arn, nil)
-            topic_name = params.fetch(:name, nil)
+            topic_arn = params[:topic_arn]
+            topic_name = params[:name]
             if topic_arn
               # example topic_arn: arn:aws:sns:us-west-2:123456789012:my-topic-name
               topic_name = topic_arn.split(':')[-1]
@@ -108,13 +108,13 @@ module Datadog
           end
 
           def add_dynamodb_tags(span, params)
-            table_name = params.fetch(:table_name, '')
+            table_name = params[:table_name]
             span.set_tag(Ext::TAG_TABLE_NAME, table_name)
           end
 
           def add_kinesis_tags(span, params)
-            stream_arn = params.fetch(:stream_arn, nil)
-            stream_name = params.fetch(:stream_name, '')
+            stream_arn = params[:stream_arn]
+            stream_name = params[:stream_name]
             if stream_arn
               # example stream_arn: arn:aws:kinesis:us-east-1:123456789012:stream/my-stream
               stream_name = stream_arn.split('/')[-1] rescue ''
@@ -125,14 +125,14 @@ module Datadog
           end
 
           def add_eventbridge_tags(span, params)
-            rule_name = params.fetch(:name, nil) || params.fetch(:rule, nil)
+            rule_name = params[:name] || params[:rule]
             span.set_tag(Ext::TAG_RULE_NAME, rule_name)
           end
 
           def add_states_tags(span, params)
-            state_machine_name = params.fetch(:name, nil)
-            state_machine_arn = params.fetch(:state_machine_arn, nil)
-            execution_arn = params.fetch(:execution_arn, nil)
+            state_machine_name = params[:name]
+            state_machine_arn = params[:state_machine_arn]
+            execution_arn = params[:execution_arn]
 
             if execution_arn
               # 'arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution'
@@ -150,7 +150,7 @@ module Datadog
           end
 
           def add_s3_tags(span, params)
-            bucket_name = params.fetch(:bucket, nil)
+            bucket_name = params[:bucket]
             span.set_tag(Ext::TAG_BUCKET_NAME, bucket_name)
           end
 
