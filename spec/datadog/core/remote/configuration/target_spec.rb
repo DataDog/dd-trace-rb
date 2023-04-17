@@ -170,6 +170,9 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
   describe Datadog::Core::Remote::Configuration::Target do
     let(:raw_target) do
       {
+        'custom' => {
+          'v' => 1,
+        },
         'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw.to_json) },
         'length' => 645
       }

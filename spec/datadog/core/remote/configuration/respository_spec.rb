@@ -8,6 +8,9 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
   subject(:repository) { described_class.new }
   let(:raw_target) do
     {
+      'custom' => {
+        'v' => 1,
+      },
       'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw.to_json) },
       'length' => 645
     }
@@ -101,6 +104,12 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         :content => new_content_string_io_content
       }
     )
+  end
+
+  let(:new_target) do
+    updated_raw_target = raw_target.dup
+    updated_raw_target['custom']['v'] += 1
+    Datadog::Core::Remote::Configuration::Target.parse(updated_raw_target)
   end
 
   describe '#transaction' do
@@ -346,6 +355,69 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
             end
 
             expect(repository.state.cached_target_files).to eq([])
+          end
+        end
+      end
+    end
+
+    describe '#config_states' do
+      context 'without changes' do
+        it 'return empty array' do
+          expect(repository.state.config_states).to eq([])
+        end
+      end
+
+      context 'with changes' do
+        let(:expected_config_states) do
+          [
+            { :id => path.config_id, :product => path.product, :version => 1 }
+          ]
+        end
+
+        context 'insert' do
+          it 'return config_states' do
+            repository.transaction do |_repository, transaction|
+              transaction.insert(path, target, content)
+            end
+
+            expect(repository.state.config_states).to eq(expected_config_states)
+          end
+        end
+
+        context 'update' do
+          it 'return config_states' do
+            repository.transaction do |_repository, transaction|
+              transaction.insert(path, target, content)
+            end
+
+            expect(repository.state.config_states).to eq(expected_config_states)
+
+            repository.transaction do |_repository, transaction|
+              transaction.update(path, new_target, new_content)
+            end
+
+            expected_updated_config_states = [
+              { :id => path.config_id, :product => path.product, :version => 2 }
+            ]
+
+            expect(repository.state.config_states).to_not eq(expected_config_states)
+            expect(repository.state.config_states).to eq(expected_updated_config_states)
+          end
+        end
+
+        context 'delete' do
+          it 'return config_states' do
+            repository.transaction do |_repository, transaction|
+              transaction.insert(path, target, content)
+            end
+
+            expect(repository.state.config_states).to eq(expected_config_states)
+
+            repository.transaction do |_repository, transaction|
+              transaction.delete(path)
+            end
+
+            expect(repository.state.config_states).to eq([])
           end
         end
       end
