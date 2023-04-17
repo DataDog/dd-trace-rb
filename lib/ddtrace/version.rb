@@ -6,8 +6,9 @@ module DDTrace
     MINOR = 11
     PATCH = 0
     PRE = 'beta1'
+    BUILD = nil
 
-    STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')
+    STRING = [MAJOR, MINOR, PATCH, PRE, BUILD].compact.join('.')
 
     MINIMUM_RUBY_VERSION = '2.1.0'
 
