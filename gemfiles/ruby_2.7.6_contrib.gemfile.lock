@@ -1796,7 +1796,7 @@ DEPENDENCIES
   activerecord
   addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
-  aws-sdk (~> 2)
+  aws-sdk
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   builder
