@@ -27,7 +27,7 @@ module Datadog
           end
         end
 
-        # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity
+        # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity
         def sync
           # TODO: Skip sync if no capabilities are registered
           response = transport.send_config(payload)
@@ -40,13 +40,20 @@ module Datadog
               return
             end
 
-            paths = response.client_configs.map do |path|
-              Configuration::Path.parse(path)
+            begin
+              paths = response.client_configs.map do |path|
+                Configuration::Path.parse(path)
+              end
+
+              targets = Configuration::TargetMap.parse(response.targets)
+
+              contents = Configuration::ContentList.parse(response.target_files)
+            rescue Remote::Configuration::Path::ParseError => e
+              raise SyncError, e.message
             end
 
-            targets = Configuration::TargetMap.parse(response.targets)
-
-            contents = Configuration::ContentList.parse(response.target_files)
+            # To make sure steep does not complain
+            return unless paths && targets && contents
 
             # TODO: sometimes it can strangely be so that paths.empty?
             # TODO: sometimes it can strangely be so that targets.empty?
@@ -100,11 +107,9 @@ module Datadog
             else
               dispatcher.dispatch(changes, repository)
             end
-          else
-            raise SyncError, "unexpected transport response: #{response.inspect}"
           end
         end
-        # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity
+        # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity
 
         private
 

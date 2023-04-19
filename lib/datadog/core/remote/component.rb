@@ -30,9 +30,14 @@ module Datadog
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds) do
             begin
               @client.sync
+            rescue Client::SyncError => e
+              Datadog.logger.error do
+                "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
+              end
             rescue StandardError => e
               Datadog.logger.error do
-                "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}"
+                "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. "\
+                'reseting client state'
               end
 
               # client state is unknown, state might be corrupted

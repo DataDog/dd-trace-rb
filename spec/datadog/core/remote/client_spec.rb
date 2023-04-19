@@ -236,6 +236,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
   describe '#sync' do
     include_context 'HTTP connection stub'
+    let(:response_code) { 200 }
 
     let(:client_configs) do
       [
@@ -254,8 +255,6 @@ RSpec.describe Datadog::Core::Remote::Client do
     end
 
     context 'valid response' do
-      let(:response_code) { 200 }
-
       it 'store all changes into the repository' do
         expect(repository.opaque_backend_state).to be_nil
         expect(repository.targets_version).to eq(0)
@@ -361,16 +360,7 @@ RSpec.describe Datadog::Core::Remote::Client do
     end
 
     context 'invalid response' do
-      context 'not a 200 response' do
-        let(:response_code) { 401 }
-
-        it 'raises SyncError' do
-          expect { client.sync }.to raise_error(described_class::SyncError)
-        end
-      end
-
       context 'invalid response body' do
-        let(:response_code) { 200 }
         let(:response_body) do
           {
             'roots' => roots.map { |r| Base64.strict_encode64(r.to_json).chomp },
@@ -399,7 +389,6 @@ RSpec.describe Datadog::Core::Remote::Client do
         end
 
         context 'missing target for path from the response' do
-          let(:response_code) { 200 }
           let(:target_content) do
             {
               'datadog/603646/ASM/exclusion_filters/config' => {
@@ -449,8 +438,8 @@ RSpec.describe Datadog::Core::Remote::Client do
             }
           end
 
-          it 'raises Path::ParseError' do
-            expect { client.sync }.to raise_error(Datadog::Core::Remote::Configuration::Path::ParseError)
+          it 'raises SyncError' do
+            expect { client.sync }.to raise_error(described_class::SyncError, /could not parse: "invalid path"/)
           end
         end
       end
