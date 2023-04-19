@@ -111,6 +111,19 @@ module Datadog
         def payload
           state = repository.state
 
+          client_tracer = {
+            runtime_id: Core::Environment::Identity.id,
+            language: Core::Environment::Identity.lang,
+            tracer_version: Core::Environment::Identity.tracer_version,
+            service: Datadog.configuration.service,
+            env: Datadog.configuration.env,
+            tags: [], # TODO: add nice tags!
+          }
+
+          app_version = Datadog.configuration.version
+
+          client_tracer[:app_version] = app_version if app_version
+
           {
             client: {
               state: {
@@ -125,15 +138,7 @@ module Datadog
               products: @capabilities.products,
               is_tracer: true,
               is_agent: false,
-              client_tracer: {
-                runtime_id: Core::Environment::Identity.id,
-                language: Core::Environment::Identity.lang,
-                tracer_version: Core::Environment::Identity.tracer_version,
-                service: Datadog.configuration.service,
-                env: Datadog.configuration.env,
-                # app_version: app_version, # TODO: I don't know what this is
-                tags: [], # TODO: add nice tags!
-              },
+              client_tracer: client_tracer,
               # base64 is needed otherwise the Go agent fails with an unmarshal error
               capabilities: @capabilities.base64_capabilities
             },
