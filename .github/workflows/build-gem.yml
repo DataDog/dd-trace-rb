@@ -66,13 +66,17 @@ jobs:
           sed lib/ddtrace/version.rb -i -e "s/^\([\t ]*PRE\) *= */\1 = \'${PRE}\' # /"
           sed lib/ddtrace/version.rb -i -e "s/^\([\t ]*BUILD\) *= */\1 = \'${BUILD}\' # /"
 
-          # Patch in GEM_HOST
-          sed ddtrace.gemspec -i -e "s,^\([\t ]*spec\.metadata\['allowed_push_host'\]\) *= *,\1 = \'${GEM_HOST}\' # ,"
-
           # Test result
           cat lib/ddtrace/version.rb | grep -e PRE -e BUILD
           ruby -Ilib -rddtrace/version -e 'puts DDTrace::VERSION::STRING'
           ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s'
+      - name: Patch gem host
+        if: ${{ matrix.type != final }}
+        run: |
+          # Patch in GEM_HOST
+          sed ddtrace.gemspec -i -e "s,^\([\t ]*spec\.metadata\['allowed_push_host'\]\) *= *,\1 = \'${GEM_HOST}\' # ,"
+
+          # Test result
           cat ddtrace.gemspec | grep -e allowed_push_host
       - name: Build gem
         run: bundle exec rake build
