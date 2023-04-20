@@ -17,8 +17,14 @@ env:
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        type:
+          - final
+          - alpha
     runs-on: ubuntu-latest
-    name: Build gem
+    name: Build gem (${{ matrix.type }})
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -27,6 +33,7 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
       - name: Patch version
+        if: ${{ matrix.type != 'final' }}
         run: |
           # Obtain context information
           git_ref='${{ github.ref }}'
@@ -55,7 +62,7 @@ jobs:
           #   by dots and thus has variable version segment size and
           #   unpredictable ordering; it can thus be reliably extracted
           #   and does not impair readability in lists
-          PRE='alpha'
+          PRE='${{ matrix.type }}'
           BUILD="gha${gha_run_id}.g${git_sha}.${git_branch_sanitized}"
 
           # Output info for CI debug
@@ -71,7 +78,7 @@ jobs:
           ruby -Ilib -rddtrace/version -e 'puts DDTrace::VERSION::STRING'
           ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s'
       - name: Patch gem host
-        if: ${{ matrix.type != final }}
+        if: ${{ matrix.type != 'final' }}
         run: |
           # Patch in GEM_HOST
           sed ddtrace.gemspec -i -e "s,^\([\t ]*spec\.metadata\['allowed_push_host'\]\) *= *,\1 = \'${GEM_HOST}\' # ,"
@@ -86,9 +93,15 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: 'ddtrace-gem-gha${{ github.run_id }}-g${{ github.sha }}'
+          name: 'ddtrace-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg/*.gem'
   test:
+    strategy:
+      fail-fast: false
+      matrix:
+        type:
+          - final
+          - alpha
     runs-on: ubuntu-latest
     name: Test gem
     needs:
@@ -97,7 +110,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: 'ddtrace-gem-gha${{ github.run_id }}-g${{ github.sha }}'
+          name: 'ddtrace-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg'
       - name: List gem
         run: |
@@ -109,6 +122,11 @@ jobs:
         run: |
           gem install pkg/*.gem
   push:
+    strategy:
+      fail-fast: false
+      matrix:
+        type:
+          - alpha
     runs-on: ubuntu-latest
     name: Push gem
     needs:
@@ -118,7 +136,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: 'ddtrace-gem-gha${{ github.run_id }}-g${{ github.sha }}'
+          name: 'ddtrace-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg'
       - name: List gem
         run: |
