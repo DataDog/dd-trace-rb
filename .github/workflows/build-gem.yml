@@ -51,6 +51,10 @@ jobs:
           git_branch_sanitized="$(echo "$git_branch" | sed -e 's/[^a-zA-Z0-9+]\{1,\}/./g')"
           echo git_branch_sanitized="${git_branch_sanitized}"
 
+          # Shorten commit sha
+          git_sha_short="${git_sha:0:12}"
+          echo git_sha_short="${git_sha_short}"
+
           # Set component values:
           # - PRE is `alpha` to be ordered before `beta` and `rc`
           # - BUILD starts with CI run id for ordering.
@@ -63,7 +67,7 @@ jobs:
           #   unpredictable ordering; it can thus be reliably extracted
           #   and does not impair readability in lists
           PRE='${{ matrix.type }}'
-          BUILD="gha${gha_run_id}.g${git_sha}.${git_branch_sanitized}"
+          BUILD="gha${gha_run_id}.g${git_sha_short}.${git_branch_sanitized}"
 
           # Output info for CI debug
           echo PRE="${PRE}"
