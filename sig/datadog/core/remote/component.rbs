@@ -9,7 +9,7 @@ module Datadog
 
         @barrier: Barrier
 
-        def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
+        def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Remote::Client::Capabilities capabilities, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
 
         def sync: () -> void
 
