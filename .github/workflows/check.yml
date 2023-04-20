@@ -11,4 +11,4 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           rubygems: 'latest'
-      - run: bundle exec rake typecheck
+      - run: bundle exec steep check
