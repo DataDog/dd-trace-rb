@@ -143,6 +143,54 @@ module Datadog
         Tracing::Sampling::Span::Sampler.new(rules || [])
       end
 
+      def reconfigure(changes, settings = Datadog.configuration)
+        settings.tracing.log_injection = env_to_bool(changes['DD_LOGS_INJECTION_ENABLED'], true) # DEV: Don't apply if can't parse it!
+        log_injection_bonanza!(settings.tracing.log_injection) # Reconfigure a bunch of integrations
+
+        # DEV: Currently lives in the global gem space, not tracing.
+        settings.runtime_metrics.enabled = env_to_bool(changes['DD_RUNTIME_METRICS_ENABLED'], false)
+        runtime_metrics.stop(true, close_metrics: false)
+        @runtime_metrics = build_runtime_metrics_worker(settings)
+
+        # DEV: There's only a global logger, not a specific trace logger
+        settings.diagnostics.debug = changes['DD_TRACE_DEBUG_ENABLED']
+        @logger = build_logger(settings)
+
+        # DEV: Ugly
+        settings.tracing.sampling.default_rate = env_to_float(changes['DD_TRACE_SAMPLE_RATE'], nil)
+        settings.tracing.sampling.span_rules = changes['DD_SPAN_SAMPLING_RULES']
+        # settings.tracing.sampling.rules = env_to_float(changes['DD_TRACE_SAMPLE_RULES'], nil) # Not implemented
+
+        sampler = build_sampler(settings) # OK
+
+        # DEV: Ugly
+        writer = tracer.writer
+        subscribe_to_writer_events!(writer, sampler, settings.tracing.test_mode.enabled)
+
+        tracer.send(:sampler=, sampler) # OK
+
+        # Post GA
+        settings.tracing.enabled = env_to_bool(changes['DD_TRACE_ENABLED'], true)
+        tracer.enabled = false
+
+        # DD_SERVICE_MAPPING
+        # Not implemented
+
+        # DD_TRACE_HEADER_TAGS
+        # Not implemented
+        # "Comma-separated list of header names that are reported on the root span as tags. For example, `DD_TRACE_HEADER_TAGS="User-Agent:http.user_agent,Referer:http.referer,Content-Type:http.content_type,Etag:http.etag"`."
+      end
+
+      # Large one
+      def log_injection_bonanza!(enabled)
+        # patch! lograge
+        # patch! semantic_logger
+        # patch! activejob
+        # patch! rails: Datadog::Tracing::Contrib::Rails::LogInjection#add_as_tagged_logging_logger
+
+        # If already patched, then disable it on the fly
+      end
+
       private
 
       def build_tracer_tags(settings)
