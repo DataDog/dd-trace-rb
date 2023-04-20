@@ -128,6 +128,10 @@ group :check do
   if RUBY_VERSION >= '2.7.0' && RUBY_PLATFORM != 'java' && !steep_ci_workaround
     gem 'rbs', '~> 2.8.1', require: false
     gem 'steep', '~> 1.3.1', require: false
+
+    # parallel 1.23 seems to annoy steep:
+    # cannot load such file -- parallel/processor_count (LoadError)
+    gem 'parallel', '< 1.23'
   end
 end
 
