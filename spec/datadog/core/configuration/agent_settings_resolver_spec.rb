@@ -54,7 +54,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       let(:hostname) { nil }
       let(:port) { nil }
 
-      it 'configures the agent to connect to unix:/var/run/datadog/apm.socket' do
+      it 'configures the agent to connect to unix:///var/run/datadog/apm.socket' do
         expect(resolver).to have_attributes(
           **settings,
           adapter: :unix,
@@ -195,6 +195,21 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
         it 'does not log any warning' do
           expect(logger).to_not receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      context 'when there is a mix of http configuration and uds configuration' do
+        let(:with_agent_host) { 'custom-hostname' }
+        let(:environment) { super().merge('DD_TRACE_AGENT_URL' => 'unix:///some/path') }
+
+        it 'prioritizes the http configuration' do
+          expect(resolver).to have_attributes(hostname: 'custom-hostname', adapter: :net_http)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch.*configuration for unix domain socket/)
 
           resolver
         end
@@ -417,6 +432,20 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       it 'contacts the agent using the http adapter, using ssl: true' do
         expect(resolver).to have_attributes(ssl: true)
+      end
+    end
+
+    context 'when the uri scheme is unix' do
+      let(:environment) { { 'DD_TRACE_AGENT_URL' => 'unix:///path/to/apm.socket' } }
+
+      it 'contacts the agent via a unix domain socket' do
+        expect(resolver).to have_attributes(
+          **settings,
+          adapter: :unix,
+          uds_path: '/path/to/apm.socket',
+          hostname: nil,
+          port: nil,
+        )
       end
     end
 
