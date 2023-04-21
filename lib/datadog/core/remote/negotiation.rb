@@ -16,7 +16,7 @@ module Datadog
         def endpoint?(path)
           res = @transport_root.send_info
 
-          if res.internal_error?
+          if res.internal_error? && network_error?(res.error)
             Datadog.logger.error { "agent unreachable: cannot negotiate #{path}" }
 
             return false
@@ -43,6 +43,12 @@ module Datadog
           Datadog.logger.debug { "agent reachable and reports #{path}" }
 
           true
+        end
+
+        private
+
+        def network_error?(error)
+          error.is_a?(Errno::ECONNREFUSED)
         end
       end
     end
