@@ -108,25 +108,28 @@ RSpec.describe Datadog::Core::Remote::Component do
   describe '#initialize' do
     subject(:component) { described_class.new(settings, capabilities, agent_settings) }
 
-    after do
-      component.shutdown!
-    end
-
     context 'worker' do
       let(:worker) { component.instance_eval { @worker } }
       let(:client) { double }
       let(:transport_v7) { double }
+      let(:negotiation) { double }
 
       before do
         expect(Datadog::Core::Transport::HTTP).to receive(:v7).and_return(transport_v7)
         expect(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
+        expect(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
 
         expect(worker).to receive(:start).and_call_original
         expect(worker).to receive(:stop).and_call_original
       end
 
+      after do
+        component.shutdown!
+      end
+
       context 'when client sync succeeds' do
         before do
+          expect(negotiation).to receive(:endpoint?).and_return(true)
           expect(worker).to receive(:call).and_call_original
           expect(client).to receive(:sync).and_return(nil)
         end
@@ -140,6 +143,7 @@ RSpec.describe Datadog::Core::Remote::Component do
 
       context 'when client sync raises' do
         before do
+          expect(negotiation).to receive(:endpoint?).and_return(true)
           expect(worker).to receive(:call).and_call_original
           expect(client).to receive(:sync).and_raise(exception, 'test')
           allow(Datadog.logger).to receive(:error).and_return(nil)
