@@ -34,6 +34,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
   before do
     # Environment does not have existing unix socket for the base testing case
+    allow(File).to receive(:exist?).and_call_original # To avoid breaking debugging
     allow(File).to receive(:exist?).with('/var/run/datadog/apm.socket').and_return(false)
   end
 

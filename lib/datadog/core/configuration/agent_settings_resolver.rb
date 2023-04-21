@@ -193,7 +193,14 @@ module Datadog
         # Unix socket path in the file system
         def uds_path
           if parsed_url && unix_scheme?(parsed_url)
-            parsed_url.to_s.sub('unix://', '')
+            path = parsed_url.to_s
+            # Some versions of the built-in uri gem leave the original url untouched, and others remove the //, so this
+            # supports both
+            if path.start_with?('unix://')
+              path.sub('unix://', '')
+            else
+              path.sub('unix:', '')
+            end
           else
             uds_fallback
           end
