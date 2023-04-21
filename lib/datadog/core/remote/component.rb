@@ -5,6 +5,7 @@ require_relative 'client/capabilities'
 require_relative 'client'
 require_relative '../transport/http'
 require_relative '../remote'
+require_relative 'negotiation'
 
 module Datadog
   module Core
@@ -123,30 +124,17 @@ module Datadog
 
             return if capabilities.products.empty?
 
-            transport_options = {}
-            transport_options[:agent_settings] = agent_settings if agent_settings
+            negotiation = Negotiation.new(settings, agent_settings)
 
-            transport_root = Datadog::Core::Transport::HTTP.root(**transport_options.dup)
-
-            res = transport_root.send_info
-            if res.ok?
-              if res.endpoints.include?('/v0.7/config')
-                Datadog.logger.debug { 'agent reachable and reports remote configuration endpoint' }
-              else
-                Datadog.logger.error do
-                  'agent reachable but does not report remote configuration endpoint: ' \
-                    'disabling remote configuration for this process.'
-                end
-
-                return
-              end
-            else
+            unless negotiation.endpoint?('/v0.7/config')
               Datadog.logger.error do
-                'agent unreachable: disabling remote configuration for this process.'
+                'endpoint unavailable: disabling remote configuration for this process.'
               end
 
               return
             end
+
+            Datadog.logger.debug { 'agent reachable and reports remote configuration endpoint' }
 
             new(settings, capabilities, agent_settings)
           end
