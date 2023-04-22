@@ -15,6 +15,22 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
       'length' => 645
     }
   end
+  let(:expires) { DateTime.now.new_offset.to_date.next_year }
+  let(:new_content_string_io_content) { StringIO.new('hello world') }
+  let(:new_content) do
+    Datadog::Core::Remote::Configuration::Content.parse(
+      {
+        :path => path.to_s,
+        :content => new_content_string_io_content,
+      },
+      expires
+    )
+  end
+  let(:new_target) do
+    updated_raw_target = raw_target.dup
+    updated_raw_target['custom']['v'] += 1
+    Datadog::Core::Remote::Configuration::Target.parse(updated_raw_target)
+  end
 
   let(:target) { Datadog::Core::Remote::Configuration::Target.parse(raw_target) }
   let(:path) { Datadog::Core::Remote::Configuration::Path.parse('datadog/603646/ASM/exclusion_filters/config') }
@@ -90,26 +106,14 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
     }
   end
   let(:string_io_content) { StringIO.new(raw.to_json) }
-
   let(:content) do
-    Datadog::Core::Remote::Configuration::Content.parse({ :path => path.to_s, :content => string_io_content })
-  end
-
-  let(:new_content_string_io_content) { StringIO.new('hello world') }
-
-  let(:new_content) do
     Datadog::Core::Remote::Configuration::Content.parse(
       {
         :path => path.to_s,
-        :content => new_content_string_io_content
-      }
+        :content => string_io_content,
+      },
+      expires,
     )
-  end
-
-  let(:new_target) do
-    updated_raw_target = raw_target.dup
-    updated_raw_target['custom']['v'] += 1
-    Datadog::Core::Remote::Configuration::Target.parse(updated_raw_target)
   end
 
   describe '#transaction' do
@@ -185,8 +189,11 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         expect(repository.contents[path]).to eq(content)
 
         new_content = Datadog::Core::Remote::Configuration::Content.parse(
-          { :path => path.to_s,
-            :content => StringIO.new('hello world') }
+          {
+            :path => path.to_s,
+            :content => StringIO.new('hello world')
+          },
+          expires
         )
 
         updated_changes = repository.transaction do |_repository, transaction|
@@ -208,8 +215,11 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         expect(repository.contents[path]).to eq(content)
         new_path = Datadog::Core::Remote::Configuration::Path.parse('employee/ASM/exclusion_filters/config')
         new_content = Datadog::Core::Remote::Configuration::Content.parse(
-          { :path => new_path.to_s,
-            :content => StringIO.new('hello world') }
+          {
+            :path => new_path.to_s,
+            :content => StringIO.new('hello world')
+          },
+          expires
         )
 
         changes = repository.transaction do |_repository, transaction|
@@ -415,6 +425,18 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
 
             repository.transaction do |_repository, transaction|
               transaction.delete(path)
+            end
+
+            expect(repository.state.config_states).to eq([])
+          end
+        end
+
+        context 'expired content' do
+          let(:expires) { DateTime.new(2015, 1, 1) }
+
+          it 'do not include expired content' do
+            repository.transaction do |_repository, transaction|
+              transaction.insert(path, target, content)
             end
 
             expect(repository.state.config_states).to eq([])

@@ -46,7 +46,7 @@ module Datadog
 
             targets = Configuration::TargetMap.parse(response.targets)
 
-            contents = Configuration::ContentList.parse(response.target_files)
+            contents = Configuration::ContentList.parse(response.target_files, targets.expires)
 
             # TODO: sometimes it can strangely be so that paths.empty?
             # TODO: sometimes it can strangely be so that targets.empty?

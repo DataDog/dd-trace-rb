@@ -20,6 +20,7 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
       'length' => 645
     }
   end
+  let(:expires) { DateTime.now.new_offset.to_date.next_year }
   let(:target) { Datadog::Core::Remote::Configuration::Target.parse(raw_target) }
   let(:path) { Datadog::Core::Remote::Configuration::Path.parse('datadog/603646/ASM/exclusion_filters/config') }
   let(:raw) do
@@ -94,7 +95,13 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
   end
   let(:string_io_content) { StringIO.new(raw.to_json) }
   let(:content) do
-    Datadog::Core::Remote::Configuration::Content.parse({ :path => path.to_s, :content => string_io_content })
+    Datadog::Core::Remote::Configuration::Content.parse(
+      {
+        :path => path.to_s,
+        :content => string_io_content,
+      },
+      expires
+    )
   end
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 

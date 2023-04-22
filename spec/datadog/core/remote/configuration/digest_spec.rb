@@ -6,12 +6,14 @@ require 'datadog/core/remote/configuration/content'
 
 RSpec.describe Datadog::Core::Remote::Configuration::Digest do
   let(:data) { StringIO.new('Hello World') }
+  let(:expires) { DateTime.now.new_offset.to_date.next_year }
   let(:content) do
     Datadog::Core::Remote::Configuration::Content.parse(
       {
         :path => 'datadog/603646/ASM/exclusion_filters/config',
         :content => data
-      }
+      },
+      expires
     )
   end
 

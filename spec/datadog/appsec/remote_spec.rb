@@ -59,6 +59,7 @@ RSpec.describe Datadog::AppSec::Remote do
     end
 
     context 'remote configuration enabled' do
+      let(:expires) { DateTime.now.new_offset.to_date.next_year }
       before do
         expect(Datadog::AppSec).to receive(:default_setting?).with(:ruleset).and_return(true)
       end
@@ -122,7 +123,8 @@ RSpec.describe Datadog::AppSec::Remote do
             {
               path: 'datadog/603646/ASM_DD/latest/config',
               content: StringIO.new(rules_data)
-            }
+            },
+            expires
           )
         end
         let(:transaction) do

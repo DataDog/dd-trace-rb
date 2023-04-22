@@ -3,7 +3,7 @@ module Datadog
     module Remote
       class Configuration
         class Content
-          def self.parse: (::Hash[Symbol, untyped] hash) -> Content
+          def self.parse: (::Hash[Symbol, untyped] hash, DateTime? expires) -> Content
 
           attr_reader path: Configuration::Path
 
@@ -11,11 +11,13 @@ module Datadog
 
           attr_reader hashes: Hash[Symbol, String]
 
+          attr_reader expires: DateTime?
+
           attr_accessor version: Integer
 
           @length: Integer
 
-          def initialize: (path: Configuration::Path, data: StringIO) -> void
+          def initialize: (path: Configuration::Path, data: StringIO, expires: DateTime?) -> void
 
           def hexdigest: (Symbol type) -> String
 
@@ -27,7 +29,7 @@ module Datadog
         end
 
         class ContentList < Array[Content]
-          def self.parse: (::Array[::Hash[Symbol, untyped]] array) -> ContentList
+          def self.parse: (::Array[::Hash[Symbol, untyped]] array, DateTime? expires) -> ContentList
 
           def find_content: (Configuration::Path path, Configuration::Target target) -> Content?
 
