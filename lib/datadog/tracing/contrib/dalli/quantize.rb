@@ -10,7 +10,21 @@ module Datadog
 
           def format_command(operation, args)
             placeholder = "#{operation} BLOB (OMITTED)"
-            command = [operation, *args].join(' ').strip
+            command = +operation.to_s
+
+            args.each do |arg|
+              str = arg.to_s
+
+              if str.bytesize >= Ext::QUANTIZE_MAX_CMD_LENGTH
+                command << ' ' << Core::Utils.truncate(str, Ext::QUANTIZE_MAX_CMD_LENGTH)
+                break
+              elsif !str.empty?
+                command << ' ' << str
+              end
+
+              break if command.length >= Ext::QUANTIZE_MAX_CMD_LENGTH
+            end
+
             command = Core::Utils.utf8_encode(command, binary: true, placeholder: placeholder)
             Core::Utils.truncate(command, Ext::QUANTIZE_MAX_CMD_LENGTH)
           rescue => e
