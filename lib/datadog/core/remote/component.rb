@@ -16,13 +16,11 @@ module Datadog
 
         attr_reader :client
 
-        def initialize(settings, agent_settings)
+        def initialize(settings, capabilities, agent_settings)
           transport_options = {}
           transport_options[:agent_settings] = agent_settings if agent_settings
 
           transport_v7 = Datadog::Core::Transport::HTTP.v7(**transport_options.dup)
-
-          capabilities = Client::Capabilities.new(settings)
 
           @barrier = Barrier.new(BARRIER_TIMEOUT)
 
@@ -121,6 +119,10 @@ module Datadog
           def build(settings, agent_settings)
             return unless settings.remote.enabled
 
+            capabilities = Client::Capabilities.new(settings)
+
+            return if capabilities.products.empty?
+
             transport_options = {}
             transport_options[:agent_settings] = agent_settings if agent_settings
 
@@ -146,7 +148,7 @@ module Datadog
               return
             end
 
-            new(settings, agent_settings)
+            new(settings, capabilities, agent_settings)
           end
         end
       end
