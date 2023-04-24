@@ -48,16 +48,18 @@ module Datadog
             def parse(hash)
               length = Integer(hash['length'])
               digests = Configuration::DigestList.parse(hash['hashes'])
+              version = Integer(hash['custom']['v'])
 
-              new(digests: digests, length: length)
+              new(digests: digests, length: length, version: version)
             end
           end
 
-          attr_reader :length, :digests
+          attr_reader :length, :digests, :version
 
-          def initialize(digests:, length:)
+          def initialize(digests:, length:, version:)
             @digests = digests
             @length = length
+            @version = version
           end
 
           private_class_method :new

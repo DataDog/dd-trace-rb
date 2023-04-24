@@ -236,6 +236,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
   describe '#sync' do
     include_context 'HTTP connection stub'
+    let(:response_code) { 200 }
 
     let(:client_configs) do
       [
@@ -254,8 +255,6 @@ RSpec.describe Datadog::Core::Remote::Client do
     end
 
     context 'valid response' do
-      let(:response_code) { 200 }
-
       it 'store all changes into the repository' do
         expect(repository.opaque_backend_state).to be_nil
         expect(repository.targets_version).to eq(0)
@@ -361,16 +360,7 @@ RSpec.describe Datadog::Core::Remote::Client do
     end
 
     context 'invalid response' do
-      context 'not a 200 response' do
-        let(:response_code) { 401 }
-
-        it 'raises SyncError' do
-          expect { client.sync }.to raise_error(described_class::SyncError)
-        end
-      end
-
       context 'invalid response body' do
-        let(:response_code) { 200 }
         let(:response_body) do
           {
             'roots' => roots.map { |r| Base64.strict_encode64(r.to_json).chomp },
@@ -399,7 +389,6 @@ RSpec.describe Datadog::Core::Remote::Client do
         end
 
         context 'missing target for path from the response' do
-          let(:response_code) { 200 }
           let(:target_content) do
             {
               'datadog/603646/ASM/exclusion_filters/config' => {
@@ -449,8 +438,112 @@ RSpec.describe Datadog::Core::Remote::Client do
             }
           end
 
-          it 'raises Path::ParseError' do
-            expect { client.sync }.to raise_error(Datadog::Core::Remote::Configuration::Path::ParseError)
+          it 'raises SyncError' do
+            expect { client.sync }.to raise_error(described_class::SyncError, /could not parse: "invalid path"/)
+          end
+        end
+      end
+    end
+
+    describe '#payload' do
+      context 'no sync errors' do
+        let(:response_code) { 200 }
+
+        before { client.sync }
+
+        context 'client' do
+          let(:client_payload) { client.send(:payload)[:client] }
+
+          context 'state' do
+            it 'returns client state' do
+              state = repository.state
+
+              expected_state = {
+                :root_version => state.root_version,
+                :targets_version => state.targets_version,
+                :config_states => state.config_states,
+                :has_error => state.has_error,
+                :error => state.error,
+                :backend_client_state => state.opaque_backend_state
+              }
+
+              expect(client_payload[:state]).to eq(expected_state)
+            end
+          end
+
+          context 'id' do
+            it 'returns id' do
+              expect(client_payload[:id]).to eq(client.instance_variable_get(:@id))
+            end
+          end
+
+          context 'products' do
+            it 'returns products' do
+              expect(client_payload[:products]).to eq(capabilities.products)
+            end
+          end
+
+          context 'capabilities' do
+            it 'returns capabilities' do
+              expect(client_payload[:capabilities]).to eq(capabilities.base64_capabilities)
+            end
+          end
+
+          context 'is_tracer' do
+            it 'returns true' do
+              expect(client_payload[:is_tracer]).to eq(true)
+            end
+          end
+
+          context 'is_agent' do
+            it 'returns false' do
+              expect(client_payload[:is_agent]).to eq(false)
+            end
+          end
+
+          context 'client_tracer' do
+            context 'with app_version' do
+              it 'returns client_tracer' do
+                expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
+
+                expected_client_tracer = {
+                  :runtime_id => Datadog::Core::Environment::Identity.id,
+                  :language => Datadog::Core::Environment::Identity.lang,
+                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version,
+                  :service => Datadog.configuration.service,
+                  :env => Datadog.configuration.env,
+                  :app_version => Datadog.configuration.version,
+                  :tags => []
+                }
+
+                expect(client_payload[:client_tracer]).to eq(expected_client_tracer)
+              end
+            end
+
+            context 'without app_version' do
+              it 'returns client_tracer' do
+                expect(Datadog.configuration).to receive(:version).and_return(nil).at_least(:once)
+
+                expected_client_tracer = {
+                  :runtime_id => Datadog::Core::Environment::Identity.id,
+                  :language => Datadog::Core::Environment::Identity.lang,
+                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version,
+                  :service => Datadog.configuration.service,
+                  :env => Datadog.configuration.env,
+                  :tags => []
+                }
+
+                expect(client_payload[:client_tracer]).to eq(expected_client_tracer)
+              end
+            end
+          end
+        end
+
+        context 'cached_target_files' do
+          it 'returns cached_target_files' do
+            state = repository.state
+
+            expect(client.send(:payload)[:cached_target_files]).to eq(state.cached_target_files)
           end
         end
       end

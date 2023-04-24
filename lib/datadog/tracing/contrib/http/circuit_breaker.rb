@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../../ddtrace/transport/ext'
 
 module Datadog

@@ -27,7 +27,7 @@ module Datadog
           end
         end
 
-        # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity
+        # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity
         def sync
           # TODO: Skip sync if no capabilities are registered
           response = transport.send_config(payload)
@@ -40,13 +40,20 @@ module Datadog
               return
             end
 
-            paths = response.client_configs.map do |path|
-              Configuration::Path.parse(path)
+            begin
+              paths = response.client_configs.map do |path|
+                Configuration::Path.parse(path)
+              end
+
+              targets = Configuration::TargetMap.parse(response.targets)
+
+              contents = Configuration::ContentList.parse(response.target_files)
+            rescue Remote::Configuration::Path::ParseError => e
+              raise SyncError, e.message
             end
 
-            targets = Configuration::TargetMap.parse(response.targets)
-
-            contents = Configuration::ContentList.parse(response.target_files)
+            # To make sure steep does not complain
+            return unless paths && targets && contents
 
             # TODO: sometimes it can strangely be so that paths.empty?
             # TODO: sometimes it can strangely be so that targets.empty?
@@ -100,16 +107,27 @@ module Datadog
             else
               dispatcher.dispatch(changes, repository)
             end
-          else
-            raise SyncError, "unexpected transport response: #{response.inspect}"
           end
         end
-        # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity
+        # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity
 
         private
 
         def payload
           state = repository.state
+
+          client_tracer = {
+            runtime_id: Core::Environment::Identity.id,
+            language: Core::Environment::Identity.lang,
+            tracer_version: Core::Environment::Identity.tracer_version,
+            service: Datadog.configuration.service,
+            env: Datadog.configuration.env,
+            tags: [], # TODO: add nice tags!
+          }
+
+          app_version = Datadog.configuration.version
+
+          client_tracer[:app_version] = app_version if app_version
 
           {
             client: {
@@ -125,26 +143,11 @@ module Datadog
               products: @capabilities.products,
               is_tracer: true,
               is_agent: false,
-              client_tracer: {
-                runtime_id: Core::Environment::Identity.id,
-                language: Core::Environment::Identity.lang,
-                tracer_version: Core::Environment::Identity.tracer_version,
-                service: Datadog.configuration.service,
-                env: Datadog.configuration.env,
-                # app_version: app_version, # TODO: I don't know what this is
-                tags: [], # TODO: add nice tags!
-              },
+              client_tracer: client_tracer,
               # base64 is needed otherwise the Go agent fails with an unmarshal error
               capabilities: @capabilities.base64_capabilities
             },
-            cached_target_files: [
-              # TODO: to be implemented once we cache configuration content
-              # {
-              #   path: '',
-              #   length: 0,
-              #   hashes: '';
-              # }
-            ],
+            cached_target_files: state.cached_target_files,
           }
         end
       end

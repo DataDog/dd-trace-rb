@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'events/connection/request'
 require_relative 'events/consumer/process_batch'
 require_relative 'events/consumer/process_message'

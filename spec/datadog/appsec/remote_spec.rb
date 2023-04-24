@@ -106,15 +106,28 @@ RSpec.describe Datadog::AppSec::Remote do
           }.to_json
         end
         let(:receiver) { described_class.receivers[0] }
+        let(:target) do
+          Datadog::Core::Remote::Configuration::Target.parse(
+            {
+              'custom' => {
+                'v' => 1,
+              },
+              'hashes' => { 'sha256' => Digest::SHA256.hexdigest(rules_data.to_json) },
+              'length' => rules_data.to_s.length
+            }
+          )
+        end
+        let(:content) do
+          Datadog::Core::Remote::Configuration::Content.parse(
+            {
+              path: 'datadog/603646/ASM_DD/latest/config',
+              content: StringIO.new(rules_data)
+            }
+          )
+        end
         let(:transaction) do
           repository.transaction do |_repository, transaction|
-            content = Datadog::Core::Remote::Configuration::Content.parse(
-              {
-                path: 'datadog/603646/ASM_DD/latest/config',
-                content: StringIO.new(rules_data)
-              }
-            )
-            transaction.insert(content.path, nil, content)
+            transaction.insert(content.path, target, content)
           end
         end
         let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }

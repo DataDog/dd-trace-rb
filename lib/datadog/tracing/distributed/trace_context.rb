@@ -193,20 +193,24 @@ module Datadog
 
         # Serialize `_dd.p.{key}` by first removing the `_dd.p.` prefix.
         # Then replacing invalid characters with `_`.
+        #
+        # The argument `name` is always frozen.
+        # Returns a new String object for the serialized key.
         def serialize_tag_key(name)
           key = name.delete_prefix(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX)
 
           # DEV: It's unlikely that characters will be out of range, as they mostly
           # DEV: come from Datadog-controlled sources.
-          # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
-          if INVALID_TAG_KEY_CHARS.match?(key)
-            key.gsub(INVALID_TAG_KEY_CHARS, '_')
-          else
-            key
-          end
+          # DEV: Trying to `match?` is measurably faster than a `gsub!` that does not match.
+          key.gsub!(INVALID_TAG_KEY_CHARS, '_') if INVALID_TAG_KEY_CHARS.match?(key)
+
+          key
         end
 
-        # Replaces invalid characters with `_`, then replaces `=` with `:`.
+        # Replaces invalid characters with `_`, then replaces `=` with `~`.
+        #
+        # The argument `value` belongs to {TraceDigest}, thus should not be directly modified.
+        # Returns a new String object for the serialized value.
         def serialize_tag_value(value)
           # DEV: It's unlikely that characters will be out of range, as they mostly
           # DEV: come from Datadog-controlled sources.
@@ -217,9 +221,12 @@ module Datadog
                   value
                 end
 
-          # DEV: Checking for an unlikely '=' is faster than a no-op `tr!`.
-          ret.tr!('=', ':') if ret.include?('=')
-          ret
+          # DEV: Checking for an unlikely '=' is faster than a no-op `tr`.
+          if ret.include?('=')
+            ret.tr('=', '~')
+          else
+            ret
+          end
         end
 
         def extract_traceparent(traceparent)
@@ -309,9 +316,9 @@ module Datadog
           [origin, sampling_priority, tags, unknown_fields]
         end
 
-        # Restore `:` back to `=`.
+        # Restore `~` back to `=`.
         def deserialize_tag_value(value)
-          value.tr!(':', '=')
+          value.tr!('~', '=')
           value
         end
 
@@ -363,9 +370,9 @@ module Datadog
         INVALID_TAG_KEY_CHARS = /[\u0000-\u0020,=\u007F-\u{10FFFF}]/.freeze
         private_constant :INVALID_TAG_KEY_CHARS
 
-        # Replace all characters with `_`, except ASCII characters 0x20-0x7E.
-        # Additionally, `,`, ':' and `;` must also be replaced by `_`.
-        INVALID_TAG_VALUE_CHARS = /[\u0000-\u001F,:;\u007F-\u{10FFFF}]/.freeze
+        # Replace all characters with `_`, except ASCII characters 0x20-0x7D.
+        # Additionally, `,` and `;` must also be replaced by `_`.
+        INVALID_TAG_VALUE_CHARS = /[\u0000-\u001F,;\u007E-\u{10FFFF}]/.freeze
         private_constant :INVALID_TAG_VALUE_CHARS
       end
     end

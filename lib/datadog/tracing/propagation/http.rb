@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../contrib/http/distributed/propagation'
 
 module Datadog

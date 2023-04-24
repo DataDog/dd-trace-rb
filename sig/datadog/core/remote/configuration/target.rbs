@@ -18,9 +18,11 @@ module Datadog
 
           attr_reader digests: DigestList
 
+          attr_reader version: Integer
+
           def self.parse: (::Hash[::String, untyped] hash) -> Target
 
-          def initialize: (digests: DigestList, length: ::Integer) -> void
+          def initialize: (digests: DigestList, length: ::Integer, version: Integer) -> void
 
           def check: (untyped content) -> bool
         end

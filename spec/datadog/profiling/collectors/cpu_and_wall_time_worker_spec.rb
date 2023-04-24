@@ -329,7 +329,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # Sanity checking
 
         # We're currently targeting 100 samples per second, so 5 in 100ms is a conservative approximation that hopefully
-        # will not cause flakiness
+        # will not cause flakiness.
+        # If this turns out to be flaky due to the dynamic sampling rate mechanism, it can be disabled like we do for
+        # the test below.
         expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
       end
@@ -341,8 +343,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       before { expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/) }
 
       it 'is able to sample even when all threads are sleeping' do
-        skip('Test is flaky -- @ivoanjo is investigating')
-
         start
         wait_until_running
 
@@ -559,6 +559,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         signal_handler_enqueued_sample: 0,
         signal_handler_wrong_thread: 0,
         sampled: 0,
+        skipped_sample_because_of_dynamic_sampling_rate: 0,
+        postponed_job_skipped_already_existed: 0,
+        postponed_job_success: 0,
+        postponed_job_full: 0,
+        postponed_job_unknown_result: 0,
         sampling_time_ns_min: nil,
         sampling_time_ns_max: nil,
         sampling_time_ns_total: nil,

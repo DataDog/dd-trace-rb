@@ -1,7 +1,7 @@
 # Datadog Trace Client
 
 [![Gem](https://img.shields.io/gem/v/ddtrace)](https://rubygems.org/gems/ddtrace/)
-[![CircleCI](https://circleci.com/gh/DataDog/dd-trace-rb/tree/master.svg?style=svg&circle-token=b0bd5ef866ec7f7b018f48731bb495f2d1372cc1)](https://circleci.com/gh/DataDog/dd-trace-rb/tree/master)
+[![CircleCI](https://circleci.com/gh/DataDog/dd-trace-rb/tree/master.svg?style=svg)](https://circleci.com/gh/DataDog/dd-trace-rb/tree/master)
 [![codecov](https://codecov.io/gh/DataDog/dd-trace-rb/branch/master/graph/badge.svg)](https://app.codecov.io/gh/DataDog/dd-trace-rb/branch/master)
 [![YARD documentation](https://img.shields.io/badge/YARD-documentation-blue)][api docs]
 

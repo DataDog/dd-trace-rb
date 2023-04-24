@@ -20,6 +20,8 @@ module Datadog
 
         def service: -> String
 
+        def version: -> String?
+
         def logger=: (untyped logger) -> untyped
 
         def runtime_metrics: (?untyped? options) -> untyped
