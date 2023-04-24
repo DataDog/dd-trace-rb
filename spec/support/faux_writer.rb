@@ -5,7 +5,7 @@ require 'support/faux_transport'
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Tracing::Writer
   def initialize(options = {})
-    options[:transport] ||= FauxTransport.new
+    options[:transport] ||= Datadog::Transport::HTTP.default
     options[:call_original] ||= true
     @options = options
 
@@ -20,19 +20,20 @@ class FauxWriter < Datadog::Tracing::Writer
     @mutex.synchronize do
       super(trace) if @options[:call_original]
       @traces << trace
+      @options[:transport].send_trace(trace)
     end
   end
 
   def traces(action = :clear)
-    traces = @traces
-    @traces = [] if action == :clear
+    traces = @mutex.synchronize { @traces.dup }
+    @traces.clear if action == :clear
     traces
   end
 
   def spans(action = :clear)
     @mutex.synchronize do
-      traces = @traces
-      @traces = [] if action == :clear
+      traces = @traces.dup
+      @traces.clear if action == :clear
       spans = traces.collect(&:spans).flatten
       # sort the spans to avoid test flakiness
 

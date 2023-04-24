@@ -186,6 +186,7 @@ services:
     command: /bin/bash
     depends_on:
       - ddagent
+      - testagent
       - elasticsearch
       - memcached
       - mongodb
@@ -197,7 +198,8 @@ services:
     env_file: ./.env
     environment: &common-environment-3x
       BUNDLE_GEMFILE: /app/Gemfile-3.0
-      DD_AGENT_HOST: ddagent
+      DD_AGENT_HOST: testagent
+      DD_TRACE_AGENT_PORT: 9126
       TEST_DATADOG_INTEGRATION: 1
       TEST_ELASTICSEARCH_HOST: elasticsearch
       TEST_MEMCACHED_HOST: memcached
@@ -350,6 +352,18 @@ services:
       - "127.0.0.1:${DD_TRACE_AGENT_PORT}:8126"
     volumes:
       - ddagent_var_run:/var/run/datadog
+
+  testagent:
+    image: williamconti549/dd-apm-test-agent:js-dev
+    ports:
+        - "127.0.0.1:9126:9126"
+    environment:
+        - LOG_LEVEL=DEBUG
+        - TRACE_LANGUAGE=javascript
+        - DISABLED_CHECKS=trace_tag_validation
+        - DD_TRACE_AGENT_URL=http://ddagent:8126
+        - PORT=9126
+
   elasticsearch:
     image: elasticsearch:8.1.3
     expose:
