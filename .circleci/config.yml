@@ -96,6 +96,17 @@ test_containers:
       - DD_API_KEY=00000000000000000000000000000000
       - DD_HOSTNAME=dd-trace-rb-ci
   - &agent_port 8126
+  - &container_testagent
+    image: williamconti549/dd-apm-test-agent:js-dev
+    ports:
+        - "127.0.0.1:9126:9126"
+    environment:
+        - LOG_LEVEL=DEBUG
+        - TRACE_LANGUAGE=ruby
+        - DISABLED_CHECKS=trace_tag_validation
+        - DD_TRACE_AGENT_URL=http://ddagent:8126 # send all traces to agent
+        - PORT=9126
+  - &testagent_port 9126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
   run:
@@ -275,6 +286,7 @@ orbs:
           - *container_mongo
           - *container_memcached
           - *container_agent
+          - *container_testagent
         parallelism: 22
         steps:
           - restore_cache:
@@ -307,6 +319,8 @@ orbs:
               port: *memcached_port
           - docker-wait:
               port: *agent_port
+          - docker-wait:
+              port: *testagent_port
           - *step_run_all_tests
           - store_test_results:
               path: /tmp/rspec
@@ -321,6 +335,7 @@ orbs:
           - *container_postgres
           - *container_redis
           - *container_agent
+          - *container_testagent
         steps:
           - restore_cache:
               keys:
