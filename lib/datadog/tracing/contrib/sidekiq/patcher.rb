@@ -49,9 +49,18 @@ module Datadog
           end
 
           def patch_server_heartbeat
+            require_relative 'server_internal_tracer/stop'
             require_relative 'server_internal_tracer/heartbeat'
 
-            ::Sidekiq::Launcher.prepend(ServerInternalTracer::Heartbeat)
+            ::Sidekiq::Launcher.prepend(ServerInternalTracer::Stop)
+
+            if ::Sidekiq::Launcher.private_method_defined? :heartbeat
+              ::Sidekiq::Launcher.prepend(ServerInternalTracer::Heartbeat)
+            end
+
+            if ::Sidekiq::Launcher.private_method_defined? :beat
+              ::Sidekiq::Launcher.prepend(ServerInternalTracer::Beat)
+            end
           end
 
           def patch_server_job_fetch
