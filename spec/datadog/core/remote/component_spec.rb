@@ -40,39 +40,71 @@ RSpec.describe Datadog::Core::Remote::Component do
     end
 
     context 'when client sync raises' do
-      let(:second_client) { double }
-      let(:exception) { Class.new(StandardError) }
-
       before do
         expect(worker).to receive(:call).and_call_original
         expect(client).to receive(:sync).and_raise(exception, 'test')
         allow(Datadog.logger).to receive(:error).and_return(nil)
       end
 
-      it 'logs an error' do
-        allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
+      context 'StandardError' do
+        let(:second_client) { double }
+        let(:exception) { Class.new(StandardError) }
 
-        expect(Datadog.logger).to receive(:error).and_return(nil)
+        it 'logs an error' do
+          allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
 
-        component.barrier(:once)
+          expect(Datadog.logger).to receive(:error).and_return(nil)
+
+          component.barrier(:once)
+        end
+
+        it 'catches exceptions' do
+          allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
+
+          # if the error is uncaught it will crash the test, so a mere passing is good
+
+          component.barrier(:once)
+        end
+
+        it 'creates a new client' do
+          expect(Datadog::Core::Remote::Client).to receive(:new).and_return(second_client)
+
+          expect(component.client.object_id).to eql(client.object_id)
+
+          component.barrier(:once)
+
+          expect(component.client.object_id).to eql(second_client.object_id)
+        end
       end
 
-      it 'catches exceptions' do
-        allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
+      context 'Client::SyncError' do
+        let(:exception) { Class.new(Datadog::Core::Remote::Client::SyncError) }
 
-        # if the error is uncaught it will crash the test, so a mere passing is good
+        it 'logs an error' do
+          allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
 
-        component.barrier(:once)
-      end
+          expect(Datadog.logger).to receive(:error).and_return(nil)
 
-      it 'creates a new client' do
-        expect(Datadog::Core::Remote::Client).to receive(:new).and_return(second_client)
+          component.barrier(:once)
+        end
 
-        expect(component.client.object_id).to eql(client.object_id)
+        it 'catches exceptions' do
+          allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
 
-        component.barrier(:once)
+          # if the error is uncaught it will crash the test, so a mere passing is good
 
-        expect(component.client.object_id).to eql(second_client.object_id)
+          component.barrier(:once)
+        end
+
+        it 'does not creates a new client' do
+          expect(Datadog::Core::Remote::Client).to_not receive(:new)
+
+          expect(component.client.object_id).to eql(client.object_id)
+
+          component.barrier(:once)
+
+          expect(component.client.object_id).to eql(client.object_id)
+        end
       end
     end
   end
