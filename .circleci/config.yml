@@ -98,14 +98,12 @@ test_containers:
   - &agent_port 8126
   - &container_testagent
     image: williamconti549/dd-apm-test-agent:js-dev
-    ports:
-        - "127.0.0.1:9126:9126"
     environment:
-        - LOG_LEVEL=DEBUG
-        - TRACE_LANGUAGE=ruby
-        - DISABLED_CHECKS=trace_tag_validation
-        - DD_TRACE_AGENT_URL=http://ddagent:8126 # send all traces to agent
-        - PORT=9126
+      - LOG_LEVEL=DEBUG
+      - TRACE_LANGUAGE=ruby
+      - DISABLED_CHECKS=trace_tag_validation
+      - DD_TRACE_AGENT_URL=http://ddagent:8126 # send all traces to agent
+      - PORT=9126
   - &testagent_port 9126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
