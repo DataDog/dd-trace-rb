@@ -318,8 +318,10 @@ orbs:
           - docker-wait:
               port: *memcached_port
           - docker-wait:
+              host: "ddagent"
               port: *agent_port
           - docker-wait:
+              host: "testagent"
               port: *testagent_port
           - *step_run_all_tests
           - store_test_results:
@@ -405,6 +407,10 @@ orbs:
       docker-wait:
         description: Wait for containers to listen on a TCP port.
         parameters:
+          host:
+            description: Host name or IP address the container is running on.
+            type: string
+            default: localhost
           port:
             description: TCP port the container is listening on.
             type: integer
@@ -415,7 +421,7 @@ orbs:
         steps:
           - run:
               name: Wait for container on port <<parameters.port>>
-              command: dockerize -wait 'tcp://localhost:<<parameters.port>>' -timeout '<<parameters.timeout>>'
+              command: dockerize -wait 'tcp://<<parameters.host>>:<<parameters.port>>' -timeout '<<parameters.timeout>>'
     executors:
       docker-integration:
         docker:
