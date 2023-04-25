@@ -529,7 +529,10 @@ RSpec.describe Datadog::Core::Remote::Client do
                     format('ruby.runtime.platform:%s', RUBY_PLATFORM),
                     format('ruby.runtime.version:%s', RUBY_VERSION),
                     format('ruby.runtime.engine.name:%s', RUBY_ENGINE),
-                    format('ruby.runtime.engine.version:%s', RUBY_ENGINE_VERSION),
+                    format(
+                      'ruby.runtime.engine.version:%s',
+                      (defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION)
+                    ),
                     format('ruby.rubygems.platform.local:%s', Gem::Platform.local.to_s),
                   ]
                 }
@@ -553,7 +556,10 @@ RSpec.describe Datadog::Core::Remote::Client do
                     format('ruby.runtime.platform:%s', RUBY_PLATFORM),
                     format('ruby.runtime.version:%s', RUBY_VERSION),
                     format('ruby.runtime.engine.name:%s', RUBY_ENGINE),
-                    format('ruby.runtime.engine.version:%s', RUBY_ENGINE_VERSION),
+                    format(
+                      'ruby.runtime.engine.version:%s',
+                      (defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION)
+                    ),
                     format('ruby.rubygems.platform.local:%s', Gem::Platform.local.to_s),
                   ]
                 }
