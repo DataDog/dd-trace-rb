@@ -11,7 +11,7 @@ module TracerHelpers
   def new_tracer(options = {})
     writer = FauxWriter.new(
       transport: Datadog::Transport::HTTP.default do |t|
-        t.adapter :test
+        t.adapter :net_http, 'testagent', 9126, timeout: 30
       end
     )
 
@@ -22,7 +22,7 @@ module TracerHelpers
   def get_test_writer(options = {})
     options = {
       transport: Datadog::Transport::HTTP.default do |t|
-        t.adapter :test
+        t.adapter :net_http, 'testagent', 9126, timeout: 30
       end
     }.merge(options)
 
