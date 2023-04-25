@@ -4,6 +4,13 @@ require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../span_attribute_schema'
+require_relative 'services/sqs'
+require_relative 'services/sns'
+require_relative 'services/dynamodb'
+require_relative 'services/kinesis'
+require_relative 'services/eventbridge'
+require_relative 'services/states'
+require_relative 'services/s3'
 
 module Datadog
   module Tracing
@@ -81,79 +88,6 @@ module Datadog
             when 's3'
               add_s3_tags(span, params)
             end
-          end
-
-          def add_sqs_tags(span, params)
-            queue_url = params[:queue_url]
-            queue_name = params[:queue_name]
-            # Regular expression to match the SQS queue URL pattern
-            # https://sqs.sa-east-1.amazonaws.com/12345678/MyQueueName
-            pattern = %r{https://sqs\.[^/]+\.amazonaws\.com/(\d+)/([^/]+)}
-
-            if queue_url && (match = queue_url.match(pattern))
-              aws_account, queue_name = match.captures
-              span.set_tag(Ext::TAG_AWS_ACCOUNT, aws_account)
-            end
-            span.set_tag(Ext::TAG_QUEUE_NAME, queue_name)
-          end
-
-          def add_sns_tags(span, params)
-            topic_arn = params[:topic_arn]
-            topic_name = params[:name]
-            if topic_arn
-              # example topic_arn: arn:aws:sns:us-west-2:123456789012:my-topic-name
-              topic_name = topic_arn.split(':')[-1]
-              aws_account = topic_arn.split(':')[-2]
-              span.set_tag(Ext::TAG_AWS_ACCOUNT, aws_account)
-            end
-            span.set_tag(Ext::TAG_TOPIC_NAME, topic_name)
-          end
-
-          def add_dynamodb_tags(span, params)
-            table_name = params[:table_name]
-            span.set_tag(Ext::TAG_TABLE_NAME, table_name)
-          end
-
-          def add_kinesis_tags(span, params)
-            stream_arn = params[:stream_arn]
-            stream_name = params[:stream_name]
-            if stream_arn
-              # example stream_arn: arn:aws:kinesis:us-east-1:123456789012:stream/my-stream
-              stream_name = stream_arn.split('/')[-1]
-              aws_account = stream_arn.split(':')[-2]
-              span.set_tag(Ext::TAG_AWS_ACCOUNT, aws_account)
-            end
-            span.set_tag(Ext::TAG_STREAM_NAME, stream_name)
-          end
-
-          def add_eventbridge_tags(span, params)
-            rule_name = params[:name] || params[:rule]
-            span.set_tag(Ext::TAG_RULE_NAME, rule_name)
-          end
-
-          def add_states_tags(span, params)
-            state_machine_name = params[:name]
-            state_machine_arn = params[:state_machine_arn]
-            execution_arn = params[:execution_arn]
-
-            if execution_arn
-              # 'arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution'
-              state_machine_name = execution_arn.split(':')[-2]
-            end
-
-            if state_machine_arn
-              # example statemachinearn: arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine
-              state_machine_name = state_machine_arn.split(':')[-1]
-              state_machine_account_id = state_machine_arn.split(':')[-3]
-            end
-            span.set_tag(Ext::TAG_AWS_ACCOUNT, state_machine_account_id)
-            # state_machine_name = create_state_machine_name || start_execution_state_machine_name
-            span.set_tag(Ext::TAG_STATE_MACHINE_NAME, state_machine_name)
-          end
-
-          def add_s3_tags(span, params)
-            bucket_name = params[:bucket]
-            span.set_tag(Ext::TAG_BUCKET_NAME, bucket_name)
           end
 
           def configuration
