@@ -35,6 +35,8 @@ test_containers:
     GRPC_RUBY_BUILD_PROCS: 6
     DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
     TEST_REDIS_OLD_HOST: redis_old
+    DD_AGENT_HOST: testagent
+    DD_TRACE_AGENT_PORT: 9126
     DDTRACE_CI: true
   - &container_parameters_environment
     - *container_base_environment
