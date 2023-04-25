@@ -18,33 +18,13 @@ module Datadog
 
           attr_reader digests: DigestList
 
+          attr_reader version: Integer
+
           def self.parse: (::Hash[::String, untyped] hash) -> Target
 
-          def initialize: (digests: DigestList, length: ::Integer) -> void
+          def initialize: (digests: DigestList, length: ::Integer, version: Integer) -> void
 
           def check: (untyped content) -> bool
-
-          class DigestList < Array[Digest]
-            def self.parse: (::Hash[::String, untyped] hash) -> DigestList
-
-            def check: (StringIO data) -> bool
-          end
-
-          class Digest
-            attr_reader type: ::Symbol
-
-            attr_reader hexdigest: ::String
-
-            def initialize: (::String type, ::String hexdigest) -> void
-
-            def check: (StringIO data) -> bool
-
-            private
-
-            DIGEST_CHUNK: 1024
-
-            def chunked_hexdigest: (StringIO io) -> ::String
-          end
         end
       end
     end

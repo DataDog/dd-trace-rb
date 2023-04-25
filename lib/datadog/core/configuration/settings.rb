@@ -307,6 +307,16 @@ module Datadog
             #
             # @default `true` on Ruby 2.x, `false` on Ruby 3.x
             option :allocation_counting_enabled, default: RUBY_VERSION.start_with?('2.')
+
+            # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.
+            #
+            # This setting is only used when the `mysql2` gem is installed.
+            #
+            # @default `DD_PROFILING_SKIP_MYSQL2_CHECK` environment variable, otherwise `false`
+            option :skip_mysql2_check do |o|
+              o.default { env_to_bool('DD_PROFILING_SKIP_MYSQL2_CHECK', false) }
+              o.lazy
+            end
           end
 
           # @public_api
@@ -458,11 +468,11 @@ module Datadog
         settings :telemetry do
           # Enable telemetry collection. This allows telemetry events to be emitted to the telemetry API.
           #
-          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `false`. In a future release,
-          #   this value will be changed to `true` by default as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
+          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `true`.
+          #   Can be disabled as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, false) }
+            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, true) }
             o.lazy
           end
         end
@@ -472,11 +482,10 @@ module Datadog
         settings :remote do
           # Enable remote configuration. This allows fetching of remote configuration for live updates.
           #
-          # @default `DD_REMOTE_CONFIGURATION_ENABLED` environment variable, otherwise `false`. In a future release,
-          #   this value will be changed to `true` by default.
+          # @default `DD_REMOTE_CONFIGURATION_ENABLED` environment variable, otherwise `true`.
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Core::Remote::Ext::ENV_ENABLED, false) }
+            o.default { env_to_bool(Core::Remote::Ext::ENV_ENABLED, true) }
             o.lazy
           end
 

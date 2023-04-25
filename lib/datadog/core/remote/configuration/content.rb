@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'path'
+require_relative 'digest'
 
 module Datadog
   module Core
@@ -17,11 +18,28 @@ module Datadog
             end
           end
 
-          attr_reader :path, :data
+          attr_reader :path, :data, :hashes
+          attr_accessor :version
 
           def initialize(path:, data:)
             @path = path
             @data = data
+            @hashes = {}
+            @version = 0
+          end
+
+          def hexdigest(type)
+            @hashes[type] || compute_and_store_hash(type)
+          end
+
+          def length
+            @length ||= @data.size
+          end
+
+          private
+
+          def compute_and_store_hash(type)
+            @hashes[type] = Digest.hexdigest(type, @data)
           end
 
           private_class_method :new

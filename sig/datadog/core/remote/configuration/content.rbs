@@ -9,7 +9,21 @@ module Datadog
 
           attr_reader data: StringIO
 
+          attr_reader hashes: Hash[Symbol, String]
+
+          attr_accessor version: Integer
+
+          @length: Integer
+
           def initialize: (path: Configuration::Path, data: StringIO) -> void
+
+          def hexdigest: (Symbol type) -> String
+
+          def length: () -> Integer
+
+          private
+
+          def compute_and_store_hash: (Symbol type) -> String
         end
 
         class ContentList < Array[Content]

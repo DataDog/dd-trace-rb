@@ -1,6 +1,7 @@
 stages:
   - deploy
-  - benchmarks
+  - macrobenchmarks
+  - microbenchmarks
 
 include: ".gitlab/benchmarks.yml"
 

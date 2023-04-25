@@ -1,4 +1,4 @@
-RSpec.shared_examples 'schema version span' do |_default_service_name|
+RSpec.shared_examples 'schema version span' do
   before do
     subject
   end

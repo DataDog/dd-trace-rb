@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../datadog/core/environment/identity'
 require_relative '../../datadog/core/environment/socket'
 require_relative '../../datadog/core/runtime/ext'
