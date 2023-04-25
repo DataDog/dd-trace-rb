@@ -219,24 +219,37 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_telemetry' do
-    subject(:build_telemetry) { described_class.build_telemetry(settings) }
+    subject(:build_telemetry) { described_class.build_telemetry(settings, agent_settings, logger) }
+    let(:logger) { instance_double(Logger) }
 
     context 'given settings' do
       let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
-      let(:default_options) { { enabled: enabled } }
+      let(:expected_options) { { enabled: enabled } }
       let(:enabled) { true }
 
       before do
-        expect(Datadog::Core::Telemetry::Client).to receive(:new).with(default_options).and_return(telemetry_client)
+        expect(Datadog::Core::Telemetry::Client).to receive(:new).with(expected_options).and_return(telemetry_client)
         allow(settings.telemetry).to receive(:enabled).and_return(enabled)
       end
 
       it { is_expected.to be(telemetry_client) }
 
-      context 'with :enabled' do
+      context 'with :enabled true' do
         let(:enabled) { double('enabled') }
 
         it { is_expected.to be(telemetry_client) }
+
+        context 'and :unix agent adapter' do
+          let(:expected_options) { { enabled: false } }
+          let(:agent_settings) do
+            instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, adapter: :unix)
+          end
+
+          it 'does not enable telemetry for unsupported non-http transport' do
+            expect(logger).to receive(:debug)
+            is_expected.to be(telemetry_client)
+          end
+        end
       end
     end
   end
