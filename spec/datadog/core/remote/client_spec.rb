@@ -524,7 +524,14 @@ RSpec.describe Datadog::Core::Remote::Client do
                   :service => Datadog.configuration.service,
                   :env => Datadog.configuration.env,
                   :app_version => Datadog.configuration.version,
-                  :tags => []
+                  :tags => [
+                    format('ruby.tracer.version:%s', Datadog::Core::Environment::Identity.tracer_version),
+                    format('ruby.runtime.platform:%s', RUBY_PLATFORM),
+                    format('ruby.runtime.version:%s', RUBY_VERSION),
+                    format('ruby.runtime.engine.name:%s', RUBY_ENGINE),
+                    format('ruby.runtime.engine.version:%s', RUBY_ENGINE_VERSION),
+                    format('ruby.rubygems.platform.local:%s', Gem::Platform.local.to_s),
+                  ]
                 }
 
                 expect(client_payload[:client_tracer]).to eq(expected_client_tracer)
@@ -541,7 +548,14 @@ RSpec.describe Datadog::Core::Remote::Client do
                   :tracer_version => Datadog::Core::Environment::Identity.tracer_version,
                   :service => Datadog.configuration.service,
                   :env => Datadog.configuration.env,
-                  :tags => []
+                  :tags => [
+                    format('ruby.tracer.version:%s', Datadog::Core::Environment::Identity.tracer_version),
+                    format('ruby.runtime.platform:%s', RUBY_PLATFORM),
+                    format('ruby.runtime.version:%s', RUBY_VERSION),
+                    format('ruby.runtime.engine.name:%s', RUBY_ENGINE),
+                    format('ruby.runtime.engine.version:%s', RUBY_ENGINE_VERSION),
+                    format('ruby.rubygems.platform.local:%s', Gem::Platform.local.to_s),
+                  ]
                 }
 
                 expect(client_payload[:client_tracer]).to eq(expected_client_tracer)
