@@ -214,6 +214,10 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
           resolver
         end
+
+        it 'does not include a uds_path in the configuration' do
+          expect(resolver).to have_attributes(uds_path: nil)
+        end
       end
     end
   end

@@ -95,23 +95,7 @@ module Datadog
         end
 
         def adapter
-          if (configured_hostname || configured_port) && should_use_uds?
-            warn_if_configuration_mismatch(
-              [
-                DetectedConfiguration.new(
-                  friendly_name: 'configuration of hostname/port for http/https use',
-                  value: "hostname: '#{configured_hostname}', port: #{configured_port.inspect}",
-                ),
-                DetectedConfiguration.new(
-                  friendly_name: 'configuration for unix domain socket',
-                  value: "unix://#{uds_path}",
-                ),
-              ]
-            )
-
-            # We still want to use http in this case
-            Datadog::Transport::Ext::HTTP::ADAPTER
-          elsif should_use_uds?
+          if should_use_uds? && !mixed_http_and_uds?
             Datadog::Transport::Ext::UnixSocket::ADAPTER
           else
             Datadog::Transport::Ext::HTTP::ADAPTER
@@ -192,7 +176,9 @@ module Datadog
 
         # Unix socket path in the file system
         def uds_path
-          if parsed_url && unix_scheme?(parsed_url)
+          if mixed_http_and_uds?
+            nil
+          elsif parsed_url && unix_scheme?(parsed_url)
             path = parsed_url.to_s
             # Some versions of the built-in uri gem leave the original url untouched, and others remove the //, so this
             # supports both
@@ -305,6 +291,30 @@ module Datadog
 
         def unix_scheme?(uri)
           uri.scheme == 'unix'
+        end
+
+        # When we have mixed settings for http/https and uds, we print a warning and ignore the uds settings
+        def mixed_http_and_uds?
+          return @mixed_http_and_uds if defined?(@mixed_http_and_uds)
+
+          @mixed_http_and_uds = (configured_hostname || configured_port) && should_use_uds?
+
+          if @mixed_http_and_uds
+            warn_if_configuration_mismatch(
+              [
+                DetectedConfiguration.new(
+                  friendly_name: 'configuration of hostname/port for http/https use',
+                  value: "hostname: '#{configured_hostname}', port: #{configured_port.inspect}",
+                ),
+                DetectedConfiguration.new(
+                  friendly_name: 'configuration for unix domain socket',
+                  value: "unix://#{uds_path}",
+                ),
+              ]
+            )
+          end
+
+          @mixed_http_and_uds
         end
 
         # The settings.tracing.transport_options allows users to have full control over the settings used to
