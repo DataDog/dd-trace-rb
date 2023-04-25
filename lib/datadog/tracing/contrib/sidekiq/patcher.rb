@@ -54,13 +54,12 @@ module Datadog
 
             ::Sidekiq::Launcher.prepend(ServerInternalTracer::Stop)
 
+            # Sidekiq 7 changed method `heartbeat` to `beat`
             if ::Sidekiq::Launcher.private_method_defined? :heartbeat
               ::Sidekiq::Launcher.prepend(ServerInternalTracer::Heartbeat)
             end
 
-            if ::Sidekiq::Launcher.private_method_defined? :beat
-              ::Sidekiq::Launcher.prepend(ServerInternalTracer::Beat)
-            end
+            ::Sidekiq::Launcher.prepend(ServerInternalTracer::Beat) if ::Sidekiq::Launcher.private_method_defined? :beat
           end
 
           def patch_server_job_fetch

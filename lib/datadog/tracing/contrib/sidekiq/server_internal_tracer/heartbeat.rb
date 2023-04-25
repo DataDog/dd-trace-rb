@@ -30,6 +30,7 @@ module Datadog
             end
           end
 
+          # This implementation is identical to `Heartbeat`, but patching `beat` method instead.
           module Beat
             private
 

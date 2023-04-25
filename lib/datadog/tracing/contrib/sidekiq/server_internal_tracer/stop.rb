@@ -5,6 +5,7 @@ module Datadog
     module Contrib
       module Sidekiq
         module ServerInternalTracer
+          # Trace when Sidekiq stops
           module Stop
             def stop
               configuration = Datadog.configuration.tracing[:sidekiq]
