@@ -65,7 +65,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
     end
 
     context 'and service_name' do
-      it_behaves_like 'schema version span', 'mysql2'
+      it_behaves_like 'schema version span'
 
       context 'is not set' do
         it { expect(span.service).to eq('mysql2') }
