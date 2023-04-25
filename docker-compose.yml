@@ -17,7 +17,8 @@ services:
     env_file: ./.env
     environment: &common-environment
       BUNDLE_GEMFILE: /app/Gemfile-2.1
-      DD_AGENT_HOST: ddagent
+      DD_AGENT_HOST: testagent
+      DD_TRACE_AGENT_PORT: 9126
       TEST_DATADOG_INTEGRATION: 1
       TEST_ELASTICSEARCH_HOST: elasticsearch
       TEST_MEMCACHED_HOST: memcached
@@ -349,7 +350,7 @@ services:
       - "8126"
     ports:
       - "127.0.0.1:${DD_METRIC_AGENT_PORT}:8125/udp"
-      - "127.0.0.1:${DD_TRACE_AGENT_PORT}:8126"
+      - "127.0.0.1:8126:8126"
     volumes:
       - ddagent_var_run:/var/run/datadog
 
