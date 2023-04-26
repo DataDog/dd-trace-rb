@@ -22,6 +22,10 @@ module Datadog
         private
 
         def payload: () ->  ::Hash[Symbol, untyped]
+        def native_platform: () -> ::String
+
+        class PlatformError < RuntimeError
+        end
       end
     end
   end

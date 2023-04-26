@@ -118,12 +118,17 @@ module Datadog
             service: Datadog.configuration.service,
             env: Datadog.configuration.env,
             tags: [
+              "platform:#{native_platform}", # native platform
               "ruby.tracer.version:#{Core::Environment::Identity.tracer_version}",
               "ruby.runtime.platform:#{RUBY_PLATFORM}",
               "ruby.runtime.version:#{RUBY_VERSION}",
               "ruby.runtime.engine.name:#{RUBY_ENGINE}",
               "ruby.runtime.engine.version:#{defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION}",
               "ruby.rubygems.platform.local:#{Gem::Platform.local}",
+              "ruby.gem.libddwaf.version:#{Gem.loaded_specs['libddwaf'].version}",
+              "ruby.gem.libddwaf.platform:#{Gem.loaded_specs['libddwaf'].platform}",
+              "ruby.gem.libdatadog.version:#{Gem.loaded_specs['libdatadog'].version}",
+              "ruby.gem.libdatadog.platform:#{Gem.loaded_specs['libdatadog'].platform}",
             ],
           }
 
@@ -152,6 +157,45 @@ module Datadog
             cached_target_files: state.cached_target_files,
           }
         end
+
+        def native_platform
+          os = if RUBY_ENGINE == 'jruby'
+                 os_name = java.lang.System.get_property('os.name')
+
+                 case os_name
+                 when /linux/i then 'linux'
+                 when /mac/i   then 'darwin'
+                 else raise PlatformError, "unsupported JRuby os.name: #{os_name.inspect}"
+                 end
+               else
+                 Gem::Platform.local.os
+               end
+
+          version = if os != 'linux'
+                      nil
+                    elsif RUBY_PLATFORM =~ /linux-(.+)$/
+                      # Old rubygems don't handle non-gnu linux correctly
+                      Regexp.last_match(1)
+                    else
+                      'gnu'
+                    end
+
+          cpu = if RUBY_ENGINE == 'jruby'
+                  os_arch = java.lang.System.get_property('os.arch')
+
+                  case os_arch
+                  when 'amd64' then 'x86_64'
+                  when 'aarch64' then os == 'darwin' ? 'arm64' : 'aarch64'
+                  else raise PlatformError, "unsupported JRuby os.arch: #{os_arch.inspect}"
+                  end
+                else
+                  Gem::Platform.local.cpu
+                end
+
+          [cpu, os, version].compact.join('-')
+        end
+
+        class PlatformError < RuntimeError; end
       end
     end
   end
