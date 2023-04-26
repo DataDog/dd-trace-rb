@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'time'
 require 'sequel'
@@ -100,35 +101,17 @@ RSpec.describe 'Sequel configuration' do
         it_behaves_like 'a peer service span'
       end
 
-      context 'when without service_name - v0' do
+      context 'with schema versions' do
+        let(:configuration_options) { {} }
         before do
-          Datadog.configure { |c| c.tracing.instrument :sequel }
+          Datadog.configure do |c|
+            c.tracing.instrument :sequel, configuration_options
+          end
           perform_query!
         end
 
-        it do
-          with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-            expect(span.service).to eq('sqlite')
-          end
-        end
-      end
-
-      context 'when without service_name - v1' do # default to include base
-        before do
-          with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
-            Datadog.configure { |c| c.tracing.instrument :sequel }
-            perform_query!
-          end
-        end
-
-        it do
-          expect(span.service).to eq('rspec')
-        end
+        it_behaves_like 'schema version span'
       end
     end
-  end
-
-  def with_modified_env(options = {}, &block)
-    ClimateControl.modify(options, &block)
   end
 end
