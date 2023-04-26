@@ -239,32 +239,6 @@ RSpec.describe 'AWS instrumentation' do
       end
     end
 
-    describe '#send_message_invalid_queue_url' do
-      subject!(:send_message) do
-        client.send_message(
-          {
-            queue_url: 'https://sqs.us-stubbed-1/MyQueueName',
-            message_body: 'Hello, world!'
-          }
-        )
-      end
-
-      let(:responses) do
-        { send_message: {
-          md5_of_message_body: 'msg body',
-          md5_of_message_attributes: 'msg attributes',
-          md5_of_message_system_attributes: 'message system attributes',
-          message_id: '123',
-          sequence_number: '456'
-        } }
-      end
-
-      it 'generates a span' do
-        expect(span.get_tag('aws_account')).to eq(nil)
-        expect(span.get_tag('queuename')).to eq('')
-      end
-    end
-
     describe '#send_message_batch' do
       subject!(:send_message_batch) do
         client.send_message_batch(

@@ -4,13 +4,7 @@ require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../span_attribute_schema'
-require_relative 'services/sqs'
-require_relative 'services/sns'
-require_relative 'services/dynamodb'
-require_relative 'services/kinesis'
-require_relative 'services/eventbridge'
-require_relative 'services/states'
-require_relative 'services/s3'
+require_relative 'services/helpers'
 
 module Datadog
   module Tracing
@@ -69,25 +63,6 @@ module Datadog
             span.set_tag(Ext::TAG_HOST, context.safely(:host))
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, context.safely(:http_method))
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, context.safely(:status_code))
-          end
-
-          def add_service_specific_tags(span, aws_service, params)
-            case aws_service
-            when 'sqs'
-              add_sqs_tags(span, params)
-            when 'sns'
-              add_sns_tags(span, params)
-            when 'dynamodb'
-              add_dynamodb_tags(span, params)
-            when 'kinesis'
-              add_kinesis_tags(span, params)
-            when 'eventbridge'
-              add_eventbridge_tags(span, params)
-            when 'states'
-              add_states_tags(span, params)
-            when 's3'
-              add_s3_tags(span, params)
-            end
           end
 
           def configuration
