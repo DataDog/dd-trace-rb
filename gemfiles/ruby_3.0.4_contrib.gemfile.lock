@@ -1445,7 +1445,7 @@ GEM
     coderay (1.1.3)
     colorize (0.8.1)
     concurrent-ruby (1.2.2)
-    connection_pool (2.3.0)
+    connection_pool (2.4.0)
     crack (0.4.5)
       rexml
     crass (1.0.6)
@@ -1665,6 +1665,8 @@ GEM
       rake (> 12)
     redcarpet (3.6.0)
     redis (4.8.1)
+    redis-client (0.14.1)
+      connection_pool
     redis-namespace (1.10.0)
       redis (>= 4)
     regexp_parser (2.7.0)
@@ -1739,10 +1741,11 @@ GEM
       aws-sdk-core (>= 2)
       concurrent-ruby
       thor
-    sidekiq (6.5.8)
-      connection_pool (>= 2.2.5, < 3)
-      rack (~> 2.0)
-      redis (>= 4.5.0, < 5)
+    sidekiq (7.0.8)
+      concurrent-ruby (< 2)
+      connection_pool (>= 2.3.0)
+      rack (>= 2.2.4)
+      redis-client (>= 0.11.0)
     sigdump (0.2.4)
     simplecov-cobertura (2.1.0)
       rexml
@@ -1866,7 +1869,7 @@ DEPENDENCIES
   semantic_logger (~> 4.0)
   sequel (~> 5.54.0)
   shoryuken
-  sidekiq (~> 6)
+  sidekiq (~> 7)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   sneakers (>= 2.12.0)
