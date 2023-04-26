@@ -177,6 +177,17 @@ step_run_all_tests: &step_run_all_tests
 
         bundle exec rake ci
 
+filters_all_branches_and_tags: &filters_all_branches_and_tags
+  filters:
+    tags:
+      only: /.*/
+filters_only_release_tags: &filters_only_release_tags
+  filters:
+    branches:
+      ignore: /.*/
+    tags:
+      only: /^v\d+(\.\d+){0,3}(\.(alpha|beta|rc)\d+)?$/
+
 orbs:
   orb:
     orbs:
