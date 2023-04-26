@@ -88,5 +88,21 @@ RSpec.describe Datadog::Core::Environment::Identity do
 
       it { is_expected.to eq('10.20.30-beta40') }
     end
+
+    context 'when development' do
+      before do
+        expect(described_class).to receive(:tracer_version).and_return('10.20.30.gha12345.ga1b2c3d4.a.branch.name')
+      end
+
+      it { is_expected.to eq('10.20.30+gha12345.ga1b2c3d4.a-branch-name') }
+    end
+
+    context 'when prerelease and development' do
+      before do
+        expect(described_class).to receive(:tracer_version).and_return('10.20.30.beta40.gha12345.ga1b2c3d4.a.branch.name')
+      end
+
+      it { is_expected.to eq('10.20.30-beta40+gha12345.ga1b2c3d4.a-branch-name') }
+    end
   end
 end
