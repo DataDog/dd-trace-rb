@@ -63,11 +63,19 @@ RSpec.describe Datadog::Core::Remote::Component do
               allow(http_connection).to receive(:start).and_yield(http_connection)
               http_response = instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
               allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
+
+              allow(Datadog.logger).to receive(:error).and_return(nil)
             end
 
             context 'agent unreacheable' do
               let(:response_code) { 500 }
               let(:response_body) { {}.to_json }
+
+              it 'logs an error' do
+                expect(Datadog.logger).to receive(:error).and_return(nil)
+
+                component
+              end
 
               it 'returns nil ' do
                 expect(component).to be_nil
@@ -82,7 +90,15 @@ RSpec.describe Datadog::Core::Remote::Component do
                 }.to_json
               end
 
+              it 'logs an error' do
+                expect(Datadog.logger).to receive(:error).and_return(nil)
+
+                component
+              end
+
               it 'returns nil ' do
+                expect(Datadog.logger).to receive(:error).and_return(nil)
+
                 expect(component).to be_nil
               end
             end
@@ -93,6 +109,12 @@ RSpec.describe Datadog::Core::Remote::Component do
                 {
                   'endpoints' => ['/v0.7/config']
                 }.to_json
+              end
+
+              it 'does not log an error' do
+                expect(Datadog.logger).to_not receive(:error)
+
+                component
               end
 
               it 'returns component' do
