@@ -11,6 +11,10 @@ RSpec.describe Datadog::Core::Remote::Component do
   describe '.build' do
     subject(:component) { described_class.build(settings, agent_settings) }
 
+    after do
+      component.shutdown! if component
+    end
+
     context 'remote disabled' do
       let(:remote) do
         mock = double('remote')
@@ -130,6 +134,10 @@ RSpec.describe Datadog::Core::Remote::Component do
   describe '#initialize' do
     subject(:component) { described_class.new(settings, capabilities, agent_settings) }
 
+    after do
+      component.shutdown!
+    end
+
     context 'worker' do
       let(:worker) { component.instance_eval { @worker } }
       let(:client) { double }
@@ -143,10 +151,6 @@ RSpec.describe Datadog::Core::Remote::Component do
 
         expect(worker).to receive(:start).and_call_original
         expect(worker).to receive(:stop).and_call_original
-      end
-
-      after do
-        component.shutdown!
       end
 
       context 'when client sync succeeds' do
