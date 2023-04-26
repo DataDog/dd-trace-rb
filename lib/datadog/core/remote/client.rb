@@ -113,8 +113,24 @@ module Datadog
 
         private
 
-        def payload
+        def payload # rubocop:disable Metrics/MethodLength
           state = repository.state
+
+          client_tracer_tags = [
+            "platform:#{native_platform}", # native platform
+            # "asm.config.rules:#{}", # TODO: defined|undefined
+            # "asm.config.enabled:#{}", # TODO: true|false|undefined
+            "ruby.tracer.version:#{Core::Environment::Identity.tracer_version}",
+            "ruby.runtime.platform:#{RUBY_PLATFORM}",
+            "ruby.runtime.version:#{RUBY_VERSION}",
+            "ruby.runtime.engine.name:#{RUBY_ENGINE}",
+            "ruby.runtime.engine.version:#{ruby_engine_version}",
+            "ruby.rubygems.platform.local:#{Gem::Platform.local}",
+            "ruby.gem.libddwaf.version:#{gem_spec('libddwaf').version}",
+            "ruby.gem.libddwaf.platform:#{gem_spec('libddwaf').platform}",
+            "ruby.gem.libdatadog.version:#{gem_spec('libdatadog').version}",
+            "ruby.gem.libdatadog.platform:#{gem_spec('libdatadog').platform}",
+          ]
 
           client_tracer = {
             runtime_id: Core::Environment::Identity.id,
@@ -122,7 +138,7 @@ module Datadog
             tracer_version: Core::Environment::Identity.tracer_version,
             service: Datadog.configuration.service,
             env: Datadog.configuration.env,
-            tags: [], # TODO: add nice tags!
+            tags: client_tracer_tags,
           }
 
           app_version = Datadog.configuration.version
@@ -150,6 +166,55 @@ module Datadog
             cached_target_files: state.cached_target_files,
           }
         end
+
+        def ruby_engine_version
+          @ruby_engine_version ||= defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION
+        end
+
+        def gem_spec(name)
+          (@gem_specs ||= {})[name] ||= ::Gem.loaded_specs[name] || GemSpecificationFallback.new(nil, nil)
+        end
+
+        def native_platform
+          return @native_platform unless @native_platform.nil?
+
+          os = if RUBY_ENGINE == 'jruby'
+                 os_name = java.lang.System.get_property('os.name')
+
+                 case os_name
+                 when /linux/i then 'linux'
+                 when /mac/i   then 'darwin'
+                 else os_name
+                 end
+               else
+                 Gem::Platform.local.os
+               end
+
+          version = if os != 'linux'
+                      nil
+                    elsif RUBY_PLATFORM =~ /linux-(.+)$/
+                      # Old rubygems don't handle non-gnu linux correctly
+                      Regexp.last_match(1)
+                    else
+                      'gnu'
+                    end
+
+          cpu = if RUBY_ENGINE == 'jruby'
+                  os_arch = java.lang.System.get_property('os.arch')
+
+                  case os_arch
+                  when 'amd64' then 'x86_64'
+                  when 'aarch64' then os == 'darwin' ? 'arm64' : 'aarch64'
+                  else os_arch
+                  end
+                else
+                  Gem::Platform.local.cpu
+                end
+
+          @native_platform = [cpu, os, version].compact.join('-')
+        end
+
+        GemSpecificationFallback = _ = Struct.new(:version, :platform) # rubocop:disable Naming/ConstantName
       end
     end
   end

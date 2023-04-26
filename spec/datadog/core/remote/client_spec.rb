@@ -502,6 +502,52 @@ RSpec.describe Datadog::Core::Remote::Client do
           end
 
           context 'client_tracer' do
+            context 'tags' do
+              let(:tracer_version) { '1.1.1' }
+              let(:ruby_platform) { 'ruby-platform' }
+              let(:ruby_version) { '2.2.2' }
+              let(:ruby_engine) { 'ruby_engine_name' }
+              let(:ruby_engine_version) { '3.3.3' }
+              let(:gem_platform_local) { 'gem-platform' }
+              let(:native_platform) { 'native-platform' }
+              let(:libddwaf_gem_spec) { Struct.new(:version, :platform).new('4.4.4', 'libddwaf-platform') }
+              let(:libdatadog_gem_spec) { Struct.new(:version, :platform).new('5.5.5', 'libdatadog-platform') }
+
+              before do
+                stub_const('RUBY_PLATFORM', ruby_platform)
+                stub_const('RUBY_VERSION', ruby_version)
+                stub_const('RUBY_ENGINE', ruby_engine)
+                stub_const('RUBY_ENGINE_VERSION', ruby_engine_version)
+
+                allow(Gem::Platform).to receive(:local).and_return(gem_platform_local)
+                allow(Datadog::Core::Environment::Identity).to receive(:tracer_version).and_return(tracer_version)
+                allow(client).to receive(:ruby_engine_version).and_return(ruby_engine_version)
+                allow(client).to receive(:native_platform).and_return(native_platform)
+                allow(client).to receive(:gem_spec).with('libddwaf').and_return(libddwaf_gem_spec)
+                allow(client).to receive(:gem_spec).with('libdatadog').and_return(libdatadog_gem_spec)
+              end
+
+              it 'returns client_tracer tags' do
+                expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
+
+                expected_client_tracer_tags = [
+                  "platform:#{native_platform}",
+                  "ruby.tracer.version:#{tracer_version}",
+                  "ruby.runtime.platform:#{ruby_platform}",
+                  "ruby.runtime.version:#{ruby_version}",
+                  "ruby.runtime.engine.name:#{ruby_engine}",
+                  "ruby.runtime.engine.version:#{ruby_engine_version}",
+                  "ruby.rubygems.platform.local:#{gem_platform_local}",
+                  "ruby.gem.libddwaf.version:#{libddwaf_gem_spec.version}",
+                  "ruby.gem.libddwaf.platform:#{libddwaf_gem_spec.platform}",
+                  "ruby.gem.libdatadog.version:#{libdatadog_gem_spec.version}",
+                  "ruby.gem.libdatadog.platform:#{libdatadog_gem_spec.platform}",
+                ]
+
+                expect(client_payload[:client_tracer][:tags]).to eq(expected_client_tracer_tags)
+              end
+            end
+
             context 'with app_version' do
               it 'returns client_tracer' do
                 expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
@@ -513,10 +559,9 @@ RSpec.describe Datadog::Core::Remote::Client do
                   :service => Datadog.configuration.service,
                   :env => Datadog.configuration.env,
                   :app_version => Datadog.configuration.version,
-                  :tags => []
                 }
 
-                expect(client_payload[:client_tracer]).to eq(expected_client_tracer)
+                expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
               end
             end
 
@@ -530,10 +575,9 @@ RSpec.describe Datadog::Core::Remote::Client do
                   :tracer_version => Datadog::Core::Environment::Identity.tracer_version,
                   :service => Datadog.configuration.service,
                   :env => Datadog.configuration.env,
-                  :tags => []
                 }
 
-                expect(client_payload[:client_tracer]).to eq(expected_client_tracer)
+                expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
               end
             end
           end
