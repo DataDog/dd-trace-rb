@@ -20,6 +20,11 @@ module Datadog
         attr_reader \
           :metrics
 
+
+        extend Dependency::ComponentMixin
+
+        component(:metrics)
+        setting(:enabled, 'runtime_metrics.enabled')
         def initialize(options = {})
           @metrics = options.fetch(:metrics) { Core::Runtime::Metrics.new }
 

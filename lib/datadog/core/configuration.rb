@@ -1,5 +1,6 @@
 require_relative 'configuration/components'
 require_relative 'configuration/settings'
+require_relative 'dependency'
 require_relative 'telemetry/emitter'
 require_relative 'logger'
 require_relative 'pin'
@@ -184,6 +185,11 @@ module Datadog
         safely_synchronize do
           @components.shutdown! if components?
         end
+      end
+
+      # TODO: write this
+      def dependencies
+        @dependencies ||= Dependency::Registry.new
       end
 
       protected

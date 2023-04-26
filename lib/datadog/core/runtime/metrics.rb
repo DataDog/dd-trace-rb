@@ -1,5 +1,6 @@
 require_relative 'ext'
 
+require_relative '../dependency'
 require_relative '../metrics/client'
 require_relative '../environment/class_count'
 require_relative '../environment/gc'
@@ -11,11 +12,17 @@ module Datadog
     module Runtime
       # For generating runtime metrics
       class Metrics < Core::Metrics::Client
-        def initialize(**options)
+        extend Dependency::ComponentMixin
+
+        setting(:services, 'service') { |value| Array(value) }
+        setting(:enabled, 'runtime_metrics.enabled')
+        component(:statsd)
+        # Deprecate
+        def initialize(services: nil, enabled: nil, statsd: nil)
           super
 
           # Initialize service list
-          @services = Set.new(options.fetch(:services, []))
+          @services = Set.new(services)
           @service_tags = nil
           compile_service_tags!
         end
