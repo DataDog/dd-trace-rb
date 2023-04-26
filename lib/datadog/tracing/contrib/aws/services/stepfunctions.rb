@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../ext'
+require 'aws-sdk'
 
 def add_states_tags(span, params)
   state_machine_name = params[:name]
@@ -9,19 +10,17 @@ def add_states_tags(span, params)
   state_machine_account_id = ''
 
   if execution_arn
-    # 'arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution'
-    parts = execution_arn.split(':')
-    state_machine_name = parts[-2]
-    state_machine_account_id = parts[4]
-
+    arn = Aws::ARNParser.parse(execution_arn)
+    state_machine_name = arn.resource.split(':')[-2]
+    state_machine_account_id = arn.account_id
   end
 
   if state_machine_arn
-    # example statemachinearn: arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine
-    parts = state_machine_arn.split(':')
-    state_machine_name ||= parts[-1]
-    state_machine_account_id = parts[-3]
+    arn = Aws::ARNParser.parse(state_machine_arn)
+    state_machine_name ||= arn.resource.split(':').last
+    state_machine_account_id = arn.account_id
   end
+
   span.set_tag(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, state_machine_account_id)
   span.set_tag(Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME, state_machine_name)
 end
