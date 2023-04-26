@@ -5,6 +5,7 @@ require_relative '../transport/http'
 module Datadog
   module Core
     module Remote
+      # Endpoint negotiation
       class Negotiation
         def initialize(_settings, agent_settings)
           transport_options = {}
