@@ -179,7 +179,7 @@ module Datadog
                  case os_name
                  when /linux/i then 'linux'
                  when /mac/i   then 'darwin'
-                 else raise PlatformError, "unsupported JRuby os.name: #{os_name.inspect}"
+                 else os_name
                  end
                else
                  Gem::Platform.local.os
@@ -200,7 +200,7 @@ module Datadog
                   case os_arch
                   when 'amd64' then 'x86_64'
                   when 'aarch64' then os == 'darwin' ? 'arm64' : 'aarch64'
-                  else raise PlatformError, "unsupported JRuby os.arch: #{os_arch.inspect}"
+                  else os_arch
                   end
                 else
                   Gem::Platform.local.cpu
@@ -208,8 +208,6 @@ module Datadog
 
           @native_platform = [cpu, os, version].compact.join('-')
         end
-
-        class PlatformError < RuntimeError; end
 
         GemSpecificationFallback = _ = Struct.new(:version, :platform) # rubocop:disable Naming/ConstantName
       end

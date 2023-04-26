@@ -30,9 +30,6 @@ module Datadog
         def native_platform: () -> ::String
         def ruby_engine_version: () -> ::String
 
-        class PlatformError < RuntimeError
-        end
-
         class GemSpecificationFallback
           def initialize: (::String?, ::String?) -> void
 
