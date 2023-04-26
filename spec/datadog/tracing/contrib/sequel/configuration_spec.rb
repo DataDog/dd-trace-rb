@@ -100,20 +100,20 @@ RSpec.describe 'Sequel configuration' do
         it_behaves_like 'a peer service span'
       end
 
-      context 'when without service_name v0' do
+      context 'when without service_name - v0' do
         before do
           Datadog.configure { |c| c.tracing.instrument :sequel }
           perform_query!
         end
 
         it do
-          with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
+          with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
             expect(span.service).to eq('sqlite')
           end
         end
       end
 
-      context 'when without service_name v1' do # default to include base
+      context 'when without service_name - v1' do # default to include base
         before do
           with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
             Datadog.configure { |c| c.tracing.instrument :sequel }
