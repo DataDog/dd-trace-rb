@@ -7,6 +7,7 @@ module DDTrace
     PATCH = 0
     PRE = 'beta1'
     BUILD = nil
+    # PRE and BUILD above are modified for dev gems during gem build GHA workflow
 
     STRING = [MAJOR, MINOR, PATCH, PRE, BUILD].compact.join('.')
 
