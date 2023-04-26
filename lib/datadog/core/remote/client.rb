@@ -111,25 +111,29 @@ module Datadog
         def payload # rubocop:disable Metrics/MethodLength
           state = repository.state
 
+          client_tracer_tags = [
+            "platform:#{native_platform}", # native platform
+            # "asm.config.rules:#{}", # TODO: defined|undefined
+            # "asm.config.enabled:#{}", # TODO: true|false|undefined
+            "ruby.tracer.version:#{Core::Environment::Identity.tracer_version}",
+            "ruby.runtime.platform:#{RUBY_PLATFORM}",
+            "ruby.runtime.version:#{RUBY_VERSION}",
+            "ruby.runtime.engine.name:#{RUBY_ENGINE}",
+            "ruby.runtime.engine.version:#{ruby_engine_version}",
+            "ruby.rubygems.platform.local:#{Gem::Platform.local}",
+            "ruby.gem.libddwaf.version:#{gem_spec('libddwaf').version}",
+            "ruby.gem.libddwaf.platform:#{gem_spec('libddwaf').platform}",
+            "ruby.gem.libdatadog.version:#{gem_spec('libdatadog').version}",
+            "ruby.gem.libdatadog.platform:#{gem_spec('libdatadog').platform}",
+          ]
+
           client_tracer = {
             runtime_id: Core::Environment::Identity.id,
             language: Core::Environment::Identity.lang,
             tracer_version: Core::Environment::Identity.tracer_version,
             service: Datadog.configuration.service,
             env: Datadog.configuration.env,
-            tags: [
-              "platform:#{native_platform}", # native platform
-              "ruby.tracer.version:#{Core::Environment::Identity.tracer_version}",
-              "ruby.runtime.platform:#{RUBY_PLATFORM}",
-              "ruby.runtime.version:#{RUBY_VERSION}",
-              "ruby.runtime.engine.name:#{RUBY_ENGINE}",
-              "ruby.runtime.engine.version:#{defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION}",
-              "ruby.rubygems.platform.local:#{Gem::Platform.local}",
-              "ruby.gem.libddwaf.version:#{Gem.loaded_specs['libddwaf'].version}",
-              "ruby.gem.libddwaf.platform:#{Gem.loaded_specs['libddwaf'].platform}",
-              "ruby.gem.libdatadog.version:#{Gem.loaded_specs['libdatadog'].version}",
-              "ruby.gem.libdatadog.platform:#{Gem.loaded_specs['libdatadog'].platform}",
-            ],
+            tags: client_tracer_tags,
           }
 
           app_version = Datadog.configuration.version
@@ -158,7 +162,17 @@ module Datadog
           }
         end
 
+        def ruby_engine_version
+          @ruby_engine_version ||= defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION
+        end
+
+        def gem_spec(name)
+          (@gem_specs ||= {})[name] ||= ::Gem.loaded_specs[name] || GemSpecificationFallback.new(nil, nil)
+        end
+
         def native_platform
+          return @native_platform unless @native_platform.nil?
+
           os = if RUBY_ENGINE == 'jruby'
                  os_name = java.lang.System.get_property('os.name')
 
@@ -192,10 +206,12 @@ module Datadog
                   Gem::Platform.local.cpu
                 end
 
-          [cpu, os, version].compact.join('-')
+          @native_platform = [cpu, os, version].compact.join('-')
         end
 
         class PlatformError < RuntimeError; end
+
+        GemSpecificationFallback = _ = Struct.new(:version, :platform) # rubocop:disable Naming/ConstantName
       end
     end
   end
