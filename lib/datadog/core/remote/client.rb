@@ -118,15 +118,12 @@ module Datadog
             service: Datadog.configuration.service,
             env: Datadog.configuration.env,
             tags: [
-              format('ruby.tracer.version:%s', Core::Environment::Identity.tracer_version),
-              format('ruby.runtime.platform:%s', RUBY_PLATFORM),
-              format('ruby.runtime.version:%s', RUBY_VERSION),
-              format('ruby.runtime.engine.name:%s', RUBY_ENGINE),
-              format(
-                'ruby.runtime.engine.version:%s',
-                (defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION)
-              ),
-              format('ruby.rubygems.platform.local:%s', Gem::Platform.local.to_s),
+              "ruby.tracer.version:#{Core::Environment::Identity.tracer_version}",
+              "ruby.runtime.platform:#{RUBY_PLATFORM}",
+              "ruby.runtime.version:#{RUBY_VERSION}",
+              "ruby.runtime.engine.name:#{RUBY_ENGINE}",
+              "ruby.runtime.engine.version:#{defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION}",
+              "ruby.rubygems.platform.local:#{Gem::Platform.local}",
             ],
           }
 
