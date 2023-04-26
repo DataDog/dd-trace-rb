@@ -49,9 +49,17 @@ module Datadog
           end
 
           def patch_server_heartbeat
+            require_relative 'server_internal_tracer/stop'
             require_relative 'server_internal_tracer/heartbeat'
 
-            ::Sidekiq::Launcher.prepend(ServerInternalTracer::Heartbeat)
+            ::Sidekiq::Launcher.prepend(ServerInternalTracer::Stop)
+
+            # Sidekiq 7 changed method `heartbeat` to `beat`
+            if ::Sidekiq::Launcher.private_method_defined? :heartbeat
+              ::Sidekiq::Launcher.prepend(ServerInternalTracer::Heartbeat)
+            end
+
+            ::Sidekiq::Launcher.prepend(ServerInternalTracer::Beat) if ::Sidekiq::Launcher.private_method_defined? :beat
           end
 
           def patch_server_job_fetch
@@ -69,7 +77,11 @@ module Datadog
           def patch_redis_info
             require_relative 'server_internal_tracer/redis_info'
 
-            ::Sidekiq.singleton_class.prepend(ServerInternalTracer::RedisInfo)
+            if Integration.supports_capsules?
+              ::Sidekiq::Config.prepend(ServerInternalTracer::RedisInfo)
+            else
+              ::Sidekiq.singleton_class.prepend(ServerInternalTracer::RedisInfo)
+            end
           end
         end
       end

@@ -141,10 +141,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, method)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
-
-              if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, uri.host)
-              end
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, uri.host)
             end
 
             def set_span_error_message(message)
