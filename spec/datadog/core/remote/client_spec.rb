@@ -555,7 +555,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 expected_client_tracer = {
                   :runtime_id => Datadog::Core::Environment::Identity.id,
                   :language => Datadog::Core::Environment::Identity.lang,
-                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version,
+                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version_semver2,
                   :service => Datadog.configuration.service,
                   :env => Datadog.configuration.env,
                   :app_version => Datadog.configuration.version,
@@ -572,7 +572,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 expected_client_tracer = {
                   :runtime_id => Datadog::Core::Environment::Identity.id,
                   :language => Datadog::Core::Environment::Identity.lang,
-                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version,
+                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version_semver2,
                   :service => Datadog.configuration.service,
                   :env => Datadog.configuration.env,
                 }
