@@ -100,7 +100,7 @@ test_containers:
       - DD_HOSTNAME=dd-trace-rb-ci
   - &agent_port 8126
   - &container_testagent
-    image: williamconti549/dd-apm-test-agent:js-dev
+    image: williamconti549/dd-apm-test-agent:latest
     name: testagent
     environment:
       - LOG_LEVEL=DEBUG
