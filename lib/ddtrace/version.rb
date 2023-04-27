@@ -5,7 +5,7 @@ module DDTrace
     MAJOR = 1
     MINOR = 11
     PATCH = 0
-    PRE = 'beta1'
+    PRE = nil
     BUILD = nil
     # PRE and BUILD above are modified for dev gems during gem build GHA workflow
 
