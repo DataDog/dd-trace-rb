@@ -31,7 +31,7 @@ For more details, check the release notes.
 * Profiling: Enable CPU Profiling 2.0 by default ([#2702][])
 * Tracing: Improve controller instrumentation and deprecate option `exception_controller` ([#2726][])
 * Tracing: Implement Span Attribute Schema Environment Variable ([#2727][])
-* Tracing: Change default `service_name` values ([#2760][])
+* Tracing: Change default `service_name` values (gated by feature flag) ([#2760][])
 
 ### Fixed
 
