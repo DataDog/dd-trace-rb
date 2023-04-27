@@ -53,7 +53,7 @@ module Datadog
           if new && new.ready?
             old = @processor
             @processor = new
-            old.finalize
+            old.finalize if old
           end
         end
       end
