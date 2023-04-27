@@ -135,7 +135,7 @@ module Datadog
           client_tracer = {
             runtime_id: Core::Environment::Identity.id,
             language: Core::Environment::Identity.lang,
-            tracer_version: Core::Environment::Identity.tracer_version_semver2,
+            tracer_version: tracer_version_semver2,
             service: Datadog.configuration.service,
             env: Datadog.configuration.env,
             tags: client_tracer_tags,
@@ -165,6 +165,10 @@ module Datadog
             },
             cached_target_files: state.cached_target_files,
           }
+        end
+
+        def tracer_version_semver2
+          @tracer_version_semver2 ||= Core::Environment::Identity.tracer_version_semver2
         end
 
         def ruby_engine_version
