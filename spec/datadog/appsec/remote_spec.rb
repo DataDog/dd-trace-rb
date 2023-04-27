@@ -164,12 +164,15 @@ RSpec.describe Datadog::AppSec::Remote do
 
         context 'when there is no ASM_DD information' do
           let(:transaction) { repository.transaction { |repository, transaction| } }
+
           it 'uses the rules from the appsec settings' do
+            ruleset = ''
             expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
               ruleset: Datadog.configuration.appsec.ruleset
-            ).at_least(:once).and_call_original
+            ).and_return(ruleset)
 
             changes = transaction
+            expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: ruleset)
             receiver.call(repository, changes)
           end
 
