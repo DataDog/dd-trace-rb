@@ -1,6 +1,5 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'time'
 require 'sequel'
@@ -99,18 +98,6 @@ RSpec.describe 'Sequel configuration' do
         end
 
         it_behaves_like 'a peer service span'
-      end
-
-      context 'with schema versions' do
-        let(:configuration_options) { {} }
-        before do
-          Datadog.configure do |c|
-            c.tracing.instrument :sequel, configuration_options
-          end
-          perform_query!
-        end
-
-        it_behaves_like 'schema version span'
       end
     end
   end

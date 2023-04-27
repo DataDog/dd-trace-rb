@@ -1,6 +1,7 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'time'
 require 'sequel'
@@ -88,6 +89,7 @@ RSpec.describe 'Sequel instrumentation' do
         end
 
         it_behaves_like 'measured span for integration', false
+        it_behaves_like 'schema version span'
       end
 
       context 'with query provided as a string' do
