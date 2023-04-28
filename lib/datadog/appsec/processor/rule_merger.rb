@@ -62,7 +62,7 @@ module Datadog
             result = []
 
             data.each do |data_entry|
-              data_entry['rules_data'].each do |value|
+              data_entry.each do |value|
                 existing_data = result.find { |x| x['id'] == value['id'] }
 
                 if existing_data && existing_data['type'] == value['type']
@@ -116,7 +116,7 @@ module Datadog
             rules_override = []
 
             overrides.each do |override|
-              override['rules_override'].each do |rule_override|
+              override.each do |rule_override|
                 rules_override << rule_override
               end
             end
@@ -130,7 +130,7 @@ module Datadog
             rules_exclusions = []
 
             exclusions.each do |exclusion|
-              exclusion['exclusions'].each do |rule_exclusion|
+              exclusion.each do |rule_exclusion|
                 rules_exclusions << rule_exclusion
               end
             end
