@@ -54,6 +54,7 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('get_access_key_info')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('path')).to eq('')
         expect(span.get_tag('host')).to eq('sts.us-stubbed-1.amazonaws.com')
@@ -105,6 +106,7 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('list_buckets')
+        expect(span.get_tag('aws.region')).to eq('us-stubbed-1')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('s3')
         expect(span.get_tag('path')).to eq('/')

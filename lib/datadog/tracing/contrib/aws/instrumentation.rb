@@ -59,6 +59,7 @@ module Datadog
             span.set_tag(Ext::TAG_AGENT, Ext::TAG_DEFAULT_AGENT)
             span.set_tag(Ext::TAG_OPERATION, context.safely(:operation))
             span.set_tag(Ext::TAG_REGION, context.safely(:region))
+            span.set_tag(Ext::TAG_AWS_REGION, context.safely(:region))
             span.set_tag(Ext::TAG_PATH, context.safely(:path))
             span.set_tag(Ext::TAG_HOST, context.safely(:host))
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, context.safely(:http_method))
