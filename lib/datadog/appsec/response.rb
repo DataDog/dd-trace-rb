@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'assets'
 require_relative 'utils/http/media_range'
 
@@ -27,33 +29,39 @@ module Datadog
 
       class << self
         def negotiate(env)
+          content_type = content_type(env)
+
+          Datadog.logger.debug { "negotiated response content type: #{content_type}" }
+
           Response.new(
             status: 403,
-            headers: { 'Content-Type' => 'text/html' },
-            body: [Datadog::AppSec::Assets.blocked(format: format(env))]
+            headers: { 'Content-Type' => content_type },
+            body: [Datadog::AppSec::Assets.blocked(format: FORMAT_MAP[content_type])]
           )
         end
 
         private
 
         FORMAT_MAP = {
+          'text/plain' => :text,
           'text/html' => :html,
           'application/json' => :json,
-          'text/plain' => :text,
         }.freeze
 
-        DEFAULT_FORMAT = :text
+        DEFAULT_CONTENT_TYPE = 'text/plain'
 
-        def format(env)
-          return DEFAULT_FORMAT unless env.key?('HTTP_ACCEPT')
+        def content_type(env)
+          return DEFAULT_CONTENT_TYPE unless env.key?('HTTP_ACCEPT')
 
-          accepted = env['HTTP_ACCEPT'].split(',').map { |m| Utils::HTTP::MediaRange.new(m) }.sort
+          accepted = env['HTTP_ACCEPT'].split(',').map { |m| Utils::HTTP::MediaRange.new(m) }.sort!.reverse!
 
-          accepted.each_with_object(DEFAULT_FORMAT) do |range, _default|
-            format = FORMAT_MAP.keys.find { |type, _format| range === type }
+          accepted.each_with_object(DEFAULT_CONTENT_TYPE) do |range, _default|
+            match = FORMAT_MAP.keys.find { |type| range === type }
 
-            return FORMAT_MAP[format] if format
+            return match if match
           end
+        rescue Datadog::AppSec::Utils::HTTP::MediaRange::ParseError
+          DEFAULT_CONTENT_TYPE
         end
       end
     end
