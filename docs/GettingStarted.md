@@ -2318,7 +2318,7 @@ While the Datadog agent can sample traces to reduce bandwidth usage, application
 
 **Application-side sampling drops traces as early as possible. This causes the [Ingestion Controls](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_controls/) page to not receive enough information to report accurate sampling rates. Use only when reducing the tracing overhead is paramount.**
 
-If you are use this feature, please let us know by [opening an issue on GitHub](https://github.com/DataDog/dd-trace-rb/issues/new), so we can better understand and support your use case.
+If you use this feature, please let us know by [opening an issue on GitHub](https://github.com/DataDog/dd-trace-rb/issues/new), so we can better understand and support your use case.
 
 You can configure *Application-side sampling* with the following settings:
 
