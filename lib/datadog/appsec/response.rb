@@ -49,7 +49,7 @@ module Datadog
 
           accepted = env['HTTP_ACCEPT'].split(',').map { |m| Utils::HTTP::MediaRange.new(m) }.sort
 
-          accepted.each_with_object(DEFAULT_FORMAT) do |_default, range|
+          accepted.each_with_object(DEFAULT_FORMAT) do |range, _default|
             format = FORMAT_MAP.keys.find { |type, _format| range === type }
 
             return FORMAT_MAP[format] if format
