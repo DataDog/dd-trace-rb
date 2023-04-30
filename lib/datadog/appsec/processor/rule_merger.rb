@@ -113,31 +113,11 @@ module Datadog
           end
 
           def combine_overrides(overrides)
-            rules_override = []
-
-            overrides.each do |override|
-              override.each do |rule_override|
-                rules_override << rule_override
-              end
-            end
-
-            return if rules_override.empty?
-
-            rules_override
+            overrides.flatten
           end
 
           def combine_exclusions(exclusions)
-            rules_exclusions = []
-
-            exclusions.each do |exclusion|
-              exclusion.each do |rule_exclusion|
-                rules_exclusions << rule_exclusion
-              end
-            end
-
-            return if rules_exclusions.empty?
-
-            rules_exclusions
+            exclusions.flatten
           end
         end
       end
