@@ -17,12 +17,12 @@ module Datadog
         end
 
         class << self
-          def merge(rules:, data: nil, overrides: nil, exclusions: nil)
+          def merge(rules:, data: [], overrides: [], exclusions: [])
             combined_rules = combine_rules(rules)
 
-            rules_data = combine_data(data) if data
-            rules_overrides = combine_overrides(overrides) if overrides
-            rules_exclusions = combine_exclusions(exclusions) if exclusions
+            rules_data = combine_data(data) if data.any?
+            rules_overrides = combine_overrides(overrides) if overrides.any?
+            rules_exclusions = combine_exclusions(exclusions) if exclusions.any?
 
             combined_rules['rules_data'] = rules_data if rules_data
             combined_rules['rules_override'] = rules_overrides if rules_overrides

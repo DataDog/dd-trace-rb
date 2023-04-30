@@ -94,8 +94,8 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
     subject(:data) { described_class.load_data(ip_denylist: ip_denylist, user_id_denylist: user_id_denylist) }
 
     context 'empty data' do
-      it 'returns nil' do
-        expect(data).to be_nil
+      it 'returns []' do
+        expect(data).to eq([])
       end
     end
 
