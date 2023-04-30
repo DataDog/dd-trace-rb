@@ -106,7 +106,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
         it 'returns data information' do
           expect(data).to_not be_nil
           expect(data.size).to eq 1
-          rules_data = data[0]['rules_data'][0]
+          rules_data = data[0][0]
 
           expect(rules_data).to_not be_nil
           expect(rules_data['id']).to eq 'blocked_ips'
@@ -128,7 +128,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
         it 'returns data information' do
           expect(data).to_not be_nil
           expect(data.size).to eq 1
-          rules_data = data[0]['rules_data'][0]
+          rules_data = data[0][0]
 
           expect(rules_data).to_not be_nil
           expect(rules_data['id']).to eq 'blocked_users'

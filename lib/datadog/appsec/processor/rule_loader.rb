@@ -41,8 +41,8 @@ module Datadog
 
           def load_data(ip_denylist: [], user_id_denylist: [])
             data = []
-            data << { 'rules_data' => [denylist_data('blocked_ips', ip_denylist)] } if ip_denylist.any?
-            data << { 'rules_data' => [denylist_data('blocked_users', user_id_denylist)] } if user_id_denylist.any?
+            data << [denylist_data('blocked_ips', ip_denylist)] if ip_denylist.any?
+            data << [denylist_data('blocked_users', user_id_denylist)] if user_id_denylist.any?
 
             data.any? ? data : nil
           end
