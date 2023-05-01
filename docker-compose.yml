@@ -361,7 +361,6 @@ services:
     environment:
         - LOG_LEVEL=DEBUG
         - TRACE_LANGUAGE=ruby
-        - DISABLED_CHECKS=trace_tag_validation
         - DD_TRACE_AGENT_URL=http://ddagent:8126
         - PORT=9126
 

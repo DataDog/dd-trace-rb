@@ -105,7 +105,6 @@ test_containers:
     environment:
       - LOG_LEVEL=DEBUG
       - TRACE_LANGUAGE=ruby
-      - DISABLED_CHECKS=trace_tag_validation
       - DD_TRACE_AGENT_URL=http://ddagent:8126 # send all traces to agent
       - PORT=9126
   - &testagent_port 9126
