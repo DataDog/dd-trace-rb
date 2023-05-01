@@ -21,7 +21,23 @@ module Datadog
 
         private
 
+        @gem_specs: ::Hash[::String, ::Gem::Specification | untyped]
+        @native_platform: ::String
+        @ruby_engine_version: ::String
+        @tracer_version_semver2: ::String
+
         def payload: () ->  ::Hash[Symbol, untyped]
+        def gem_spec: (::String) -> (::Gem::Specification | untyped)
+        def tracer_version_semver2: () -> ::String
+        def native_platform: () -> ::String
+        def ruby_engine_version: () -> ::String
+
+        class GemSpecificationFallback
+          def initialize: (::String?, ::String?) -> void
+
+          attr_reader version: ::String?
+          attr_reader platform: ::String?
+        end
       end
     end
   end

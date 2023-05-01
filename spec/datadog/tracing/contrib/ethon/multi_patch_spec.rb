@@ -5,6 +5,7 @@ require 'datadog/tracing/contrib/ethon/multi_patch'
 require 'datadog/tracing/contrib/ethon/shared_examples'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
 
@@ -115,6 +116,10 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
         end
 
         it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME' do
+          let(:span) { multi_span }
+        end
+
+        it_behaves_like 'schema version span' do
           let(:span) { multi_span }
         end
       end

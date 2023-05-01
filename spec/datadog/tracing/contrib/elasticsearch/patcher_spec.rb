@@ -2,6 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'ddtrace'
 
@@ -62,6 +63,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       before { request }
 
       it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
+      it_behaves_like 'schema version span'
 
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
@@ -127,6 +129,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it_behaves_like 'measured span for integration', false
 
       it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
+      it_behaves_like 'schema version span'
 
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }

@@ -3,6 +3,7 @@ require 'json'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/ethon/integration_context'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/span'
@@ -63,6 +64,7 @@ RSpec.shared_examples_for 'span' do
   end
 
   it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME'
+  it_behaves_like 'schema version span'
 end
 
 RSpec.shared_examples_for 'instrumented request' do

@@ -70,6 +70,49 @@ RSpec.describe Datadog::AppSec::Component do
   end
 
   describe '#reconfigure' do
+    let(:ruleset) do
+      {
+        'exclusions' => [{
+          'conditions' => [{
+            'operator' => 'ip_match',
+            'parameters' => {
+              'inputs' => [{
+                'address' => 'http.client_ip'
+              }]
+            }
+          }]
+        }],
+        'metadata' => {
+          'rules_version' => '1.5.2'
+        },
+        'rules' => [{
+          'conditions' => [{
+            'operator' => 'ip_match',
+            'parameters' => {
+              'data' => 'blocked_ips',
+              'inputs' => [{
+                'address' => 'http.client_ip'
+              }]
+            }
+          }],
+          'id' => 'blk-001-001',
+          'name' => 'Block IP Addresses',
+          'on_match' => ['block'],
+          'tags' => {
+            'category' => 'security_response', 'type' => 'block_ip'
+          },
+          'transformers' => []
+        }],
+        'rules_data' => [{
+          'data' => [{
+            'expiration' => 1678972458,
+            'value' => '42.42.42.1'
+          }]
+        }],
+        'version' => '2.2'
+      }
+    end
+
     context 'lock' do
       it 'makes sure to synchronize' do
         mutex = Mutex.new
@@ -88,48 +131,22 @@ RSpec.describe Datadog::AppSec::Component do
 
         old_processor = component.processor
 
-        ruleset = {
-          'exclusions' => [{
-            'conditions' => [{
-              'operator' => 'ip_match',
-              'parameters' => {
-                'inputs' => [{
-                  'address' => 'http.client_ip'
-                }]
-              }
-            }]
-          }],
-          'metadata' => {
-            'rules_version' => '1.5.2'
-          },
-          'rules' => [{
-            'conditions' => [{
-              'operator' => 'ip_match',
-              'parameters' => {
-                'data' => 'blocked_ips',
-                'inputs' => [{
-                  'address' => 'http.client_ip'
-                }]
-              }
-            }],
-            'id' => 'blk-001-001',
-            'name' => 'Block IP Addresses',
-            'on_match' => ['block'],
-            'tags' => {
-              'category' => 'security_response', 'type' => 'block_ip'
-            },
-            'transformers' => []
-          }],
-          'rules_data' => [{
-            'data' => [{
-              'expiration' => 1678972458,
-              'value' => '42.42.42.1'
-            }]
-          }],
-          'version' => '2.2'
-        }
-
         expect(old_processor).to receive(:finalize)
+        component.reconfigure(ruleset: ruleset)
+        new_processor = component.processor
+        expect(new_processor).to_not eq(old_processor)
+        new_processor.finalize
+      end
+    end
+
+    context 'when the new processor is ready, and old processor is nil' do
+      it 'swaps the processor instance and do not finalize the old processor' do
+        processor = nil
+        component = described_class.new(processor: processor)
+
+        old_processor = component.processor
+
+        expect(old_processor).to_not receive(:finalize)
         component.reconfigure(ruleset: ruleset)
         new_processor = component.processor
         expect(new_processor).to_not eq(old_processor)
