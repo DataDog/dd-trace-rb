@@ -628,7 +628,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('aws_service')).to eq('kinesis')
         expect(span.get_tag('streamname')).to eq('my-stream')
         expect(span.get_tag('path')).to eq('')
-        expect(span.get_tag('host')).to eq('kinesis.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('host')).to eq('123456789012.control-kinesis.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('span.kind')).to eq('client')
@@ -639,7 +639,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
-          .to eq('kinesis.us-stubbed-1.amazonaws.com')
+          .to eq('123456789012.control-kinesis.us-stubbed-1.amazonaws.com')
       end
     end
   end
