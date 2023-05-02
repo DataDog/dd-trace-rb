@@ -2,6 +2,52 @@
 
 ## [Unreleased]
 
+## [1.11.0] - 2023-04-27
+
+### Highlights
+
+As of ddtrace 1.11.0, these features are GA and emabled by default:
+
+- CPU Profiling 2.0
+- Remote Configuration
+- Telemetry
+
+For more details, check the release notes.
+
+### Added
+
+* Add remote configuration, enabled by default ([#2674][], [#2678][], [#2686][], [#2687][], [#2688][], [#2689][], [#2696][], [#2705][], [#2731][], [#2732][], [#2733][], [#2739][], [#2756][], [#2769][], [#2771][], [#2773][], [#2789][], [#2805][], [#2794][])
+* AppSec: Add response headers passing to WAF ([#2701][])
+* Tracing: Distributed tracing for Sidekiq ([#2513][])
+* Tracing: Add Roda integration ([#2368][])
+* Profiling: Support disabling endpoint names collection in new profiler ([#2698][])
+* Tracing: Support Sidekiq 7 ([#2810][])
+* Core: Add support for Unix Domain Socket (UDS) configuration via `DD_TRACE_AGENT_URL` ([#2806][])
+* Core: Enable Telemetry by default ([#2762][])
+
+### Changed
+
+* Core: Allow `1` as true value in environment variables ([#2710][])
+* Profiling: Enable CPU Profiling 2.0 by default ([#2702][])
+* Tracing: Improve controller instrumentation and deprecate option `exception_controller` ([#2726][])
+* Tracing: Implement Span Attribute Schema Environment Variable ([#2727][])
+* Tracing: Change default `service_name` values (gated by feature flag) ([#2760][])
+
+### Fixed
+
+* Bug: Tracing: Fix w3c propagation special character handling ([#2720][])
+* Performance: Tracing: Use `+@` instead of `dup` for duplicating strings ([#2704][])
+* Profiling: Avoid triggering allocation sampling during sampling ([#2690][])
+* Integrations: Tracing: Fix Rails < 3 conditional check in Utils#railtie_supported? ([#2695][])
+* Profiling: Do not auto-enable new profiler when rugged gem is detected ([#2741][])
+* Tracing: Fix using SemanticLogger#log(severity, message, progname) ([#2748][]) ([@rqz13][])
+* Profiling: Improve detection of mysql2 gem incompatibilities with profiler ([#2770][])
+* AppSec: Remove check for `::Rack::Request.instance_methods.include?(:each_header)` at load time ([#2778][])
+* Tracing: Fix quadratic backtracking on invalid URI ([#2788][])
+* Community: Correctly set mutex ([#2757][]) ([@ixti][])
+
+Read the [full changeset](https://github.com/DataDog/dd-trace-rb/compare/v1.10.1...v1.11.0.beta1) and the release [milestone](https://github.com/DataDog/dd-trace-rb/milestone/121?closed=1).
+
 ## [1.11.0.beta1] - 2023-04-14
 
 As of ddtrace 1.11.0.beta1, CPU Profiling 2.0 is now GA and enabled by default. For more details, check the release notes.
@@ -2356,7 +2402,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.11.0.beta1...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.11.0...master
+[1.11.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.10.1...v1.11.0
 [1.11.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v1.10.1...v1.11.0.beta1
 [1.10.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.9.0...v1.10.0
@@ -3396,6 +3443,9 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2741]: https://github.com/DataDog/dd-trace-rb/issues/2741
 [#2748]: https://github.com/DataDog/dd-trace-rb/issues/2748
 [#2756]: https://github.com/DataDog/dd-trace-rb/issues/2756
+[#2757]: https://github.com/DataDog/dd-trace-rb/issues/2757
+[#2760]: https://github.com/DataDog/dd-trace-rb/issues/2760
+[#2762]: https://github.com/DataDog/dd-trace-rb/issues/2762
 [#2769]: https://github.com/DataDog/dd-trace-rb/issues/2769
 [#2770]: https://github.com/DataDog/dd-trace-rb/issues/2770
 [#2771]: https://github.com/DataDog/dd-trace-rb/issues/2771
@@ -3403,6 +3453,10 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2778]: https://github.com/DataDog/dd-trace-rb/issues/2778
 [#2788]: https://github.com/DataDog/dd-trace-rb/issues/2788
 [#2789]: https://github.com/DataDog/dd-trace-rb/issues/2789
+[#2794]: https://github.com/DataDog/dd-trace-rb/issues/2794
+[#2805]: https://github.com/DataDog/dd-trace-rb/issues/2805
+[#2806]: https://github.com/DataDog/dd-trace-rb/issues/2806
+[#2810]: https://github.com/DataDog/dd-trace-rb/issues/2810
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -3481,6 +3535,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@hs-bguven]: https://github.com/hs-bguven
 [@illdelph]: https://github.com/illdelph
 [@ioquatix]: https://github.com/ioquatix
+[@ixti]: https://github.com/ixti
 [@jamiehodge]: https://github.com/jamiehodge
 [@janz93]: https://github.com/janz93
 [@jeffjo]: https://github.com/jeffjo

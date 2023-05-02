@@ -4,19 +4,21 @@ module Datadog
       module Identity
         extend Datadog::Core::Utils::Forking
 
-        def self?.id: () -> untyped
+        def self?.id: () -> ::String
 
-        def self?.lang: () -> untyped
+        def self?.lang: () -> ::String
 
-        def self?.lang_engine: () -> untyped
+        def self?.lang_engine: () -> ::String
 
-        def self?.lang_interpreter: () -> untyped
+        def self?.lang_interpreter: () -> ::String
 
-        def self?.lang_platform: () -> untyped
+        def self?.lang_platform: () -> ::String
 
-        def self?.lang_version: () -> untyped
+        def self?.lang_version: () -> ::String
 
-        def self?.tracer_version: () -> untyped
+        def self?.tracer_version: () -> ::String
+
+        def self?.tracer_version_semver2: () -> ::String
       end
     end
   end

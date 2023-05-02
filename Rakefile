@@ -230,17 +230,6 @@ YARD::Rake::YardocTask.new(:docs) do |t|
   t.options += ['--title', "ddtrace #{DDTrace::VERSION::STRING} documentation"]
 end
 
-# Deploy tasks
-S3_BUCKET = 'gems.datadoghq.com'.freeze
-S3_DIR = ENV['S3_DIR']
-
-desc 'release the docs website'
-task :'release:docs' => :docs do
-  raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
-
-  sh "aws s3 cp --recursive doc/ s3://#{S3_BUCKET}/#{S3_DIR}/docs/"
-end
-
 # Declare a command for execution.
 # Jobs are parallelized if running in CI.
 def declare(rubies_to_command)
