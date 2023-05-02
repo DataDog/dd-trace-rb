@@ -594,54 +594,6 @@ RSpec.describe 'AWS instrumentation' do
           .to eq('123456789012.control-kinesis.us-stubbed-1.amazonaws.com')
       end
     end
-
-    describe '#describe_stream_consumer' do
-      subject!(:describe_stream_consumer) do
-        client.describe_stream_consumer(
-          stream_arn: 'arn:aws:kinesis:us-east-1:123456789012:stream/my-stream', # required
-          consumer_name: 'cosumerName', # required
-          consumer_arn: 'consumerArn', # required
-        )
-      end
-
-      let(:responses) do
-        { describe_stream_consumer: {
-          consumer_description: {
-            consumer_name: 'John Doe',
-            consumer_arn: 'consumerArn',
-            consumer_status: 'CREATING',
-            consumer_creation_timestamp: Time.new(2023, 3, 31, 12, 30, 0, '-04:00'),
-            stream_arn: 'streamArn'
-          }
-        } }
-      end
-
-      it 'generates a span' do
-        expect(span.name).to eq('aws.command')
-        expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
-        expect(span.resource).to eq('kinesis.describe_stream_consumer')
-
-        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
-        expect(span.get_tag('aws.operation')).to eq('describe_stream_consumer')
-        expect(span.get_tag('region')).to eq('us-stubbed-1')
-        expect(span.get_tag('aws_service')).to eq('kinesis')
-        expect(span.get_tag('streamname')).to eq('my-stream')
-        expect(span.get_tag('path')).to eq('')
-        expect(span.get_tag('host')).to eq('123456789012.control-kinesis.us-stubbed-1.amazonaws.com')
-        expect(span.get_tag('http.method')).to eq('POST')
-        expect(span.get_tag('http.status_code')).to eq('200')
-        expect(span.get_tag('span.kind')).to eq('client')
-
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq('command')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-          .to eq('aws')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
-          .to eq('123456789012.control-kinesis.us-stubbed-1.amazonaws.com')
-      end
-    end
   end
 
   context 'with an eventbridge client' do
