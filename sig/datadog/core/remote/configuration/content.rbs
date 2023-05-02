@@ -11,6 +11,8 @@ module Datadog
 
           attr_reader hashes: Hash[Symbol, String]
 
+          attr_accessor version: Integer
+
           @length: Integer
 
           def initialize: (path: Configuration::Path, data: StringIO) -> void

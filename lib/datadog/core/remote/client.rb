@@ -27,7 +27,7 @@ module Datadog
           end
         end
 
-        # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity
+        # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity
         def sync
           # TODO: Skip sync if no capabilities are registered
           response = transport.send_config(payload)
@@ -40,13 +40,20 @@ module Datadog
               return
             end
 
-            paths = response.client_configs.map do |path|
-              Configuration::Path.parse(path)
+            begin
+              paths = response.client_configs.map do |path|
+                Configuration::Path.parse(path)
+              end
+
+              targets = Configuration::TargetMap.parse(response.targets)
+
+              contents = Configuration::ContentList.parse(response.target_files)
+            rescue Remote::Configuration::Path::ParseError => e
+              raise SyncError, e.message
             end
 
-            targets = Configuration::TargetMap.parse(response.targets)
-
-            contents = Configuration::ContentList.parse(response.target_files)
+            # To make sure steep does not complain
+            return unless paths && targets && contents
 
             # TODO: sometimes it can strangely be so that paths.empty?
             # TODO: sometimes it can strangely be so that targets.empty?
@@ -100,16 +107,43 @@ module Datadog
             else
               dispatcher.dispatch(changes, repository)
             end
-          else
-            raise SyncError, "unexpected transport response: #{response.inspect}"
           end
         end
-        # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity
+        # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity
 
         private
 
-        def payload
+        def payload # rubocop:disable Metrics/MethodLength
           state = repository.state
+
+          client_tracer_tags = [
+            "platform:#{native_platform}", # native platform
+            # "asm.config.rules:#{}", # TODO: defined|undefined
+            # "asm.config.enabled:#{}", # TODO: true|false|undefined
+            "ruby.tracer.version:#{Core::Environment::Identity.tracer_version}",
+            "ruby.runtime.platform:#{RUBY_PLATFORM}",
+            "ruby.runtime.version:#{RUBY_VERSION}",
+            "ruby.runtime.engine.name:#{RUBY_ENGINE}",
+            "ruby.runtime.engine.version:#{ruby_engine_version}",
+            "ruby.rubygems.platform.local:#{Gem::Platform.local}",
+            "ruby.gem.libddwaf.version:#{gem_spec('libddwaf').version}",
+            "ruby.gem.libddwaf.platform:#{gem_spec('libddwaf').platform}",
+            "ruby.gem.libdatadog.version:#{gem_spec('libdatadog').version}",
+            "ruby.gem.libdatadog.platform:#{gem_spec('libdatadog').platform}",
+          ]
+
+          client_tracer = {
+            runtime_id: Core::Environment::Identity.id,
+            language: Core::Environment::Identity.lang,
+            tracer_version: tracer_version_semver2,
+            service: Datadog.configuration.service,
+            env: Datadog.configuration.env,
+            tags: client_tracer_tags,
+          }
+
+          app_version = Datadog.configuration.version
+
+          client_tracer[:app_version] = app_version if app_version
 
           {
             client: {
@@ -125,28 +159,66 @@ module Datadog
               products: @capabilities.products,
               is_tracer: true,
               is_agent: false,
-              client_tracer: {
-                runtime_id: Core::Environment::Identity.id,
-                language: Core::Environment::Identity.lang,
-                tracer_version: Core::Environment::Identity.tracer_version,
-                service: Datadog.configuration.service,
-                env: Datadog.configuration.env,
-                # app_version: app_version, # TODO: I don't know what this is
-                tags: [], # TODO: add nice tags!
-              },
+              client_tracer: client_tracer,
               # base64 is needed otherwise the Go agent fails with an unmarshal error
               capabilities: @capabilities.base64_capabilities
             },
-            cached_target_files: [
-              # TODO: to be implemented once we cache configuration content
-              # {
-              #   path: '',
-              #   length: 0,
-              #   hashes: '';
-              # }
-            ],
+            cached_target_files: state.cached_target_files,
           }
         end
+
+        def tracer_version_semver2
+          @tracer_version_semver2 ||= Core::Environment::Identity.tracer_version_semver2
+        end
+
+        def ruby_engine_version
+          @ruby_engine_version ||= defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION
+        end
+
+        def gem_spec(name)
+          (@gem_specs ||= {})[name] ||= ::Gem.loaded_specs[name] || GemSpecificationFallback.new(nil, nil)
+        end
+
+        def native_platform
+          return @native_platform unless @native_platform.nil?
+
+          os = if RUBY_ENGINE == 'jruby'
+                 os_name = java.lang.System.get_property('os.name')
+
+                 case os_name
+                 when /linux/i then 'linux'
+                 when /mac/i   then 'darwin'
+                 else os_name
+                 end
+               else
+                 Gem::Platform.local.os
+               end
+
+          version = if os != 'linux'
+                      nil
+                    elsif RUBY_PLATFORM =~ /linux-(.+)$/
+                      # Old rubygems don't handle non-gnu linux correctly
+                      Regexp.last_match(1)
+                    else
+                      'gnu'
+                    end
+
+          cpu = if RUBY_ENGINE == 'jruby'
+                  os_arch = java.lang.System.get_property('os.arch')
+
+                  case os_arch
+                  when 'amd64' then 'x86_64'
+                  when 'aarch64' then os == 'darwin' ? 'arm64' : 'aarch64'
+                  else os_arch
+                  end
+                else
+                  Gem::Platform.local.cpu
+                end
+
+          @native_platform = [cpu, os, version].compact.join('-')
+        end
+
+        GemSpecificationFallback = _ = Struct.new(:version, :platform) # rubocop:disable Naming/ConstantName
       end
     end
   end

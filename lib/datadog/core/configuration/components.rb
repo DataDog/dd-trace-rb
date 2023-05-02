@@ -52,8 +52,14 @@ module Datadog
             Core::Workers::RuntimeMetrics.new(options)
           end
 
-          def build_telemetry(settings)
-            Telemetry::Client.new(enabled: settings.telemetry.enabled)
+          def build_telemetry(settings, agent_settings, logger)
+            enabled = settings.telemetry.enabled
+            if agent_settings.adapter != Datadog::Transport::Ext::HTTP::ADAPTER
+              enabled = false
+              logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
+            end
+
+            Telemetry::Client.new(enabled: enabled)
           end
         end
 
@@ -81,7 +87,7 @@ module Datadog
           )
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
           @health_metrics = self.class.build_health_metrics(settings)
-          @telemetry = self.class.build_telemetry(settings)
+          @telemetry = self.class.build_telemetry(settings, agent_settings, logger)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
         end
 

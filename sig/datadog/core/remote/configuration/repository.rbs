@@ -36,6 +36,8 @@ module Datadog
 
             attr_reader config_states: Array[Hash[Symbol, untyped]]
 
+            attr_reader cached_target_files: Array[Hash[Symbol, untyped]]
+
             attr_reader has_error: bool
 
             attr_reader error: String
@@ -45,6 +47,8 @@ module Datadog
             def initialize: (Repository repository) -> void
 
             private
+
+            def contents_to_cached_target_files: (ContentList contents) -> Array[Hash[Symbol, untyped]]
 
             def contents_to_config_states: (ContentList contents) -> Array[Hash[Symbol, untyped]]
           end

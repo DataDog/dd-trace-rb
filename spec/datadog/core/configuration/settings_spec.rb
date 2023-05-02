@@ -1121,7 +1121,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:environment) { nil }
 
-          it { is_expected.to be false }
+          it { is_expected.to be true }
         end
 
         { 'true' => true, 'false' => false }.each do |string, value|
@@ -1159,7 +1159,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:environment) { nil }
 
-          it { is_expected.to be false }
+          it { is_expected.to be true }
         end
 
         context 'is defined' do
@@ -1172,10 +1172,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#enabled=' do
       it 'updates the #enabled setting' do
-        expect { settings.remote.enabled = true }
+        expect { settings.remote.enabled = false }
           .to change { settings.remote.enabled }
-          .from(false)
-          .to(true)
+          .from(true)
+          .to(false)
       end
     end
 

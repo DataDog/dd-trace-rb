@@ -13,12 +13,21 @@ RSpec.describe 'Server internal tracer' do
   end
 
   around do |example|
-    original_poll_interval_average = Sidekiq.options[:poll_interval_average]
-    Sidekiq.options[:poll_interval_average] = 0
+    if Sidekiq.respond_to? :default_configuration
+      original_poll_interval_average = Sidekiq.default_configuration[:poll_interval_average]
+      Sidekiq.default_configuration[:poll_interval_average] = 0
 
-    example.run
+      example.run
 
-    Sidekiq.options[:poll_interval_average] = original_poll_interval_average
+      Sidekiq.default_configuration[:poll_interval_average] = original_poll_interval_average
+    else
+      original_poll_interval_average = Sidekiq.options[:poll_interval_average]
+      Sidekiq.options[:poll_interval_average] = 0
+
+      example.run
+
+      Sidekiq.options[:poll_interval_average] = original_poll_interval_average
+    end
   end
 
   it 'traces the looping scheduled push' do

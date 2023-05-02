@@ -28,7 +28,12 @@ module Datadog
             end
 
             option :service_name do |o|
-              o.default { Utils.adapter_name }
+              o.default do
+                Contrib::SpanAttributeSchema.fetch_service_name(
+                  '',
+                  Utils.adapter_name
+                )
+              end
               o.lazy
             end
           end

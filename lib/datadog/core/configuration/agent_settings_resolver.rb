@@ -95,9 +95,7 @@ module Datadog
         end
 
         def adapter
-          # If no agent settings have been provided, we try to connect using a local unix socket.
-          # We only do so if the socket is present when `ddtrace` runs.
-          if should_use_uds_fallback?
+          if should_use_uds? && !mixed_http_and_uds?
             Datadog::Transport::Ext::UnixSocket::ADAPTER
           else
             Datadog::Transport::Ext::HTTP::ADAPTER
@@ -118,7 +116,7 @@ module Datadog
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
-              value: parsed_url && parsed_url.hostname
+              value: parsed_http_url && parsed_http_url.hostname
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST} environment variable",
@@ -141,7 +139,7 @@ module Datadog
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
-              value: parsed_url && parsed_url.port,
+              value: parsed_http_url && parsed_http_url.port,
             ),
             try_parsing_as_integer(
               friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
@@ -169,16 +167,29 @@ module Datadog
         end
 
         def hostname
-          configured_hostname || (should_use_uds_fallback? ? nil : Datadog::Transport::Ext::HTTP::DEFAULT_HOST)
+          configured_hostname || (should_use_uds? ? nil : Datadog::Transport::Ext::HTTP::DEFAULT_HOST)
         end
 
         def port
-          configured_port || (should_use_uds_fallback? ? nil : Datadog::Transport::Ext::HTTP::DEFAULT_PORT)
+          configured_port || (should_use_uds? ? nil : Datadog::Transport::Ext::HTTP::DEFAULT_PORT)
         end
 
         # Unix socket path in the file system
         def uds_path
-          uds_fallback
+          if mixed_http_and_uds?
+            nil
+          elsif parsed_url && unix_scheme?(parsed_url)
+            path = parsed_url.to_s
+            # Some versions of the built-in uri gem leave the original url untouched, and others remove the //, so this
+            # supports both
+            if path.start_with?('unix://')
+              path.sub('unix://', '')
+            else
+              path.sub('unix:', '')
+            end
+          else
+            uds_fallback
+          end
         end
 
         # Defaults to +nil+, letting the adapter choose what default
@@ -210,8 +221,11 @@ module Datadog
             end
         end
 
-        def should_use_uds_fallback?
-          uds_fallback != nil
+        def should_use_uds?
+          parsed_url && unix_scheme?(parsed_url) ||
+            # If no agent settings have been provided, we try to connect using a local unix socket.
+            # We only do so if the socket is present when `ddtrace` runs.
+            !uds_fallback.nil?
         end
 
         def parsed_url
@@ -223,7 +237,7 @@ module Datadog
             if unparsed_url_from_env
               parsed = URI.parse(unparsed_url_from_env)
 
-              if %w[http https].include?(parsed.scheme)
+              if http_scheme?(parsed) || unix_scheme?(parsed)
                 parsed
               else
                 # rubocop:disable Layout/LineLength
@@ -264,6 +278,43 @@ module Datadog
 
         def log_warning(message)
           logger.warn(message) if logger
+        end
+
+        def http_scheme?(uri)
+          ['http', 'https'].include?(uri.scheme)
+        end
+
+        # Expected to return nil (not false!) when it's not http
+        def parsed_http_url
+          parsed_url if parsed_url && http_scheme?(parsed_url)
+        end
+
+        def unix_scheme?(uri)
+          uri.scheme == 'unix'
+        end
+
+        # When we have mixed settings for http/https and uds, we print a warning and ignore the uds settings
+        def mixed_http_and_uds?
+          return @mixed_http_and_uds if defined?(@mixed_http_and_uds)
+
+          @mixed_http_and_uds = (configured_hostname || configured_port) && should_use_uds?
+
+          if @mixed_http_and_uds
+            warn_if_configuration_mismatch(
+              [
+                DetectedConfiguration.new(
+                  friendly_name: 'configuration of hostname/port for http/https use',
+                  value: "hostname: '#{configured_hostname}', port: #{configured_port.inspect}",
+                ),
+                DetectedConfiguration.new(
+                  friendly_name: 'configuration for unix domain socket',
+                  value: "unix://#{uds_path}",
+                ),
+              ]
+            )
+          end
+
+          @mixed_http_and_uds
         end
 
         # The settings.tracing.transport_options allows users to have full control over the settings used to
