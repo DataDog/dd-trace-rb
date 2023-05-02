@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
 require 'rspec'
-require 'lib/datadog/tracing/contrib/aws/services/stepfunctions'
+require 'lib/datadog/tracing/contrib/aws/service/base'
+require 'lib/datadog/tracing/contrib/aws/service/stepfunctions'
 
-RSpec.describe 'add_states_tags' do
+RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
   let(:span) { instance_double('Span') }
   let(:params) { {} }
+  let(:step_functions) { described_class.new }
 
   before do
     allow(span).to receive(:set_tag)
@@ -16,7 +18,7 @@ RSpec.describe 'add_states_tags' do
     let(:params) { { execution_arn: execution_arn } }
 
     it 'sets the state_machine_name based on the execution_arn' do
-      add_states_tags(span, params)
+      step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
         'example-state-machine'
@@ -29,7 +31,7 @@ RSpec.describe 'add_states_tags' do
     let(:params) { { state_machine_arn: state_machine_arn } }
 
     it 'sets the state_machine_name based on the state_machine_arn' do
-      add_states_tags(span, params)
+      step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
         'MyStateMachine'
@@ -37,7 +39,7 @@ RSpec.describe 'add_states_tags' do
     end
 
     it 'sets the state_machine_account_id based on the state_machine_arn' do
-      add_states_tags(span, params)
+      step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, '123456789012')
     end
   end
@@ -48,7 +50,7 @@ RSpec.describe 'add_states_tags' do
 
     it 'sets the state_machine_name and state_machine_account_id based on the state_machine_arn' do
       params = { state_machine_arn: state_machine_arn }
-      add_states_tags(span, params)
+      step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, '123456789012')
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
@@ -58,7 +60,7 @@ RSpec.describe 'add_states_tags' do
 
     it 'sets the state_machine_name and state_machine_account_id based on the execution_arn' do
       params = { execution_arn: execution_arn }
-      add_states_tags(span, params)
+      step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, '987654321098')
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,

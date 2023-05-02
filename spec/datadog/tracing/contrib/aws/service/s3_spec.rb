@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
 require 'rspec'
-require 'lib/datadog/tracing/contrib/aws/services/s3'
+require 'lib/datadog/tracing/contrib/aws/service/base'
+require 'lib/datadog/tracing/contrib/aws/service/s3'
 
-RSpec.describe 'add_s3_tags' do
+RSpec.describe Datadog::Tracing::Contrib::Aws::Service::S3 do
   let(:span) { instance_double('Span') }
   let(:params) { {} }
+  let(:s3) { described_class.new }
 
   before do
     allow(span).to receive(:set_tag)
@@ -15,14 +17,14 @@ RSpec.describe 'add_s3_tags' do
     let(:params) { { bucket: 'my-bucket-name' } }
 
     it 'sets the bucket_name based on the provided bucket name' do
-      add_s3_tags(span, params)
+      s3.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_BUCKET_NAME, 'my-bucket-name')
     end
   end
 
   context 'with no bucket name provided' do
     it 'sets the bucket_name to nil' do
-      add_s3_tags(span, params)
+      s3.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_BUCKET_NAME, nil)
     end
   end

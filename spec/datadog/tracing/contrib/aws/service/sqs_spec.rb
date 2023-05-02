@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
-require 'lib/datadog/tracing/contrib/aws/services/sqs'
+require 'lib/datadog/tracing/contrib/aws/service/base'
+require 'lib/datadog/tracing/contrib/aws/service/sqs'
 require 'spec_helper'
+require 'rspec'
 
-RSpec.describe 'add_sqs_tags' do
+RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SQS do
   let(:span) { instance_double('Span') }
   let(:params) { {} }
+  let(:sqs) { described_class.new }
 
   before do
     allow(span).to receive(:set_tag)
@@ -16,7 +19,7 @@ RSpec.describe 'add_sqs_tags' do
     let(:params) { { queue_url: queue_url } }
 
     it 'sets AWS account and queue name tags' do
-      add_sqs_tags(span, params)
+      sqs.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT, '123456789012')
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_QUEUE_NAME, 'MyQueueName')
     end
@@ -27,7 +30,7 @@ RSpec.describe 'add_sqs_tags' do
     let(:params) { { queue_name: queue_name } }
 
     it 'sets queue name tag' do
-      add_sqs_tags(span, params)
+      sqs.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_QUEUE_NAME, 'AnotherQueueName')
     end
   end

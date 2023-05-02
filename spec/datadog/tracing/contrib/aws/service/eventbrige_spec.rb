@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
 require 'rspec'
-require 'lib/datadog/tracing/contrib/aws/services/eventbridge'
+require 'lib/datadog/tracing/contrib/aws/service/base'
+require 'lib/datadog/tracing/contrib/aws/service/eventbridge'
 
-RSpec.describe 'add_eventbridge_tags' do
+RSpec.describe Datadog::Tracing::Contrib::Aws::Service::EventBridge do
   let(:span) { instance_double('Span') }
   let(:params) { {} }
+  let(:event_bridge) { described_class.new }
 
   before do
     allow(span).to receive(:set_tag)
@@ -16,7 +18,7 @@ RSpec.describe 'add_eventbridge_tags' do
     let(:params) { { name: rule_name } }
 
     it 'sets the rule_name based on the params[:name]' do
-      add_eventbridge_tags(span, params)
+      event_bridge.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_RULE_NAME, rule_name)
     end
   end
@@ -26,14 +28,14 @@ RSpec.describe 'add_eventbridge_tags' do
     let(:params) { { rule: rule_name } }
 
     it 'sets the rule_name based on the params[:rule]' do
-      add_eventbridge_tags(span, params)
+      event_bridge.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_RULE_NAME, rule_name)
     end
   end
 
   context 'without rule_name provided' do
     it 'does not set the rule_name tag' do
-      add_eventbridge_tags(span, params)
+      event_bridge.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_RULE_NAME, nil)
     end
   end

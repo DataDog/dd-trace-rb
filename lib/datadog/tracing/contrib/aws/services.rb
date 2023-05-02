@@ -113,6 +113,16 @@ module Datadog
           WorkSpaces
           XRay
         ].freeze
+
+        SERVICE_HANDLERS = {
+          'sqs' => Service::SQS.new,
+          'sns' => Service::SNS.new,
+          'dynamodb' => Service::DynamoDB.new,
+          'kinesis' => Service::Kinesis.new,
+          'eventbridge' => Service::EventBridge.new,
+          'states' => Service::States.new,
+          's3' => Service::S3.new
+        }.freeze
       end
     end
   end
