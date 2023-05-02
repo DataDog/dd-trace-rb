@@ -225,22 +225,18 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
     context 'with overrides' do
       it 'merge rules_overrides' do
         rules_overrides = [
-          {
-            'rules_override' => [
-              {
-                'id' => 'usr-001-001',
-                'on_match' => ['block']
-              }
-            ]
-          },
-          {
-            'rules_override' => [
-              {
-                'id' => 'usr-001-001',
-                'enabled' => false,
-              }
-            ]
-          },
+          [
+            {
+              'id' => 'usr-001-001',
+              'on_match' => ['block']
+            }
+          ],
+          [
+            {
+              'id' => 'usr-001-001',
+              'enabled' => false,
+            }
+          ]
         ]
 
         expected_result = rules[0].merge(
@@ -267,72 +263,69 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
   context 'exclusions' do
     it 'merges exclusions' do
       exclusions = [
-        {
-          'exclusions' => [
-            {
-              'conditions' => [
-                {
-                  'operator' => 'match_regex',
-                  'parameters' => {
-                    'inputs' => [
-                      {
-                        'address' => 'server.request.uri.raw'
-                      }
-                    ],
-                    'options' => {
-                      'case_sensitive' => false
-                    },
-                    'regex' => '^/api/v2/ci/pipeline/.*'
-                  }
+        [
+          {
+            'conditions' => [
+              {
+                'operator' => 'match_regex',
+                'parameters' => {
+                  'inputs' => [
+                    {
+                      'address' => 'server.request.uri.raw'
+                    }
+                  ],
+                  'options' => {
+                    'case_sensitive' => false
+                  },
+                  'regex' => '^/api/v2/ci/pipeline/.*'
                 }
-              ],
-              'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
-            }
-          ]
-        },
-        {
-          'exclusions' => [
-            {
-              'conditions' => [
-                {
-                  'operator' => 'match_regex',
-                  'parameters' => {
-                    'inputs' => [
-                      {
-                        'address' => 'server.request.uri.raw'
-                      }
-                    ],
-                    'options' => {
-                      'case_sensitive' => false
-                    },
-                    'regex' => '^/api/v2/source-code-integration/enrich-stack-trace'
-                  }
+              }
+            ],
+            'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
+          }
+        ],
+
+        [
+          {
+            'conditions' => [
+              {
+                'operator' => 'match_regex',
+                'parameters' => {
+                  'inputs' => [
+                    {
+                      'address' => 'server.request.uri.raw'
+                    }
+                  ],
+                  'options' => {
+                    'case_sensitive' => false
+                  },
+                  'regex' => '^/api/v2/source-code-integration/enrich-stack-trace'
                 }
-              ],
-              'id' => 'f40fbf52-baec-42bd-9868-cf002b6cdbed',
-              'inputs' => [
-                {
-                  'address' => 'server.request.query',
-                  'key_path' => [
-                    'stack'
-                  ]
-                },
-                {
-                  'address' => 'server.request.body',
-                  'key_path' => [
-                    'stack'
-                  ]
-                },
-                {
-                  'address' => 'server.request.path_params',
-                  'key_path' => [
-                    'stack'
-                  ]
-                }
-              ]
-            }
-          ],
-        }
+              }
+            ],
+            'id' => 'f40fbf52-baec-42bd-9868-cf002b6cdbed',
+            'inputs' => [
+              {
+                'address' => 'server.request.query',
+                'key_path' => [
+                  'stack'
+                ]
+              },
+              {
+                'address' => 'server.request.body',
+                'key_path' => [
+                  'stack'
+                ]
+              },
+              {
+                'address' => 'server.request.path_params',
+                'key_path' => [
+                  'stack'
+                ]
+              }
+            ]
+          }
+        ],
       ]
 
       expected_result = rules[0].merge(
@@ -404,48 +397,42 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
   context 'data' do
     it 'merges rules_data' do
       rules_data = [
-        {
-          'rules_data' => [
-            {
-              'data' => [
-                {
-                  'expiration' => 1677171437,
-                  'value' => 'this is a test'
-                }
-              ],
-              'id' => 'blocked_users',
-              'type' => 'data_with_expiration'
-            }
-          ]
-        },
-        {
-          'rules_data' => [
-            {
-              'data' => [
-                {
-                  'expiration' => 1678279317,
-                  'value' => '9.9.9.9'
-                }
-              ],
-              'id' => 'blocked_ips',
-              'type' => 'ip_with_expiration'
-            }
-          ]
-        },
-        {
-          'rules_data' => [
-            {
-              'data' => [
-                {
-                  'expiration' => 1678279317,
-                  'value' => 'this is a second test'
-                }
-              ],
-              'id' => 'blocked_users',
-              'type' => 'data_with_expiration'
-            }
-          ]
-        }
+        [
+          {
+            'data' => [
+              {
+                'expiration' => 1677171437,
+                'value' => 'this is a test'
+              }
+            ],
+            'id' => 'blocked_users',
+            'type' => 'data_with_expiration'
+          }
+        ],
+        [
+          {
+            'data' => [
+              {
+                'expiration' => 1678279317,
+                'value' => '9.9.9.9'
+              }
+            ],
+            'id' => 'blocked_ips',
+            'type' => 'ip_with_expiration'
+          }
+        ],
+        [
+          {
+            'data' => [
+              {
+                'expiration' => 1678279317,
+                'value' => 'this is a second test'
+              }
+            ],
+            'id' => 'blocked_users',
+            'type' => 'data_with_expiration'
+          }
+        ]
       ]
 
       expected_result = rules[0].merge(
@@ -485,33 +472,29 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
 
     it 'merges data of different types' do
       rules_data = [
-        {
-          'rules_data' => [
-            {
-              'data' => [
-                {
-                  'expiration' => 1677171437,
-                  'value' => 'this is a test'
-                }
-              ],
-              'id' => 'blocked_users',
-              'type' => 'data_with_expiration'
-            }
-          ]
-        },
-        {
-          'rules_data' => [
-            {
-              'data' => [
-                {
-                  'value' => 'this is a test'
-                }
-              ],
-              'id' => 'blocked_users',
-              'type' => 'test_data'
-            }
-          ]
-        }
+        [
+          {
+            'data' => [
+              {
+                'expiration' => 1677171437,
+                'value' => 'this is a test'
+              }
+            ],
+            'id' => 'blocked_users',
+            'type' => 'data_with_expiration'
+          }
+        ],
+        [
+          {
+            'data' => [
+              {
+                'value' => 'this is a test'
+              }
+            ],
+            'id' => 'blocked_users',
+            'type' => 'test_data'
+          }
+        ]
       ]
 
       expected_result = rules[0].merge(
@@ -547,34 +530,30 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
     context 'with duplicates entries' do
       it 'removes duplicate entry and leave the one with the longest expiration ' do
         rules_data = [
-          {
-            'rules_data' => [
-              {
-                'data' => [
-                  {
-                    'expiration' => 1677171437,
-                    'value' => 'this is a test'
-                  }
-                ],
-                'id' => 'blocked_users',
-                'type' => 'data_with_expiration'
-              }
-            ]
-          },
-          {
-            'rules_data' => [
-              {
-                'data' => [
-                  {
-                    'expiration' => 167710000,
-                    'value' => 'this is a test'
-                  }
-                ],
-                'id' => 'blocked_users',
-                'type' => 'data_with_expiration'
-              }
-            ]
-          }
+          [
+            {
+              'data' => [
+                {
+                  'expiration' => 1677171437,
+                  'value' => 'this is a test'
+                }
+              ],
+              'id' => 'blocked_users',
+              'type' => 'data_with_expiration'
+            }
+          ],
+          [
+            {
+              'data' => [
+                {
+                  'expiration' => 167710000,
+                  'value' => 'this is a test'
+                }
+              ],
+              'id' => 'blocked_users',
+              'type' => 'data_with_expiration'
+            }
+          ]
         ]
 
         expected_result = rules[0].merge(
@@ -600,33 +579,29 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
 
       it 'removes expiration key if no experation is provided' do
         rules_data = [
-          {
-            'rules_data' => [
-              {
-                'data' => [
-                  {
-                    'expiration' => 1677171437,
-                    'value' => 'this is a test'
-                  }
-                ],
-                'id' => 'blocked_users',
-                'type' => 'data_with_expiration'
-              }
-            ]
-          },
-          {
-            'rules_data' => [
-              {
-                'data' => [
-                  {
-                    'value' => 'this is a test'
-                  }
-                ],
-                'id' => 'blocked_users',
-                'type' => 'data_with_expiration'
-              }
-            ]
-          }
+          [
+            {
+              'data' => [
+                {
+                  'expiration' => 1677171437,
+                  'value' => 'this is a test'
+                }
+              ],
+              'id' => 'blocked_users',
+              'type' => 'data_with_expiration'
+            }
+          ],
+          [
+            {
+              'data' => [
+                {
+                  'value' => 'this is a test'
+                }
+              ],
+              'id' => 'blocked_users',
+              'type' => 'data_with_expiration'
+            }
+          ]
         ]
 
         expected_result = rules[0].merge(
@@ -653,78 +628,68 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
     context 'data, overrides, and exclusions' do
       it 'merges all information' do
         rules_data = [
-          {
-            'rules_data' => [
-              {
-                'data' => [
-                  {
-                    'expiration' => 1677171437,
-                    'value' => 'this is a test'
-                  }
-                ],
-                'id' => 'blocked_users',
-                'type' => 'data_with_expiration'
-              }
-            ]
-          },
-          {
-            'rules_data' => [
-              {
-                'data' => [
-                  {
-                    'value' => 'this is a test'
-                  }
-                ],
-                'id' => 'blocked_users',
-                'type' => 'data_with_expiration'
-              }
-            ]
-          }
+          [
+            {
+              'data' => [
+                {
+                  'expiration' => 1677171437,
+                  'value' => 'this is a test'
+                }
+              ],
+              'id' => 'blocked_users',
+              'type' => 'data_with_expiration'
+            }
+          ],
+          [
+            {
+              'data' => [
+                {
+                  'value' => 'this is a test'
+                }
+              ],
+              'id' => 'blocked_users',
+              'type' => 'data_with_expiration'
+            }
+          ]
         ]
 
         exclusions = [
-          {
-            'exclusions' => [
-              {
-                'conditions' => [
-                  {
-                    'operator' => 'match_regex',
-                    'parameters' => {
-                      'inputs' => [
-                        {
-                          'address' => 'server.request.uri.raw'
-                        }
-                      ],
-                      'options' => {
-                        'case_sensitive' => false
-                      },
-                      'regex' => '^/api/v2/ci/pipeline/.*'
-                    }
+          [
+            {
+              'conditions' => [
+                {
+                  'operator' => 'match_regex',
+                  'parameters' => {
+                    'inputs' => [
+                      {
+                        'address' => 'server.request.uri.raw'
+                      }
+                    ],
+                    'options' => {
+                      'case_sensitive' => false
+                    },
+                    'regex' => '^/api/v2/ci/pipeline/.*'
                   }
-                ],
-                'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
-              }
-            ]
-          },
+                }
+              ],
+              'id' => '1931d0f4-c521-4500-af34-6c4d8b8b3494'
+            }
+          ]
         ]
 
         rules_overrides = [
-          {
-            'rules_override' => [
-              {
-                'id' => 'usr-001-001',
-                'on_match' => ['block']
-              }
-            ]
-          },
-          {
-            'rules_override' => [
-              {
-                'id' => 'usr-001-001',
-                'enabled' => false,
-              }
-            ]
-          },
+          [
+            {
+              'id' => 'usr-001-001',
+              'on_match' => ['block']
+            }
+          ],
+          [
+            {
+              'id' => 'usr-001-001',
+              'enabled' => false,
+            }
+          ]
         ]
 
         expected_result = rules[0].merge(
