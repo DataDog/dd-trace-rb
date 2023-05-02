@@ -34,7 +34,7 @@ module Datadog
         :enabled,
         :writer
 
-      extend ComponentMixin
+      extend Core::Dependency
 
       # Initialize a new {Datadog::Tracing::Tracer} used to create, sample and submit spans that measure the
       # time of sections of code.

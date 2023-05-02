@@ -21,22 +21,23 @@ module Datadog
           :metrics
 
 
-        extend Dependency::ComponentMixin
+        extend Core::Dependency
 
         component(:metrics)
         setting(:enabled, 'runtime_metrics.enabled')
-        def initialize(options = {})
-          @metrics = options.fetch(:metrics) { Core::Runtime::Metrics.new }
+        def initialize(metrics: Core::Runtime::Metrics.new, enabled: false, fork_policy: Workers::Async::Thread::FORK_POLICY_STOP,
+                       interval: DEFAULT_FLUSH_INTERVAL, back_off_ratio: nil, back_off_max: DEFAULT_BACK_OFF_MAX)
+          @metrics = metrics
 
           # Workers::Async::Thread settings
-          self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_STOP)
+          self.fork_policy = fork_policy
 
           # Workers::IntervalLoop settings
-          self.loop_base_interval = options.fetch(:interval, DEFAULT_FLUSH_INTERVAL)
-          self.loop_back_off_ratio = options[:back_off_ratio] if options.key?(:back_off_ratio)
-          self.loop_back_off_max = options.fetch(:back_off_max, DEFAULT_BACK_OFF_MAX)
+          self.loop_base_interval = interval
+          self.loop_back_off_ratio = back_off_ratio if back_off_ratio
+          self.loop_back_off_max = back_off_max
 
-          self.enabled = options.fetch(:enabled, false)
+          self.enabled = enabled
         end
 
         def perform

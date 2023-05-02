@@ -187,10 +187,12 @@ module Datadog
         end
       end
 
-      # TODO: write this
-      def dependencies
-        @dependencies ||= Dependency::Registry.new
-      end
+      # TODO: created based on global, declarative registry.
+      # TODO: this one is instantiated, and be reset.
+      # def dependencies
+        # Dummy implementation until DSL declaration registry is separated from live dependency resolution.
+        # Core.dependency_registry
+      # end
 
       protected
 

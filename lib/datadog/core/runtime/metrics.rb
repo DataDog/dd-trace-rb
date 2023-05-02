@@ -12,17 +12,17 @@ module Datadog
     module Runtime
       # For generating runtime metrics
       class Metrics < Core::Metrics::Client
-        extend Dependency::ComponentMixin
+        extend Core::Dependency
 
-        setting(:services, 'service') { |value| Array(value) }
+        setting(:services, 'service')
         setting(:enabled, 'runtime_metrics.enabled')
-        component(:statsd)
+        setting(:statsd, 'runtime_metrics.statsd') # DEV: Should probably be a component that manages the statsd underlying instance.
         # Deprecate
         def initialize(services: nil, enabled: nil, statsd: nil)
           super
 
           # Initialize service list
-          @services = Set.new(services)
+          @services = Set.new(Array(services))
           @service_tags = nil
           compile_service_tags!
         end

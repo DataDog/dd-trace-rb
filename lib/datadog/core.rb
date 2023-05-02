@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'dependency_registry'
 require_relative 'core/extensions'
 
 # We must load core extensions to make certain global APIs
