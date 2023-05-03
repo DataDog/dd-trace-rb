@@ -228,15 +228,6 @@ RSpec.configure do |config|
   config.around do |example|
     example.run.tap do
       tracer_shutdown!
-
-      # Reset all configuration
-      Datadog.configuration.reset!
-
-      # Rebuild components with reset configuration
-      # DEV: This is slow, but necessary due to tests not necessarily rebuilding components before running.
-      # DEV: This is specially concerning for tests that use the Datadog.logger, which can be set to debug mode by
-      # DEV: a prior test example.
-      Datadog.configure {}
     end
   end
 end
