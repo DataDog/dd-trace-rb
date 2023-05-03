@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../core/dependency'
+
 module Datadog
   module Tracing
     module Flush
@@ -57,6 +59,8 @@ module Datadog
       #
       # Spans consumed are removed from +trace_op+ as a side effect.
       class Finished < Base
+        extend Core::Dependency
+
         # Are all spans finished?
         def flush?(trace_op)
           trace_op && trace_op.finished?
@@ -74,11 +78,14 @@ module Datadog
       #
       # Spans consumed are removed from +trace_op+ as a side effect.
       class Partial < Base
+        extend Core::Dependency
+
         # Start flushing partial trace after this many active spans in one trace
         DEFAULT_MIN_SPANS_FOR_PARTIAL_FLUSH = 500
 
         attr_reader :min_spans_for_partial
 
+        setting(:min_spans_before_partial_flush, 'tracing.partial_flush.min_spans_threshold')
         def initialize(options = {})
           super()
           @min_spans_for_partial = options.fetch(:min_spans_before_partial_flush, DEFAULT_MIN_SPANS_FOR_PARTIAL_FLUSH)

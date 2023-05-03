@@ -50,6 +50,20 @@ module Datadog
         end
       end
 
+      class TraceFlush
+        extend Core::Dependency
+
+        setting(:partial_flush, 'tracing.partial_flush.enabled')
+        setting(:partial_flush_min_spans_threshold, 'tracing.partial_flush.min_spans_threshold')
+        def self.new(partial_flush: false, partial_flush_min_spans_threshold: Flush::Partial::DEFAULT_MIN_SPANS_FOR_PARTIAL_FLUSH)
+          if partial_flush
+            Tracing::Flush::Partial.new(min_spans_before_partial_flush: partial_flush_min_spans_threshold)
+          else
+            Tracing::Flush::Finished.new
+          end
+        end
+      end
+
       # TODO: Sampler should be a top-level component.
       # It is currently part of the Tracer initialization
       # process, but can take a variety of options (including
@@ -78,15 +92,46 @@ module Datadog
         end
       end
 
-      def ensure_priority_sampling(sampler, settings)
+      class Sampler
+        extend Core::Dependency
+
+        setting(:sampler, 'tracing.sampler')
+        setting(:priority_sampling, 'tracing.priority_sampling')
+        setting(:rate_limit, 'tracing.sampling.rate_limit')
+        setting(:default_rate, 'tracing.sampling.default_rate')
+        def self.new(sampler, priority_sampling, rate_limit, default_rate)
+          if sampler
+            if priority_sampling == false
+              sampler
+            else
+              ensure_priority_sampling(sampler, rate_limit, default_rate)
+            end
+          elsif priority_sampling == false
+            Tracing::Sampling::RuleSampler.new(
+              rate_limit: rate_limit,
+              default_sample_rate: default_rate
+            )
+          else
+            Tracing::Sampling::PrioritySampler.new(
+              base_sampler: Tracing::Sampling::AllSampler.new,
+              post_sampler: Tracing::Sampling::RuleSampler.new(
+                rate_limit: rate_limit,
+                default_sample_rate: default_rate
+              )
+            )
+          end
+        end
+      end
+
+      def ensure_priority_sampling(sampler, rate_limit, default_rate)
         if sampler.is_a?(Tracing::Sampling::PrioritySampler)
           sampler
         else
           Tracing::Sampling::PrioritySampler.new(
             base_sampler: sampler,
             post_sampler: Tracing::Sampling::RuleSampler.new(
-              rate_limit: settings.tracing.sampling.rate_limit,
-              default_sample_rate: settings.tracing.sampling.default_rate
+              rate_limit: rate_limit,
+              default_sample_rate: default_rate
             )
           )
         end
@@ -103,6 +148,19 @@ module Datadog
         end
 
         Tracing::Writer.new(agent_settings: agent_settings, **settings.tracing.writer_options)
+      end
+
+      class Writer
+        extend Core::Dependency
+
+        component(:agent_settings)
+        setting(:writer, 'tracing.writer')
+        setting(:writer_options, 'tracing.writer_options')
+        def self.new(agent_settings, writer, writer_options)
+          return writer if writer
+
+          Tracing::Writer.new(agent_settings: agent_settings, **writer_options)
+        end
       end
 
       def subscribe_to_writer_events!(writer, sampler, test_mode)
@@ -141,6 +199,16 @@ module Datadog
       def build_span_sampler(settings)
         rules = Tracing::Sampling::Span::RuleParser.parse_json(settings.tracing.sampling.span_rules)
         Tracing::Sampling::Span::Sampler.new(rules || [])
+      end
+
+      class SpanSampler
+        extend Core::Dependency
+
+        setting(:span_rules, 'tracing.sampling.span_rules')
+        def self.new(span_rules)
+          rules = Tracing::Sampling::Span::RuleParser.parse_json(span_rules)
+          Tracing::Sampling::Span::Sampler.new(rules || [])
+        end
       end
 
       def reconfigure(changes, settings = Datadog.configuration)

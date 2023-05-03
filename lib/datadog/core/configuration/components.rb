@@ -49,11 +49,11 @@ module Datadog
               metrics: build_runtime_metrics(settings)
             )
 
-            Core::Workers::RuntimeMetrics.new(options)
+            Core::Workers::RuntimeMetrics.new(**options)
           end
 
           def build_telemetry(settings)
-            Telemetry::Client.new(enabled: settings.telemetry.enabled)
+            Telemetry::Client.new
           end
         end
 
@@ -70,7 +70,10 @@ module Datadog
         def initialize(settings)
           @logger = self.class.build_logger(settings)
 
-          agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
+          # TODO: REMOVE ME
+          agent_settings = AgentSettingsResolver.new(settings.agent.host,
+          settings.agent.port,
+          settings.tracing.transport_options, logger: @logger)
 
           @remote = Remote::Component.build(settings, agent_settings)
           @tracer = self.class.build_tracer(settings, agent_settings)

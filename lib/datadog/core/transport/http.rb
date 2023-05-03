@@ -43,10 +43,10 @@ module Datadog
         # represents only settings specified via environment variables + the usual defaults.
         #
         # DO NOT USE THIS IN NEW CODE, as it ignores any settings specified by users via `Datadog.configure`.
-        DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::AgentSettingsResolver.call(
-          Datadog::Core::Configuration::Settings.new,
-          logger: nil,
-        )
+        # DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::AgentSettingsResolver.call(
+        #   Datadog::Core::Configuration::Settings.new,
+        #   logger: nil,
+        # )
 
         module_function
 
@@ -58,7 +58,7 @@ module Datadog
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
         def root(
-          agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
+          agent_settings: Datadog::Core.dependency_registry.resolve_component(:agent_settings),
           **options
         )
           new(Transport::Negotiation::Transport) do |transport|

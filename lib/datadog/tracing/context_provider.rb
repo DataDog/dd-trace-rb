@@ -9,6 +9,10 @@ module Datadog
     #
     # @see https://ruby-doc.org/core-3.1.2/Thread.html#method-i-5B-5D Thread attributes are fiber-local
     class DefaultContextProvider
+      extend Core::Dependency
+
+      component_name(:context_provider)
+
       # Initializes the default context provider with a fiber-bound context.
       def initialize
         @context = FiberLocalContext.new

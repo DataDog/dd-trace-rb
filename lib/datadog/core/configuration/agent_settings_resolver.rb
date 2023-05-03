@@ -17,6 +17,23 @@ module Datadog
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
       class AgentSettingsResolver
+        extend Core::Dependency
+
+        component_name('agent_settings')
+        setting(:host, 'settings.agent.host')
+        setting(:port, 'settings.agent.port')
+        setting(:transport_options, 'settings.tracing.transport_options')
+        component(:logger)
+        def self.new(
+          host,
+          port,
+          transport_options,
+          logger:
+        )
+          new = super
+          new.send(:call)
+        end
+
         AgentSettings = \
           Struct.new(
             :adapter,
@@ -50,7 +67,10 @@ module Datadog
           end
 
         def self.call(settings, logger: Datadog.logger)
-          new(settings, logger: logger).send(:call)
+          raise "you goofed, don't call this"
+          # new(settings.agent.host,
+          # settings.agent.port,
+          # settings.tracing.transport_options, logger: logger).send(:call)
         end
 
         private
@@ -59,8 +79,10 @@ module Datadog
           :logger,
           :settings
 
-        def initialize(settings, logger: Datadog.logger)
-          @settings = settings
+        def initialize(host, port, transport_options, logger: Datadog.logger)
+          @host = host
+          @port = port
+          @transport_options_setting = transport_options
           @logger = logger
         end
 
@@ -112,7 +134,7 @@ module Datadog
             ),
             DetectedConfiguration.new(
               friendly_name: "'c.agent.host'",
-              value: settings.agent.host
+              value: @host
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
@@ -135,7 +157,7 @@ module Datadog
             ),
             try_parsing_as_integer(
               friendly_name: '"c.agent.port"',
-              value: settings.agent.port,
+              value: @port,
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
@@ -201,8 +223,8 @@ module Datadog
         # In transport_options, we try to invoke the transport_options proc and get its configuration. In case that
         # doesn't work, we include the proc directly in the agent settings result.
         def deprecated_for_removal_transport_configuration_proc
-          if settings.tracing.transport_options.is_a?(Proc) && transport_options.adapter.nil?
-            settings.tracing.transport_options
+          if @transport_options_setting.is_a?(Proc) && transport_options.adapter.nil?
+            @transport_options_setting
           end
         end
 
@@ -324,7 +346,7 @@ module Datadog
         def transport_options
           return @transport_options if defined?(@transport_options)
 
-          transport_options_proc = settings.tracing.transport_options
+          transport_options_proc = @transport_options_setting
 
           @transport_options = TransportOptions.new
 

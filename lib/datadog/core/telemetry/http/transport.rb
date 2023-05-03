@@ -17,8 +17,7 @@ module Datadog
             :ssl,
             :path
 
-          def initialize
-            agent_settings = Configuration::AgentSettingsResolver.call(Datadog.configuration)
+          def initialize(agent_settings)
             @host = agent_settings.hostname
             @port = agent_settings.port
             @ssl = false

@@ -1,5 +1,7 @@
 require 'logger'
 
+require_relative 'dependency'
+
 module Datadog
   module Core
     # A custom logger with minor enhancements:
@@ -7,13 +9,14 @@ module Datadog
     # - adds last caller stack-trace info to know where the message comes from
     # @public_api
     class Logger < ::Logger
+      extend Core::Dependency
+
       # TODO: Consider renaming this to 'datadog'
       PREFIX = 'ddtrace'.freeze
 
-      def initialize(*args, &block)
+      setting(:level, 'logger.level')
+      def initialize(logdev = $stdout, *args, level: ::Logger::INFO, progname: PREFIX, **kwargs)
         super
-        self.progname = PREFIX
-        self.level = ::Logger::INFO
       end
 
       def add(severity, message = nil, progname = nil, &block)

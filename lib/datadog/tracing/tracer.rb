@@ -49,14 +49,14 @@ module Datadog
       # @param tags [Hash] default tags added to all spans
       # @param writer [Datadog::Tracing::Writer] consumes traces returned by the provided +trace_flush+
 
-      # component(:trace_flush)
-      # component(:context_provider)
-      # setting(:default_service, 'service')
-      # setting(:enabled, 'tracing.enabled')
-      # component(:sampler)
-      # component(:span_sampler)
-      # setting(:tags, 'tags')
-      # component(:writer)
+      component(:trace_flush)
+      component(:context_provider)
+      setting(:default_service, 'service')
+      setting(:enabled, 'tracing.enabled')
+      component(:sampler)
+      component(:span_sampler)
+      setting(:tags, 'tags')
+      component(:writer)
       def initialize(
         trace_flush: Flush::Finished.new,
         context_provider: DefaultContextProvider.new,

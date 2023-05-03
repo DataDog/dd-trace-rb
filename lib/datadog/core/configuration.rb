@@ -249,12 +249,19 @@ module Datadog
       end
 
       def build_components(settings)
+        Datadog::Core.dependency_registry.resolve_all
+
         components = Components.new(settings)
         components.startup!(settings)
         components
       end
 
       def replace_components!(settings, old)
+        # We don't track changed settings today on `Datadog.configure`, so we
+        # reconfigure all registry components instead.
+        # TODO: keep track of changed settings to only reconfigure changed registry components
+        Datadog::Core.dependency_registry.change_settings({}, force_reset_all: true)
+
         components = Components.new(settings)
 
         old.shutdown!(components)

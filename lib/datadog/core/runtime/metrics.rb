@@ -16,7 +16,7 @@ module Datadog
 
         setting(:services, 'service')
         setting(:enabled, 'runtime_metrics.enabled')
-        setting(:statsd, 'runtime_metrics.statsd') # DEV: Should probably be a component that manages the statsd underlying instance.
+        setting(:statsd, 'runtime_metrics.statsd') # DEV: Should be its own component.
         # Deprecate
         def initialize(services: nil, enabled: nil, statsd: nil)
           super

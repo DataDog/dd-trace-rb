@@ -14,11 +14,14 @@ module Datadog
           :worker
 
         include Core::Utils::Forking
+        extend Core::Dependency
 
+        setting(:enabled, 'telemetry.enabled')
+        component(:agent_settings)
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
-        def initialize(enabled: true)
+        def initialize(enabled: true, agent_settings: nil)
           @enabled = enabled
-          @emitter = Emitter.new
+          @emitter = Emitter.new(agent_settings: agent_settings)
           @stopped = false
           @unsupported = false
           @worker = Telemetry::Heartbeat.new(enabled: @enabled) do

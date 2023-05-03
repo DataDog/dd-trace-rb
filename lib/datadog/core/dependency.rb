@@ -2,20 +2,30 @@ module Datadog
   module Core
     module Dependency
       module ComponentMixin
-        def setting(init_parameter, config_path, global_registry: Datadog::Core.dependency_registry, self_component_name: Util.to_base_name(name))
+        def setting(init_parameter, config_path, global_registry: Datadog::Core.dependency_registry, self_component_name: Util.to_base_name(self))
           puts "Declaration at #{caller[0].sub(/:in.*/, '')}: #{self_component_name}(#{self}), setting(#{config_path}), param:#{init_parameter}, "
           global_registry.register(self, self_component_name, init_parameter, :setting, config_path)
         end
 
-        def component(component_name, global_registry: Datadog::Core.dependency_registry, self_component_name: Util.to_base_name(name))
+        def component(component_name, global_registry: Datadog::Core.dependency_registry, self_component_name: Util.to_base_name(self))
           puts "Declaration at #{caller[0].sub(/:in.*/, '')}: #{self_component_name}(#{self}), component(#{component_name}), param:#{component_name}"
           global_registry.register(self, self_component_name, component_name, :component, component_name)
         end
 
+        # No-arg component
+        def component_name(self_component_name = Util.to_base_name(self), global_registry: Datadog::Core.dependency_registry)
+          puts "Declaration at #{caller[0].sub(/:in.*/, '')}: no-arg component #{self_component_name}(#{self})"
+          self.instance_variable_set(:@dependency_component_name, self_component_name)
+          global_registry.register_component(self, self_component_name)
+        end
+
         module Util
-          def self.to_base_name(str)
+          def self.to_base_name(clazz)
+            existing_name = clazz.instance_variable_get(:@dependency_component_name)
+            return existing_name if existing_name
+
             # TODO: review this string manipulation logic. It was mishmashed from different algorithms.
-            str.split('::').last.
+            clazz.name.split('::').last.
               gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').
               gsub(/([a-z\d])([A-Z])/, '\1_\2').
               tr("-", "_").
@@ -113,12 +123,28 @@ module Datadog
           @component_lookup[component_name.to_sym] = component_class
         end
 
-        # Applies a batch of configuration changes
-        def change_settings(config_changes_hash)
-          @mutex.synchronize do
+        # Register a no-arg component.
+        # TODO: condense this with #register?
+        def register_component(component_class, component_name)
+          # key = Key.new(type, dependency)
+          value = Value.new(component_name.to_sym, nil)
 
+          # set = (@dependencies[key] ||= Set.new)
+          # set.add(value)
+
+          @reverse_dependencies[value] = Set.new
+
+          @component_lookup[component_name.to_sym] = component_class
+        end
+
+        # Applies a batch of configuration changes
+        # DEV: @param force_reset_all: Is this ever a good idea? Maybe for testing. Provide changes instead.
+        def change_settings(config_changes_hash, force_reset_all: false)
+          puts "Settings changed!: #{config_changes_hash}, force_reset_all: #{force_reset_all}"
+          @mutex.synchronize do
             update = []
             reset = []
+
             config_changes_hash.each do |config_path, new_value|
               new_updates, new_resets = change_setting(config_path, new_value)
 
@@ -127,6 +153,11 @@ module Datadog
 
               # Recursively reconfigure anythings that depends on components that will be reset.
               reset += reset.flat_map { |component_name| check_reset_component(component_name) }
+            end
+
+            # DEV: wip hack to facility resetting everything
+            if force_reset_all
+              reset = all_components
             end
 
             # No need to reset components more than once
@@ -144,7 +175,7 @@ module Datadog
               component = component_by_name(value.component_name)
               component.send("#{value.init_parameter}=", new_value)
 
-              Datadog.logger.debug { "Updated #{value.component_name}##{value.init_parameter} to #{new_value}" }
+              puts "Updated `#{value.component_name}.#{value.init_parameter} = #{new_value}`"
             end
 
             # TODO: extract this `reset` logic below
@@ -216,17 +247,27 @@ module Datadog
           unless component
             raise "Component #{component_name} not declared!"
           end
-          component.instance_method(:initialize).parameters.each do |type, arg_name|
+
+          # Does this method override `self.new`?
+          # DEV: `Object#public_methods(false)` returns a false positive for :new. A Ruby bug?
+          init_method = if component.methods(false).include?(:new)
+                          component.public_method(:new)
+                        else
+                          component.instance_method(:initialize)
+                        end
+          init_method.parameters.each do |type, arg_name|
             _, dependency = dependencies.find do |key, _|
               key.init_parameter == arg_name
             end
 
             unless dependency
-              if type == :opt || type == :key # Optional parameters?
-                next # Then it's safe to skip and let the parameter defaults be used.
+              if type == :opt || type == :key || # Optional parameters
+                type == :rest || type == :keyrest # Wildcard parameters
+
+                next # It's safe to skip and let the parameter defaults be used.
               end
 
-              raise "No container registered for `#{component_name}#initialize` argument `#{arg_name}`"
+              raise "No container registered for #{component_name} `#{component.name}#initialize` argument `#{arg_name}`"
             end
 
             case type
@@ -249,6 +290,8 @@ module Datadog
         end
 
         def reset_component(component_name)
+          puts "Shutting down component `#{component_name}`"
+
           component = component_by_name(component_name)
           component.shutdown! if component.respond_to?(:shutdown!)
 

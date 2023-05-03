@@ -15,7 +15,7 @@ module Datadog
         # @param sequence [Datadog::Core::Utils::Sequence] Sequence object that stores and increments a counter
         # @param http_transport [Datadog::Core::Telemetry::Http::Transport] Transport object that can be used to send
         #   telemetry requests via the agent
-        def initialize(http_transport: Datadog::Core::Telemetry::Http::Transport.new)
+        def initialize(agent_settings: nil, http_transport: Datadog::Core::Telemetry::Http::Transport.new(agent_settings))
           @http_transport = http_transport
         end
 
