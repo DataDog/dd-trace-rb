@@ -58,7 +58,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
     describe '#base64_capabilities' do
       it 'returns binary capabilities' do
-        expect(capabilities.base64_capabilities).to eq('Afw=')
+        expect(capabilities.base64_capabilities).to eq('/A==')
       end
     end
   end

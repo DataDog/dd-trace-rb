@@ -26,7 +26,6 @@ module Datadog
         ASM_CAPABILITIES = [
           CAP_ASM_IP_BLOCKING,
           CAP_ASM_USER_BLOCKING,
-          CAP_ASM_CUSTOM_RULES,
           CAP_ASM_EXCLUSIONS,
           CAP_ASM_REQUEST_BLOCKING,
           CAP_ASM_RESPONSE_BLOCKING,
