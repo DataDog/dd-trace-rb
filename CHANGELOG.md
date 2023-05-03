@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [1.11.1] - 2023-05-03
+
+### Fixed
+
+* Appsec: Remove misreported `ASM_CUSTOM_RULES` capability ([#2829][])
+* Appsec: Fix block response content negotiation ([#2824][])
+* Appsec: Fix incorrect remote configuration payload key handling  ([#2822][])
+
 ## [1.11.0] - 2023-04-27
 
 ### Highlights
@@ -2402,7 +2410,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.11.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.11.1...master
+[1.11.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.10.1...v1.11.1
 [1.11.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.10.1...v1.11.0
 [1.11.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v1.10.1...v1.11.0.beta1
 [1.10.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.10.0...v1.10.1
@@ -3457,6 +3466,9 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2805]: https://github.com/DataDog/dd-trace-rb/issues/2805
 [#2806]: https://github.com/DataDog/dd-trace-rb/issues/2806
 [#2810]: https://github.com/DataDog/dd-trace-rb/issues/2810
+[#2822]: https://github.com/DataDog/dd-trace-rb/issues/2822
+[#2824]: https://github.com/DataDog/dd-trace-rb/issues/2824
+[#2829]: https://github.com/DataDog/dd-trace-rb/issues/2829
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
