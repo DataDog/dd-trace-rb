@@ -2,6 +2,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'ddtrace'
 require 'presto-client'
@@ -109,6 +110,7 @@ RSpec.describe 'Presto::Client instrumentation' do
     shared_examples_for 'a configurable Presto trace' do
       context 'when the client is configured' do
         it_behaves_like 'environment service name', 'DD_TRACE_PRESTO_SERVICE_NAME'
+        it_behaves_like 'schema version span'
 
         context 'with a different service name' do
           let(:service) { 'presto-primary' }
