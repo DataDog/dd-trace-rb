@@ -155,7 +155,7 @@ RSpec.describe 'Faraday middleware' do
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Faraday::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
-    it_behaves_like 'measured span for integration', false
+    it_behaves_like 'measured span for integration', true
 
     it do
       expect(span).to_not be nil

@@ -58,6 +58,9 @@ module Datadog
                 Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
               end
 
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
+
               # Find out if the SQL query has been cached in this request. This meta is really
               # helpful to users because some spans may have 0ns of duration because the query
               # is simply cached from memory, so the notification is fired with start == finish.

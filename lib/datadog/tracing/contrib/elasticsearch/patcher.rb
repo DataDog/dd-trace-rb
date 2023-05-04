@@ -101,6 +101,9 @@ module Datadog
                       Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
                     end
 
+                    # Measure service stats
+                    Contrib::Analytics.set_measured(span)
+
                     span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_METHOD, method)
                     span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_URL, url)
                     span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_PARAMS, params) if params

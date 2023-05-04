@@ -48,6 +48,9 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
               end
 
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
+
               host, _port = find_host_port(call)
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 

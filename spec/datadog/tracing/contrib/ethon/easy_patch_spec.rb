@@ -108,7 +108,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Ethon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
-    it_behaves_like 'measured span for integration', false do
+    it_behaves_like 'measured span for integration', true do
       let(:span) { span_op }
       before { subject }
     end

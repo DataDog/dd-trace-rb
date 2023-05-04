@@ -129,6 +129,9 @@ module Datadog
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
+
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, datum[:path])
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, datum[:method].to_s.upcase)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, datum[:host])

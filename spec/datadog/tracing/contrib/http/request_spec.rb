@@ -74,7 +74,7 @@ RSpec.describe 'net/http requests' do
         before { response }
       end
 
-      it_behaves_like 'measured span for integration', false do
+      it_behaves_like 'measured span for integration', true do
         before { response }
       end
 

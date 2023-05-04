@@ -42,7 +42,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
     it_behaves_like 'a peer service span'
 
-    it_behaves_like 'measured span for integration', false
+    it_behaves_like 'measured span for integration', true
 
     it 'calls the instrumentation when is used standalone' do
       expect(span.service).to eq('mysql2')

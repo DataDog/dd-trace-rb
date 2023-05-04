@@ -90,7 +90,7 @@ RSpec.describe 'tracing on the client connection' do
       let(:peer_hostname) { host }
     end
 
-    it_behaves_like 'measured span for integration', false
+    it_behaves_like 'measured span for integration', true
     it_behaves_like 'environment service name', 'DD_TRACE_GRPC_SERVICE_NAME' do
       let(:configuration_options) { {} }
     end

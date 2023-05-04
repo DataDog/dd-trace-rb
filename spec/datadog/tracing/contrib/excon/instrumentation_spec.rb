@@ -91,7 +91,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       let(:span) { request_span }
     end
 
-    it_behaves_like 'measured span for integration', false
+    it_behaves_like 'measured span for integration', true
 
     it do
       expect(request_span).to_not be nil
