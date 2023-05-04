@@ -20,7 +20,7 @@ RSpec.describe Datadog::AppSec::Remote do
       end
 
       it 'returns capabilities' do
-        expect(described_class.capabilities).to eq([4, 128, 256, 16, 32, 64, 8])
+        expect(described_class.capabilities).to eq([4, 128, 16, 32, 64, 8])
       end
     end
   end
@@ -70,7 +70,7 @@ RSpec.describe Datadog::AppSec::Remote do
       end
 
       context 'receiver logic' do
-        let(:rules_data) do
+        let(:rules) do
           {
             version: '2.2',
             metadata: {
@@ -105,31 +105,36 @@ RSpec.describe Datadog::AppSec::Remote do
             ]
           }.to_json
         end
+
         let(:receiver) { described_class.receivers[0] }
+
         let(:target) do
           Datadog::Core::Remote::Configuration::Target.parse(
             {
               'custom' => {
                 'v' => 1,
               },
-              'hashes' => { 'sha256' => Digest::SHA256.hexdigest(rules_data.to_json) },
-              'length' => rules_data.to_s.length
+              'hashes' => { 'sha256' => Digest::SHA256.hexdigest(rules.to_json) },
+              'length' => rules.to_s.length
             }
           )
         end
+
         let(:content) do
           Datadog::Core::Remote::Configuration::Content.parse(
             {
               path: 'datadog/603646/ASM_DD/latest/config',
-              content: StringIO.new(rules_data)
+              content: StringIO.new(rules)
             }
           )
         end
+
         let(:transaction) do
           repository.transaction do |_repository, transaction|
             transaction.insert(content.path, target, content)
           end
         end
+
         let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
         it 'propagates changes to AppSec' do
@@ -163,30 +168,249 @@ RSpec.describe Datadog::AppSec::Remote do
           receiver.call(repository, changes)
         end
 
-        context 'when there is no ASM_DD information' do
-          let(:transaction) { repository.transaction { |repository, transaction| } }
-
-          it 'uses the rules from the appsec settings' do
-            ruleset = 'foo'
-
-            expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
-              ruleset: Datadog.configuration.appsec.ruleset
-            ).and_return(ruleset)
-
-            changes = transaction
-            expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: ruleset)
-              .and_return(nil)
-            receiver.call(repository, changes)
+        context 'content product' do
+          before do
+            # Stub the reconfigure method, so we do not trigger background reconfiguration
+            allow(Datadog::AppSec).to receive(:reconfigure)
           end
 
-          it 'raises SyncError if no default rules available' do
-            expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
-              ruleset: Datadog.configuration.appsec.ruleset
-            ).and_return(nil)
+          let(:default_ruleset) do
+            [Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: Datadog.configuration.appsec.ruleset)]
+          end
 
-            changes = transaction
+          let(:target) do
+            Datadog::Core::Remote::Configuration::Target.parse(
+              {
+                'custom' => {
+                  'v' => 1,
+                },
+                'hashes' => { 'sha256' => Digest::SHA256.hexdigest(data.to_json) },
+                'length' => data.to_s.length
+              }
+            )
+          end
 
-            expect { receiver.call(repository, changes) }.to raise_error(described_class::NoRulesError)
+          let(:content) do
+            Datadog::Core::Remote::Configuration::Content.parse(
+              {
+                path: path,
+                content: StringIO.new(data.to_json)
+              }
+            )
+          end
+
+          let(:rules_override) do
+            [
+              {
+                'on_match' => [
+                  'block'
+                ],
+                'rules_target' => [
+                  {
+                    'tags' => {
+                      'confidence' => '1'
+                    }
+                  }
+                ]
+              }
+            ]
+          end
+
+          let(:exclusions) do
+            [
+              {
+                'conditions' => [
+                  {
+                    'operator' => 'ip_match',
+                    'parameters' => {
+                      'inputs' => [
+                        {
+                          'address' => 'http.client_ip'
+                        }
+                      ],
+                      'list' => [
+                        '3.3.3.10'
+                      ]
+                    }
+                  }
+                ],
+                'id' => 'a9611f2c-3535-4546-9b7d-2249aafc9681'
+              }
+            ]
+          end
+
+          let(:rules_data) do
+            [
+              {
+                'data' => [
+                  {
+                    'value' => '123.45.67.89'
+                  },
+                ]
+              }
+            ]
+          end
+
+          context 'ASM' do
+            let(:path) { 'datadog/603646/ASM/whatevername/config' }
+
+            context 'overrides' do
+              let(:data) do
+                {
+                  'rules_override' => rules_override
+                }
+              end
+
+              it 'pass the right values to RuleMerger' do
+                expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
+                  rules: default_ruleset,
+                  data: [],
+                  overrides: [rules_override],
+                  exclusions: [],
+                )
+
+                changes = transaction
+                receiver.call(repository, changes)
+              end
+            end
+
+            context 'exclusions' do
+              let(:data) do
+                {
+                  'exclusions' => exclusions
+                }
+              end
+
+              it 'pass the right values to RuleMerger' do
+                expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
+                  rules: default_ruleset,
+                  data: [],
+                  overrides: [],
+                  exclusions: [exclusions],
+                )
+
+                changes = transaction
+                receiver.call(repository, changes)
+              end
+            end
+
+            context 'multiple keys' do
+              let(:data) do
+                {
+                  'rules_override' => rules_override,
+                  'exclusions' => exclusions
+                }
+              end
+
+              it 'pass the right values to RuleMerger' do
+                expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
+                  rules: default_ruleset,
+                  data: [],
+                  overrides: [rules_override],
+                  exclusions: [exclusions],
+                )
+
+                changes = transaction
+                receiver.call(repository, changes)
+              end
+            end
+
+            context 'unsupported key' do
+              let(:data) do
+                {
+                  'unsupported' => {
+
+                  }
+                }
+              end
+
+              it 'pass the right values to RuleMerger' do
+                expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
+                  rules: default_ruleset,
+                  data: [],
+                  overrides: [],
+                  exclusions: [],
+                )
+
+                changes = transaction
+                receiver.call(repository, changes)
+              end
+            end
+          end
+
+          context 'ASM_DATA' do
+            let(:path) { 'datadog/603646/ASM_DATA/whatevername/config' }
+
+            context 'with rules_data information' do
+              let(:data) do
+                {
+                  'rules_data' => rules_data
+                }
+              end
+
+              it 'pass the right values to RuleMerger' do
+                expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
+                  rules: default_ruleset,
+                  data: [rules_data],
+                  overrides: [],
+                  exclusions: [],
+                )
+
+                changes = transaction
+                receiver.call(repository, changes)
+              end
+            end
+
+            context 'without rules_data information' do
+              let(:data) do
+                {
+                  'other_key' => {
+
+                  }
+                }
+              end
+
+              it 'pass the right values to RuleMerger' do
+                expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
+                  rules: default_ruleset,
+                  data: [],
+                  overrides: [],
+                  exclusions: [],
+                )
+
+                changes = transaction
+                receiver.call(repository, changes)
+              end
+            end
+          end
+
+          context 'ASM_DD' do
+            context 'no content' do
+              let(:transaction) { repository.transaction { |repository, transaction| } }
+
+              it 'uses the rules from the appsec settings' do
+                ruleset = 'foo'
+
+                expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
+                  ruleset: Datadog.configuration.appsec.ruleset
+                ).and_return(ruleset)
+
+                changes = transaction
+                expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: ruleset)
+                  .and_return(nil)
+                receiver.call(repository, changes)
+              end
+
+              it 'raises SyncError if no default rules available' do
+                expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
+                  ruleset: Datadog.configuration.appsec.ruleset
+                ).and_return(nil)
+
+                changes = transaction
+
+                expect { receiver.call(repository, changes) }.to raise_error(described_class::NoRulesError)
+              end
+            end
           end
         end
       end

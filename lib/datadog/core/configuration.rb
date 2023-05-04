@@ -216,7 +216,11 @@ module Datadog
       # Used internally to ensure a clean environment between test runs.
       def reset!
         safely_synchronize do |write_components|
-          @components.shutdown! if components?
+          if components?
+            @components.shutdown!
+            @temp_logger = nil # Reset to ensure instance and log level are reset for next run
+          end
+
           write_components.call(nil)
           configuration.reset!
         end
