@@ -20,6 +20,10 @@ module Datadog
             context.operation_name
           end
 
+          def params
+            context.params
+          end
+
           def status_code
             context.http_response.status_code
           end

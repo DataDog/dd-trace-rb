@@ -6,10 +6,18 @@ require 'datadog/tracing/contrib/aws/parsed_context'
 RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
   subject(:parsed_context) { described_class.new(context) }
 
-  let(:context) { client.list_buckets.context }
-
-  let(:client) { ::Aws::S3::Client.new(region: 'us-west-2', stub_responses: responses) }
-  let(:responses) { true }
+  let(:context) do
+    Seahorse::Client::RequestContext.new(
+      operation_name: :list_buckets,
+      client: double(class: 'Aws::S3::Client', config: double(region: 'us-west-2')),
+      http_request: Seahorse::Client::Http::Request.new(
+        endpoint: URI('http://us-west-2.amazonaws.com.com/')
+      ),
+      http_response: Seahorse::Client::Http::Response.new(
+        status_code: 200
+      )
+    )
+  end
 
   describe '#new' do
     context 'given a context with typical values' do
