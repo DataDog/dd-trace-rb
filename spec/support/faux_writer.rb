@@ -27,15 +27,15 @@ class FauxWriter < Datadog::Tracing::Writer
   end
 
   def traces(action = :clear)
-    traces = @mutex.synchronize { @traces.dup }
-    @traces.clear if action == :clear
+    traces = @traces
+    @traces = [] if action == :clear
     traces
   end
 
   def spans(action = :clear)
     @mutex.synchronize do
-      traces = @traces.dup
-      @traces.clear if action == :clear
+      traces = @traces
+      @traces = [] if action == :clear
       spans = traces.collect(&:spans).flatten
       # sort the spans to avoid test flakiness
 
