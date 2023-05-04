@@ -111,7 +111,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false
+          it_behaves_like 'measured span for integration', true
         end
 
         context 'response has internal server error status' do

@@ -113,6 +113,9 @@ module Datadog
                 if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
                   Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
                 end
+
+                # Measure service stats
+                Contrib::Analytics.set_measured(span)
               end
 
               def set_nilable_tag!(span, key, tag_name)

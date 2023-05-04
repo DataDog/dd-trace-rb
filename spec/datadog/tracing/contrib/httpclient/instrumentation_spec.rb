@@ -138,6 +138,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
             let(:peer_hostname) { host }
           end
 
+          it_behaves_like 'measured span for integration', true
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPCLIENT_SERVICE_NAME'
           it_behaves_like 'schema version span'
 

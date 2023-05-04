@@ -103,7 +103,7 @@ RSpec.describe 'Mysql2::Client patcher' do
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false do
+        it_behaves_like 'measured span for integration', true do
           before { query }
         end
 

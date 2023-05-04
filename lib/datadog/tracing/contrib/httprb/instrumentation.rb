@@ -78,6 +78,9 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
               end
 
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
+
               set_analytics_sample_rate(span, req_options)
             end
 

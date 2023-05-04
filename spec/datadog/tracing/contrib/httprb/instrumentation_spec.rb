@@ -148,6 +148,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
             let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Httprb::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
 
+          it_behaves_like 'measured span for integration', true
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
           it_behaves_like 'schema version span'
         end

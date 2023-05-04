@@ -46,6 +46,9 @@ module Datadog
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
+            # Measure service stats
+            Contrib::Analytics.set_measured(span)
+
             # add operation tags; the full query is stored and used as a resource,
             # since it has been quantized and reduced
             span.set_tag(Ext::TAG_DB, query['database'])

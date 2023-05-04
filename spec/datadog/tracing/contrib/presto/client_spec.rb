@@ -224,7 +224,7 @@ RSpec.describe 'Presto::Client instrumentation' do
         let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Presto::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
-      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'measured span for integration', true
 
       it_behaves_like 'a peer service span' do
         let(:peer_hostname) { host }

@@ -88,7 +88,7 @@ RSpec.describe 'Sequel instrumentation' do
           end
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', true
         it_behaves_like 'schema version span'
       end
 
@@ -189,7 +189,7 @@ RSpec.describe 'Sequel instrumentation' do
         let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
-      it_behaves_like 'measured span for integration', false do
+      it_behaves_like 'measured span for integration', true do
         let(:span) { spans[2..5].sample }
       end
     end

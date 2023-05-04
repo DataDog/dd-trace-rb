@@ -166,7 +166,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         let(:peer_hostname) { host }
       end
 
-      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'measured span for integration', true
       it_behaves_like 'environment service name', 'DD_TRACE_MONGO_SERVICE_NAME'
       it_behaves_like 'schema version span'
     end

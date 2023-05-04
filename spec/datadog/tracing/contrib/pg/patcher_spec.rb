@@ -122,7 +122,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { exec }
           end
 
@@ -229,7 +229,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { exec }
           end
 
@@ -336,7 +336,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { exec_params }
           end
 
@@ -445,7 +445,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { exec_params }
           end
 
@@ -553,7 +553,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { exec_prepared }
           end
 
@@ -653,7 +653,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { exec_prepared }
           end
 
@@ -763,7 +763,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { async_exec }
           end
 
@@ -871,7 +871,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { async_exec }
           end
 
@@ -987,7 +987,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { async_exec_params }
           end
 
@@ -1095,7 +1095,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { async_exec_params }
           end
 
@@ -1202,7 +1202,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { async_exec_prepared }
           end
 
@@ -1302,7 +1302,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { async_exec_prepared }
           end
 
@@ -1418,7 +1418,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { sync_exec }
           end
 
@@ -1524,7 +1524,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { sync_exec }
           end
 
@@ -1632,7 +1632,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { sync_exec_params }
           end
 
@@ -1739,7 +1739,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { sync_exec_params }
           end
 
@@ -1845,7 +1845,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { sync_exec_prepared }
           end
 
@@ -1944,7 +1944,7 @@ RSpec.describe 'PG::Connection patcher' do
             let(:peer_hostname) { host }
           end
 
-          it_behaves_like 'measured span for integration', false do
+          it_behaves_like 'measured span for integration', true do
             before { sync_exec_prepared }
           end
 
