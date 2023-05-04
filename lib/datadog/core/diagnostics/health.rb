@@ -10,6 +10,11 @@ module Datadog
       module Health
         # Health metrics for diagnostics
         class Metrics < Core::Metrics::Client
+          extend Core::Dependency
+
+          setting(:enabled, 'diagnostics.health_metrics.enabled')
+          setting(:statsd, 'diagnostics.health_metrics.statsd') # DEV: Should be its own component.
+          component_name(:health_metrics)
           # TODO: Don't reference this. Have tracing add its metrics behavior.
           extend Tracing::Diagnostics::Health::Metrics
         end

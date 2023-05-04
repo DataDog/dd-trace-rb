@@ -16,10 +16,16 @@ module Datadog
         include Core::Utils::Forking
         extend Core::Dependency
 
+        component_name(:telemetry)
         setting(:enabled, 'telemetry.enabled')
         component(:agent_settings)
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
         def initialize(enabled: true, agent_settings: nil)
+          if agent_settings.adapter != Datadog::Transport::Ext::HTTP::ADAPTER
+            enabled = false
+            Datadog.logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
+          end
+
           @enabled = enabled
           @emitter = Emitter.new(agent_settings: agent_settings)
           @stopped = false

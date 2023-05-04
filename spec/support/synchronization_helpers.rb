@@ -58,7 +58,7 @@ module SynchronizationHelpers
       backoff = 0.1
     else
       # 5 seconds by default, but respect the provide values if any.
-      attempts ||= 50
+      attempts ||= 15
       backoff ||= 0.1
     end
 

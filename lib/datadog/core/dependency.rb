@@ -1,36 +1,39 @@
+require 'set'
+
 module Datadog
   module Core
     module Dependency
       module ComponentMixin
-        def setting(init_parameter, config_path, global_registry: Datadog::Core.dependency_registry, self_component_name: Util.to_base_name(self))
-          puts "Declaration at #{caller[0].sub(/:in.*/, '')}: #{self_component_name}(#{self}), setting(#{config_path}), param:#{init_parameter}, "
-          global_registry.register(self, self_component_name, init_parameter, :setting, config_path)
+        def setting(init_parameter, config_path, global_registry: Datadog::Core.dependency_registry)
+          puts "Declaration at #{caller[0].sub(/:in.*/, '')}: (#{self}), setting(#{config_path}), param:#{init_parameter}, "
+          global_registry.register(self, init_parameter, :setting, config_path)
         end
 
-        def component(component_name, global_registry: Datadog::Core.dependency_registry, self_component_name: Util.to_base_name(self))
-          puts "Declaration at #{caller[0].sub(/:in.*/, '')}: #{self_component_name}(#{self}), component(#{component_name}), param:#{component_name}"
-          global_registry.register(self, self_component_name, component_name, :component, component_name)
+        def component(component_name, global_registry: Datadog::Core.dependency_registry)
+          puts "Declaration at #{caller[0].sub(/:in.*/, '')}:(#{self}), component(#{component_name}), param:#{component_name}"
+          global_registry.register(self, component_name, :component, component_name)
         end
 
         # No-arg component
         def component_name(self_component_name = Util.to_base_name(self), global_registry: Datadog::Core.dependency_registry)
+          self_component_name = self_component_name.to_s
           puts "Declaration at #{caller[0].sub(/:in.*/, '')}: no-arg component #{self_component_name}(#{self})"
           self.instance_variable_set(:@dependency_component_name, self_component_name)
           global_registry.register_component(self, self_component_name)
         end
+      end
 
-        module Util
-          def self.to_base_name(clazz)
-            existing_name = clazz.instance_variable_get(:@dependency_component_name)
-            return existing_name if existing_name
+      module Util
+        def self.to_base_name(clazz)
+          existing_name = clazz.instance_variable_get(:@dependency_component_name)
+          return existing_name if existing_name
 
-            # TODO: review this string manipulation logic. It was mishmashed from different algorithms.
-            clazz.name.split('::').last.
-              gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').
-              gsub(/([a-z\d])([A-Z])/, '\1_\2').
-              tr("-", "_").
-              downcase
-          end
+          # TODO: review this string manipulation logic. It was mishmashed from different algorithms.
+          clazz.name.split('::').last.
+            gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').
+            gsub(/([a-z\d])([A-Z])/, '\1_\2').
+            tr("-", "_").
+            downcase
         end
       end
 
@@ -40,7 +43,7 @@ module Datadog
 
       class Registry
         Key = Struct.new(:type, :dependency)
-        Value = Struct.new(:component_name, :init_parameter)
+        Value = Struct.new(:component_class, :init_parameter)
 
         class SettingKey
           def self.new(dependency)
@@ -58,6 +61,7 @@ module Datadog
           @dependencies = {}
           @reverse_dependencies = {}
           @component_lookup = {}
+          @component_name = {}
           @mutex = Monitor.new # Should be re-entrant
         end
 
@@ -111,29 +115,37 @@ module Datadog
         # Examples:
         # setting(:host, 'agent.host') # Invokes `register(MyComponent, 'my_component', :host, :setting, 'agent.host')
         # component(:sampler) # Invokes `register(MyComponent, 'my_component', :sampler, :component, :sampler)
-        def register(component_class, component_name, init_parameter, type, dependency)
+        def register(component_class, init_parameter, type, dependency)
           key = Key.new(type, dependency)
-          value = Value.new(component_name.to_sym, init_parameter)
+          value = Value.new(component_class, init_parameter)
 
           set = (@dependencies[key] ||= Set.new)
           set.add(value)
 
           @reverse_dependencies[value] = key
 
-          @component_lookup[component_name.to_sym] = component_class
+          # Register component lookup if not present
+          if !@component_name[component_class] && !@component_lookup.find{ |_, value| value == component_class}
+            name = Util.to_base_name(component_class).to_sym
+            @component_name[component_class] = name
+            @component_lookup[name] = component_class
+          end
         end
 
         # Register a no-arg component.
         # TODO: condense this with #register?
         def register_component(component_class, component_name)
           # key = Key.new(type, dependency)
-          value = Value.new(component_name.to_sym, nil)
+          # value = Value.new(component_class, nil)
 
           # set = (@dependencies[key] ||= Set.new)
           # set.add(value)
 
-          @reverse_dependencies[value] = Set.new
+          # @reverse_dependencies[value] = Set.new
 
+          @component_name[component_class] = component_name.to_sym
+
+          # Override component lookup if present
           @component_lookup[component_name.to_sym] = component_class
         end
 
@@ -167,24 +179,30 @@ module Datadog
             # Datadog.logger.debug { "Reset #{reset}" }
 
             # If we are going to reset an object anyway, don't bother updating any fields
-            update.delete_if { |component,| reset.include?(component.component_name) }
+            update.delete_if { |component,|
+              reset.include?(@component_name[component.component_class])
+            }
 
             # Apply changes!
 
             update.each do |value, new_value|
-              component = component_by_name(value.component_name)
+              component = component_by_name(@component_name[value.component_class])
               component.send("#{value.init_parameter}=", new_value)
 
-              puts "Updated `#{value.component_name}.#{value.init_parameter} = #{new_value}`"
+              puts "Updated `#{@component_name[value.component_class]}.#{value.init_parameter} = #{new_value}`"
             end
 
             # TODO: extract this `reset` logic below
 
             # Reset in correct order: leaf components first
             depending_components = reset.map do |component_name|
+              component_class = @component_lookup[component_name]
+
               # Only store in this list components that will be `reset` now.
               # Unmodified components are relevant because we can use their currently existing instance.
-              [component_name, @reverse_dependencies.select { |key, value| key.component_name == component_name && value.type == :component }.map { |_, value| value.dependency } & reset]
+              [component_name, @reverse_dependencies.select do |key, value|
+                key.component_class == component_class && value.type == :component
+              end.map { |_, value| value.dependency } & reset]
             end.to_h
 
             # depending_components.sort_by! { |_, dependencies| dependencies.size }
@@ -229,13 +247,33 @@ module Datadog
         end
 
         def init_component(component_name)
-          dependencies = @reverse_dependencies.select { |key, _| key.component_name == component_name } # Can be cached in a reverse-lookup hash
+          component_class = @component_lookup[component_name]
+          dependencies = @reverse_dependencies.select { |key, _| key.component_class == component_class } # Can be cached in a reverse-lookup hash
           args, kwargs = to_args(component_name, dependencies)
 
           @component_lookup[component_name].new(
             *args.map { |_, dependency| resolve(dependency) },
             **kwargs.map { |name, dependency| [name, resolve(dependency)] }.to_h,
           )
+        end
+
+        DELEGATION_PARAMETERS = [
+          [:rest],
+          [:rest, :block],
+          [:rest, :keyrest],
+          [:rest, :keyrest, :block],
+        ].freeze
+
+        # When classes has modules prepended, they can override initializing methods.
+        # This methods iterates until it finds a non-delegating method argument set.
+        def find_non_delegating_method(method)
+          while method
+            parameters = method.parameters
+            param_types = parameters.map(&:first)
+            return method unless DELEGATION_PARAMETERS.include?(param_types)
+
+            method = method.super_method
+          end
         end
 
         def to_args(component_name, dependencies)
@@ -251,10 +289,11 @@ module Datadog
           # Does this method override `self.new`?
           # DEV: `Object#public_methods(false)` returns a false positive for :new. A Ruby bug?
           init_method = if component.methods(false).include?(:new)
-                          component.public_method(:new)
+                          find_non_delegating_method(component.public_method(:new))
                         else
-                          component.instance_method(:initialize)
+                          find_non_delegating_method(component.instance_method(:initialize))
                         end
+
           init_method.parameters.each do |type, arg_name|
             _, dependency = dependencies.find do |key, _|
               key.init_parameter == arg_name
@@ -262,7 +301,8 @@ module Datadog
 
             unless dependency
               if type == :opt || type == :key || # Optional parameters
-                type == :rest || type == :keyrest # Wildcard parameters
+                type == :rest || type == :keyrest #|| # Wildcard parameters
+                type == :block # Block can be omitted
 
                 next # It's safe to skip and let the parameter defaults be used.
               end
@@ -312,13 +352,11 @@ module Datadog
           reset = []
 
           @dependencies[key].each do |component|
-            component_class = @component_lookup[component.component_name]
-
-            if component_class.public_method_defined?("#{component.init_parameter}=")
+            if component.component_class.public_method_defined?("#{component.init_parameter}=")
               # Call setter instead of resetting the whole component
               update << [component, new_value]
             else
-              reset << component.component_name
+              reset << @component_name[component.component_class]
             end
           end
 

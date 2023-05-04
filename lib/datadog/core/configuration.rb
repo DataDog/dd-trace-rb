@@ -183,7 +183,10 @@ module Datadog
       # Components won't be automatically reinitialized after a shutdown.
       def shutdown!
         safely_synchronize do
-          @components.shutdown! if components?
+          if components?
+            @components.shutdown!
+            Datadog::Core.dependency_registry.change_settings({}, force_reset_all: true)
+          end
         end
       end
 
@@ -223,6 +226,8 @@ module Datadog
 
           write_components.call(nil)
           configuration.reset!
+
+          Datadog::Core.dependency_registry.change_settings({}, force_reset_all: true)
         end
       end
 
@@ -253,7 +258,7 @@ module Datadog
       end
 
       def build_components(settings)
-        Datadog::Core.dependency_registry.resolve_all
+        Datadog::Core.dependency_registry.change_settings({}, force_reset_all: true)
 
         components = Components.new(settings)
         components.startup!(settings)

@@ -107,9 +107,14 @@ end
 # Datadog.dependencies.change_settings({ 'tracing.sampling.rate_limit' => 0.5, 'runtime_metrics.enabled' => false })
 # Datadog.dependencies.change_settings({ 'agent.host' => 'not.local.host', 'runtime_metrics.enabled' => false, 'tracing.sampling.rate_limit' => 0.5 })
 
-Datadog::Core.dependency_registry.resolve_all
 
-Datadog.configure {}
-Datadog.configure {}
 
-Datadog::Core.dependency_registry.change_settings({ 'logger.level' => Logger::DEBUG })
+
+
+# Real one
+# Datadog::Core.dependency_registry.resolve_all
+#
+# Datadog.configure {}
+# Datadog.configure {}
+#
+# Datadog::Core.dependency_registry.change_settings({ 'logger.level' => Logger::DEBUG })

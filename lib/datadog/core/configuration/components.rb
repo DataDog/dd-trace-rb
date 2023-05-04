@@ -20,46 +20,53 @@ module Datadog
           include Datadog::Tracing::Component
 
           def build_health_metrics(settings)
-            settings = settings.diagnostics.health_metrics
-            options = { enabled: settings.enabled }
-            options[:statsd] = settings.statsd unless settings.statsd.nil?
+            # settings = settings.diagnostics.health_metrics
+            # options = { enabled: settings.enabled }
+            # options[:statsd] = settings.statsd unless settings.statsd.nil?
+            #
+            # Core::Diagnostics::Health::Metrics.new(**options)
 
-            Core::Diagnostics::Health::Metrics.new(**options)
+            Datadog::Core.dependency_registry.resolve_component(:health_metrics)
           end
 
           def build_logger(settings)
-            logger = settings.logger.instance || Core::Logger.new($stdout)
-            logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
+            # logger = settings.logger.instance || Core::Logger.new($stdout)
+            # logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
+            #
+            # logger
 
-            logger
+            Datadog::Core.dependency_registry.resolve_component(:logger)
           end
 
-          def build_runtime_metrics(settings)
-            options = { enabled: settings.runtime_metrics.enabled }
-            options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
-            options[:services] = [settings.service] unless settings.service.nil?
-
-            Core::Runtime::Metrics.new(**options)
-          end
+          # def build_runtime_metrics(settings)
+          #   options = { enabled: settings.runtime_metrics.enabled }
+          #   options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
+          #   options[:services] = [settings.service] unless settings.service.nil?
+          #
+          #   Core::Runtime::Metrics.new(**options)
+          # end
 
           def build_runtime_metrics_worker(settings)
             # NOTE: Should we just ignore building the worker if its not enabled?
-            options = settings.runtime_metrics.opts.merge(
-              enabled: settings.runtime_metrics.enabled,
-              metrics: build_runtime_metrics(settings)
-            )
+            # options = settings.runtime_metrics.opts.merge(
+            #   enabled: settings.runtime_metrics.enabled,
+            #   metrics: build_runtime_metrics(settings)
+            # )
+            #
+            # Core::Workers::RuntimeMetrics.new(**options)
 
-            Core::Workers::RuntimeMetrics.new(**options)
+            Datadog::Core.dependency_registry.resolve_component(:runtime_metrics)
           end
 
           def build_telemetry(settings, agent_settings, logger)
-            enabled = settings.telemetry.enabled
-            if agent_settings.adapter != Datadog::Transport::Ext::HTTP::ADAPTER
-              enabled = false
-              logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
-            end
+            # enabled = settings.telemetry.enabled
+            # if agent_settings.adapter != Datadog::Transport::Ext::HTTP::ADAPTER
+            #   enabled = false
+            #   logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
+            # end
 
-            Telemetry::Client.new # (enabled: enabled)
+            # Telemetry::Client.new # (enabled: enabled)
+            Datadog::Core.dependency_registry.resolve_component(:telemetry)
           end
         end
 
