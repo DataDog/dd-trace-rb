@@ -1,5 +1,3 @@
-require_relative '../../core'
-
 require_relative 'matcher'
 require_relative 'rate_sampler'
 

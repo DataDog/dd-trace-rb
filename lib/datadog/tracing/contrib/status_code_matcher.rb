@@ -1,6 +1,5 @@
 require 'set'
 
-require_relative '../../core'
 require_relative '../metadata/ext'
 
 module Datadog
