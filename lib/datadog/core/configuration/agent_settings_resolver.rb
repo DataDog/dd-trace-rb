@@ -20,9 +20,9 @@ module Datadog
         extend Core::Dependency
 
         component_name('agent_settings')
-        setting(:host, 'settings.agent.host')
-        setting(:port, 'settings.agent.port')
-        setting(:transport_options, 'settings.tracing.transport_options')
+        setting(:host, 'agent.host')
+        setting(:port, 'agent.port')
+        setting(:transport_options, 'tracing.transport_options')
         component(:logger)
         def self.new(
           host,

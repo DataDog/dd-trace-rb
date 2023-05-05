@@ -890,7 +890,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe 'writer event callbacks' do
-    describe Datadog::Core::Configuration::Components.singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
+    describe Datadog::Tracing::Component::Writer::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
       subject(:call) { described_class.call(writer, responses) }
       let(:writer) { double('writer') }
       let(:responses) { [double('response')] }

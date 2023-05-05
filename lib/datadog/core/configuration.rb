@@ -184,8 +184,8 @@ module Datadog
       def shutdown!
         safely_synchronize do
           if components?
-            @components.shutdown!
-            Datadog::Core.dependency_registry.change_settings({}, force_reset_all: true)
+            # @components.shutdown!
+            Datadog::Core.dependency_registry.shutdown
           end
         end
       end
@@ -227,7 +227,7 @@ module Datadog
           write_components.call(nil)
           configuration.reset!
 
-          Datadog::Core.dependency_registry.change_settings({}, force_reset_all: true)
+          Datadog::Core.dependency_registry.shutdown
         end
       end
 

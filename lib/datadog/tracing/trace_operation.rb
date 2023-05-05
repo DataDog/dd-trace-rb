@@ -36,6 +36,10 @@ module Datadog
         :sample_rate,
         :sampling_priority
 
+      def sampling_priority=(s)
+        @sampling_priority = s
+      end
+
       attr_reader \
         :active_span_count,
         :active_span,

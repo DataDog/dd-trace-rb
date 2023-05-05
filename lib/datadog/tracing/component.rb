@@ -52,12 +52,32 @@ module Datadog
       #   end
       # end
 
+
+      module Tags
+        extend Core::Dependency
+
+        setting(:tags, 'tags')
+        setting(:env, 'env')
+        setting(:version, 'version')
+        def self.new(tags, env, version)
+          tags.dup.tap do |tags|
+            tags[Core::Environment::Ext::TAG_ENV] = env unless env.nil?
+            tags[Core::Environment::Ext::TAG_VERSION] = version unless version.nil?
+          end
+        end
+      end
+
       class TraceFlush
         extend Core::Dependency
 
+        setting(:test_mode, 'tracing.test_mode.enabled')
+        setting(:test_mode_trace_flush, 'tracing.test_mode.trace_flush')
         setting(:partial_flush, 'tracing.partial_flush.enabled')
         setting(:partial_flush_min_spans_threshold, 'tracing.partial_flush.min_spans_threshold')
-        def self.new(partial_flush: false, partial_flush_min_spans_threshold: Flush::Partial::DEFAULT_MIN_SPANS_FOR_PARTIAL_FLUSH)
+        def self.new(test_mode, test_mode_trace_flush, partial_flush: false, partial_flush_min_spans_threshold: Flush::Partial::DEFAULT_MIN_SPANS_FOR_PARTIAL_FLUSH)
+          # If context flush behavior is provided, use it instead.
+          return test_mode_trace_flush if test_mode && test_mode_trace_flush
+
           if partial_flush
             Tracing::Flush::Partial.new(min_spans_before_partial_flush: partial_flush_min_spans_threshold)
           else
@@ -101,7 +121,10 @@ module Datadog
         setting(:priority_sampling, 'tracing.priority_sampling')
         setting(:rate_limit, 'tracing.sampling.rate_limit')
         setting(:default_rate, 'tracing.sampling.default_rate')
-        def self.new(sampler, priority_sampling, rate_limit, default_rate)
+        setting(:test_mode, 'tracing.test_mode.enabled')
+        def self.new(sampler, priority_sampling, rate_limit, default_rate, test_mode)
+          return build_test_mode_sampler if test_mode
+
           if sampler
             if priority_sampling == false
               sampler
@@ -123,21 +146,31 @@ module Datadog
             )
           end
         end
+
+        def self.ensure_priority_sampling(sampler, rate_limit, default_rate)
+          if sampler.is_a?(Tracing::Sampling::PrioritySampler)
+            sampler
+          else
+            Tracing::Sampling::PrioritySampler.new(
+              base_sampler: sampler,
+              post_sampler: Tracing::Sampling::RuleSampler.new(
+                rate_limit: rate_limit,
+                default_sample_rate: default_rate
+              )
+            )
+          end
+        end
+
+        def self.build_test_mode_sampler
+          # Do not sample any spans for tests; all must be preserved.
+          # Set priority sampler to ensure the agent doesn't drop any traces.
+          Tracing::Sampling::PrioritySampler.new(
+            base_sampler: Tracing::Sampling::AllSampler.new,
+            post_sampler: Tracing::Sampling::AllSampler.new
+          )
+        end
       end
 
-      # def ensure_priority_sampling(sampler, rate_limit, default_rate)
-      #   if sampler.is_a?(Tracing::Sampling::PrioritySampler)
-      #     sampler
-      #   else
-      #     Tracing::Sampling::PrioritySampler.new(
-      #       base_sampler: sampler,
-      #       post_sampler: Tracing::Sampling::RuleSampler.new(
-      #         rate_limit: rate_limit,
-      #         default_sample_rate: default_rate
-      #       )
-      #     )
-      #   end
-      # end
 
       # TODO: Writer should be a top-level component.
       # It is currently part of the Tracer initialization
@@ -158,43 +191,62 @@ module Datadog
         component(:agent_settings)
         setting(:writer, 'tracing.writer')
         setting(:writer_options, 'tracing.writer_options')
-        def self.new(agent_settings, writer, writer_options)
-          return writer if writer
+        component(:sampler)
+        setting(:test_mode, 'tracing.test_mode.enabled')
+        setting(:test_mode_writer_options, 'tracing.test_mode.writer_options')
 
-          Tracing::Writer.new(agent_settings: agent_settings, **writer_options)
+        class << self
+          def new(agent_settings, writer, writer_options, sampler, test_mode, test_mode_writer_options)
+            writer = if writer
+                       writer
+                     elsif test_mode
+                       build_test_mode_writer(test_mode_writer_options, agent_settings)
+                     else
+                       Tracing::Writer.new(agent_settings: agent_settings, **writer_options)
+                     end
+
+            subscribe_to_writer_events!(writer, sampler, test_mode)
+            writer
+          end
+
+          def subscribe_to_writer_events!(writer, sampler, test_mode)
+            return unless writer.respond_to?(:events) # Check if it's a custom, external writer
+
+            writer.events.after_send.subscribe(&WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
+
+            return unless sampler.is_a?(Tracing::Sampling::PrioritySampler)
+
+            # DEV: We need to ignore priority sampling updates coming from the agent in test mode
+            # because test mode wants to *unconditionally* sample all traces.
+            #
+            # This can cause trace metrics to be overestimated, but that's a trade-off we take
+            # here to achieve 100% sampling rate.
+            return if test_mode
+
+            writer.events.after_send.subscribe(&writer_update_priority_sampler_rates_callback(sampler))
+          end
+
+          # Create new lambda for writer callback,
+          # capture the current sampler in the callback closure.
+          def writer_update_priority_sampler_rates_callback(sampler)
+            lambda do |_, responses|
+              response = responses.last
+
+              next unless response && !response.internal_error? && response.service_rates
+
+              sampler.update(response.service_rates, decision: Tracing::Sampling::Ext::Decision::AGENT_RATE)
+            end
+          end
+
+          def build_test_mode_writer(test_mode_writer_options, agent_settings)
+            # Flush traces synchronously, to guarantee they are written.
+            writer_options = test_mode_writer_options || {}
+            Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
+          end
         end
-      end
 
-      def subscribe_to_writer_events!(writer, sampler, test_mode)
-        return unless writer.respond_to?(:events) # Check if it's a custom, external writer
-
-        writer.events.after_send.subscribe(&WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
-
-        return unless sampler.is_a?(Tracing::Sampling::PrioritySampler)
-
-        # DEV: We need to ignore priority sampling updates coming from the agent in test mode
-        # because test mode wants to *unconditionally* sample all traces.
-        #
-        # This can cause trace metrics to be overestimated, but that's a trade-off we take
-        # here to achieve 100% sampling rate.
-        return if test_mode
-
-        writer.events.after_send.subscribe(&writer_update_priority_sampler_rates_callback(sampler))
-      end
-
-      WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK = lambda do |_, responses|
-        Core::Diagnostics::EnvironmentLogger.log!(responses)
-      end
-
-      # Create new lambda for writer callback,
-      # capture the current sampler in the callback closure.
-      def writer_update_priority_sampler_rates_callback(sampler)
-        lambda do |_, responses|
-          response = responses.last
-
-          next unless response && !response.internal_error? && response.service_rates
-
-          sampler.update(response.service_rates, decision: Tracing::Sampling::Ext::Decision::AGENT_RATE)
+        WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK = lambda do |_, responses|
+          Core::Diagnostics::EnvironmentLogger.log!(responses)
         end
       end
 
@@ -207,6 +259,7 @@ module Datadog
         extend Core::Dependency
 
         setting(:span_rules, 'tracing.sampling.span_rules')
+
         def self.new(span_rules)
           rules = Tracing::Sampling::Span::RuleParser.parse_json(span_rules)
           Tracing::Sampling::Span::Sampler.new(rules || [])
@@ -263,32 +316,32 @@ module Datadog
 
       private
 
-      def build_tracer_tags(settings)
-        settings.tags.dup.tap do |tags|
-          tags[Core::Environment::Ext::TAG_ENV] = settings.env unless settings.env.nil?
-          tags[Core::Environment::Ext::TAG_VERSION] = settings.version unless settings.version.nil?
-        end
-      end
-
-      def build_test_mode_trace_flush(settings)
-        # If context flush behavior is provided, use it instead.
-        settings.tracing.test_mode.trace_flush || build_trace_flush(settings)
-      end
-
-      def build_test_mode_sampler
-        # Do not sample any spans for tests; all must be preserved.
-        # Set priority sampler to ensure the agent doesn't drop any traces.
-        Tracing::Sampling::PrioritySampler.new(
-          base_sampler: Tracing::Sampling::AllSampler.new,
-          post_sampler: Tracing::Sampling::AllSampler.new
-        )
-      end
-
-      def build_test_mode_writer(settings, agent_settings)
-        # Flush traces synchronously, to guarantee they are written.
-        writer_options = settings.tracing.test_mode.writer_options || {}
-        Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
-      end
+      # def build_tracer_tags(settings)
+      #   settings.tags.dup.tap do |tags|
+      #     tags[Core::Environment::Ext::TAG_ENV] = settings.env unless settings.env.nil?
+      #     tags[Core::Environment::Ext::TAG_VERSION] = settings.version unless settings.version.nil?
+      #   end
+      # end
+      #
+      # def build_test_mode_trace_flush(settings)
+      #   # If context flush behavior is provided, use it instead.
+      #   settings.tracing.test_mode.trace_flush || build_trace_flush(settings)
+      # end
+      #
+      # def build_test_mode_sampler
+      #   # Do not sample any spans for tests; all must be preserved.
+      #   # Set priority sampler to ensure the agent doesn't drop any traces.
+      #   Tracing::Sampling::PrioritySampler.new(
+      #     base_sampler: Tracing::Sampling::AllSampler.new,
+      #     post_sampler: Tracing::Sampling::AllSampler.new
+      #   )
+      # end
+      #
+      # def build_test_mode_writer(settings, agent_settings)
+      #   # Flush traces synchronously, to guarantee they are written.
+      #   writer_options = settings.tracing.test_mode.writer_options || {}
+      #   Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
+      # end
     end
   end
 end

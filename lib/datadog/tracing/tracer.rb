@@ -48,14 +48,13 @@ module Datadog
       # @param sampler [Datadog::Tracing::Sampler] a tracer sampler, responsible for filtering out spans when needed
       # @param tags [Hash] default tags added to all spans
       # @param writer [Datadog::Tracing::Writer] consumes traces returned by the provided +trace_flush+
-
       component(:trace_flush)
       component(:context_provider)
       setting(:default_service, 'service')
       setting(:enabled, 'tracing.enabled')
       component(:sampler)
       component(:span_sampler)
-      setting(:tags, 'tags')
+      component(:tags)
       component(:writer)
       def initialize(
         trace_flush: Flush::Finished.new,

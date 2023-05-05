@@ -3,21 +3,27 @@ require 'set'
 module Datadog
   module Core
     module Dependency
+      # TODO: remove this test io, use a real logger instead. but Datadog.logger is not available here yet.
+      LOGGER = Module.new do
+        def self.puts(arg)
+        end
+      end
+
       module ComponentMixin
         def setting(init_parameter, config_path, global_registry: Datadog::Core.dependency_registry)
-          puts "Declaration at #{caller[0].sub(/:in.*/, '')}: (#{self}), setting(#{config_path}), param:#{init_parameter}, "
+          LOGGER.puts "Declaration at #{caller[0].sub(/:in.*/, '')}: (#{self}), setting(#{config_path}), param:#{init_parameter}, "
           global_registry.register(self, init_parameter, :setting, config_path)
         end
 
-        def component(component_name, global_registry: Datadog::Core.dependency_registry)
-          puts "Declaration at #{caller[0].sub(/:in.*/, '')}:(#{self}), component(#{component_name}), param:#{component_name}"
-          global_registry.register(self, component_name, :component, component_name)
+        def component(component_name, parameter: component_name, global_registry: Datadog::Core.dependency_registry)
+          LOGGER.puts "Declaration at #{caller[0].sub(/:in.*/, '')}:(#{self}), component(#{component_name}), param:#{component_name}"
+          global_registry.register(self, parameter, :component, component_name)
         end
 
         # No-arg component
         def component_name(self_component_name = Util.to_base_name(self), global_registry: Datadog::Core.dependency_registry)
           self_component_name = self_component_name.to_s
-          puts "Declaration at #{caller[0].sub(/:in.*/, '')}: no-arg component #{self_component_name}(#{self})"
+          LOGGER.puts "Declaration at #{caller[0].sub(/:in.*/, '')}: no-arg component #{self_component_name}(#{self})"
           self.instance_variable_set(:@dependency_component_name, self_component_name)
           global_registry.register_component(self, self_component_name)
         end
@@ -76,17 +82,17 @@ module Datadog
         # Datadog.dependency_registry.resolve_component(:sampler)
         def resolve_component(component_name, force_init: false)
           if (existing = instance_variable_get(:"@#{component_name}")) && !force_init
-            puts "Found existing component `#{component_name}`"
+            LOGGER.puts "Found existing component `#{component_name}`"
             existing
           else
             @mutex.synchronize do
               # Check again, in case we were waiting for this mutex and another thread has initialized this component
               if (existing = instance_variable_get(:"@#{component_name}")) && !force_init
-                puts "Found existing component `#{component_name}`"
+                LOGGER.puts "Found existing component `#{component_name}`"
                 return existing
               end
 
-              puts "Creating new instance of component `#{component_name}`"
+              LOGGER.puts "Creating new instance of component `#{component_name}`"
               component = init_component(component_name)
               instance_variable_set(:"@#{component_name}", component)
             end
@@ -149,10 +155,24 @@ module Datadog
           @component_lookup[component_name.to_sym] = component_class
         end
 
+        # Shuts down all components.
+        # They will be reinitialized with `#resolve` after this call returns.
+        def shutdown
+          all_components.each { |c| shut_down_component(c) }
+          nil
+        end
+
+        def shut_down_component(component_name)
+          LOGGER.puts "Shutting down component `#{component_name}`"
+
+          component = component_by_name(component_name)
+          component.shutdown! if component.respond_to?(:shutdown!)
+        end
+
         # Applies a batch of configuration changes
         # DEV: @param force_reset_all: Is this ever a good idea? Maybe for testing. Provide changes instead.
         def change_settings(config_changes_hash, force_reset_all: false)
-          puts "Settings changed!: #{config_changes_hash}, force_reset_all: #{force_reset_all}"
+          LOGGER.puts "Settings changed!: #{config_changes_hash}, force_reset_all: #{force_reset_all}"
           @mutex.synchronize do
             update = []
             reset = []
@@ -175,8 +195,8 @@ module Datadog
             # No need to reset components more than once
             reset.uniq!
 
-            # Datadog.logger.debug { "Update #{update}" }
-            # Datadog.logger.debug { "Reset #{reset}" }
+            # Datadog.LOGGER.debug { "Update #{update}" }
+            # Datadog.LOGGER.debug { "Reset #{reset}" }
 
             # If we are going to reset an object anyway, don't bother updating any fields
             update.delete_if { |component,|
@@ -189,7 +209,7 @@ module Datadog
               component = component_by_name(@component_name[value.component_class])
               component.send("#{value.init_parameter}=", new_value)
 
-              puts "Updated `#{@component_name[value.component_class]}.#{value.init_parameter} = #{new_value}`"
+              LOGGER.puts "Updated `#{@component_name[value.component_class]}.#{value.init_parameter} = #{new_value}`"
             end
 
             # TODO: extract this `reset` logic below
@@ -288,7 +308,7 @@ module Datadog
 
           # Does this method override `self.new`?
           # DEV: `Object#public_methods(false)` returns a false positive for :new. A Ruby bug?
-          init_method = if component.methods(false).include?(:new)
+          init_method = if component.methods(false).include?(:new) && !component.public_method(:new).source_location[0].match?(%r{rspec\/mocks\/method_double}) # DEV: rspec-mocks creates a test Class#new method.
                           find_non_delegating_method(component.public_method(:new))
                         else
                           find_non_delegating_method(component.instance_method(:initialize))
@@ -330,10 +350,7 @@ module Datadog
         end
 
         def reset_component(component_name)
-          puts "Shutting down component `#{component_name}`"
-
-          component = component_by_name(component_name)
-          component.shutdown! if component.respond_to?(:shutdown!)
+          shut_down_component(component_name)
 
           resolve_component(component_name, force_init: true)
         end

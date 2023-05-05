@@ -53,7 +53,10 @@ module SynchronizationHelpers
   def try_wait_until(seconds: nil, attempts: nil, backoff: nil)
     raise 'Provider either `seconds` or `attempts` & `backoff`, not both' if seconds && (attempts || backoff)
 
-    if seconds
+    if ENV['RUBYLIB'] =~ /ruby-debug-ide/
+      attempts = 10
+      backoff = 0.1
+    elsif seconds
       attempts = seconds * 10
       backoff = 0.1
     else
