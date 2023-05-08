@@ -71,6 +71,8 @@ module Datadog
           @mutex = Monitor.new # Should be re-entrant
         end
 
+        attr_writer :configuration
+
         # Returns the provided component by name.
         #
         # The component (and its dependencies) are initialized if needed.
@@ -106,7 +108,7 @@ module Datadog
         # Datadog.dependency_registry.resolve_setting('agent.host')
         # Datadog.dependency_registry.resolve_setting('tracing.sampling.rate_limit')
         def resolve_setting(config_path)
-          Datadog.configuration.options_hash.dig(*config_path.split('.').map(&:to_sym))
+          @configuration.options_hash.dig(*config_path.split('.').map(&:to_sym))
         end
 
         # Eager-loads all registered components.
@@ -171,6 +173,8 @@ module Datadog
 
         # Applies a batch of configuration changes
         # DEV: @param force_reset_all: Is this ever a good idea? Maybe for testing. Provide changes instead.
+        #
+        # TODO: only reset components that have been initialized already. There's no reason to initialize everything eagerly.
         def change_settings(config_changes_hash, force_reset_all: false)
           LOGGER.puts "Settings changed!: #{config_changes_hash}, force_reset_all: #{force_reset_all}"
           @mutex.synchronize do

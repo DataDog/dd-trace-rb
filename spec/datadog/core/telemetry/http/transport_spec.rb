@@ -45,8 +45,10 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
     let(:ssl) { false }
 
     before do
-      Datadog.configuration.agent.host = hostname
-      Datadog.configuration.agent.port = port
+      Datadog.configure do |c|
+        c.agent.host = hostname
+        c.agent.port = port
+      end
 
       allow(Datadog::Core::Telemetry::Http::Env).to receive(:new).and_return(env)
       allow(env).to receive(:path=).with(path)

@@ -42,6 +42,45 @@ module Datadog
         Datadog::Core.dependency_registry.resolve_component(:tracer)
       end
 
+      class Tracer
+        extend Core::Dependency
+
+        setting(:tracer, 'tracing.instance')
+        component(:trace_flush)
+        component(:context_provider)
+        setting(:default_service, 'service')
+        setting(:enabled, 'tracing.enabled')
+        component(:sampler)
+        component(:span_sampler)
+        component(:tags)
+        component(:writer)
+        def self.new(tracer,
+                     trace_flush,
+                     context_provider,
+                     default_service,
+                     enabled,
+                     sampler,
+                     span_sampler,
+                     tags,
+                     writer
+        )
+          # DEV: Create an `instance` shortcut, so we can remove this wrapper class.
+          # DEV: e.g. `instance('tracing.instance')` could be added to `Tracing::Tracer` to allow for a full override.
+          return tracer if tracer
+
+          Tracing::Tracer.new(
+            trace_flush: trace_flush,
+            context_provider: context_provider,
+            default_service: default_service,
+            enabled: enabled,
+            sampler: sampler,
+            span_sampler: span_sampler,
+            tags: tags,
+            writer: writer
+          )
+        end
+      end
+
       # def build_trace_flush(settings)
       #   if settings.tracing.partial_flush.enabled
       #     Tracing::Flush::Partial.new(
