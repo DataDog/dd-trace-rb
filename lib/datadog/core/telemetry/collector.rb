@@ -180,7 +180,7 @@ module Datadog
         end
 
         def agent_transport
-          adapter = Core::Configuration::AgentSettingsResolver.call(Datadog.configuration).adapter
+          adapter = Core.dependency_registry.resolve_component(:agent_settings).adapter
           if adapter == Datadog::Transport::Ext::UnixSocket::ADAPTER
             'UDS'
           else

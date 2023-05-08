@@ -29,7 +29,7 @@ RSpec.describe Datadog::Transport::HTTP do
 
   describe '.default' do
     subject(:default) { described_class.default }
-    let(:env_agent_settings) { described_class::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS }
+    dependency(:agent_settings)
 
     # This test changes based on the environment tests are running. We have other
     # tests around each specific environment scenario, while this one specifically
@@ -52,17 +52,17 @@ RSpec.describe Datadog::Transport::HTTP do
         expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
         expect(api.headers).to include(described_class.default_headers)
 
-        case env_agent_settings.adapter
+        case agent_settings.adapter
         when :net_http
           expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-          expect(api.adapter.hostname).to eq(env_agent_settings.hostname)
-          expect(api.adapter.port).to eq(env_agent_settings.port)
-          expect(api.adapter.ssl).to be(env_agent_settings.ssl)
+          expect(api.adapter.hostname).to eq(agent_settings.hostname)
+          expect(api.adapter.port).to eq(agent_settings.port)
+          expect(api.adapter.ssl).to be(agent_settings.ssl)
         when :unix
           expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::UnixSocket)
-          expect(api.adapter.filepath).to eq(env_agent_settings.uds_path)
+          expect(api.adapter.filepath).to eq(agent_settings.uds_path)
         else
-          raise("Unknown default adapter: #{env_agent_settings.adapter}")
+          raise("Unknown default adapter: #{agent_settings.adapter}")
         end
       end
     end

@@ -66,11 +66,14 @@ module Datadog
             end
           end
 
+        # Used for testing only.
+        # TODO: should we delete/hide this, given tests are doing something prod is never doing?
         def self.call(settings, logger: Datadog.logger)
-          raise "you goofed, don't call this"
-          # new(settings.agent.host,
-          # settings.agent.port,
-          # settings.tracing.transport_options, logger: logger).send(:call)
+          raise "you goofed, don't call this from prod" unless caller[1].include?('spec/')
+
+          new(settings.agent.host,
+          settings.agent.port,
+          settings.tracing.transport_options, logger: logger)
         end
 
         private

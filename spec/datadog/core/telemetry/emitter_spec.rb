@@ -17,8 +17,9 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
   end
 
   describe '#initialize' do
-    context 'when no params provided' do
-      subject(:emitter) { described_class.new }
+    context 'when :agent_settings is provided' do
+      subject(:emitter) { described_class.new(agent_settings: agent_settings) }
+      let(:agent_settings) { double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, hostname: nil, port: nil) }
       it { is_expected.to be_a_kind_of(described_class) }
     end
 

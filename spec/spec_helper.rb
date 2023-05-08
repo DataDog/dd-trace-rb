@@ -27,6 +27,7 @@ require 'datadog/tracing/span'
 require 'support/configuration_helpers'
 require 'support/container_helpers'
 require 'support/core_helpers'
+require 'support/dependency_helpers'
 require 'support/faux_transport'
 require 'support/faux_writer'
 require 'support/health_metric_helpers'
@@ -64,6 +65,7 @@ RSpec.configure do |config|
   config.include ConfigurationHelpers
   config.include ContainerHelpers
   config.include CoreHelpers
+  config.extend DependencyHelpers
   config.include HealthMetricHelpers
   config.include HttpHelpers
   config.include LogHelpers

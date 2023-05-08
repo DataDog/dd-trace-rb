@@ -28,7 +28,7 @@ module Datadog
               ignored_statsd_warning if statsd
               nil
             end
-          @enabled = enabled
+          @enabled = enabled || enabled.nil?
         end
 
         def supported?

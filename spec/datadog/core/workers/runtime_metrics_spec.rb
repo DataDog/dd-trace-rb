@@ -4,7 +4,7 @@ require 'ddtrace'
 require 'datadog/core/workers/runtime_metrics'
 
 RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
-  subject(:worker) { described_class.new(options) }
+  subject(:worker) { described_class.new(**options) }
 
   let(:metrics) { instance_double(Datadog::Core::Runtime::Metrics, close: nil) }
   let(:options) { { metrics: metrics, enabled: true } }

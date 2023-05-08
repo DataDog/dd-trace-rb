@@ -36,11 +36,11 @@ module Datadog
       # Builds a new Transport::HTTP::Client with default settings
       # Pass a block to override any settings.
       def default(
-        # agent_settings: Datadog::Core.dependency_registry.resolve_component(:agent_settings),
+        agent_settings: nil,
         **options
       )
         new do |transport|
-          agent_settings = Datadog::Core.dependency_registry.resolve_component(:agent_settings)
+          agent_settings = agent_settings || Datadog::Core.dependency_registry.resolve_component(:agent_settings)
           transport.adapter(agent_settings)
           transport.headers default_headers
 

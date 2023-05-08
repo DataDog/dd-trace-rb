@@ -3,11 +3,12 @@ require 'spec_helper'
 require 'datadog/core/telemetry/client'
 
 RSpec.describe Datadog::Core::Telemetry::Client do
-  subject(:client) { described_class.new(enabled: enabled) }
+  subject(:client) { described_class.new(enabled: enabled, agent_settings: agent_settings) }
   let(:enabled) { true }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
   let(:response) { double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
   let(:not_found) { false }
+  dependency(:agent_settings)
 
   before do
     allow(Datadog::Core::Telemetry::Emitter).to receive(:new).and_return(emitter)
@@ -21,8 +22,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       client.worker.join
     end
 
-    context 'when no params provided' do
-      subject(:client) { described_class.new }
+    context 'with :agent_settings' do
+      subject(:client) { described_class.new(agent_settings: agent_settings) }
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(true) }
       it { expect(client.emitter).to be(emitter) }

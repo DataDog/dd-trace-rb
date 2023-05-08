@@ -14,7 +14,6 @@ module Datadog
       # TODO: Consider renaming this to 'datadog'
       PREFIX = 'ddtrace'.freeze
 
-      setting(:level, 'logger.level')
       def initialize(logdev = $stdout, *args, level: ::Logger::INFO, progname: PREFIX, **kwargs)
         super
       end

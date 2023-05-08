@@ -87,7 +87,7 @@ module Datadog
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
         def v7(
-          agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
+          agent_settings: Datadog::Core.dependency_registry.resolve_component(:agent_settings),
           **options
         )
           new(Transport::Config::Transport) do |transport|

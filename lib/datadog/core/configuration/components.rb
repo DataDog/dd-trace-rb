@@ -38,6 +38,20 @@ module Datadog
             Datadog::Core.dependency_registry.resolve_component(:logger)
           end
 
+          class Logger
+            extend Core::Dependency
+
+            setting(:instance, 'logger.instance')
+            setting(:level, 'logger.level')
+            setting(:debug, 'diagnostics.debug')
+            def self.new(instance, level, debug)
+              logger = instance || Core::Logger.new($stdout)
+              logger.level = debug ? ::Logger::DEBUG : level
+
+              logger
+            end
+          end
+
           # def build_runtime_metrics(settings)
           #   options = { enabled: settings.runtime_metrics.enabled }
           #   options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
@@ -84,9 +98,13 @@ module Datadog
           @logger = self.class.build_logger(settings)
 
           # TODO: REMOVE ME
-          agent_settings = AgentSettingsResolver.new(settings.agent.host,
-          settings.agent.port,
-          settings.tracing.transport_options, logger: @logger)
+          agent_settings = Datadog::Core.dependency_registry.resolve_component(:agent_settings)
+
+
+
+          # agent_settings = AgentSettingsResolver.new(settings.agent.host,
+          # settings.agent.port,
+          # settings.tracing.transport_options, logger: @logger)
 
           @remote = Remote::Component.build(settings, agent_settings)
           @tracer = self.class.build_tracer(settings, agent_settings)
