@@ -32,6 +32,7 @@ RSpec.describe 'Rails integration tests' do
   let(:appsec_ip_denylist) { nil }
   let(:appsec_user_id_denylist) { nil }
   let(:appsec_ruleset) { :recommended }
+  let(:rack_app) { false }
 
   let(:crs_942_100) do
     {
@@ -92,7 +93,7 @@ RSpec.describe 'Rails integration tests' do
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
 
-      # TODO: test with c.appsec.instrument :rack
+      c.appsec.instrument :rack if rack_app
     end
   end
 
@@ -460,6 +461,42 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'a trace with AppSec events'
           end
         end
+      end
+    end
+
+    describe 'Nested apps' do
+      let(:rack_app) { true }
+      let(:middlewares) do
+        [
+          Datadog::Tracing::Contrib::Rack::TraceMiddleware,
+          Datadog::AppSec::Contrib::Rack::RequestMiddleware
+        ]
+      end
+
+      let(:app) do
+        app_middlewares = middlewares
+
+        Rack::Builder.new do
+          app_middlewares.each { |m| use m }
+          map '/' do
+            run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+          end
+        end.to_app
+      end
+
+      let(:routes) do
+        {
+          '/success' => 'test#success',
+          [:post, '/success'] => 'test#success',
+          '/set_user' => 'test#set_user',
+          [:mount, app] => '/api',
+        }
+      end
+
+      context 'GET nested app' do
+        subject(:response) { get '/api', {}, { 'REMOTE_ADDR' => remote_addr } }
+
+        it { is_expected.to be_ok }
       end
     end
   end
