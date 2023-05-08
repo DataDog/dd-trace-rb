@@ -167,6 +167,7 @@ module Datadog
         # They will be reinitialized with `#resolve` after this call returns.
         def shutdown
           all_components.each { |c| shut_down_component(c) }
+          @configuration = nil
           nil
         end
 
