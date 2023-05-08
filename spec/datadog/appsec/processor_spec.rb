@@ -340,37 +340,14 @@ RSpec.describe Datadog::AppSec::Processor do
   end
 
   describe '#active_context' do
-    it 'creates a new context and store in the class .active_context variable' do
-      context = described_class.new(ruleset: ruleset).activate_context
-      expect(context).to eq(described_class.active_context)
-    end
-
-    context 'when an active context already exists' do
-      it 'raises AlreadyActiveContextError' do
-        described_class.new(ruleset: ruleset).activate_context
-        expect do
-          described_class.new(ruleset: ruleset).activate_context
-        end.to raise_error(described_class::AlreadyActiveContextError)
-      end
-    end
-  end
-
-  describe '#deactivate_context' do
-    it 'finalize the active context and reset the class .active_context variable' do
-      handler = described_class.new(ruleset: ruleset)
-      context = handler.activate_context
-
-      expect(context).to receive(:finalize)
-      handler.deactivate_context
+    it 'creates a new context and store in the class .active_context variable for the duration of the block' do
       expect(described_class.active_context).to be_nil
-    end
 
-    context 'without an active_context' do
-      it 'raises NoActiveContextError' do
-        expect do
-          described_class.new(ruleset: ruleset).deactivate_context
-        end.to raise_error(described_class::NoActiveContextError)
+      described_class.new(ruleset: ruleset).activate_context do |context|
+        expect(context).to eq(described_class.active_context)
       end
+
+      expect(described_class.active_context).to be_nil
     end
   end
 end

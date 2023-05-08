@@ -31,62 +31,61 @@ module Datadog
 
             processor = nil
             ready = false
-            context = nil
 
             Datadog::AppSec.reconfigure_lock do
               processor = Datadog::AppSec.processor
 
-              if !processor.nil? && processor.ready?
-                context = processor.activate_context
-                env['datadog.waf.context'] = context
-                ready = true
-              end
+              ready = true if !processor.nil? && processor.ready?
             end
 
             # TODO: handle exceptions, except for @app.call
 
             return @app.call(env) unless ready
 
-            gateway_request = Gateway::Request.new(env)
+            context = nil
 
-            add_appsec_tags(processor, active_trace, active_span, env)
+            processor.activate_context do |active_context|
+              context = active_context
+              env['datadog.waf.context'] = context
 
-            request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
-              Instrumentation.gateway.push('rack.request', gateway_request) do
-                @app.call(env)
+              gateway_request = Gateway::Request.new(env)
+
+              add_appsec_tags(processor, active_trace, active_span, env)
+
+              request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+                Instrumentation.gateway.push('rack.request', gateway_request) do
+                  @app.call(env)
+                end
               end
+
+              if request_response && request_response.any? { |action, _event| action == :block }
+                request_return = AppSec::Response.negotiate(env).to_rack
+              end
+
+              gateway_response = Gateway::Response.new(
+                request_return[2],
+                request_return[0],
+                request_return[1],
+                active_context: context
+              )
+
+              _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
+
+              context.events.each do |e|
+                e[:response] ||= gateway_response
+                e[:request]  ||= gateway_request
+              end
+
+              AppSec::Event.record(*context.events)
+
+              if response_response && response_response.any? { |action, _event| action == :block }
+                request_return = AppSec::Response.negotiate(env).to_rack
+              end
+
+              request_return
             end
-
-            if request_response && request_response.any? { |action, _event| action == :block }
-              request_return = AppSec::Response.negotiate(env).to_rack
-            end
-
-            gateway_response = Gateway::Response.new(
-              request_return[2],
-              request_return[0],
-              request_return[1],
-              active_context: context
-            )
-
-            _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
-
-            context.events.each do |e|
-              e[:response] ||= gateway_response
-              e[:request]  ||= gateway_request
-            end
-
-            AppSec::Event.record(*context.events)
-
-            if response_response && response_response.any? { |action, _event| action == :block }
-              request_return = AppSec::Response.negotiate(env).to_rack
-            end
-
-            request_return
           ensure
-            if context
-              add_waf_runtime_tags(active_trace, context)
-              processor.deactivate_context
-            end
+            add_waf_runtime_tags(active_trace, context) if context
           end
           # rubocop:enable Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
 

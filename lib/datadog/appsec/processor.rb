@@ -64,9 +64,6 @@ module Datadog
         end
       end
 
-      class NoActiveContextError < StandardError; end
-      class AlreadyActiveContextError < StandardError; end
-
       attr_reader :ruleset_info, :addresses
 
       def initialize(ruleset:)
@@ -88,20 +85,13 @@ module Datadog
       end
 
       def activate_context
-        existing_active_context = Processor.active_context
-        raise AlreadyActiveContextError if existing_active_context
-
         context = new_context
         Processor.send(:active_context=, context)
-        context
-      end
 
-      def deactivate_context
-        context = Processor.active_context
-        raise NoActiveContextError unless context
-
-        Processor.send(:reset_active_context)
+        yield context
+      ensure
         context.finalize
+        Processor.send(:reset_active_context)
       end
 
       def finalize
