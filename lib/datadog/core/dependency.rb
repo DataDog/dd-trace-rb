@@ -73,6 +73,12 @@ module Datadog
 
         attr_writer :configuration
 
+        # TODO: this should not be conditional
+        # TODO: Registry needs to track configuration changes in batch.
+        def configuration
+          @configuration || Datadog.configuration
+        end
+
         # Returns the provided component by name.
         #
         # The component (and its dependencies) are initialized if needed.
@@ -108,7 +114,7 @@ module Datadog
         # Datadog.dependency_registry.resolve_setting('agent.host')
         # Datadog.dependency_registry.resolve_setting('tracing.sampling.rate_limit')
         def resolve_setting(config_path)
-          @configuration.options_hash.dig(*config_path.split('.').map(&:to_sym))
+          configuration.options_hash.dig(*config_path.split('.').map(&:to_sym))
         end
 
         # Eager-loads all registered components.
