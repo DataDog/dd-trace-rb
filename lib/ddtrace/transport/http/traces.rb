@@ -110,7 +110,7 @@ module Datadog
 
             def call(env, &block)
               # Add trace count header
-              env.headers[HEADER_TRACE_COUNT] = env.request.parcel.trace_count.to_s
+              env.headers[HEADER_TRACE_COUNT] = (env.request.parcel.trace_count + 1).to_s
 
               # Encode body & type
               env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
