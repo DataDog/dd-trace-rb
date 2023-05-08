@@ -32,6 +32,7 @@ RSpec.describe 'Rails integration tests' do
   let(:appsec_ip_denylist) { nil }
   let(:appsec_user_id_denylist) { nil }
   let(:appsec_ruleset) { :recommended }
+  let(:nested_app) { false }
 
   let(:crs_942_100) do
     {
@@ -92,7 +93,7 @@ RSpec.describe 'Rails integration tests' do
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
 
-      # TODO: test with c.appsec.instrument :rack
+      c.appsec.instrument :rack if nested_app
     end
   end
 
@@ -458,6 +459,81 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
+          end
+        end
+      end
+
+      describe 'Nested apps' do
+        let(:nested_app) { true }
+        let(:middlewares) do
+          [
+            Datadog::Tracing::Contrib::Rack::TraceMiddleware,
+            Datadog::AppSec::Contrib::Rack::RequestMiddleware
+          ]
+        end
+
+        let(:rack_app) do
+          app_middlewares = middlewares
+
+          Rack::Builder.new do
+            app_middlewares.each { |m| use m }
+            map '/' do
+              run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+            end
+          end.to_app
+        end
+
+        let(:routes) do
+          {
+            [:mount, rack_app] => '/api',
+          }
+        end
+
+        context 'GET request' do
+          subject(:response) { get url, params, env }
+
+          let(:url) { '/api' }
+          let(:params) { {} }
+          let(:headers) { {} }
+          let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
+
+          context 'with a non-event-triggering request' do
+            it { is_expected.to be_ok }
+
+            it_behaves_like 'a GET 200 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace without AppSec events'
+          end
+
+          context 'with an event-triggering request in headers' do
+            let(:headers) { { 'HTTP_USER_AGENT' => 'Nessus SOAP' } }
+
+            it { is_expected.to be_ok }
+            it { expect(triggers).to be_a Array }
+
+            it_behaves_like 'a GET 200 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
+
+          context 'with an event-triggering request in query string' do
+            let(:params) { { q: '1 OR 1;' } }
+
+            it { is_expected.to be_ok }
+
+            it_behaves_like 'a GET 200 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+
+            context 'and a blocking rule' do
+              let(:appsec_ruleset) { crs_942_100 }
+
+              it { is_expected.to be_forbidden }
+
+              it_behaves_like 'a GET 403 span'
+              it_behaves_like 'a trace with AppSec tags'
+              it_behaves_like 'a trace with AppSec events'
+            end
           end
         end
       end
