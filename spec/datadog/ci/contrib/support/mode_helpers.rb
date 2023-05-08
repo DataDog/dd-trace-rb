@@ -11,10 +11,15 @@ RSpec.shared_context 'CI mode activated' do
   let(:components) { Datadog::Core::Configuration::Components.new(settings) }
 
   before do
-    allow(Datadog::Tracing)
-      .to receive(:tracer)
-      .and_return(components.tracer)
+    components
   end
+
+  # dependency(:tracer) { components.tracer }
+  # before do
+  #   allow(Datadog::Tracing)
+  #     .to receive(:tracer)
+  #     .and_return(components.tracer)
+  # end
 
   after { components.shutdown! }
 end
