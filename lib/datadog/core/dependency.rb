@@ -178,7 +178,10 @@ module Datadog
         # Shuts down all components.
         # They will be reinitialized with `#resolve` after this call returns.
         def shutdown
-          all_components.each { |c| shut_down_component(c) }
+          all_components.each do |c|
+            shut_down_component(c)
+            delete_by_name(c)
+          end
           @configuration = nil
           nil
         end
@@ -188,6 +191,10 @@ module Datadog
 
           component = component_by_name(component_name)
           component.shutdown! if component.respond_to?(:shutdown!)
+        end
+
+        def delete_by_name(component_name)
+          remove_instance_variable(:"@#{component_name}") if component_by_name(component_name)
         end
 
         # Applies a batch of configuration changes
