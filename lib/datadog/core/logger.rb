@@ -9,13 +9,16 @@ module Datadog
     # - adds last caller stack-trace info to know where the message comes from
     # @public_api
     class Logger < ::Logger
-      extend Core::Dependency
-
       # TODO: Consider renaming this to 'datadog'
       PREFIX = 'ddtrace'.freeze
 
       def initialize(logdev = $stdout, *args, level: ::Logger::INFO, progname: PREFIX, **kwargs)
         super
+
+        # DEV: Remove `progname=` and `level=` when support for Ruby 2.3 or lower is removed.
+        # DEV: In Ruby 2.3 or newer, `progname` and `level` are keyword arguments for `initialize`.
+        self.progname = PREFIX
+        self.level = ::Logger::INFO
       end
 
       def add(severity, message = nil, progname = nil, &block)

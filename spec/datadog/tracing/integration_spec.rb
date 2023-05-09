@@ -864,7 +864,7 @@ RSpec.describe 'Tracer integration tests' do
 
       # Verify priority sampler is configured and rates are updated
       expect(tracer.sampler).to receive(:update)
-        # .with(kind_of(Hash), decision: '-1')
+        .with(kind_of(Hash), decision: '-1')
         .and_call_original
         .at_least(1).time
     end

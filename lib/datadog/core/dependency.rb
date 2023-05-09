@@ -114,7 +114,19 @@ module Datadog
         # Datadog.dependency_registry.resolve_setting('agent.host')
         # Datadog.dependency_registry.resolve_setting('tracing.sampling.rate_limit')
         def resolve_setting(config_path)
-          configuration.options_hash.dig(*config_path.split('.').map(&:to_sym))
+          # TODO: This is a Hash#dig backport, we should implement a proper configuration access implementation
+          key, *rest = *config_path.split('.').map(&:to_sym)
+          # hash = configuration.options_hash
+          # configuration.options_hash.dig(*config_path.split('.').map(&:to_sym))
+
+          # class Hash
+          #   def dig(key, *rest)
+          hash = configuration.options_hash
+          val = hash[key]
+          return val if rest.empty? || val == nil
+          val.dig(*rest)
+          # end
+          # end
         end
 
         # Eager-loads all registered components.
@@ -282,10 +294,14 @@ module Datadog
           dependencies = @reverse_dependencies.select { |key, _| key.component_class == component_class } # Can be cached in a reverse-lookup hash
           args, kwargs = to_args(component_name, dependencies)
 
-          @component_lookup[component_name].new(
-            *args.map { |_, dependency| resolve(dependency) },
-            **kwargs.map { |name, dependency| [name, resolve(dependency)] }.to_h,
-          )
+          opt = kwargs.map { |name, dependency| [name, resolve(dependency)] }.to_h
+
+          # Because of old Rubies, we have to not pass `**{}` as keyword arguments as that becomes a positional Hash parameter.
+          if opt.empty?
+            @component_lookup[component_name].new(*args.map { |_, dependency| resolve(dependency) })
+          else
+            @component_lookup[component_name].new(*args.map { |_, dependency| resolve(dependency) }, **opt)
+          end
         end
 
         DELEGATION_PARAMETERS = [
@@ -295,15 +311,40 @@ module Datadog
           [:rest, :keyrest, :block],
         ].freeze
 
-        # When classes has modules prepended, they can override initializing methods.
-        # This methods iterates until it finds a non-delegating method argument set.
-        def find_non_delegating_method(method)
-          while method
-            parameters = method.parameters
-            param_types = parameters.map(&:first)
-            return method unless DELEGATION_PARAMETERS.include?(param_types)
 
-            method = method.super_method
+        # Ruby 2.1 does not support UnboundMethod#super_method, which makes finding
+        # the non-delegating method harder.
+        if RUBY_VERSION < '2.2'
+          def find_non_delegating_method(clazz, type, method_name)
+            clazz.ancestors.each do |c|
+              return nil if c == Object # We failed to find a suitable class
+
+              method = (c.send(type, method_name) rescue nil)
+
+              next unless method
+
+              parameters = method.parameters
+              param_types = parameters.map(&:first)
+              return method unless DELEGATION_PARAMETERS.include?(param_types)
+            end
+
+            nil
+          end
+        else
+          # When classes has modules prepended, they can override initializing methods.
+          # This methods iterates until it finds a method with non-delegating arguments.
+          # DEV: This method should receive the argument `method` directly when
+          # DEV: support for Ruby 2.1 is removed.
+          def find_non_delegating_method(clazz, type, method_name)
+            method = clazz.send(type, method_name)
+
+            while method
+              parameters = method.parameters
+              param_types = parameters.map(&:first)
+              return method unless DELEGATION_PARAMETERS.include?(param_types)
+
+              method = method.super_method
+            end
           end
         end
 
@@ -319,33 +360,54 @@ module Datadog
 
           # Does this method override `self.new`?
           # DEV: `Object#public_methods(false)` returns a false positive for :new. A Ruby bug?
-          init_method = if component.methods(false).include?(:new) && !component.public_method(:new).source_location[0].match?(%r{rspec\/mocks\/method_double}) # DEV: rspec-mocks creates a test Class#new method.
-                          find_non_delegating_method(component.public_method(:new))
+          # DEV: replace with `String#match?` as it is much faster, but not available in old rubies.
+          # binding.pry if component.methods(false).include?(:new) && component.public_method(:new).source_location == nil
+          init_method = if component.methods(false).include?(:new) && component.public_method(:new).source_location && !component.public_method(:new).source_location[0].match(%r{rspec\/mocks\/method_double}) # DEV: rspec-mocks creates a test Class#new method.
+                          find_non_delegating_method(component, :public_method, :new)
                         else
-                          find_non_delegating_method(component.instance_method(:initialize))
+                          find_non_delegating_method(component, :instance_method, :initialize)
+                          # find_non_delegating_method(component.instance_method(:initialize)) do
+                          #   component.instance_method(:initialize)
+                          # end
                         end
 
-          init_method.parameters.each do |type, arg_name|
-            _, dependency = dependencies.find do |key, _|
-              key.init_parameter == arg_name
+          if RUBY_VERSION < '2.2' && init_method.nil?
+            # We can't reliable find method parameters in Ruby 2.1 when prepend is used
+            # to wrap a component's class.
+            # We have to resort to trusting our argument declaration, despite that being not as trustworthy.
+            #
+            # Because we don't know if the arguments are positional or keyword, we have pick one option.
+            # For the current implementation, we assume that all arguments declared for this component are keyword.
+            #
+            # DEV: This is unsafe, but Ruby 2.1 does not provide enough reflection information to
+            # DEV: make the checks reliable.
+            dependencies.each do |key, dependency|
+              kwargs << [key.init_parameter, dependency]
             end
-
-            unless dependency
-              if type == :opt || type == :key || # Optional parameters
-                type == :rest || type == :keyrest #|| # Wildcard parameters
-                type == :block # Block can be omitted
-
-                next # It's safe to skip and let the parameter defaults be used.
+          else
+            # Match declared parameters with actual Ruby method signatures.
+            init_method.parameters.each do |type, arg_name|
+              _, dependency = dependencies.find do |key, _|
+                key.init_parameter == arg_name
               end
 
-              raise "No container registered for #{component_name} `#{component.name}#initialize` argument `#{arg_name}`"
-            end
+              unless dependency
+                if type == :opt || type == :key || # Optional parameters
+                  type == :rest || type == :keyrest #|| # Wildcard parameters
+                  type == :block # Block can be omitted
 
-            case type
-            when :req, :opt
-              args << [arg_name, dependency]
-            when :keyreq, :key
-              kwargs << [arg_name, dependency]
+                  next # It's safe to skip and let the parameter defaults be used.
+                end
+
+                raise "No container registered for #{component_name} `#{component.name}#initialize` argument `#{arg_name}`"
+              end
+
+              case type
+              when :req, :opt
+                args << [arg_name, dependency]
+              when :keyreq, :key
+                kwargs << [arg_name, dependency]
+              end
             end
           end
 
