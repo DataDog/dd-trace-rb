@@ -30,7 +30,7 @@ module Datadog
 
       # Builds a new Transport::HTTP::Client
       def new(&block)
-        Builder.new(&block).to_transport
+        Datadog::Transport::HTTP::Builder.new(&block).to_transport
       end
 
       # Builds a new Transport::HTTP::Client with default settings
