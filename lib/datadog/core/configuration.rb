@@ -226,6 +226,7 @@ module Datadog
 
           write_components.call(nil)
           configuration.reset!
+          Datadog::AppSec.settings.send(:reset!)
 
           Datadog::Core.dependency_registry.shutdown
         end
