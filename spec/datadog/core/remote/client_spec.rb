@@ -226,7 +226,9 @@ RSpec.describe Datadog::Core::Remote::Client do
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
   let(:capabilities) do
-    capabilities = Datadog::Core::Remote::Client::Capabilities.new(Datadog::Core::Configuration::Settings.new)
+    settings = instance_double(Datadog::Core::Configuration::Settings, appsec: instance_double(Datadog::AppSec::Extensions::AppSecAdapter, enabled: false))
+
+    capabilities = Datadog::Core::Remote::Client::Capabilities.new(settings)
     capabilities.send(:register_products, ['ASM_DATA', 'ASM_DD', 'ASM'])
 
     capabilities
