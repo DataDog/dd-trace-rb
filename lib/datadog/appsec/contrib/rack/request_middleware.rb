@@ -23,7 +23,7 @@ module Datadog
             @oneshot_tags_sent = false
           end
 
-          # rubocop:disable Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
+          # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
@@ -32,6 +32,21 @@ module Datadog
             processor = nil
             ready = false
             context = nil
+
+            # If a customer has mounted a nested Rack app within their main app
+            # and instrumented boths apps:
+            #
+            # Datadog.configure do |c|
+            #   c.appsec.enabled = true
+            #   c.appsec.instrument :rails
+            #   c.appsec.instrument :sinatra
+            # end
+            #
+            # We have to avoid calling processor.activate_context twice.
+            # To achive that we check the value of env['datadog.waf.context']
+            # If the waf context is part of the env, it means that we are on the nested app
+            # context. In that case we need process the request without any new appsec related code.
+            return @app.call(env) if env['datadog.waf.context']
 
             Datadog::AppSec.reconfigure_lock do
               processor = Datadog::AppSec.processor
@@ -88,7 +103,7 @@ module Datadog
               processor.deactivate_context
             end
           end
-          # rubocop:enable Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
+          # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
 
           private
 
