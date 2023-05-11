@@ -95,9 +95,6 @@ module Datadog
           :appsec
 
         def initialize(settings)
-          # Only needed when `settings` is modified by `Datadog::CI::Configuration::Components#initialize`
-          Datadog::Core.dependency_registry.configuration = settings
-
           @logger = self.class.build_logger(settings)
 
           # TODO: REMOVE ME

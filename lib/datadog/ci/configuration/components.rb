@@ -25,6 +25,8 @@ module Datadog
 
           # Pass through any other options
           settings.tracing.test_mode.writer_options = settings.ci.writer_options
+
+          Datadog::Core.dependency_registry.configuration = settings
         end
       end
     end
