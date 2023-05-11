@@ -539,8 +539,6 @@ RSpec.describe 'Tracer integration tests' do
         # Fork the process
         fork_id = fork do
           allow(tracer).to receive(:shutdown!).and_wrap_original do |m, *args|
-            puts "NOW"
-            puts caller
             m.call(*args).tap { write.write(graceful_signal) }
           end
 
@@ -696,7 +694,7 @@ RSpec.describe 'Tracer integration tests' do
             try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
           end
 
-          # it_behaves_like 'priority sampled', 1.0
+          it_behaves_like 'priority sampled', 1.0
           it_behaves_like 'sampling decision', '-1'
         end
 
