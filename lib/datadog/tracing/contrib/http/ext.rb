@@ -11,8 +11,10 @@ module Datadog
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE'.freeze
           ENV_ERROR_STATUS_CODES = 'DD_TRACE_HTTP_ERROR_STATUS_CODES'.freeze
           DEFAULT_PEER_SERVICE_NAME = 'net/http'.freeze
+          SPAN_CONNECT = 'http.connect'.freeze
           SPAN_REQUEST = 'http.request'.freeze
           TAG_COMPONENT = 'net/http'.freeze
+          TAG_OPERATION_CONNECT = 'connect'.freeze
           TAG_OPERATION_REQUEST = 'request'.freeze
         end
       end
