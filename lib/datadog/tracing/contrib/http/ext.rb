@@ -16,8 +16,10 @@ module Datadog
           ENV_ANALYTICS_SAMPLE_RATE = "DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE"
           ENV_ERROR_STATUS_CODES = "DD_TRACE_HTTP_ERROR_STATUS_CODES"
           DEFAULT_PEER_SERVICE_NAME = "net/http"
+          SPAN_CONNECT = "http.connect"
           SPAN_REQUEST = "http.request"
           TAG_COMPONENT = "net/http"
+          TAG_OPERATION_CONNECT = "connect"
           TAG_OPERATION_REQUEST = "request"
           PEER_SERVICE_SOURCES = [
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
