@@ -319,9 +319,11 @@ module Datadog
         ].freeze
 
 
-        # Ruby 2.1 does not support UnboundMethod#super_method, which makes finding
+        # Ruby 2.1 does not support `UnboundMethod#super_method`, which makes finding
         # the non-delegating method harder.
-        if RUBY_VERSION < '2.2'
+        # Ruby 2.3 `UnboundMethod#super_method` does not work as expected, returning
+        # `nil` when there is a super method present.
+        if RUBY_VERSION < '2.2' || (RUBY_VERSION >= '2.3' && RUBY_VERSION < '2.4')
           def find_non_delegating_method(clazz, type, method_name)
             clazz.ancestors.each do |c|
               return nil if c == Object # We failed to find a suitable class
@@ -378,15 +380,15 @@ module Datadog
                           # end
                         end
 
-          if RUBY_VERSION < '2.2' && init_method.nil?
-            # We can't reliable find method parameters in Ruby 2.1 when prepend is used
+          if (RUBY_VERSION < '2.2'  || (RUBY_VERSION >= '2.3' && RUBY_VERSION < '2.4')) && init_method.nil?
+            # We can't reliable find method parameters in Ruby 2.1 or Ruby 2.3 when prepend is used
             # to wrap a component's class.
             # We have to resort to trusting our argument declaration, despite that being not as trustworthy.
             #
             # Because we don't know if the arguments are positional or keyword, we have pick one option.
             # For the current implementation, we assume that all arguments declared for this component are keyword.
             #
-            # DEV: This is unsafe, but Ruby 2.1 does not provide enough reflection information to
+            # DEV: This is unsafe, but Ruby 2.1 & Ruby 2.3 do not provide enough reflection information to
             # DEV: make the checks reliable.
             dependencies.each do |key, dependency|
               kwargs << [key.init_parameter, dependency]
