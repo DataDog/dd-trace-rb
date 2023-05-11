@@ -19,7 +19,7 @@ module Datadog
         class << self
           include Datadog::Tracing::Component
 
-          def build_health_metrics(settings)
+          def build_health_metrics
             # settings = settings.diagnostics.health_metrics
             # options = { enabled: settings.enabled }
             # options[:statsd] = settings.statsd unless settings.statsd.nil?
@@ -60,7 +60,7 @@ module Datadog
           #   Core::Runtime::Metrics.new(**options)
           # end
 
-          def build_runtime_metrics_worker(settings)
+          def build_runtime_metrics_worker
             # NOTE: Should we just ignore building the worker if its not enabled?
             # options = settings.runtime_metrics.opts.merge(
             #   enabled: settings.runtime_metrics.enabled,
@@ -72,7 +72,7 @@ module Datadog
             Datadog::Core.dependency_registry.resolve_component(:runtime_metrics)
           end
 
-          def build_telemetry(settings, agent_settings, logger)
+          def build_telemetry
             # enabled = settings.telemetry.enabled
             # if agent_settings.adapter != Datadog::Transport::Ext::HTTP::ADAPTER
             #   enabled = false
@@ -100,22 +100,12 @@ module Datadog
           # TODO: REMOVE ME
           agent_settings = Datadog::Core.dependency_registry.resolve_component(:agent_settings)
 
-
-
-          # agent_settings = AgentSettingsResolver.new(settings.agent.host,
-          # settings.agent.port,
-          # settings.tracing.transport_options, logger: @logger)
-
           @remote = Remote::Component.build(settings, agent_settings)
-          @tracer = self.class.build_tracer(settings, agent_settings)
-          @profiler = Datadog::Profiling::Component.build_profiler_component(
-            settings: settings,
-            agent_settings: agent_settings,
-            optional_tracer: @tracer,
-          )
-          @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
-          @health_metrics = self.class.build_health_metrics(settings)
-          @telemetry = self.class.build_telemetry(settings, agent_settings, logger)
+          @tracer = self.class.build_tracer
+          @profiler = Datadog::Core.dependency_registry.resolve_component(:profiler)
+          @runtime_metrics = self.class.build_runtime_metrics_worker
+          @health_metrics = self.class.build_health_metrics
+          @telemetry = self.class.build_telemetry
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
         end
 

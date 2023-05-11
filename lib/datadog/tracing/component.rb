@@ -10,7 +10,7 @@ module Datadog
   module Tracing
     # Tracing component
     module Component
-      def build_tracer(settings, agent_settings)
+      def build_tracer
         # If a custom tracer has been provided, use it instead.
         # Ignore all other options (they should already be configured.)
         # tracer = settings.tracing.instance
