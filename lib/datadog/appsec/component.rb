@@ -19,10 +19,8 @@ module Datadog
           return unless enabled
 
           processor = create_processor(ruleset, ip_denylist, user_id_denylist)
-          new(processor: processor)
+          Datadog::AppSec::Component.new(processor: processor)
         end
-      end
-      class << self
         # def build_appsec_component(settings)
         #   return unless settings.respond_to?(:appsec) && settings.appsec.enabled
         #
@@ -32,18 +30,18 @@ module Datadog
 
         private
 
-        def create_processor(ruleset, ip_denylist, user_id_denylist)
-          rules = AppSec::Processor::RuleLoader.load_rules(ruleset: ruleset)
+        def self.create_processor(ruleset, ip_denylist, user_id_denylist)
+          rules = Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: ruleset)
           return nil unless rules
 
-          data = AppSec::Processor::RuleLoader.load_data(ip_denylist: ip_denylist, user_id_denylist: user_id_denylist)
+          data = Datadog::AppSec::Processor::RuleLoader.load_data(ip_denylist: ip_denylist, user_id_denylist: user_id_denylist)
 
-          ruleset = AppSec::Processor::RuleMerger.merge(
+          ruleset = Datadog::AppSec::Processor::RuleMerger.merge(
             rules: [rules],
             data: data,
           )
 
-          processor = Processor.new(ruleset: ruleset)
+          processor = Datadog::AppSec::Processor.new(ruleset: ruleset)
           return nil unless processor.ready?
 
           processor

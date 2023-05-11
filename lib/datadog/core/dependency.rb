@@ -111,16 +111,18 @@ module Datadog
         # Datadog.dependency_registry.resolve_setting('tracing.sampling.rate_limit')
         def resolve_setting(config_path)
           # TODO: This is a Hash#dig backport, we should implement a proper configuration access implementation
-          key, *rest = *config_path.split('.').map(&:to_sym)
+          config_path.split('.').reduce(configuration) do |value, key|
+            value.public_send(key)
+          end
           # hash = configuration.options_hash
           # configuration.options_hash.dig(*config_path.split('.').map(&:to_sym))
 
           # class Hash
           #   def dig(key, *rest)
-          hash = configuration.options_hash
-          val = hash[key]
-          return val if rest.empty? || val == nil
-          val.dig(*rest)
+          # hash = configuration.options_hash
+          # val = hash[key]
+          # return val if rest.empty? || val == nil
+          # val.dig(*rest)
           # end
           # end
         end
@@ -300,7 +302,7 @@ module Datadog
 
           opt = kwargs.map { |name, dependency| [name, resolve(dependency)] }.to_h
 
-          # Because of old Rubies, we have to not pass `**{}` as keyword arguments as that becomes a positional Hash parameter.
+          # Because of old Rubies, we have to omit `**{}` as keyword arguments as that becomes a positional Hash parameter.
           if opt.empty?
             @component_lookup[component_name].new(*args.map { |_, dependency| resolve(dependency) })
           else
