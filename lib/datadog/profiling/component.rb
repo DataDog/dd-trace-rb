@@ -100,7 +100,7 @@ module Datadog
 
           # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
-          if enable_new_profiler?(force_enable_legacy_profiler, force_enable_new_profiler)
+          if enable_new_profiler?(force_enable_legacy_profiler, force_enable_new_profiler, skip_mysql2_check)
             print_new_profiler_warnings
 
             recorder = Datadog::Profiling::StackRecorder.new(
@@ -190,7 +190,7 @@ module Datadog
           )
         end
 
-        private_class_method def self.enable_new_profiler?(force_enable_legacy_profiler, force_enable_new_profiler)
+        private_class_method def self.enable_new_profiler?(force_enable_legacy_profiler, force_enable_new_profiler, skip_mysql2_check)
           if force_enable_legacy_profiler
             Datadog.logger.warn(
               'Legacy profiler has been force-enabled via configuration. Do not use unless instructed to by support.'
