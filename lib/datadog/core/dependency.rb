@@ -24,16 +24,12 @@ module Datadog
         def component_name(self_component_name = Util.to_base_name(self), global_registry: Datadog::Core.dependency_registry)
           self_component_name = self_component_name.to_s
           LOGGER.puts "Declaration at #{caller[0].sub(/:in.*/, '')}: no-arg component #{self_component_name}(#{self})"
-          self.instance_variable_set(:@dependency_component_name, self_component_name)
           global_registry.register_component(self, self_component_name)
         end
       end
 
       module Util
         def self.to_base_name(clazz)
-          existing_name = clazz.instance_variable_get(:@dependency_component_name)
-          return existing_name if existing_name
-
           # TODO: review this string manipulation logic. It was mishmashed from different algorithms.
           clazz.name.split('::').last.
             gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').
