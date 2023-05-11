@@ -126,6 +126,7 @@ module Datadog
         end
 
         # Eager-loads all registered components.
+        # TODO: Not used.
         def resolve_all
           # Find all components and resolve them
           # Skip already resolved ones (which will happen automatically because of how resolve_component is implemented)
