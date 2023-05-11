@@ -106,7 +106,7 @@ module Datadog
           @runtime_metrics = self.class.build_runtime_metrics_worker
           @health_metrics = self.class.build_health_metrics
           @telemetry = self.class.build_telemetry
-          @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
+          @appsec = Datadog::Core.dependency_registry.resolve_component(:app_sec)
         end
 
         # Starts up components

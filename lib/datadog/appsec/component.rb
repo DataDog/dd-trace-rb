@@ -8,24 +8,35 @@ module Datadog
   module AppSec
     # Core-pluggable component for AppSec
     class Component
-      class << self
-        def build_appsec_component(settings)
-          return unless settings.respond_to?(:appsec) && settings.appsec.enabled
+      class AppSec
+        extend Core::Dependency
 
-          processor = create_processor(settings)
+        setting(:enabled, 'appsec.enabled')
+        setting(:ruleset, 'appsec.ruleset')
+        setting(:ip_denylist, 'appsec.ip_denylist')
+        setting(:user_id_denylist, 'appsec.user_id_denylist')
+        def self.new(enabled, ruleset, ip_denylist, user_id_denylist)
+          return unless enabled
+
+          processor = create_processor(ruleset, ip_denylist, user_id_denylist)
           new(processor: processor)
         end
+      end
+      class << self
+        # def build_appsec_component(settings)
+        #   return unless settings.respond_to?(:appsec) && settings.appsec.enabled
+        #
+        #   processor = create_processor(settings)
+        #   new(processor: processor)
+        # end
 
         private
 
-        def create_processor(settings)
-          rules = AppSec::Processor::RuleLoader.load_rules(ruleset: settings.appsec.ruleset)
+        def create_processor(ruleset, ip_denylist, user_id_denylist)
+          rules = AppSec::Processor::RuleLoader.load_rules(ruleset: ruleset)
           return nil unless rules
 
-          data = AppSec::Processor::RuleLoader.load_data(
-            ip_denylist: settings.appsec.ip_denylist,
-            user_id_denylist: settings.appsec.user_id_denylist
-          )
+          data = AppSec::Processor::RuleLoader.load_data(ip_denylist: ip_denylist, user_id_denylist: user_id_denylist)
 
           ruleset = AppSec::Processor::RuleMerger.merge(
             rules: [rules],
