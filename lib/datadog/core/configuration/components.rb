@@ -95,17 +95,14 @@ module Datadog
           :appsec
 
         def initialize(settings)
-          @logger = self.class.build_logger(settings)
+          @logger = Datadog::Core.dependency_registry.resolve_component(:logger)
 
-          # TODO: REMOVE ME
-          agent_settings = Datadog::Core.dependency_registry.resolve_component(:agent_settings)
-
-          @remote = Remote::Component.build(settings, agent_settings)
-          @tracer = self.class.build_tracer
+          @remote = Datadog::Core.dependency_registry.resolve_component(:remote)
+          @tracer = Datadog::Core.dependency_registry.resolve_component(:tracer)
           @profiler = Datadog::Core.dependency_registry.resolve_component(:profiler)
-          @runtime_metrics = self.class.build_runtime_metrics_worker
-          @health_metrics = self.class.build_health_metrics
-          @telemetry = self.class.build_telemetry
+          @runtime_metrics = Datadog::Core.dependency_registry.resolve_component(:runtime_metrics)
+          @health_metrics = Datadog::Core.dependency_registry.resolve_component(:health_metrics)
+          @telemetry = Datadog::Core.dependency_registry.resolve_component(:telemetry)
           @appsec = Datadog::Core.dependency_registry.resolve_component(:app_sec)
         end
 

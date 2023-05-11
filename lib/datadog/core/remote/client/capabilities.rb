@@ -10,20 +10,20 @@ module Datadog
         class Capabilities
           attr_reader :products, :capabilities, :receivers, :base64_capabilities
 
-          def initialize(settings)
+          def initialize(appsec_enabled)
             @capabilities = []
             @products = []
             @receivers = []
 
-            register(settings)
+            register(appsec_enabled)
 
             @base64_capabilities = capabilities_to_base64
           end
 
           private
 
-          def register(settings)
-            if settings.appsec.enabled
+          def register(appsec_enabled)
+            if appsec_enabled
               register_capabilities(Datadog::AppSec::Remote.capabilities)
               register_products(Datadog::AppSec::Remote.products)
               register_receivers(Datadog::AppSec::Remote.receivers)

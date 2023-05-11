@@ -5,24 +5,14 @@ require 'datadog/core/remote/client/capabilities'
 require 'datadog/appsec/configuration'
 
 RSpec.describe Datadog::Core::Remote::Client::Capabilities do
-  subject(:capabilities) { described_class.new(settings) }
+  subject(:capabilities) { described_class.new(appsec_enabled) }
 
   before do
     capabilities
   end
 
   context 'when no component enabled' do
-    let(:settings) do
-      appsec_settings = Datadog::AppSec::Configuration::Settings.new
-      dsl = Datadog::AppSec::Configuration::DSL.new
-      dsl.enabled = false
-      appsec_settings.merge(dsl)
-
-      settings = Datadog::Core::Configuration::Settings.new
-      expect(settings).to receive(:appsec).at_least(:once).and_return(appsec_settings)
-
-      settings
-    end
+    let(:appsec_enabled) { false }
 
     it 'does not register any capabilities, products, and receivers' do
       expect(capabilities.capabilities).to be_empty
@@ -38,17 +28,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
 
   context 'when a component enabled' do
-    let(:settings) do
-      appsec_settings = Datadog::AppSec::Configuration::Settings.new
-      dsl = Datadog::AppSec::Configuration::DSL.new
-      dsl.enabled = true
-      appsec_settings.merge(dsl)
-
-      settings = Datadog::Core::Configuration::Settings.new
-      expect(settings).to receive(:appsec).and_return(appsec_settings)
-
-      settings
-    end
+    let(:appsec_enabled) { true }
 
     it 'register capabilities, products, and receivers' do
       expect(capabilities.capabilities).to_not be_empty

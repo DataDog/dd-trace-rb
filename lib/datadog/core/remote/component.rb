@@ -17,11 +17,11 @@ module Datadog
 
         attr_reader :client
 
-        def initialize(settings, capabilities, agent_settings)
+        def initialize( capabilities, agent_settings, remote_poll_interval_seconds)
           transport_options = {}
           transport_options[:agent_settings] = agent_settings if agent_settings
 
-          negotiation = Negotiation.new(settings, agent_settings)
+          negotiation = Negotiation.new(nil, agent_settings)
           transport_v7 = Datadog::Core::Transport::HTTP.v7(**transport_options.dup)
 
           @barrier = Barrier.new(BARRIER_TIMEOUT)
@@ -30,7 +30,7 @@ module Datadog
           healthy = false
           Datadog.logger.debug { "new remote configuration client: #{@client.id}" }
 
-          @worker = Worker.new(interval: settings.remote.poll_interval_seconds) do
+          @worker = Worker.new(interval: remote_poll_interval_seconds) do
             unless healthy || negotiation.endpoint?('/v0.7/config')
               @barrier.lift
 
@@ -129,15 +129,21 @@ module Datadog
           end
         end
 
-        class << self
-          def build(settings, agent_settings)
-            return unless settings.remote.enabled
+        class Remote
+          extend Core::Dependency
 
-            capabilities = Client::Capabilities.new(settings)
+          setting(:enabled, 'remote.enabled')
+          setting(:remote_poll_interval_seconds, 'remote.poll_interval_seconds')
+          setting(:appsec_enabled, 'appsec.enabled')
+          component(:agent_settings)
+          def self.new(enabled, remote_poll_interval_seconds, appsec_enabled, agent_settings)
+            return unless enabled
+
+            capabilities = Client::Capabilities.new(appsec_enabled)
 
             return if capabilities.products.empty?
 
-            negotiation = Negotiation.new(settings, agent_settings)
+            negotiation = Negotiation.new(nil, agent_settings)
 
             unless negotiation.endpoint?('/v0.7/config')
               Datadog.logger.error do
@@ -149,7 +155,7 @@ module Datadog
 
             Datadog.logger.debug { 'agent reachable and reports remote configuration endpoint' }
 
-            new(settings, capabilities, agent_settings)
+            Remote::Component.new(capabilities, agent_settings, remote_poll_interval_seconds)
           end
         end
       end
