@@ -33,19 +33,9 @@ module Datadog
             ready = false
             context = nil
 
-            # If a customer has mounted a nested Rack app within their main app
-            # and instrumented boths apps:
-            #
-            # Datadog.configure do |c|
-            #   c.appsec.enabled = true
-            #   c.appsec.instrument :rails
-            #   c.appsec.instrument :sinatra
-            # end
-            #
-            # We have to avoid calling processor.activate_context twice.
-            # To achive that we check the value of env['datadog.waf.context']
-            # If the waf context is part of the env, it means that we are on the nested app
-            # context. In that case we need process the request without any new appsec related code.
+            # For a given request, keep using the first Rack stack context for
+            # nested apps. Don't set `context` local variable so that on popping
+            # out of this nested stack we don't finalize the parent's context
             return @app.call(env) if env['datadog.waf.context']
 
             Datadog::AppSec.reconfigure_lock do
