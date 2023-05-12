@@ -1,5 +1,3 @@
-require_relative '../core'
-
 module Datadog
   module Tracing
     # Event behavior and DSL

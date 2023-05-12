@@ -1,4 +1,3 @@
-require_relative '../core'
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
 

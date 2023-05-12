@@ -1,4 +1,3 @@
-require_relative '../core'
 require_relative '../core/environment/ext'
 require_relative '../core/buffer/thread_safe'
 require_relative '../core/buffer/cruby'
