@@ -34,6 +34,8 @@ module Datadog
               request_options = datadog_configuration(host)
               client_config = Datadog.configuration_for(self)
 
+              return super if host == Datadog::Transport::HTTP.default_hostname
+
               Tracing.trace(Ext::SPAN_CONNECT, on_error: method(:annotate_span_with_error!)) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
