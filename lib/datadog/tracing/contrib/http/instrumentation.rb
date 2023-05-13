@@ -30,16 +30,19 @@ module Datadog
             include Contrib::HttpAnnotationHelper
 
             def connect
-              host, port = @address, @port
+              host = @address.split('/')[0] # trim path
+              port = @port
               request_options = datadog_configuration(host)
               client_config = Datadog.configuration_for(self)
 
+              # TODO: use actual ddog host
               return super if host == Datadog::Transport::HTTP.default_hostname
 
               Tracing.trace(Ext::SPAN_CONNECT, on_error: method(:annotate_span_with_error!)) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
                   span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+                  span.resource = host
 
                   if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config)
                     Tracing::Propagation::HTTP.inject!(trace, req)
