@@ -1,5 +1,7 @@
 require 'set'
 
+require_relative '../dependency_registry'
+
 module Datadog
   module Core
     module Dependency
@@ -9,6 +11,7 @@ module Datadog
         end
       end
 
+      # TODO: Move me
       module ComponentMixin
         def setting(init_parameter, config_path, global_registry: Datadog::Core.dependency_registry)
           LOGGER.puts "Declaration at #{caller[0].sub(/:in.*/, '')}: (#{self}), setting(#{config_path}), param:#{init_parameter}, "
