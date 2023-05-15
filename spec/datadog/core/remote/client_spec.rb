@@ -25,6 +25,18 @@ RSpec.describe Datadog::Core::Remote::Client do
     end
   end
 
+  shared_context 'Client dispatches changes' do
+    # This expectation helps us ensure the client wors as expected
+    # and avoid propagated changes via the dispacther that usally
+    # lead to components reconfiguration. Causing flaky tests.
+    before do
+      expect(client.dispatcher).to receive(:dispatch).with(
+        instance_of(Datadog::Core::Remote::Configuration::Repository::ChangeSet),
+        client.repository
+      ).at_least(:once)
+    end
+  end
+
   let(:transport) { Datadog::Core::Transport::HTTP.v7(&proc { |_client| }) }
   let(:roots) do
     [
@@ -236,6 +248,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
   describe '#sync' do
     include_context 'HTTP connection stub'
+
     let(:response_code) { 200 }
 
     let(:client_configs) do
@@ -255,6 +268,8 @@ RSpec.describe Datadog::Core::Remote::Client do
     end
 
     context 'valid response' do
+      include_context 'Client dispatches changes'
+
       it 'store all changes into the repository' do
         expect(repository.opaque_backend_state).to be_nil
         expect(repository.targets_version).to eq(0)
@@ -448,6 +463,7 @@ RSpec.describe Datadog::Core::Remote::Client do
     describe '#payload' do
       context 'no sync errors' do
         let(:response_code) { 200 }
+        include_context 'Client dispatches changes'
 
         before { client.sync }
 
