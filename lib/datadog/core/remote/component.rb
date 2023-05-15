@@ -155,7 +155,7 @@ module Datadog
 
             Datadog.logger.debug { 'agent reachable and reports remote configuration endpoint' }
 
-            Remote::Component.new(capabilities, agent_settings, remote_poll_interval_seconds)
+            Datadog::Core::Remote::Component.new(capabilities, agent_settings, remote_poll_interval_seconds)
           end
         end
       end
