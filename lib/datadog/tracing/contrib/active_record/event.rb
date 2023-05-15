@@ -22,6 +22,13 @@ module Datadog
             def configuration
               Datadog.configuration.tracing[:active_record]
             end
+
+            def subscription(*args)
+              super.tap do |subscription|
+                subscription.before_trace do |_, _, span, event, _id, payload|
+                end
+              end
+            end
           end
         end
       end

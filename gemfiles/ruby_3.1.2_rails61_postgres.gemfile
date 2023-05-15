@@ -47,7 +47,7 @@ gem "lograge", "~> 0.11"
 gem "net-smtp"
 
 group :check do
-
+  gem "parallel", "< 1.23"
 end
 
 gemspec path: "../"

@@ -113,6 +113,7 @@ GEM
     globalid (1.1.0)
       activesupport (>= 5.0)
     google-protobuf (3.22.0)
+    google-protobuf (3.22.0-x86_64-darwin)
     google-protobuf (3.22.0-x86_64-linux)
     hashdiff (1.0.1)
     i18n (1.12.0)
@@ -120,9 +121,12 @@ GEM
     json (2.6.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (2.0.0.1.0)
     libdatadog (2.0.0.1.0-aarch64-linux)
     libdatadog (2.0.0.1.0-x86_64-linux)
     libddwaf (1.8.2.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.8.2.0.0-x86_64-darwin)
       ffi (~> 1.0)
     libddwaf (1.8.2.0.0-x86_64-linux)
       ffi (~> 1.0)
@@ -156,6 +160,8 @@ GEM
       net-protocol
     nio4r (2.5.8)
     nokogiri (1.14.2-aarch64-linux)
+      racc (~> 1.4)
+    nokogiri (1.14.2-x86_64-darwin)
       racc (~> 1.4)
     nokogiri (1.14.2-x86_64-linux)
       racc (~> 1.4)
@@ -302,6 +308,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-darwin-21
   x86_64-linux
 
 DEPENDENCIES
@@ -323,6 +330,7 @@ DEPENDENCIES
   net-smtp
   opentracing (>= 0.4.1)
   os (~> 1.1)
+  parallel (< 1.23)
   pg (>= 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
@@ -353,4 +361,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.26
+   2.4.6

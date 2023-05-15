@@ -47,7 +47,7 @@ gem "rails_semantic_logger", "~> 4.0"
 gem "net-smtp"
 
 group :check do
-
+  gem "parallel", "< 1.23"
 end
 
 gemspec path: "../"

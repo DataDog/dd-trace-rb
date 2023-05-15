@@ -43,7 +43,7 @@ gem "cucumber", "~>5"
 gem "protobuf-cucumber", "3.10.8"
 
 group :check do
-
+  gem "parallel", "< 1.23"
 end
 
 gemspec path: "../"

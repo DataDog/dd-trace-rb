@@ -79,6 +79,9 @@ module Datadog
                 # Start span if time is provided
                 span.start(start) unless start.nil?
                 payload[:datadog_span] = span
+
+                # Run callbacks
+                callbacks.run(name, :start_span, span, id, payload, start)
               end
             end
 
