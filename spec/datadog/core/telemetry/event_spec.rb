@@ -49,6 +49,12 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppEvent) }
       end
 
+      context 'is app-client-configuration-change' do
+        let(:request_type) { 'app-client-configuration-change' }
+
+        it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V2::AppClientConfigurationChange) }
+      end
+
       context 'is nil' do
         let(:request_type) { nil }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }

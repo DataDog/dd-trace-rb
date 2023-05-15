@@ -17,6 +17,14 @@ RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
         is_expected.to contain_exactly(["http.#{direction}.headers.my-header", 'MY-VALUE'])
       end
 
+      context "with a trailing ':'" do
+        let(:header_tag) { 'my-header:' }
+
+        it 'uses the internal pattern for request/response tag name' do
+          is_expected.to contain_exactly(["http.#{direction}.headers.my-header", 'MY-VALUE'])
+        end
+      end
+
       context 'with multiple tags' do
         let(:header_tags) { ['my-header', 'another-header'] }
 

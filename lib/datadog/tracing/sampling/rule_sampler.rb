@@ -48,6 +48,33 @@ module Datadog
                              end
         end
 
+        def self.parse(rules)
+          rules = JSON.parse(rules).map do |rule|
+            sample_rate = rule['sample_rate']
+
+            begin
+              sample_rate = Float(sample_rate)
+            rescue
+              raise "Rule '#{rule.inspect}' does not contain a float `sample_rate`"
+            end
+
+            kwargs = {
+              name: rule['name'],
+              service: rule['service'],
+              sample_rate: sample_rate,
+            }.compact
+
+            SimpleRule.new(**kwargs)
+          end
+
+          new(rules)
+        rescue => e
+          Datadog.logger.error do
+            "Could not parse trace sampling rules '#{rules}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+          end
+          nil
+        end
+
         # /RuleSampler's components (it's rate limiter, for example) are
         # not be guaranteed to be size-effect free.
         # It is not possible to guarantee that a call to {#sample?} will

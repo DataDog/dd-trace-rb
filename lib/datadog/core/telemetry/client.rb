@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'emitter'
 require_relative 'heartbeat'
 require_relative '../utils/forking'
@@ -63,6 +65,12 @@ module Datadog
           return if !@enabled || forked?
 
           @emitter.request(:'app-integrations-change')
+        end
+
+        def dynamic_configuration_change!(changes)
+          return if !@enabled || forked?
+
+          @emitter.request('app-client-configuration-change', data: changes)
         end
 
         private

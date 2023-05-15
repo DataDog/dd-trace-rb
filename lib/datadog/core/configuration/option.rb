@@ -10,15 +10,28 @@ module Datadog
 
         # Option setting precedence. Higher number means higher precedence.
         module Precedence
+          Value = Struct.new(:numeric, :name) do
+            include Comparable
+
+            def <=>(other)
+              return nil unless other.is_a?(Value)
+
+              numeric <=> other.numeric
+            end
+          end
+
           # Remote configuration provided through the Datadog app.
-          REMOTE_CONFIGURATION = [2, :remote_configuration].freeze
+          REMOTE_CONFIGURATION = Value.new(2, :remote_configuration).freeze
 
           # Configuration provided in Ruby code, in this same process.
-          PROGRAMMATIC = [1, :programmatic].freeze
+          PROGRAMMATIC = Value.new(1, :programmatic).freeze
 
           # Configuration that comes either from environment variables,
           # or fallback values.
-          DEFAULT = [0, :default].freeze
+          DEFAULT = Value.new(0, :default).freeze
+
+          # All precedences, sorted from highest to lowest
+          LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, DEFAULT].freeze
         end
 
         def initialize(definition, context)
@@ -26,6 +39,10 @@ module Datadog
           @context = context
           @value = nil
           @is_set = false
+
+          # One value is stored per precedence, to allow unsetting a higher
+          # precedence value and falling back to a lower precedence one.
+          @value_per_precedence = Hash.new(UNSET)
 
           # Lowest precedence, to allow for `#set` to always succeed for a brand new `Option` instance.
           @precedence_set = Precedence::DEFAULT
@@ -39,20 +56,42 @@ module Datadog
         # @param precedence [Precedence] from what precedence order this new value comes from
         def set(value, precedence: Precedence::PROGRAMMATIC)
           # Cannot override higher precedence value
-          if precedence[0] < @precedence_set[0]
+          if precedence < @precedence_set
             Datadog.logger.info do
-              "Option '#{definition.name}' not changed to '#{value}' (precedence: #{precedence[1]}) because the higher " \
-                "precedence value '#{@value}' (precedence: #{@precedence_set[1]}) was already set."
+              "Option '#{definition.name}' not changed to '#{value}' (precedence: #{precedence.name}) because the higher " \
+                "precedence value '#{@value}' (precedence: #{@precedence_set.name}) was already set."
             end
+
+            old_value = @value_per_precedence[precedence]
+            @value_per_precedence[precedence] = context_exec(value, old_value, &definition.setter)
 
             return @value
           end
 
-          old_value = @value
-          (@value = context_exec(value, old_value, &definition.setter)).tap do |v|
-            @is_set = true
-            @precedence_set = precedence
-            context_exec(v, old_value, &definition.on_set) if definition.on_set
+          internal_set(value, precedence)
+        end
+
+        def unset(precedence)
+          @value_per_precedence[precedence] = UNSET
+
+          # If we are unsetting the currently active value, we have to restore
+          # a lower precedence one.
+          #
+          # Otherwise, we are either unsetting a higher precedence value that is not
+          # yet set, thus there's nothing to do; or we are unsetting a lower precedence
+          # value, which also does not change the current value.
+          if precedence == @precedence_set
+            Precedence::LIST.each do |p|
+              next unless p < precedence
+
+              if (value = @value_per_precedence[p]) != UNSET
+                internal_set(value, p)
+                return nil
+              end
+            end
+
+            # If no value is left to fall back on, reset this option
+            reset
           end
         end
 
@@ -94,6 +133,16 @@ module Datadog
 
         private
 
+        def internal_set(value, precedence)
+          old_value = @value
+          (@value = context_exec(value, old_value, &definition.setter)).tap do |v|
+            @is_set = true
+            @precedence_set = precedence
+            @value_per_precedence[precedence] = v
+            context_exec(v, old_value, &definition.on_set) if definition.on_set
+          end
+        end
+
         def context_exec(*args, &block)
           @context.instance_exec(*args, &block)
         end
@@ -105,6 +154,9 @@ module Datadog
         # Used for testing
         attr_reader :precedence_set
         private :precedence_set
+
+        UNSET = Object.new
+        private_constant :UNSET
       end
     end
   end

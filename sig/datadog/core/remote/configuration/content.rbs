@@ -13,6 +13,10 @@ module Datadog
 
           attr_accessor version: Integer
 
+          attr_reader apply_state: Integer
+
+          attr_reader apply_error: String?
+
           @length: Integer
 
           def initialize: (path: Configuration::Path, data: StringIO) -> void

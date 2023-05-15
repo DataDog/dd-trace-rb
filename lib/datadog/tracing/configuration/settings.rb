@@ -11,6 +11,7 @@ module Datadog
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Layout/LineLength
+      # rubocop:disable Metrics/PerceivedComplexity
       module Settings
         def self.extended(base)
           base.class_eval do
@@ -188,7 +189,11 @@ module Datadog
               option :header_tags do |o|
                 o.default { env_to_list(Configuration::Ext::ENV_HEADER_TAGS, nil, comma_separated_only: true) }
                 o.lazy
-                o.setter { |header_tags, _| Configuration::HTTP::HeaderTags.new(header_tags) }
+                o.setter do |header_tags, _|
+                  next header_tags if header_tags.is_a?(Configuration::HTTP::HeaderTags)
+
+                  Configuration::HTTP::HeaderTags.new(header_tags)
+                end
               end
 
               # Enable 128 bit trace id generation.
@@ -306,6 +311,23 @@ module Datadog
                 # @return [Numeric,nil]
                 option :rate_limit do |o|
                   o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT, 100) }
+                  o.lazy
+                end
+
+                # Trace sampling rules.
+                # These rules control whether a trace is kept or dropped by the tracer.
+                #
+                # The `rules` format is a String with a JSON array of objects:
+                # Each object must have a `sample_rate`, and the `name` and `service` fields
+                # are optional. The `sample_rate` value must be between 0.0 and 1.0 (inclusive).
+                # `name` and `service` are Strings that allow the `sample_rate` to be applied only
+                # to traces matching the `name` and `service`.
+                #
+                # @default `DD_TRACE_SAMPLING_RULES` environment variable. Otherwise `nil`.
+                # @return [String,nil]
+                # @public_api
+                option :rules do |o|
+                  o.default { ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
                   o.lazy
                 end
 
@@ -478,6 +500,7 @@ module Datadog
       # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/MethodLength
       # rubocop:enable Layout/LineLength
+      # rubocop:enable Metrics/PerceivedComplexity
     end
   end
 end

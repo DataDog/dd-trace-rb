@@ -126,6 +126,15 @@ module Datadog
               end.freeze
             end
 
+            def to_s
+              {
+                roots: @roots,
+                targets: @targets,
+                target_files: @target_files,
+                client_configs: @client_configs,
+              }.to_s
+            end
+
             # When an expected key is missing
             class KeyError < StandardError
               def initialize(key)

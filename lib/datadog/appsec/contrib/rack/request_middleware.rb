@@ -26,6 +26,8 @@ module Datadog
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
+            # TODO: Ask ASM: removed this call in favour of the same call at
+            # TODO: `Datadog::Core::Configuration::Components#startup!`?
             Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
 
             processor = nil

@@ -285,6 +285,17 @@ RSpec.describe 'Tracer integration tests' do
       it_behaves_like 'sampling decision', nil
     end
 
+    shared_context 'DD_TRACE_SAMPLING_RULES configuration' do
+      let(:sampler) { nil }
+      let(:rules_json) { [rule].to_json }
+
+      around do |example|
+        ClimateControl.modify('DD_TRACE_SAMPLING_RULES' => rules_json) do
+          example.run
+        end
+      end
+    end
+
     context 'with rule' do
       let(:rule_sampler) { Datadog::Tracing::Sampling::RuleSampler.new([rule], **rule_sampler_opt) }
       let(:rule_sampler_opt) { {} }
@@ -298,6 +309,18 @@ RSpec.describe 'Tracer integration tests' do
         it_behaves_like 'rate limit metric', 1.0
         it_behaves_like 'sampling decision', '-3'
 
+        context 'set through DD_TRACE_SAMPLING_RULES environment variable' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) { { name: 'my.op', sample_rate: 1.0 } }
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 1.0
+          it_behaves_like 'sampling decision', '-3'
+        end
+
         context 'with low sample rate' do
           let(:rule) { Datadog::Tracing::Sampling::SimpleRule.new(sample_rate: Float::MIN) }
 
@@ -306,6 +329,18 @@ RSpec.describe 'Tracer integration tests' do
           it_behaves_like 'rule sampling rate metric', Float::MIN
           it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
           it_behaves_like 'sampling decision', nil
+
+          context 'set through DD_TRACE_SAMPLING_RULES environment variable' do
+            include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+              let(:rule) { { sample_rate: Float::MIN } }
+            end
+
+            it_behaves_like 'flushed trace'
+            it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
+            it_behaves_like 'rule sampling rate metric', Float::MIN
+            it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
+            it_behaves_like 'sampling decision', nil
+          end
         end
 
         context 'rate limited' do
@@ -328,6 +363,19 @@ RSpec.describe 'Tracer integration tests' do
         it_behaves_like 'rule sampling rate metric', nil
         it_behaves_like 'rate limit metric', nil
         it_behaves_like 'sampling decision', '-0'
+
+        context 'set through DD_TRACE_SAMPLING_RULES environment variable' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) { { name: 'not.my.op' } }
+
+            it_behaves_like 'flushed trace'
+            # The PrioritySampler was responsible for the sampling decision, not the Rule Sampler.
+            it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
+            it_behaves_like 'rule sampling rate metric', nil
+            it_behaves_like 'rate limit metric', nil
+            it_behaves_like 'sampling decision', '-0'
+          end
+        end
       end
     end
   end
@@ -1116,6 +1164,114 @@ RSpec.describe 'Tracer integration tests' do
           expect(stats[:transport].client_error).to eq(0)
           expect(stats[:transport].server_error).to eq(0)
           expect(stats[:transport].internal_error).to eq(0)
+        end
+      end
+    end
+  end
+
+  describe 'dynamic configuration' do
+    subject(:start_tracer) do
+      Datadog.configure { |c| c.remote.poll_interval_seconds = 0.01 }
+    end
+
+    before do
+      WebMock.enable!
+      stub_request(:post, %r{/v0\.7/info}).to_return(body: info_response, status: 200)
+      stub_dynamic_configuration_request(dynamic_configuration)
+    end
+
+    let(:info_response) do
+      {
+        endpoints: [
+          '/v0.7/config',
+        ],
+      }.to_json
+    end
+    let(:product) { 'APM_TRACING' }
+
+    def new_dynamic_configuration(product = 'TEST-PRODUCT', data = '', config = 'test-config', name = 'test-name')
+      Struct.new(:product, :data, :config, :name).new(product, data, config, name)
+    end
+
+    def stub_dynamic_configuration_request(*dynamic_configurations)
+      stub_request(:post, %r{/v0\.7/config}).to_return(body: build(*dynamic_configurations), status: 200)
+    end
+
+    def build(*dynamic_configurations)
+      target_files = []
+      client_configs = []
+      targets_targets = {}
+      targets = {
+        'signed' => {
+          'custom' => {},
+          'targets' => targets_targets,
+        }
+      }
+
+      dynamic_configurations.each do |configuration|
+        target = "datadog/1/#{configuration.product}/#{configuration.config}/#{configuration.name}"
+        raw = configuration.data.to_json
+
+        target_files << {
+          'path' => target,
+          'raw' => Base64.strict_encode64(raw),
+        }
+
+        targets_targets[target] = {
+          'custom' => { 'v' => 1 },
+          'length' => 0,
+          'hashes' => { 'sha256' => Digest::SHA256.hexdigest(raw) },
+        }
+        client_configs << target
+      end
+
+      {
+        'target_files' => target_files,
+        'targets' => Base64.strict_encode64(targets.to_json),
+        'client_configs' => client_configs,
+      }.to_json
+    end
+
+    context 'with dynamic configuration data' do
+      let(:dynamic_configuration) { new_dynamic_configuration(product, data) }
+      let(:data) { { 'lib_config' => lib_config } }
+      let(:lib_config) do
+        {
+          'log_injection_enabled' => false,
+          'tracing_sampling_rate' => 0.7,
+          'tracing_header_tags' => [{ 'header' => 'test-header', 'tag_name' => '' }]
+        }
+      end
+
+      it 'overrides the local values' do
+        expect(Datadog.configuration.tracing.sampling.default_rate).to be_nil
+        expect(Datadog.configuration.tracing.log_injection).to eq(true)
+        expect(Datadog.configuration.tracing.header_tags.to_s).to be_empty
+
+        start_tracer
+
+        wait_for { Datadog.configuration.tracing.sampling.default_rate }.to eq(0.7)
+        wait_for { Datadog.configuration.tracing.log_injection }.to eq(false)
+        wait_for { Datadog.configuration.tracing.header_tags.to_s }.to eq('test-header:')
+      end
+
+      context 'when remote configuration is later removed' do
+        let(:empty_configuration) { stub_dynamic_configuration_request(empty_dynamic_configuration) }
+        let(:empty_dynamic_configuration) { new_dynamic_configuration(product, empty_data) }
+        let(:empty_data) { { 'lib_config' => {} } }
+
+        it 'restore the local values' do
+          start_tracer
+
+          wait_for { Datadog.configuration.tracing.sampling.default_rate }.to eq(0.7)
+          wait_for { Datadog.configuration.tracing.log_injection }.to eq(false)
+          wait_for { Datadog.configuration.tracing.header_tags.to_s }.to eq('test-header:')
+
+          empty_configuration
+
+          wait_for { Datadog.configuration.tracing.sampling.default_rate }.to be_nil
+          wait_for { Datadog.configuration.tracing.log_injection }.to eq(true)
+          wait_for { Datadog.configuration.tracing.header_tags.to_s }.to be_empty
         end
       end
     end
