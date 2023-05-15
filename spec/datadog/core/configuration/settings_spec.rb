@@ -1108,25 +1108,25 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
   describe '#telemetry' do
     around do |example|
-      ClimateControl.modify(Datadog::Core::Telemetry::Ext::ENV_ENABLED => environment) do
+      ClimateControl.modify(env_var_name => env_var_value) do
         example.run
       end
     end
-    let(:environment) { 'true' }
 
     describe '#enabled' do
       subject(:enabled) { settings.telemetry.enabled }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_TELEMETRY_ENABLED' }
 
-      context "when #{Datadog::Core::Telemetry::Ext::ENV_ENABLED}" do
+      context 'when DD_INSTRUMENTATION_TELEMETRY_ENABLED' do
         context 'is not defined' do
-          let(:environment) { nil }
+          let(:env_var_value) { nil }
 
           it { is_expected.to be true }
         end
 
         { 'true' => true, 'false' => false }.each do |string, value|
           context "is defined as #{string}" do
-            let(:environment) { string }
+            let(:env_var_value) { string }
 
             it { is_expected.to be value }
           end
@@ -1135,12 +1135,43 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#enabled=' do
-      let(:environment) { 'true' }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_TELEMETRY_ENABLED' }
+      let(:env_var_value) { 'true' }
+
       it 'updates the #enabled setting' do
         expect { settings.telemetry.enabled = false }
           .to change { settings.telemetry.enabled }
           .from(true)
           .to(false)
+      end
+    end
+
+    describe '#heartbeat_interval' do
+      subject(:heartbeat_interval) { settings.telemetry.heartbeat_interval }
+      let(:env_var_name) { 'DD_TELEMETRY_HEARTBEAT_INTERVAL' }
+
+      context 'when DD_TELEMETRY_HEARTBEAT_INTERVAL' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to be 60 }
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { '1.1' }
+
+          it { is_expected.to eq 1.1 }
+        end
+      end
+    end
+
+    describe '#heartbeat_interval=' do
+      let(:env_var_name) { 'DD_TELEMETRY_HEARTBEAT_INTERVAL' }
+      let(:env_var_value) { '1.1' }
+
+      it 'updates the #heartbeat_interval setting' do
+        expect { settings.telemetry.heartbeat_interval = 2.2 }
+          .to change { settings.telemetry.heartbeat_interval }.from(1.1).to(2.2)
       end
     end
   end

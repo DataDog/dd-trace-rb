@@ -10,9 +10,7 @@ module Datadog
       class Heartbeat < Core::Worker
         include Core::Workers::Polling
 
-        DEFAULT_INTERVAL_SECONDS = 60
-
-        def initialize(enabled: true, interval: DEFAULT_INTERVAL_SECONDS, &block)
+        def initialize(interval:, enabled: true, &block)
           # Workers::Polling settings
           self.enabled = enabled
           # Workers::IntervalLoop settings
