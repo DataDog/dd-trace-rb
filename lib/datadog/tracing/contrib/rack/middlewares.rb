@@ -261,7 +261,9 @@ module Datadog
             )
 
             # Set peer service (so its not believed to belong to this app)
-            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
+            if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
+            end
 
             span
           end

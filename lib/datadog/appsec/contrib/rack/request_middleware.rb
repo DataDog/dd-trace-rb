@@ -23,7 +23,7 @@ module Datadog
             @oneshot_tags_sent = false
           end
 
-          # rubocop:disable Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
+          # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
@@ -32,6 +32,11 @@ module Datadog
             processor = nil
             ready = false
             context = nil
+
+            # For a given request, keep using the first Rack stack context for
+            # nested apps. Don't set `context` local variable so that on popping
+            # out of this nested stack we don't finalize the parent's context
+            return @app.call(env) if env['datadog.waf.context']
 
             Datadog::AppSec.reconfigure_lock do
               processor = Datadog::AppSec.processor
@@ -88,7 +93,7 @@ module Datadog
               processor.deactivate_context
             end
           end
-          # rubocop:enable Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
+          # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
 
           private
 

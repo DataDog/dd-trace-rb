@@ -26,7 +26,6 @@ module Datadog
         ASM_CAPABILITIES = [
           CAP_ASM_IP_BLOCKING,
           CAP_ASM_USER_BLOCKING,
-          CAP_ASM_CUSTOM_RULES,
           CAP_ASM_EXCLUSIONS,
           CAP_ASM_REQUEST_BLOCKING,
           CAP_ASM_RESPONSE_BLOCKING,
@@ -48,7 +47,6 @@ module Datadog
           remote_features_enabled? ? ASM_PRODUCTS : []
         end
 
-        # rubocop:disable Metrics/MethodLength
         def receivers
           return [] unless remote_features_enabled?
 
@@ -63,18 +61,17 @@ module Datadog
             overrides = []
             exclusions = []
 
-            asm_data_config_types = ['blocked_ips', 'blocked_users']
-            asm_overrides_config_types = ['blocking', 'disabled_rules']
-
             repository.contents.each do |content|
+              parsed_content = parse_content(content)
+
               case content.path.product
               when 'ASM_DD'
-                rules << parse_content(content)
+                rules << parsed_content
               when 'ASM_DATA'
-                data << parse_content(content) if asm_data_config_types.include?(content.path.config_id)
+                data << parsed_content['rules_data'] if parsed_content['rules_data']
               when 'ASM'
-                overrides << parse_content(content) if asm_overrides_config_types.include?(content.path.config_id)
-                exclusions << parse_content(content) if content.path.config_id == 'exclusion_filters'
+                overrides << parsed_content['rules_override'] if parsed_content['rules_override']
+                exclusions << parsed_content['exclusions'] if parsed_content['exclusions']
               end
             end
 
@@ -98,7 +95,6 @@ module Datadog
 
           [receiver]
         end
-        # rubocop:enable Metrics/MethodLength
 
         private
 

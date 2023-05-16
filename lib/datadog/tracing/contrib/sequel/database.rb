@@ -23,7 +23,10 @@ module Datadog
               Tracing.trace(Ext::SPAN_QUERY) do |span|
                 span.service =  Datadog.configuration_for(self, :service_name) \
                                 || Datadog.configuration.tracing[:sequel][:service_name] \
-                                || adapter_name
+                                || Contrib::SpanAttributeSchema.fetch_service_name(
+                                  '',
+                                  adapter_name
+                                )
                 span.resource = opts[:query]
                 span.span_type = Tracing::Metadata::Ext::SQL::TYPE
                 Utils.set_common_tags(span, self)
