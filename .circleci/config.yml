@@ -192,7 +192,7 @@ step_run_all_tests: &step_run_all_tests
         bundle exec rake ci
 step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_results
   run:
-    name: Send HTTP Request to Test Agent
+    name: Get APM Test Agent Trace Check Results
     command: |
       RESPONSE=$(curl -s -w "\n%{http_code}" -o response.txt http://testagent:9126/test/check_trace/failures)
       RESPONSE_CODE=$(echo "$RESPONSE" | awk 'END {print $NF}')
@@ -204,6 +204,7 @@ step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_result
         cat response.txt
         exit 1
       fi
+    when: always
 
 filters_all_branches_and_tags: &filters_all_branches_and_tags
   filters:
