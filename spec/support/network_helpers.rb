@@ -17,4 +17,12 @@ module NetworkHelpers
       server.close
     end
   end
+
+  def check_availability_by_http_request(host, port)
+    uri = URI("http://#{host}:#{port}/info")
+    response = Net::HTTP.get_response(uri)
+    response.is_a?(Net::HTTPSuccess)
+  rescue StandardError
+    false
+  end
 end

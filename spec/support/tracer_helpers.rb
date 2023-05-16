@@ -1,8 +1,11 @@
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/trace_operation'
 require 'support/faux_writer'
+require 'support/network_helpers'
 
 module TracerHelpers
+  TEST_AGENT_RUNNING = NetworkHelpers.check_availability_by_http_request('testagent', 9126)
+
   # Return a test tracer instance with a faux writer.
   def tracer
     @tracer ||= new_tracer
@@ -11,7 +14,10 @@ module TracerHelpers
   def new_tracer(options = {})
     writer = FauxWriter.new(
       transport: Datadog::Transport::HTTP.default do |t|
-        t.adapter :net_http, 'testagent', 9126, timeout: 30
+        t.adapter(
+          TEST_AGENT_RUNNING ? :net_http : :test,
+          TEST_AGENT_RUNNING ? { host: 'testagent', port: 9126, timeout: 30 } : {}
+        )
       end
     )
 
@@ -22,7 +28,7 @@ module TracerHelpers
   def get_test_writer(options = {})
     options = {
       transport: Datadog::Transport::HTTP.default do |t|
-        t.adapter :net_http, 'testagent', 9126, timeout: 30
+        t.adapter transport_adapter, transport_options
       end
     }.merge(options)
 
