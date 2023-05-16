@@ -100,13 +100,14 @@ test_containers:
       - DD_HOSTNAME=dd-trace-rb-ci
   - &agent_port 8126
   - &container_testagent
-    image: williamconti549/dd-apm-test-agent:latest
+    image: williamconti549/dd-apm-test-agent:pool-failures
     name: testagent
     environment:
       - LOG_LEVEL=DEBUG
       - TRACE_LANGUAGE=ruby
       - DD_TRACE_AGENT_URL=http://ddagent:8126 # send all traces to agent
       - PORT=9126
+      - DD_POOL_TRACE_CHECK_FAILURES=true
   - &testagent_port 9126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
@@ -188,6 +189,20 @@ step_run_all_tests: &step_run_all_tests
         " >> .rspec-local
 
         bundle exec rake ci
+step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_results
+  run:
+    name: Send HTTP Request to Test Agent
+    command: |
+      RESPONSE=$(curl -s -w "\n%{http_code}" -o response.txt http://testagent:9126/test/check_trace/failures)
+      RESPONSE_CODE=$(echo "$RESPONSE" | awk 'END {print $NF}')
+      if [[ $RESPONSE_CODE -eq 200 ]]; then
+        echo "All Check Traces returned successful! (HTTP 200)"
+      else
+        echo "Check Traces failed with response code: $RESPONSE_CODE"
+        echo "Failures:"
+        cat response.txt
+        exit 1
+      fi
 
 filters_all_branches_and_tags: &filters_all_branches_and_tags
   filters:
@@ -321,6 +336,7 @@ orbs:
               host: "testagent"
               port: *testagent_port
           - *step_run_all_tests
+          - *step_get_test_agent_trace_check_results
           - store_test_results:
               path: /tmp/rspec
           - persist_to_workspace:
