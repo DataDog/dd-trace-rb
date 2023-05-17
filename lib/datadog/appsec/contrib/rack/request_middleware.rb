@@ -80,7 +80,7 @@ module Datadog
               e[:request]  ||= gateway_request
             end
 
-            AppSec::Event.record(*context.events)
+            AppSec::Event.record(active_span, *context.events)
 
             if response_response && response_response.any? { |action, _event| action == :block }
               request_return = AppSec::Response.negotiate(env).to_rack
@@ -89,7 +89,7 @@ module Datadog
             request_return
           ensure
             if context
-              add_waf_runtime_tags(active_trace, context)
+              add_waf_runtime_tags(active_span, context)
               processor.deactivate_context
             end
           end
@@ -116,9 +116,9 @@ module Datadog
           def add_appsec_tags(processor, trace, span, env)
             return unless trace
 
-            trace.set_tag('_dd.appsec.enabled', 1)
-            trace.set_tag('_dd.runtime_family', 'ruby')
-            trace.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
+            span.set_tag('_dd.appsec.enabled', 1)
+            span.set_tag('_dd.runtime_family', 'ruby')
+            span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
             if span && span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
               request_header_collection = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
@@ -132,17 +132,17 @@ module Datadog
             end
 
             if processor.ruleset_info
-              trace.set_tag('_dd.appsec.event_rules.version', processor.ruleset_info[:version])
+              span.set_tag('_dd.appsec.event_rules.version', processor.ruleset_info[:version])
 
               unless @oneshot_tags_sent
                 # Small race condition, but it's inoccuous: worst case the tags
                 # are sent a couple of times more than expected
                 @oneshot_tags_sent = true
 
-                trace.set_tag('_dd.appsec.event_rules.loaded', processor.ruleset_info[:loaded].to_f)
-                trace.set_tag('_dd.appsec.event_rules.error_count', processor.ruleset_info[:failed].to_f)
-                trace.set_tag('_dd.appsec.event_rules.errors', JSON.dump(processor.ruleset_info[:errors]))
-                trace.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(processor.addresses))
+                span.set_tag('_dd.appsec.event_rules.loaded', processor.ruleset_info[:loaded].to_f)
+                span.set_tag('_dd.appsec.event_rules.error_count', processor.ruleset_info[:failed].to_f)
+                span.set_tag('_dd.appsec.event_rules.errors', JSON.dump(processor.ruleset_info[:errors]))
+                span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(processor.addresses))
 
                 # Ensure these tags reach the backend
                 trace.keep!
@@ -154,15 +154,15 @@ module Datadog
             end
           end
 
-          def add_waf_runtime_tags(trace, context)
-            return unless trace
+          def add_waf_runtime_tags(span, context)
+            return unless span
             return unless context
 
-            trace.set_tag('_dd.appsec.waf.timeouts', context.timeouts)
+            span.set_tag('_dd.appsec.waf.timeouts', context.timeouts)
 
             # these tags expect time in us
-            trace.set_tag('_dd.appsec.waf.duration', context.time_ns / 1000.0)
-            trace.set_tag('_dd.appsec.waf.duration_ext', context.time_ext_ns / 1000.0)
+            span.set_tag('_dd.appsec.waf.duration', context.time_ns / 1000.0)
+            span.set_tag('_dd.appsec.waf.duration_ext', context.time_ext_ns / 1000.0)
           end
         end
       end

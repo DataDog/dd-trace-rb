@@ -38,17 +38,17 @@ module Datadog
       #
       # This is expected to be called only once per trace for the rate limiter
       # to properly apply
-      def self.record(*events)
+      def self.record(span, *events)
         # ensure rate limiter is called only when there are events to record
         return if events.empty?
 
         Datadog::AppSec::RateLimiter.limit(:traces) do
-          record_via_span(*events)
+          record_via_span(span, *events)
         end
       end
 
       # rubocop:disable Metrics/MethodLength
-      def self.record_via_span(*events)
+      def self.record_via_span(span, *events)
         events.group_by { |e| e[:trace] }.each do |trace, event_group|
           unless trace
             Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
@@ -100,10 +100,10 @@ module Datadog
 
           # complex types are unsupported, we need to serialize to a string
           triggers = trace_tags.delete('_dd.appsec.triggers')
-          trace.set_tag('_dd.appsec.json', JSON.dump({ triggers: triggers }))
+          span.set_tag('_dd.appsec.json', JSON.dump({ triggers: triggers }))
 
           trace_tags.each do |key, value|
-            trace.set_tag(key, value)
+            span.set_tag(key, value)
           end
         end
       end
