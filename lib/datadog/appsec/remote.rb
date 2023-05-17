@@ -30,6 +30,7 @@ module Datadog
           CAP_ASM_REQUEST_BLOCKING,
           CAP_ASM_RESPONSE_BLOCKING,
           CAP_ASM_DD_RULES,
+          CAP_ASM_CUSTOM_RULES,
         ].freeze
 
         ASM_PRODUCTS = [
