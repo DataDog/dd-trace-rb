@@ -1,0 +1,6 @@
+module Excon
+  module Middleware
+    class Base
+    end
+  end
+end
