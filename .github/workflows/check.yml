@@ -12,5 +12,7 @@ jobs:
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
       - name: Check for stale signature files
         run: bundle exec rake rbs:stale
+      - name: Check for missing signature files
+        run: bundle exec rake rbs:missing
       - name: Check types
         run: bundle exec rake typecheck
