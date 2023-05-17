@@ -625,6 +625,119 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
       end
     end
 
+    context 'custom_rules' do
+      it 'merges custom_rules' do
+        custom_rules = [
+          [
+            {
+              'id' => 'custom-rule-001',
+              'name' => 'Super custom rule 1',
+              'tags' => {
+                'type' => 'security_scanner',
+                'category' => 'scanners'
+              },
+              'conditions' => [
+                {
+                  'parameters' => {
+                    'inputs' => [
+                      {
+                        'address' => 'server.request.headers',
+                        'key_path' => ['user-agent']
+                      }
+                    ],
+                    'regex' => '^SuperScanner1$'
+                  },
+                  'operator' => 'regex_match'
+                }
+              ],
+              'transformers' => []
+            }
+          ],
+          [
+            {
+              'id' => 'custom-rule-002',
+              'name' => 'Super custom rule 2',
+              'tags' => {
+                'type' => 'security_scanner',
+                'category' => 'scanners'
+              },
+              'conditions' => [
+                {
+                  'parameters' => {
+                    'inputs' => [
+                      {
+                        'address' => 'server.request.headers',
+                        'key_path' => ['user-agent']
+                      }
+                    ],
+                    'regex' => '^SuperScanner2$'
+                  },
+                  'operator' => 'regex_match'
+                }
+              ],
+              'transformers' => []
+            }
+          ]
+        ]
+
+        expected_result = rules[0].merge(
+          {
+            'custom_rules' => [
+              {
+                'id' => 'custom-rule-001',
+                'name' => 'Super custom rule 1',
+                'tags' => {
+                  'type' => 'security_scanner',
+                  'category' => 'scanners'
+                },
+                'conditions' => [
+                  {
+                    'parameters' => {
+                      'inputs' => [
+                        {
+                          'address' => 'server.request.headers',
+                          'key_path' => ['user-agent']
+                        }
+                      ],
+                      'regex' => '^SuperScanner1$'
+                    },
+                    'operator' => 'regex_match'
+                  }
+                ],
+                'transformers' => []
+              },
+              {
+                'id' => 'custom-rule-002',
+                'name' => 'Super custom rule 2',
+                'tags' => {
+                  'type' => 'security_scanner',
+                  'category' => 'scanners'
+                },
+                'conditions' => [
+                  {
+                    'parameters' => {
+                      'inputs' => [
+                        {
+                          'address' => 'server.request.headers',
+                          'key_path' => ['user-agent']
+                        }
+                      ],
+                      'regex' => '^SuperScanner2$'
+                    },
+                    'operator' => 'regex_match'
+                  }
+                ],
+                'transformers' => []
+              }
+            ]
+          }
+        )
+
+        result = described_class.merge(rules: rules, custom_rules: custom_rules)
+        expect(result).to eq(expected_result)
+      end
+    end
+
     context 'data, overrides, and exclusions' do
       it 'merges all information' do
         rules_data = [

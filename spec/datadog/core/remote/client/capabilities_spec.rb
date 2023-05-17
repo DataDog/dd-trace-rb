@@ -6,6 +6,9 @@ require 'datadog/appsec/configuration'
 
 RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   subject(:capabilities) { described_class.new(settings) }
+  let(:settings) do
+    double(Datadog::Core::Configuration)
+  end
 
   before do
     capabilities
@@ -39,10 +42,6 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     end
 
     context 'when not present' do
-      let(:settings) do
-        double(Datadog::Core::Configuration)
-      end
-
       it 'does not register any capabilities, products, and receivers' do
         expect(capabilities.capabilities).to be_empty
         expect(capabilities.products).to be_empty
@@ -77,9 +76,24 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
       describe '#base64_capabilities' do
         it 'returns binary capabilities' do
-          expect(capabilities.base64_capabilities).to eq('/A==')
+          expect(capabilities.base64_capabilities).to_not be_empty
         end
       end
+    end
+  end
+
+  describe '#capabilities_to_base64' do
+    before do
+      allow(capabilities).to receive(:capabilities).and_return(
+        [
+          1 << 1,
+          1 << 2,
+        ]
+      )
+    end
+
+    it 'returns base64 string' do
+      expect(capabilities.send(:capabilities_to_base64)).to eq('Bg==')
     end
   end
 end

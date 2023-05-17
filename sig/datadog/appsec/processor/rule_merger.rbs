@@ -10,8 +10,9 @@ module Datadog
         type data = ::Array[::Hash[::String, untyped]]
         type overrides = ::Array[::Hash[::String, untyped]]
         type exclusions = ::Array[::Hash[::String, untyped]]
+        type custom_rules = ::Array[::Hash[::String, untyped]]
 
-        def self.merge: (rules: ::Array[rules], ?data: ::Array[data], ?overrides: ::Array[overrides], ?exclusions: ::Array[exclusions]) -> rules
+        def self.merge: (rules: ::Array[rules], ?data: ::Array[data], ?overrides: ::Array[overrides], ?exclusions: ::Array[exclusions], ?custom_rules: ::Array[custom_rules]) -> rules
 
         private
 
@@ -24,6 +25,8 @@ module Datadog
         def self.combine_overrides: (::Array[overrides] overrides) -> ::Array[overrides]?
 
         def self.combine_exclusions: (::Array[exclusions] exclusions) -> ::Array[exclusions]?
+
+        def self.combine_custom_rules: (::Array[custom_rules] custom_rules) -> ::Array[custom_rules]?
       end
     end
   end
