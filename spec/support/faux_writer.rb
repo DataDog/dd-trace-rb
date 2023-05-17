@@ -29,7 +29,7 @@ class FauxWriter < Datadog::Tracing::Writer
     @mutex.synchronize do
       super(trace) if @options[:call_original]
       @traces << trace
-      options[:transport].send_traces(trace) if options[:transport].is_a?(Datadog::Transport::HTTP)
+      @options[:transport].send_traces(trace) if options[:transport].is_a?(Datadog::Transport::HTTP)
     end
   end
 

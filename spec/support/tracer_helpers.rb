@@ -14,10 +14,11 @@ module TracerHelpers
   def new_tracer(options = {})
     writer = FauxWriter.new(
       transport: Datadog::Transport::HTTP.default do |t|
-        t.adapter(
-          TEST_AGENT_RUNNING ? :net_http : :test,
-          TEST_AGENT_RUNNING ? { host: 'testagent', port: 9126, timeout: 30 } : {}
-        )
+        if TEST_AGENT_RUNNING
+          t.adapter :net_http, 'testagent', 9126, timeout: 30
+        else
+          t.adapter :test
+        end
       end
     )
 
@@ -28,10 +29,11 @@ module TracerHelpers
   def get_test_writer(options = {})
     options = {
       transport: Datadog::Transport::HTTP.default do |t|
-        t.adapter(
-          TEST_AGENT_RUNNING ? :net_http : :test,
-          TEST_AGENT_RUNNING ? { host: 'testagent', port: 9126, timeout: 30 } : {}
-        )
+        if TEST_AGENT_RUNNING
+          t.adapter :net_http, 'testagent', 9126, timeout: 30
+        else
+          t.adapter :test
+        end
       end
     }.merge(options)
 
