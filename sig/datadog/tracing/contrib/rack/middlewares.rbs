@@ -1,0 +1,30 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rack
+        class TraceMiddleware
+          def initialize: (untyped app) -> void
+
+          def compute_queue_time: (untyped env) -> (nil | untyped)
+
+          def call: (untyped env) -> untyped
+          def set_request_tags!: (untyped trace, untyped request_span, untyped env, untyped status, untyped headers, untyped response, untyped original_env) -> untyped
+
+          private
+
+          def configuration: () -> untyped
+
+          def trace_http_server: (untyped span_name, start_time: untyped) -> untyped
+
+          def parse_url: (untyped env, untyped original_env) -> untyped
+
+          def parse_user_agent_header: (untyped headers) -> untyped
+
+          def parse_request_headers: (untyped headers) -> untyped
+
+          def parse_response_headers: (untyped headers) -> untyped
+        end
+      end
+    end
+  end
+end

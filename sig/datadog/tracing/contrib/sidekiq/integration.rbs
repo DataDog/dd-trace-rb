@@ -1,0 +1,29 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sidekiq
+        class Integration
+          include Contrib::Integration
+
+          MINIMUM_VERSION: untyped
+
+          MINIMUM_SERVER_INTERNAL_TRACING_VERSION: untyped
+
+          MINIMUM_CAPSULE_VERSION: untyped
+
+          def self.version: () -> untyped
+
+          def self.loaded?: () -> untyped
+
+          def self.compatible?: () -> untyped
+          def self.compatible_with_server_internal_tracing?: () -> untyped
+          def self.supports_capsules?: () -> untyped
+
+          def new_configuration: () -> untyped
+
+          def patcher: () -> untyped
+        end
+      end
+    end
+  end
+end

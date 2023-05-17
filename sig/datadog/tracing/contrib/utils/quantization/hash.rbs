@@ -1,0 +1,35 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Utils
+        module Quantization
+          module Hash
+            PLACEHOLDER: "?"
+
+            EXCLUDE_KEYS: ::Array[untyped]
+
+            SHOW_KEYS: ::Array[untyped]
+
+            DEFAULT_OPTIONS: { exclude: untyped, show: untyped, placeholder: untyped }
+
+            def self?.format: (untyped hash_obj, ?::Hash[untyped, untyped] options) -> untyped
+
+            def self?.format!: (untyped hash_obj, ?::Hash[untyped, untyped] options) -> untyped
+
+            def self?.format_hash: (untyped hash_obj, ?::Hash[untyped, untyped] options) -> untyped
+
+            def self?.format_value: (untyped value, ?::Hash[untyped, untyped] options) -> untyped
+
+            def self?.format_array: (untyped value, untyped options) -> (untyped | ::Array[untyped])
+
+            def self?.merge_options: (untyped original, untyped additional) -> untyped
+
+            def self?.indifferent_equals: (untyped value) -> untyped
+
+            def self?.convert_value: (untyped value) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

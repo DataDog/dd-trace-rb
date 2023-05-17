@@ -1,0 +1,25 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sidekiq
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.patch_server_internals: () -> untyped
+
+          def self?.patch_server_heartbeat: () -> untyped
+
+          def self?.patch_server_job_fetch: () -> untyped
+
+          def self?.patch_server_scheduled_push: () -> untyped
+
+          def self?.patch_redis_info: () -> untyped
+        end
+      end
+    end
+  end
+end

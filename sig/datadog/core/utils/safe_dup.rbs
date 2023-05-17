@@ -1,0 +1,14 @@
+module Datadog
+  module Core
+    module Utils
+      module SafeDup
+        module RefineNil
+        end
+
+        def self.frozen_or_dup: (untyped v) -> untyped
+
+        def self.frozen_dup: (untyped v) -> (untyped | nil)
+      end
+    end
+  end
+end

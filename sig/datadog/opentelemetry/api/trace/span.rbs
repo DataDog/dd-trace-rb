@@ -1,0 +1,11 @@
+module Datadog
+  module OpenTelemetry
+    module Trace
+      module Span
+        attr_accessor datadog_trace: untyped
+
+        attr_accessor datadog_span: untyped
+      end
+    end
+  end
+end

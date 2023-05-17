@@ -1,0 +1,33 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rake
+        module Instrumentation
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            def invoke: (*untyped args) -> untyped
+
+            def execute: (?untyped? args) -> untyped
+
+            private
+            def instrumented_task?: () -> untyped
+
+            def shutdown_tracer!: () -> (untyped | nil)
+
+            def annotate_invoke!: (untyped span, untyped args) -> untyped
+
+            def annotate_execute!: (untyped span, untyped args) -> untyped
+
+            def quantize_args: (untyped args) -> untyped
+
+            def enabled?: () -> untyped
+
+            def span_options: () -> { service: untyped }
+
+            def configuration: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

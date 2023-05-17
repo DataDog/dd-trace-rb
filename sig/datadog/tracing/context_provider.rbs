@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    class DefaultContextProvider
+      def initialize: () -> void
+      def context=: (untyped ctx) -> untyped
+      def context: (?untyped? key) -> untyped
+    end
+    class FiberLocalContext
+      def initialize: () -> void
+      def local=: (untyped ctx) -> untyped
+      def local: (?untyped storage) -> untyped
+      UNIQUE_INSTANCE_MUTEX: untyped
+
+      UNIQUE_INSTANCE_GENERATOR: untyped
+
+      def self.next_instance_id: () -> untyped
+    end
+  end
+end

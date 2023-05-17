@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Configuration
+        class Resolver
+          attr_reader configurations: untyped
+
+          def initialize: () -> void
+          def add: (untyped matcher, untyped value) -> untyped
+          def get: (untyped matcher) -> untyped
+          def resolve: (untyped value) -> untyped
+          def parse_matcher: (untyped matcher) -> untyped
+        end
+      end
+    end
+  end
+end

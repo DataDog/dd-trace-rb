@@ -1,0 +1,41 @@
+module Datadog
+  module Tracing
+    class Writer
+      attr_reader transport: untyped
+
+      attr_reader worker: untyped
+
+      attr_reader events: untyped
+
+      def initialize: (?::Hash[untyped, untyped] options) -> void
+      def start: () -> untyped
+
+      private
+      def start_worker: () -> untyped
+
+      public
+      def stop: () -> untyped
+
+      private
+
+      def stop_worker: () -> (nil | true)
+
+      public
+      def send_spans: (untyped traces, untyped transport) -> (true | untyped)
+      def write: (untyped trace) -> untyped
+      def stats: () -> { traces_flushed: untyped, transport: untyped }
+      class Events
+        attr_reader after_send: untyped
+
+        def initialize: () -> void
+        class AfterSend < Tracing::Event
+          def initialize: () -> void
+        end
+      end
+
+      private
+
+      def reset_stats!: () -> untyped
+    end
+  end
+end

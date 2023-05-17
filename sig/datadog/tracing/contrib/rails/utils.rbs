@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rails
+        module Utils
+          def self.app_name: () -> untyped
+
+          def self.railtie_supported?: () -> untyped
+        end
+      end
+    end
+  end
+end

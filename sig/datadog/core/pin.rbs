@@ -1,0 +1,24 @@
+module Datadog
+  module Core
+    class Pin
+      def self.get_from: (untyped obj) -> (nil | untyped)
+
+      def self.set_on: (untyped obj, **untyped options) -> untyped
+
+      def initialize: (**untyped options) -> void
+
+      def []: (untyped name) -> untyped
+
+      def []=: (untyped name, untyped value) -> untyped
+
+      def key?: (untyped name) -> untyped
+      def onto: (untyped obj) -> untyped
+
+      def to_s: () -> ::String
+
+      private
+
+      attr_accessor options: untyped
+    end
+  end
+end

@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module SuckerPunch
+        module ExceptionHandler
+          METHOD: untyped
+
+          def self?.patch!: () -> untyped
+        end
+      end
+    end
+  end
+end

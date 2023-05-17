@@ -1,0 +1,20 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sidekiq
+        module ServerInternalTracer
+          module Heartbeat
+            private
+
+            def heartbeat: () -> untyped
+          end
+          module Beat
+            private
+
+            def beat: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

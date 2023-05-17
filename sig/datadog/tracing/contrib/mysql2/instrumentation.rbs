@@ -1,0 +1,24 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Mysql2
+        module Instrumentation
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            def query: (untyped sql, ?::Hash[untyped, untyped] options) -> untyped
+
+            private
+
+            def datadog_configuration: () -> untyped
+
+            def analytics_enabled?: () -> untyped
+
+            def analytics_sample_rate: () -> untyped
+
+            def comment_propagation: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

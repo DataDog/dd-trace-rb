@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Analytics
+      def self.set_sample_rate: (untyped span_op, untyped sample_rate) -> (nil | untyped)
+
+      def self.set_measured: (untyped span_op, ?bool value) -> (nil | untyped)
+    end
+  end
+end

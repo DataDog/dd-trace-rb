@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Integration
+        def self.included: (untyped base) -> untyped
+      end
+    end
+  end
+end

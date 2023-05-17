@@ -1,0 +1,20 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Kafka
+        module Event
+          def self.included: (untyped base) -> untyped
+          module ClassMethods
+            def event_name: () -> untyped
+
+            def span_options: () -> { service: untyped }
+
+            def configuration: () -> untyped
+
+            def process: (untyped span, untyped _event, untyped _id, untyped payload) -> untyped
+          end
+        end
+      end
+    end
+  end
+end
