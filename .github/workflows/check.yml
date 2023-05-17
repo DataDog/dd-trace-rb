@@ -10,4 +10,7 @@ jobs:
         with:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-      - run: bundle exec rake typecheck
+      - name: Check for stale signature files
+        run: bundle exec rake rbs:stale
+      - name: Check types
+        run: bundle exec rake typecheck
