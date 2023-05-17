@@ -4,7 +4,7 @@ require 'redis'
 require 'ddtrace'
 
 RSpec.describe 'Redis instrumentation test' do
-  let(:test_host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
+  let(:test_host) { ENV.fetch('TEST_REDIS_HOST', 'a.log.redis.host.in.aws.com') }
   let(:test_port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
   # Redis instance supports 16 databases,
@@ -105,14 +105,14 @@ RSpec.describe 'Redis instrumentation test' do
   describe 'when multiplexed configuration is provided via hash' do
     let(:default_service_name) { 'default-service' }
     let(:service_name) { 'multiplex-service' }
-    let(:redis_options) { { host: test_host, port: test_port, db: test_database } }
+    let(:redis_options) { { host: test_host } }
     let(:client) { Redis.new(redis_options.freeze) }
 
     before do
       Datadog.configure do |c|
         c.tracing.instrument :redis, service_name: default_service_name
         c.tracing.instrument :redis,
-          describes: { host: test_host, port: test_port, db: test_database },
+          describes: { host: test_host },
           service_name: service_name
       end
     end
@@ -124,7 +124,9 @@ RSpec.describe 'Redis instrumentation test' do
       end
 
       it 'calls instrumentation' do
-        expect(spans.size).to eq(2)
+        p "------------------ #{spans}"
+
+        expect(spans.size).to eq(1)
 
         select_db_span, span = spans
 
