@@ -1147,7 +1147,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#heartbeat_interval' do
-      subject(:heartbeat_interval) { settings.telemetry.heartbeat_interval }
+      subject(:heartbeat_interval_seconds) { settings.telemetry.heartbeat_interval_seconds }
       let(:env_var_name) { 'DD_TELEMETRY_HEARTBEAT_INTERVAL' }
 
       context 'when DD_TELEMETRY_HEARTBEAT_INTERVAL' do
@@ -1170,8 +1170,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       let(:env_var_value) { '1.1' }
 
       it 'updates the #heartbeat_interval setting' do
-        expect { settings.telemetry.heartbeat_interval = 2.2 }
-          .to change { settings.telemetry.heartbeat_interval }.from(1.1).to(2.2)
+        expect { settings.telemetry.heartbeat_interval_seconds = 2.2 }
+          .to change { settings.telemetry.heartbeat_interval_seconds }.from(1.1).to(2.2)
       end
     end
   end

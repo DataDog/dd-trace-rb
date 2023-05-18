@@ -226,7 +226,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
       let(:expected_options) { { enabled: enabled, heartbeat_interval: heartbeat_interval } }
       let(:enabled) { true }
-      let(:heartbeat_interval) { 60 }
+      let(:heartbeat_interval_seconds) { 60 }
 
       before do
         expect(Datadog::Core::Telemetry::Client).to receive(:new).with(expected_options).and_return(telemetry_client)

@@ -5,7 +5,7 @@ require 'datadog/core/telemetry/client'
 RSpec.describe Datadog::Core::Telemetry::Client do
   subject(:client) { described_class.new(enabled: enabled, heartbeat_interval: heartbeat_interval) }
   let(:enabled) { true }
-  let(:heartbeat_interval) { 1.3 }
+  let(:heartbeat_interval_seconds) { 1.3 }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
   let(:response) { double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
   let(:not_found) { false }
