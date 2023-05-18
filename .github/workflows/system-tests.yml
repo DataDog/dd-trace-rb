@@ -58,8 +58,6 @@ jobs:
       matrix:
         image:
           - weblog
-        library:
-          - ruby
         app:
           - rack
           - sinatra14
@@ -94,7 +92,7 @@ jobs:
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
       - name: Build
-        run: ./build.sh --library ${{ matrix.library }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }}
+        run: ./build.sh --library ruby --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }}
       - name: Tag image for CI run
         run:
           docker tag system_tests/${{ matrix.image }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
@@ -114,8 +112,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        library:
-          - ruby
         app:
           - rack
           - sinatra14
@@ -131,108 +127,134 @@ jobs:
           - rails60
           - rails61
           - rails70
-        scenario:
-          - DEFAULT
-          - APPSEC_DISABLED
-          - APPSEC_IP_BLOCKING
-          - APPSEC_REQUEST_BLOCKING
-        include:
-          - library: ruby
-            app: rack
-            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
-          - library: ruby
-            app: rack
-            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES
-          - library: ruby
-            app: rack
-            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE
-          - library: ruby
-            app: rack
-            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE
-          - library: ruby
-            app: rack
-            scenario: APPSEC_CUSTOM_RULES
-          - library: ruby
-            app: rack
-            scenario: APPSEC_MISSING_RULES
-          - library: ruby
-            app: rack
-            scenario: APPSEC_CORRUPTED_RULES
-          - library: ruby
-            app: rack
-            scenario: APPSEC_LOW_WAF_TIMEOUT
-          - library: ruby
-            app: rack
-            scenario: APPSEC_CUSTOM_OBFUSCATION
-          - library: ruby
-            app: rack
-            scenario: APPSEC_RATE_LIMITER
-          - library: ruby
-            app: rack
-            scenario: SAMPLING
-          - library: ruby
-            app: rack
-            scenario: PROFILING
-          - library: ruby
-            app: rack
-            scenario: TELEMETRY_APP_STARTED_PRODUCTS_DISABLED
-          - library: ruby
-            app: rack
-            scenario: TELEMETRY_DEPENDENCY_LOADED_TEST_FOR_DEPENDENCY_COLLECTION_DISABLED
-          - library: ruby
-            app: rack
-            scenario: TELEMETRY_LOG_GENERATION_DISABLED
-          - library: ruby
-            app: rack
-            scenario: TELEMETRY_METRIC_GENERATION_DISABLED
     runs-on: ubuntu-latest
+    env:
+      TEST_LIBRARY: ruby
+      WEBLOG_VARIANT: ${{ matrix.app }}
+      DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
     needs:
       - build-harness
       - build-apps
-    name: Test (${{ matrix.app }}, ${{ matrix.scenario }})
+    name: Test (${{ matrix.app }})
     steps:
       - name: Setup python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+
       - name: Checkout
         uses: actions/checkout@v3
         with:
           repository: 'DataDog/system-tests'
+
+      - name: Log in to the Container registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
       - name: Pull agent image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
           docker tag ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }} system_tests/agent:latest
+
       - name: Pull app image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/weblog-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
           docker tag ghcr.io/datadog/dd-trace-rb/system-tests/weblog-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }} system_tests/weblog:latest
+
       - name: List images
         run: |
           docker image list
-      - name: Run scenario
-        run: ./build.sh --images runner && ./run.sh ${{ matrix.scenario }}
-        env:
-          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-      - name: Archive logs (per scenario)
-        uses: actions/upload-artifact@v3
-        if: ${{ always() }}
-        with:
-          name: system-tests-${{ matrix.library }}-${{ matrix.app }}-${{ matrix.scenario }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
-          path: logs*
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Run DEFAULT
+        run: ./run.sh DEFAULT
+
+      - name: Run APPSEC_DISABLED
+        run: ./run.sh APPSEC_DISABLED
+
+      - name: Run APPSEC_IP_BLOCKING
+        run: ./run.sh APPSEC_IP_BLOCKING
+
+      - name: Run APPSEC_REQUEST_BLOCKING
+        run: ./run.sh APPSEC_REQUEST_BLOCKING
+
+      - name: Run REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
+
+      - name: Run REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES
+
+      - name: Run REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE
+
+      - name: Run REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE
+
+      - name: Run APPSEC_CUSTOM_RULES
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh APPSEC_CUSTOM_RULES
+
+      - name: Run APPSEC_MISSING_RULES
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh APPSEC_MISSING_RULES\
+
+      - name: Run APPSEC_CORRUPTED_RULES
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh APPSEC_CORRUPTED_RULES
+
+      - name: Run APPSEC_LOW_WAF_TIMEOUT
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh APPSEC_LOW_WAF_TIMEOUT
+
+      - name: Run APPSEC_CUSTOM_OBFUSCATION
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh APPSEC_CUSTOM_OBFUSCATION
+
+      - name: Run APPSEC_RATE_LIMITER
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh APPSEC_RATE_LIMITER
+
+      - name: Run SAMPLING
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh SAMPLING
+
+      - name: Run PROFILING
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh PROFILING
+
+      - name: Run TELEMETRY_APP_STARTED_PRODUCTS_DISABLED
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh TELEMETRY_APP_STARTED_PRODUCTS_DISABLED
+
+      - name: Run TELEMETRY_DEPENDENCY_LOADED_TEST_FOR_DEPENDENCY_COLLECTION_DISABLED
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh TELEMETRY_DEPENDENCY_LOADED_TEST_FOR_DEPENDENCY_COLLECTION_DISABLED
+
+      - name: Run TELEMETRY_LOG_GENERATION_DISABLED
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh TELEMETRY_LOG_GENERATION_DISABLED
+
+      - name: Run TELEMETRY_METRIC_GENERATION_DISABLED
+        if: ${{ matrix.app == 'rack' }}
+        run: ./run.sh TELEMETRY_METRIC_GENERATION_DISABLED
+
       - name: Archive logs (aggregated)
         uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: system-tests-${{ matrix.library }}-${{ matrix.app }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
+          name: system-tests-ruby-${{ matrix.app }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
           path: logs*
 
   aggregate:
     strategy:
       fail-fast: false
       matrix:
-        library:
-          - ruby
         app:
           - rack
           - sinatra14
@@ -265,7 +287,7 @@ jobs:
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
-          name: system-tests-${{ matrix.library }}-${{ matrix.app }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
+          name: system-tests-ruby-${{ matrix.app }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
           path: .
       - name: Print fancy log report
         run: |
