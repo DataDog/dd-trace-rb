@@ -17,9 +17,10 @@ module Datadog
 
           # @param name [String] Module name
           # @param version [String] Version of resolved module
-          # @param hash [String] Dependency hash
+          # @param hash [String] Dependency hash, in case `version` is not available
           def initialize(name:, version: nil, hash: nil)
             raise ArgumentError, ERROR_NIL_NAME_MESSAGE if name.nil?
+            raise ArgumentError, 'if both :version and :hash exist, use :version only' if version && hash
 
             @hash = hash
             @name = name

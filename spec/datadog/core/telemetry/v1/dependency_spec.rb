@@ -6,9 +6,9 @@ require 'datadog/core/telemetry/v1/shared_examples'
 RSpec.describe Datadog::Core::Telemetry::V1::Dependency do
   subject(:dependency) { described_class.new(name: name, version: version, hash: hash) }
 
-  let(:hash) { '3e2e2c2362c89aa01bc0e004681e' }
+  let(:hash) { nil }
   let(:name) { 'mongodb' }
-  let(:version) { '2.2.5' }
+  let(:version) { nil }
 
   it { is_expected.to have_attributes(name: name, hash: hash, version: version) }
 
@@ -18,7 +18,17 @@ RSpec.describe Datadog::Core::Telemetry::V1::Dependency do
     end
 
     context ':version' do
+      let(:version) { '2.2.5' }
+
       it_behaves_like 'an optional string parameter', 'version'
+
+      context 'and :hash' do
+        let(:hash) { 'test-hash' }
+
+        it 'report argument conflict' do
+          expect { dependency }.to raise_error(ArgumentError)
+        end
+      end
     end
 
     context ':hash' do
@@ -29,13 +39,12 @@ RSpec.describe Datadog::Core::Telemetry::V1::Dependency do
   describe '#to_h' do
     subject(:to_h) { dependency.to_h }
 
-    let(:hash) { '3e2e2c2362c89aa01bc0e004681e' }
+    let(:hash) { nil }
     let(:name) { 'mongodb' }
     let(:version) { '2.2.5' }
 
     it do
       is_expected.to eq(
-        hash: hash,
         name: name,
         version: version
       )
