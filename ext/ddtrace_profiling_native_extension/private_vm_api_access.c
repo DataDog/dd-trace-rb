@@ -735,8 +735,7 @@ check_method_entry(VALUE obj, int can_be_svar)
     // to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
     // Modifications:
     // * None
-    bool
-    rb_ractor_main_p_(void)
+    bool rb_ractor_main_p_(void)
     {
         VM_ASSERT(rb_multi_ractor_p());
         rb_execution_context_t *ec = GET_EC();
