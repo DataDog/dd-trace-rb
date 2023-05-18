@@ -58,8 +58,6 @@ if [[ "$APP_RUBY_VERSION" == "2.6" ]]; then
   exit 1
 fi
 
-# ADD NEW RUBIES HERE
-
 # Set configuration
 APP_BASE_IMAGE=${APP_BASE_IMAGE:-datadog/dd-apm-demo:rb-$APP_RUBY_VERSION}
 APP_IMAGE=${APP_IMAGE:-$APP_BASE_IMAGE-rails-seven}

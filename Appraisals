@@ -1479,7 +1479,7 @@ elsif ruby_version?('2.7')
       gem 'dogstatsd-ruby', '~> 4'
     end
 # ----------------------------------------------------------------------------------------------------------------------
-elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2')
+elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2') || ruby_version?('3.3')
   appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
     gem 'mysql2', '~> 0.5', platform: :ruby
