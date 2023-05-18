@@ -17,7 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - runner
           - agent
     runs-on: ubuntu-latest
     name: Build (${{ matrix.image }})
@@ -204,10 +203,6 @@ jobs:
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
           docker tag ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }} system_tests/agent:latest
-      - name: Pull runner image
-        run: |
-          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/runner:gha${{ github.run_id }}-g${{ github.sha }}
-          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/runner:gha${{ github.run_id }}-g${{ github.sha }} system_tests/runner:latest
       - name: Pull app image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/weblog-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
@@ -216,7 +211,7 @@ jobs:
         run: |
           docker image list
       - name: Run scenario
-        run: ./run.sh ${{ matrix.scenario }}
+        run: ./build.sh --images runner && ./run.sh ${{ matrix.scenario }}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
       - name: Archive logs (per scenario)

@@ -56,7 +56,8 @@ module Datadog
         def dependencies
           Gem.loaded_specs.collect do |name, loaded_gem|
             Datadog::Core::Telemetry::V1::Dependency.new(
-              name: name, version: loaded_gem.version.to_s, hash: loaded_gem.hash.to_s
+              # `hash` should be used when `version` is not available
+              name: name, version: loaded_gem.version.to_s, hash: nil
             )
           end
         end

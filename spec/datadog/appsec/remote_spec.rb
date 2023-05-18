@@ -20,7 +20,7 @@ RSpec.describe Datadog::AppSec::Remote do
       end
 
       it 'returns capabilities' do
-        expect(described_class.capabilities).to eq([4, 128, 16, 32, 64, 8])
+        expect(described_class.capabilities).to eq([4, 128, 16, 32, 64, 8, 256])
       end
     end
   end
@@ -251,6 +251,36 @@ RSpec.describe Datadog::AppSec::Remote do
             ]
           end
 
+          let(:custom_rules) do
+            [
+              {
+                id: 'custom-rule-001',
+                name: 'Block Friends IP Addresses',
+                tags: {
+                  type: 'block_ip',
+                  category: 'security_response'
+                },
+                conditions: [
+                  {
+                    parameters: {
+                      inputs: [
+                        {
+                          address: 'http.client_ip'
+                        }
+                      ],
+                      data: 'blocked_ips'
+                    },
+                    operator: 'ip_match'
+                  }
+                ],
+                transformers: [],
+                on_match: [
+                  'block'
+                ]
+              }.to_json
+            ]
+          end
+
           context 'ASM' do
             let(:path) { 'datadog/603646/ASM/whatevername/config' }
 
@@ -267,6 +297,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   data: [],
                   overrides: [rules_override],
                   exclusions: [],
+                  custom_rules: [],
                 )
 
                 changes = transaction
@@ -287,6 +318,28 @@ RSpec.describe Datadog::AppSec::Remote do
                   data: [],
                   overrides: [],
                   exclusions: [exclusions],
+                  custom_rules: [],
+                )
+
+                changes = transaction
+                receiver.call(repository, changes)
+              end
+            end
+
+            context 'custom_rules' do
+              let(:data) do
+                {
+                  'custom_rules' => custom_rules
+                }
+              end
+
+              it 'pass the right values to RuleMerger' do
+                expect(Datadog::AppSec::Processor::RuleMerger).to receive(:merge).with(
+                  rules: default_ruleset,
+                  data: [],
+                  overrides: [],
+                  exclusions: [],
+                  custom_rules: [custom_rules]
                 )
 
                 changes = transaction
@@ -308,6 +361,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   data: [],
                   overrides: [rules_override],
                   exclusions: [exclusions],
+                  custom_rules: [],
                 )
 
                 changes = transaction
@@ -330,6 +384,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   data: [],
                   overrides: [],
                   exclusions: [],
+                  custom_rules: [],
                 )
 
                 changes = transaction
@@ -354,6 +409,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   data: [rules_data],
                   overrides: [],
                   exclusions: [],
+                  custom_rules: [],
                 )
 
                 changes = transaction
@@ -376,6 +432,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   data: [],
                   overrides: [],
                   exclusions: [],
+                  custom_rules: [],
                 )
 
                 changes = transaction

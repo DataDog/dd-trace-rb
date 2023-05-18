@@ -68,19 +68,19 @@ internal types, structures and functions).
 
 Because these private header files are not included in regular Ruby installations, we have two different workarounds:
 
-1. for Ruby versions >= 2.6 we make use use the Ruby private MJIT header
-2. for Ruby versions < 2.6 (legacy Rubies) we make use of the `debase-ruby_core_source` gem
+1. for Ruby versions 2.6 to 3.2 we make use use the Ruby private MJIT header
+2. for Ruby versions < 2.6 and > 3.2 we make use of the `debase-ruby_core_source` gem
 
 Functions which make use of these headers are defined in the <private_vm_api_acccess.c> file.
 
-There is currently no way for disabling usage of the private MJIT header for Ruby 2.6+.
+There is currently no way for disabling usage of the private MJIT header for Ruby 2.6 to 3.2.
 
 **Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
 contribute upstream changes so that they become official public VM APIs.
 
 ### Approach 1: Using the Ruby private MJIT header
 
-Ruby versions >= 2.6 introduced a JIT compiler called MJIT. This compiler does not directly generate machine code;
+Ruby versions 2.6 to 3.2 shipped a JIT compiler called MJIT. This compiler does not directly generate machine code;
 instead it generates C code and uses the system C compiler to turn it into machine code.
 
 The generated C code `#include`s a private header -- which we reference as "the MJIT header" everywhere.
@@ -89,6 +89,8 @@ and of course the intention is that it is only used by the Ruby MJIT compiler.
 
 This header is placed inside the `include/` directory in a Ruby installation, and is named for that specific Ruby
 version. e.g. `rb_mjit_min_header-2.7.4.h`.
+
+This header was removed in Ruby 3.3.
 
 ### Approach 2: Using the `debase-ruby_core_source` gem
 
