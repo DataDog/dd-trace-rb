@@ -30,6 +30,7 @@ module Datadog
           CAP_ASM_REQUEST_BLOCKING,
           CAP_ASM_RESPONSE_BLOCKING,
           CAP_ASM_DD_RULES,
+          CAP_ASM_CUSTOM_RULES,
         ].freeze
 
         ASM_PRODUCTS = [
@@ -47,6 +48,7 @@ module Datadog
           remote_features_enabled? ? ASM_PRODUCTS : []
         end
 
+        # rubocop:disable Metrics/MethodLength
         def receivers
           return [] unless remote_features_enabled?
 
@@ -57,6 +59,7 @@ module Datadog
             end
 
             rules = []
+            custom_rules = []
             data = []
             overrides = []
             exclusions = []
@@ -72,6 +75,7 @@ module Datadog
               when 'ASM'
                 overrides << parsed_content['rules_override'] if parsed_content['rules_override']
                 exclusions << parsed_content['exclusions'] if parsed_content['exclusions']
+                custom_rules << parsed_content['custom_rules'] if parsed_content['custom_rules']
               end
             end
 
@@ -88,6 +92,7 @@ module Datadog
               data: data,
               overrides: overrides,
               exclusions: exclusions,
+              custom_rules: custom_rules,
             )
 
             Datadog::AppSec.reconfigure(ruleset: ruleset)
@@ -95,6 +100,7 @@ module Datadog
 
           [receiver]
         end
+        # rubocop:enable Metrics/MethodLength
 
         private
 

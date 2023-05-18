@@ -17,16 +17,18 @@ module Datadog
         end
 
         class << self
-          def merge(rules:, data: [], overrides: [], exclusions: [])
+          def merge(rules:, data: [], overrides: [], exclusions: [], custom_rules: [])
             combined_rules = combine_rules(rules)
 
-            rules_data = combine_data(data) if data.any?
-            rules_overrides = combine_overrides(overrides) if overrides.any?
-            rules_exclusions = combine_exclusions(exclusions) if exclusions.any?
+            combined_data = combine_data(data) if data.any?
+            combined_overrides = combine_overrides(overrides) if overrides.any?
+            combined_exclusions = combine_exclusions(exclusions) if exclusions.any?
+            combined_custom_rules = combine_custom_rules(custom_rules) if custom_rules.any?
 
-            combined_rules['rules_data'] = rules_data if rules_data
-            combined_rules['rules_override'] = rules_overrides if rules_overrides
-            combined_rules['exclusions'] = rules_exclusions if rules_exclusions
+            combined_rules['rules_data'] = combined_data if combined_data
+            combined_rules['rules_override'] = combined_overrides if combined_overrides
+            combined_rules['exclusions'] = combined_exclusions if combined_exclusions
+            combined_rules['custom_rules'] = combined_custom_rules if combined_custom_rules
 
             combined_rules
           end
@@ -118,6 +120,10 @@ module Datadog
 
           def combine_exclusions(exclusions)
             exclusions.flatten
+          end
+
+          def combine_custom_rules(custom_rules)
+            custom_rules.flatten
           end
         end
       end
