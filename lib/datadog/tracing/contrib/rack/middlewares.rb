@@ -304,7 +304,15 @@ module Datadog
                        else
                          # normally REQUEST_URI starts at the path, but it
                          # might contain the full URL in some cases (e.g WEBrick)
-                         request_uri.sub(/^#{base_url}/, '')
+                         #
+                         # DEV: Use `request_uri.delete_prefix(base_url)`, supported in Ruby 2.5+
+                         # rubocop:disable Style/IfInsideElse
+                         if request_uri.rindex(base_url, 0)
+                           request_uri[base_url.length..-1]
+                         else
+                           request_uri
+                         end
+                         # rubocop:enable Style/IfInsideElse
                        end
 
             base_url + fullpath
