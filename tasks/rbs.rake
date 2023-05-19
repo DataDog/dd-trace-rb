@@ -19,10 +19,10 @@ namespace :rbs do  # rubocop:disable Metrics/BlockLength
     if stale.any?
       warn <<-EOS
         +------------------------------------------------------------------------------+
-        |  **Hello there, fellow contributor who just triggered a signature error**    |
+        | **Hello there, fellow contributor who just triggered a type signature error**|
         |                                                                              |
-        | It looks like you removed a file from `lib` and this left a lingering        |
-        | signature file in `sig`. If this file is stale you can clean up              |
+        | It looks like you removed a file from `lib/` and this left a lingering       |
+        | signature file in `sig/`. If this file is stale you can clean up             |
         | automatically with:                                                          |
         |                                                                              |
         |   bundle exec rake rbs:clean                                                 |
@@ -59,10 +59,10 @@ namespace :rbs do  # rubocop:disable Metrics/BlockLength
     if missing.any?
       warn <<-EOS
         +------------------------------------------------------------------------------+
-        |  **Hello there, fellow contributor who just triggered a signature error**    |
+        | **Hello there, fellow contributor who just triggered a type signature error**|
         |                                                                              |
-        | It looks like you created a file in `lib` that has no matching signature     |
-        | file in `sig`. You can automatically generate missing signature files with:  |
+        | It looks like you created a file in `lib/` that has no matching signature    |
+        | file in `sig/`. You can automatically generate missing signature files with:  
         |                                                                              |
         |   bundle exec rake rbs:prototype                                             |
         |                                                                              |
