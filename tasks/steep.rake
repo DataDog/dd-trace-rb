@@ -14,12 +14,14 @@ namespace :steep do
           |  **Hello there, fellow contributor who just triggered a Steep type error**   |
           |                                                                              |
           | We're still experimenting with Steep on this codebase. If possible, take a   |
-          | stab at getting it to work; you'll find a guide under                        |
-          | docs/StaticTypingGuide.md for how to use it.                                 |
+          | stab at getting it to work; you'll find a guide for how to use it here.      |
           |                                                                              |
-          | Feel free to unblock yourself by ignoring any files that triggered           |
-          | issues by changing the `Steepfile` (you'll find a lot of ignores there       |
-          | already).                                                                    |
+          |   less docs/StaticTypingGuide.md                                             |
+          |                                                                              |
+          | Feel free to unblock yourself by adding a line per file that triggered       |
+          | errors to the `Steepfile`:                                                   |
+          |                                                                              |
+          |   ignore 'lib/path/to/failing/file.rb'                                       |
           |                                                                              |
           | Also, if this is too annoying for you -- let us know! We definitely are      |
           | still improving how we use the tool.                                         |
