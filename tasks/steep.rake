@@ -31,6 +31,43 @@ namespace :steep do
       end
     end
   end
+
+  task :stats do |_task, args|
+    format = args.to_a.first || 'table'
+
+    if format == 'md'
+      data = `steep stats --format=csv`
+
+      require 'csv'
+
+      csv = CSV.new(data, headers: true)
+      headers = true
+      csv.each do |row|
+        hrow = row.to_h
+
+        if headers
+          $stdout.write('|')
+          $stdout.write(hrow.keys.join('|'))
+          $stdout.write('|')
+          $stdout.write("\n")
+
+          $stdout.write('|')
+          $stdout.write(hrow.values.map { |v| v =~ /^\d+$/ ? '--:' : ':--' }.join('|'))
+          $stdout.write('|')
+          $stdout.write("\n")
+        end
+
+        headers = false
+
+        $stdout.write('|')
+        $stdout.write(hrow.values.join('|'))
+        $stdout.write('|')
+        $stdout.write("\n")
+      end
+    else
+      sh "steep stats --format=#{format}"
+    end
+  end
 end
 
 task :typecheck => :'steep:check'

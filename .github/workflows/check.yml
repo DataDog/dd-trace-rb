@@ -15,4 +15,6 @@ jobs:
       - name: Check for missing signature files
         run: bundle exec rake rbs:missing
       - name: Check types
-        run: bundle exec rake typecheck
+        run: bundle exec rake steep:check
+      - name: Record stats
+        run: bundle exec rake steep:stats[md] >> $GITHUB_STEP_SUMMARY
