@@ -53,6 +53,8 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
       '3.0' => '3.0.4',
       '3.1' => '3.1.2',
       '3.2' => '3.2.0',
+      '3.3' => '3.3.0',
+      # ADD NEW RUBIES HERE
       'jruby-9.2' => 'jruby-9.2.21.0',
       'jruby-9.3' => 'jruby-9.3.9.0',
       'jruby-9.4' => 'jruby-9.4.0.0',
@@ -161,6 +163,8 @@ TRACER_VERSIONS = [
   '3.0',
   '3.1',
   '3.2',
+  '3.3',
+  # ADD NEW RUBIES HERE
   'jruby-9.2',
   'jruby-9.3',
   'jruby-9.4',
