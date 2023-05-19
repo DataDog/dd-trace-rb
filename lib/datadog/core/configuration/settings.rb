@@ -154,6 +154,9 @@ module Datadog
         # @default `DD_ENV` environment variable, otherwise `nil`
         # @return [String,nil]
         option :env do |o|
+          # DEV-2.0: Remove this conversion for symbol.
+          o.setter { |v| v.to_s if v }
+
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_ENVIRONMENT, nil) }
           o.lazy
@@ -353,6 +356,9 @@ module Datadog
         # @default `DD_SERVICE` environment variable, otherwise the program name (e.g. `'ruby'`, `'rails'`, `'pry'`)
         # @return [String]
         option :service do |o|
+          # DEV-2.0: Remove this conversion for symbol.
+          o.setter { |v| v.to_s if v }
+
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_SERVICE, Core::Environment::Ext::FALLBACK_SERVICE_NAME) }
           o.lazy

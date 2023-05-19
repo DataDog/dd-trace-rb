@@ -222,6 +222,22 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       it { expect(settings.env).to eq(env) }
     end
+
+    context 'when given a symbol' do
+      let(:env) { :symbol }
+
+      before { set_env }
+
+      it { expect(settings.env).to eq('symbol') }
+    end
+
+    context 'when given `nil`' do
+      let(:env) { nil }
+
+      before { set_env }
+
+      it { expect(settings.env).to be_nil }
+    end
   end
 
   describe '#logger' do
@@ -765,6 +781,22 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       before { set_service }
 
       it { expect(settings.service).to eq(service) }
+    end
+
+    context 'when given a symbol' do
+      let(:service) { :symbol }
+
+      before { set_service }
+
+      it { expect(settings.service).to eq('symbol') }
+    end
+
+    context 'when given `nil`' do
+      let(:service) { nil }
+
+      before { set_service }
+
+      it { expect(settings.service).to be_nil }
     end
   end
 
