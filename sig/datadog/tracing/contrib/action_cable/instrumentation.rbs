@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionCable
+        module Instrumentation
+          module ActionCableConnection
+            def on_open: () -> untyped
+          end
+          module ActionCableChannel
+            def self.included: (untyped base) -> untyped
+            class Tracer
+              def self.trace: (untyped channel, untyped hook) { () -> untyped } -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

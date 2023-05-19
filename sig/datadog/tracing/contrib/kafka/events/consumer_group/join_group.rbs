@@ -1,0 +1,25 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Kafka
+        module Events
+          module ConsumerGroup
+            module JoinGroup
+              include Kafka::Event
+
+              extend Kafka::ConsumerEvent
+
+              extend Kafka::ConsumerGroupEvent
+
+              EVENT_NAME: "join_group.consumer.kafka"
+
+              def self?.span_name: () -> untyped
+
+              def self?.span_options: () -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

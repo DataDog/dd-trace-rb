@@ -1,0 +1,21 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module DelayedJob
+        class Plugin < Delayed::Plugin
+          def self.instrument_invoke: (untyped job) { (untyped) -> untyped } -> untyped
+
+          def self.instrument_enqueue: (untyped job) { (untyped) -> untyped } -> untyped
+
+          def self.flush: (untyped worker) { (untyped) -> untyped } -> untyped
+
+          def self.configuration: () -> untyped
+
+          def self.job_name: (untyped job) -> untyped
+
+          def self.set_sample_rate: (untyped span) -> (untyped | nil)
+        end
+      end
+    end
+  end
+end

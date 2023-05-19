@@ -1,0 +1,20 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sinatra
+        class TracerMiddleware
+          def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> void
+          def call: (untyped env) -> untyped
+
+          private
+
+          def analytics_enabled?: () -> untyped
+
+          def analytics_sample_rate: () -> untyped
+
+          def configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

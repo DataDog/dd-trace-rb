@@ -1,0 +1,18 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionMailer
+        module Event
+          def self.included: (untyped base) -> untyped
+          module ClassMethods
+            def span_options: () -> untyped
+
+            def configuration: () -> untyped
+
+            def process: (untyped span, untyped event, untyped _id, untyped payload) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

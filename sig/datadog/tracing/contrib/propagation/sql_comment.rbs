@@ -1,0 +1,14 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Propagation
+        module SqlComment
+          def self.annotate!: (untyped span_op, untyped mode) -> (nil | untyped)
+          def self.prepend_comment: (untyped sql, untyped span_op, untyped trace_op, untyped mode) -> (untyped | ::String)
+
+          def self.datadog_configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

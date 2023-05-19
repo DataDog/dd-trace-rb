@@ -1,0 +1,27 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Http
+        class Transport
+          attr_reader host: untyped
+
+          attr_reader port: untyped
+
+          attr_reader ssl: untyped
+
+          attr_reader path: untyped
+
+          def initialize: () -> void
+
+          def request: (request_type: untyped, payload: untyped) -> untyped
+
+          private
+
+          def headers: (request_type: untyped, ?api_version: untyped) -> ::Hash[untyped, untyped]
+
+          def adapter: () -> untyped
+        end
+      end
+    end
+  end
+end

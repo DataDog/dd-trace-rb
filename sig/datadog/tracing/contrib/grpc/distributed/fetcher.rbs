@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GRPC
+        module Distributed
+          class Fetcher < Tracing::Distributed::Fetcher
+            def []: (untyped key) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

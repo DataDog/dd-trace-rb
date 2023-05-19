@@ -1,0 +1,29 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Utils
+        module Quantization
+          module HTTP
+            PLACEHOLDER: "?"
+            RFC3986_URL_BASE: ::Regexp
+
+            def self?.url: (untyped url, ?::Hash[untyped, untyped] options) -> untyped
+
+            def self?.base_url: (untyped url, ?::Hash[untyped, untyped] options) -> (untyped | "")
+
+            def self?.url!: (untyped url, ?::Hash[untyped, untyped] options) -> untyped
+
+            def self?.query: (untyped query, ?::Hash[untyped, untyped] options) -> untyped
+
+            def self?.query!: (untyped query, ?::Hash[untyped, untyped] options) -> ("" | untyped)
+            def self?.collect_query: (untyped query, ?::Hash[untyped, untyped] options) { (untyped, untyped, untyped) -> untyped } -> untyped
+            def self?.obfuscate_query: (untyped query, ?::Hash[untyped, untyped] options) -> untyped
+
+            OBFUSCATOR_WITH: "<redacted>"
+            OBFUSCATOR_REGEX: ::Regexp
+          end
+        end
+      end
+    end
+  end
+end

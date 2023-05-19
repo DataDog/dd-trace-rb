@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      class Registry
+        include Enumerable[untyped]
+
+        Entry: untyped
+        def initialize: () -> void
+        def add: (untyped name, untyped klass, ?bool auto_patch) -> untyped
+
+        def each: () ?{ () -> untyped } -> untyped
+
+        def []: (untyped name) -> untyped
+
+        def to_h: () -> untyped
+      end
+    end
+  end
+end

@@ -1,0 +1,17 @@
+module Datadog
+  module OpenTelemetry
+    module SDK
+      class Propagator
+        def initialize: (untyped datadog_propagator) -> void
+
+        def inject: (untyped carrier, ?context: untyped, ?setter: untyped) -> untyped
+
+        def extract: (untyped carrier, ?context: untyped, ?getter: untyped) -> untyped
+        def fields: () -> ::Array[untyped]
+
+        private
+        def to_otel_id: (untyped dd_id) -> untyped
+      end
+    end
+  end
+end

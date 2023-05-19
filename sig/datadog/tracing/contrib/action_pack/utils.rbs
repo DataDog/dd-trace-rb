@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionPack
+        module Utils
+          def self.exception_is_error?: (untyped exception) -> (untyped | true)
+
+          def self.set_analytics_sample_rate: (untyped span) -> (untyped | nil)
+
+          private
+
+          def self.datadog_configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

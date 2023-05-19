@@ -1,0 +1,10 @@
+module Datadog
+  module OpenTelemetry
+    module SDK
+      class IdGenerator
+        include ::OpenTelemetry::Trace
+        def self.generate_trace_id: () -> untyped
+      end
+    end
+  end
+end

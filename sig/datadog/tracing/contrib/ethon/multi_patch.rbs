@@ -1,0 +1,30 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Ethon
+        module MultiPatch
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            def add: (untyped easy) -> untyped
+
+            def perform: () -> untyped
+
+            private
+
+            def datadog_multi_performing?: () -> untyped
+
+            def datadog_multi_trace_digest: () -> (nil | untyped)
+
+            def datadog_multi_span: () -> untyped
+
+            def datadog_configuration: () -> untyped
+
+            def analytics_enabled?: () -> untyped
+
+            def analytics_sample_rate: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

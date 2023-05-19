@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Pipeline
+      class SpanFilter < SpanProcessor
+        def call: (untyped trace) -> untyped
+
+        private
+
+        def drop_it?: (untyped span) -> untyped
+      end
+    end
+  end
+end
