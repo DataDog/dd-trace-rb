@@ -1,3 +1,2 @@
-class Object
-  def inherited: (untyped base) -> untyped
-end
+# This file intentionally empty: nothing to type
+
