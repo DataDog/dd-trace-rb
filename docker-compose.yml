@@ -14,6 +14,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment: &common-environment
       BUNDLE_GEMFILE: /app/Gemfile-2.1
@@ -51,6 +52,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -75,6 +77,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -99,6 +102,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -123,6 +127,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -147,6 +152,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -171,6 +177,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -187,7 +194,6 @@ services:
     command: /bin/bash
     depends_on:
       - ddagent
-      - testagent
       - elasticsearch
       - memcached
       - mongodb
@@ -196,6 +202,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment: &common-environment-3x
       BUNDLE_GEMFILE: /app/Gemfile-3.0
@@ -231,6 +238,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment-3x
@@ -255,6 +263,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment-3x
@@ -280,6 +289,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -303,6 +313,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -326,6 +337,7 @@ services:
       - presto
       - redis
       - redis_old
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment
