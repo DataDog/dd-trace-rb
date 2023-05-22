@@ -29,7 +29,13 @@ class FauxWriter < Datadog::Tracing::Writer
     @mutex.synchronize do
       super(trace) if @options[:call_original]
       @traces << trace
-      @options[:transport].send_traces(trace) if options[:transport].is_a?(Datadog::Transport::HTTP)
+      if options[:transport].is_a?(Datadog::Transport::HTTP)
+        headers = @options[:transport].headers
+        headers['X-Datadog-Trace-Env-Variables'] = ENV.select { |key, _| key.start_with?('DD_') }
+          .map { |key, value| "#{key}=#{value}" }.join(',')
+        @options[:transport].headers = headers
+        @options[:transport].send_traces(trace)
+      end
     end
   end
 
