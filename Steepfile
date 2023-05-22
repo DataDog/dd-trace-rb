@@ -637,7 +637,7 @@ target :ddtrace do
   ignore 'lib/ddtrace/transport/traces.rb'
   ignore 'lib/ddtrace/version.rb'
 
-  library 'pathname', 'set'
+  library 'pathname'
   library 'cgi'
   library 'logger', 'monitor'
   library 'tsort'
