@@ -82,14 +82,9 @@ else
   gem 'yard', ['~> 0.9', '< 0.9.27'] # yard 0.9.27 starts pulling webrick as a gem dependency
 end
 
-if RUBY_VERSION >= '2.4.0'
-  if RUBY_VERSION >= '2.6.0'
-    gem 'rubocop', '~> 1.34.0', require: false
-    gem 'rubocop-packaging', '~> 0.5.2', require: false
-  else
-    gem 'rubocop', ['~> 1.10', '< 1.33.0'], require: false
-    gem 'rubocop-packaging', '~> 0.5', require: false
-  end
+if RUBY_VERSION >= '2.6.0'
+  gem 'rubocop', '~> 1.34.0', require: false
+  gem 'rubocop-packaging', '~> 0.5.2', require: false
   gem 'rubocop-performance', '~> 1.9', require: false
   gem 'rubocop-rspec', '~> 2.2', require: false
 end
