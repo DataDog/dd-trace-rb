@@ -8,20 +8,24 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
         result = described_class.frozen_or_dup(input)
 
+        expect(input).to be_frozen
+
         expect(result).to eq(input)
-        expect(result).to equal(input)
+        expect(result).to be(input)
         expect(result).to be_frozen
       end
     end
 
     context 'when given a string' do
-      it 'returns a duplicate' do
+      it 'returns a non frozen dupliacte' do
         input = 'a_string'
 
         result = described_class.frozen_or_dup(input)
 
+        expect(input).not_to be_frozen
+
         expect(result).to eq(input)
-        expect(result).not_to equal(input)
+        expect(result).not_to be(input)
         expect(result).not_to be_frozen
       end
     end
@@ -34,8 +38,10 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
         result = described_class.frozen_dup(input)
 
+        expect(input).to be_frozen
+
         expect(result).to eq(input)
-        expect(result).to equal(input)
+        expect(result).to be(input)
         expect(result).to be_frozen
       end
     end
@@ -46,8 +52,10 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
         result = described_class.frozen_dup(input)
 
+        expect(input).not_to be_frozen
+
         expect(result).to eq(input)
-        expect(result).not_to equal(input)
+        expect(result).not_to be(input)
         expect(result).to be_frozen
       end
     end
