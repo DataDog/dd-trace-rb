@@ -2,46 +2,54 @@ require 'datadog/core/utils/safe_dup'
 
 RSpec.describe Datadog::Core::Utils::SafeDup do
   describe '.frozen_or_dup' do
-    it do
-      input = 'a_frozen_string'.freeze
+    context 'when given a frozen string' do
+      it 'returns the original input' do
+        input = 'a_frozen_string'.freeze
 
-      result = described_class.frozen_or_dup(input)
+        result = described_class.frozen_or_dup(input)
 
-      expect(result).to eq(input)
-      expect(result).to equal(input)
-      expect(result).to be_frozen
+        expect(result).to eq(input)
+        expect(result).to equal(input)
+        expect(result).to be_frozen
+      end
     end
 
-    it do
-      input = 'a_string'
+    context 'when given a string' do
+      it 'returns a duplicate' do
+        input = 'a_string'
 
-      result = described_class.frozen_or_dup(input)
+        result = described_class.frozen_or_dup(input)
 
-      expect(result).to eq(input)
-      expect(result).not_to equal(input)
-      expect(result).not_to be_frozen
+        expect(result).to eq(input)
+        expect(result).not_to equal(input)
+        expect(result).not_to be_frozen
+      end
     end
   end
 
   describe '.frozen_dup' do
-    it do
-      input = 'a_frozen_string'.freeze
+    context 'when given a frozen string' do
+      it 'returns the original input' do
+        input = 'a_frozen_string'.freeze
 
-      result = described_class.frozen_dup(input)
+        result = described_class.frozen_dup(input)
 
-      expect(result).to eq(input)
-      expect(result).to equal(input)
-      expect(result).to be_frozen
+        expect(result).to eq(input)
+        expect(result).to equal(input)
+        expect(result).to be_frozen
+      end
     end
 
-    it do
-      input = 'a_string'
+    context 'when given a string' do
+      it 'returns a frozen duplicate' do
+        input = 'a_string'
 
-      result = described_class.frozen_dup(input)
+        result = described_class.frozen_dup(input)
 
-      expect(result).to eq(input)
-      expect(result).not_to equal(input)
-      expect(result).to be_frozen
+        expect(result).to eq(input)
+        expect(result).not_to equal(input)
+        expect(result).to be_frozen
+      end
     end
   end
 end
