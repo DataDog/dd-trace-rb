@@ -468,6 +468,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       describe '#force_enable_legacy_profiler' do
+        before { allow(Datadog.logger).to receive(:warn) }
+
         subject(:force_enable_legacy_profiler) { settings.profiling.advanced.force_enable_legacy_profiler }
 
         context 'when DD_PROFILING_FORCE_ENABLE_LEGACY' do
@@ -494,11 +496,19 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       describe '#force_enable_legacy_profiler=' do
+        before { allow(Datadog.logger).to receive(:warn) }
+
         it 'updates the #force_enable_legacy_profiler setting' do
           expect { settings.profiling.advanced.force_enable_legacy_profiler = true }
             .to change { settings.profiling.advanced.force_enable_legacy_profiler }
             .from(false)
             .to(true)
+        end
+
+        it 'logs a warning informing customers this has been deprecated for removal' do
+          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
+
+          settings.profiling.advanced.max_events = 1234
         end
       end
 

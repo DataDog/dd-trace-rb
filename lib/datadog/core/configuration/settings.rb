@@ -275,16 +275,21 @@ module Datadog
               end
             end
 
-            # Forces enabling the *legacy* (non-CPU Profiling 2.0 profiler) even when it would otherwise NOT be enabled.
+            # @deprecated Will be removed for dd-trace-rb 2.0.
             #
-            # Temporarily added to ease migration to the new CPU Profiling 2.0 profiler, and will be removed soon.
+            # Forces enabling the *legacy* non-CPU Profiling 2.0 profiler.
             # Do not use unless instructed to by support.
-            # This option will be deprecated for removal once the legacy profiler is removed.
             #
             # @default `DD_PROFILING_FORCE_ENABLE_LEGACY` environment variable, otherwise `false`
             option :force_enable_legacy_profiler do |o|
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_LEGACY', false) }
               o.lazy
+              o.on_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal. ' \
+                  'Do not use unless instructed to by support.'
+                )
+              end
             end
 
             # Forces enabling of profiling of time/resources spent in Garbage Collection.
