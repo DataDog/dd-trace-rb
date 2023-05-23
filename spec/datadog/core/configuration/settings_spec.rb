@@ -449,6 +449,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#legacy_transport_enabled=' do
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
+
+          settings.profiling.advanced.legacy_transport_enabled = true
+        end
+      end
+
       describe '#force_enable_legacy_profiler' do
         subject(:force_enable_legacy_profiler) { settings.profiling.advanced.force_enable_legacy_profiler }
 
