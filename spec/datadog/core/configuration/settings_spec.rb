@@ -340,17 +340,27 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#advanced' do
       describe '#max_events' do
+        before { allow(Datadog.logger).to receive(:warn) }
+
         subject(:max_events) { settings.profiling.advanced.max_events }
 
         it { is_expected.to eq(32768) }
       end
 
       describe '#max_events=' do
+        before { allow(Datadog.logger).to receive(:warn) }
+
         it 'updates the #max_events setting' do
           expect { settings.profiling.advanced.max_events = 1234 }
             .to change { settings.profiling.advanced.max_events }
             .from(32768)
             .to(1234)
+        end
+
+        it 'logs a warning informing customers this has been deprecated for removal' do
+          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
+
+          settings.profiling.advanced.max_events = 1234
         end
       end
 

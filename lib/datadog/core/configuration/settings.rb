@@ -205,12 +205,21 @@ module Datadog
 
           # @public_api
           settings :advanced do
+            # @deprecated This setting is ignored when CPU Profiling 2.0 is in use, and will be removed on dd-trace-rb 2.0.
+            #
             # This should never be reduced, as it can cause the resulting profiles to become biased.
             # The default should be enough for most services, allowing 16 threads to be sampled around 30 times
             # per second for a 60 second period.
-            #
-            # @deprecated This setting is ignored when CPU Profiling 2.0 is in use.
-            option :max_events, default: 32768
+            option :max_events do |o|
+              o.default 32768
+              o.on_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.max_events setting has been deprecated for removal. It no longer does anything ' \
+                  'unless you the `force_enable_legacy_profiler` option is in use. ' \
+                  'Please remove it from your Datadog.configure block.'
+                )
+              end
+            end
 
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
             # produced profiles. Increasing this may increase the overhead of profiling.
