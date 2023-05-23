@@ -441,38 +441,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#force_enable_new_profiler' do
-        subject(:force_enable_new_profiler) { settings.profiling.advanced.force_enable_new_profiler }
-
-        context 'when DD_PROFILING_FORCE_ENABLE_NEW' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_FORCE_ENABLE_NEW' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be false }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
-      end
-
       describe '#force_enable_new_profiler=' do
-        it 'updates the #force_enable_new_profiler setting' do
-          expect { settings.profiling.advanced.force_enable_new_profiler = true }
-            .to change { settings.profiling.advanced.force_enable_new_profiler }
-            .from(false)
-            .to(true)
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
+
+          settings.profiling.advanced.force_enable_new_profiler = true
         end
       end
 

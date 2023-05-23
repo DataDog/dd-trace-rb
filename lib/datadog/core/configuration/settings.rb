@@ -253,16 +253,17 @@ module Datadog
               end
             end
 
-            # Forces enabling the new CPU Profiling 2.0 profiler (see ddtrace release notes for more details).
+            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
             #
-            # Note that setting this to "false" (or not setting it) will not prevent the new profiler from
-            # being automatically used.
-            # This option will be deprecated for removal once the legacy profiler is removed.
-            #
-            # @default `DD_PROFILING_FORCE_ENABLE_NEW` environment variable, otherwise `false`
+            # This was used prior to the GA of the new CPU Profiling 2.0 profiler. Using CPU Profiling 2.0 is now the
+            # default and this doesn't do anything.
             option :force_enable_new_profiler do |o|
-              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_NEW', false) }
-              o.lazy
+              o.on_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.force_enable_new_profiler setting has been deprecated for removal and no ' \
+                  'longer does anything. Please remove it from your Datadog.configure block.'
+                )
+              end
             end
 
             # Forces enabling the *legacy* (non-CPU Profiling 2.0 profiler) even when it would otherwise NOT be enabled.
