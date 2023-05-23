@@ -405,9 +405,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
                 it { is_expected.to be true }
               end
 
-              { 'true' => true, 'false' => false }.each do |string, value|
-                context "is defined as #{string}" do
-                  let(:environment) { string }
+              [true, false].each do |value|
+                context "is defined as #{value}" do
+                  let(:environment) { value.to_s }
 
                   it { is_expected.to be value }
                 end
@@ -457,9 +457,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be false }
           end
 
-          { 'true' => true, 'false' => false }.each do |string, value|
-            context "is defined as #{string}" do
-              let(:environment) { string }
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
 
               it { is_expected.to be value }
             end
@@ -492,9 +492,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be false }
           end
 
-          { 'true' => true, 'false' => false }.each do |string, value|
-            context "is defined as #{string}" do
-              let(:environment) { string }
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
 
               it { is_expected.to be value }
             end
@@ -527,9 +527,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be false }
           end
 
-          { 'true' => true, 'false' => false }.each do |string, value|
-            context "is defined as #{string}" do
-              let(:environment) { string }
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
 
               it { is_expected.to be value }
             end
@@ -589,9 +589,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be false }
           end
 
-          { 'true' => true, 'false' => false }.each do |string, value|
-            context "is defined as #{string}" do
-              let(:environment) { string }
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
 
               it { is_expected.to be value }
             end
@@ -624,9 +624,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be :auto }
           end
 
-          { 'true' => true, 'false' => false }.each do |string, value|
-            context "is defined as #{string}" do
-              let(:environment) { string }
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
 
               it { is_expected.to be value }
             end
@@ -1191,9 +1191,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           it { is_expected.to be true }
         end
 
-        { 'true' => true, 'false' => false }.each do |string, value|
-          context "is defined as #{string}" do
-            let(:environment) { string }
+        [true, false].each do |value|
+          context "is defined as #{value}" do
+            let(:environment) { value.to_s }
 
             it { is_expected.to be value }
           end
