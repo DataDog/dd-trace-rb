@@ -516,7 +516,15 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'logs a warning informing customers this has been deprecated for removal' do
           expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
 
-          settings.profiling.advanced.max_events = 1234
+          settings.profiling.advanced.force_enable_legacy_profiler = 1234
+        end
+
+        context 'when value is set to false' do
+          it 'does not log a warning' do
+            expect(Datadog.logger).to_not receive(:warn)
+
+            settings.profiling.advanced.force_enable_legacy_profiler = false
+          end
         end
       end
 

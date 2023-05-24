@@ -284,11 +284,11 @@ module Datadog
             option :force_enable_legacy_profiler do |o|
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_LEGACY', false) }
               o.lazy
-              o.on_set do
+              o.on_set do |value|
                 Datadog.logger.warn(
                   'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal. ' \
                   'Do not use unless instructed to by support.'
-                )
+                ) if value
               end
             end
 
