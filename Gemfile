@@ -121,8 +121,3 @@ end
 gem 'docile', '~> 1.3.5' if RUBY_VERSION < '2.5'
 gem 'ffi', '~> 1.12.2' if RUBY_VERSION < '2.3'
 gem 'msgpack', '~> 1.3.3' if RUBY_VERSION < '2.4'
-
-# Temporarily needed, to support Ruby 3.3; upstream PR is at https://github.com/ruby-debug/debase-ruby_core_source/pull/8
-gem 'debase-ruby_core_source',
-  git: 'https://github.com/datadog/debase-ruby_core_source.git',
-  ref: 'a1f7dd0fde213e2cbba18e60db49b7c64483048b'

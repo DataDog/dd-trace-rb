@@ -56,14 +56,10 @@ Gem::Specification.new do |spec|
   # rubies, see #1739 and #1336 for an extended discussion about this
   spec.add_dependency 'msgpack'
 
-  # Used by the profiler native extension to support older Rubies (see NativeExtensionDesign.md for notes)
+  # Used by the profiler native extension to support Ruby < 2.6 and > 3.2
   #
-  # Most versions of this gem work for us, but 0.10.16 includes an important fix for Ruby 2.5.4 to 2.5.9
-  # (https://github.com/ruby-debug/debase-ruby_core_source/pull/6) so we should keep that as a lower bound going
-  # forward.
-  #
-  # We're pinning it at the latest available version and will manually bump the dependency as needed.
-  spec.add_dependency 'debase-ruby_core_source', '>= 0.10.16', '<= 3.2.0'
+  # We decided to pin it at the latest available version and will manually bump the dependency as needed.
+  spec.add_dependency 'debase-ruby_core_source', '= 3.2.1'
 
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.9.0.0.0'
