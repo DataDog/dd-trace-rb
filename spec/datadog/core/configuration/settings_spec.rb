@@ -362,6 +362,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
           settings.profiling.advanced.max_events = 1234
         end
+
+        context 'when value is set to default' do
+          it 'does not log a warning' do
+            expect(Datadog.logger).to_not receive(:warn)
+
+            settings.profiling.advanced.max_events = 32768
+          end
+        end
       end
 
       describe '#max_frames' do

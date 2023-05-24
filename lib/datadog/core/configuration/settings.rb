@@ -212,12 +212,12 @@ module Datadog
             # per second for a 60 second period.
             option :max_events do |o|
               o.default 32768
-              o.on_set do
+              o.on_set do |value|
                 Datadog.logger.warn(
                   'The profiling.advanced.max_events setting has been deprecated for removal. It no longer does anything ' \
                   'unless you the `force_enable_legacy_profiler` option is in use. ' \
                   'Please remove it from your Datadog.configure block.'
-                )
+                ) if value != 32768
               end
             end
 
