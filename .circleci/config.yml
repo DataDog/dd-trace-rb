@@ -435,7 +435,7 @@ orbs:
             default: 1m
         steps:
           - run:
-              name: Wait for container on port <<parameters.port>>
+              name: Wait for container at <<parameters.host>>:<<parameters.port>>
               command: dockerize -wait 'tcp://<<parameters.host>>:<<parameters.port>>' -timeout '<<parameters.timeout>>'
     executors:
       docker-integration:
