@@ -1,0 +1,8 @@
+module Datadog
+  module Profiling
+    module Pprof
+      class StringTable < Core::Utils::StringTable
+      end
+    end
+  end
+end

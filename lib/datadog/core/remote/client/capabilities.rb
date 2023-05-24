@@ -23,7 +23,7 @@ module Datadog
           private
 
           def register(settings)
-            if settings.appsec.enabled
+            if settings.respond_to?(:appsec) && settings.appsec.enabled
               register_capabilities(Datadog::AppSec::Remote.capabilities)
               register_products(Datadog::AppSec::Remote.products)
               register_receivers(Datadog::AppSec::Remote.receivers)

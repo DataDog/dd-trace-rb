@@ -637,7 +637,7 @@ target :ddtrace do
   ignore 'lib/ddtrace/transport/traces.rb'
   ignore 'lib/ddtrace/version.rb'
 
-  library 'pathname', 'set'
+  library 'pathname'
   library 'cgi'
   library 'logger', 'monitor'
   library 'tsort'
@@ -657,6 +657,14 @@ target :ddtrace do
   library 'google-protobuf'
   library 'protobuf-cucumber'
   library 'mysql2'
+  library 'opentracing'
+  library 'concurrent-ruby'
+  library 'faraday'
+  library 'seahorse'
+  library 'excon'
+  library 'grpc'
+  library 'delayed_job'
+  library 'opentelemetry-api'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'

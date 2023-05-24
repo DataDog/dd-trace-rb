@@ -497,6 +497,11 @@ job_configuration:
     ruby_version: 'ruby-3.2.0'
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-dd
     resource_class_to_use: medium+
+  - &config-3_3
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'ruby-3.3.0'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.3.0-dd
+    resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
   - &config-jruby-9_2 # More recent release of 9.2
     <<: *filters_all_branches_and_tags
@@ -532,6 +537,7 @@ workflows:
             - test-3.0
             - test-3.1
             - test-3.2
+            - test-3.3
             # ADD NEW RUBIES HERE
             - test-jruby-9.2
             - test-jruby-9.3
@@ -593,6 +599,11 @@ workflows:
           name: build_and_test_integration-3.2
           integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
           ruby_version: '3.2'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.3
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.3'
           <<: *filters_all_branches_and_tags
       # ⬆️ **Note**: If add/remove test apps above, remember to also copy-paste the changes to the "edge" workflow further down the file.
       #
@@ -682,6 +693,14 @@ workflows:
           name: test-3.2
           requires:
             - build-3.2
+      - orb/build:
+          <<: *config-3_3
+          name: build-3.3
+      - orb/test:
+          <<: *config-3_3
+          name: test-3.3
+          requires:
+            - build-3.3
       # ADD NEW RUBIES HERE
       - orb/build:
           <<: *config-jruby-9_2
@@ -761,6 +780,11 @@ workflows:
           name: build_and_test_integration-3.2
           integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
           ruby_version: '3.2'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.3
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.3'
           <<: *filters_all_branches_and_tags
       # ADD NEW RUBIES HERE
       - orb/build:
@@ -858,6 +882,15 @@ workflows:
           name: test-3.2
           requires:
             - build-3.2
+      - orb/build:
+          <<: *config-3_3
+          name: build-3.3
+          edge: true
+      - orb/test:
+          <<: *config-3_3
+          name: test-3.3
+          requires:
+            - build-3.3
       # ADD NEW RUBIES HERE
       - orb/build:
           <<: *config-jruby-9_2

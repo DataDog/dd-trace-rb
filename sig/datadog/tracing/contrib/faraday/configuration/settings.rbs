@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Faraday
+        module Configuration
+          class Settings < Contrib::Configuration::Settings
+            DEFAULT_ERROR_HANDLER: untyped
+          end
+        end
+      end
+    end
+  end
+end

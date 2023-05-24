@@ -1,0 +1,8 @@
+module Datadog
+  module Core
+    module Metrics
+      module Helpers
+      end
+    end
+  end
+end

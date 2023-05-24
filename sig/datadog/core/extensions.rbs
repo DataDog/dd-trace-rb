@@ -1,0 +1,7 @@
+module Datadog
+  module Core
+    module Extensions
+      def self.extended: (untyped base) -> untyped
+    end
+  end
+end

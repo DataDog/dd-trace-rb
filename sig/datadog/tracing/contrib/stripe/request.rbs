@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Stripe
+        module Request
+          def self?.start_span: (untyped event) -> untyped
+
+          def self?.finish_span: (untyped event) -> (nil | untyped)
+
+          def self?.tag_span: (untyped span, untyped event) -> untyped
+
+          def self?.configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

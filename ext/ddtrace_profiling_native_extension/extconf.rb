@@ -81,7 +81,10 @@ end
 
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
-add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true'
+#
+# @ivoanjo TODO: Ruby 3.3.0-preview1 was causing issues in CI because `have_header('vm_core.h')` below triggers warnings;
+# I've chosen to disable `-Werror` for this Ruby version for now, and we can revisit this on a later 3.3 release.
+add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true' && !RUBY_DESCRIPTION.include?('3.3.0preview1')
 
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase
@@ -127,6 +130,12 @@ if RUBY_PLATFORM.include?('linux')
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
+
+# On older Rubies, we did not need to include the ractor header (this was built into the MJIT header)
+$defs << '-DNO_RACTOR_HEADER_INCLUDE' if RUBY_VERSION < '3.3'
+
+# On older Rubies, some of the Ractor internal APIs were directly accessible
+$defs << '-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY' if RUBY_VERSION < '3.3'
 
 # On older Rubies, there was no struct rb_native_thread. See private_vm_api_acccess.c for details.
 $defs << '-DNO_RB_NATIVE_THREAD' if RUBY_VERSION < '3.2'
@@ -217,7 +226,8 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
 
   create_makefile EXTENSION_NAME
 else
-  # On older Rubies, we use the debase-ruby_core_source gem to get access to private VM headers.
+  # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
+  # the debase-ruby_core_source gem to get access to private VM headers.
   # This gem ships source code copies of these VM headers for the different Ruby VM versions;
   # see https://github.com/ruby-debug/debase-ruby_core_source for details
 
@@ -228,7 +238,11 @@ else
 
   Debase::RubyCoreSource
     .create_makefile_with_core(
-      proc { have_header('vm_core.h') && have_header('iseq.h') },
+      proc do
+        have_header('vm_core.h') &&
+        have_header('iseq.h') &&
+        (RUBY_VERSION < '3.3' || have_header('ractor_core.h'))
+      end,
       EXTENSION_NAME,
     )
 end

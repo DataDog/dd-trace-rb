@@ -1,0 +1,10 @@
+module Datadog
+  module Tracing
+    module Contrib
+      def self.auto_instrument!: () -> untyped
+      module AutoInstrument
+        def self.patch_all!: () -> untyped
+      end
+    end
+  end
+end

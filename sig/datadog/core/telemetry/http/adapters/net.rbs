@@ -1,0 +1,50 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Http
+        module Adapters
+          class Net
+            attr_reader hostname: untyped
+
+            attr_reader port: untyped
+
+            attr_reader timeout: untyped
+
+            attr_reader ssl: untyped
+
+            DEFAULT_TIMEOUT: 30
+
+            def initialize: (hostname: untyped, ?port: untyped?, ?timeout: untyped, ?ssl: bool) -> void
+
+            def open: () ?{ () -> untyped } -> untyped
+
+            def post: (untyped env) -> untyped
+            class Response
+              include Datadog::Core::Telemetry::Http::Response
+
+              attr_reader http_response: untyped
+
+              def initialize: (untyped http_response) -> void
+
+              def payload: () -> untyped
+
+              def code: () -> untyped
+
+              def ok?: () -> untyped
+
+              def unsupported?: () -> untyped
+
+              def not_found?: () -> untyped
+
+              def client_error?: () -> untyped
+
+              def server_error?: () -> untyped
+
+              def inspect: () -> ::String
+            end
+          end
+        end
+      end
+    end
+  end
+end

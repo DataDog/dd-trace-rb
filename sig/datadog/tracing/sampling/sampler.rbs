@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Sampling
+      class Sampler
+        def sample?: (untyped trace) -> untyped
+        def sample!: (untyped trace) -> untyped
+        def sample_rate: (untyped trace) -> untyped
+      end
+    end
+  end
+end

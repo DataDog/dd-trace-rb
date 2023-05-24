@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sidekiq
+        module ServerInternalTracer
+          module JobFetch
+            private
+
+            def fetch: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Roda
+        module Instrumentation
+          def _roda_handle_main_route: () -> untyped
+
+          def call: () -> untyped
+
+          private
+
+          def instrument: (untyped span_name) { () -> untyped } -> untyped
+
+          def configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,11 @@
+module Datadog
+  module OpenTelemetry
+    module SDK
+      module Configurator
+        def initialize: () -> void
+        def configure_propagation: () -> untyped
+        def wrapped_exporters_from_env: () -> ::Array[untyped]
+      end
+    end
+  end
+end

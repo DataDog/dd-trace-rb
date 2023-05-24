@@ -1,0 +1,21 @@
+module Datadog
+  module Core
+    module Workers
+      module Queue
+        def self.included: (untyped base) -> untyped
+        module PrependedMethods
+          def perform: (*untyped args) -> (untyped | nil)
+        end
+
+        def buffer: () -> untyped
+
+        def enqueue: (*untyped args) -> untyped
+
+        def dequeue: () -> untyped
+        def work_pending?: () -> untyped
+
+        attr_writer buffer: untyped
+      end
+    end
+  end
+end

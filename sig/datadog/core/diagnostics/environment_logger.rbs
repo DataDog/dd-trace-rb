@@ -1,0 +1,53 @@
+module Datadog
+  module Core
+    module Diagnostics
+      module EnvironmentLogger
+        def self.log!: (untyped transport_responses) -> untyped
+
+        private
+
+        def self.log_environment!: (untyped line) -> untyped
+
+        def self.log_error!: (untyped `type`, untyped error) -> untyped
+        def self.log?: () -> untyped
+
+        REPL_PROGRAM_NAMES: ::Array["irb" | "pry"]
+
+        def self.repl?: () -> untyped
+      end
+      class EnvironmentCollector
+        def date: () -> untyped
+        def os_name: () -> untyped
+        def version: () -> untyped
+        def lang: () -> untyped
+        def lang_version: () -> untyped
+        def env: () -> untyped
+        def enabled: () -> untyped
+        def service: () -> untyped
+        def dd_version: () -> untyped
+        def agent_url: () -> (nil | untyped)
+        def agent_error: (untyped transport_responses) -> (nil | untyped)
+        def debug: () -> untyped
+        def analytics_enabled: () -> untyped
+        def sample_rate: () -> (nil | untyped)
+        def sampling_rules: () -> (nil | untyped)
+        def tags: () -> (nil | untyped)
+        def runtime_metrics_enabled: () -> untyped
+        def integrations_loaded: () -> (nil | untyped)
+        def vm: () -> ::String
+        def partial_flushing_enabled: () -> untyped
+        def priority_sampling_enabled: () -> untyped
+        def health_metrics_enabled: () -> untyped
+
+        def profiling_enabled: () -> untyped
+        def collect!: (untyped transport_responses) -> ::Hash[:date | :os_name | :version | :lang | :lang_version | :env | :enabled | :service | :dd_version | :agent_url | :agent_error | :debug | :analytics_enabled | :sample_rate | :sampling_rules | :tags | :runtime_metrics_enabled | :integrations_loaded | :vm | :partial_flushing_enabled | :priority_sampling_enabled | :health_metrics_enabled | :profiling_enabled | untyped, untyped]
+
+        private
+
+        def instrumented_integrations: () -> untyped
+        def instrumented_integrations_settings: () -> untyped
+        def hash_serializer: (untyped h) -> untyped
+      end
+    end
+  end
+end

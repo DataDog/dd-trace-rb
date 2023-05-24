@@ -1,0 +1,12 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ConcurrentRuby
+        module Configuration
+          class Settings < Contrib::Configuration::Settings
+          end
+        end
+      end
+    end
+  end
+end
