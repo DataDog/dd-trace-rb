@@ -360,6 +360,8 @@ RSpec.describe Datadog::Profiling::Component do
   describe '.no_signals_workaround_enabled?' do
     subject(:no_signals_workaround_enabled?) { described_class.send(:no_signals_workaround_enabled?, settings) }
 
+    before { skip_if_profiling_not_supported(self) }
+
     context 'when no_signals_workaround_enabled is false' do
       before do
         settings.profiling.advanced.no_signals_workaround_enabled = false
