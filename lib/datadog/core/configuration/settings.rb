@@ -213,11 +213,13 @@ module Datadog
             option :max_events do |o|
               o.default 32768
               o.on_set do |value|
-                Datadog.logger.warn(
-                  'The profiling.advanced.max_events setting has been deprecated for removal. It no longer does anything ' \
-                  'unless you the `force_enable_legacy_profiler` option is in use. ' \
-                  'Please remove it from your Datadog.configure block.'
-                ) if value != 32768
+                if value != 32768
+                  Datadog.logger.warn(
+                    'The profiling.advanced.max_events setting has been deprecated for removal. It no longer does ' \
+                    'anything unless you the `force_enable_legacy_profiler` option is in use. ' \
+                    'Please remove it from your Datadog.configure block.'
+                  )
+                end
               end
             end
 
@@ -285,13 +287,15 @@ module Datadog
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_LEGACY', false) }
               o.lazy
               o.on_set do |value|
-                Datadog.logger.warn(
-                  'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal. ' \
-                  'Do not use unless instructed to by support. ' \
-                  'If you needed to use it due to incompatibilities with the CPU Profiling 2.0 profiler, consider ' \
-                  'using the profiling.advanced.no_signals_workaround_enabled setting instead. ' \
-                  'See <https://dtdg.co/ruby-profiler-troubleshooting> for details.'
-                ) if value
+                if value
+                  Datadog.logger.warn(
+                    'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal. ' \
+                    'Do not use unless instructed to by support. ' \
+                    'If you needed to use it due to incompatibilities with the CPU Profiling 2.0 profiler, consider ' \
+                    'using the profiling.advanced.no_signals_workaround_enabled setting instead. ' \
+                    'See <https://dtdg.co/ruby-profiler-troubleshooting> for details.'
+                  )
+                end
               end
             end
 
