@@ -445,7 +445,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   }
 
   // We implicitly assume there can be no concurrent nor nested calls to handle_sampling_signal because
-  // a) we get triggered using SIGPROF, and the docs state second SIGPROF will not interrupt an existing one
+  // a) we get triggered using SIGPROF, and the docs state a second SIGPROF will not interrupt an existing one
   // b) we validate we are in the thread that has the global VM lock; if a different thread gets a signal, it will return early
   //    because it will not have the global VM lock
 
@@ -509,7 +509,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       // Thus, we instead pretty please ask Ruby to let us run. This means profiling data can be biased by when the Ruby
       // scheduler chooses to schedule us.
       state->stats.trigger_simulated_signal_delivery_attempts++;
-      grab_gvl_and_sample();
+      grab_gvl_and_sample(); // Note: Can raise exceptions
     }
 
     sleep_for(minimum_time_between_signals);
