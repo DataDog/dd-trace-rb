@@ -8,18 +8,11 @@ GIT
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
 
-GIT
-  remote: https://github.com/datadog/debase-ruby_core_source.git
-  revision: a1f7dd0fde213e2cbba18e60db49b7c64483048b
-  ref: a1f7dd0fde213e2cbba18e60db49b7c64483048b
-  specs:
-    debase-ruby_core_source (3.2.0)
-
 PATH
   remote: ..
   specs:
     ddtrace (1.11.1)
-      debase-ruby_core_source (>= 0.10.16, <= 3.2.0)
+      debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 2.0.0.1.0)
       libddwaf (~> 1.9.0.0.0)
       msgpack
@@ -108,6 +101,7 @@ GEM
     crass (1.0.6)
     cri (2.15.11)
     date (3.3.3)
+    debase-ruby_core_source (3.2.1)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -165,7 +159,7 @@ GEM
       racc (~> 1.4)
     opentracing (0.5.0)
     os (1.1.4)
-    parallel (1.22.1)
+    parallel (1.23.0)
     parser (3.2.2.1)
       ast (~> 2.4.1)
     pg (1.5.3)
@@ -243,20 +237,20 @@ GEM
     rspec_n (1.5.0)
       colorize (~> 0.8.0)
       cri (~> 2.15.3)
-    rubocop (1.32.0)
+    rubocop (1.34.1)
       json (~> 2.3)
       parallel (~> 1.10)
-      parser (>= 3.1.0.0)
+      parser (>= 3.1.2.1)
       rainbow (>= 2.2.2, < 4.0)
       regexp_parser (>= 1.8, < 3.0)
       rexml (>= 3.2.5, < 4.0)
-      rubocop-ast (>= 1.19.1, < 2.0)
+      rubocop-ast (>= 1.20.0, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 1.4.0, < 3.0)
     rubocop-ast (1.28.1)
       parser (>= 3.2.1.0)
-    rubocop-packaging (0.5.1)
-      rubocop (>= 0.89, < 2.0)
+    rubocop-packaging (0.5.2)
+      rubocop (>= 1.33, < 2.0)
     rubocop-performance (1.17.1)
       rubocop (>= 1.7.0, < 2.0)
       rubocop-ast (>= 0.4.0)
@@ -314,7 +308,6 @@ DEPENDENCIES
   climate_control (~> 0.2.0)
   concurrent-ruby
   ddtrace!
-  debase-ruby_core_source!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
@@ -324,7 +317,6 @@ DEPENDENCIES
   net-smtp
   opentracing (>= 0.4.1)
   os (~> 1.1)
-  parallel (< 1.23)
   pg (>= 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
@@ -339,8 +331,8 @@ DEPENDENCIES
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
   rspec_n (~> 1.3)
-  rubocop (~> 1.10, < 1.33.0)
-  rubocop-packaging (~> 0.5)
+  rubocop (~> 1.34.0)
+  rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.2)
   ruby-prof (~> 1.4)
