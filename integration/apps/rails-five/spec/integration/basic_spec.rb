@@ -15,18 +15,11 @@ RSpec.describe 'Basic scenarios' do
     let(:json_result) { JSON.parse(subject.body, symbolize_names: true) }
 
     let(:expected_profiler_threads) do
-      if RUBY_VERSION >= '2.6.'
-        contain_exactly(
-          'Datadog::Profiling::Collectors::IdleSamplingHelper',
-          'Datadog::Profiling::Collectors::CpuAndWallTimeWorker',
-          'Datadog::Profiling::Scheduler',
-        )
-      else
-        contain_exactly(
-          'Datadog::Profiling::Collectors::OldStack',
-          'Datadog::Profiling::Scheduler',
-        )
-      end
+      contain_exactly(
+        'Datadog::Profiling::Collectors::IdleSamplingHelper',
+        'Datadog::Profiling::Collectors::CpuAndWallTimeWorker',
+        'Datadog::Profiling::Scheduler',
+      )
     end
 
     it { is_expected.to be_a_kind_of(Net::HTTPOK) }
