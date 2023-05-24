@@ -287,7 +287,10 @@ module Datadog
               o.on_set do |value|
                 Datadog.logger.warn(
                   'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal. ' \
-                  'Do not use unless instructed to by support.'
+                  'Do not use unless instructed to by support. ' \
+                  'If you needed to use it due to incompatibilities with the CPU Profiling 2.0 profiler, consider ' \
+                  'using the profiling.advanced.no_signals_workaround_enabled setting instead. ' \
+                  'See <https://dtdg.co/ruby-profiler-troubleshooting> for details.'
                 ) if value
               end
             end
