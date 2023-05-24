@@ -51,8 +51,9 @@ RSpec.describe Datadog::Profiling::Component do
 
       context 'when using the legacy profiler' do
         before do
-          settings.profiling.advanced.force_enable_legacy_profiler = true
           allow(Datadog.logger).to receive(:warn).with(/Legacy profiler has been force-enabled/)
+          allow(Datadog.logger).to receive(:warn).with(/force_enable_legacy_profiler setting has been deprecated/)
+          settings.profiling.advanced.force_enable_legacy_profiler = true
         end
 
         it 'sets up the Profiler with the OldStack collector' do
@@ -336,9 +337,8 @@ RSpec.describe Datadog::Profiling::Component do
 
     context 'when force_enable_legacy_profiler is enabled' do
       before do
-        settings.profiling.advanced.force_enable_legacy_profiler = true
-
         allow(Datadog.logger).to receive(:warn)
+        settings.profiling.advanced.force_enable_legacy_profiler = true
       end
 
       it { is_expected.to be false }
