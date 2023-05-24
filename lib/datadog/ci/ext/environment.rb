@@ -289,7 +289,7 @@ module Datadog
             TAG_PIPELINE_ID => env['CI_PIPELINE_ID'],
             TAG_PIPELINE_NAME => env['CI_PROJECT_PATH'],
             TAG_PIPELINE_NUMBER => env['CI_PIPELINE_IID'],
-            TAG_PIPELINE_URL => (url.gsub(%r{/-/pipelines/}, '/pipelines/') if url),
+            TAG_PIPELINE_URL => env['CI_PIPELINE_URL'],
             TAG_PROVIDER_NAME => 'gitlab',
             TAG_WORKSPACE_PATH => env['CI_PROJECT_DIR'],
             Core::Git::Ext::TAG_COMMIT_MESSAGE => env['CI_COMMIT_MESSAGE'],
