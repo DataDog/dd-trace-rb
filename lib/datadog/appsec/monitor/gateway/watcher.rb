@@ -22,13 +22,13 @@ module Datadog
               gateway.watch('identity.set_user', :appsec) do |stack, user|
                 block = false
                 event = nil
-                waf_context = Datadog::AppSec::Processor.active_context
+                scope = Datadog::AppSec.active_scope
 
                 AppSec::Reactive::Operation.new('identity.set_user') do |op|
                   trace = active_trace
                   span = active_span
 
-                  Monitor::Reactive::SetUser.subscribe(op, waf_context) do |result, _block|
+                  Monitor::Reactive::SetUser.subscribe(op, scope.processor_context) do |result, _block|
                     if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
@@ -41,7 +41,7 @@ module Datadog
 
                       span.set_tag('appsec.event', 'true') if span
 
-                      waf_context.events << event
+                      scope.processor_context.events << event
                     end
                   end
 

@@ -31,19 +31,19 @@ module Datadog
 
             processor = nil
             ready = false
-            context = nil
+            scope = nil
 
-            # For a given request, keep using the first Rack stack context for
+            # For a given request, keep using the first Rack stack scope for
             # nested apps. Don't set `context` local variable so that on popping
             # out of this nested stack we don't finalize the parent's context
-            return @app.call(env) if env['datadog.waf.context']
+            return @app.call(env) if active_scope(env)
 
             Datadog::AppSec.reconfigure_lock do
               processor = Datadog::AppSec.processor
 
               if !processor.nil? && processor.ready?
-                context = processor.activate_context
-                env['datadog.waf.context'] = context
+                scope = Datadog::AppSec::Scope.activate_scope(active_trace, active_span, processor)
+                env['datadog.appsec.scope'] = scope
                 ready = true
               end
             end
@@ -70,17 +70,17 @@ module Datadog
               request_return[2],
               request_return[0],
               request_return[1],
-              active_context: context
+              scope: scope
             )
 
             _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
 
-            context.events.each do |e|
+            scope.processor_context.events.each do |e|
               e[:response] ||= gateway_response
               e[:request]  ||= gateway_request
             end
 
-            AppSec::Event.record(active_span, *context.events)
+            AppSec::Event.record(active_span, *scope.processor_context.events)
 
             if response_response && response_response.any? { |action, _event| action == :block }
               request_return = AppSec::Response.negotiate(env).to_rack
@@ -88,14 +88,18 @@ module Datadog
 
             request_return
           ensure
-            if context
-              add_waf_runtime_tags(active_span, context)
-              processor.deactivate_context
+            if scope
+              add_waf_runtime_tags(active_span, scope.processor_context)
+              Datadog::AppSec::Scope.deactivate_scope
             end
           end
           # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
 
           private
+
+          def active_scope(env)
+            env['datadog.appsec.scope']
+          end
 
           def active_trace
             # TODO: factor out tracing availability detection

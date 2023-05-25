@@ -25,13 +25,13 @@ module Datadog
                 gateway.watch('rack.request', :appsec) do |stack, gateway_request|
                   block = false
                   event = nil
-                  waf_context = gateway_request.env['datadog.waf.context']
+                  scope = gateway_request.env['datadog.appsec.scope']
 
                   AppSec::Reactive::Operation.new('rack.request') do |op|
                     trace = active_trace
                     span = active_span
 
-                    Rack::Reactive::Request.subscribe(op, waf_context) do |result, _block|
+                    Rack::Reactive::Request.subscribe(op, scope.processor_context) do |result, _block|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
@@ -44,7 +44,7 @@ module Datadog
 
                         span.set_tag('appsec.event', 'true') if span
 
-                        waf_context.events << event
+                        scope.processor_context.events << event
                       end
                     end
 
@@ -68,13 +68,13 @@ module Datadog
                 gateway.watch('rack.response', :appsec) do |stack, gateway_response|
                   block = false
                   event = nil
-                  waf_context = gateway_response.active_context
+                  scope = gateway_response.scope
 
                   AppSec::Reactive::Operation.new('rack.response') do |op|
                     trace = active_trace
                     span = active_span
 
-                    Rack::Reactive::Response.subscribe(op, waf_context) do |result, _block|
+                    Rack::Reactive::Response.subscribe(op, scope.processor_context) do |result, _block|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
@@ -87,7 +87,7 @@ module Datadog
 
                         span.set_tag('appsec.event', 'true') if span
 
-                        waf_context.events << event
+                        scope.processor_context.events << event
                       end
                     end
 
@@ -111,13 +111,13 @@ module Datadog
                 gateway.watch('rack.request.body', :appsec) do |stack, gateway_request|
                   block = false
                   event = nil
-                  waf_context = gateway_request.env['datadog.waf.context']
+                  scope = gateway_request.env['datadog.appsec.scope']
 
                   AppSec::Reactive::Operation.new('rack.request.body') do |op|
                     trace = active_trace
                     span = active_span
 
-                    Rack::Reactive::RequestBody.subscribe(op, waf_context) do |result, _block|
+                    Rack::Reactive::RequestBody.subscribe(op, scope.processor_context) do |result, _block|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
@@ -130,7 +130,7 @@ module Datadog
 
                         span.set_tag('appsec.event', 'true') if span
 
-                        waf_context.events << event
+                        scope.processor_context.events << event
                       end
                     end
 
