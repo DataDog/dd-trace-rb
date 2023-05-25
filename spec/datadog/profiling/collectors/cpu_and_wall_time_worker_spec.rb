@@ -41,16 +41,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
       end
     end
-
-    context 'when using the no signals workaround' do
-      let(:no_signals_workaround_enabled) { true }
-
-      it 'logs a debug message' do
-        expect(Datadog.logger).to receive(:debug).with(/no signals workaround is in use/)
-
-        cpu_and_wall_time_worker
-      end
-    end
   end
 
   describe '#start' do
