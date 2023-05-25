@@ -9,7 +9,13 @@ require 'support/network_helpers'
 class FauxWriter < Datadog::Tracing::Writer
   def initialize(options = {})
     options[:transport] ||= if NetworkHelpers.check_availability_by_http_request('testagent', 9126)
-                              Datadog::Transport::HTTP.default do |t|
+                              Datadog::Transport::HTTP.default(
+                                headers: {
+                                  'X-Datadog-Trace-Env-Variables' => ENV.to_h.select { |key, _| key.start_with?('DD_') }
+                                                                            .map { |key, value| "#{key}=#{value}" }
+                                                                            .join(',')
+                                }
+                              ) do |t|
                                 t.adapter :net_http, 'testagent', 9126, timeout: 30
                               end
                             else
@@ -29,12 +35,7 @@ class FauxWriter < Datadog::Tracing::Writer
     @mutex.synchronize do
       super(trace) if @options[:call_original]
       @traces << trace
-      if options[:transport].is_a?(Datadog::Transport::HTTP)
-        headers = @options[:transport].headers
-        headers['X-Datadog-Trace-Env-Variables'] = ENV.to_h.map { |key, value| "#{key}=#{value}" }.join(',')
-        @options[:transport].headers = headers
-        @options[:transport].send_traces(trace)
-      end
+      @options[:transport].send_traces(trace)
     end
   end
 
