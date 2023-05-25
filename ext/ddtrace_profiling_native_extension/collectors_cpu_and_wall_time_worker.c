@@ -482,7 +482,17 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
 
-    if (!state->no_signals_workaround_enabled) {
+    if (state->no_signals_workaround_enabled) {
+      // In the no_signals_workaround_enabled mode, the profiler never sends SIGPROF signals.
+      //
+      // This is a fallback for a few incompatibilities and limitations -- see the code that decides when to enable
+      // `no_signals_workaround_enabled` in `Profiling::Component` for details.
+      //
+      // Thus, we instead pretty please ask Ruby to let us run. This means profiling data can be biased by when the Ruby
+      // scheduler chooses to schedule us.
+      state->stats.trigger_simulated_signal_delivery_attempts++;
+      grab_gvl_and_sample(); // Note: Can raise exceptions
+    } else {
       current_gvl_owner owner = gvl_owner();
       if (owner.valid) {
         // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
@@ -500,16 +510,6 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
         state->stats.trigger_simulated_signal_delivery_attempts++;
         idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
       }
-    } else {
-      // In the no_signals_workaround_enabled mode, the profiler never sends SIGPROF signals.
-      //
-      // This is a fallback for a few incompatibilities and limitations -- see the code that decides when to enable
-      // `no_signals_workaround_enabled` in `Profiling::Component` for details.
-      //
-      // Thus, we instead pretty please ask Ruby to let us run. This means profiling data can be biased by when the Ruby
-      // scheduler chooses to schedule us.
-      state->stats.trigger_simulated_signal_delivery_attempts++;
-      grab_gvl_and_sample(); // Note: Can raise exceptions
     }
 
     sleep_for(minimum_time_between_signals);
