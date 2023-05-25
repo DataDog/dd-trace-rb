@@ -8,7 +8,12 @@ module Datadog
     module Identity
       # Attach user information to the trace
       #
-      # @param trace [TraceOperation] Trace to attach data to.
+      # @param trace [TraceOperation] Trace to attach data to. Defaults to
+      #   active trace.
+      # @param span [SpanOperation] Span to attach data to. Defaults to
+      #   active span on trace. Note that this should be a service entry span.
+      #   When AppSec is enabled, the expected span and trace are automatically
+      #   used as defaults.
       # @param id [String] Mandatory. Username or client id extracted
       #   from the access token or Authorization header in the inbound request
       #   from outside the system.
@@ -29,7 +34,8 @@ module Datadog
       #
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
-      def self.set_user(trace, id:, email: nil, name: nil, session_id: nil, role: nil, scope: nil, **others)
+      # rubocop:disable Metrics/AbcSize
+      def self.set_user(trace = nil, span = nil, id:, email: nil, name: nil, session_id: nil, role: nil, scope: nil, **others)
         raise ArgumentError, 'missing required key: :id' if id.nil?
 
         # enforce types
@@ -45,24 +51,37 @@ module Datadog
           raise TypeError, "#{k.inspect} must be a String" unless v.nil? || v.is_a?(String)
         end
 
-        # set tags once data is known consistent
-
-        trace.set_tag('usr.id', id)
-        trace.set_tag('usr.email', email)           unless email.nil?
-        trace.set_tag('usr.name', name)             unless name.nil?
-        trace.set_tag('usr.session_id', session_id) unless session_id.nil?
-        trace.set_tag('usr.role', role)             unless role.nil?
-        trace.set_tag('usr.scope', scope)           unless scope.nil?
-
-        others.each do |k, v|
-          trace.set_tag("usr.#{k}", v) unless v.nil?
+        if (appsec_scope = Datadog::AppSec.active_scope)
+          trace = appsec_scope.trace
+          span = appsec_scope.span
         end
 
-        if Datadog.configuration.appsec.enabled
+        trace ||= Datadog::Tracing.active_trace
+        span ||= trace.active_span || Datadog::Tracing.active_span
+
+        if trace.trace_id != span.trace_id
+          raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.trace_id}"
+        end
+
+        # set tags once data is known consistent
+
+        span.set_tag('usr.id', id)
+        span.set_tag('usr.email', email)           unless email.nil?
+        span.set_tag('usr.name', name)             unless name.nil?
+        span.set_tag('usr.session_id', session_id) unless session_id.nil?
+        span.set_tag('usr.role', role)             unless role.nil?
+        span.set_tag('usr.scope', scope)           unless scope.nil?
+
+        others.each do |k, v|
+          span.set_tag("usr.#{k}", v) unless v.nil?
+        end
+
+        if appsec_scope
           user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id)
           ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
         end
       end
+      # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Metrics/CyclomaticComplexity
     end
