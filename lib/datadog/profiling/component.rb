@@ -157,7 +157,8 @@ module Datadog
 
         unless [true, false, :auto].include?(setting_value)
           Datadog.logger.error(
-            "Ignoring invalid value for profiling no_signals_workaround_enabled setting: #{setting_value.inspect}"
+            "Ignoring invalid value for profiling no_signals_workaround_enabled setting: #{setting_value.inspect}. " \
+            'Valid options are `true`, `false` or (default) `:auto`.'
           )
 
           setting_value = :auto
