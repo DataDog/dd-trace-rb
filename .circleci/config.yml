@@ -100,7 +100,7 @@ test_containers:
       - DD_HOSTNAME=dd-trace-rb-ci
   - &agent_port 8126
   - &container_testagent
-    image: williamconti549/dd-apm-test-agent:pool-failures
+    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:latest
     name: testagent
     environment:
       - LOG_LEVEL=DEBUG
