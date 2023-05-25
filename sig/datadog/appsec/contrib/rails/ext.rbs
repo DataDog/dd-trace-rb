@@ -4,8 +4,6 @@ module Datadog
       module Rails
         module Ext
           APP: "rails"
-
-          ENV_ENABLED: "DD_TRACE_RAILS_ENABLED"
         end
       end
     end

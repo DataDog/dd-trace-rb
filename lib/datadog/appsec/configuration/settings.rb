@@ -116,7 +116,7 @@ module Datadog
         }.freeze
 
         # Struct constant whisker cast for Steep
-        Integration = _ = Struct.new(:integration, :options) # rubocop:disable Naming/ConstantName
+        Integration = _ = Struct.new(:integration) # rubocop:disable Naming/ConstantName
 
         def initialize
           @integrations = []
@@ -181,14 +181,6 @@ module Datadog
           _ = @options[:obfuscator_value_regex]
         end
 
-        def [](integration_name)
-          integration = Datadog::AppSec::Contrib::Integration.registry[integration_name]
-
-          raise ArgumentError, "'#{integration_name}' is not a valid integration." unless integration
-
-          integration.options
-        end
-
         def merge(dsl)
           dsl.options.each do |k, v|
             unless v.nil?
@@ -203,7 +195,7 @@ module Datadog
           dsl.instruments.each do |instrument|
             # TODO: error handling
             registered_integration = Datadog::AppSec::Contrib::Integration.registry[instrument.name]
-            @integrations << Integration.new(registered_integration, instrument.options)
+            @integrations << Integration.new(registered_integration)
 
             # TODO: move to a separate apply step
             klass = registered_integration.klass

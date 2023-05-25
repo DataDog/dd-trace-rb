@@ -5,8 +5,6 @@ module Datadog
         module Ext
           APP: "sinatra"
 
-          ENV_ENABLED: "DD_TRACE_SINATRA_ENABLED"
-
           ROUTE_INTERRUPT: :datadog_appsec_contrib_sinatra_route_interrupt
         end
       end

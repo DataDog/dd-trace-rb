@@ -26,8 +26,6 @@ module Datadog
         def obfuscator_key_regex=: (::String | ::Regexp) -> void
         def obfuscator_value_regex=: (::String | ::Regexp) -> void
 
-        def []: (::Symbol arg) -> Configuration::Settings::options
-
         def enabled: () -> bool
         def ruleset: () -> (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO)
         def ip_denylist: () -> ::Array[::String]
