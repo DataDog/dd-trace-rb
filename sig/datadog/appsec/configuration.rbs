@@ -12,7 +12,9 @@ module Datadog
           attr_accessor name: ::Symbol
         end
 
-        @instruments: ::Array[Instrument]
+        type instruments = ::Array[Instrument]
+
+        @instruments: instruments
         @options: options
 
         def options: () -> options
@@ -21,7 +23,7 @@ module Datadog
 
         def instrument: (::Symbol name) -> void
 
-        def instruments: () -> ::Array[Instrument]
+        def instruments: () -> instruments
 
         def enabled=: (bool) -> void
         def ruleset=: (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO) -> void

@@ -181,14 +181,6 @@ module Datadog
           _ = @options[:obfuscator_value_regex]
         end
 
-        def [](integration_name)
-          integration = Datadog::AppSec::Contrib::Integration.registry[integration_name]
-
-          raise ArgumentError, "'#{integration_name}' is not a valid integration." unless integration
-
-          integration.options
-        end
-
         def merge(dsl)
           dsl.options.each do |k, v|
             unless v.nil?

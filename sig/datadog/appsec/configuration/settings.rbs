@@ -36,8 +36,6 @@ module Datadog
         def obfuscator_key_regex: () -> ::String
         def obfuscator_value_regex: () -> ::String
 
-        def []: (::Symbol integration_name) -> options
-
         def merge: (DSL) -> Settings
 
         private

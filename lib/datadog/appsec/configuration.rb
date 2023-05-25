@@ -64,10 +64,6 @@ module Datadog
         def obfuscator_value_regex=(value)
           options[:obfuscator_value_regex] = value
         end
-
-        def [](key)
-          @instruments.find { |e| e.name == key }
-        end
       end
 
       # class-level methods for Configuration
