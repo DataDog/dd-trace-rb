@@ -31,8 +31,7 @@ class FauxWriter < Datadog::Tracing::Writer
       @traces << trace
       if options[:transport].is_a?(Datadog::Transport::HTTP)
         headers = @options[:transport].headers
-        headers['X-Datadog-Trace-Env-Variables'] = ENV.select { |key, _| key.start_with?('DD_') }
-          .map { |key, value| "#{key}=#{value}" }.join(',')
+        headers['X-Datadog-Trace-Env-Variables'] = ENV.to_h.map { |key, value| "#{key}=#{value}" }.join(',')
         @options[:transport].headers = headers
         @options[:transport].send_traces(trace)
       end
