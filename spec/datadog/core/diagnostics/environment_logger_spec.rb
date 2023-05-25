@@ -8,7 +8,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
   # Reading DD_AGENT_HOST allows this to work in CI
   let(:agent_hostname) { ENV['DD_AGENT_HOST'] || '127.0.0.1' }
-  let(:agent_port) { ENV['DD_TRACE_AGENT_PORT'] || 9126 }
+  let(:agent_port) { ENV['DD_TRACE_AGENT_PORT'] || 8126 }
 
   before do
     allow(DateTime).to receive(:now).and_return(DateTime.new(2020))
