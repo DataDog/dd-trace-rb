@@ -15,7 +15,7 @@ module Datadog
       # Configuration DSL implementation
       class DSL
         # Struct constant whisker cast for Steep
-        Instrument = _ = Struct.new(:name, :options) # rubocop:disable Naming/ConstantName
+        Instrument = _ = Struct.new(:name) # rubocop:disable Naming/ConstantName
 
         def initialize
           @instruments = []
@@ -24,8 +24,8 @@ module Datadog
 
         attr_reader :instruments, :options
 
-        def instrument(name, options = {})
-          @instruments << Instrument.new(name, options)
+        def instrument(name)
+          @instruments << Instrument.new(name)
         end
 
         def enabled=(value)
@@ -66,9 +66,7 @@ module Datadog
         end
 
         def [](key)
-          found = @instruments.find { |e| e.name == key }
-
-          found.options if found
+          @instruments.find { |e| e.name == key }
         end
       end
 

@@ -8,9 +8,8 @@ module Datadog
         type options = Configuration::DSL::options
 
         class Integration < ::Struct[untyped]
-          def initialize: (untyped integration, options options) -> void
+          def initialize: (untyped integration) -> void
           attr_accessor integration: untyped
-          attr_accessor options: options
         end
 
         def self.boolean: () -> ^(::String) -> bool

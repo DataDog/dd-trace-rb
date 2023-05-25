@@ -30,9 +30,9 @@ module Datadog
 
         # Writer methods
 
-        def instrument(name, options = {})
+        def instrument(name, _options = {})
           dsl = AppSec::Configuration::DSL.new
-          dsl.instrument(name, options)
+          dsl.instrument(name)
           @settings.merge(dsl)
         end
 

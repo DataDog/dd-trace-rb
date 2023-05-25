@@ -8,9 +8,8 @@ module Datadog
         type options = ::Hash[::Symbol, option]
 
         class Instrument < ::Struct[untyped]
-          def initialize: (::Symbol name, options options) -> void
+          def initialize: (::Symbol name) -> void
           attr_accessor name: ::Symbol
-          attr_accessor options: options
         end
 
         @instruments: ::Array[Instrument]
@@ -20,7 +19,7 @@ module Datadog
 
         def initialize: () -> void
 
-        def instrument: (::Symbol name, ?options options) -> void
+        def instrument: (::Symbol name) -> void
 
         def instruments: () -> ::Array[Instrument]
 

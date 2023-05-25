@@ -116,7 +116,7 @@ module Datadog
         }.freeze
 
         # Struct constant whisker cast for Steep
-        Integration = _ = Struct.new(:integration, :options) # rubocop:disable Naming/ConstantName
+        Integration = _ = Struct.new(:integration) # rubocop:disable Naming/ConstantName
 
         def initialize
           @integrations = []
@@ -203,7 +203,7 @@ module Datadog
           dsl.instruments.each do |instrument|
             # TODO: error handling
             registered_integration = Datadog::AppSec::Contrib::Integration.registry[instrument.name]
-            @integrations << Integration.new(registered_integration, instrument.options)
+            @integrations << Integration.new(registered_integration)
 
             # TODO: move to a separate apply step
             klass = registered_integration.klass
