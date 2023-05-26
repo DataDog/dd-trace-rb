@@ -59,10 +59,6 @@ module Datadog
         !@handle.nil?
       end
 
-      def new_context
-        Context.new(self)
-      end
-
       def finalize
         @handle.finalize
       end
