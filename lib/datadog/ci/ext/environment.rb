@@ -222,13 +222,11 @@ module Datadog
           }
 
           extra_tags = env
-            .select { |key, value| key.start_with?('BUILDKITE_AGENT_META_DATA_') }
-            .map { |key, value| "#{key.to_s.sub('BUILDKITE_AGENT_META_DATA_', '').downcase}:#{value}"}
-            .sort_by { |key| key.length }
+            .select { |key| key.start_with?('BUILDKITE_AGENT_META_DATA_') }
+            .map { |key, value| "#{key.to_s.sub('BUILDKITE_AGENT_META_DATA_', '').downcase}:#{value}" }
+            .sort_by(&:length)
 
-          if extra_tags.length > 0
-            tags[TAG_NODE_LABELS] = JSON.generate(extra_tags)
-          end
+          tags[TAG_NODE_LABELS] = JSON.generate(extra_tags) unless extra_tags.empty?
 
           tags
         end
@@ -289,7 +287,6 @@ module Datadog
         def extract_gitlab(env)
           commit_author_name, commit_author_email = extract_name_email(env['CI_COMMIT_AUTHOR'])
 
-          url = env['CI_PIPELINE_URL']
           {
             Core::Git::Ext::TAG_BRANCH => env['CI_COMMIT_REF_NAME'],
             Core::Git::Ext::TAG_COMMIT_SHA => env['CI_COMMIT_SHA'],
@@ -326,9 +323,7 @@ module Datadog
             name = name.split('/').reject { |v| v.nil? || v.include?('=') }.join('/')
           end
 
-          if !env['NODE_LABELS'].nil?
-            node_labels = JSON.generate(env['NODE_LABELS'].split(' '))
-          end
+          node_labels = JSON.generate(env['NODE_LABELS'].split) unless env['NODE_LABELS'].nil?
 
           {
             Core::Git::Ext::TAG_BRANCH => branch,
