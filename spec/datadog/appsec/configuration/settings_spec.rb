@@ -122,26 +122,6 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       it { expect { obfuscator_value_regex_ }.to change { settings.obfuscator_value_regex }.from(default).to('bar') }
     end
 
-    describe '#[]' do
-      describe 'when the integration exists' do
-        subject(:get) { settings[integration_name] }
-
-        let(:integration_options) { { foo: :bar } }
-
-        before { settings.merge(dsl.tap { |c| c.instrument(integration_name, integration_options) }) }
-
-        it 'retrieves the described configuration' do
-          is_expected.to eq(integration_options)
-        end
-      end
-
-      context 'when the integration doesn\'t exist' do
-        it do
-          expect { settings[:foobar] }.to raise_error(ArgumentError, /foobar/)
-        end
-      end
-    end
-
     context 'with env vars' do
       describe 'DD_APPSEC_ENABLED' do
         around do |example|

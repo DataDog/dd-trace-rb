@@ -4,6 +4,7 @@ require_relative '../patcher'
 require_relative '../../response'
 require_relative '../rack/request_middleware'
 require_relative 'framework'
+require_relative 'ext'
 require_relative 'gateway/watcher'
 require_relative 'gateway/route_params'
 require_relative 'gateway/request'
@@ -61,7 +62,7 @@ module Datadog
 
             request_return, request_response = Instrumentation.gateway.push('sinatra.request.dispatch', gateway_request) do
               # handle process_route interruption
-              catch(Ext::ROUTE_INTERRUPT) { super }
+              catch(Datadog::AppSec::Contrib::Sinatra::Ext::ROUTE_INTERRUPT) { super }
             end
 
             if request_response && request_response.any? { |action, _event| action == :block }
@@ -106,7 +107,7 @@ module Datadog
                 self.response = AppSec::Response.negotiate(env).to_sinatra_response
 
                 # interrupt request and return response to dispatch! for consistency
-                throw(Ext::ROUTE_INTERRUPT, response)
+                throw(Datadog::AppSec::Contrib::Sinatra::Ext::ROUTE_INTERRUPT, response)
               end
 
               yield(*args)

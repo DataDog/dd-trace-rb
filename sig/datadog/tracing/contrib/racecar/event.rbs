@@ -1,0 +1,23 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Racecar
+        module Event
+          def self.included: (untyped base) -> untyped
+          module ClassMethods
+            def subscription: (*untyped args) -> untyped
+
+            def span_options: () -> { service: untyped }
+
+            def configuration: () -> untyped
+
+            def process: (untyped span, untyped event, untyped _id, untyped payload) -> untyped
+
+            private
+            def ensure_clean_context!: () -> (nil | untyped)
+          end
+        end
+      end
+    end
+  end
+end

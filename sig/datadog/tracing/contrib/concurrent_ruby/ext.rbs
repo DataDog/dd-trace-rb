@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ConcurrentRuby
+        module Ext
+          APP: "concurrent-ruby"
+
+          ENV_ENABLED: "DD_TRACE_CONCURRENT_RUBY_ENABLED"
+        end
+      end
+    end
+  end
+end

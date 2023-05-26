@@ -1,0 +1,21 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Patchable
+        def self.included: (untyped base) -> untyped
+        module ClassMethods
+          def version: () -> nil
+          def available?: () -> untyped
+          def loaded?: () -> true
+          def compatible?: () -> untyped
+          def patchable?: () -> untyped
+        end
+        module InstanceMethods
+          def patcher: () -> nil
+          def patch: () -> ({ name: untyped, available: untyped, loaded: untyped, compatible: untyped, patchable: untyped } | true)
+          def auto_instrument?: () -> true
+        end
+      end
+    end
+  end
+end

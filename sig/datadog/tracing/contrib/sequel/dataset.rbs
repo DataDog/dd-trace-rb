@@ -1,0 +1,26 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sequel
+        module Dataset
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            def execute: (untyped sql, ?untyped options) ?{ () -> untyped } -> untyped
+
+            def execute_ddl: (untyped sql, ?untyped options) ?{ () -> untyped } -> untyped
+
+            def execute_dui: (untyped sql, ?untyped options) ?{ () -> untyped } -> untyped
+
+            def execute_insert: (untyped sql, ?untyped options) ?{ () -> untyped } -> untyped
+
+            private
+
+            def trace_execute: (untyped super_method, untyped sql, untyped options) ?{ () -> untyped } -> untyped
+
+            def adapter_name: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Hanami
+        class ActionTracer
+          def initialize: (untyped app, untyped action) -> void
+
+          def call: (untyped env) -> untyped
+
+          private
+
+          def configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module DelayedJob
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.add_instrumentation: (untyped klass) -> untyped
+
+          def self?.patch_server_internals: () -> untyped
+        end
+      end
+    end
+  end
+end

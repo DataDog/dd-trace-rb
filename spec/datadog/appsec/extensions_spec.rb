@@ -127,26 +127,6 @@ RSpec.describe Datadog::AppSec::Extensions do
         subject(:user_id_denylist_) { settings.user_id_denylist = ['24528736564812'] }
         it { expect { user_id_denylist_ }.to change { settings.user_id_denylist }.from([]).to(['24528736564812']) }
       end
-
-      describe '#[]' do
-        describe 'when the integration exists' do
-          subject(:get) { settings[integration_name] }
-
-          let(:integration_options) { { foo: :bar } }
-
-          before { settings.instrument(integration_name, integration_options) }
-
-          it 'retrieves the described configuration' do
-            is_expected.to eq(integration_options)
-          end
-        end
-
-        context 'when the integration doesn\'t exist' do
-          it do
-            expect { settings[:foobar] }.to raise_error(ArgumentError, /foobar/)
-          end
-        end
-      end
     end
   end
 end

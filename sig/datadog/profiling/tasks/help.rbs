@@ -1,0 +1,9 @@
+module Datadog
+  module Profiling
+    module Tasks
+      class Help
+        def run: () -> untyped
+      end
+    end
+  end
+end

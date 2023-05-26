@@ -20,6 +20,7 @@ module Datadog
           endpoint_collection_enabled:,
           gc_profiling_enabled:,
           allocation_counting_enabled:,
+          no_signals_workaround_enabled:,
           thread_context_collector: ThreadContext.new(
             recorder: recorder,
             max_frames: max_frames,
@@ -43,6 +44,7 @@ module Datadog
             gc_profiling_enabled,
             idle_sampling_helper,
             allocation_counting_enabled,
+            no_signals_workaround_enabled,
             dynamic_sampling_rate_enabled,
           )
           @worker_thread = nil

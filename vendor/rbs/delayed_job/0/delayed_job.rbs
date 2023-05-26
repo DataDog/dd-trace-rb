@@ -1,0 +1,4 @@
+module Delayed
+  class Plugin
+  end
+end

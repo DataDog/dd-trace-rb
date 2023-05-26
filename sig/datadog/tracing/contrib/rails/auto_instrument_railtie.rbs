@@ -1,0 +1,2 @@
+class DatadogAutoInstrumentRailtie < Rails::Railtie
+end

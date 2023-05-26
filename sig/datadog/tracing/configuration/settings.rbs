@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Configuration
+      module Settings
+        def self.extended: (untyped base) -> untyped
+      end
+    end
+  end
+end

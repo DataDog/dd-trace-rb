@@ -1,0 +1,14 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Lograge
+        module Instrumentation
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            def custom_options: (untyped event) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class B3Single
+        B3_SINGLE_HEADER_KEY: "b3"
+
+        def initialize: (fetcher: untyped, ?key: untyped) -> void
+
+        def inject!: (untyped digest, untyped env) -> (nil | untyped)
+
+        def extract: (untyped env) -> (nil | untyped)
+      end
+    end
+  end
+end

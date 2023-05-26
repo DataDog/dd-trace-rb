@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rack
+        module QueueTime
+          REQUEST_START: "HTTP_X_REQUEST_START"
+
+          QUEUE_START: "HTTP_X_QUEUE_START"
+
+          MINIMUM_ACCEPTABLE_TIME_VALUE: 1000000000
+
+          def self?.get_request_start: (untyped env, ?untyped now) -> untyped
+        end
+      end
+    end
+  end
+end

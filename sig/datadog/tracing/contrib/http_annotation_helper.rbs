@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module HttpAnnotationHelper
+        def service_name: (untyped hostname, untyped configuration_options, ?untyped? pin) -> untyped
+      end
+    end
+  end
+end

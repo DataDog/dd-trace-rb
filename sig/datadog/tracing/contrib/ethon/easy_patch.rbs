@@ -1,0 +1,42 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Ethon
+        module EasyPatch
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            include Contrib::HttpAnnotationHelper
+
+            def http_request: (untyped url, untyped action_name, ?::Hash[untyped, untyped] options) -> untyped
+
+            def headers=: (untyped headers) -> untyped
+
+            def perform: () -> untyped
+
+            def complete: () -> untyped
+
+            def reset: () -> untyped
+            def datadog_before_request: (?continue_from: untyped?) -> untyped
+
+            def datadog_span_started?: () -> untyped
+
+            private
+
+            attr_reader datadog_configuration: untyped
+
+            def datadog_tag_request: () -> (nil | untyped)
+
+            def set_span_error_message: (untyped message) -> untyped
+            def try_parse_uri: () -> untyped
+
+            def load_datadog_configuration_for: (?::Symbol host) -> untyped
+
+            def analytics_enabled?: () -> untyped
+
+            def analytics_sample_rate: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

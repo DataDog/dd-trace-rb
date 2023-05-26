@@ -1,0 +1,16 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ConcurrentRuby
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+          def self?.patch_future: () -> untyped
+        end
+      end
+    end
+  end
+end

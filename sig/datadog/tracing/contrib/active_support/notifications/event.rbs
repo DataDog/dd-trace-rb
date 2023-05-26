@@ -1,0 +1,28 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveSupport
+        module Notifications
+          module Event
+            def self.included: (untyped base) -> untyped
+            module ClassMethods
+              def subscribe!: () -> untyped
+
+              def subscription: (?untyped? span_name, ?untyped? options) -> untyped
+
+              def subscribe: (?untyped? pattern, ?untyped? span_name, ?untyped? options) -> (untyped | nil)
+
+              def supported?: () -> true
+
+              def span_options: () -> ::Hash[untyped, untyped]
+
+              def report_if_exception: (untyped span, untyped payload) -> untyped
+
+              def payload_exception: (untyped payload) -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end
