@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'processor'
+
 module Datadog
   module AppSec
     # Capture context essential to consistently call processor and report via traces
@@ -10,8 +12,6 @@ module Datadog
         @trace = trace
         @service_entry_span = service_entry_span
         @processor_context = processor_context
-
-        freeze
       end
 
       def finalize
