@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
       c.tracing.instrument :rest_client, configuration_options
     end
 
-    WebMock.disable_net_connect!
+    WebMock.disable_net_connect!(allow: 'http://testagent:9126')
     WebMock.enable!
   end
 

@@ -76,6 +76,9 @@ module Contrib
               write_lock.synchronize do
                 @traces ||= []
                 @traces << trace
+                tracer = Datadog::Tracing.send(:tracer)
+                writer = tracer.writer
+                writer.write(trace)
               end
             end
           end
