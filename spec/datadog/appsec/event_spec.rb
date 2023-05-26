@@ -64,22 +64,39 @@ RSpec.describe Datadog::AppSec::Event do
           trace_op.measure('request') do |span|
             events.each { |e| e[:span] = span }
 
-            described_class.record(*events)
+            10.times do |i|
+              trace_op.measure("span #{i}") {}
+            end
+
+            described_class.record(span, *events)
           end
 
           trace_op.flush!
         end
 
-        it 'records an event on the trace' do
-          expect(trace.send(:meta)).to eq(
+        let(:top_level_span) do
+          trace.spans.find { |s| s.metrics['_dd.top_level'] && s.metrics['_dd.top_level'] > 0.0 }
+        end
+
+        let(:other_spans) do
+          trace.spans - [top_level_span]
+        end
+
+        it 'records an event on the top level span' do
+          expect(top_level_span.meta).to eq(
             '_dd.appsec.json' => '{"triggers":[]}',
             'http.host' => 'example.com',
             'http.useragent' => 'Ruby/0.0',
             'http.request.headers.user-agent' => 'Ruby/0.0',
             'network.client.ip' => '127.0.0.1',
             '_dd.origin' => 'appsec',
-            '_dd.p.dm' => '-5',
           )
+        end
+
+        it 'records nothing on other spans' do
+          other_spans.each do |other_span|
+            expect(other_span.meta).to be_empty
+          end
         end
 
         it 'marks the trace to be kept' do
@@ -94,7 +111,7 @@ RSpec.describe Datadog::AppSec::Event do
           trace_op.measure('request') do |span|
             events.each { |e| e[:span] = span }
 
-            described_class.record(*events)
+            described_class.record(span, *events)
           end
 
           trace_op.flush!
@@ -128,7 +145,7 @@ RSpec.describe Datadog::AppSec::Event do
             trace_op.measure('request') do |span|
               events.each { |e| e[:span] = span }
 
-              described_class.record(*events)
+              described_class.record(span, *events)
             end
 
             trace_op.keep!
