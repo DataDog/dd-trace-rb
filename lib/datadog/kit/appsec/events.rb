@@ -27,15 +27,13 @@ module Datadog
         def self.track_login_success(trace = nil, span = nil, user:, **others)
           if (appsec_scope = Datadog::AppSec.active_scope)
             trace = appsec_scope.trace
-            span = appsec_scope.span
+            span = appsec_scope.service_entry_span
           end
 
           trace ||= Datadog::Tracing.active_trace
           span ||= trace.active_span || Datadog::Tracing.active_span
 
-          if trace.trace_id != span.trace_id
-            raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.trace_id}"
-          end
+          raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
 
           track(LOGIN_SUCCESS_EVENT, trace, span, **others)
 
@@ -64,15 +62,13 @@ module Datadog
         def self.track_login_failure(trace = nil, span = nil, user_id:, user_exists:, **others)
           if (appsec_scope = Datadog::AppSec.active_scope)
             trace = appsec_scope.trace
-            span = appsec_scope.span
+            span = appsec_scope.service_entry_span
           end
 
           trace ||= Datadog::Tracing.active_trace
           span ||= trace.active_span || Datadog::Tracing.active_span
 
-          if trace.trace_id != span.trace_id
-            raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.trace_id}"
-          end
+          raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
 
           track(LOGIN_FAILURE_EVENT, trace, span, **others)
 
@@ -99,15 +95,13 @@ module Datadog
         def self.track(event, trace = nil, span = nil, **others)
           if (appsec_scope = Datadog::AppSec.active_scope)
             trace = appsec_scope.trace
-            span = appsec_scope.span
+            span = appsec_scope.service_entry_span
           end
 
           trace ||= Datadog::Tracing.active_trace
           span ||= trace.active_span || Datadog::Tracing.active_span
 
-          if trace.trace_id != span.trace_id
-            raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.trace_id}"
-          end
+          raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
 
           span.set_tag("appsec.events.#{event}.track", 'true')
 
