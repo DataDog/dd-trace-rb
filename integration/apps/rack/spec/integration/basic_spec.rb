@@ -14,18 +14,11 @@ RSpec.describe 'Basic scenarios' do
   let(:expected_profiler_available) { RUBY_VERSION >= '2.3' }
 
   let(:expected_profiler_threads) do
-    if RUBY_VERSION >= '2.6.'
-      contain_exactly(
-        'Datadog::Profiling::Collectors::IdleSamplingHelper',
-        'Datadog::Profiling::Collectors::CpuAndWallTimeWorker',
-        'Datadog::Profiling::Scheduler',
-      )
-    elsif RUBY_VERSION >= '2.3'
-      contain_exactly(
-        'Datadog::Profiling::Collectors::OldStack',
-        'Datadog::Profiling::Scheduler',
-      )
-    end
+    contain_exactly(
+      'Datadog::Profiling::Collectors::IdleSamplingHelper',
+      'Datadog::Profiling::Collectors::CpuAndWallTimeWorker',
+      'Datadog::Profiling::Scheduler',
+    ) if RUBY_VERSION >= '2.3.'
   end
 
   context 'component checks' do
