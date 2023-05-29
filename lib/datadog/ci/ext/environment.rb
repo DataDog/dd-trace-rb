@@ -226,7 +226,7 @@ module Datadog
             .map { |key, value| "#{key.to_s.sub('BUILDKITE_AGENT_META_DATA_', '').downcase}:#{value}" }
             .sort_by(&:length)
 
-          tags[TAG_NODE_LABELS] = JSON.generate(extra_tags) unless extra_tags.empty?
+          tags[TAG_NODE_LABELS] = extra_tags.to_json unless extra_tags.empty?
 
           tags
         end
@@ -323,7 +323,7 @@ module Datadog
             name = name.split('/').reject { |v| v.nil? || v.include?('=') }.join('/')
           end
 
-          node_labels = JSON.generate(env['NODE_LABELS'].split) unless env['NODE_LABELS'].nil?
+          node_labels = env['NODE_LABELS'].split.to_json unless env['NODE_LABELS'].nil?
 
           {
             Core::Git::Ext::TAG_BRANCH => branch,
