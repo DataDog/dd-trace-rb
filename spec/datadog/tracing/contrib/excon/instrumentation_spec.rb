@@ -375,7 +375,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 
-    after { WebMock.disable! }
+    after { WebMock.disable!(allow: 'http://testagent:9126') }
 
     it 'does not collect auth info' do
       Excon.get('http://username:password@example.com/sample/path')

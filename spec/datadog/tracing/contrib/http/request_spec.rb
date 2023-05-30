@@ -15,7 +15,7 @@ RSpec.describe 'net/http requests' do
 
   after do
     WebMock.reset!
-    WebMock.disable!
+    WebMock.disable!(allow: 'http://testagent:9126')
   end
 
   let(:host) { '127.0.0.1' }
@@ -484,7 +484,7 @@ RSpec.describe 'net/http requests' do
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 
-    after { WebMock.disable! }
+    after { WebMock.disable!(allow: 'http://testagent:9126') }
 
     it 'does not collect auth info' do
       uri = URI('http://username:password@example.com/sample/path')

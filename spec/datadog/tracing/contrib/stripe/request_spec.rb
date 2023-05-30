@@ -32,7 +32,7 @@ RSpec.describe Datadog::Tracing::Contrib::Stripe::Request do
   after do
     WebMock.allow_net_connect!
     WebMock.reset!
-    WebMock.disable!
+    WebMock.disable!(allow: 'http://testagent:9126')
   end
 
   it 'traces the request' do

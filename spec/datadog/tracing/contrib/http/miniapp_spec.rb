@@ -9,7 +9,7 @@ RSpec.describe 'net/http miniapp tests' do
 
   after do
     WebMock.reset!
-    WebMock.disable!
+    WebMock.disable!(allow: 'http://testagent:9126')
   end
 
   let(:host) { '127.0.0.1' }

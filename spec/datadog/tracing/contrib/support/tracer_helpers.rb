@@ -78,7 +78,7 @@ module Contrib
                 @traces << trace
                 tracer = Datadog::Tracing.send(:tracer)
                 writer = tracer.writer
-                writer.write(trace)
+                writer.transport.send_traces(trace)
               end
             end
           end
