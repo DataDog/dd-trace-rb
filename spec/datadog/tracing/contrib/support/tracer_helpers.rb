@@ -78,7 +78,11 @@ module Contrib
                 @traces << trace
                 tracer = Datadog::Tracing.send(:tracer)
                 writer = tracer.writer
-                writer.transport.send_traces(trace)
+                begin
+                  writer.transport.send_traces(trace)
+                rescue StandardError => e
+                  puts "Error occurred: #{e.message}"
+                end
               end
             end
           end
