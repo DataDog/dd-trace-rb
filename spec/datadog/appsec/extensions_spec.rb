@@ -127,6 +127,31 @@ RSpec.describe Datadog::AppSec::Extensions do
         subject(:user_id_denylist_) { settings.user_id_denylist = ['24528736564812'] }
         it { expect { user_id_denylist_ }.to change { settings.user_id_denylist }.from([]).to(['24528736564812']) }
       end
+
+      describe '#automated_track_user_events' do
+        subject(:automated_track_user_events) { settings.automated_track_user_events }
+        it { is_expected.to eq(:safe) }
+      end
+
+      describe '#automated_track_user_events=' do
+        context 'valid value' do
+          subject(:automated_track_user_events_) { settings.automated_track_user_events = 'extended' }
+          it do
+            expect { automated_track_user_events_ }.to change {
+              settings.automated_track_user_events
+            }.from(:safe).to('extended')
+          end
+        end
+
+        context 'invalid value' do
+          subject(:automated_track_user_events_) { settings.automated_track_user_events = 'invalid value' }
+          it 'raises exception' do
+            expect do
+              automated_track_user_events_
+            end.to raise_error(Datadog::AppSec::Extensions::AppSecAdapter::InvalidConfigurationValue)
+          end
+        end
+      end
     end
   end
 end

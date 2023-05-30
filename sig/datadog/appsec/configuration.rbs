@@ -34,6 +34,7 @@ module Datadog
         def trace_rate_limit=: (::Integer) -> void
         def obfuscator_key_regex=: (::String | ::Regexp) -> void
         def obfuscator_value_regex=: (::String | ::Regexp) -> void
+        def automated_track_user_events=: (String) -> void
       end
 
       module ClassMethods

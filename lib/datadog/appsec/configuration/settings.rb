@@ -103,6 +103,7 @@ module Datadog
           trace_rate_limit: 100, # traces/s
           obfuscator_key_regex: DEFAULT_OBFUSCATOR_KEY_REGEX,
           obfuscator_value_regex: DEFAULT_OBFUSCATOR_VALUE_REGEX,
+          automated_track_user_events: :safe,
         }.freeze
 
         ENVS = {
@@ -113,6 +114,7 @@ module Datadog
           'DD_APPSEC_TRACE_RATE_LIMIT' => [:trace_rate_limit, Settings.integer],
           'DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP' => [:obfuscator_key_regex, Settings.string],
           'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP' => [:obfuscator_value_regex, Settings.string],
+          'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING' => [:automated_track_user_events, Settings.string],
         }.freeze
 
         # Struct constant whisker cast for Steep
@@ -181,6 +183,11 @@ module Datadog
           _ = @options[:obfuscator_value_regex]
         end
 
+        def automated_track_user_events
+          # Cast for Steep
+          _ = @options[:automated_track_user_events]
+        end
+
         def merge(dsl)
           dsl.options.each do |k, v|
             unless v.nil?
@@ -199,10 +206,10 @@ module Datadog
 
             # TODO: move to a separate apply step
             klass = registered_integration.klass
-            if klass.loaded? && klass.compatible?
-              instance = klass.new
-              instance.patcher.patch
-            end
+            next unless klass.loaded? && klass.compatible?
+
+            instance = klass.new
+            instance.patcher.patch unless instance.patcher.patched?
           end
 
           self
