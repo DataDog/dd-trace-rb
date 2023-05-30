@@ -60,6 +60,12 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       end
     end
 
+    it 'raises ArgumentError is user ID is nil' do
+      expect do
+        described_class.track_login_success(trace_op, user: { id: nil }, foo: 'bar')
+      end.to raise_error(ArgumentError)
+    end
+
     it 'maintains integrity of user argument' do
       user_argument = { id: '42' }
       user_argument_dup = user_argument.dup
@@ -90,6 +96,13 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       end
     end
 
+    it 'do not sets failing user id on trace if user_id is nil' do
+      trace_op.measure('root') do
+        described_class.track_login_failure(trace_op, user_id: nil, user_exists: true)
+      end
+      expect(meta).to_not include('appsec.events.users.login.failure.usr.id' => '42')
+    end
+
     it 'sets user existence on trace' do
       trace_op.measure('root') do |span, _trace|
         described_class.track_login_failure(trace_op, user_id: '42', user_exists: true)
@@ -115,6 +128,88 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       let(:event_tag) { 'appsec.events.users.login.failure.track' }
       subject(:event) { described_class.track_login_failure(trace_op, user_id: '42', user_exists: true) }
     end
+
+    context 'custom block' do
+      context 'without block' do
+        it 'sets sdk tag' do
+          trace_op.measure('root') do
+            described_class.track_login_failure(trace_op, user_id: '42', user_exists: true)
+          end
+          expect(meta).to include('appsec.events.users.login.failure.sdk' => 'true')
+          expect(meta).to_not include('appsec.events.users.login.failure.custom' => 'true')
+        end
+      end
+
+      context 'with block' do
+        it 'sets custom tag' do
+          trace_op.measure('root') do
+            described_class.track_login_failure(trace_op, user_id: '42', user_exists: true, &custom_block)
+          end
+          expect(meta).to_not include('appsec.events.users.login.failure.sdk' => 'true')
+          expect(meta).to include('appsec.events.users.login.failure.custom' => 'true')
+        end
+      end
+    end
+  end
+
+  describe '#track_signup' do
+    it 'sets event tracking key on trace' do
+      trace_op.measure('root') do
+        described_class.track_signup(trace_op, user: { id: '42' })
+      end
+      expect(meta).to include('appsec.events.users.signup.track' => 'true')
+    end
+
+    it 'sets successful user id on trace' do
+      trace_op.measure('root') do
+        described_class.track_signup(trace_op, user: { id: '42' })
+      end
+      expect(meta).to include('usr.id' => '42')
+    end
+
+    it 'sets other keys on trace' do
+      trace_op.measure('root') do
+        described_class.track_signup(trace_op, user: { id: '42' }, foo: 'bar')
+      end
+      expect(meta).to include('usr.id' => '42', 'appsec.events.users.signup.foo' => 'bar')
+    end
+
+    it 'raises ArgumentError is user ID is nil' do
+      expect do
+        described_class.track_signup(trace_op, user: { id: nil }, foo: 'bar')
+      end.to raise_error(ArgumentError)
+    end
+
+    it 'maintains integrity of user argument' do
+      user_argument = { id: '42' }
+      user_argument_dup = user_argument.dup
+      trace_op.measure('root') do
+        described_class.track_signup(trace_op, user: user_argument, foo: 'bar')
+      end
+      expect(user_argument).to eql(user_argument_dup)
+    end
+
+    context 'custom block' do
+      context 'without block' do
+        it 'sets sdk tag' do
+          trace_op.measure('root') do
+            described_class.track_signup(trace_op, user: { id: '42' })
+          end
+          expect(meta).to include('appsec.events.users.signup.sdk' => 'true')
+          expect(meta).to_not include('appsec.events.users.signup.custom' => 'true')
+        end
+      end
+
+      context 'with block' do
+        it 'sets custom tag' do
+          trace_op.measure('root') do
+            described_class.track_signup(trace_op, user: { id: '42' }, &custom_block)
+          end
+          expect(meta).to_not include('appsec.events.users.signup.sdk' => 'true')
+          expect(meta).to include('appsec.events.users.signup.custom' => 'true')
+        end
+      end
+    end
   end
 
   describe '#track' do
@@ -135,6 +230,28 @@ RSpec.describe Datadog::Kit::AppSec::Events do
     it_behaves_like 'uses AppSec scope' do
       let(:event_tag) { 'appsec.events.foo.track' }
       subject(:event) { described_class.track('foo', trace_op) }
+    end
+
+    context 'custom block' do
+      context 'without block' do
+        it 'sets sdk tag' do
+          trace_op.measure('root') do
+            described_class.track('foo', trace_op)
+          end
+          expect(meta).to include('appsec.events.foo.sdk' => 'true')
+          expect(meta).to_not include('appsec.events.foo.custom' => 'true')
+        end
+      end
+
+      context 'with block' do
+        it 'sets custom tag' do
+          trace_op.measure('root') do
+            described_class.track('foo', trace_op, &custom_block)
+          end
+          expect(meta).to_not include('appsec.events.foo.sdk' => 'true')
+          expect(meta).to include('appsec.events.foo.custom' => 'true')
+        end
+      end
     end
   end
 end

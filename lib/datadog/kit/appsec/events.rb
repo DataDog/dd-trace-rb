@@ -7,8 +7,11 @@ module Datadog
     module AppSec
       # Tracking events
       module Events
+        module_function
+
         LOGIN_SUCCESS_EVENT = 'users.login.success'
         LOGIN_FAILURE_EVENT = 'users.login.failure'
+        SIGNUP_EVENT = 'users.signup'
 
         # Attach login success event information to the trace
         #
@@ -78,6 +81,25 @@ module Datadog
           span.set_tag('appsec.events.users.login.failure.usr.exists', user_exists)
         end
 
+        # Attach signup event information to the trace
+        #
+        # This method is experimental and may change in the future.
+        #
+        # @param trace [TraceOperation] Trace to attach data to.
+        # @param user [Hash<Symbol, String>] User information to pass to
+        #   Datadog::Kit::Identity.set_user. Must contain at least :id as key.
+        # @param others [Hash<String || Symbol, String>] Additional free-form
+        #   event information to attach to the trace.
+        def track_signup(trace, user:, **others, &custom_track_tags_block)
+          user_options = user.dup
+          user_id = user_options.delete(:id)
+
+          raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
+
+          track(SIGNUP_EVENT, trace, **others, &custom_track_tags_block)
+          Kit::Identity.set_user(trace, id: user_id, **user_options)
+        end
+
         # Attach custom event information to the trace
         #
         # This method is experimental and may change in the future.
@@ -105,6 +127,8 @@ module Datadog
 
           span.set_tag("appsec.events.#{event}.track", 'true')
 
+          trace.set_tag("appsec.events.#{event}.track", 'true')
+          custom_track_tags_block.call(trace, event)
           others.each do |k, v|
             raise ArgumentError, 'key cannot be :track' if k.to_sym == :track
 
