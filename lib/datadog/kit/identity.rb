@@ -35,7 +35,9 @@ module Datadog
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
       # rubocop:disable Metrics/AbcSize
-      def self.set_user(trace = nil, span = nil, id:, email: nil, name: nil, session_id: nil, role: nil, scope: nil, **others)
+      def self.set_user(
+        trace = nil, span = nil, id:, email: nil, name: nil, session_id: nil, role: nil, scope: nil, **others
+      )
         raise ArgumentError, 'missing required key: :id' if id.nil?
 
         # enforce types

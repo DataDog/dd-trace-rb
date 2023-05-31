@@ -21,6 +21,7 @@ module Datadog
       class << self
         def activate_scope(trace, service_entry_span, processor)
           raise ActiveScopeError, 'another scope is active, nested scopes are not supported' if active_scope
+
           context = Datadog::AppSec::Processor::Context.new(processor)
 
           self.active_scope = new(trace, service_entry_span, context)
@@ -28,6 +29,7 @@ module Datadog
 
         def deactivate_scope
           raise InactiveScopeError, 'no scope is active, nested scopes are not supported' unless active_scope
+
           scope = active_scope
 
           reset_active_scope
