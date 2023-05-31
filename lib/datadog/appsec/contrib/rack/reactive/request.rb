@@ -13,6 +13,7 @@ module Datadog
               'request.query',
               'request.cookies',
               'request.client_ip',
+              'server.request.method'
             ].freeze
             private_constant :ADDRESSES
 
@@ -23,11 +24,13 @@ module Datadog
                 op.publish('request.uri.raw', gateway_request.url)
                 op.publish('request.cookies', gateway_request.cookies)
                 op.publish('request.client_ip', gateway_request.client_ip)
+                op.publish('server.request.method', gateway_request.method)
 
                 nil
               end
             end
 
+            # rubocop:disable Metrics/MethodLength
             def self.subscribe(op, waf_context)
               op.subscribe(*ADDRESSES) do |*values|
                 Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
@@ -37,6 +40,7 @@ module Datadog
                 query = values[2]
                 cookies = values[3]
                 client_ip = values[4]
+                request_method = values[5]
 
                 waf_args = {
                   'server.request.cookies' => cookies,
@@ -45,6 +49,7 @@ module Datadog
                   'server.request.headers' => headers,
                   'server.request.headers.no_cookies' => headers_no_cookies,
                   'http.client_ip' => client_ip,
+                  'server.request.method' => request_method,
                 }
 
                 waf_timeout = Datadog::AppSec.settings.waf_timeout
@@ -71,6 +76,7 @@ module Datadog
                   Datadog.logger.debug { "WAF UNKNOWN: #{result.status.inspect} #{result.inspect}" }
                 end
               end
+              # rubocop:enable Metrics/MethodLength
             end
           end
         end

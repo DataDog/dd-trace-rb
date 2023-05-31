@@ -16,6 +16,8 @@ module Datadog
 
             def body: () -> untyped
 
+            def method: () -> untyped
+
             def url: () -> untyped
 
             def cookies: () -> untyped
