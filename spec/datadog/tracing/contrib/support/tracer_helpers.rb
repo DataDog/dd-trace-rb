@@ -71,22 +71,15 @@ module Contrib
 
           # The mutex must be eagerly initialized to prevent race conditions on lazy initialization
           write_lock = Mutex.new
-          allow(instance).to receive(:write) do |trace|
+          allow(instance).to receive(:write).and_wrap_original do |original_method, trace|
             instance.instance_exec do
               write_lock.synchronize do
                 @traces ||= []
                 @traces << trace
-                tracer = Datadog::Tracing.send(:tracer)
-                writer = tracer.writer
-                begin
-                  writer.transport.send_traces(trace)
-                rescue StandardError => e
-                  puts "Error occurred: #{e.message}"
-                end
+                original_method.call(trace)
               end
             end
           end
-
           instance
         end
       end
