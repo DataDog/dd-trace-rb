@@ -72,7 +72,7 @@ module Datadog
             def process_action(*args)
               env = request.env
 
-              context = env['datadog.appsec.scope']
+              context = env[Datadog::AppSec::Ext::SCOPE_KEY]
 
               return super unless context
 

@@ -2,7 +2,6 @@ require 'json'
 
 require_relative 'gateway/request'
 require_relative 'gateway/response'
-require_relative '../../ext'
 require_relative '../../instrumentation/gateway'
 require_relative '../../processor'
 require_relative '../../response'
@@ -43,7 +42,7 @@ module Datadog
 
               if !processor.nil? && processor.ready?
                 scope = Datadog::AppSec::Scope.activate_scope(active_trace, active_span, processor)
-                env['datadog.appsec.scope'] = scope
+                env[Datadog::AppSec::Ext::SCOPE_KEY] = scope
                 ready = true
               end
             end
@@ -98,7 +97,7 @@ module Datadog
           private
 
           def active_scope(env)
-            env['datadog.appsec.scope']
+            env[Datadog::AppSec::Ext::SCOPE_KEY]
           end
 
           def active_trace

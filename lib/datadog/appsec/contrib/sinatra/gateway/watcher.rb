@@ -23,7 +23,7 @@ module Datadog
                 gateway.watch('sinatra.request.dispatch', :appsec) do |stack, gateway_request|
                   block = false
                   event = nil
-                  scope = gateway_request.env['datadog.appsec.scope']
+                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
 
                   AppSec::Reactive::Operation.new('sinatra.request.dispatch') do |op|
                     trace = active_trace
@@ -66,7 +66,7 @@ module Datadog
                 gateway.watch('sinatra.request.routed', :appsec) do |stack, (gateway_request, gateway_route_params)|
                   block = false
                   event = nil
-                  scope = gateway_request.env['datadog.appsec.scope']
+                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
 
                   AppSec::Reactive::Operation.new('sinatra.request.routed') do |op|
                     trace = active_trace

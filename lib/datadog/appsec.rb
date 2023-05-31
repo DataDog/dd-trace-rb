@@ -3,6 +3,7 @@
 require_relative 'appsec/configuration'
 require_relative 'appsec/extensions'
 require_relative 'appsec/scope'
+require_relative 'appsec/ext'
 
 module Datadog
   # Namespace for Datadog AppSec instrumentation

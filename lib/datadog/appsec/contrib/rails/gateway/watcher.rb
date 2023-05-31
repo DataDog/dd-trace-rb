@@ -21,7 +21,7 @@ module Datadog
                 gateway.watch('rails.request.action', :appsec) do |stack, gateway_request|
                   block = false
                   event = nil
-                  scope = gateway_request.env['datadog.appsec.scope']
+                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
 
                   AppSec::Reactive::Operation.new('rails.request.action') do |op|
                     trace = active_trace
