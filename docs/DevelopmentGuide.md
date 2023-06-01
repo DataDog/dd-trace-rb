@@ -143,6 +143,20 @@ The actionable in this case would be to ensure that the thread created in `worke
 
 Depending on the situation, the thread in question might need to be forced to terminate. It's recommended to have a mechanism in place to terminate it (a shared variable that changes value when the thread should exit), but as a last resort, `Thread#terminate` forces the thread to finish. Keep in mind that regardless of the termination method, `Thread#join` must be called to ensure that the thread has completely finished its shutdown process.
 
+**The APM Test Agent**
+
+The APM test agent emulates the APM endpoints of the Datadog Agent. The Test Agent container
+runs alongside the Ruby tracer locally and in CI, handles all traces during test runs and performs a number 
+of 'Trace Checks'. For more information on these checks, see: 
+https://github.com/DataDog/dd-apm-test-agent#trace-invariant-checks
+
+The APM Test Agent also emits helpful logging. To get Test Agent logs:
+
+    $ docker-compose logs -f testagent
+
+Read more about the APM Test Agent:
+https://github.com/datadog/dd-apm-test-agent#readme
+
 ### Checking code quality
 
 **Linting**
