@@ -47,6 +47,14 @@ module Datadog
               request.url
             end
 
+            def fullpath
+              request.fullpath
+            end
+
+            def path
+              request.path
+            end
+
             def cookies
               request.cookies
             end

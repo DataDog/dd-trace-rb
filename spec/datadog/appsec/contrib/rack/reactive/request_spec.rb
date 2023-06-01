@@ -21,7 +21,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
     it 'propagates request attributes to the operation' do
       expect(operation).to receive(:publish).with('request.query', [{ 'a' => 'foo' }])
       expect(operation).to receive(:publish).with('request.headers', { 'content-type' => 'text/html' })
-      expect(operation).to receive(:publish).with('request.uri.raw', 'http://example.com:8080/?a=foo')
+      expect(operation).to receive(:publish).with('request.uri.raw', '/?a=foo')
       expect(operation).to receive(:publish).with('request.cookies', {})
       expect(operation).to receive(:publish).with('request.client_ip', '10.10.10.10')
       described_class.publish(operation, request)
@@ -52,7 +52,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
         expected_waf_arguments = {
           'server.request.cookies' => {},
           'server.request.query' => [{ 'a' => 'foo' }],
-          'server.request.uri.raw' => 'http://example.com:8080/?a=foo',
+          'server.request.uri.raw' => '/?a=foo',
           'server.request.headers' => { 'content-type' => 'text/html' },
           'server.request.headers.no_cookies' => { 'content-type' => 'text/html' },
           'http.client_ip' => '10.10.10.10'
