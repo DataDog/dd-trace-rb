@@ -197,7 +197,8 @@ module Datadog
       require_relative 'profiling/profiler'
       require_relative 'profiling/native_extension'
       require_relative 'profiling/trace_identifiers/helper'
-      require_relative 'profiling/pprof/pprof_pb'
+      # This file is loaded in Profiling::Component#load_pprof_support; see notes there for why
+      # require_relative 'profiling/pprof/pprof_pb'
       require_relative 'profiling/tag_builder'
       require_relative 'profiling/http_transport'
 
