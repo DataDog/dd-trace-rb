@@ -23,13 +23,13 @@ module Datadog
                 gateway.watch('sinatra.request.dispatch', :appsec) do |stack, gateway_request|
                   block = false
                   event = nil
-                  waf_context = gateway_request.env['datadog.waf.context']
+                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
 
                   AppSec::Reactive::Operation.new('sinatra.request.dispatch') do |op|
                     trace = active_trace
                     span = active_span
 
-                    Rack::Reactive::RequestBody.subscribe(op, waf_context) do |result, _block|
+                    Rack::Reactive::RequestBody.subscribe(op, scope.processor_context) do |result, _block|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
@@ -42,7 +42,7 @@ module Datadog
 
                         span.set_tag('appsec.event', 'true') if span
 
-                        waf_context.events << event
+                        scope.processor_context.events << event
                       end
                     end
 
@@ -66,13 +66,13 @@ module Datadog
                 gateway.watch('sinatra.request.routed', :appsec) do |stack, (gateway_request, gateway_route_params)|
                   block = false
                   event = nil
-                  waf_context = gateway_request.env['datadog.waf.context']
+                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
 
                   AppSec::Reactive::Operation.new('sinatra.request.routed') do |op|
                     trace = active_trace
                     span = active_span
 
-                    Sinatra::Reactive::Routed.subscribe(op, waf_context) do |result, _block|
+                    Sinatra::Reactive::Routed.subscribe(op, scope.processor_context) do |result, _block|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
@@ -85,7 +85,7 @@ module Datadog
 
                         span.set_tag('appsec.event', 'true') if span
 
-                        waf_context.events << event
+                        scope.processor_context.events << event
                       end
                     end
 
