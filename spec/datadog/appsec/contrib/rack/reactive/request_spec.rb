@@ -12,13 +12,14 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
     Datadog::AppSec::Contrib::Rack::Gateway::Request.new(
       Rack::MockRequest.env_for(
         'http://example.com:8080/?a=foo',
-        { 'REMOTE_ADDR' => '10.10.10.10', 'HTTP_CONTENT_TYPE' => 'text/html' }
+        { 'REQUEST_METHOD' => 'GET', 'REMOTE_ADDR' => '10.10.10.10', 'HTTP_CONTENT_TYPE' => 'text/html' }
       )
     )
   end
 
   describe '.publish' do
     it 'propagates request attributes to the operation' do
+      expect(operation).to receive(:publish).with('server.request.method', 'GET')
       expect(operation).to receive(:publish).with('request.query', [{ 'a' => 'foo' }])
       expect(operation).to receive(:publish).with('request.headers', { 'content-type' => 'text/html' })
       expect(operation).to receive(:publish).with('request.uri.raw', '/?a=foo')
@@ -38,7 +39,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
           'request.uri.raw',
           'request.query',
           'request.cookies',
-          'request.client_ip'
+          'request.client_ip',
+          'server.request.method',
         ).and_call_original
         expect(waf_context).to_not receive(:run)
         described_class.subscribe(operation, waf_context)
@@ -55,7 +57,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
           'server.request.uri.raw' => '/?a=foo',
           'server.request.headers' => { 'content-type' => 'text/html' },
           'server.request.headers.no_cookies' => { 'content-type' => 'text/html' },
-          'http.client_ip' => '10.10.10.10'
+          'http.client_ip' => '10.10.10.10',
+          'server.request.method' => 'GET',
         }
 
         waf_result = double(:waf_result, status: :ok, timeout: false)

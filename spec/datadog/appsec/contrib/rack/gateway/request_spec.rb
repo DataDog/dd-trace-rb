@@ -9,8 +9,10 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
     described_class.new(
       Rack::MockRequest.env_for(
         'http://example.com:8080/?a=foo',
-        { 'REMOTE_ADDR' => '10.10.10.10', 'HTTP_CONTENT_TYPE' => 'text/html', 'HTTP_COOKIE' => 'foo=bar',
-          'HTTP_USER_AGENT' => 'WebKit' }
+        {
+          'REQUEST_METHOD' => 'GET', 'REMOTE_ADDR' => '10.10.10.10', 'HTTP_CONTENT_TYPE' => 'text/html',
+          'HTTP_COOKIE' => 'foo=bar', 'HTTP_USER_AGENT' => 'WebKit'
+        }
       )
     )
   end
@@ -79,6 +81,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
   describe '#client_ip' do
     it 'returns the client_ip' do
       expect(request.client_ip).to eq('10.10.10.10')
+    end
+  end
+
+  describe '#method' do
+    it 'returns the request method' do
+      expect(request.method).to eq('GET')
     end
   end
 
