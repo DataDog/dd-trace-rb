@@ -31,10 +31,10 @@ module Datadog
             def self.subscribe(op, waf_context)
               op.subscribe(*ADDRESSES) do |*values|
                 Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
-                headers = values[0]
+                query = values[0]
+                headers = values[1]
                 headers_no_cookies = headers.dup.tap { |h| h.delete('cookie') }
-                uri_raw = values[1]
-                query = values[2]
+                uri_raw = values[2]
                 cookies = values[3]
                 client_ip = values[4]
 
