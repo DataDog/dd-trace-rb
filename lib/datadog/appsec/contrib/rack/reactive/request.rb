@@ -20,7 +20,7 @@ module Datadog
               catch(:block) do
                 op.publish('request.query', gateway_request.query)
                 op.publish('request.headers', gateway_request.headers)
-                op.publish('request.uri.raw', gateway_request.relative_uri)
+                op.publish('request.uri.raw', gateway_request.fullpath)
                 op.publish('request.cookies', gateway_request.cookies)
                 op.publish('request.client_ip', gateway_request.client_ip)
 

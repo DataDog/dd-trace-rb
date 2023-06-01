@@ -40,9 +40,15 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
     end
   end
 
-  describe '#uri' do
-    it 'returns the relative uri' do
-      expect(request.url).to eq('/?a=foo')
+  describe '#path' do
+    it 'returns the path' do
+      expect(request.path).to eq('/')
+    end
+  end
+
+  describe '#fullpath' do
+    it 'returns the path with query string' do
+      expect(request.fullpath).to eq('/?a=foo')
     end
   end
 
