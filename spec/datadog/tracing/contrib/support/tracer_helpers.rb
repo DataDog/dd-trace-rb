@@ -71,12 +71,12 @@ module Contrib
 
           # The mutex must be eagerly initialized to prevent race conditions on lazy initialization
           write_lock = Mutex.new
-          allow(instance).to receive(:write).and_wrap_original do |original_method, trace|
+          allow(instance).to receive(:write) do |trace|
             instance.instance_exec do
               write_lock.synchronize do
                 @traces ||= []
                 @traces << trace
-                original_method.call(trace)
+                # original_method.call(trace)
               end
             end
           end
@@ -92,6 +92,11 @@ module Contrib
       # with mock assertions.
       config.around do |example|
         example.run.tap do
+          traces = fetch_traces(tracer)
+          traces.each do |trace|
+            # write traces after the test to the agent in order to not mess up assertions
+            tracer.writer.write(trace)
+          end
           Datadog::Tracing.shutdown!
         end
       end
