@@ -52,7 +52,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
         expected_waf_arguments = {
           'server.request.cookies' => {},
           'server.request.query' => [{ 'a' => 'foo' }],
-          'server.request.uri.raw' => 'http://example.com:8080/?a=foo',
+          'server.request.uri.raw' => '/?a=foo',
           'server.request.headers' => { 'content-type' => 'text/html' },
           'server.request.headers.no_cookies' => { 'content-type' => 'text/html' },
           'http.client_ip' => '10.10.10.10'
