@@ -47,6 +47,12 @@ module Datadog
               request.url
             end
 
+            def relative_uri
+              if (m = %r{^(?<scheme>[a-z]+)://(?<authority>[^/]+)?(?<relative_uri>/.*)}.match(url))
+                m['relative_uri']
+              end
+            end
+
             def cookies
               request.cookies
             end

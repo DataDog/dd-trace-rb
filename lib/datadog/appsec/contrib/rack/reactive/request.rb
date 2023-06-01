@@ -20,7 +20,7 @@ module Datadog
               catch(:block) do
                 op.publish('request.query', gateway_request.query)
                 op.publish('request.headers', gateway_request.headers)
-                op.publish('request.uri.raw', gateway_request.url)
+                op.publish('request.uri.raw', gateway_request.relative_uri)
                 op.publish('request.cookies', gateway_request.cookies)
                 op.publish('request.client_ip', gateway_request.client_ip)
 
@@ -28,7 +28,7 @@ module Datadog
               end
             end
 
-            def self.subscribe(op, waf_context) # rubocop:disable Metrics/MethodLength
+            def self.subscribe(op, waf_context)
               op.subscribe(*ADDRESSES) do |*values|
                 Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
                 headers = values[0]
@@ -38,15 +38,10 @@ module Datadog
                 cookies = values[3]
                 client_ip = values[4]
 
-                # rules such as coming from the passlist feature assume a relative URI
-                if uri_raw && (m = %r{^(?<scheme>[a-z]+)://(?<authority>[^/]+)?(?<relative_uri>/.*)}.match(uri_raw))
-                  relative_uri = m['relative_uri']
-                end
-
                 waf_args = {
                   'server.request.cookies' => cookies,
                   'server.request.query' => query,
-                  'server.request.uri.raw' => relative_uri,
+                  'server.request.uri.raw' => uri_raw,
                   'server.request.headers' => headers,
                   'server.request.headers.no_cookies' => headers_no_cookies,
                   'http.client_ip' => client_ip,
