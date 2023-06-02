@@ -48,15 +48,9 @@ module Datadog
         end
 
         def available?
-          # Not available when --yjit-stats is enabled.
-          #
-          # RubyVM::YJIT.runtime_stats contains 8 keys when `.stats_enabled?` is false.
-          # However, when `.stats_enabled?` is true `.runtime_stats` returns 325 different
-          # statistics, and not all of them are Numeric.
           defined?(::RubyVM::YJIT) \
             && ::RubyVM::YJIT.enabled? \
-            && ::RubyVM::YJIT.respond_to?(:runtime_stats) \
-            && !::RubyVM::YJIT.stats_enabled?
+            && ::RubyVM::YJIT.respond_to?(:runtime_stats)
         end
       end
     end
