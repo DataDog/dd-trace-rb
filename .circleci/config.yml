@@ -322,9 +322,6 @@ orbs:
           - docker-wait:
               port: *memcached_port
           - docker-wait:
-              host: "ddagent"
-              port: *agent_port
-          - docker-wait:
               host: "testagent"
               port: *testagent_port
           - *step_run_all_tests
