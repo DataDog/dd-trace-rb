@@ -180,35 +180,35 @@ Before installing `ddtrace`, [install the Datadog Agent](https://docs.datadoghq.
 
 Then configure the Datadog Agent to accept traces. To do this, either:
 
- - Set `DD_APM_ENABLED=true` in the agent's environment
+ - Set `DD_APM_ENABLED=true` in the Agent's environment
 
 OR
 
- - Add `apm_enabled: true` to the [agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file)
+ - Add `apm_enabled: true` to the [Agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file)
 
 *Additionally, in containerized environments...*
 
- - Set `DD_APM_NON_LOCAL_TRAFFIC=true` in the agent's environment
+ - Set `DD_APM_NON_LOCAL_TRAFFIC=true` in the Agent's environment
 
 OR
 
- - Add `apm_non_local_traffic: true` to the [agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file).
+ - Add `apm_non_local_traffic: true` to the [Agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file).
 
 See the specific setup instructions for [Docker](https://docs.datadoghq.com/agent/docker/apm/?tab=ruby), [Kubernetes](https://docs.datadoghq.com/agent/kubernetes/apm/?tab=helm), [Amazon ECS](https://docs.datadoghq.com/agent/amazon_ecs/apm/?tab=ruby) or [Fargate](https://docs.datadoghq.com/integrations/ecs_fargate/#trace-collection) to ensure that the Agent is configured to receive traces in a containerized environment.
 
 #### Configuring trace data ingestion
 
-The Datadog agent will listen for traces via HTTP on port `8126` by default.
+The Datadog Agent will listen for traces via HTTP on port `8126` by default.
 
-You may change the protocol or port the agent listens for trace data using the following:
+You may change the protocol or port the Agent listens for trace data using the following:
 
 **For HTTP over TCP**:
 
- - Set `DD_APM_RECEIVER_PORT=<port>` in the agent's environment
+ - Set `DD_APM_RECEIVER_PORT=<port>` in the Agent's environment
 
 OR
 
- - Add `apm_config: receiver_port: <port>` to the [agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file)
+ - Add `apm_config: receiver_port: <port>` to the [Agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file)
 
  **For Unix Domain Socket (UDS)**:
 
@@ -216,7 +216,7 @@ OR
 
 OR
 
- - Add `apm_config: receiver_socket: <path-to-socket-file>` to the [agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file)
+ - Add `apm_config: receiver_socket: <path-to-socket-file>` to the [Agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file)
 
 ### Instrument your application
 
@@ -323,11 +323,11 @@ If your application does not use the supported gems (Rails or Hanami) above, you
 
 #### Configuring OpenTelemetry
 
-You can send OpenTelemetry traces directly to the Datadog agent (without `ddtrace`) by using OTLP. Check out our documentation on [OTLP ingest in the Datadog Agent](https://docs.datadoghq.com/tracing/setup_overview/open_standards/#otlp-ingest-in-datadog-agent) for details.
+You can send OpenTelemetry traces directly to the Datadog Agent (without `ddtrace`) by using OTLP. Check out our documentation on [OTLP ingest in the Datadog Agent](https://docs.datadoghq.com/tracing/setup_overview/open_standards/#otlp-ingest-in-datadog-agent) for details.
 
 ### Connect your application to the Datadog Agent
 
-By default, `ddtrace` will connect to the agent using the first available settings in the listed priority:
+By default, `ddtrace` will connect to the Agent using the first available settings in the listed priority:
 
 1. Via any explicitly provided configuration settings (hostname/port/transport)
 2. Via Unix Domain Socket (UDS) located at `/var/run/datadog/apm.socket`
@@ -335,10 +335,10 @@ By default, `ddtrace` will connect to the agent using the first available settin
 
 If your Datadog Agent is listening at any of these locations, no further configuration should be required.
 
-If your agent runs on a different host or container than your application, or you would like to send traces via a different protocol, you will need to configure your application accordingly.
+If your Agent runs on a different host or container than your application, or you would like to send traces via a different protocol, you will need to configure your application accordingly.
 
-  - [How to send trace data via HTTP over TCP to agent](#changing-default-agent-hostname-and-port)
-  - [How to send trace data via Unix Domain Socket (UDS) to agent](#using-the-unix-domain-socket-uds-adapter)
+  - [How to send trace data via HTTP over TCP to Agent](#changing-default-agent-hostname-and-port)
+  - [How to send trace data via Unix Domain Socket (UDS) to Agent](#using-the-unix-domain-socket-uds-adapter)
 
 ### Final steps for installation
 
@@ -2152,8 +2152,8 @@ end
 | Setting                                                 | Env Var                        | Default                                                           | Description                                                                                                                                                                                                                               |
 |---------------------------------------------------------|--------------------------------|-------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Global**                                              |                                |                                                                   |                                                                                                                                                                                                                                           |
-| `agent.host`                                            | `DD_AGENT_HOST`                | `127.0.0.1`                                                       | Hostname of agent to where trace data will be sent.                                                                                                                                                                                       |
-| `agent.port`                                            | `DD_TRACE_AGENT_PORT`          | `8126`                                                            | Port of agent host to where trace data will be sent. If the [Agent configuration](#configuring-trace-data-ingestion) sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.         |
+| `agent.host`                                            | `DD_AGENT_HOST`                | `127.0.0.1`                                                       | Hostname of Agent to where trace data will be sent.                                                                                                                                                                                       |
+| `agent.port`                                            | `DD_TRACE_AGENT_PORT`          | `8126`                                                            | Port of Agent host to where trace data will be sent. If the [Agent configuration](#configuring-trace-data-ingestion) sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.         |
 |                                                         | `DD_TRACE_AGENT_URL`           | `nil`                                                             | Sets the URL endpoint where traces are sent. Has priority over `agent.host` and `agent.port`. If the [Agent configuration](#configuring-trace-data-ingestion) sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.                |
 | `diagnostics.debug`                                     | `DD_TRACE_DEBUG`               | `false`                                                           | Enables or disables debug mode. Prints verbose logs. **NOT recommended for production or other sensitive environments.** See [Debugging and diagnostics](#debugging-and-diagnostics) for more details.                                    |
 | `diagnostics.startup_logs.enabled`                      | `DD_TRACE_STARTUP_LOGS`        | `nil`                                                             | Prints startup configuration and diagnostics to log. For assessing state of tracing at application startup. See [Debugging and diagnostics](#debugging-and-diagnostics) for more details.                                                 |
@@ -2202,7 +2202,7 @@ Datadog.logger.info { "this is typically called by tracing code" }
 
 #### Environment and tags
 
-By default, the trace agent (not this library, but the program running in the background collecting data from various clients) uses the tags set in the agent config file. You can configure the application to automatically tag your traces and metrics, using the following environment variables:
+By default, the trace Agent (not this library, but the program running in the background collecting data from various clients) uses the tags set in the Agent config file. You can configure the application to automatically tag your traces and metrics, using the following environment variables:
 
  - `DD_ENV`: Your application environment (e.g. `production`, `staging`, etc.)
  - `DD_SERVICE`: Your application's default service name (e.g. `billing-api`)
@@ -2232,7 +2232,7 @@ There are two different suggested means of producing diagnostics for tracing:
 
 ##### Enabling debug mode
 
-Switching the library into debug mode will produce verbose, detailed logs about tracing activity, including any suppressed errors. This output can be helpful in identifying errors, or confirming trace output to the agent.
+Switching the library into debug mode will produce verbose, detailed logs about tracing activity, including any suppressed errors. This output can be helpful in identifying errors, or confirming trace output to the Agent.
 
 You can enable this via `diagnostics.debug = true` or `DD_TRACE_DEBUG`.
 
@@ -2314,7 +2314,7 @@ To configure it, see the [Ingestion Mechanisms documentation](https://docs.datad
 
 #### Application-side sampling
 
-While the Datadog agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead in the host application.
+While the Datadog Agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead in the host application.
 
 **Application-side sampling drops traces as early as possible. This causes the [Ingestion Controls](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_controls/) page to not receive enough information to report accurate sampling rates. Use only when reducing the tracing overhead is paramount.**
 
@@ -2645,17 +2645,17 @@ Datadog::Tracing.trace('my.operation') { logger.warn('This is a traced operation
 
 ### Configuring the transport layer
 
-By default, `ddtrace` will connect to the agent using the first available settings in the listed priority:
+By default, `ddtrace` will connect to the Agent using the first available settings in the listed priority:
 
-1. Via any explicitly provided configuration settings (hostname/port/transport)
-2. Via Unix Domain Socket (UDS) located at `/var/run/datadog/apm.socket`
-3. Via HTTP over TCP to `127.0.0.1:8126`
+1. Through any explicitly provided configuration settings (hostname/port/transport)
+2. Through Unix Domain Socket (UDS) located at `/var/run/datadog/apm.socket`
+3. Through HTTP over TCP to `127.0.0.1:8126`
 
 However, the tracer can be configured to send its trace data to alternative destinations, or by alternative protocols.
 
-#### Changing default agent hostname and port
+#### Changing default Agent hostname and port
 
-To change the agent host or port, provide `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT`.
+To change the Agent host or port, provide `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT`.
 
 OR within a `Datadog.configure` block, provide the following settings:
 
@@ -2685,12 +2685,12 @@ end
 
 The `UnixSocket` adapter submits traces using `Net::HTTP` over Unix socket.
 
-To use, first configure your trace agent to listen by Unix socket, then configure the tracer with:
+To use, first configure your trace Agent to listen by Unix socket, then configure the tracer with:
 
 ```ruby
 Datadog.configure do |c|
   c.tracing.transport_options = proc { |t|
-    # Provide local path to trace agent Unix socket
+    # Provide local path to trace Agent Unix socket
     t.adapter :unix, '/tmp/ddagent/trace.sock'
   }
 end
@@ -2750,7 +2750,7 @@ The tracer and its integrations can produce some additional metrics that can pro
 
 To configure your application for metrics collection:
 
-1. [Configure your Datadog agent for StatsD](https://docs.datadoghq.com/developers/dogstatsd/#setup)
+1. [Configure your Datadog Agent for StatsD](https://docs.datadoghq.com/developers/dogstatsd/#setup)
 2. Add `gem 'dogstatsd-ruby', '~> 5.3'` to your Gemfile
 
 #### For application runtime
@@ -2771,7 +2771,7 @@ Datadog.configure do |c|
 
   # Optionally, you can configure the Statsd instance used for sending runtime metrics.
   # Statsd is automatically configured with default settings if `dogstatsd-ruby` is available.
-  # You can configure with host and port of Datadog agent; defaults to 'localhost:8125'.
+  # You can configure with host and port of Datadog Agent; defaults to 'localhost:8125'.
   c.runtime_metrics.statsd = Datadog::Statsd.new
 end
 ```
