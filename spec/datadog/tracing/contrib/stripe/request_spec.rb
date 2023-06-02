@@ -5,7 +5,7 @@ require 'stripe'
 RSpec.describe Datadog::Tracing::Contrib::Stripe::Request do
   before do
     WebMock.enable!
-    WebMock.disable_net_connect!(allow: 'http://testagent:9126')
+    WebMock.disable_net_connect!
 
     Stripe.api_key = 'sk_test_123'
 
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Tracing::Contrib::Stripe::Request do
   after do
     WebMock.allow_net_connect!
     WebMock.reset!
-    WebMock.disable!(allow: 'http://testagent:9126')
+    WebMock.disable!
   end
 
   it 'traces the request' do

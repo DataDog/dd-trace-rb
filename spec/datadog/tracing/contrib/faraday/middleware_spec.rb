@@ -87,7 +87,7 @@ RSpec.describe 'Faraday middleware' do
         stub_request(:get, /example.com/).to_return(status: 200)
       end
 
-      after { WebMock.disable!(allow: 'http://testagent:9126') }
+      after { WebMock.disable! }
 
       it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
       it_behaves_like 'schema version span'

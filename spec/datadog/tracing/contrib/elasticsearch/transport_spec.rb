@@ -11,13 +11,13 @@ require 'ddtrace'
 RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   before do
     WebMock.enable!
-    WebMock.disable_net_connect!(allow: 'http://testagent:9126')
+    WebMock.disable_net_connect!
   end
 
   after do
     WebMock.allow_net_connect!
     WebMock.reset!
-    WebMock.disable!(allow: 'http://testagent:9126')
+    WebMock.disable!
   end
 
   let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }

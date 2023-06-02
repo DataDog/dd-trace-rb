@@ -90,14 +90,6 @@ test_containers:
   - &container_memcached
     image: memcached:1.5-alpine
   - &memcached_port 11211
-  - &container_agent
-    image: datadog/agent
-    name: ddagent
-    environment:
-      - DD_APM_ENABLED=true
-      - DD_BIND_HOST=0.0.0.0
-      - DD_API_KEY=00000000000000000000000000000000
-      - DD_HOSTNAME=dd-trace-rb-ci
   - &agent_port 8126
   - &container_testagent
     image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:latest
@@ -298,7 +290,6 @@ orbs:
           - *container_redis_old
           - *container_mongo
           - *container_memcached
-          - *container_agent
           - *container_testagent
         parallelism: 22
         steps:
@@ -350,7 +341,6 @@ orbs:
           - <<: *container_base
           - *container_postgres
           - *container_redis
-          - *container_agent
           - *container_testagent
         steps:
           - restore_cache:
