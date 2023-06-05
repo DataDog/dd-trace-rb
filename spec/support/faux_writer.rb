@@ -7,8 +7,10 @@ require 'support/network_helpers'
 
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Tracing::Writer
+  include NetworkHelpers
+
   def initialize(options = {})
-    options[:transport] ||= if NetworkHelpers.check_availability_by_http_request('testagent', 9126)
+    options[:transport] ||= if test_agent_running?
                               Datadog::Transport::HTTP.default(
                                 headers: {
                                   'X-Datadog-Trace-Env-Variables' => ENV.to_h.select { |key, _| key.start_with?('DD_') }

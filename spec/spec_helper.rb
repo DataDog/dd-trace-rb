@@ -58,7 +58,7 @@ rescue LoadError
 end
 
 WebMock.allow_net_connect!
-WebMock.disable!(allow: 'http://testagent:9126')
+WebMock.disable!
 
 RSpec.configure do |config|
   config.include ConfigurationHelpers

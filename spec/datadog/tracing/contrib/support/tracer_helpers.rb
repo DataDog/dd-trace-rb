@@ -76,7 +76,6 @@ module Contrib
               write_lock.synchronize do
                 @traces ||= []
                 @traces << trace
-                # original_method.call(trace)
               end
             end
           end
@@ -93,9 +92,11 @@ module Contrib
       config.around do |example|
         example.run.tap do
           traces = fetch_traces(tracer)
-          traces.each do |trace|
-            # write traces after the test to the agent in order to not mess up assertions
-            tracer.writer.write(trace)
+          unless traces.empty?
+            traces.each do |trace|
+              # write traces after the test to the agent in order to not mess up assertions
+              tracer.writer.write(trace)
+            end
           end
           Datadog::Tracing.shutdown!
         end

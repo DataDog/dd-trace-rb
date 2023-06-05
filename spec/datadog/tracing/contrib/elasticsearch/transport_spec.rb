@@ -10,8 +10,8 @@ require 'ddtrace'
 
 RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   before do
-    WebMock.enable!
-    WebMock.disable_net_connect!
+    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.disable_net_connect! options }
   end
 
   after do
