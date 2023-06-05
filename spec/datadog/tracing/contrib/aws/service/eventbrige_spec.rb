@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'rspec'
-require 'lib/datadog/tracing/contrib/aws/service/base'
-require 'lib/datadog/tracing/contrib/aws/service/eventbridge'
+require 'datadog/tracing/contrib/aws/service/eventbridge'
 
 RSpec.describe Datadog::Tracing::Contrib::Aws::Service::EventBridge do
   let(:span) { instance_double('Span') }
