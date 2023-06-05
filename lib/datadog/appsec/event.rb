@@ -61,19 +61,19 @@ module Datadog
           )
 
           # prepare and gather tags to apply
-          trace_root_tags = build_root_trace_tags(event_group)
+          trace_root_tags = build_service_entry_tags(event_group)
           # complex types are unsupported, we need to serialize to a string
           triggers = trace_root_tags.delete('_dd.appsec.triggers')
           span.set_tag('_dd.appsec.json', JSON.dump({ triggers: triggers }))
 
-          # apply tags to root span
+          # apply tags to service entry span
           trace_root_tags.each do |key, value|
             span.set_tag(key, value)
           end
         end
       end
 
-      def self.build_root_trace_tags(event_group)
+      def self.build_service_entry_tags(event_group)
         event_group.each_with_object({}) do |event, tags|
           # TODO: assume HTTP request context for now
 
