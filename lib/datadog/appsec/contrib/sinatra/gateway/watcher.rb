@@ -40,7 +40,10 @@ module Datadog
                           actions: result.actions
                         }
 
-                        span.set_tag('appsec.event', 'true') if span
+                        if span
+                          span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
+                          span.set_tag('appsec.event', 'true')
+                        end
 
                         scope.processor_context.events << event
                       end
@@ -83,7 +86,10 @@ module Datadog
                           actions: result.actions
                         }
 
-                        span.set_tag('appsec.event', 'true') if span
+                        if span
+                          span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
+                          span.set_tag('appsec.event', 'true')
+                        end
 
                         scope.processor_context.events << event
                       end

@@ -47,7 +47,6 @@ module Datadog
         end
       end
 
-      # rubocop:disable Metrics/MethodLength
       def self.record_via_span(span, *events)
         events.group_by { |e| e[:trace] }.each do |trace, event_group|
           unless trace
@@ -62,52 +61,53 @@ module Datadog
           )
 
           # prepare and gather tags to apply
-          trace_tags = event_group.each_with_object({}) do |event, tags|
-            # TODO: assume HTTP request context for now
-
-            if (request = event[:request])
-              request_headers = request.headers.select do |k, _|
-                ALLOWED_REQUEST_HEADERS.include?(k.downcase)
-              end
-
-              request_headers.each do |header, value|
-                tags["http.request.headers.#{header}"] = value
-              end
-
-              tags['http.host'] = request.host
-              tags['http.useragent'] = request.user_agent
-              tags['network.client.ip'] = request.remote_addr
-            end
-
-            if (response = event[:response])
-              response_headers = response.headers.select do |k, _|
-                ALLOWED_RESPONSE_HEADERS.include?(k.downcase)
-              end
-
-              response_headers.each do |header, value|
-                tags["http.response.headers.#{header}"] = value
-              end
-            end
-
-            tags['_dd.origin'] = 'appsec'
-
-            # accumulate triggers
-            tags['_dd.appsec.triggers'] ||= []
-            tags['_dd.appsec.triggers'] += event[:waf_result].data
-          end
-
-          # apply tags to root span
-
+          trace_root_tags = build_root_trace_tags(event_group)
           # complex types are unsupported, we need to serialize to a string
-          triggers = trace_tags.delete('_dd.appsec.triggers')
+          triggers = trace_root_tags.delete('_dd.appsec.triggers')
           span.set_tag('_dd.appsec.json', JSON.dump({ triggers: triggers }))
 
-          trace_tags.each do |key, value|
+          # apply tags to root span
+          trace_root_tags.each do |key, value|
             span.set_tag(key, value)
           end
         end
       end
-      # rubocop:enable Metrics/MethodLength
+
+      def self.build_root_trace_tags(event_group)
+        event_group.each_with_object({}) do |event, tags|
+          # TODO: assume HTTP request context for now
+
+          if (request = event[:request])
+            request_headers = request.headers.select do |k, _|
+              ALLOWED_REQUEST_HEADERS.include?(k.downcase)
+            end
+
+            request_headers.each do |header, value|
+              tags["http.request.headers.#{header}"] = value
+            end
+
+            tags['http.host'] = request.host
+            tags['http.useragent'] = request.user_agent
+            tags['network.client.ip'] = request.remote_addr
+          end
+
+          if (response = event[:response])
+            response_headers = response.headers.select do |k, _|
+              ALLOWED_RESPONSE_HEADERS.include?(k.downcase)
+            end
+
+            response_headers.each do |header, value|
+              tags["http.response.headers.#{header}"] = value
+            end
+          end
+
+          tags['_dd.origin'] = 'appsec'
+
+          # accumulate triggers
+          tags['_dd.appsec.triggers'] ||= []
+          tags['_dd.appsec.triggers'] += event[:waf_result].data
+        end
+      end
     end
   end
 end
