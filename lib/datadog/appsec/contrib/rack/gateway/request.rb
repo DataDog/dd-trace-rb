@@ -33,6 +33,10 @@ module Datadog
               end
             end
 
+            def method
+              request.request_method
+            end
+
             def headers
               request.env.each_with_object({}) do |(k, v), h|
                 h[k.gsub(/^HTTP_/, '').downcase.tr('_', '-')] = v if k =~ /^HTTP_/
@@ -45,6 +49,14 @@ module Datadog
 
             def url
               request.url
+            end
+
+            def fullpath
+              request.fullpath
+            end
+
+            def path
+              request.path
             end
 
             def cookies

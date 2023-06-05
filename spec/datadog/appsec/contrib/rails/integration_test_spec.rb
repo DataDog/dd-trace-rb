@@ -135,13 +135,21 @@ RSpec.describe 'Rails integration tests' do
     end
 
     let(:triggers) do
-      json = trace.send(:meta)['_dd.appsec.json']
+      json = service_span.send(:meta)['_dd.appsec.json']
 
       JSON.parse(json).fetch('triggers', []) if json
     end
 
     let(:remote_addr) { '127.0.0.1' }
     let(:client_ip) { remote_addr }
+
+    let(:service_span) do
+      span = sorted_spans.reverse.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
+
+      expect(span.name).to eq 'rack.request'
+
+      span
+    end
 
     let(:span) { rack_span }
 
@@ -237,18 +245,18 @@ RSpec.describe 'Rails integration tests' do
 
     shared_examples 'a trace without AppSec tags' do
       it do
-        expect(trace.send(:metrics)['_dd.appsec.enabled']).to be_nil
-        expect(trace.send(:meta)['_dd.runtime_family']).to be_nil
-        expect(trace.send(:meta)['_dd.appsec.waf.version']).to be_nil
+        expect(service_span.send(:metrics)['_dd.appsec.enabled']).to be_nil
+        expect(service_span.send(:meta)['_dd.runtime_family']).to be_nil
+        expect(service_span.send(:meta)['_dd.appsec.waf.version']).to be_nil
         expect(span.send(:meta)['http.client_ip']).to eq nil
       end
     end
 
     shared_examples 'a trace with AppSec tags' do
       it do
-        expect(trace.send(:metrics)['_dd.appsec.enabled']).to eq(1.0)
-        expect(trace.send(:meta)['_dd.runtime_family']).to eq('ruby')
-        expect(trace.send(:meta)['_dd.appsec.waf.version']).to match(/^\d+\.\d+\.\d+/)
+        expect(service_span.send(:metrics)['_dd.appsec.enabled']).to eq(1.0)
+        expect(service_span.send(:meta)['_dd.runtime_family']).to eq('ruby')
+        expect(service_span.send(:meta)['_dd.appsec.waf.version']).to match(/^\d+\.\d+\.\d+/)
         expect(span.send(:meta)['http.client_ip']).to eq client_ip
       end
 
@@ -262,14 +270,14 @@ RSpec.describe 'Rails integration tests' do
     shared_examples 'a trace without AppSec events' do
       it do
         expect(spans.select { |s| s.get_tag('appsec.event') }).to be_empty
-        expect(trace.send(:meta)['_dd.appsec.triggers']).to be_nil
+        expect(service_span.send(:meta)['_dd.appsec.triggers']).to be_nil
       end
     end
 
     shared_examples 'a trace with AppSec events' do
       it do
         expect(spans.select { |s| s.get_tag('appsec.event') }).to_not be_empty
-        expect(trace.send(:meta)['_dd.appsec.json']).to be_a String
+        expect(service_span.send(:meta)['_dd.appsec.json']).to be_a String
       end
 
       context 'with appsec disabled' do
