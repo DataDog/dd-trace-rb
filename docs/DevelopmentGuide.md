@@ -150,7 +150,8 @@ runs alongside the Ruby tracer locally and in CI, handles all traces during test
 of 'Trace Checks'. For more information on these checks, see: 
 https://github.com/DataDog/dd-apm-test-agent#trace-invariant-checks
 
-The APM Test Agent also emits helpful logging. To get Test Agent logs:
+The APM Test Agent also emits helpful logging, which can be viewed in local testing or in CircleCI as a job step for tracer and contrib
+tests. Locally, to get Test Agent logs:
 
     $ docker-compose logs -f testagent
 

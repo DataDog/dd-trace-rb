@@ -1,9 +1,11 @@
 require 'support/faux_writer'
+require 'support/network_helpers'
 
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 
 module Contrib
+  include NetworkHelpers
   # Contrib-specific tracer helpers.
   # For contrib, we only allow one tracer to be active:
   # the global tracer in +Datadog::Tracing+.
@@ -79,6 +81,7 @@ module Contrib
               end
             end
           end
+
           instance
         end
       end
@@ -91,11 +94,13 @@ module Contrib
       # with mock assertions.
       config.around do |example|
         example.run.tap do
-          traces = fetch_traces(tracer)
-          unless traces.empty?
-            traces.each do |trace|
-              # write traces after the test to the agent in order to not mess up assertions
-              tracer.writer.write(trace)
+          if test_agent_running?
+            traces = fetch_traces(tracer)
+            unless traces.empty?
+              traces.each do |trace|
+                # write traces after the test to the agent in order to not mess up assertions
+                tracer.writer.write(trace)
+              end
             end
           end
           Datadog::Tracing.shutdown!
