@@ -211,7 +211,7 @@ RSpec.describe 'Rails integration tests' do
 
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
 
@@ -237,7 +237,7 @@ RSpec.describe 'Rails integration tests' do
 
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
 
@@ -250,7 +250,7 @@ RSpec.describe 'Rails integration tests' do
 
           it_behaves_like 'a GET 403 span'
           it_behaves_like 'a trace with AppSec tags'
-          it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec events', { blocking: true }
         end
 
         context 'with an event-triggering response' do
@@ -317,7 +317,7 @@ RSpec.describe 'Rails integration tests' do
 
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
 
@@ -339,7 +339,7 @@ RSpec.describe 'Rails integration tests' do
 
               it_behaves_like 'a POST 403 span'
               it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events'
+              it_behaves_like 'a trace with AppSec events', { blocking: true }
             end
           end
         end
@@ -361,7 +361,7 @@ RSpec.describe 'Rails integration tests' do
 
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
       end
@@ -435,7 +435,7 @@ RSpec.describe 'Rails integration tests' do
 
               it_behaves_like 'a GET 403 span'
               it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events'
+              it_behaves_like 'a trace with AppSec events', { blocking: true }
             end
           end
         end
