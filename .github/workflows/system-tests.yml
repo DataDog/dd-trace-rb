@@ -134,7 +134,7 @@ jobs:
         scenario:
           - DEFAULT
           - APPSEC_DISABLED
-          - APPSEC_IP_BLOCKING
+          - APPSEC_BLOCKING_FULL_DENYLIST
           - APPSEC_REQUEST_BLOCKING
         include:
           - library: ruby
