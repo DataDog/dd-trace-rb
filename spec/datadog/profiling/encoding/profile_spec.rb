@@ -22,7 +22,6 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
     let(:event_count) { nil }
 
     let(:template) { instance_double(Datadog::Profiling::Pprof::Template, debug_statistics: 'template_debug_statistics') }
-    let(:profile) { instance_double(Perftools::Profiles::Profile) }
     let(:payload) { instance_double(Datadog::Profiling::Pprof::Payload) }
     let(:start_time) { Time.utc(2020) }
     let(:finish_time) { Time.utc(2021) }
