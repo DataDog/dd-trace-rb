@@ -43,20 +43,22 @@ module Datadog
         private
 
         FORMAT_MAP = {
-          'text/plain' => :text,
-          'text/html' => :html,
           'application/json' => :json,
+          'text/html' => :html,
+          'text/plain' => :text,
         }.freeze
 
-        DEFAULT_CONTENT_TYPE = 'text/plain'
+        DEFAULT_CONTENT_TYPE = 'application/json'
 
         def content_type(env)
           return DEFAULT_CONTENT_TYPE unless env.key?('HTTP_ACCEPT')
 
-          accepted = env['HTTP_ACCEPT'].split(',').map { |m| Utils::HTTP::MediaRange.new(m) }.sort!.reverse!
+          accept_types = env['HTTP_ACCEPT'].split(',').map(&:strip)
 
-          accepted.each_with_object(DEFAULT_CONTENT_TYPE) do |range, _default|
-            match = FORMAT_MAP.keys.find { |type| range === type }
+          accepted = accept_types.map { |m| Utils::HTTP::MediaRange.new(m) }.sort!.reverse!
+
+          accepted.each do |range|
+            match = FORMAT_MAP.keys.find { |key| range === key }
 
             return match if match
           end
