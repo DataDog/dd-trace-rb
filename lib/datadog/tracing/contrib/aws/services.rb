@@ -1,3 +1,11 @@
+require_relative './service/sqs'
+require_relative './service/sns'
+require_relative './service/dynamodb'
+require_relative './service/kinesis'
+require_relative './service/eventbridge'
+require_relative './service/states'
+require_relative './service/s3'
+
 module Datadog
   module Tracing
     module Contrib

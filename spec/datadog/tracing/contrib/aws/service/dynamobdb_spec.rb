@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'rspec'
-require 'lib/datadog/tracing/contrib/aws/service/base'
-require 'lib/datadog/tracing/contrib/aws/service/dynamodb'
+require 'datadog/tracing/contrib/aws/service/dynamodb'
 
 RSpec.describe Datadog::Tracing::Contrib::Aws::Service::DynamoDB do
   let(:span) { instance_double('Span') }
