@@ -10,7 +10,7 @@ module Datadog
     module Contrib
       module Devise
         # Hook in devise validate method
-        module AuthenticablePatch
+        module AuthenticatablePatch
           # rubocop:disable Metrics/MethodLength, Metrics/PerceivedComplexity
           def validate(resource, &block)
             result = super
@@ -139,7 +139,7 @@ module Datadog
           end
 
           def patch_authenticable_strategy
-            ::Devise::Strategies::Authenticatable.prepend(AuthenticablePatch)
+            ::Devise::Strategies::Authenticatable.prepend(AuthenticatablePatch)
           end
 
           def patch_registration_controller
