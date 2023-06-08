@@ -7,8 +7,6 @@ module Datadog
     module AppSec
       # Tracking events
       module Events
-        module_function
-
         LOGIN_SUCCESS_EVENT = 'users.login.success'
         LOGIN_FAILURE_EVENT = 'users.login.failure'
         SIGNUP_EVENT = 'users.signup'
@@ -85,18 +83,33 @@ module Datadog
         #
         # This method is experimental and may change in the future.
         #
-        # @param trace [TraceOperation] Trace to attach data to.
+        # @param trace [TraceOperation] Trace to attach data to. Defaults to
+        #   active trace.
+        # @param span [SpanOperation] Span to attach data to. Defaults to
+        #   active span on trace. Note that this should be a service entry span.
+        #   When AppSec is enabled, the expected span and trace are automatically
+        #   used as defaults.
         # @param user [Hash<Symbol, String>] User information to pass to
         #   Datadog::Kit::Identity.set_user. Must contain at least :id as key.
         # @param others [Hash<String || Symbol, String>] Additional free-form
         #   event information to attach to the trace.
-        def track_signup(trace, user:, **others, &custom_track_tags_block)
+        def self.track_signup(trace = nil, span = nil, user:, **others)
           user_options = user.dup
           user_id = user_options.delete(:id)
 
           raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
 
-          track(SIGNUP_EVENT, trace, **others, &custom_track_tags_block)
+          if (appsec_scope = Datadog::AppSec.active_scope)
+            trace = appsec_scope.trace
+            span = appsec_scope.service_entry_span
+          end
+
+          trace ||= Datadog::Tracing.active_trace
+          span ||= trace.active_span || Datadog::Tracing.active_span
+
+          raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
+
+          track(SIGNUP_EVENT, trace, **others)
           Kit::Identity.set_user(trace, id: user_id, **user_options)
         end
 
@@ -126,9 +139,8 @@ module Datadog
           raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
 
           span.set_tag("appsec.events.#{event}.track", 'true')
+          span.set_tag("_dd.appsec.appsec.events.#{event}.sdk", 'true')
 
-          trace.set_tag("appsec.events.#{event}.track", 'true')
-          custom_track_tags_block.call(trace, event)
           others.each do |k, v|
             raise ArgumentError, 'key cannot be :track' if k.to_sym == :track
 

@@ -3,18 +3,12 @@
 require_relative '../patcher'
 require_relative 'resource'
 require_relative 'ext'
-require_relative '../../../kit/appsec/events'
+require_relative 'tracking'
 
 module Datadog
   module AppSec
     module Contrib
       module Devise
-        AUTOMATED_USER_EVENT_TAGGING_BLOCK = proc do |trace, event|
-          trace.set_tag("_dd.appsec.events.#{event}.auto.mode", AppSec.settings.automated_track_user_events)
-        end
-
-        private_constant :AUTOMATED_USER_EVENT_TAGGING_BLOCK
-
         # Hook in devise validate method
         module AuthenticablePatch
           # rubocop:disable Metrics/MethodLength, Metrics/PerceivedComplexity
@@ -23,9 +17,9 @@ module Datadog
             return result unless AppSec.enabled?
             return result if AppSec.settings.automated_track_user_events == Ext::DISABLED_MODE
 
-            active_trace = defined?(Datadog::Tracing) && Datadog::Tracing.active_trace
+            appsec_scope = Datadog::AppSec.active_scope
 
-            return result unless active_trace
+            return result unless appsec_scope
 
             devise_resource = resource ? Resource.new(resource) : nil
 
@@ -44,11 +38,11 @@ module Datadog
 
             if result
               if user_id
-                Datadog::Kit::AppSec::Events.track_login_success(
-                  active_trace,
+                Tracking.track_login_success(
+                  appsec_scope.trace,
+                  appsec_scope.service_entry_span,
                   user: { id: user_id.to_s },
-                  **event_information,
-                  &AUTOMATED_USER_EVENT_TAGGING_BLOCK
+                  **event_information
                 )
                 Datadog.logger.debug { 'User Login Event success' }
               else
@@ -59,21 +53,21 @@ module Datadog
             end
 
             if devise_resource
-              Datadog::Kit::AppSec::Events.track_login_failure(
-                active_trace,
+              Tracking.track_login_failure(
+                appsec_scope.trace,
+                appsec_scope.service_entry_span,
                 user_id: user_id,
                 user_exists: true,
-                **event_information,
-                &AUTOMATED_USER_EVENT_TAGGING_BLOCK
+                **event_information
               )
               Datadog.logger.debug { 'User Login Event failure users exists' }
             else
-              Datadog::Kit::AppSec::Events.track_login_failure(
-                active_trace,
+              Tracking.track_login_failure(
+                appsec_scope.trace,
+                appsec_scope.service_entry_span,
                 user_id: nil,
                 user_exists: false,
-                **event_information,
-                &AUTOMATED_USER_EVENT_TAGGING_BLOCK
+                **event_information
               )
               Datadog.logger.debug { 'User Login Event failure users do not exists' }
             end
@@ -89,8 +83,8 @@ module Datadog
             return super unless AppSec.enabled?
             return super if AppSec.settings.automated_track_user_events == Ext::DISABLED_MODE
 
-            active_trace = defined?(Datadog::Tracing) && Datadog::Tracing.active_trace
-            return super unless active_trace
+            appsec_scope = Datadog::AppSec.active_scope
+            return super unless appsec_scope
 
             super do |resource|
               if resource.persisted?
@@ -108,11 +102,11 @@ module Datadog
                 end
 
                 if user_id
-                  Kit::AppSec::Events.track_signup(
-                    active_trace,
+                  Tracking.track_signup(
+                    appsec_scope.trace,
+                    appsec_scope.service_entry_span,
                     user: { id: user_id.to_s },
-                    **event_information,
-                    &AUTOMATED_USER_EVENT_TAGGING_BLOCK
+                    **event_information
                   )
                   Datadog.logger.debug { 'User Signup Event' }
                 else
