@@ -107,6 +107,12 @@ RSpec.describe Datadog::AppSec::Response do
         it { is_expected.to eq 'application/json' }
       end
 
+      context('with unsupported Accept header') do
+        let(:accept) { 'image/webp' }
+
+        it { is_expected.to eq 'application/json' }
+      end
+
       context('with Mozilla Firefox Accept') do
         let(:accept) { 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8' }
 
