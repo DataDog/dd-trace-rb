@@ -64,10 +64,17 @@ Rails.application.configure do
   # require "syslog/logger"
   # config.logger = ActiveSupport::TaggedLogging.new(Syslog::Logger.new "app-name")
 
-  if ENV["RAILS_LOG_TO_STDOUT"].present?
-    logger           = ActiveSupport::Logger.new(STDOUT)
-    logger.formatter = config.log_formatter
-    config.logger    = ActiveSupport::TaggedLogging.new(logger)
+   # Log to both file and STDOUT:
+   if ENV["RAILS_LOG_TO_STDOUT"].present?
+    file_logger    = ActiveSupport::Logger.new(config.default_log_file)
+    console_logger = ActiveSupport::Logger.new(STDOUT)
+
+    config.logger = ActiveSupport::TaggedLogging.new(
+      file_logger.tap do |l|
+        l.extend(ActiveSupport::Logger.broadcast(console_logger))
+        l.formatter = config.log_formatter
+      end
+    )
   end
 
   # Do not dump schema after migrations.
