@@ -25,7 +25,8 @@ module Datadog
             def query
               # Downstream libddwaf expects keys and values to be extractable
               # separately so we can't use [[k, v], ...]. We also want to allow
-              # duplicate keys, so we use [{k, v}, ...] instead.
+              # duplicate keys, so we use {k => [v, ...], ...} instead, taking into
+              # account that {k => [v1, v2, ...], ...} is possible for duplicate keys.
               request.query_string.split('&').each.with_object({}) do |e, hash|
                 k, v = e.split('=').map { |s| CGI.unescape(s) }
                 hash[k] ||= []
