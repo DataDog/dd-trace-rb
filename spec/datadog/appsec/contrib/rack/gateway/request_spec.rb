@@ -8,7 +8,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
   let(:request) do
     described_class.new(
       Rack::MockRequest.env_for(
-        'http://example.com:8080/?a=foo',
+        'http://example.com:8080/?a=foo&a=bar&b=baz',
         {
           'REQUEST_METHOD' => 'GET', 'REMOTE_ADDR' => '10.10.10.10', 'HTTP_CONTENT_TYPE' => 'text/html',
           'HTTP_COOKIE' => 'foo=bar', 'HTTP_USER_AGENT' => 'WebKit'
@@ -19,7 +19,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
 
   describe '#query' do
     it 'returns URL query information' do
-      expect(request.query).to eq([{ 'a' => 'foo' }])
+      expect(request.query).to eq({ 'a' => ['foo', 'bar'], 'b' => ['baz'] })
     end
   end
 
@@ -38,7 +38,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
 
   describe '#url' do
     it 'returns the url' do
-      expect(request.url).to eq('http://example.com:8080/?a=foo')
+      expect(request.url).to eq('http://example.com:8080/?a=foo&a=bar&b=baz')
     end
   end
 
@@ -50,7 +50,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
 
   describe '#fullpath' do
     it 'returns the path with query string' do
-      expect(request.fullpath).to eq('/?a=foo')
+      expect(request.fullpath).to eq('/?a=foo&a=bar&b=baz')
     end
   end
 
