@@ -2,15 +2,6 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        AUTOMATED_USER_EVENT_TAGGING_BLOCK: untyped
-        module AuthenticablePatch
-          def validate: (untyped resource) ?{ () -> untyped } -> untyped
-        end
-
-        module ResgistrationControllerPatch
-          def create: () -> untyped
-        end
-
         module Patcher
           include Datadog::AppSec::Contrib::Patcher
 
