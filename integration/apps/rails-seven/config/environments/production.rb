@@ -37,14 +37,6 @@ Rails.application.configure do
   # config.action_dispatch.x_sendfile_header = "X-Sendfile" # for Apache
   # config.action_dispatch.x_sendfile_header = "X-Accel-Redirect" # for NGINX
 
-  # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :local
-
-  # Mount Action Cable outside main process or domain.
-  # config.action_cable.mount_path = nil
-  # config.action_cable.url = "wss://example.com/cable"
-  # config.action_cable.allowed_request_origins = [ "http://example.com", /http:\/\/example.*/ ]
-
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   # config.force_ssl = true
 
@@ -57,16 +49,6 @@ Rails.application.configure do
 
   # Use a different cache store in production.
   # config.cache_store = :mem_cache_store
-
-  # Use a real queuing backend for Active Job (and separate queues per environment).
-  # config.active_job.queue_adapter     = :resque
-  # config.active_job.queue_name_prefix = "rails_seven_production"
-
-  config.action_mailer.perform_caching = false
-
-  # Ignore bad email addresses and do not raise email delivery errors.
-  # Set this to true and configure the email server for immediate delivery to raise delivery errors.
-  # config.action_mailer.raise_delivery_errors = false
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
@@ -82,23 +64,17 @@ Rails.application.configure do
   # require "syslog/logger"
   # config.logger = ActiveSupport::TaggedLogging.new(Syslog::Logger.new "app-name")
 
-  # Log to both file and STDOUT:
-  if ENV["RAILS_LOG_TO_STDOUT"].present?
-    # NOTE: TaggedLogging breaks broadcasting to multiple loggers.
-    #       We need to apply tagging before we apply broadcasting.
-    #       This still doesn't apply tags properly to console,
-    #       presumably because it's the second logger, but that's
-    #       a problem to fix some other time.
+   # Log to both file and STDOUT:
+   if ENV["RAILS_LOG_TO_STDOUT"].present?
+    file_logger    = ActiveSupport::Logger.new(config.default_log_file)
     console_logger = ActiveSupport::Logger.new(STDOUT)
-    console_logger.formatter = config.log_formatter
-    console_logger = ActiveSupport::TaggedLogging.new(console_logger)
 
-    file_logger = ActiveSupport::Logger.new('log/production.log')
-    file_logger.formatter = config.log_formatter
-    file_logger = ActiveSupport::TaggedLogging.new(file_logger)
-
-    file_logger.extend(ActiveSupport::Logger.broadcast(console_logger))
-    config.logger = file_logger
+    config.logger = ActiveSupport::TaggedLogging.new(
+      file_logger.tap do |l|
+        l.extend(ActiveSupport::Logger.broadcast(console_logger))
+        l.formatter = config.log_formatter
+      end
+    )
   end
 
   # Do not dump schema after migrations.
