@@ -1,8 +1,6 @@
 require "#{Rails.root}/app/jobs/test_job"
 
 class JobsController < ApplicationController
-  skip_before_action :verify_authenticity_token
-
   def create
     # Queue job
     job_id = SecureRandom.uuid
