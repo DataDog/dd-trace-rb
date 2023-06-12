@@ -5,11 +5,15 @@ module Datadog
         class Resource
           def initialize: (untyped resource) -> void
 
-          def id: () -> untyped
+          def id: () -> (untyped | nil)
 
-          def email: () -> untyped
+          def email: () -> (untyped | nil)
 
-          def username: () -> untyped
+          def username: () -> (untyped | nil)
+
+          private
+
+          def extract: (Symbol method) -> (untyped | nil)
         end
       end
     end

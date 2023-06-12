@@ -26,10 +26,6 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
         @email = email
         @username = username
       end
-
-      def try(value)
-        send(value)
-      end
     end
   end
 

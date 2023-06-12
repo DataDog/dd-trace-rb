@@ -5,23 +5,28 @@ module Datadog
     module Contrib
       module Devise
         # Class to encpasulate extracting information from a Devise resource
-        # TODO: Very barebone implementation. Improve before relase
-        #   - Check Devise configuration to infer used value to log in
+        # Normally a devise resource would be an Active::Record instance
         class Resource
           def initialize(resource)
             @resource = resource
           end
 
           def id
-            @resource.try(:id)
+            extract(:id) || extract(:uuid)
           end
 
           def email
-            @resource.try(:email)
+            extract(:email)
           end
 
           def username
-            @resource.try(:username)
+            extract(:username)
+          end
+
+          private
+
+          def extract(method)
+            @resource.send(method) if @resource.respond_to?(method)
           end
         end
       end
