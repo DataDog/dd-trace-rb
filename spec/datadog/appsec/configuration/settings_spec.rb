@@ -18,10 +18,6 @@ class FakeIntegration
     end
   end
 
-  include Datadog::AppSec::Contrib::Integration
-
-  register_as :fake
-
   def self.loaded?
     true
   end
@@ -40,6 +36,7 @@ class FakeIntegration
 end
 
 RSpec.describe Datadog::AppSec::Configuration::Settings do
+  let(:registry) { {} }
   let(:dsl) { Datadog::AppSec::Configuration::DSL.new }
   let(:integration_name) { :fake }
 
@@ -48,8 +45,13 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     settings.send(:reset!)
   end
 
-  after(:context) do
-    Datadog::AppSec::Contrib::Integration.registry.delete(:fake)
+  before do
+    registry[integration_name] = instance_double(
+      Datadog::AppSec::Contrib::Integration::RegisteredIntegration,
+      klass: FakeIntegration,
+    )
+
+    allow(Datadog::AppSec::Contrib::Integration).to receive(:registry).and_return(registry)
   end
 
   subject(:settings) { described_class.new }
@@ -189,6 +191,14 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           expect(FakeIntegration::Patcher).to_not receive(:patch)
 
           settings.merge(dsl)
+        end
+      end
+
+      context 'when integration does not exists' do
+        it 'does not patch the integration' do
+          dsl.instrument(:not_exiting)
+
+          expect { settings.merge(dsl) }.to_not raise_error
         end
       end
     end

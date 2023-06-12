@@ -202,6 +202,8 @@ module Datadog
           dsl.instruments.each do |instrument|
             # TODO: error handling
             registered_integration = Datadog::AppSec::Contrib::Integration.registry[instrument.name]
+            next unless registered_integration
+
             @integrations << Integration.new(registered_integration)
 
             # TODO: move to a separate apply step
