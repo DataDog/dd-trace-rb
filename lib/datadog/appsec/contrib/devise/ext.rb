@@ -7,8 +7,6 @@ module Datadog
         # Devise integration constants
         module Ext
           APP = 'devise'
-          DISABLED_MODE = 'disabled'
-          EXTENDED_MODE = 'extended'
         end
       end
     end

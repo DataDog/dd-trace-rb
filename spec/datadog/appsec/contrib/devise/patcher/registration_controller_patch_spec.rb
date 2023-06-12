@@ -1,5 +1,6 @@
 require 'datadog/appsec/spec_helper'
 
+require 'datadog/appsec/contrib/devise/patcher'
 require 'datadog/appsec/contrib/devise/patcher/registration_controller_patch'
 
 RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationControllerPatch do

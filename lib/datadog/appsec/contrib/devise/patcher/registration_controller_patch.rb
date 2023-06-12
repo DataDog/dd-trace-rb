@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../ext'
 require_relative '../tracking'
 require_relative '../resource'
 
@@ -16,7 +15,7 @@ module Datadog
 
               automated_track_user_events_mode = AppSec.settings.automated_track_user_events
 
-              return super if automated_track_user_events_mode == Ext::DISABLED_MODE
+              return super if automated_track_user_events_mode == Patcher::DISABLED_MODE
 
               appsec_scope = Datadog::AppSec.active_scope
               return super unless appsec_scope
@@ -28,7 +27,7 @@ module Datadog
                   event_information = {}
                   user_id = devise_resource.id if devise_resource && devise_resource.id
 
-                  if automated_track_user_events_mode == Ext::EXTENDED_MODE
+                  if automated_track_user_events_mode == Patcher::EXTENDED_MODE
                     resource_email = devise_resource.email
                     resource_username = devise_resource.username
 

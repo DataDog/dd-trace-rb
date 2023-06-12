@@ -2,7 +2,7 @@
 
 require_relative '../patcher'
 require_relative 'patcher/authenticatable_patch'
-require_relative 'patcher/regsitration_controller_patch'
+require_relative 'patcher/registration_controller_patch'
 
 module Datadog
   module AppSec
@@ -11,6 +11,9 @@ module Datadog
         # Patcher for AppSec on Devise
         module Patcher
           include Datadog::AppSec::Contrib::Patcher
+
+          DISABLED_MODE = 'disabled'
+          EXTENDED_MODE = 'extended'
 
           module_function
 
