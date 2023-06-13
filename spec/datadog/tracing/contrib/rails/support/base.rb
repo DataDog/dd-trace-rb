@@ -29,7 +29,15 @@ RSpec.shared_context 'Rails base application' do
   # for log_injection testing
   let(:log_output) { StringIO.new }
   let(:logger) do
-    Logger.new(log_output)
+    #
+    # Use `ActiveSupport::Logger` that contains `ActiveSupport::Logger::SimpleFormatter` to
+    # exclude unnecessary metadata. It is almost equivalent to
+    #
+    # Logger.new(log_output).tap do |l|
+    #   l.formatter = ActiveSupport::Logger::SimpleFormatter.new
+    # end
+    #
+    ActiveSupport::Logger.new(log_output)
   end
 
   let(:initialize_block) do
@@ -37,33 +45,37 @@ RSpec.shared_context 'Rails base application' do
     logger = self.logger
 
     proc do
+      #
+      # It is important to distinguish between `nil` and an empty array.
+      #
+      # If `nil` (which is the default), `Rails::Rack::Logger` would initialize with an new array.
+      # https://github.com/rails/rails/blob/e88857bbb9d4e1dd64555c34541301870de4a45b/railties/lib/rails/application/default_middleware_stack.rb#L51
+      #
+      # Datadog integration need to provide an array during `before_initialize` hook
+      #
+      config.log_tags = ENV['LOG_TAGS'] if ENV['LOG_TAGS']
+
       if ENV['USE_TAGGED_LOGGING'] == true
-        config.log_tags = ENV['LOG_TAGS'] || []
-        Rails.logger = ActiveSupport::TaggedLogging.new(logger)
+        config.logger = ActiveSupport::TaggedLogging.new(logger)
+      else
+        config.logger = logger
       end
 
+      if config.respond_to?(:lograge)
+        if ENV['USE_LOGRAGE'] == true
+          config.lograge.enabled = true
+          config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS'] if ENV['LOGRAGE_CUSTOM_OPTIONS']
+        # ensure no test leakage from other tests
+        else
+          config.lograge.enabled = false
+        end
+      end
+
+      # Semantic Logger settings should be exclusive to `ActiveSupport::TaggedLogging` and `Lograge`
       if ENV['USE_SEMANTIC_LOGGER'] == true
         config.log_tags = ENV['LOG_TAGS'] || {}
         config.rails_semantic_logger.add_file_appender = false
         config.semantic_logger.add_appender(logger: logger)
-      end
-
-      if ENV['USE_LOGRAGE'] == true
-        config.logger = logger
-
-        config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS'] unless ENV['LOGRAGE_CUSTOM_OPTIONS'].nil?
-
-        if ENV['LOGRAGE_DISABLED'].nil?
-          config.lograge.enabled = true
-          config.lograge.base_controller_class = 'LogrageTestController'
-          config.lograge.logger = logger
-        else
-          config.lograge.enabled = false
-        end
-      # ensure no test leakage from other tests
-      elsif config.respond_to?(:lograge)
-        config.lograge.enabled = false
-        config.lograge.keep_original_rails_log = true
       end
 
       middleware.each { |m| config.middleware.use m }
