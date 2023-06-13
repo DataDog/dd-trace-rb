@@ -1295,5 +1295,22 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to(1.0)
       end
     end
+
+    describe '#service' do
+      subject(:service) { settings.remote.service }
+
+      context 'defaults to nil' do
+        it { is_expected.to be nil }
+      end
+    end
+
+    describe '#service=' do
+      it 'updates the #service setting' do
+        expect { settings.remote.service = 'foo' }
+          .to change { settings.remote.service }
+          .from(nil)
+          .to('foo')
+      end
+    end
   end
 end

@@ -136,7 +136,7 @@ module Datadog
             runtime_id: Core::Environment::Identity.id,
             language: Core::Environment::Identity.lang,
             tracer_version: tracer_version_semver2,
-            service: Datadog.configuration.service,
+            service: service_name,
             env: Datadog.configuration.env,
             tags: client_tracer_tags,
           }
@@ -165,6 +165,10 @@ module Datadog
             },
             cached_target_files: state.cached_target_files,
           }
+        end
+
+        def service_name
+          Datadog.configuration.remote.service || Datadog.configuration.service
         end
 
         def tracer_version_semver2

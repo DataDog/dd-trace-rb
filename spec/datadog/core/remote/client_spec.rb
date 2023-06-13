@@ -564,6 +564,22 @@ RSpec.describe Datadog::Core::Remote::Client do
               end
             end
 
+            context 'with remote service setting' do
+              it 'returns client_tracer' do
+                expect(Datadog.configuration.remote).to receive(:service).and_return('foo').at_least(:once)
+
+                expected_client_tracer = {
+                  :runtime_id => Datadog::Core::Environment::Identity.id,
+                  :language => Datadog::Core::Environment::Identity.lang,
+                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version_semver2,
+                  :service => Datadog.configuration.remote.service,
+                  :env => Datadog.configuration.env,
+                }
+
+                expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
+              end
+            end
+
             context 'with app_version' do
               it 'returns client_tracer' do
                 expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
