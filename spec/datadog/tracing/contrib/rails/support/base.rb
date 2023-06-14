@@ -27,7 +27,9 @@ RSpec.shared_context 'Rails base application' do
   end
 
   # for log_injection testing
-  let(:log_output) { StringIO.new }
+  let(:log_output) {
+    StringIO.new
+  }
   let(:logger) do
     #
     # Use `ActiveSupport::Logger` that contains `ActiveSupport::Logger::SimpleFormatter` to
@@ -62,11 +64,14 @@ RSpec.shared_context 'Rails base application' do
       end
 
       if config.respond_to?(:lograge)
+        config.lograge.keep_original_rails_log = true
+
         if ENV['USE_LOGRAGE'] == true
           config.lograge.enabled = true
+          config.lograge.logger = config.logger
           config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS'] if ENV['LOGRAGE_CUSTOM_OPTIONS']
-        # ensure no test leakage from other tests
         else
+          # ensure no test leakage from other tests
           config.lograge.enabled = false
         end
       end

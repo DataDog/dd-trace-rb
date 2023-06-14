@@ -6,11 +6,13 @@ RSpec.shared_context 'Rails test application' do
 
   before do
     reset_rails_configuration!
+    # reset_lograge_configuration! if defined?(::Lograge)
     raise_on_rails_deprecation!
   end
 
   after do
     reset_rails_configuration!
+    reset_lograge_configuration! if defined?(::Lograge)
 
     # Reset references stored in the Rails class
     Rails.application = nil
@@ -41,6 +43,18 @@ RSpec.shared_context 'Rails test application' do
 
     # Clear out any spans generated during initialization
     clear_traces!
+  end
+
+  def reset_lograge_configuration!
+    ::Lograge.logger = nil
+    ::Lograge.application = nil
+    ::Lograge.custom_options = nil
+    ::Lograge.ignore_tests = nil
+    ::Lograge.before_format = nil
+    ::Lograge.log_level = nil
+    ::Lograge.formatter = nil
+
+    ::Lograge::LogSubscribers::ActionController.detach_from :action_controller
   end
 
   if Rails.version < '4.0'
