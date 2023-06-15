@@ -35,7 +35,6 @@ module Datadog
         #
         # rubocop:disable Metrics/CyclomaticComplexity
         # rubocop:disable Metrics/PerceivedComplexity
-        # rubocop:disable Metrics/AbcSize
         def set_user(
           trace = nil, span = nil, id:, email: nil, name: nil, session_id: nil, role: nil, scope: nil, **others
         )
@@ -54,37 +53,51 @@ module Datadog
             raise TypeError, "#{k.inspect} must be a String" unless v.nil? || v.is_a?(String)
           end
 
+          set_trace_and_span_context('set_user', trace, span) do |_active_trace, active_span|
+            # set tags once data is known consistent
+            active_span.set_tag('usr.id', id)
+            active_span.set_tag('usr.email', email)           unless email.nil?
+            active_span.set_tag('usr.name', name)             unless name.nil?
+            active_span.set_tag('usr.session_id', session_id) unless session_id.nil?
+            active_span.set_tag('usr.role', role)             unless role.nil?
+            active_span.set_tag('usr.scope', scope)           unless scope.nil?
+
+            others.each do |k, v|
+              active_span.set_tag("usr.#{k}", v) unless v.nil?
+            end
+
+            if Datadog::AppSec.active_scope
+              user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id)
+              ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
+            end
+          end
+        end
+        # rubocop:enable Metrics/PerceivedComplexity
+        # rubocop:enable Metrics/CyclomaticComplexity
+
+        private
+
+        def set_trace_and_span_context(method, trace = nil, span = nil)
           if (appsec_scope = Datadog::AppSec.active_scope)
             trace = appsec_scope.trace
             span = appsec_scope.service_entry_span
           end
 
           trace ||= Datadog::Tracing.active_trace
-          span ||= trace.active_span || Datadog::Tracing.active_span
+          span ||= trace && trace.active_span || Datadog::Tracing.active_span
+
+          unless trace && span
+            Datadog.logger.debug(
+              "Tracing not enabled. Method ##{method} is a no-op. Please enmnable tracing if you want ##{method}"\
+              ' to set information on the span'
+            )
+            return
+          end
 
           raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
 
-          # set tags once data is known consistent
-
-          span.set_tag('usr.id', id)
-          span.set_tag('usr.email', email)           unless email.nil?
-          span.set_tag('usr.name', name)             unless name.nil?
-          span.set_tag('usr.session_id', session_id) unless session_id.nil?
-          span.set_tag('usr.role', role)             unless role.nil?
-          span.set_tag('usr.scope', scope)           unless scope.nil?
-
-          others.each do |k, v|
-            span.set_tag("usr.#{k}", v) unless v.nil?
-          end
-
-          if appsec_scope
-            user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id)
-            ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
-          end
+          yield(trace, span)
         end
-        # rubocop:enable Metrics/AbcSize
-        # rubocop:enable Metrics/PerceivedComplexity
-        # rubocop:enable Metrics/CyclomaticComplexity
       end
     end
   end
