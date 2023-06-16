@@ -188,6 +188,7 @@ step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_result
       RESPONSE=$(curl -s -w "\n%{http_code}" -o response.txt http://testagent:9126/test/trace_check/failures)
       RESPONSE_CODE=$(echo "$RESPONSE" | awk 'END {print $NF}')
       if [[ $RESPONSE_CODE -eq 200 ]]; then
+        cat response.txt
         echo "All Check Traces returned successful! (HTTP 200)"
       else
         echo "Check Traces failed with response code: $RESPONSE_CODE"
