@@ -48,6 +48,19 @@ RSpec.describe 'Rails Log Auto Injection' do
   context 'with log injection enabled' do
     let(:log_injection) { true }
 
+    context 'with default Ruby logger' do
+      it 'does not contain trace id' do
+        is_expected.to be_ok
+
+        expect(logs).to_not be_empty
+        # From `Rails::Rack::Logger`
+        expect(log_entries).to have(1).item
+        rack_rails_logger_entries, = log_entries
+
+        expect(rack_rails_logger_entries).not_to include trace.id.to_s
+      end
+    end
+
     context 'with Tagged Logging' do
       before do
         allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
@@ -339,6 +352,19 @@ RSpec.describe 'Rails Log Auto Injection' do
     #   # Need to disable explicity?
     #   Datadog.configuration.tracing[:lograge].enabled = false
     # end
+
+    context 'with default Ruby logger' do
+      it 'does not contain trace id' do
+        is_expected.to be_ok
+
+        expect(logs).to_not be_empty
+        # From `Rails::Rack::Logger`
+        expect(log_entries).to have(1).item
+        rack_rails_logger_entries, = log_entries
+
+        expect(rack_rails_logger_entries).not_to include trace.id.to_s
+      end
+    end
 
     context 'with Tagged Logging' do
       before do
