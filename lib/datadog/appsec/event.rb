@@ -40,7 +40,7 @@ module Datadog
       # to properly apply
       def self.record(span, *events)
         # ensure rate limiter is called only when there are events to record
-        return if events.empty?
+        return if events.empty? || span.nil?
 
         Datadog::AppSec::RateLimiter.limit(:traces) do
           record_via_span(span, *events)
