@@ -348,11 +348,6 @@ RSpec.describe 'Rails Log Auto Injection' do
   context 'with log injection disabled' do
     let(:log_injection) { false }
 
-    # before do
-    #   # Need to disable explicity?
-    #   Datadog.configuration.tracing[:lograge].enabled = false
-    # end
-
     context 'with default Ruby logger' do
       it 'does not contain trace id' do
         is_expected.to be_ok
