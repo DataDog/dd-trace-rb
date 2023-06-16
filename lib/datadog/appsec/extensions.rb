@@ -24,6 +24,21 @@ module Datadog
       # Merges {Datadog::AppSec::Configuration::Settings} and {Datadog::AppSec::Configuration::DSL}
       # into a single read/write object.
       class AppSecAdapter
+        VALID_AUTOMATED_TRACK_USER_EVENTS_VALUES = [
+          'safe',
+          'extended',
+          'disabled'
+        ].freeze
+
+        private_constant :VALID_AUTOMATED_TRACK_USER_EVENTS_VALUES
+
+        # InvalidConfigurationValue is raise when a configuration value is incorrect
+        class InvalidConfigurationValue < StandardError
+          def initialize(key, value, valid_values)
+            super("Invalid value: #{value} for configuration key: #{key}. Valid values: #{valid_values}")
+          end
+        end
+
         def initialize(settings)
           @settings = settings
         end
@@ -90,6 +105,20 @@ module Datadog
           @settings.merge(dsl)
         end
 
+        def automated_track_user_events=(value)
+          unless VALID_AUTOMATED_TRACK_USER_EVENTS_VALUES.include?(value.to_s)
+            raise InvalidConfigurationValue.new(
+              :automated_track_user_events,
+              value,
+              VALID_AUTOMATED_TRACK_USER_EVENTS_VALUES
+            )
+          end
+
+          dsl = AppSec::Configuration::DSL.new
+          dsl.automated_track_user_events = value
+          @settings.merge(dsl)
+        end
+
         # Reader methods
 
         def enabled
@@ -126,6 +155,10 @@ module Datadog
 
         def obfuscator_value_regex
           @settings.obfuscator_key_regex
+        end
+
+        def automated_track_user_events
+          @settings.automated_track_user_events
         end
 
         def merge(arg)

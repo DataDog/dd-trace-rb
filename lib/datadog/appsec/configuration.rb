@@ -64,6 +64,10 @@ module Datadog
         def obfuscator_value_regex=(value)
           options[:obfuscator_value_regex] = value
         end
+
+        def automated_track_user_events=(value)
+          options[:automated_track_user_events] = value
+        end
       end
 
       # class-level methods for Configuration

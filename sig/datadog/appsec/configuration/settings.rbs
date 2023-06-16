@@ -35,6 +35,7 @@ module Datadog
         def trace_rate_limit: () -> ::Integer
         def obfuscator_key_regex: () -> ::String
         def obfuscator_value_regex: () -> ::String
+        def automated_track_user_events:() -> ::String
 
         def merge: (DSL) -> Settings
 
