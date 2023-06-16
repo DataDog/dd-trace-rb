@@ -17,7 +17,7 @@ RSpec.describe 'Rails Log Auto Injection' do
       'LoggingTestController',
       Class.new(ActionController::Base) do
         def index
-          # logger.info "yo"
+          logger.info "MY VOICE SHALL BE HEARD!"
           render plain: "OK"
         end
       end
@@ -26,6 +26,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
   before do
     Datadog.configuration.tracing[:rails].reset_options!
+
     Datadog.configure do |c|
       c.tracing.instrument :rails
       c.tracing.log_injection = log_injection
@@ -54,10 +55,12 @@ RSpec.describe 'Rails Log Auto Injection' do
 
         expect(logs).to_not be_empty
         # From `Rails::Rack::Logger`
-        expect(log_entries).to have(1).item
-        rack_rails_logger_entries, = log_entries
+        expect(log_entries).to have(2).items
+        rack_rails_logger_entries, my_entry = log_entries
 
         expect(rack_rails_logger_entries).not_to include trace.id.to_s
+
+        expect(my_entry).not_to include trace.id.to_s
       end
     end
 
@@ -72,10 +75,12 @@ RSpec.describe 'Rails Log Auto Injection' do
 
           expect(logs).to_not be_empty
           # From `Rails::Rack::Logger`
-          expect(log_entries).to have(1).item
-          rack_rails_logger_entries, = log_entries
+          expect(log_entries).to have(2).items
+          rack_rails_logger_entries, my_entry = log_entries
 
           expect(rack_rails_logger_entries).to include "dd.trace_id=#{trace.id}"
+
+          expect(my_entry).to include trace.id.to_s
         end
       end
 
@@ -89,12 +94,16 @@ RSpec.describe 'Rails Log Auto Injection' do
 
           expect(logs).to_not be_empty
           # From `Rails::Rack::Logger`
-          expect(log_entries).to have(1).item
-          rack_rails_logger_entries, = log_entries
+          expect(log_entries).to have(2).items
+          rack_rails_logger_entries, my_entry = log_entries
 
           expect(rack_rails_logger_entries).to include "dd.trace_id=#{trace.id}"
           expect(rack_rails_logger_entries).to include "[some_info]"
           expect(rack_rails_logger_entries).to include "[some_other_info]"
+
+          expect(my_entry).to include trace.id.to_s
+          expect(my_entry).to include "[some_info]"
+          expect(my_entry).to include "[some_other_info]"
         end
       end
     end
@@ -103,24 +112,26 @@ RSpec.describe 'Rails Log Auto Injection' do
       # for log_injection testing
       require 'lograge'
 
-      context 'with lograge enabled' do
-        before do
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
-        end
+      before do
+        allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+      end
 
+      context 'with lograge enabled' do
         context 'with Lograge setup and no custom_options' do
           it 'injects trace_id into logs' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).not_to include trace.id.to_s
 
             expect(controller_logger_entry).to include trace.id.to_s
             expect(controller_logger_entry).to include "ddsource=ruby"
+
+            expect(my_entry).not_to include trace.id.to_s
           end
         end
 
@@ -136,9 +147,9 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).not_to include trace.id.to_s
 
@@ -146,6 +157,8 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(controller_logger_entry).to include "ddsource=ruby"
             expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
             expect(controller_logger_entry).to include "some_other_hash_info=other_test_hash_value"
+
+            expect(my_entry).not_to include trace.id.to_s
           end
         end
 
@@ -165,9 +178,9 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).not_to include trace.id.to_s
 
@@ -175,21 +188,30 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(controller_logger_entry).to include "ddsource=ruby"
             expect(controller_logger_entry).to include "some_lambda_info=test_lambda_value"
             expect(controller_logger_entry).to include "some_other_lambda_info=other_test_lambda_value"
+
+            expect(my_entry).not_to include trace.id.to_s
           end
         end
       end
 
       context 'with lograge disabled' do
+        before do
+          Datadog.configuration.tracing[:lograge].enabled = false
+        end
+
         it 'does not inject trace_id into logs' do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
+          expect(log_entries).to have(3).items
 
-          expect(log_entries).to have(1).item
-
-          rack_rails_logger_entries, = log_entries
+          rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
           expect(rack_rails_logger_entries).not_to include trace.id.to_s
+
+          expect(my_entry).not_to include trace.id.to_s
+
+          expect(controller_logger_entry).not_to include trace.id.to_s
         end
       end
     end
@@ -198,22 +220,24 @@ RSpec.describe 'Rails Log Auto Injection' do
       # for log_injection testing
       require 'lograge'
 
-      context 'with lograge and tagged logging enabled' do
-        before do
-          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
-        end
+      before do
+        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+        allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+      end
 
+      context 'with lograge and tagged logging enabled' do
         context 'with no custom_options' do
           it 'injects trace_id into logs' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).to include "dd.trace_id=#{trace.id}"
+
+            expect(my_entry).to include "dd.trace_id=#{trace.id}"
 
             expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
             expect(controller_logger_entry).to include "ddsource=ruby"
@@ -229,14 +253,17 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).to include "dd.trace_id=#{trace.id}"
             expect(rack_rails_logger_entries).to include "[some_info]"
             expect(rack_rails_logger_entries).to include "[some_other_info]"
 
+            expect(my_entry).to include "dd.trace_id=#{trace.id}"
+            expect(my_entry).to include "[some_info]"
+            expect(my_entry).to include "[some_other_info]"
 
             expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
             expect(controller_logger_entry).to include "ddsource=ruby"
@@ -257,11 +284,13 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).to include "dd.trace_id=#{trace.id}"
+
+            expect(my_entry).to include "dd.trace_id=#{trace.id}"
 
             expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
             expect(controller_logger_entry).to include "ddsource=ruby"
@@ -286,11 +315,13 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).to include "dd.trace_id=#{trace.id}"
+
+            expect(my_entry).to include "dd.trace_id=#{trace.id}"
 
             expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
             expect(controller_logger_entry).to include "ddsource=ruby"
@@ -312,13 +343,17 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).to include "dd.trace_id=#{trace.id}"
             expect(rack_rails_logger_entries).to include "[some_info]"
             expect(rack_rails_logger_entries).to include "[some_other_info]"
+
+            expect(my_entry).to include "dd.trace_id=#{trace.id}"
+            expect(my_entry).to include "[some_info]"
+            expect(my_entry).to include "[some_other_info]"
 
             expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
             expect(controller_logger_entry).to include "[some_info]"
@@ -327,19 +362,6 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
             expect(controller_logger_entry).to include "some_other_hash_info=other_test_hash_value"
           end
-        end
-      end
-
-      context 'with lograge disabled' do
-        it 'does not inject trace_id into logs' do
-          is_expected.to be_ok
-
-          expect(logs).to_not be_empty
-          expect(log_entries).to have(1).item
-
-          rack_rails_logger_entries, = log_entries
-
-          expect(rack_rails_logger_entries).not_to include trace.id.to_s
         end
       end
     end
@@ -354,10 +376,12 @@ RSpec.describe 'Rails Log Auto Injection' do
 
         expect(logs).to_not be_empty
         # From `Rails::Rack::Logger`
-        expect(log_entries).to have(1).item
-        rack_rails_logger_entries, = log_entries
+        expect(log_entries).to have(2).item
+        rack_rails_logger_entries, my_entry = log_entries
 
         expect(rack_rails_logger_entries).not_to include trace.id.to_s
+
+        expect(my_entry).not_to include trace.id.to_s
       end
     end
 
@@ -371,11 +395,13 @@ RSpec.describe 'Rails Log Auto Injection' do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
-          expect(log_entries).to have(1).item
+          expect(log_entries).to have(2).item
 
-          rack_rails_logger_entries, = log_entries
+          rack_rails_logger_entries, my_entry = log_entries
 
           expect(rack_rails_logger_entries).not_to include trace.id.to_s
+
+          expect(my_entry).not_to include trace.id.to_s
         end
       end
 
@@ -388,14 +414,17 @@ RSpec.describe 'Rails Log Auto Injection' do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
+          expect(log_entries).to have(2).items
 
-          expect(log_entries).to have(1).item
-
-          rack_rails_logger_entries, = log_entries
+          rack_rails_logger_entries, my_entry = log_entries
 
           expect(rack_rails_logger_entries).not_to include trace.id.to_s
           expect(rack_rails_logger_entries).to include "[some_info]"
           expect(rack_rails_logger_entries).to include "[some_other_info]"
+
+          expect(my_entry).not_to include trace.id.to_s
+          expect(my_entry).to include "[some_info]"
+          expect(my_entry).to include "[some_other_info]"
         end
       end
     end
@@ -404,21 +433,23 @@ RSpec.describe 'Rails Log Auto Injection' do
       # for log_injection testing
       require 'lograge'
 
-      context 'with lograge enabled' do
-        before do
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
-        end
+      before do
+        allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+      end
 
+      context 'with lograge enabled' do
         context 'with Lograge setup and no custom_options' do
           it 'does not inject trace_id' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).not_to include trace.id.to_s
+
+            expect(my_entry).not_to include trace.id.to_s
 
             expect(controller_logger_entry).not_to include trace.id.to_s
           end
@@ -436,11 +467,13 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).not_to include trace.id.to_s
+
+            expect(my_entry).not_to include trace.id.to_s
 
             expect(controller_logger_entry).not_to include trace.id.to_s
             expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
@@ -464,16 +497,39 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have(3).items
 
-            rack_rails_logger_entries, controller_logger_entry = log_entries
+            rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).not_to include trace.id.to_s
+
+            expect(my_entry).not_to include trace.id.to_s
 
             expect(controller_logger_entry).not_to include trace.id.to_s
             expect(controller_logger_entry).to include "some_lambda_info=test_lambda_value"
             expect(controller_logger_entry).to include "some_other_lambda_info=other_test_lambda_value"
           end
+        end
+      end
+
+      context 'with lograge disabled' do
+        before do
+          Datadog.configuration.tracing[:lograge].enabled = false
+        end
+
+        it 'does not inject trace_id into logs' do
+          is_expected.to be_ok
+
+          expect(logs).to_not be_empty
+          expect(log_entries).to have(3).items
+
+          rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
+
+          expect(rack_rails_logger_entries).not_to include trace.id.to_s
+
+          expect(my_entry).not_to include trace.id.to_s
+
+          expect(controller_logger_entry).not_to include trace.id.to_s
         end
       end
     end

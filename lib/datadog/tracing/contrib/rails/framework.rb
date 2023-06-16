@@ -125,7 +125,7 @@ module Datadog
           def self.activate_lograge!(datadog_config, rails_config)
             return unless defined?(::Lograge)
 
-            if datadog_config.tracing.log_injection
+            if datadog_config.tracing.log_injection && datadog_config.tracing[:lograge].enabled
               datadog_config.tracing.instrument(
                 :lograge
               )
