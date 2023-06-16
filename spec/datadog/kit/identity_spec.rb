@@ -224,8 +224,15 @@ RSpec.describe Datadog::Kit::Identity do
           Datadog::AppSec::Scope.new(trace, span, processor)
         end
 
-        it 'instruments the user information to appsec' do
+        before do
           Datadog.configuration.appsec.enabled = true
+        end
+
+        after do
+          Datadog.configuration.appsec.send(:reset!)
+        end
+
+        it 'instruments the user information to appsec' do
           expect_any_instance_of(Datadog::AppSec::Instrumentation::Gateway).to receive(:push).with(
             'identity.set_user',
             instance_of(Datadog::AppSec::Instrumentation::Gateway::User)
