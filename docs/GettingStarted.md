@@ -2135,17 +2135,24 @@ LogJob.perform_async('login')
 
 ## Additional configuration
 
-To change the default behavior of Datadog tracing, you can set environment variables, or provide custom options inside a `Datadog.configure` block, e.g.:
+To change the default behavior of Datadog tracing, you can use, in order of precedence:
 
-```ruby
-Datadog.configure do |c|
-  c.service = 'billing-api'
-  c.env = ENV['RACK_ENV']
+1. [Remote Configuration](#remote-configuration).
+2. Custom options inside a `Datadog.configure` block, e.g.:
+    ```ruby
+    Datadog.configure do |c|
+    c.service = 'billing-api'
+    c.env = ENV['RACK_ENV']
+    
+    c.tracing.report_hostname = true
+    c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
+    end
+    ```
+3. Environment variables.
 
-  c.tracing.report_hostname = true
-  c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
-end
-```
+**If a higher precedence value is set for an option, setting that option with a lower precedence value will not change its effective value.**
+
+For example, if `tracing.sampling.default_rate` is configured by [Remote Configuration](#remote-configuration), changing its value through the `Datadog.configure` block will have no effect.
 
 **Available configuration options:**
 
@@ -2843,6 +2850,14 @@ If you run into issues with profiling, please check the [Profiler Troubleshootin
 When profiling [Resque](https://github.com/resque/resque) jobs, you should set the `RUN_AT_EXIT_HOOKS=1` option described in the [Resque](https://github.com/resque/resque/blob/v2.0.0/docs/HOOKS.md#worker-hooks) documentation.
 
 Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.
+
+## Remote Configuration
+
+<!--
+TODO: Flush out consistent language regarding Remote Configuration documentation before
+releasing the Remote Configuration feature.
+This could possibly be a simple link to a central documentation page.
+-->
 
 ## Known issues and suggested configurations
 

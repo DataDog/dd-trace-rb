@@ -65,9 +65,9 @@ module Datadog
             @options ||= OptionSet.new
           end
 
-          def set_option(name, value)
+          def set_option(name, value, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
             add_option(name) unless options.key?(name)
-            options[name].set(value)
+            options[name].set(value, precedence: precedence)
           end
 
           def get_option(name)
