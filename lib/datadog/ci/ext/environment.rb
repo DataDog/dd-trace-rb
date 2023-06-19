@@ -19,6 +19,8 @@ module Datadog
         TAG_PROVIDER_NAME = 'ci.provider.name'
         TAG_STAGE_NAME = 'ci.stage.name'
         TAG_WORKSPACE_PATH = 'ci.workspace_path'
+        TAG_NODE_LABELS = 'ci.node.labels'
+        TAG_NODE_NAME = 'ci.node.name'
         TAG_CI_ENV_VARS = '_dd.ci.env_vars'
 
         PROVIDERS = [
@@ -33,7 +35,8 @@ module Datadog
           ['JENKINS_URL', :extract_jenkins],
           ['TEAMCITY_VERSION', :extract_teamcity],
           ['TRAVIS', :extract_travis],
-          ['BITRISE_BUILD_SLUG', :extract_bitrise]
+          ['BITRISE_BUILD_SLUG', :extract_bitrise],
+          ['CF_BUILD_ID', :extract_codefresh]
         ].freeze
 
         module_function
@@ -196,7 +199,7 @@ module Datadog
         end
 
         def extract_buildkite(env)
-          {
+          tags = {
             Core::Git::Ext::TAG_BRANCH => env['BUILDKITE_BRANCH'],
             Core::Git::Ext::TAG_COMMIT_SHA => env['BUILDKITE_COMMIT'],
             Core::Git::Ext::TAG_REPOSITORY_URL => env['BUILDKITE_REPO'],
@@ -211,11 +214,21 @@ module Datadog
             Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['BUILDKITE_BUILD_AUTHOR'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['BUILDKITE_BUILD_AUTHOR_EMAIL'],
             Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BUILDKITE_MESSAGE'],
+            TAG_NODE_NAME => env['BUILDKITE_AGENT_ID'],
             TAG_CI_ENV_VARS => {
               'BUILDKITE_BUILD_ID' => env['BUILDKITE_BUILD_ID'],
               'BUILDKITE_JOB_ID' => env['BUILDKITE_JOB_ID']
             }.to_json
           }
+
+          extra_tags = env
+            .select { |key| key.start_with?('BUILDKITE_AGENT_META_DATA_') }
+            .map { |key, value| "#{key.to_s.sub('BUILDKITE_AGENT_META_DATA_', '').downcase}:#{value}" }
+            .sort_by(&:length)
+
+          tags[TAG_NODE_LABELS] = extra_tags.to_json unless extra_tags.empty?
+
+          tags
         end
 
         def extract_circle_ci(env)
@@ -274,7 +287,6 @@ module Datadog
         def extract_gitlab(env)
           commit_author_name, commit_author_email = extract_name_email(env['CI_COMMIT_AUTHOR'])
 
-          url = env['CI_PIPELINE_URL']
           {
             Core::Git::Ext::TAG_BRANCH => env['CI_COMMIT_REF_NAME'],
             Core::Git::Ext::TAG_COMMIT_SHA => env['CI_COMMIT_SHA'],
@@ -289,9 +301,11 @@ module Datadog
             TAG_PIPELINE_ID => env['CI_PIPELINE_ID'],
             TAG_PIPELINE_NAME => env['CI_PROJECT_PATH'],
             TAG_PIPELINE_NUMBER => env['CI_PIPELINE_IID'],
-            TAG_PIPELINE_URL => (url.gsub(%r{/-/pipelines/}, '/pipelines/') if url),
+            TAG_PIPELINE_URL => env['CI_PIPELINE_URL'],
             TAG_PROVIDER_NAME => 'gitlab',
             TAG_WORKSPACE_PATH => env['CI_PROJECT_DIR'],
+            TAG_NODE_LABELS => env['CI_RUNNER_TAGS'],
+            TAG_NODE_NAME => env['CI_RUNNER_ID'],
             Core::Git::Ext::TAG_COMMIT_MESSAGE => env['CI_COMMIT_MESSAGE'],
             TAG_CI_ENV_VARS => {
               'CI_PROJECT_URL' => env['CI_PROJECT_URL'],
@@ -308,6 +322,9 @@ module Datadog
             name = name.gsub("/#{normalize_ref(branch)}", '') if branch
             name = name.split('/').reject { |v| v.nil? || v.include?('=') }.join('/')
           end
+
+          node_labels = env['NODE_LABELS'].split.to_json unless env['NODE_LABELS'].nil?
+
           {
             Core::Git::Ext::TAG_BRANCH => branch,
             Core::Git::Ext::TAG_COMMIT_SHA => env['GIT_COMMIT'],
@@ -319,6 +336,8 @@ module Datadog
             TAG_PIPELINE_URL => env['BUILD_URL'],
             TAG_PROVIDER_NAME => 'jenkins',
             TAG_WORKSPACE_PATH => env['WORKSPACE'],
+            TAG_NODE_LABELS => node_labels,
+            TAG_NODE_NAME => env['NODE_NAME'],
             TAG_CI_ENV_VARS => {
               'DD_CUSTOM_TRACE_ID' => env['DD_CUSTOM_TRACE_ID']
             }.to_json
@@ -377,6 +396,23 @@ module Datadog
             Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['GIT_CLONE_COMMIT_AUTHOR_EMAIL'],
             Core::Git::Ext::TAG_COMMIT_COMMITTER_NAME => env['GIT_CLONE_COMMIT_COMMITER_NAME'],
             Core::Git::Ext::TAG_COMMIT_COMMITTER_EMAIL => commiter_email
+          }
+        end
+
+        def extract_codefresh(env)
+          branch, tag = branch_or_tag(env['CF_BRANCH'])
+
+          {
+            TAG_PROVIDER_NAME => 'codefresh',
+            TAG_PIPELINE_ID => env['CF_BUILD_ID'],
+            TAG_PIPELINE_NAME => env['CF_PIPELINE_NAME'],
+            TAG_PIPELINE_URL => env['CF_BUILD_URL'],
+            TAG_JOB_NAME => env['CF_STEP_NAME'],
+            Core::Git::Ext::TAG_BRANCH => branch,
+            Core::Git::Ext::TAG_TAG => tag,
+            TAG_CI_ENV_VARS => {
+              'CF_BUILD_ID' => env['CF_BUILD_ID'],
+            }.to_json
           }
         end
 

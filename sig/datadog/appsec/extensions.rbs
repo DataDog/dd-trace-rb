@@ -10,6 +10,12 @@ module Datadog
       end
 
       class AppSecAdapter
+        VALID_AUTOMATED_TRACK_USER_EVENTS_VALUES: ::Array[String]
+
+        # InvalidConfigurationValue is raise when a configuration value is incorrect
+        class InvalidConfigurationValue < StandardError
+          def initialize: (untyped key, untyped value, untyped valid_values) -> void
+        end
         @settings: Configuration::Settings
 
         def initialize: (Configuration::Settings settings) -> void
@@ -25,8 +31,6 @@ module Datadog
         def trace_rate_limit=: (::Integer arg) -> untyped
         def obfuscator_key_regex=: (::String | ::Regexp) -> void
         def obfuscator_value_regex=: (::String | ::Regexp) -> void
-
-        def []: (::Symbol arg) -> Configuration::Settings::options
 
         def enabled: () -> bool
         def ruleset: () -> (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO)

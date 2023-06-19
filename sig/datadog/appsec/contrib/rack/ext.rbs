@@ -4,8 +4,6 @@ module Datadog
       module Rack
         module Ext
           APP: untyped
-
-          ENV_ENABLED: untyped
         end
       end
     end

@@ -3,7 +3,7 @@
 module DDTrace
   module VERSION
     MAJOR = 1
-    MINOR = 11
+    MINOR = 12
     PATCH = 1
     PRE = nil
     BUILD = nil

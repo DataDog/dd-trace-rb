@@ -31,7 +31,11 @@ module Datadog
 
       def self.enable_new_profiler?: (untyped settings) -> bool
 
+      def self.no_signals_workaround_enabled?: (untyped settings) -> bool
+
       def self.incompatible_libmysqlclient_version?: (untyped settings) -> bool
+
+      def self.load_pprof_support: () -> void
     end
   end
 end

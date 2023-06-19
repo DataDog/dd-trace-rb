@@ -568,7 +568,6 @@ target :ddtrace do
   ignore 'lib/datadog/tracing/distributed/trace_context.rb'
   ignore 'lib/datadog/tracing/event.rb'
   ignore 'lib/datadog/tracing/flush.rb'
-  ignore 'lib/datadog/tracing/metadata.rb'
   ignore 'lib/datadog/tracing/metadata/analytics.rb'
   ignore 'lib/datadog/tracing/metadata/errors.rb'
   ignore 'lib/datadog/tracing/metadata/ext.rb'
@@ -637,7 +636,7 @@ target :ddtrace do
   ignore 'lib/ddtrace/transport/traces.rb'
   ignore 'lib/ddtrace/version.rb'
 
-  library 'pathname', 'set'
+  library 'pathname'
   library 'cgi'
   library 'logger', 'monitor'
   library 'tsort'

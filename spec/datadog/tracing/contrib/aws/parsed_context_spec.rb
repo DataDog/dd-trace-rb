@@ -1,5 +1,3 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-
 require 'aws-sdk'
 require 'datadog/tracing/contrib/aws/parsed_context'
 

@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
-require 'lib/datadog/tracing/contrib/aws/service/base'
-require 'lib/datadog/tracing/contrib/aws/service/sqs'
-require 'spec_helper'
-require 'rspec'
+require 'datadog/tracing/contrib/aws/service/sqs'
 
 RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SQS do
   let(:span) { instance_double('Span') }

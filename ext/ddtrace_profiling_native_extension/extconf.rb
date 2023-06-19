@@ -175,6 +175,8 @@ Logging.message("[ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspe
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
 unless pkg_config('datadog_profiling_with_rpath')
+  Logging.message("[ddtrace] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
+
   skip_building_extension!(
     if Datadog::Profiling::NativeExtensionHelpers::Supported.pkg_config_missing?
       Datadog::Profiling::NativeExtensionHelpers::Supported::PKG_CONFIG_IS_MISSING

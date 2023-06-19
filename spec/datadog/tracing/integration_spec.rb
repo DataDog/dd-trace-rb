@@ -909,6 +909,10 @@ RSpec.describe 'Tracer integration tests' do
         end
       end
 
+      after do
+        Datadog.configuration.reset!
+      end
+
       context 'is provided' do
         let(:on_build) do
           double('on_build').tap do |double|

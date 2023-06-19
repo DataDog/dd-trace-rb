@@ -128,22 +128,27 @@ RSpec.describe Datadog::AppSec::Extensions do
         it { expect { user_id_denylist_ }.to change { settings.user_id_denylist }.from([]).to(['24528736564812']) }
       end
 
-      describe '#[]' do
-        describe 'when the integration exists' do
-          subject(:get) { settings[integration_name] }
+      describe '#automated_track_user_events' do
+        subject(:automated_track_user_events) { settings.automated_track_user_events }
+        it { is_expected.to eq(:safe) }
+      end
 
-          let(:integration_options) { { foo: :bar } }
-
-          before { settings.instrument(integration_name, integration_options) }
-
-          it 'retrieves the described configuration' do
-            is_expected.to eq(integration_options)
+      describe '#automated_track_user_events=' do
+        context 'valid value' do
+          subject(:automated_track_user_events_) { settings.automated_track_user_events = 'extended' }
+          it do
+            expect { automated_track_user_events_ }.to change {
+              settings.automated_track_user_events
+            }.from(:safe).to('extended')
           end
         end
 
-        context 'when the integration doesn\'t exist' do
-          it do
-            expect { settings[:foobar] }.to raise_error(ArgumentError, /foobar/)
+        context 'invalid value' do
+          subject(:automated_track_user_events_) { settings.automated_track_user_events = 'invalid value' }
+          it 'raises exception' do
+            expect do
+              automated_track_user_events_
+            end.to raise_error(Datadog::AppSec::Extensions::AppSecAdapter::InvalidConfigurationValue)
           end
         end
       end

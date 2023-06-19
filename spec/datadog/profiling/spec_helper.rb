@@ -1,4 +1,5 @@
 require 'datadog/profiling'
+require 'datadog/profiling/pprof/pprof_pb' if Datadog::Profiling.supported?
 
 module ProfileHelpers
   Sample = Struct.new(:locations, :values, :labels) # rubocop:disable Lint/StructNewOverride

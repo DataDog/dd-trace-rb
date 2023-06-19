@@ -16,7 +16,29 @@ namespace :rbs do  # rubocop:disable Metrics/BlockLength
 
     stale.each { |sig| puts sig }
 
-    exit 1 if stale.any?
+    if stale.any?
+      warn <<-EOS
+        +------------------------------------------------------------------------------+
+        | **Hello there, fellow contributor who just triggered a type signature error**|
+        |                                                                              |
+        | It looks like you removed a file from `lib/` and this left a lingering       |
+        | signature file in `sig/`. If this file is stale you can clean up             |
+        | automatically with:                                                          |
+        |                                                                              |
+        |   bundle exec rake rbs:clean                                                 |
+        |                                                                              |
+        | But if you have moved or renamed a file in `lib`, please consider moving and |
+        | updating corresponding signature in `sig`! See the following guide:          |
+        |                                                                              |
+        |   less docs/StaticTypingGuide.md                                             |
+        |                                                                              |
+        | Also, if this is too annoying for you -- let us know! We definitely are      |
+        | still improving how we use the tool.                                         |
+        +------------------------------------------------------------------------------+
+      EOS
+
+      exit 1
+    end
   end
 
   task :missing do |_task, args|
@@ -34,7 +56,28 @@ namespace :rbs do  # rubocop:disable Metrics/BlockLength
 
     missing.each { |lib| puts lib }
 
-    exit 1 if missing.any?
+    if missing.any?
+      warn <<-EOS
+        +------------------------------------------------------------------------------+
+        | **Hello there, fellow contributor who just triggered a type signature error**|
+        |                                                                              |
+        | It looks like you created a file in `lib/` that has no matching signature    |
+        | file in `sig/`. You can automatically generate missing signature files with:  
+        |                                                                              |
+        |   bundle exec rake rbs:prototype                                             |
+        |                                                                              |
+        | If at all possible, please try to change `untyped` items to the correct      |
+        | types! See the following guide:                                              |
+        |                                                                              |
+        |   less docs/StaticTypingGuide.md                                             |
+        |                                                                              |
+        | Also, if this is too annoying for you -- let us know! We definitely are      |
+        | still improving how we use the tool.                                         |
+        +------------------------------------------------------------------------------+
+      EOS
+
+      exit 1
+    end
   end
 
   task :clean do |_task, args|

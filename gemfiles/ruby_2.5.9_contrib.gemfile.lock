@@ -11,10 +11,10 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.11.1)
-      debase-ruby_core_source (>= 0.10.16, <= 3.2.0)
+    ddtrace (1.12.1)
+      debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 2.0.0.1.0)
-      libddwaf (~> 1.8.2.0.0)
+      libddwaf (~> 1.9.0.0.0)
       msgpack
 
 GEM
@@ -55,7 +55,6 @@ GEM
       bundler
       rake
       thor (>= 0.14.0)
-    ast (2.4.2)
     aws-eventstream (1.2.0)
     aws-partitions (1.717.0)
     aws-sdk (3.1.0)
@@ -1481,7 +1480,7 @@ GEM
       cucumber-core (~> 10.1, >= 10.1.0)
       cucumber-cucumber-expressions (~> 14.0, >= 14.0.0)
     dalli (3.2.0)
-    debase-ruby_core_source (3.2.0)
+    debase-ruby_core_source (3.2.1)
     debug_inspector (1.1.0)
     delayed_job (4.1.11)
       activesupport (>= 3.0, < 8.0)
@@ -1553,7 +1552,7 @@ GEM
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
       rake
-    google-protobuf (3.22.0)
+    google-protobuf (3.23.1)
     googleapis-common-protos-types (1.3.2)
       google-protobuf (~> 3.14)
     grape (1.7.0)
@@ -1564,8 +1563,8 @@ GEM
       rack (>= 1.3.0)
       rack-accept
     graphql (2.0.17)
-    grpc (1.52.0)
-      google-protobuf (~> 3.21)
+    grpc (1.55.0)
+      google-protobuf (~> 3.23)
       googleapis-common-protos-types (~> 1.0)
     hashdiff (1.0.1)
     http (4.4.1)
@@ -1589,9 +1588,9 @@ GEM
     king_konf (1.0.1)
     libdatadog (2.0.0.1.0-aarch64-linux)
     libdatadog (2.0.0.1.0-x86_64-linux)
-    libddwaf (1.8.2.0.0-aarch64-linux)
+    libddwaf (1.9.0.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.8.2.0.0-x86_64-linux)
+    libddwaf (1.9.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     lograge (0.12.0)
       actionpack (>= 4)
@@ -1630,9 +1629,6 @@ GEM
       racc (~> 1.4)
     opentracing (0.5.0)
     os (1.1.4)
-    parallel (1.22.1)
-    parser (3.2.1.0)
-      ast (~> 2.4.1)
     pg (1.4.6)
     pimpmychangelog (0.1.3)
     pry (0.14.2)
@@ -1668,7 +1664,6 @@ GEM
       method_source
       rake (>= 12.2)
       thor (~> 1.0)
-    rainbow (3.1.1)
     rake (12.3.3)
     rake-compiler (1.2.1)
       rake
@@ -1681,7 +1676,6 @@ GEM
     redis (4.8.1)
     redis-namespace (1.10.0)
       redis (>= 4)
-    regexp_parser (2.7.0)
     request_store (1.5.1)
       rack (>= 1.4)
     resque (2.4.0)
@@ -1719,28 +1713,9 @@ GEM
     rspec_n (1.3.0)
       colorize (~> 0.8.0)
       cri (~> 2.15.3)
-    rubocop (1.28.2)
-      parallel (~> 1.10)
-      parser (>= 3.1.0.0)
-      rainbow (>= 2.2.2, < 4.0)
-      regexp_parser (>= 1.8, < 3.0)
-      rexml
-      rubocop-ast (>= 1.17.0, < 2.0)
-      ruby-progressbar (~> 1.7)
-      unicode-display_width (>= 1.4.0, < 3.0)
-    rubocop-ast (1.17.0)
-      parser (>= 3.1.1.0)
-    rubocop-packaging (0.5.1)
-      rubocop (>= 0.89, < 2.0)
-    rubocop-performance (1.13.3)
-      rubocop (>= 1.7.0, < 2.0)
-      rubocop-ast (>= 0.4.0)
-    rubocop-rspec (2.10.0)
-      rubocop (~> 1.19)
     ruby-kafka (1.5.0)
       digest-crc
     ruby-prof (1.4.3)
-    ruby-progressbar (1.11.0)
     ruby2_keywords (0.0.5)
     semantic_logger (4.12.0)
       concurrent-ruby (~> 1.0)
@@ -1791,7 +1766,6 @@ GEM
     unf (0.1.4)
       unf_ext
     unf_ext (0.0.8.2)
-    unicode-display_width (2.4.2)
     warning (1.3.0)
     webmock (3.13.0)
       addressable (>= 2.3.6)
@@ -1870,10 +1844,6 @@ DEPENDENCIES
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
   rspec_n (~> 1.3)
-  rubocop (~> 1.10, < 1.33.0)
-  rubocop-packaging (~> 0.5)
-  rubocop-performance (~> 1.9)
-  rubocop-rspec (~> 2.2)
   ruby-kafka (>= 0.7.10)
   ruby-prof (~> 1.4)
   semantic_logger (~> 4.0)

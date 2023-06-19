@@ -74,19 +74,43 @@ RSpec.describe Datadog::AppSec::Response do
       end
 
       context('without Accept header') do
-        it { is_expected.to eq 'text/plain' }
+        it { is_expected.to eq 'application/json' }
       end
 
       context('with Accept: */*') do
         let(:accept) { '*/*' }
 
-        it { is_expected.to eq 'text/plain' }
+        it { is_expected.to eq 'application/json' }
+      end
+
+      context('with Accept: text/*') do
+        let(:accept) { 'text/*' }
+
+        it { is_expected.to eq 'text/html' }
+      end
+
+      context('with Accept: application/*') do
+        let(:accept) { 'application/*' }
+
+        it { is_expected.to eq 'application/json' }
       end
 
       context('with unparseable Accept header') do
         let(:accept) { 'invalid' }
 
-        it { is_expected.to eq 'text/plain' }
+        it { is_expected.to eq 'application/json' }
+      end
+
+      context('with Accept: text/*;q=0.7, application/*;q=0.8, */*;q=0.9') do
+        let(:accept) { 'text/*;q=0.7, application/*;q=0.8, */*;q=0.9' }
+
+        it { is_expected.to eq 'application/json' }
+      end
+
+      context('with unsupported Accept header') do
+        let(:accept) { 'image/webp' }
+
+        it { is_expected.to eq 'application/json' }
       end
 
       context('with Mozilla Firefox Accept') do
