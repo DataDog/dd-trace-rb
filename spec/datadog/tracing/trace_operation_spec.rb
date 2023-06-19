@@ -1641,6 +1641,16 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             service: service
           )
         end
+
+        context 'and profiling is enabled' do
+          before { expect(Datadog::Profiling).to receive(:enabled?).and_return(true) }
+          it { is_expected.to have_attributes(profiling_enabled: true) }
+        end
+
+        context 'and profiling is disabled' do
+          before { expect(Datadog::Profiling).to receive(:enabled?).and_return(false) }
+          it { is_expected.to have_attributes(profiling_enabled: false) }
+        end
       end
 
       context 'is finished' do

@@ -450,7 +450,9 @@ module Datadog
           service: service,
           tags: meta,
           metrics: metrics,
-          root_span_id: !partial ? root_span && root_span.id : nil
+          root_span_id: !partial ? root_span && root_span.id : nil,
+          profiling_enabled:
+            !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?), # rubocop:disable Style/DoubleNegation
         )
       end
 

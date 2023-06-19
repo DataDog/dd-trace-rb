@@ -60,6 +60,35 @@ RSpec.describe Datadog::Profiling do
     end
   end
 
+  describe '.enabled?' do
+    subject(:enabled?) { described_class.enabled? }
+
+    before do
+      allow(Datadog.send(:components)).to receive(:profiler).and_return(profiler)
+    end
+
+    context 'when no profiler is available' do
+      let(:profiler) { nil }
+
+      it { is_expected.to be(false) }
+    end
+
+    context 'when a profiler is available' do
+      let(:profiler) { instance_double('Datadog::Profiling::Profiler', scheduler: scheduler) }
+      let(:scheduler) { instance_double('Datadog::Profiling::Scheduler', running?: running) }
+
+      context 'when the profiler is running' do
+        let(:running) { true }
+        it { is_expected.to be(true) }
+      end
+
+      context 'when the profiler is not running' do
+        let(:running) { false }
+        it { is_expected.to be(false) }
+      end
+    end
+  end
+
   describe '::supported?' do
     subject(:supported?) { described_class.supported? }
 
