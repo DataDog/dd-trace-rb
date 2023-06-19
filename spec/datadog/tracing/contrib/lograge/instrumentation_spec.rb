@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
       Datadog.configuration.tracing[:lograge].reset_options!
     end
 
-    context "when log injection and lograge both enabled" do
+    context 'when log injection and lograge both enabled' do
       before do
         Datadog.configure do |c|
           c.tracing.log_injection = true
@@ -58,7 +58,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
       end
     end
 
-    context "when log injection disabled" do
+    context 'when log injection disabled' do
       before do
         Datadog.configure do |c|
           c.tracing.log_injection = false
@@ -71,7 +71,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
       end
     end
 
-    context "when lograge disabled" do
+    context 'when lograge disabled' do
       before do
         Datadog.configure do |c|
           c.tracing.log_injection = true

@@ -27,9 +27,9 @@ RSpec.shared_context 'Rails base application' do
   end
 
   # for log_injection testing
-  let(:log_output) {
+  let(:log_output) do
     StringIO.new
-  }
+  end
   let(:logger) do
     #
     # Use `ActiveSupport::Logger` that contains `ActiveSupport::Logger::SimpleFormatter` to
@@ -57,11 +57,11 @@ RSpec.shared_context 'Rails base application' do
       #
       config.log_tags = ENV['LOG_TAGS'] if ENV['LOG_TAGS']
 
-      if ENV['USE_TAGGED_LOGGING'] == true
-        config.logger = ActiveSupport::TaggedLogging.new(logger)
-      else
-        config.logger = logger
-      end
+      config.logger = if ENV['USE_TAGGED_LOGGING'] == true
+                        ActiveSupport::TaggedLogging.new(logger)
+                      else
+                        logger
+                      end
 
       if config.respond_to?(:lograge)
         config.lograge.keep_original_rails_log = true

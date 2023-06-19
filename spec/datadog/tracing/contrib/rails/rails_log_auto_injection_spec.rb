@@ -7,6 +7,9 @@ RSpec.describe 'Rails Log Auto Injection' do
   let(:routes) do
     { '/logging' => 'logging_test#index' }
   end
+  # defined in rails support apps
+  let(:logs) { log_output.string }
+  let(:log_entries) { logs.split("\n") }
 
   let(:controllers) do
     [logging_test_controller]
@@ -17,8 +20,8 @@ RSpec.describe 'Rails Log Auto Injection' do
       'LoggingTestController',
       Class.new(ActionController::Base) do
         def index
-          logger.info "MY VOICE SHALL BE HEARD!"
-          render plain: "OK"
+          logger.info 'MY VOICE SHALL BE HEARD!'
+          render plain: 'OK'
         end
       end
     )
@@ -39,10 +42,6 @@ RSpec.describe 'Rails Log Auto Injection' do
     Datadog.configuration.tracing[:rails].reset_options!
     Datadog.configuration.tracing[:lograge].reset_options!
   end
-
-  # defined in rails support apps
-  let(:logs) { log_output.string }
-  let(:log_entries) { logs.split("\n") }
 
   subject(:response) { get '/logging' }
 
@@ -98,12 +97,12 @@ RSpec.describe 'Rails Log Auto Injection' do
           rack_rails_logger_entries, my_entry = log_entries
 
           expect(rack_rails_logger_entries).to include "dd.trace_id=#{trace.id}"
-          expect(rack_rails_logger_entries).to include "[some_info]"
-          expect(rack_rails_logger_entries).to include "[some_other_info]"
+          expect(rack_rails_logger_entries).to include '[some_info]'
+          expect(rack_rails_logger_entries).to include '[some_other_info]'
 
           expect(my_entry).to include trace.id.to_s
-          expect(my_entry).to include "[some_info]"
-          expect(my_entry).to include "[some_other_info]"
+          expect(my_entry).to include '[some_info]'
+          expect(my_entry).to include '[some_other_info]'
         end
       end
     end
@@ -129,7 +128,7 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(rack_rails_logger_entries).not_to include trace.id.to_s
 
             expect(controller_logger_entry).to include trace.id.to_s
-            expect(controller_logger_entry).to include "ddsource=ruby"
+            expect(controller_logger_entry).to include 'ddsource=ruby'
 
             expect(my_entry).not_to include trace.id.to_s
           end
@@ -154,9 +153,9 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(rack_rails_logger_entries).not_to include trace.id.to_s
 
             expect(controller_logger_entry).to include trace.id.to_s
-            expect(controller_logger_entry).to include "ddsource=ruby"
-            expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
-            expect(controller_logger_entry).to include "some_other_hash_info=other_test_hash_value"
+            expect(controller_logger_entry).to include 'ddsource=ruby'
+            expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
+            expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
 
             expect(my_entry).not_to include trace.id.to_s
           end
@@ -185,9 +184,9 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(rack_rails_logger_entries).not_to include trace.id.to_s
 
             expect(controller_logger_entry).to include "#{trace.id}"
-            expect(controller_logger_entry).to include "ddsource=ruby"
-            expect(controller_logger_entry).to include "some_lambda_info=test_lambda_value"
-            expect(controller_logger_entry).to include "some_other_lambda_info=other_test_lambda_value"
+            expect(controller_logger_entry).to include 'ddsource=ruby'
+            expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
+            expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
 
             expect(my_entry).not_to include trace.id.to_s
           end
@@ -240,7 +239,7 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(my_entry).to include "dd.trace_id=#{trace.id}"
 
             expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
-            expect(controller_logger_entry).to include "ddsource=ruby"
+            expect(controller_logger_entry).to include 'ddsource=ruby'
           end
         end
 
@@ -258,17 +257,17 @@ RSpec.describe 'Rails Log Auto Injection' do
             rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).to include "dd.trace_id=#{trace.id}"
-            expect(rack_rails_logger_entries).to include "[some_info]"
-            expect(rack_rails_logger_entries).to include "[some_other_info]"
+            expect(rack_rails_logger_entries).to include '[some_info]'
+            expect(rack_rails_logger_entries).to include '[some_other_info]'
 
             expect(my_entry).to include "dd.trace_id=#{trace.id}"
-            expect(my_entry).to include "[some_info]"
-            expect(my_entry).to include "[some_other_info]"
+            expect(my_entry).to include '[some_info]'
+            expect(my_entry).to include '[some_other_info]'
 
             expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
-            expect(controller_logger_entry).to include "ddsource=ruby"
-            expect(controller_logger_entry).to include "[some_info]"
-            expect(controller_logger_entry).to include "[some_other_info]"
+            expect(controller_logger_entry).to include 'ddsource=ruby'
+            expect(controller_logger_entry).to include '[some_info]'
+            expect(controller_logger_entry).to include '[some_other_info]'
           end
         end
 
@@ -293,9 +292,9 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(my_entry).to include "dd.trace_id=#{trace.id}"
 
             expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
-            expect(controller_logger_entry).to include "ddsource=ruby"
-            expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
-            expect(controller_logger_entry).to include "some_other_hash_info=other_test_hash_value"
+            expect(controller_logger_entry).to include 'ddsource=ruby'
+            expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
+            expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
           end
         end
 
@@ -324,9 +323,9 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(my_entry).to include "dd.trace_id=#{trace.id}"
 
             expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
-            expect(controller_logger_entry).to include "ddsource=ruby"
-            expect(controller_logger_entry).to include "some_lambda_info=test_lambda_value"
-            expect(controller_logger_entry).to include "some_other_lambda_info=other_test_lambda_value"
+            expect(controller_logger_entry).to include 'ddsource=ruby'
+            expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
+            expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
           end
         end
 
@@ -348,19 +347,19 @@ RSpec.describe 'Rails Log Auto Injection' do
             rack_rails_logger_entries, my_entry, controller_logger_entry = log_entries
 
             expect(rack_rails_logger_entries).to include "dd.trace_id=#{trace.id}"
-            expect(rack_rails_logger_entries).to include "[some_info]"
-            expect(rack_rails_logger_entries).to include "[some_other_info]"
+            expect(rack_rails_logger_entries).to include '[some_info]'
+            expect(rack_rails_logger_entries).to include '[some_other_info]'
 
             expect(my_entry).to include "dd.trace_id=#{trace.id}"
-            expect(my_entry).to include "[some_info]"
-            expect(my_entry).to include "[some_other_info]"
+            expect(my_entry).to include '[some_info]'
+            expect(my_entry).to include '[some_other_info]'
 
             expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
-            expect(controller_logger_entry).to include "[some_info]"
-            expect(controller_logger_entry).to include "[some_other_info]"
-            expect(controller_logger_entry).to include "ddsource=ruby"
-            expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
-            expect(controller_logger_entry).to include "some_other_hash_info=other_test_hash_value"
+            expect(controller_logger_entry).to include '[some_info]'
+            expect(controller_logger_entry).to include '[some_other_info]'
+            expect(controller_logger_entry).to include 'ddsource=ruby'
+            expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
+            expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
           end
         end
       end
@@ -419,12 +418,12 @@ RSpec.describe 'Rails Log Auto Injection' do
           rack_rails_logger_entries, my_entry = log_entries
 
           expect(rack_rails_logger_entries).not_to include trace.id.to_s
-          expect(rack_rails_logger_entries).to include "[some_info]"
-          expect(rack_rails_logger_entries).to include "[some_other_info]"
+          expect(rack_rails_logger_entries).to include '[some_info]'
+          expect(rack_rails_logger_entries).to include '[some_other_info]'
 
           expect(my_entry).not_to include trace.id.to_s
-          expect(my_entry).to include "[some_info]"
-          expect(my_entry).to include "[some_other_info]"
+          expect(my_entry).to include '[some_info]'
+          expect(my_entry).to include '[some_other_info]'
         end
       end
     end
@@ -476,8 +475,8 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(my_entry).not_to include trace.id.to_s
 
             expect(controller_logger_entry).not_to include trace.id.to_s
-            expect(controller_logger_entry).to include "some_hash_info=test_hash_value"
-            expect(controller_logger_entry).to include "some_other_hash_info=other_test_hash_value"
+            expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
+            expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
           end
         end
 
@@ -506,8 +505,8 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(my_entry).not_to include trace.id.to_s
 
             expect(controller_logger_entry).not_to include trace.id.to_s
-            expect(controller_logger_entry).to include "some_lambda_info=test_lambda_value"
-            expect(controller_logger_entry).to include "some_other_lambda_info=other_test_lambda_value"
+            expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
+            expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
           end
         end
       end
