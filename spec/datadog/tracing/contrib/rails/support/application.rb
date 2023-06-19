@@ -12,6 +12,7 @@ RSpec.shared_context 'Rails test application' do
   after do
     reset_rails_configuration!
     reset_lograge_configuration! if defined?(::Lograge)
+    reset_rails_semantic_logger_subscription! if defined?(::RailsSemanticLogger)
 
     # Reset references stored in the Rails class
     Rails.application = nil
@@ -59,6 +60,26 @@ RSpec.shared_context 'Rails test application' do
     #
     # Currently, no good way to unsubscribe ActionCable, since it is monkey patched by lograge
     ::Lograge::LogSubscribers::ActionController.detach_from :action_controller
+  end
+
+
+  def reset_rails_semantic_logger_subscription!
+    # Unsubscribe log subscription to prevent flaky specs due to multiple subscription
+    # after several test cases.
+    #
+    # Currently, the implementation could be extended by adding more modules(such as `ActiveJob`, `ActionMailer`)
+    # depends on the test cases.
+    RailsSemanticLogger.swap_subscriber(
+      RailsSemanticLogger::ActionController::LogSubscriber,
+      ::ActionController::LogSubscriber,
+      :action_controller
+    )
+
+    RailsSemanticLogger.swap_subscriber(
+      RailsSemanticLogger::ActionView::LogSubscriber,
+      ::ActionView::LogSubscriber,
+      :action_view
+    )
   end
 
   if Rails.version < '4.0'
