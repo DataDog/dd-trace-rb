@@ -30,16 +30,17 @@ RSpec.shared_context 'Rails base application' do
   let(:log_output) do
     StringIO.new
   end
+
   let(:logger) do
+    # Use `ActiveSupport::Logger::SimpleFormatter` to exclude unnecessary metadata.
     #
-    # Use `ActiveSupport::Logger` that contains `ActiveSupport::Logger::SimpleFormatter` to
-    # exclude unnecessary metadata. It is almost equivalent to
+    # This must not be replaced by `ActiveSupport::Logger` instance with `ActiveSupport::Logger.new(log_output)`,
+    # because RailsSemanticLogger monkey patch
     #
-    # Logger.new(log_output).tap do |l|
-    #   l.formatter = ActiveSupport::Logger::SimpleFormatter.new
-    # end
-    #
-    ActiveSupport::Logger.new(log_output)
+    # see: https://github.com/reidmorrison/rails_semantic_logger/tree/master/lib/rails_semantic_logger/extensions/active_support
+    Logger.new(log_output).tap do |l|
+      l.formatter = ActiveSupport::Logger::SimpleFormatter.new
+    end
   end
 
   let(:initialize_block) do
@@ -80,7 +81,6 @@ RSpec.shared_context 'Rails base application' do
 
       # Semantic Logger settings should be exclusive to `ActiveSupport::TaggedLogging` and `Lograge`
       if ENV['USE_SEMANTIC_LOGGER'] == true
-        config.log_tags = ENV['LOG_TAGS'] || {}
         config.rails_semantic_logger.add_file_appender = false
         config.semantic_logger.add_appender(logger: logger)
       end
