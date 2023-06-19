@@ -33,8 +33,9 @@ module Datadog
               end
             end
 
-            # TODO: Make the magic happen!
-            # Tracing::Component.reconfigure(config)
+            # TODO: Will there only be one element in the `config` array?
+            kw_config = config.first.transform_keys { |key| key.to_sym }
+            Tracing::Component.reconfigure(**kw_config)
           end
         end
 

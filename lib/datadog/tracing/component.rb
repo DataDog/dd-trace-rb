@@ -143,6 +143,14 @@ module Datadog
         Tracing::Sampling::Span::Sampler.new(rules || [])
       end
 
+      # Change components based on Remote Configuration values.
+      def self.reconfigure(runtime_metrics_enabled: nil, **_options)
+        # TODO: double check if `nil` is ever a valid RC value or can safely mean "RC not configured for this option".
+        unless runtime_metrics_enabled.nil?
+          Datadog.configuration.runtime_metrics.enabled = runtime_metrics_enabled == 'true' # TODO move this type coercion outside?
+        end
+      end
+
       private
 
       def build_tracer_tags(settings)

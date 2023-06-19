@@ -108,7 +108,7 @@ RSpec.describe Datadog::Tracing::Remote do
   let(:config) do
     {
       'trace_debug_enabled' => true,
-      'runtime_metrics_enabled' => nil,
+      'runtime_metrics_enabled' => true,
       'http_header_tags' => nil,
       'service_mapping' => nil,
       'logs_injection_enabled' => nil,

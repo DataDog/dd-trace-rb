@@ -140,6 +140,8 @@ module Datadog
             health_metrics.statsd
           ].compact.uniq
 
+          this right here, what do we do here?
+
           new_statsd =  if replacement
                           [
                             replacement.runtime_metrics.metrics.statsd,
