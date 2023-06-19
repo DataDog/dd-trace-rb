@@ -6,7 +6,6 @@ RSpec.shared_context 'Rails test application' do
 
   before do
     reset_rails_configuration!
-    # reset_lograge_configuration! if defined?(::Lograge)
     raise_on_rails_deprecation!
   end
 
@@ -46,6 +45,7 @@ RSpec.shared_context 'Rails test application' do
   end
 
   def reset_lograge_configuration!
+    # Reset the global
     ::Lograge.logger = nil
     ::Lograge.application = nil
     ::Lograge.custom_options = nil
@@ -54,6 +54,10 @@ RSpec.shared_context 'Rails test application' do
     ::Lograge.log_level = nil
     ::Lograge.formatter = nil
 
+    # Unsubscribe log subscription to prevent flaky specs due to multiple subscription
+    # after several test cases.
+    #
+    # Currently, no good way to unsubscribe ActionCable, since it is monkey patched by lograge
     ::Lograge::LogSubscribers::ActionController.detach_from :action_controller
   end
 

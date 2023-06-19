@@ -64,12 +64,13 @@ RSpec.shared_context 'Rails base application' do
                       end
 
       if config.respond_to?(:lograge)
+        # `keep_original_rails_log` is important to prevent monkey patching from `lograge`
+        #  which leads to flaky spec in the same test process
         config.lograge.keep_original_rails_log = true
         config.lograge.logger = config.logger
 
         if ENV['USE_LOGRAGE'] == true
           config.lograge.enabled = true
-          # config.lograge.logger = config.logger
           config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS'] if ENV['LOGRAGE_CUSTOM_OPTIONS']
         else
           # ensure no test leakage from other tests
