@@ -229,7 +229,7 @@ RSpec.describe Datadog::Kit::Identity do
         end
 
         after do
-          Datadog.configuration.appsec.send(:reset!)
+          Datadog.configuration.reset!
         end
 
         it 'instruments the user information to appsec' do

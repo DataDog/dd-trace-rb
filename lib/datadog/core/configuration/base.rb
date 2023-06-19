@@ -91,6 +91,7 @@ module Datadog
 
           def reset!
             reset_options!
+            Datadog::AppSec.settings.send(:reset!)
           end
         end
       end

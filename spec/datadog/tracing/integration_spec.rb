@@ -911,7 +911,6 @@ RSpec.describe 'Tracer integration tests' do
 
       after do
         Datadog.configuration.reset!
-        Datadog.configuration.appsec.send(:reset!)
       end
 
       context 'is provided' do
