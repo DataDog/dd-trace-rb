@@ -1,6 +1,7 @@
 require 'date'
 
 require_relative '../../../core/environment/variable_helpers'
+require_relative '../../../core/utils/backport'
 require_relative '../../client_ip'
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
@@ -304,15 +305,7 @@ module Datadog
                        else
                          # normally REQUEST_URI starts at the path, but it
                          # might contain the full URL in some cases (e.g WEBrick)
-                         #
-                         # DEV: Use `request_uri.delete_prefix(base_url)`, supported in Ruby 2.5+
-                         # rubocop:disable Style/IfInsideElse
-                         if request_uri.rindex(base_url, 0)
-                           request_uri[base_url.length..-1]
-                         else
-                           request_uri
-                         end
-                         # rubocop:enable Style/IfInsideElse
+                         Datadog::Core::Utils::Backport::String.delete_prefix(request_uri, base_url)
                        end
 
             base_url + fullpath
