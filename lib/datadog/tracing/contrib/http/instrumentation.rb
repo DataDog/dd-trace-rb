@@ -29,6 +29,52 @@ module Datadog
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
 
+            def connect
+              host = @address.split('/')[0] # trim path
+              port = @port
+              request_options = datadog_configuration(host)
+              client_config = Datadog.configuration_for(self)
+
+              # TODO: use actual ddog host
+              return super if host == Datadog::Transport::HTTP.default_hostname
+
+              Tracing.trace(Ext::SPAN_CONNECT, on_error: method(:annotate_span_with_error!)) do |span, trace|
+                begin
+                  span.service = service_name(host, request_options, client_config)
+                  span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+                  span.resource = host
+
+                  if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config)
+                    Tracing::Propagation::HTTP.inject!(trace, req)
+                  end
+
+                  # Add additional request specific tags to the span.
+                  span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+
+                  span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                  span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONNECT)
+
+                  host, port = host_and_port(request)
+                  span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host)
+                  span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port.to_s)
+
+                  if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+                    # Tag as an external peer service
+                    span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+                  end
+
+                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host)
+
+                  # Set analytics sample rate
+                  set_analytics_sample_rate(span, request_options)
+                rescue StandardError => e
+                  Datadog.logger.error("error preparing span for http connect: #{e}")
+                ensure
+                  super
+                end
+              end
+            end
+
             # :yield: +response+
             def request(req, body = nil, &block)
               host, = host_and_port(req)
