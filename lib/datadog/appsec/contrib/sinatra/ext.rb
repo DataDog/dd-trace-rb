@@ -6,7 +6,6 @@ module Datadog
       module Sinatra
         # Sinatra integration constants
         module Ext
-          APP = 'sinatra'
           ROUTE_INTERRUPT = :datadog_appsec_contrib_sinatra_route_interrupt
         end
       end
