@@ -22,7 +22,7 @@ module Datadog
               if string.start_with?(prefix)
                 string[prefix.length..-1]
               else
-                dup
+                string.dup
               end
             end
           end
