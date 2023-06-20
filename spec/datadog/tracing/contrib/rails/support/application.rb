@@ -69,17 +69,10 @@ RSpec.shared_context 'Rails test application' do
     #
     # Currently, the implementation could be extended by adding more modules(such as `ActiveJob`, `ActionMailer`)
     # depends on the test cases.
-    RailsSemanticLogger.swap_subscriber(
-      RailsSemanticLogger::ActionController::LogSubscriber,
-      ::ActionController::LogSubscriber,
-      :action_controller
-    )
-
-    RailsSemanticLogger.swap_subscriber(
-      RailsSemanticLogger::ActionView::LogSubscriber,
-      ::ActionView::LogSubscriber,
-      :action_view
-    )
+    ::RailsSemanticLogger::ActionController::LogSubscriber.detach_from :action_controller
+    ::RailsSemanticLogger::ActionView::LogSubscriber.detach_from :action_view
+    ::RailsSemanticLogger::ActiveRecord::LogSubscriber.detach_from :action_record
+    ::RailsSemanticLogger::ActionMailer::LogSubscriber.detach_from :action_mailer
   end
 
   if Rails.version < '4.0'

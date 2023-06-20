@@ -12,12 +12,23 @@ RSpec.describe 'Rails Log Auto Injection' do
     [logging_test_controller]
   end
 
+  #
+  # This request-response cycle would creates 6 log entries
+  #
+  # 1. Rack -- Started
+  # 2. LoggingTestController -- Processing
+  # 3. LoggingTestController -- MY VOICE SHALL BE HEARD
+  # 4. ActionView -- Rendering
+  # 5. ActionView -- Rendered
+  # 6. LoggingTestController -- Completed
+  #
   let(:logging_test_controller) do
     stub_const(
       'LoggingTestController',
       Class.new(ActionController::Base) do
         def index
           logger.info 'MY VOICE SHALL BE HEARD!'
+
           render plain: 'OK'
         end
       end
@@ -73,6 +84,32 @@ RSpec.describe 'Rails Log Auto Injection' do
               expect(l).to include(trace.id.to_s)
               expect(l).to include('ddsource: ruby')
             end
+
+            rack_started_entry,
+              controller_processing_entry,
+              controller_entry,
+              rendering_entry,
+              rendered_entry,
+              controller_completed_entry = log_entries
+
+            rack_span, controller_span, render_span = spans
+
+            expect(rack_started_entry).to include rack_span.id.to_s
+            expect(controller_processing_entry).to include rack_span.id.to_s
+            expect(controller_entry).to include controller_span.id.to_s
+
+            # Flaky specs between tests due to ordering of active support subscriptions from
+            # Datadog tracing and LogSubscriber. To debug, check the value for
+            # `::ActiveSupport::Notifications.notifier.listeners_for("render_template.action_view")`
+            #
+            # The correct order should be
+            # 1. RailsSemanticLogger::ActionView::LogSubscriber
+            # 2. Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription
+            #
+            # expect(rendering_entry).to include controller_span.id.to_s
+            # expect(rendered_entry).to include render_span.id.to_s
+
+            expect(controller_completed_entry).to include rack_span.id.to_s
           end
         end
 
@@ -96,6 +133,32 @@ RSpec.describe 'Rails Log Auto Injection' do
               expect(l).to include('some_tag')
               expect(l).to include('some_value')
             end
+
+            rack_started_entry,
+              controller_processing_entry,
+              controller_entry,
+              rendering_entry,
+              rendered_entry,
+              controller_completed_entry = log_entries
+
+            rack_span, controller_span, render_span = spans
+
+            expect(rack_started_entry).to include rack_span.id.to_s
+            expect(controller_processing_entry).to include rack_span.id.to_s
+            expect(controller_entry).to include controller_span.id.to_s
+
+            # Flaky specs between tests due to ordering of active support subscriptions from
+            # Datadog tracing and LogSubscriber. To debug, check the value for
+            # `::ActiveSupport::Notifications.notifier.listeners_for("render_template.action_view")`
+            #
+            # The correct order should be
+            # 1. RailsSemanticLogger::ActionView::LogSubscriber
+            # 2. Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription
+            #
+            # expect(rendering_entry).to include controller_span.id.to_s
+            # expect(rendered_entry).to include render_span.id.to_s
+
+            expect(controller_completed_entry).to include rack_span.id.to_s
           end
         end
       end
@@ -110,7 +173,7 @@ RSpec.describe 'Rails Log Auto Injection' do
     end
 
     context 'with Semantic Logger' do
-      # for logsog_injection testing
+      # for log_injection testing
       require 'rails_semantic_logger'
 
       subject(:response) { get '/logging' }
