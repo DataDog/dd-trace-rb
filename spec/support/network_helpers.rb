@@ -22,9 +22,9 @@ module NetworkHelpers
   end
 
   def test_agent_running?
-    @test_agent_running ||= ENV['DD_TEST_AGENT_HOST'] 
-      && ENV['DD_TEST_AGENT_PORT'] 
-      && check_availability_by_http_request(TEST_AGENT_HOST, TEST_AGENT_PORT)
+    @test_agent_running ||= ENV['DD_TEST_AGENT_HOST'] &&
+      ENV['DD_TEST_AGENT_PORT'] &&
+      check_availability_by_http_request(TEST_AGENT_HOST, TEST_AGENT_PORT)
   end
 
   def call_web_mock_function_with_agent_host_exclusions
