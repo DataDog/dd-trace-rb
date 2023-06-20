@@ -94,12 +94,14 @@ module Contrib
       # with mock assertions.
       config.around do |example|
         example.run.tap do
-          if test_agent_running? && tracer.writer.transport.client.api.adapter.hostname == 'testagent'
-            traces = fetch_traces(tracer)
-            unless traces.empty?
-              traces.each do |trace|
-                # write traces after the test to the agent in order to not mess up assertions
-                tracer.writer.write(trace)
+          if test_agent_running?
+            if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.hostname == 'testagent'
+              traces = fetch_traces(tracer)
+              unless traces.empty?
+                traces.each do |trace|
+                  # write traces after the test to the agent in order to not mess up assertions
+                  tracer.writer.write(trace)
+                end
               end
             end
           end
