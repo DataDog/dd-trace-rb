@@ -142,6 +142,38 @@ RSpec.describe Datadog::Core::Configuration::Base do
         end
       end
 
+      describe '#default_option?' do
+        let(:configuration) do
+          Class.new do
+            include Datadog::Core::Configuration::Base
+
+            settings :fake_test do
+              option :enabled, default: true
+            end
+          end.new
+        end
+
+        context 'when not set' do
+          it 'returns true' do
+            expect(configuration.fake_test.default_option?(:enabled)).to be(true)
+          end
+        end
+
+        context 'when not set but accessed' do
+          it 'returns true' do
+            configuration.fake_test.enabled
+            expect(configuration.fake_test.default_option?(:enabled)).to be(true)
+          end
+        end
+
+        context 'when set' do
+          it 'returns false' do
+            configuration.fake_test.enabled = false
+            expect(configuration.fake_test.default_option?(:enabled)).to be(false)
+          end
+        end
+      end
+
       describe '#reset!' do
         subject(:reset!) { base_object.reset! }
 

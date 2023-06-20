@@ -6,8 +6,7 @@ module Datadog
       # Represents an instance of an integration configuration option
       # @public_api
       class Option
-        attr_reader \
-          :definition
+        attr_reader :definition, :is_set
 
         def initialize(definition, context)
           @definition = definition
