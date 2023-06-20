@@ -44,7 +44,7 @@ RSpec.describe 'AWS instrumentation' do
       it_behaves_like 'measured span for integration'
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span'
+      it_behaves_like 'schema version span', 'sts.us-stubbed-1.amazonaws.com'
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -96,7 +96,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'measured span for integration'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span'
+      it_behaves_like 'schema version span', 's3.us-stubbed-1.amazonaws.com'
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
