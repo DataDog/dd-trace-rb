@@ -1,4 +1,4 @@
-RSpec.shared_examples 'schema version span' do |peer_service_val|
+RSpec.shared_examples 'schema version span' do |peer_service_val, peer_service_source|
   before do
     subject
   end
@@ -16,6 +16,7 @@ RSpec.shared_examples 'schema version span' do |peer_service_val|
 
         # TODO: change when new peer.service tag is added for v1
         expect(span.get_tag('peer.service')).to eq(peer_service_val)
+        expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
       end
     end
 
@@ -26,6 +27,7 @@ RSpec.shared_examples 'schema version span' do |peer_service_val|
 
         # TODO: change when new peer.service tag is added for v1
         expect(span.get_tag('peer.service')).to eq(peer_service_val)
+        expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
       end
     end
   end
