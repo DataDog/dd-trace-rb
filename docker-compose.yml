@@ -207,8 +207,8 @@ services:
     env_file: ./.env
     environment: &common-environment-3x
       BUNDLE_GEMFILE: /app/Gemfile-3.0
-      DD_AGENT_HOST: testagent
-      DD_TRACE_AGENT_PORT: 9126
+      DD_AGENT_HOST: ddagent
+      DD_TRACE_AGENT_PORT: 8126
       DD_TEST_AGENT_HOST: testagent
       DD_TEST_AGENT_PORT: 9126
       TEST_DATADOG_INTEGRATION: 1

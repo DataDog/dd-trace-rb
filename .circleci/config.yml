@@ -35,7 +35,7 @@ test_containers:
     GRPC_RUBY_BUILD_PROCS: 6
     DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
     TEST_REDIS_OLD_HOST: redis_old
-    DD_TRACE_AGENT_HOST: testagent
+    DD_AGENT_HOST: testagent
     DD_TRACE_AGENT_PORT: 9126
     DDTRACE_CI: true
   - &container_parameters_environment
@@ -90,7 +90,6 @@ test_containers:
   - &container_memcached
     image: memcached:1.5-alpine
   - &memcached_port 11211
-  - &agent_port 8126
   - &container_testagent
     image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:latest
     name: testagent

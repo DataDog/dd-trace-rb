@@ -10,7 +10,7 @@ class FauxWriter < Datadog::Tracing::Writer
   include NetworkHelpers
 
   def initialize(options = {})
-    options[:transport] ||= if ENV['DD_TEST_AGENT_HOST'] && test_agent_running?
+    options[:transport] ||= if test_agent_running?
                               Datadog::Transport::HTTP.default(
                                 headers: {
                                   'X-Datadog-Trace-Env-Variables' => ENV.to_h.select { |key, _| key.start_with?('DD_') }

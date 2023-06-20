@@ -22,16 +22,14 @@ module NetworkHelpers
   end
 
   def test_agent_running?
-    @test_agent_running ||= ENV['DD_TEST_AGENT_HOST'] &&
-      ENV['DD_TEST_AGENT_PORT'] &&
-      check_availability_by_http_request(TEST_AGENT_HOST, TEST_AGENT_PORT)
+    @test_agent_running ||= check_availability_by_http_request(TEST_AGENT_HOST, TEST_AGENT_PORT)
   end
 
   def call_web_mock_function_with_agent_host_exclusions
-    if ENV['DD_TEST_AGENT_HOST'] && ENV['DD_TEST_AGENT_PORT'] && test_agent_running?
+    if test_agent_running?
       yield allow: "http://#{TEST_AGENT_HOST}:#{TEST_AGENT_PORT}"
     else
-      yield Hash.new()
+      yield({})
     end
   end
 
@@ -42,7 +40,7 @@ module NetworkHelpers
     uri = URI("http://#{host}:#{port}/info")
     response = Net::HTTP.get_response(uri)
     response.is_a?(Net::HTTPSuccess)
-  rescue StandardError, SocketError
+  rescue SocketError
     false
   end
 end
