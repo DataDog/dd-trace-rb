@@ -20,7 +20,7 @@ module Datadog
             def delete_prefix(string, prefix)
               prefix = prefix.to_s
               if string.start_with?(prefix)
-                string[prefix.length..-1]
+                string[prefix.length..-1] || raise('rbs-guard: String#[] is non-nil as `prefix` is guaranteed present')
               else
                 string.dup
               end

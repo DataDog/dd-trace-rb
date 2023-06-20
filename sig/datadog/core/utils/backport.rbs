@@ -3,10 +3,7 @@ module Datadog
     module Utils
       module Backport
         module String
-          # This method can't return `nil`, but we use `String#[]` to compute
-          # its return value and `String#[]` can return `nil` but only in
-          # scenarios that are impossible for `delete_prefix`.
-          def self?.delete_prefix: (::String string, ::String prefix) -> ::String?
+          def self?.delete_prefix: (::String string, ::String prefix) -> ::String
         end
       end
     end
