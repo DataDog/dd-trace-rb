@@ -6,8 +6,7 @@ module Datadog
       # Represents an instance of an integration configuration option
       # @public_api
       class Option
-        attr_reader \
-          :definition
+        attr_reader :definition
 
         # Option setting precedence. Higher number means higher precedence.
         module Precedence
@@ -73,6 +72,10 @@ module Datadog
           else
             definition.default
           end
+        end
+
+        def default_precedence?
+          precedence_set == Precedence::DEFAULT
         end
 
         private

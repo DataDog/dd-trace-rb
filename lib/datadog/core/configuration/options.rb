@@ -84,6 +84,12 @@ module Datadog
             self.class.options.key?(name)
           end
 
+          def using_default?(option)
+            return options[option].default_precedence? if options[option]
+
+            !self.class.options[option].default.nil?
+          end
+
           def options_hash
             self.class.options.merge(options).each_with_object({}) do |(key, _), hash|
               hash[key] = get_option(key)
