@@ -28,6 +28,7 @@ module Datadog
         module Messaging
           TAG_SYSTEM = 'messaging.system'
           TAG_RABBITMQ_ROUTING_KEY = 'messaging.rabbitmq.routing_key'
+          TAG_KAFKA_BOOTSTRAP_SERVERS = 'messaging.kafka.bootstrap.servers'
         end
       end
     end
