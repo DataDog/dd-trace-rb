@@ -40,7 +40,7 @@ module NetworkHelpers
     uri = URI("http://#{host}:#{port}/info")
     response = Net::HTTP.get_response(uri)
     response.is_a?(Net::HTTPSuccess)
-  rescue StandardError
+  rescue SocketError
     false
   end
 end
