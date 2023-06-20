@@ -14,6 +14,16 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Propagation do
 
   let(:prepare_key) { RackSupport.method(:header_to_rack) }
 
+  before do
+    call_web_mock_function_with_agent_host_exclusions do |options|
+      WebMock.disable_net_connect!(allow_localhost: true, **options)
+    end
+    Datadog.configure do |c|
+      c.agent.host = ENV['DD_TRACE_AGENT_HOST']
+      c.agent.port = ENV['DD_TRACE_AGENT_PORT']
+    end
+  end
+
   it_behaves_like 'Distributed tracing propagator' do
     subject(:propagator) { propagation }
   end

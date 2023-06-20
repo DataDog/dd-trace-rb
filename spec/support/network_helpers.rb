@@ -1,6 +1,6 @@
 module NetworkHelpers
-  TEST_AGENT_HOST = ENV['DD_TEST_AGENT_HOST']
-  TEST_AGENT_PORT = ENV['DD_TEST_AGENT_PORT']
+  TEST_AGENT_HOST = ENV['DD_TEST_AGENT_HOST'] || 'testagent'
+  TEST_AGENT_PORT = ENV['DD_TEST_AGENT_PORT'] || 9126
 
   # Returns a TCP "host:port" endpoint currently available
   # for listening in the local machine
@@ -31,7 +31,7 @@ module NetworkHelpers
     if ENV['DD_TEST_AGENT_HOST'] && ENV['DD_TEST_AGENT_PORT'] && test_agent_running?
       yield allow: "http://#{TEST_AGENT_HOST}:#{TEST_AGENT_PORT}"
     else
-      yield {}
+      yield Hash.new()
     end
   end
 
@@ -42,7 +42,7 @@ module NetworkHelpers
     uri = URI("http://#{host}:#{port}/info")
     response = Net::HTTP.get_response(uri)
     response.is_a?(Net::HTTPSuccess)
-  rescue SocketError
+  rescue StandardError, SocketError
     false
   end
 end
