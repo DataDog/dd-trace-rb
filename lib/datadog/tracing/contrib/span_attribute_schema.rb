@@ -24,7 +24,10 @@ module Datadog
         end
 
         def should_set_peer_service(span)
-          return false if span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+          if span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+            return false
+          end
 
           if ((span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_CLIENT) ||
             (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)) &&
@@ -38,11 +41,12 @@ module Datadog
 
         # implement this function in all target spans/integrations with spankind
         def set_peer_service(span)
-          if should_set_peer_service(span) && set_peer_service_from_source(span)
-            # else remap + remapped from (SKIP)
-          else
-            # debug that peer service could not be set
-          end
+          should_set_peer_service(span) && set_peer_service_from_source(span)
+          # if above
+          # then remap + remapped from (SKIP)
+          # else
+          # debug that peer service could not be set
+          # end
         end
 
         def set_peer_service_from_source(span)
@@ -52,7 +56,9 @@ module Datadog
               'topicname',
               'streamname',
               'tablename',
-              'bucketname']
+              'bucketname',
+              'rulename',
+              'statemachinename',]
             # when span.get_tag(DB_SYSTEM)
             # when span.get_tag(MESSAGING_SYSTEM)
             # when span.get_tag(RPC)
@@ -66,14 +72,14 @@ module Datadog
           )
 
           sources.each do |source|
-            sourceVal = span.get_tag(source)
-            if sourceVal
-              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, sourceVal)
-              # set source tag here as well
-            end
+            source_val = span.get_tag(source)
+            next unless source_val && source_val != ''
+
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, source_val)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, source)
+            break
           end
-          # set tag + source if found else return nothing
-          # return tag value
+          true
         end
       end
     end
