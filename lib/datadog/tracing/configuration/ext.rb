@@ -10,7 +10,7 @@ module Datadog
         # @public_api
         module SpanAttributeSchema
           ENV_SPAN_ATTRIBUTE_SCHEMA = 'DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'.freeze
-          ENV_SERVICE_NAME_OVERRIDE = 'DD_TRACE_REMOVE_CLIENT_SERVICE_NAMES_ENABLED'.freeze
+          ENV_SERVICE_NAME_OVERRIDE = 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED'.freeze
           DEFAULT_VERSION = 'v0'.freeze
           VERSION_ONE = 'v1'.freeze
         end

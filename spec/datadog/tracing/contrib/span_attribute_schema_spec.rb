@@ -64,10 +64,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           end
         end
 
-        context 'when DD_TRACE_REMOVE_CLIENT_SERVICE_NAMES_ENABLED is set' do
+        context 'when DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
           it 'returns DD_SERVICE' do
             with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1',
-              DD_TRACE_REMOVE_CLIENT_SERVICE_NAMES_ENABLED: 'true',
+              DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
               DD_SERVICE: 'service' do
                 expect(
                   described_class
@@ -91,10 +91,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         end
       end
 
-      context 'when v0 schema is set AND DD_TRACE_REMOVE_CLIENT_SERVICE_NAMES_ENABLED is set' do
+      context 'when v0 schema is set AND DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
         it 'returns DD_SERVICE' do
           with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0',
-            DD_TRACE_REMOVE_CLIENT_SERVICE_NAMES_ENABLED: 'true',
+            DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
             DD_SERVICE: 'service' do
               expect(
                 described_class

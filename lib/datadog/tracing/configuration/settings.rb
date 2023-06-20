@@ -457,7 +457,7 @@ module Datadog
               # Allows for usage of v1 service name changes without
               # being forced to update schema versions
               #
-              # @default `DD_TRACE_REMOVE_CLIENT_SERVICE_NAMES_ENABLED` environment variable, otherwise `false`
+              # @default `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED` environment variable, otherwise `false`
               # @return [Boolean]
               option :service_name_override do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SERVICE_NAME_OVERRIDE, false) }
