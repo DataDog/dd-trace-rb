@@ -31,7 +31,7 @@ module NetworkHelpers
     if ENV['DD_TEST_AGENT_HOST'] && ENV['DD_TEST_AGENT_PORT'] && test_agent_running?
       yield allow: "http://#{TEST_AGENT_HOST}:#{TEST_AGENT_PORT}"
     else
-      yield
+      yield {}
     end
   end
 
