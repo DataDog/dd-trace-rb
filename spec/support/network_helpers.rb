@@ -1,6 +1,6 @@
 module NetworkHelpers
-  TEST_AGENT_HOST = ENV['DD_TEST_AGENT_HOST'] || 'testagent'
-  TEST_AGENT_PORT = ENV['DD_TEST_AGENT_PORT'] || 9126
+  TEST_AGENT_HOST = ENV['DD_TEST_AGENT_HOST']
+  TEST_AGENT_PORT = ENV['DD_TEST_AGENT_PORT']
 
   # Returns a TCP "host:port" endpoint currently available
   # for listening in the local machine
@@ -22,11 +22,13 @@ module NetworkHelpers
   end
 
   def test_agent_running?
-    @test_agent_running ||= check_availability_by_http_request(TEST_AGENT_HOST, TEST_AGENT_PORT)
+    @test_agent_running ||= ENV['DD_TEST_AGENT_HOST'] 
+      && ENV['DD_TEST_AGENT_PORT'] 
+      && check_availability_by_http_request(TEST_AGENT_HOST, TEST_AGENT_PORT)
   end
 
   def call_web_mock_function_with_agent_host_exclusions
-    if test_agent_running?
+    if ENV['DD_TEST_AGENT_HOST'] && ENV['DD_TEST_AGENT_PORT'] && test_agent_running?
       yield allow: "http://#{TEST_AGENT_HOST}:#{TEST_AGENT_PORT}"
     else
       yield
