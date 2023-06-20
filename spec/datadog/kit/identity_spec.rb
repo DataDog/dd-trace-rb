@@ -213,7 +213,7 @@ RSpec.describe Datadog::Kit::Identity do
 
     context 'appsec' do
       let(:appsec_active_scope) { nil }
-      before { expect(Datadog::AppSec).to receive(:active_scope).and_return(appsec_active_scope) }
+      before { allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_active_scope) }
 
       context 'when is enabled' do
         let(:appsec_active_scope) do
@@ -224,8 +224,15 @@ RSpec.describe Datadog::Kit::Identity do
           Datadog::AppSec::Scope.new(trace, span, processor)
         end
 
-        it 'instruments the user information to appsec' do
+        before do
           Datadog.configuration.appsec.enabled = true
+        end
+
+        after do
+          Datadog.configuration.reset!
+        end
+
+        it 'instruments the user information to appsec' do
           expect_any_instance_of(Datadog::AppSec::Instrumentation::Gateway).to receive(:push).with(
             'identity.set_user',
             instance_of(Datadog::AppSec::Instrumentation::Gateway::User)
@@ -243,6 +250,15 @@ RSpec.describe Datadog::Kit::Identity do
             described_class.set_user(trace_op, id: '42')
           end
         end
+      end
+    end
+
+    context 'when tracing disabled' do
+      it 'does mark trace for keeping' do
+        expect(Datadog::Tracing.active_trace).to_not receive(:keep!)
+        expect do
+          described_class.set_user(id: '42')
+        end.to_not raise_error
       end
     end
   end

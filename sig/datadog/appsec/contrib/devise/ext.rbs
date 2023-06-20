@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        module Ext
+          APP: "devise"
+        end
+      end
+    end
+  end
+end
