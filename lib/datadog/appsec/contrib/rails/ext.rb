@@ -4,9 +4,8 @@ module Datadog
   module AppSec
     module Contrib
       module Rails
-        # Rack integration constants
+        # Rails integration constants
         module Ext
-          APP = 'rails'
         end
       end
     end

@@ -6,7 +6,6 @@ module Datadog
       module Rack
         # Rack integration constants
         module Ext
-          APP = 'rack'
         end
       end
     end

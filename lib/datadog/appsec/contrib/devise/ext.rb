@@ -6,7 +6,6 @@ module Datadog
       module Devise
         # Devise integration constants
         module Ext
-          APP = 'devise'
         end
       end
     end

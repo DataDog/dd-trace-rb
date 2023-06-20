@@ -178,6 +178,10 @@ module Datadog
       end
     end
 
+    # All requires for the profiler should be directly added here; and everything should be loaded eagerly.
+    # (Currently there's a few exceptions for the old profiler, but we should avoid other exceptions.)
+    #
+    # All of the profiler should be loaded and ready to go when this method returns `true`.
     private_class_method def self.load_profiling
       return false unless supported?
 
@@ -197,7 +201,8 @@ module Datadog
       require_relative 'profiling/profiler'
       require_relative 'profiling/native_extension'
       require_relative 'profiling/trace_identifiers/helper'
-      # This file is loaded in Profiling::Component#load_pprof_support; see notes there for why
+      # This file is no longer eagerly loaded as a workaround for an issue. It only gets loaded dynamically if the old
+      # profiler is in use. See Profiling::Component#load_pprof_support for more details.
       # require_relative 'profiling/pprof/pprof_pb'
       require_relative 'profiling/tag_builder'
       require_relative 'profiling/http_transport'
