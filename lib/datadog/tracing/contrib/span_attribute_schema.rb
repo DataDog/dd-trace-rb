@@ -25,8 +25,10 @@ module Datadog
 
         def should_set_peer_service(span)
           if span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+            # if peer.service does not equal span.service than set source and return false
             span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, Tracing::Metadata::Ext::TAG_PEER_SERVICE)
             return false
+            # if peer.service equals span.service if span.service does not equal DD.service then return false
           end
 
           if ((span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_CLIENT) ||
@@ -52,16 +54,19 @@ module Datadog
         def set_peer_service_from_source(span)
           case
           when span.get_tag(Aws::Ext::TAG_AWS_SERVICE)
-            sources = Array['queuename',
-              'topicname',
-              'streamname',
-              'tablename',
-              'bucketname',
-              'rulename',
-              'statemachinename',]
-            # when span.get_tag(DB_SYSTEM)
-            # when span.get_tag(MESSAGING_SYSTEM)
-            # when span.get_tag(RPC)
+            sources = Array[Aws::Ext::TAG_QUEUE_NAME,
+              Aws::Ext::TAG_TOPIC_NAME,
+              Aws::Ext::TAG_STREAM_NAME,
+              Aws::Ext::TAG_TABLE_NAME,
+              Aws::Ext::TAG_BUCKET_NAME,
+              Aws::Ext::TAG_RULE_NAME,
+              Aws::Ext::TAG_STATE_MACHINE_NAME,]
+          when span.get_tag(Tracing::Contrib::Ext::DB::TAG_SYSTEM)
+            sources = Array[Tracing::Contrib::Ext::DB::TAG_INSTANCE] # DB_NAME tag?
+          when span.get_tag(Tracing::Contrib::Ext::Messaging::TAG_SYSTEM)
+            sources = Array[] # kafka bootstrap servers
+          when span.get_tag(Tracing::Contrib::Ext::RPC::TAG_SYSTEM)
+            sources = Array[Tracing::Contrib::Ext::RPC::TAG_SERVICE]
           else
             return false
           end
