@@ -236,6 +236,26 @@ RSpec.describe Datadog::Tracing::Tracer do
             end
           end
         end
+
+        it 'adds profiling_enabled to the trace' do
+          expect(Datadog::Profiling).to receive(:enabled?).and_return(true)
+
+          tracer.trace(name) {}
+
+          expect(traces.first.profiling_enabled).to be true
+        end
+
+        context 'when profiler is not available' do
+          before do
+            expect(Datadog::Profiling).to receive(:respond_to?).with(:enabled?).and_return(false)
+          end
+
+          it 'adds profiling_enabled as false to the trace' do
+            tracer.trace(name) {}
+
+            expect(traces.first.profiling_enabled).to be false
+          end
+        end
       end
 
       context 'when nesting spans' do

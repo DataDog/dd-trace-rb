@@ -31,8 +31,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         sampled: sampled,
         sampling_priority: sampling_priority,
         service: service,
+        profiling_enabled: profiling_enabled,
         tags: tags,
-        metrics: metrics
+        metrics: metrics,
       }
     end
 
@@ -48,6 +49,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:sampled) { true }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
     let(:service) { 'billing-api' }
+    let(:profiling_enabled) { 'profiling_enabled' }
     let(:tags) { { 'foo' => 'bar' }.merge(distributed_tags) }
     let(:metrics) { { 'baz' => 42.0 } }
 
@@ -1636,20 +1638,10 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             rule_sample_rate: rule_sample_rate,
             runtime_id: Datadog::Core::Environment::Identity.id,
             sample_rate: sample_rate,
-
             sampling_priority: sampling_priority,
-            service: service
+            service: service,
+            profiling_enabled: profiling_enabled,
           )
-        end
-
-        context 'and profiling is enabled' do
-          before { expect(Datadog::Profiling).to receive(:enabled?).and_return(true) }
-          it { is_expected.to have_attributes(profiling_enabled: true) }
-        end
-
-        context 'and profiling is disabled' do
-          before { expect(Datadog::Profiling).to receive(:enabled?).and_return(false) }
-          it { is_expected.to have_attributes(profiling_enabled: false) }
         end
       end
 
