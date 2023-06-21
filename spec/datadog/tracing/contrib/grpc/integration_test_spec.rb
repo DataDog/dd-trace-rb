@@ -62,6 +62,68 @@ RSpec.describe 'gRPC integration test' do
     before { run_request_reply }
 
     it_behaves_like 'associates child spans with the parent'
+
+    it 'both server and client spans have correct tags' do
+      server_span = spans.find { |span| span.name == 'grpc.service' }
+      client_span = spans.find { |span| span.name == 'grpc.client' }
+
+      expect(server_span.get_tag('span.kind')).to eq('server')
+      expect(server_span.get_tag('rpc.system')).to eq('grpc')
+      expect(server_span.get_tag('rpc.grpc.status_code')).to eq(0)
+      expect(server_span.get_tag('rpc.grpc.full_method')).to eq('/ruby.test.Testing/Basic')
+
+      # the following tags should be set by backend
+      expect(server_span.get_tag('rpc.grpc.package')).to eq(nil)
+
+      # the following tags should be set by the backend but they are kept for now to not make breaking changes
+      expect(server_span.get_tag('rpc.service')).to eq('GRPCHelper::TestService')
+      expect(server_span.get_tag('rpc.method')).to eq('basic')
+
+      expect(client_span.get_tag('span.kind')).to eq('client')
+      expect(client_span.get_tag('rpc.system')).to eq('grpc')
+      expect(client_span.get_tag('rpc.grpc.status_code')).to eq(0)
+      expect(client_span.get_tag('rpc.grpc.full_method')).to eq('/ruby.test.Testing/Basic')
+
+      # the following tags should be set by backend
+      expect(client_span.get_tag('rpc.service')).to eq(nil)
+      expect(client_span.get_tag('rpc.method')).to eq(nil)
+      expect(client_span.get_tag('rpc.grpc.package')).to eq(nil)
+    end
+  end
+
+  context 'request reply with error status code' do
+    before do
+      expect { run_request_reply_error }.to raise_error(GRPC::BadStatus)
+    end
+
+    it_behaves_like 'associates child spans with the parent'
+
+    it 'both server and client spans have correct tags' do
+      server_span = spans.find { |span| span.name == 'grpc.service' }
+      client_span = spans.find { |span| span.name == 'grpc.client' }
+
+      expect(server_span.get_tag('span.kind')).to eq('server')
+      expect(server_span.get_tag('rpc.system')).to eq('grpc')
+      expect(server_span.get_tag('rpc.grpc.status_code')).to eq(3)
+      expect(server_span.get_tag('rpc.grpc.full_method')).to eq('/ruby.test.Testing/Error')
+
+      # the following tags should be set by backend
+      expect(server_span.get_tag('rpc.grpc.package')).to eq(nil)
+
+      # the following tags should be set by the backend but they are kept for now to not make breaking changes
+      expect(server_span.get_tag('rpc.service')).to eq('GRPCHelper::TestService')
+      expect(server_span.get_tag('rpc.method')).to eq('error')
+
+      expect(client_span.get_tag('span.kind')).to eq('client')
+      expect(client_span.get_tag('rpc.system')).to eq('grpc')
+      expect(client_span.get_tag('rpc.grpc.status_code')).to eq(3)
+      expect(client_span.get_tag('rpc.grpc.full_method')).to eq('/ruby.test.Testing/Error')
+
+      # the following tags should be set by backend
+      expect(client_span.get_tag('rpc.service')).to eq(nil)
+      expect(client_span.get_tag('rpc.method')).to eq(nil)
+      expect(client_span.get_tag('rpc.grpc.package')).to eq(nil)
+    end
   end
 
   context 'client stream' do
