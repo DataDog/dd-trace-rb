@@ -67,12 +67,18 @@ RSpec.shared_context 'Rails test application' do
     # Unsubscribe log subscription to prevent flaky specs due to multiple subscription
     # after several test cases.
     #
-    # Currently, the implementation could be extended by adding more modules(such as `ActiveJob`, `ActionMailer`)
-    # depends on the test cases.
-    ::RailsSemanticLogger::ActionController::LogSubscriber.detach_from :action_controller
-    ::RailsSemanticLogger::ActionView::LogSubscriber.detach_from :action_view
-    ::RailsSemanticLogger::ActiveRecord::LogSubscriber.detach_from :action_record
-    ::RailsSemanticLogger::ActionMailer::LogSubscriber.detach_from :action_mailer
+    # Backporting `ActiveSupport::Subscriber#detach_from` implementation for older Rails
+    # similar to `RailsSemanticLogger::ActionController::LogSubscriber.detach_from :action_controller`
+    ActiveSupport::LogSubscriber.log_subscribers.dup.each do |subscriber|
+      subscriber.patterns.each do |pattern|
+        ActiveSupport::Notifications.notifier.listeners_for(pattern).each do |listener|
+          if listener.instance_variable_get('@delegate') == subscriber
+            ActiveSupport::Notifications.unsubscribe listener
+          end
+        end
+      end
+      ActiveSupport::LogSubscriber.log_subscribers.delete(subscriber)
+    end
   end
 
   if Rails.version < '4.0'
