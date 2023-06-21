@@ -2,9 +2,15 @@ module Datadog
   module Tracing
     module Contrib
       module SpanAttributeSchema
-        def self?.fetch_service_name: (untyped env, untyped default) -> untyped
+        def self?.fetch_service_name: (string env, string default) -> bool
 
-        def self?.default_span_attribute_schema?: () -> untyped
+        def self?.default_span_attribute_schema?: () -> bool
+
+        def set_peer_service: -> bool
+
+        def should_set_peer_service: -> bool
+
+        def set_peer_service_from_source: -> bool
       end
     end
   end
