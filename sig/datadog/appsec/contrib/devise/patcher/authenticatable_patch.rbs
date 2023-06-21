@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        module Patcher
+          module AuthenticatablePatch
+            def validate: (untyped resource) { () -> untyped } -> untyped
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Tracing
     module Contrib
@@ -5,16 +7,16 @@ module Datadog
         # ActionView integration constants
         # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
         module Ext
-          ENV_ENABLED = 'DD_TRACE_ACTION_VIEW_ENABLED'.freeze
-          ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED'.freeze
-          ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_VIEW_ANALYTICS_SAMPLE_RATE'.freeze
-          SPAN_RENDER_PARTIAL = 'rails.render_partial'.freeze
-          SPAN_RENDER_TEMPLATE = 'rails.render_template'.freeze
-          TAG_COMPONENT = 'action_view'.freeze
-          TAG_LAYOUT = 'rails.layout'.freeze
-          TAG_OPERATION_RENDER_PARTIAL = 'render_partial'.freeze
-          TAG_OPERATION_RENDER_TEMPLATE = 'render_template'.freeze
-          TAG_TEMPLATE_NAME = 'rails.template_name'.freeze
+          ENV_ENABLED = 'DD_TRACE_ACTION_VIEW_ENABLED'
+          ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED'
+          ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_VIEW_ANALYTICS_SAMPLE_RATE'
+          SPAN_RENDER_PARTIAL = 'rails.render_partial'
+          SPAN_RENDER_TEMPLATE = 'rails.render_template'
+          TAG_COMPONENT = 'action_view'
+          TAG_LAYOUT = 'rails.layout'
+          TAG_OPERATION_RENDER_PARTIAL = 'render_partial'
+          TAG_OPERATION_RENDER_TEMPLATE = 'render_template'
+          TAG_TEMPLATE_NAME = 'rails.template_name'
         end
       end
     end

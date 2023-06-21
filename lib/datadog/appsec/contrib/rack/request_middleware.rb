@@ -53,7 +53,7 @@ module Datadog
 
             gateway_request = Gateway::Request.new(env)
 
-            add_appsec_tags(processor, active_trace, active_span, env)
+            add_appsec_tags(processor, scope, env)
 
             request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
               Instrumentation.gateway.push('rack.request', gateway_request) do
@@ -79,7 +79,7 @@ module Datadog
               e[:request]  ||= gateway_request
             end
 
-            AppSec::Event.record(active_span, *scope.processor_context.events)
+            AppSec::Event.record(scope.service_entry_span, *scope.processor_context.events)
 
             if response_response && response_response.any? { |action, _event| action == :block }
               request_return = AppSec::Response.negotiate(env).to_rack
@@ -88,7 +88,7 @@ module Datadog
             request_return
           ensure
             if scope
-              add_waf_runtime_tags(active_span, scope.processor_context)
+              add_waf_runtime_tags(scope)
               Datadog::AppSec::Scope.deactivate_scope
             end
           end
@@ -116,8 +116,11 @@ module Datadog
             Datadog::Tracing.active_span
           end
 
-          def add_appsec_tags(processor, trace, span, env)
-            return unless trace
+          def add_appsec_tags(processor, scope, env)
+            span = scope.service_entry_span
+            trace = scope.trace
+
+            return unless trace && span
 
             span.set_tag('_dd.appsec.enabled', 1)
             span.set_tag('_dd.runtime_family', 'ruby')
@@ -157,9 +160,11 @@ module Datadog
             end
           end
 
-          def add_waf_runtime_tags(span, context)
-            return unless span
-            return unless context
+          def add_waf_runtime_tags(scope)
+            span = scope.service_entry_span
+            context = scope.processor_context
+
+            return unless span && context
 
             span.set_tag('_dd.appsec.waf.timeouts', context.timeouts)
 

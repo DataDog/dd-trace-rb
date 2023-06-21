@@ -134,6 +134,22 @@ RSpec.describe Datadog::AppSec::Event do
         end
       end
 
+      context 'with no span' do
+        let(:event_count) { 1 }
+
+        it 'does not attempt to record in the trace' do
+          expect(described_class).to_not receive(:record_via_span)
+
+          described_class.record(nil, events)
+        end
+
+        it 'does not call the rate limiter' do
+          expect(Datadog::AppSec::RateLimiter).to_not receive(:limit)
+
+          described_class.record(nil, events)
+        end
+      end
+
       context 'with many traces' do
         let(:rate_limit) { 100 }
         let(:trace_count) { rate_limit * 2 }

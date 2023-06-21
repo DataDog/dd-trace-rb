@@ -102,6 +102,13 @@ RSpec.describe Datadog::Profiling::Component do
             end
           end
         end
+
+        # See comments on file for why we do this
+        it 'loads the pprof support' do
+          expect(described_class).to receive(:load_pprof_support)
+
+          build_profiler_component
+        end
       end
 
       context 'when using the new CPU Profiling 2.0 profiler' do
@@ -162,6 +169,13 @@ RSpec.describe Datadog::Profiling::Component do
 
               build_profiler_component
             end
+          end
+
+          # See comments on file for why we do this
+          it 'does not load the pprof support' do
+            expect(described_class).to_not receive(:load_pprof_support)
+
+            build_profiler_component
           end
         end
 

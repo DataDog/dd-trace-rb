@@ -549,6 +549,14 @@ module Datadog
             o.default { env_to_float(Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS, 5.0) }
             o.lazy
           end
+
+          # Declare service name to bind to remote configuration. Use when
+          # DD_SERVICE does not match the correct integration for which remote
+          # configuration applies.
+          #
+          # @default `nil`.
+          # @return [String,nil]
+          option :service
         end
 
         # TODO: Tracing should manage its own settings.

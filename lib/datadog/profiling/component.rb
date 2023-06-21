@@ -79,6 +79,8 @@ module Datadog
             no_signals_workaround_enabled: no_signals_workaround_enabled?(settings),
           )
         else
+          load_pprof_support
+
           recorder = build_profiler_old_recorder(settings)
           collector = build_profiler_oldstack_collector(settings, recorder, optional_tracer)
         end
@@ -254,6 +256,19 @@ module Datadog
 
           true
         end
+      end
+
+      # The old profiler's pprof support conflicts with the ruby-cloud-profiler gem.
+      #
+      # This is not a problem for almost all customers, since we now default everyone to use the new CPU Profiling 2.0
+      # profiler. But the issue was still triggered, because currently we still _load_ both the old and new profiling
+      # code paths.
+      #
+      # To work around this issue, and because we plan on deleting the old profiler soon, rather than poking at the
+      # pprof support code, we only load the conflicting file when the old profiler is in use. This way customers using
+      # the new profiler will not be affected by the issue any longer.
+      private_class_method def self.load_pprof_support
+        require_relative 'pprof/pprof_pb'
       end
     end
   end
