@@ -14,8 +14,10 @@ class FauxWriter < Datadog::Tracing::Writer
                               Datadog::Transport::HTTP.default do |t|
                                 t.adapter :net_http, 'testagent', 9126, timeout: 30
                               end
+                              options[:real_tracer] = true
                             else
                               FauxTransport.new
+                              options[:real_tracer] = false
                             end
     options[:call_original] ||= true
     @options = options
@@ -29,8 +31,10 @@ class FauxWriter < Datadog::Tracing::Writer
 
   def write(trace)
     @mutex.synchronize do
-      parse_tracer_config_and_add_to_headers @options[:transport].client.api.headers
-      super(trace)
+      if @options[:real_tracer]
+        parse_tracer_config_and_add_to_headers @options[:transport].client.api.headers
+        super(trace)
+      end
       @traces << trace
     end
   end
