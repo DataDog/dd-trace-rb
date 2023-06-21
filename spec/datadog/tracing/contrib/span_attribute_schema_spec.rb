@@ -209,7 +209,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         end
       end
 
-      context 'AWS Span' do
+      context 'DB Span' do
         it 'returns {PRECURSORs} as peer.service and source' do
           span.set_tag('db.system', 'test-db')
 
