@@ -64,6 +64,9 @@ RSpec.shared_context 'Rails base application' do
                         logger
                       end
 
+      # Not to use ANSI color codes when logging information
+      config.colorize_logging = false
+
       if config.respond_to?(:lograge)
         # `keep_original_rails_log` is important to prevent monkey patching from `lograge`
         #  which leads to flaky spec in the same test process

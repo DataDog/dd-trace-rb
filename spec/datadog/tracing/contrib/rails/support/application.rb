@@ -6,12 +6,14 @@ RSpec.shared_context 'Rails test application' do
 
   before do
     reset_rails_configuration!
+    reset_lograge_configuration! if defined?(::Lograge)
     raise_on_rails_deprecation!
   end
 
   after do
     reset_rails_configuration!
     reset_lograge_configuration! if defined?(::Lograge)
+    reset_lograge_subscription! if defined?(::Lograge)
     reset_rails_semantic_logger_subscription! if defined?(::RailsSemanticLogger)
 
     # Reset references stored in the Rails class
@@ -54,23 +56,61 @@ RSpec.shared_context 'Rails test application' do
     ::Lograge.before_format = nil
     ::Lograge.log_level = nil
     ::Lograge.formatter = nil
+  end
 
+  def reset_lograge_subscription!
     # Unsubscribe log subscription to prevent flaky specs due to multiple subscription
     # after several test cases.
     #
+    # This should be equivalent to:
+    #
+    #   ::Lograge::LogSubscribers::ActionController.detach_from :action_controller
+    #   ::Lograge::ActionView::LogSubscriber.detach_from :action_view
+    #
     # Currently, no good way to unsubscribe ActionCable, since it is monkey patched by lograge
-    ::Lograge::LogSubscribers::ActionController.detach_from :action_controller
+    #
+    # To Debug:
+    #
+    # puts "Before: ===================="
+    # puts ActiveSupport::LogSubscriber.log_subscribers
+    # puts "Before: ===================="
+    unsubscribe(ActiveSupport::LogSubscriber.log_subscribers.select { |s| ::Lograge::LogSubscribers::Base === s })
+    # To Debug:
+    #
+    # puts "After: ===================="
+    # puts ActiveSupport::LogSubscriber.log_subscribers
+    # puts "After: ===================="
   end
-
 
   def reset_rails_semantic_logger_subscription!
     # Unsubscribe log subscription to prevent flaky specs due to multiple subscription
     # after several test cases.
+    # This should be equivalent to:
     #
-    # Backporting `ActiveSupport::Subscriber#detach_from` implementation for older Rails
-    # similar to `RailsSemanticLogger::ActionController::LogSubscriber.detach_from :action_controller`
-    ActiveSupport::LogSubscriber.log_subscribers.dup.each do |subscriber|
-      subscriber.patterns.each do |pattern|
+    #   RailsSemanticLogger::ActionController::LogSubscriber.detach_from :action_controller
+    #   RailsSemanticLogger::ActionView::LogSubscriber.detach_from :action_view
+    #   ...
+    #
+    # To Debug:
+    #
+    # puts "Before: ===================="
+    # puts ActiveSupport::LogSubscriber.log_subscribers
+    # puts "Before: ===================="
+    unsubscribe(ActiveSupport::LogSubscriber.log_subscribers.select {|s| s.class.name.start_with? "RailsSemanticLogger::" })
+    # To Debug:
+    #
+    # puts "After: ===================="
+    # puts ActiveSupport::LogSubscriber.log_subscribers
+    # puts "After: ===================="
+  end
+
+  # Backporting `ActiveSupport::Subscriber#detach_from` implementation for older Rails
+  def unsubscribe(subscribers)
+    subscribers.each do |subscriber|
+      patterns = subscriber.patterns.respond_to?(:keys) ?
+        subscriber.patterns.keys :
+        subscriber.patterns
+      patterns.each do |pattern|
         ActiveSupport::Notifications.notifier.listeners_for(pattern).each do |listener|
           if listener.instance_variable_get('@delegate') == subscriber
             ActiveSupport::Notifications.unsubscribe listener

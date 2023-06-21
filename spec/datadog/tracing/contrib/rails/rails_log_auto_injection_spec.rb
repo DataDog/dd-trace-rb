@@ -9,7 +9,17 @@ RSpec.describe 'Rails Log Auto Injection' do
   end
   # defined in rails support apps
   let(:logs) { log_output.string }
-  let(:log_entries) { logs.split("\n") }
+
+  let(:log_entries) do
+    logs.split("\n")
+      # Workaround for Rails 5 + mysql2 , which contain log from the first test case
+      #
+      # SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),
+      #   @@SESSION.sql_auto_is_null = 0,
+      #   @@SESSION.wait_timeout = 2147483`
+      #
+      .reject { |l| l.match /@@SESSION.sql_mode/ }
+  end
 
   let(:controllers) do
     [logging_test_controller]
@@ -20,7 +30,17 @@ RSpec.describe 'Rails Log Auto Injection' do
       'LoggingTestController',
       Class.new(ActionController::Base) do
         def index
-          logger.info 'MY VOICE SHALL BE HEARD!'
+          # This should be interchangeable with
+          # `logger.info 'MY VOICE SHALL BE HEARD!'`
+          #
+          # However, in Rails 5 without TaggedLogging, logger != ::Rails.logger
+          #
+          # To Debug:
+          # puts "Lograge Logger: #{::Lograge.logger && ::Lograge.logger.object_id}"
+          # puts "logger: #{logger.object_id}"
+          # puts "Rails.logger: #{::Rails.logger.object_id}"
+          ::Rails.logger.info 'MY VOICE SHALL BE HEARD!'
+
           render plain: 'OK'
         end
       end
