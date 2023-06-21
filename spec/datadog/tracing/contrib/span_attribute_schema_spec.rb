@@ -79,14 +79,27 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
     end
   end
 
-  # Add test to check if peer.service is unchanged span.service val
   # Add test return true if env var is true
   describe '#should_set_peer_service' do
     let(:span) { Datadog::Tracing::Span.new('testPeerServiceSpan', parent_id: 0) }
     context 'when peer service is already set' do
-      it 'returns false' do
-        span.set_tag('peer.service', 'test-service')
-        expect(described_class.should_set_peer_service(span)).to be false
+      context 'when peer.service does not match span.service' do
+        it 'returns false' do
+          span.service = 'test-span-service'
+          span.set_tag('peer.service', 'test-service')
+          expect(span.get_tag('peer.service')).not_to eq(span.service)
+          expect(described_class.should_set_peer_service(span)).to be false
+        end
+      end
+
+      context 'when span.service does not equal global service' do
+        it 'returns false' do
+          span.service = 'test-service'
+          span.set_tag('peer.service', 'test-service')
+          expect(span.get_tag('peer.service')).to eq(span.service)
+          expect(span.service).not_to eq(Datadog.configuration.service)
+          expect(described_class.should_set_peer_service(span)).to be false
+        end
       end
     end
 
@@ -195,7 +208,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
 
     context 'no precursor tags set' do
       context 'AWS Span' do
-        it 'returns {PRECURSORs} as peer.service and source' do
+        it 'returns {PRECURSOR} as peer.service and source' do
           span.set_tag('aws_service', 'test-service')
 
           precursors = Array['out.host', 'peer.hostname', 'network.destination.name']
@@ -210,7 +223,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
       end
 
       context 'DB Span' do
-        it 'returns {PRECURSORs} as peer.service and source' do
+        it 'returns {PRECURSOR} as peer.service and source' do
           span.set_tag('db.system', 'test-db')
 
           precursors = Array['out.host', 'peer.hostname', 'network.destination.name']
@@ -225,7 +238,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
       end
 
       context 'Messaging Span' do
-        it 'returns {PRECURSORs} as peer.service and source' do
+        it 'returns {PRECURSOR} as peer.service and source' do
           span.set_tag('messaging.system', 'test-msg-system')
 
           precursors = Array['out.host', 'peer.hostname', 'network.destination.name']
@@ -240,7 +253,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
       end
 
       context 'RPC Span' do
-        it 'returns {PRECURSORs} as peer.service and source' do
+        it 'returns {PRECURSOR} as peer.service and source' do
           span.set_tag('rpc.system', 'test-rpc')
 
           precursors = Array['out.host', 'peer.hostname', 'network.destination.name']
