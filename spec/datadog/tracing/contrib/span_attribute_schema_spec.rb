@@ -82,7 +82,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
   # Add test to check if peer.service is unchanged span.service val
   # Add test return true if env var is true
   describe '#should_set_peer_service' do
-    let(:span) {Datadog::Tracing::Span.new('testPeerServiceSpan', parent_id: 0)}
+    let(:span) { Datadog::Tracing::Span.new('testPeerServiceSpan', parent_id: 0) }
     context 'when peer service is already set' do
       it 'returns false' do
         span.set_tag('peer.service', 'test-service')
@@ -107,12 +107,12 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
     end
 
     context 'when v1 is not set' do
-        it 'returns false' do
-          span.set_tag('span.kind', 'client')
-          with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-            expect(described_class.should_set_peer_service(span)).to be false
-          end
+      it 'returns false' do
+        span.set_tag('span.kind', 'client')
+        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
+          expect(described_class.should_set_peer_service(span)).to be false
         end
+      end
     end
 
     context 'when peer service is not set and span is outbound and v1 is set' do
@@ -125,22 +125,27 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
     end
   end
 
-
   describe '#set_peer_service_from_source' do
-    let(:span) {Datadog::Tracing::Span.new('testPeerServiceLogicSpan', parent_id: 0)}
+    let(:span) { Datadog::Tracing::Span.new('testPeerServiceLogicSpan', parent_id: 0) }
     context 'AWS Span' do
-        it 'returns {AWS_PRECURSOR} as peer.service and source' do
-          span.set_tag('aws_service', 'test-service')
+      it 'returns {AWS_PRECURSOR} as peer.service and source' do
+        span.set_tag('aws_service', 'test-service')
 
-          precursors = Array['statemachinename', 'rulename', 'bucketname', 'tablename', 'streamname', 'topicname', 'queuename']
-          precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
+        precursors = Array['statemachinename',
+          'rulename',
+          'bucketname',
+          'tablename',
+          'streamname',
+          'topicname',
+          'queuename']
+        precursors.each do |precursor|
+          span.set_tag(precursor, 'test-' << precursor)
 
-            expect(described_class.set_peer_service_from_source(span)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
-            expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
-          end
+          expect(described_class.set_peer_service_from_source(span)).to be true
+          expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+          expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
         end
+      end
     end
 
     context 'DB Span' do
