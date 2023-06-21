@@ -11,14 +11,13 @@ RSpec.describe 'Rails Log Auto Injection' do
   let(:logs) { log_output.string }
 
   let(:log_entries) do
-    logs.split("\n")
-      # Workaround for Rails 5 + mysql2 , which contain log from the first test case
-      #
-      # SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),
-      #   @@SESSION.sql_auto_is_null = 0,
-      #   @@SESSION.wait_timeout = 2147483`
-      #
-      .reject { |l| l.match /@@SESSION.sql_mode/ }
+    # Workaround for Rails 5 + mysql2 , which contain log from the first test case
+    #
+    # SET  @@SESSION.sql_mode = CONCAT(CONCAT(@@sql_mode, ',STRICT_ALL_TABLES'), ',NO_AUTO_VALUE_ON_ZERO'),
+    #   @@SESSION.sql_auto_is_null = 0,
+    #   @@SESSION.wait_timeout = 2147483`
+    #
+    logs.split("\n").reject { |l| l.match /@@SESSION.sql_mode/ }
   end
 
   let(:controllers) do
