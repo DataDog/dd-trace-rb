@@ -34,11 +34,17 @@ module Datadog
         end
 
         def should_set_peer_service(span)
-          if span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
-            # if peer.service does not equal span.service than set source and return false
-            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, Tracing::Metadata::Ext::TAG_PEER_SERVICE)
-            return false
-            # if peer.service equals span.service if span.service does not equal DD.service then return false
+          ps = span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+          if ps && (ps != '')
+            if ps != span.service
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+              return false
+            end
+
+            if (ps == span.service) && (span.service != Datadog.configuration.service)
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+              return false
+            end
           end
 
           if ((span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_CLIENT) ||
