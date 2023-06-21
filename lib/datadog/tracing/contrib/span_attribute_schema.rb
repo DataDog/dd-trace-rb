@@ -23,56 +23,57 @@ module Datadog
             Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
         end
 
-        # implement this function in all target spans/integrations with spankind
+        # TODO: implement function in all integrations with spankind
         def set_peer_service(span)
-          should_set_peer_service(span) && set_peer_service_from_source(span)
-          # if above
-          # then remap + remapped from (SKIP)
-          # else
-          # debug that peer service could not be set
-          # end
+          set_peer_service?(span) && set_peer_service_from_source(span)
+          # TODO: add logic for remap as long as the above expression is true
         end
 
-        def should_set_peer_service(span)
+        # set_peer_service?: checks to see if any edited peer.service tags exist so that they are not overwritten
+        def set_peer_service?(span)
           ps = span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
           if ps && (ps != '')
+
+            # if peer.service is not equal to span.service we know it is edited
             if ps != span.service
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, Tracing::Metadata::Ext::TAG_PEER_SERVICE)
               return false
             end
 
+            # if span.service is not the global service, we know it was changed to change the peer.service value
             if (ps == span.service) && (span.service != Datadog.configuration.service)
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, Tracing::Metadata::Ext::TAG_PEER_SERVICE)
               return false
             end
           end
 
+          # only allow peer.service to be changed if it is an outbound span with the correct schema version
           if ((span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_CLIENT) ||
             (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)) &&
               (Datadog.configuration.tracing.span_attribute_schema ==
-                  Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE) # OR if env var is set
+                  Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE)
             return true
+
+            # TODO: add specific env var just for peer.service independent of v1
           end
 
           false
         end
 
+        # set_peer_service_from_source: Implements the extraction logic to determine the peer.service value
+        # based on the span type and a set of "precursor" tags.
+        # Also sets the source of where the information for peer.service was extracted from
+        # Returns a boolean if peer.service was successfully set or not
         def set_peer_service_from_source(span)
           case
           when span.get_tag(Aws::Ext::TAG_AWS_SERVICE)
-            sources = Array[Aws::Ext::TAG_QUEUE_NAME,
-              Aws::Ext::TAG_TOPIC_NAME,
-              Aws::Ext::TAG_STREAM_NAME,
-              Aws::Ext::TAG_TABLE_NAME,
-              Aws::Ext::TAG_BUCKET_NAME,
-              Aws::Ext::TAG_RULE_NAME,
-              Aws::Ext::TAG_STATE_MACHINE_NAME,]
+            sources = Tracing::Contrib::Ext::SpanAttributeSchema::PEER_SERVICE_SOURCE_AWS
           when span.get_tag(Tracing::Contrib::Ext::DB::TAG_SYSTEM)
-            sources = Array[Tracing::Contrib::Ext::DB::TAG_INSTANCE] # DB_NAME tag?
+            sources = Tracing::Contrib::Ext::SpanAttributeSchema::PEER_SERVICE_SOURCE_DB
           when span.get_tag(Tracing::Contrib::Ext::Messaging::TAG_SYSTEM)
-            sources = Array[] # kafka bootstrap servers
+            sources = Tracing::Contrib::Ext::SpanAttributeSchema::PEER_SERVICE_SOURCE_MSG
           when span.get_tag(Tracing::Contrib::Ext::RPC::TAG_SYSTEM)
-            sources = Array[Tracing::Contrib::Ext::RPC::TAG_SERVICE]
+            sources = Tracing::Contrib::Ext::SpanAttributeSchema::PEER_SERVICE_SOURCE_RPC
           else
             return false
           end
@@ -87,9 +88,9 @@ module Datadog
 
             span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, source_val)
             span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, source)
-            break
+            return true
           end
-          true
+          false
         end
       end
     end
