@@ -80,7 +80,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
   end
 
   # Add test return true if env var is true
-  describe '#should_set_peer_service' do
+  describe '#set_peer_service?' do
     let(:span) { Datadog::Tracing::Span.new('testPeerServiceSpan', parent_id: 0) }
     context 'when peer service is already set' do
       context 'when peer.service does not match span.service' do
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           span.service = 'test-span-service'
           span.set_tag('peer.service', 'test-service')
           expect(span.get_tag('peer.service')).not_to eq(span.service)
-          expect(described_class.should_set_peer_service(span)).to be false
+          expect(described_class.set_peer_service?(span)).to be false
         end
       end
 
@@ -98,7 +98,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           span.set_tag('peer.service', 'test-service')
           expect(span.get_tag('peer.service')).to eq(span.service)
           expect(span.service).not_to eq(Datadog.configuration.service)
-          expect(described_class.should_set_peer_service(span)).to be false
+          expect(described_class.set_peer_service?(span)).to be false
         end
       end
     end
@@ -107,14 +107,14 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
       context 'when span.kind is server' do
         it 'returns false' do
           span.set_tag('span.kind', 'server')
-          expect(described_class.should_set_peer_service(span)).to be false
+          expect(described_class.set_peer_service?(span)).to be false
         end
       end
 
       context 'when span.kind is consumer' do
         it 'returns false' do
           span.set_tag('span.kind', 'consumer')
-          expect(described_class.should_set_peer_service(span)).to be false
+          expect(described_class.set_peer_service?(span)).to be false
         end
       end
     end
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
       it 'returns false' do
         span.set_tag('span.kind', 'client')
         with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-          expect(described_class.should_set_peer_service(span)).to be false
+          expect(described_class.set_peer_service?(span)).to be false
         end
       end
     end
@@ -132,7 +132,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
       it 'returns true' do
         span.set_tag('span.kind', 'client')
         with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
-          expect(described_class.should_set_peer_service(span)).to be true
+          expect(described_class.set_peer_service?(span)).to be true
         end
       end
     end

@@ -28,6 +28,13 @@ module Datadog
 
           TAG_RABBITMQ_ROUTING_KEY: "messaging.rabbitmq.routing_key"
         end
+
+        module SpanAttributeSchema
+          PEER_SERVICE_SOURCE_AWS: Array[string]
+          PEER_SERVICE_SOURCE_DB: Array[string]
+          PEER_SERVICE_SOURCE_MSG: Array[string]
+          PEER_SERVICE_SOURCE_RPC: Array[string]
+        end
       end
     end
   end
