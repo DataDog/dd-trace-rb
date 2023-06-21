@@ -8,7 +8,7 @@ module Datadog
 
         def set_peer_service: -> bool
 
-        def should_set_peer_service: -> bool
+        def set_peer_service?: -> bool
 
         def set_peer_service_from_source: -> bool
       end
