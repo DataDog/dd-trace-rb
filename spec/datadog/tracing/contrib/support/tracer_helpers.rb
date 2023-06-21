@@ -96,11 +96,11 @@ module Contrib
         example.run.tap do
           if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.hostname == 'testagent' &&
               test_agent_running?
-
             traces = fetch_traces(tracer)
             unless traces.empty?
               traces.each do |trace|
                 # write traces after the test to the agent in order to not mess up assertions
+                parse_tracer_config_and_add_to_headers tracer.writer.transport.client.api.headers
                 tracer.writer.write(trace)
               end
             end

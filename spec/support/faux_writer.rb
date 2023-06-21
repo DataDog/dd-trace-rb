@@ -11,13 +11,7 @@ class FauxWriter < Datadog::Tracing::Writer
 
   def initialize(options = {})
     options[:transport] ||= if ENV['DD_AGENT_HOST'] == 'testagent' && test_agent_running?
-                              Datadog::Transport::HTTP.default(
-                                headers: {
-                                  'X-Datadog-Trace-Env-Variables' => ENV.to_h.select { |key, _| key.start_with?('DD_') }
-                                                                            .map { |key, value| "#{key}=#{value}" }
-                                                                            .join(',')
-                                }
-                              ) do |t|
+                              Datadog::Transport::HTTP.default do |t|
                                 t.adapter :net_http, 'testagent', 9126, timeout: 30
                               end
                             else
@@ -35,6 +29,7 @@ class FauxWriter < Datadog::Tracing::Writer
 
   def write(trace)
     @mutex.synchronize do
+      parse_tracer_config_and_add_to_headers @options[:transport].client.api.headers
       super(trace)
       @traces << trace
     end
