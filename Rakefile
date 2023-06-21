@@ -94,6 +94,11 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  RSpec::Core::RakeTask.new(:yjit) do |t, args|
+    t.pattern = 'spec/datadog/core/runtime/metrics_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
   # rails_semantic_logger is the dog at the dog park that doesnt play nicely with other
   # logging gems, aka it tries to bite/monkeypatch them, so we have to put it in its own appraisal and rake task
   # in order to isolate its effects for rails logs auto injection
