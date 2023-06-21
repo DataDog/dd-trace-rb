@@ -110,8 +110,6 @@ RSpec.shared_context 'Rails 3 base application' do
   # Version of Ruby < 4 have initializers with persistent side effects:
   # actionpack-3.0.20/lib/action_view/railtie.rb:22
   def after_rails_application_creation
-    Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
-
     Rails.application.config.action_view = ActiveSupport::OrderedOptions.new
 
     # Prevent initializer from performing destructive operation on configuration.

@@ -117,6 +117,7 @@ RSpec.shared_context 'Rails 4 base application' do
   # Rails 4 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
+    # TODO: Remove this side-effect on missing log entries
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)

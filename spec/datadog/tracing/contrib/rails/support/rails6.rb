@@ -139,6 +139,7 @@ RSpec.shared_context 'Rails 6 base application' do
     # Reset autoloaded constants
     ActiveSupport::Dependencies.clear if Rails.application
 
+    # TODO: Remove this side-effect on missing log entries
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
     reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
