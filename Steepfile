@@ -636,6 +636,9 @@ target :ddtrace do
   ignore 'lib/ddtrace/transport/traces.rb'
   ignore 'lib/ddtrace/version.rb'
 
+  # References `RubyVM::YJIT`, which does not have type information.
+  ignore 'lib/datadog/core/environment/yjit.rb'
+
   library 'pathname'
   library 'cgi'
   library 'logger', 'monitor'

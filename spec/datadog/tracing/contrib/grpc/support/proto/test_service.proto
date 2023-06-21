@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package ruby.test;
+option ruby_package = "GRPCHelper";
+
+message TestMessage {}
+
+service Testing {
+  rpc Basic(TestMessage) returns (TestMessage) {}
+  rpc Error(TestMessage) returns (TestMessage) {}
+  rpc StreamFromClient(stream TestMessage) returns (TestMessage) {}
+  rpc StreamFromServer(TestMessage) returns (stream TestMessage) {}
+  rpc StreamBothWays(stream TestMessage) returns (stream TestMessage) {}
+}

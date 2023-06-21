@@ -76,6 +76,7 @@ module Datadog
                 )
               end
             end
+            @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
           end
 
           true
