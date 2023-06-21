@@ -96,7 +96,11 @@ RSpec.shared_context 'Rails test application' do
     # puts "Before: ===================="
     # puts ActiveSupport::LogSubscriber.log_subscribers
     # puts "Before: ===================="
-    unsubscribe(ActiveSupport::LogSubscriber.log_subscribers.select {|s| s.class.name.start_with? "RailsSemanticLogger::" })
+    unsubscribe(
+      ActiveSupport::LogSubscriber.log_subscribers.select do |s|
+        s.class.name.start_with? 'RailsSemanticLogger::'
+      end
+    )
     # To Debug:
     #
     # puts "After: ===================="
@@ -107,14 +111,14 @@ RSpec.shared_context 'Rails test application' do
   # Backporting `ActiveSupport::Subscriber#detach_from` implementation for older Rails
   def unsubscribe(subscribers)
     subscribers.each do |subscriber|
-      patterns = subscriber.patterns.respond_to?(:keys) ?
-        subscriber.patterns.keys :
-        subscriber.patterns
+      patterns = if subscriber.patterns.respond_to?(:keys)
+                   subscriber.patterns.keys
+                 else
+                   subscriber.patterns
+                 end
       patterns.each do |pattern|
         ActiveSupport::Notifications.notifier.listeners_for(pattern).each do |listener|
-          if listener.instance_variable_get('@delegate') == subscriber
-            ActiveSupport::Notifications.unsubscribe listener
-          end
+          ActiveSupport::Notifications.unsubscribe listener if listener.instance_variable_get('@delegate') == subscriber
         end
       end
       ActiveSupport::LogSubscriber.log_subscribers.delete(subscriber)

@@ -17,7 +17,7 @@ RSpec.describe 'Rails Log Auto Injection' do
     #   @@SESSION.sql_auto_is_null = 0,
     #   @@SESSION.wait_timeout = 2147483`
     #
-    logs.split("\n").reject { |l| l.match /@@SESSION.sql_mode/ }
+    logs.split("\n").reject { |l| l.match(/@@SESSION.sql_mode/) }
   end
 
   let(:controllers) do
@@ -202,7 +202,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(rack_rails_logger_entry).not_to include trace.id.to_s
 
-            expect(controller_logger_entry).to include "#{trace.id}"
+            expect(controller_logger_entry).to include trace.id.to_s
             expect(controller_logger_entry).to include 'ddsource=ruby'
             expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
             expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'

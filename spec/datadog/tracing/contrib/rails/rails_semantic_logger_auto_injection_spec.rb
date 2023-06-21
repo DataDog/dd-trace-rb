@@ -37,7 +37,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
   # defined in rails support apps
   let(:logs) { log_output.string }
-  let(:log_entries) { logs.split("\n")}
+  let(:log_entries) { logs.split("\n") }
 
   before do
     Datadog.configuration.tracing[:rails].reset_options!
@@ -80,19 +80,17 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(log_entries).to have(6).items
 
-            log_entries.each do |l|
-              expect(l).to include(trace.id.to_s)
-              expect(l).to include('ddsource: ruby')
-            end
+            expect(log_entries).to all include trace.id.to_s
+            expect(log_entries).to all include 'ddsource: ruby'
 
             rack_started_entry,
               controller_processing_entry,
               controller_entry,
-              rendering_entry,
-              rendered_entry,
+              _rendering_entry,
+              _rendered_entry,
               controller_completed_entry = log_entries
 
-            rack_span, controller_span, render_span = spans
+            rack_span, controller_span, _render_span = spans
 
             expect(rack_started_entry).to include rack_span.id.to_s
             expect(controller_processing_entry).to include rack_span.id.to_s
@@ -106,8 +104,8 @@ RSpec.describe 'Rails Log Auto Injection' do
             # 1. RailsSemanticLogger::ActionView::LogSubscriber
             # 2. Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription
             #
-            # expect(rendering_entry).to include controller_span.id.to_s
-            # expect(rendered_entry).to include render_span.id.to_s
+            # expect(_rendering_entry).to include controller_span.id.to_s
+            # expect(_rendered_entry).to include _render_span.id.to_s
 
             expect(controller_completed_entry).to include rack_span.id.to_s
           end
@@ -127,21 +125,19 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(log_entries).to have(6).items
 
-            log_entries.each do |l|
-              expect(l).to include(trace.id.to_s)
-              expect(l).to include('ddsource: ruby')
-              expect(l).to include('some_tag')
-              expect(l).to include('some_value')
-            end
+            expect(log_entries).to all include(trace.id.to_s)
+            expect(log_entries).to all include('ddsource: ruby')
+            expect(log_entries).to all include('some_tag')
+            expect(log_entries).to all include('some_value')
 
             rack_started_entry,
               controller_processing_entry,
               controller_entry,
-              rendering_entry,
-              rendered_entry,
+              _rendering_entry,
+              _rendered_entry,
               controller_completed_entry = log_entries
 
-            rack_span, controller_span, render_span = spans
+            rack_span, controller_span, _render_span = spans
 
             expect(rack_started_entry).to include rack_span.id.to_s
             expect(controller_processing_entry).to include rack_span.id.to_s
@@ -155,8 +151,8 @@ RSpec.describe 'Rails Log Auto Injection' do
             # 1. RailsSemanticLogger::ActionView::LogSubscriber
             # 2. Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription
             #
-            # expect(rendering_entry).to include controller_span.id.to_s
-            # expect(rendered_entry).to include render_span.id.to_s
+            # expect(_rendering_entry).to include controller_span.id.to_s
+            # expect(_rendered_entry).to include _render_span.id.to_s
 
             expect(controller_completed_entry).to include rack_span.id.to_s
           end
