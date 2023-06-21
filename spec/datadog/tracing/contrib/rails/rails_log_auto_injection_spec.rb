@@ -40,7 +40,11 @@ RSpec.describe 'Rails Log Auto Injection' do
           # puts "Rails.logger: #{::Rails.logger.object_id}"
           ::Rails.logger.info 'MY VOICE SHALL BE HEARD!'
 
-          render plain: 'OK'
+          if ::Rails.version >= '4'
+            render plain: 'OK'
+          else
+            render inline: 'OK'
+          end
         end
       end
     )
@@ -126,259 +130,261 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
     end
 
-    context 'with Lograge', skip: Rails.version < '4' do
-      # for log_injection testing
-      require 'lograge'
+    if Rails.version >= '4'
+      context 'with Lograge' do
+        # for log_injection testing
+        require 'lograge'
 
-      before do
-        allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
-      end
-
-      context 'with lograge enabled' do
-        context 'with Lograge setup and no custom_options' do
-          it 'injects trace_id into logs' do
-            is_expected.to be_ok
-
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
-
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
-
-            expect(rack_rails_logger_entry).not_to include trace.id.to_s
-
-            expect(controller_logger_entry).to include trace.id.to_s
-            expect(controller_logger_entry).to include 'ddsource=ruby'
-
-            expect(my_entry).not_to include trace.id.to_s
-          end
-        end
-
-        context 'with Lograge and existing custom_options as a hash' do
-          before do
-            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-              'some_hash_info' => 'test_hash_value',
-              'some_other_hash_info' => 'other_test_hash_value'
-            )
-          end
-
-          it 'injects trace_id into logs and preserve existing hash' do
-            is_expected.to be_ok
-
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
-
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
-
-            expect(rack_rails_logger_entry).not_to include trace.id.to_s
-
-            expect(controller_logger_entry).to include trace.id.to_s
-            expect(controller_logger_entry).to include 'ddsource=ruby'
-            expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
-            expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
-
-            expect(my_entry).not_to include trace.id.to_s
-          end
-        end
-
-        context 'with Lograge and existing custom_options as a lambda' do
-          before do
-            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-              lambda do |_event|
-                {
-                  'some_lambda_info' => 'test_lambda_value',
-                  'some_other_lambda_info' => 'other_test_lambda_value'
-                }
-              end
-            )
-          end
-
-          it 'injects trace_id into logs and preserve existing lambda' do
-            is_expected.to be_ok
-
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
-
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
-
-            expect(rack_rails_logger_entry).not_to include trace.id.to_s
-
-            expect(controller_logger_entry).to include trace.id.to_s
-            expect(controller_logger_entry).to include 'ddsource=ruby'
-            expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
-            expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
-
-            expect(my_entry).not_to include trace.id.to_s
-          end
-        end
-      end
-
-      context 'with lograge disabled' do
         before do
-          Datadog.configuration.tracing[:lograge].enabled = false
+          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
         end
 
-        it 'does not inject trace_id into logs' do
-          is_expected.to be_ok
+        context 'with lograge enabled' do
+          context 'with Lograge setup and no custom_options' do
+            it 'injects trace_id into logs' do
+              is_expected.to be_ok
 
-          expect(logs).to_not be_empty
-          expect(log_entries).to have(3).items
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
 
-          rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-          expect(rack_rails_logger_entry).not_to include trace.id.to_s
+              expect(rack_rails_logger_entry).not_to include trace.id.to_s
 
-          expect(my_entry).not_to include trace.id.to_s
+              expect(controller_logger_entry).to include trace.id.to_s
+              expect(controller_logger_entry).to include 'ddsource=ruby'
 
-          expect(controller_logger_entry).not_to include trace.id.to_s
+              expect(my_entry).not_to include trace.id.to_s
+            end
+          end
+
+          context 'with Lograge and existing custom_options as a hash' do
+            before do
+              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+                'some_hash_info' => 'test_hash_value',
+                'some_other_hash_info' => 'other_test_hash_value'
+              )
+            end
+
+            it 'injects trace_id into logs and preserve existing hash' do
+              is_expected.to be_ok
+
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
+
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+
+              expect(rack_rails_logger_entry).not_to include trace.id.to_s
+
+              expect(controller_logger_entry).to include trace.id.to_s
+              expect(controller_logger_entry).to include 'ddsource=ruby'
+              expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
+              expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
+
+              expect(my_entry).not_to include trace.id.to_s
+            end
+          end
+
+          context 'with Lograge and existing custom_options as a lambda' do
+            before do
+              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+                lambda do |_event|
+                  {
+                    'some_lambda_info' => 'test_lambda_value',
+                    'some_other_lambda_info' => 'other_test_lambda_value'
+                  }
+                end
+              )
+            end
+
+            it 'injects trace_id into logs and preserve existing lambda' do
+              is_expected.to be_ok
+
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
+
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+
+              expect(rack_rails_logger_entry).not_to include trace.id.to_s
+
+              expect(controller_logger_entry).to include trace.id.to_s
+              expect(controller_logger_entry).to include 'ddsource=ruby'
+              expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
+              expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
+
+              expect(my_entry).not_to include trace.id.to_s
+            end
+          end
+        end
+
+        context 'with lograge disabled' do
+          before do
+            Datadog.configuration.tracing[:lograge].enabled = false
+          end
+
+          it 'does not inject trace_id into logs' do
+            is_expected.to be_ok
+
+            expect(logs).to_not be_empty
+            expect(log_entries).to have(3).items
+
+            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+
+            expect(rack_rails_logger_entry).not_to include trace.id.to_s
+
+            expect(my_entry).not_to include trace.id.to_s
+
+            expect(controller_logger_entry).not_to include trace.id.to_s
+          end
         end
       end
-    end
 
-    context 'with Tagged Logging and Lograge', skip: Rails.version < '4' do
-      # for log_injection testing
-      require 'lograge'
+      context 'with Tagged Logging and Lograge' do
+        # for log_injection testing
+        require 'lograge'
 
-      before do
-        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
-        allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
-      end
-
-      context 'with lograge and tagged logging enabled' do
-        context 'with no custom_options' do
-          it 'injects trace_id into logs' do
-            is_expected.to be_ok
-
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
-
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
-
-            expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
-
-            expect(my_entry).to include "dd.trace_id=#{trace.id}"
-
-            expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
-            expect(controller_logger_entry).to include 'ddsource=ruby'
-          end
+        before do
+          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
         end
 
-        context 'with tagged logging setup and existing log_tags' do
-          before do
-            allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
+        context 'with lograge and tagged logging enabled' do
+          context 'with no custom_options' do
+            it 'injects trace_id into logs' do
+              is_expected.to be_ok
+
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
+
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+
+              expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+
+              expect(my_entry).to include "dd.trace_id=#{trace.id}"
+
+              expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
+              expect(controller_logger_entry).to include 'ddsource=ruby'
+            end
           end
 
-          it 'injects trace_id into logs and preserve existing log tags' do
-            is_expected.to be_ok
+          context 'with tagged logging setup and existing log_tags' do
+            before do
+              allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
+            end
 
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
+            it 'injects trace_id into logs and preserve existing log tags' do
+              is_expected.to be_ok
 
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
 
-            expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
-            expect(rack_rails_logger_entry).to include '[some_info]'
-            expect(rack_rails_logger_entry).to include '[some_other_info]'
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-            expect(my_entry).to include "dd.trace_id=#{trace.id}"
-            expect(my_entry).to include '[some_info]'
-            expect(my_entry).to include '[some_other_info]'
+              expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+              expect(rack_rails_logger_entry).to include '[some_info]'
+              expect(rack_rails_logger_entry).to include '[some_other_info]'
 
-            expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
-            expect(controller_logger_entry).to include 'ddsource=ruby'
-            expect(controller_logger_entry).to include '[some_info]'
-            expect(controller_logger_entry).to include '[some_other_info]'
-          end
-        end
+              expect(my_entry).to include "dd.trace_id=#{trace.id}"
+              expect(my_entry).to include '[some_info]'
+              expect(my_entry).to include '[some_other_info]'
 
-        context 'with Lograge and existing custom_options as a hash' do
-          before do
-            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-              'some_hash_info' => 'test_hash_value',
-              'some_other_hash_info' => 'other_test_hash_value'
-            )
+              expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
+              expect(controller_logger_entry).to include 'ddsource=ruby'
+              expect(controller_logger_entry).to include '[some_info]'
+              expect(controller_logger_entry).to include '[some_other_info]'
+            end
           end
 
-          it 'injects trace_id into logs and preserve existing hash' do
-            is_expected.to be_ok
+          context 'with Lograge and existing custom_options as a hash' do
+            before do
+              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+                'some_hash_info' => 'test_hash_value',
+                'some_other_hash_info' => 'other_test_hash_value'
+              )
+            end
 
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
+            it 'injects trace_id into logs and preserve existing hash' do
+              is_expected.to be_ok
 
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
 
-            expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-            expect(my_entry).to include "dd.trace_id=#{trace.id}"
+              expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
 
-            expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
-            expect(controller_logger_entry).to include 'ddsource=ruby'
-            expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
-            expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
-          end
-        end
+              expect(my_entry).to include "dd.trace_id=#{trace.id}"
 
-        context 'with Lograge and existing custom_options as a lambda' do
-          before do
-            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-              lambda do |_event|
-                {
-                  'some_lambda_info' => 'test_lambda_value',
-                  'some_other_lambda_info' => 'other_test_lambda_value'
-                }
-              end
-            )
+              expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
+              expect(controller_logger_entry).to include 'ddsource=ruby'
+              expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
+              expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
+            end
           end
 
-          it 'injects trace_id into logs and preserve existing lambda' do
-            is_expected.to be_ok
+          context 'with Lograge and existing custom_options as a lambda' do
+            before do
+              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+                lambda do |_event|
+                  {
+                    'some_lambda_info' => 'test_lambda_value',
+                    'some_other_lambda_info' => 'other_test_lambda_value'
+                  }
+                end
+              )
+            end
 
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
+            it 'injects trace_id into logs and preserve existing lambda' do
+              is_expected.to be_ok
 
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
 
-            expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-            expect(my_entry).to include "dd.trace_id=#{trace.id}"
+              expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
 
-            expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
-            expect(controller_logger_entry).to include 'ddsource=ruby'
-            expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
-            expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
+              expect(my_entry).to include "dd.trace_id=#{trace.id}"
+
+              expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
+              expect(controller_logger_entry).to include 'ddsource=ruby'
+              expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
+              expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
+            end
           end
-        end
 
-        context 'with existing log_tags and Lograge custom_options' do
-          before do
-            allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-              'some_hash_info' => 'test_hash_value',
-              'some_other_hash_info' => 'other_test_hash_value'
-            )
-          end
+          context 'with existing log_tags and Lograge custom_options' do
+            before do
+              allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
+              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+                'some_hash_info' => 'test_hash_value',
+                'some_other_hash_info' => 'other_test_hash_value'
+              )
+            end
 
-          it 'injects trace_id into logs' do
-            is_expected.to be_ok
+            it 'injects trace_id into logs' do
+              is_expected.to be_ok
 
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
 
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-            expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
-            expect(rack_rails_logger_entry).to include '[some_info]'
-            expect(rack_rails_logger_entry).to include '[some_other_info]'
+              expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+              expect(rack_rails_logger_entry).to include '[some_info]'
+              expect(rack_rails_logger_entry).to include '[some_other_info]'
 
-            expect(my_entry).to include "dd.trace_id=#{trace.id}"
-            expect(my_entry).to include '[some_info]'
-            expect(my_entry).to include '[some_other_info]'
+              expect(my_entry).to include "dd.trace_id=#{trace.id}"
+              expect(my_entry).to include '[some_info]'
+              expect(my_entry).to include '[some_other_info]'
 
-            expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
-            expect(controller_logger_entry).to include '[some_info]'
-            expect(controller_logger_entry).to include '[some_other_info]'
-            expect(controller_logger_entry).to include 'ddsource=ruby'
-            expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
-            expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
+              expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
+              expect(controller_logger_entry).to include '[some_info]'
+              expect(controller_logger_entry).to include '[some_other_info]'
+              expect(controller_logger_entry).to include 'ddsource=ruby'
+              expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
+              expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
+            end
           end
         end
       end
@@ -447,107 +453,109 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
     end
 
-    context 'with Lograge', skip: Rails.version < '4' do
-      # for log_injection testing
-      require 'lograge'
+    if Rails.version >= '4'
+      context 'with Lograge' do
+        # for log_injection testing
+        require 'lograge'
 
-      before do
-        allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
-      end
-
-      context 'with lograge enabled' do
-        context 'with Lograge setup and no custom_options' do
-          it 'does not inject trace_id' do
-            is_expected.to be_ok
-
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
-
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
-
-            expect(rack_rails_logger_entry).not_to include trace.id.to_s
-
-            expect(my_entry).not_to include trace.id.to_s
-
-            expect(controller_logger_entry).not_to include trace.id.to_s
-          end
-        end
-
-        context 'with Lograge and existing custom_options as a hash' do
-          before do
-            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-              'some_hash_info' => 'test_hash_value',
-              'some_other_hash_info' => 'other_test_hash_value'
-            )
-          end
-
-          it 'does not inject trace_id and preserve existing hash' do
-            is_expected.to be_ok
-
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
-
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
-
-            expect(rack_rails_logger_entry).not_to include trace.id.to_s
-
-            expect(my_entry).not_to include trace.id.to_s
-
-            expect(controller_logger_entry).not_to include trace.id.to_s
-            expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
-            expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
-          end
-        end
-
-        context 'with Lograge and existing custom_options as a lambda' do
-          before do
-            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-              lambda do |_event|
-                {
-                  'some_lambda_info' => 'test_lambda_value',
-                  'some_other_lambda_info' => 'other_test_lambda_value'
-                }
-              end
-            )
-          end
-
-          it 'does not inject trace_id and preserve existing lambda' do
-            is_expected.to be_ok
-
-            expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
-
-            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
-
-            expect(rack_rails_logger_entry).not_to include trace.id.to_s
-
-            expect(my_entry).not_to include trace.id.to_s
-
-            expect(controller_logger_entry).not_to include trace.id.to_s
-            expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
-            expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
-          end
-        end
-      end
-
-      context 'with lograge disabled' do
         before do
-          Datadog.configuration.tracing[:lograge].enabled = false
+          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
         end
 
-        it 'does not inject trace_id into logs' do
-          is_expected.to be_ok
+        context 'with lograge enabled' do
+          context 'with Lograge setup and no custom_options' do
+            it 'does not inject trace_id' do
+              is_expected.to be_ok
 
-          expect(logs).to_not be_empty
-          expect(log_entries).to have(3).items
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
 
-          rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-          expect(rack_rails_logger_entry).not_to include trace.id.to_s
+              expect(rack_rails_logger_entry).not_to include trace.id.to_s
 
-          expect(my_entry).not_to include trace.id.to_s
+              expect(my_entry).not_to include trace.id.to_s
 
-          expect(controller_logger_entry).not_to include trace.id.to_s
+              expect(controller_logger_entry).not_to include trace.id.to_s
+            end
+          end
+
+          context 'with Lograge and existing custom_options as a hash' do
+            before do
+              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+                'some_hash_info' => 'test_hash_value',
+                'some_other_hash_info' => 'other_test_hash_value'
+              )
+            end
+
+            it 'does not inject trace_id and preserve existing hash' do
+              is_expected.to be_ok
+
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
+
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+
+              expect(rack_rails_logger_entry).not_to include trace.id.to_s
+
+              expect(my_entry).not_to include trace.id.to_s
+
+              expect(controller_logger_entry).not_to include trace.id.to_s
+              expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
+              expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
+            end
+          end
+
+          context 'with Lograge and existing custom_options as a lambda' do
+            before do
+              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+                lambda do |_event|
+                  {
+                    'some_lambda_info' => 'test_lambda_value',
+                    'some_other_lambda_info' => 'other_test_lambda_value'
+                  }
+                end
+              )
+            end
+
+            it 'does not inject trace_id and preserve existing lambda' do
+              is_expected.to be_ok
+
+              expect(logs).to_not be_empty
+              expect(log_entries).to have(3).items
+
+              rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+
+              expect(rack_rails_logger_entry).not_to include trace.id.to_s
+
+              expect(my_entry).not_to include trace.id.to_s
+
+              expect(controller_logger_entry).not_to include trace.id.to_s
+              expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
+              expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
+            end
+          end
+        end
+
+        context 'with lograge disabled' do
+          before do
+            Datadog.configuration.tracing[:lograge].enabled = false
+          end
+
+          it 'does not inject trace_id into logs' do
+            is_expected.to be_ok
+
+            expect(logs).to_not be_empty
+            expect(log_entries).to have(3).items
+
+            rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
+
+            expect(rack_rails_logger_entry).not_to include trace.id.to_s
+
+            expect(my_entry).not_to include trace.id.to_s
+
+            expect(controller_logger_entry).not_to include trace.id.to_s
+          end
         end
       end
     end
