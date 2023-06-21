@@ -23,6 +23,16 @@ module Datadog
             Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
         end
 
+        # implement this function in all target spans/integrations with spankind
+        def set_peer_service(span)
+          should_set_peer_service(span) && set_peer_service_from_source(span)
+          # if above
+          # then remap + remapped from (SKIP)
+          # else
+          # debug that peer service could not be set
+          # end
+        end
+
         def should_set_peer_service(span)
           if span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
             # if peer.service does not equal span.service than set source and return false
@@ -34,21 +44,11 @@ module Datadog
           if ((span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_CLIENT) ||
             (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)) &&
               (Datadog.configuration.tracing.span_attribute_schema ==
-                  Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE)
+                  Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE) # OR if env var is set
             return true
           end
 
           false
-        end
-
-        # implement this function in all target spans/integrations with spankind
-        def set_peer_service(span)
-          should_set_peer_service(span) && set_peer_service_from_source(span)
-          # if above
-          # then remap + remapped from (SKIP)
-          # else
-          # debug that peer service could not be set
-          # end
         end
 
         def set_peer_service_from_source(span)
