@@ -42,8 +42,8 @@ RSpec.describe 'Sinatra integration tests' do
 
   let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
-  let(:appsec_ip_denylist) { nil }
-  let(:appsec_user_id_denylist) { nil }
+  let(:appsec_ip_denylist) { [] }
+  let(:appsec_user_id_denylist) { [] }
   let(:appsec_ruleset) { :recommended }
 
   let(:crs_942_100) do
@@ -110,7 +110,7 @@ RSpec.describe 'Sinatra integration tests' do
   end
 
   after do
-    Datadog::AppSec.settings.send(:reset!)
+    Datadog.configuration.reset!
     Datadog.registry[:rack].reset_configuration!
     Datadog.registry[:sinatra].reset_configuration!
   end

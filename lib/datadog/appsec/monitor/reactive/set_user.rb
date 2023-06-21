@@ -29,7 +29,7 @@ module Datadog
                 'usr.id' => user_id,
               }
 
-              waf_timeout = Datadog::AppSec.settings.waf_timeout
+              waf_timeout = Datadog.configuration.appsec.waf_timeout
               result = waf_context.run(waf_args, waf_timeout)
 
               Datadog.logger.debug { "WAF TIMEOUT: #{result.inspect}" } if result.timeout

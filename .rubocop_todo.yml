@@ -419,3 +419,7 @@ Style/FrozenStringLiteralComment:
     - 'lib/ddtrace/transport/serializable_trace.rb'
     - 'lib/ddtrace/transport/traces.rb'
     - 'lib/ddtrace/version.rb'
+
+Metrics/BlockNesting:
+  Exclude:
+    - 'lib/datadog/appsec/configuration/settings.rb'

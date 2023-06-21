@@ -105,7 +105,7 @@ module Datadog
         private
 
         def remote_features_enabled?
-          Datadog::AppSec.send(:default_setting?, :ruleset)
+          Datadog.configuration.appsec.using_default?(:ruleset)
         end
 
         def parse_content(content)
