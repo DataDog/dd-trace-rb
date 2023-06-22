@@ -74,7 +74,6 @@ RSpec.shared_context 'Rails 3 base application' do
     klass
   end
 
-
   let(:before_test_initialize_block) do
     proc do
       append_routes!
@@ -91,7 +90,7 @@ RSpec.shared_context 'Rails 3 base application' do
         'render_template.action_view' => ::ActionView::LogSubscriber,
         'start_processing.action_controller' => ::ActionController::LogSubscriber,
         'process_action.action_controller' => ::ActionController::LogSubscriber,
-      }.each do | pattern, log_subscriber_class|
+      }.each do |pattern, log_subscriber_class|
         ActiveSupport::Notifications.notifier.listeners_for(pattern).each do |listener|
           if log_subscriber_class === listener.instance_variable_get('@delegate')
             ActiveSupport::Notifications.unsubscribe listener

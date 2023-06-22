@@ -75,9 +75,9 @@ RSpec.describe 'Rails Log Auto Injection' do
     Datadog.configuration.tracing[:lograge].reset_options!
   end
 
-  subject(:response) {
+  subject(:response) do
     get '/logging'
-  }
+  end
 
   context 'with log injection enabled' do
     let(:log_injection) { true }

@@ -80,7 +80,6 @@ RSpec.shared_context 'Rails 4 base application' do
     klass
   end
 
-
   let(:before_test_initialize_block) do
     proc do
       append_routes!
