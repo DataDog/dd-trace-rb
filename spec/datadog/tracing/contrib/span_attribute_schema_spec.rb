@@ -154,9 +154,13 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         precursors.each do |precursor|
           span.set_tag(precursor, 'test-' << precursor)
 
-          expect(described_class.set_peer_service_from_source(span)).to be true
+          expect(described_class.set_peer_service_from_source(span, precursors)).to be true
           expect(span.get_tag('peer.service')).to eq('test-' << precursor)
           expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+          span.clear_tag('peer.service')
+          span.clear_tag('_dd.peer.service.source')
+          span.clear_tag(precursor)
         end
       end
     end
@@ -169,9 +173,13 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         precursors.each do |precursor|
           span.set_tag(precursor, 'test-' << precursor)
 
-          expect(described_class.set_peer_service_from_source(span)).to be true
+          expect(described_class.set_peer_service_from_source(span, precursors)).to be true
           expect(span.get_tag('peer.service')).to eq('test-' << precursor)
           expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+          span.clear_tag('peer.service')
+          span.clear_tag('_dd.peer.service.source')
+          span.clear_tag(precursor)
         end
       end
     end
@@ -184,9 +192,13 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         precursors.each do |precursor|
           span.set_tag(precursor, 'test-' << precursor)
 
-          expect(described_class.set_peer_service_from_source(span)).to be true
+          expect(described_class.set_peer_service_from_source(span, precursors)).to be true
           expect(span.get_tag('peer.service')).to eq('test-' << precursor)
           expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+          span.clear_tag('peer.service')
+          span.clear_tag('_dd.peer.service.source')
+          span.clear_tag(precursor)
         end
       end
     end
@@ -199,9 +211,13 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         precursors.each do |precursor|
           span.set_tag(precursor, 'test-' << precursor)
 
-          expect(described_class.set_peer_service_from_source(span)).to be true
+          expect(described_class.set_peer_service_from_source(span, precursors)).to be true
           expect(span.get_tag('peer.service')).to eq('test-' << precursor)
           expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+          span.clear_tag('peer.service')
+          span.clear_tag('_dd.peer.service.source')
+          span.clear_tag(precursor)
         end
       end
     end
@@ -218,6 +234,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
             expect(described_class.set_peer_service_from_source(span)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+            span.clear_tag('peer.service')
+            span.clear_tag('_dd.peer.service.source')
+            span.clear_tag(precursor)
           end
         end
       end
@@ -233,6 +253,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
             expect(described_class.set_peer_service_from_source(span)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+            span.clear_tag('peer.service')
+            span.clear_tag('_dd.peer.service.source')
+            span.clear_tag(precursor)
           end
         end
       end
@@ -248,6 +272,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
             expect(described_class.set_peer_service_from_source(span)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+            span.clear_tag('peer.service')
+            span.clear_tag('_dd.peer.service.source')
+            span.clear_tag(precursor)
           end
         end
       end
@@ -263,6 +291,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
             expect(described_class.set_peer_service_from_source(span)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+            span.clear_tag('peer.service')
+            span.clear_tag('_dd.peer.service.source')
+            span.clear_tag(precursor)
           end
         end
       end

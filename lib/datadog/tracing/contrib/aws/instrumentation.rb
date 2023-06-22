@@ -66,7 +66,7 @@ module Datadog
             if Contrib::SpanAttributeSchema.default_span_attribute_schema?
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
             else
-              Contrib::SpanAttributeSchema.set_peer_service(span)
+              Contrib::SpanAttributeSchema.set_peer_service(span, Ext::PEER_SERVICE_SOURCE_AWS)
             end
           end
 

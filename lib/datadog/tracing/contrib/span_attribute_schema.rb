@@ -1,11 +1,25 @@
 # frozen_string_literal: true
 
+require_relative 'ext'
+
 module Datadog
   module Tracing
     module Contrib
       # Contains methods for fetching values according to span attributes schema
       module SpanAttributeSchema
         module_function
+
+        # TODO: consolidate all db.name tags to 1 tag name and add to array here
+        PEER_SERVICE_SOURCE_DB = Array[Tracing::Contrib::Ext::DB::TAG_INSTANCE].freeze
+
+        # TODO: add kafka bootstrap servers tag
+        PEER_SERVICE_SOURCE_MSG = Array[].freeze
+
+        PEER_SERVICE_SOURCE_RPC = Array[Tracing::Contrib::Ext::RPC::TAG_SERVICE].freeze
+
+        PEER_SERVICE_SOURCE_DEFAULT = Array[Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+          Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+          Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
 
         def fetch_service_name(env, default)
           ENV.fetch(env) do
@@ -24,8 +38,8 @@ module Datadog
         end
 
         # TODO: implement function in all integrations with spankind
-        def set_peer_service(span)
-          set_peer_service?(span) && set_peer_service_from_source(span)
+        def set_peer_service(span, sources)
+          set_peer_service?(span) && set_peer_service_from_source(span, sources)
           # TODO: add logic for remap as long as the above expression is true
         end
 
@@ -52,7 +66,7 @@ module Datadog
             # we can assume the user changed it meaning that this peer.service value must stay.
             #
             # If span.service is not the global service, we know it was changed and we keep the peer.service value
-            if (ps == span.service) && (span.service != Datadog.configuration.service)
+            if span.service != Datadog.configuration.service
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, Tracing::Metadata::Ext::TAG_PEER_SERVICE)
               return false
             end
@@ -72,31 +86,13 @@ module Datadog
         end
 
         # set_peer_service_from_source: Implements the extraction logic to determine the peer.service value
-        # based on the span type and a set of "precursor" tags.
-        # Also sets the source of where the information for peer.service was extracted from
+        # based on the list of source tags passed as a parameter.
+        #
+        # If no values are found, it checks the default list for all spans before returning false for no result
+        # Sets the source of where the information for peer.service was extracted from
         # Returns a boolean if peer.service was successfully set or not
-        def set_peer_service_from_source(span)
-
-          # outsource to each integration to make them provide it as a mandatory integration
-          case
-          when span.get_tag(Aws::Ext::TAG_AWS_SERVICE)
-            sources = Tracing::Contrib::Ext::SpanAttributeSchema::PEER_SERVICE_SOURCE_AWS
-          when span.get_tag(Tracing::Contrib::Ext::DB::TAG_SYSTEM)
-            sources = Tracing::Contrib::Ext::SpanAttributeSchema::PEER_SERVICE_SOURCE_DB
-          when span.get_tag(Tracing::Contrib::Ext::Messaging::TAG_SYSTEM)
-            sources = Tracing::Contrib::Ext::SpanAttributeSchema::PEER_SERVICE_SOURCE_MSG
-          when span.get_tag(Tracing::Contrib::Ext::RPC::TAG_SYSTEM)
-            sources = Tracing::Contrib::Ext::SpanAttributeSchema::PEER_SERVICE_SOURCE_RPC
-          else
-            return false
-          end
-
-          # make separate array and freeze it as constant and search separately
-          sources <<
-            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME <<
-            Tracing::Metadata::Ext::TAG_PEER_HOSTNAME <<
-            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST
-
+        def set_peer_service_from_source(span, sources = [])
+          # Find a possible peer.service source from the list of source tags passed in
           sources.each do |source|
             source_val = span.get_tag(source)
             next unless source_val && source_val != ''
@@ -105,6 +101,17 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, source)
             return true
           end
+
+          # Fina a backup peer.service source from list of default sources
+          PEER_SERVICE_SOURCE_DEFAULT.each do |default|
+            source_val = span.get_tag(default)
+            next unless source_val && source_val != ''
+
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, source_val)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE_SOURCE, default)
+            return true
+          end
+
           false
         end
       end
