@@ -12,7 +12,9 @@ RSpec.describe 'Rails Log Auto Injection' do
     [logging_test_controller]
   end
 
-  # RailsSemanticLogger starting from `4.3.0`, uses `swap_subscriber` strategy,
+  # RailsSemanticLogger `4.2.1` is the last version available for Ruby 2.2,
+  # starting from `4.3.0`, uses `swap_subscriber` strategy.
+  #
   # Replacing the default ones with its own.
   #   ::ActionView::LogSubscriber => ::RailsSemanticLogger::ActionView::LogSubscriber
   #
@@ -25,7 +27,7 @@ RSpec.describe 'Rails Log Auto Injection' do
   # 5. ActionView -- Rendered
   # 6. LoggingTestController -- Completed
   #
-  # Before `4.3.0`, without its own LogSubscriber, it would creates 5 log entries
+  # Before RailsSemanticLogger `4.3.0` or Before Rails `5` it would creates 5 log entries
   #
   # 1. Rack -- Started
   # 2. LoggingTestController -- Processing
@@ -90,7 +92,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(logs).to_not be_empty
 
-            if defined?(RailsSemanticLogger::ActionView::LogSubscriber)
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= '5'
               expect(log_entries).to have(6).items
 
               expect(log_entries).to all include trace.id.to_s
@@ -142,7 +144,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(logs).to_not be_empty
 
-            if defined?(RailsSemanticLogger::ActionView::LogSubscriber)
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= '5'
               expect(log_entries).to have(6).items
 
               expect(log_entries).to all include(trace.id.to_s)
@@ -215,7 +217,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(logs).to_not be_empty
 
-            if defined?(RailsSemanticLogger::ActionView::LogSubscriber)
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= '5'
               expect(log_entries).to have(6).items
             else
               expect(log_entries).to have(5).items
@@ -242,7 +244,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(logs).to_not be_empty
 
-            if defined?(RailsSemanticLogger::ActionView::LogSubscriber)
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber) || Rails.version >= '5'
               expect(log_entries).to have(6).items
             else
               expect(log_entries).to have(5).items
