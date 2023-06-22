@@ -9,6 +9,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:gc_profiling_enabled) { true }
   let(:allocation_counting_enabled) { true }
   let(:no_signals_workaround_enabled) { false }
+  let(:timeline_enabled) { false }
   let(:options) { {} }
 
   subject(:cpu_and_wall_time_worker) do
@@ -20,6 +21,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       gc_profiling_enabled: gc_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
+      timeline_enabled: timeline_enabled,
       **options
     )
   end
@@ -692,6 +694,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       gc_profiling_enabled: gc_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
+      timeline_enabled: timeline_enabled,
     )
   end
 end
