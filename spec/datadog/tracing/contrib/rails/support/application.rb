@@ -45,6 +45,7 @@ RSpec.shared_context 'Rails test application' do
 
     # Clear out any spans generated during initialization
     clear_traces!
+    # binding.pry
   end
 
   def reset_lograge_configuration!

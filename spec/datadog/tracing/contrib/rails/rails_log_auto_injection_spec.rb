@@ -19,7 +19,11 @@ RSpec.describe 'Rails Log Auto Injection' do
       reject { |l| l.match(/@@SESSION.sql_mode/) }.
       # Workaround for Rails 3, which contain log from every test case
       # => Connecting to database specified by DATABASE_URL
-      reject { |l| l.match(/Connecting to database specified by DATABASE_URL/) }
+      reject { |l| l.match(/Connecting to database specified by DATABASE_URL/) }.tap do |f|
+        # puts "==================================="
+        # puts f
+        # puts "==================================="
+      end
   end
 
   let(:controllers) do
@@ -31,6 +35,21 @@ RSpec.describe 'Rails Log Auto Injection' do
       'LoggingTestController',
       Class.new(ActionController::Base) do
         def index
+          # subscribers = ::ActiveSupport::Notifications.notifier.instance_variable_get(:@subscribers)
+          # puts "--------------------------------------"
+          # puts "subscribers size: #{subscribers.length}"
+          # puts "--------------------------------------"
+          # puts subscribers.map { |s| s.instance_variable_get(:@pattern) }
+
+          # listeners = ::ActiveSupport::Notifications.notifier.instance_variable_get(:@listeners_for)
+          # puts "--------------------------------------"
+          # puts "listeners_for size: #{listeners.length}"
+          # puts "--------------------------------------"
+          # puts listeners.keys
+
+          # render_template.action_view
+          # !render_template.action_view
+
           # This should be interchangeable with
           # `logger.info 'MY VOICE SHALL BE HEARD!'`
           #
@@ -68,7 +87,9 @@ RSpec.describe 'Rails Log Auto Injection' do
     Datadog.configuration.tracing[:lograge].reset_options!
   end
 
-  subject(:response) { get '/logging' }
+  subject(:response) {
+    get '/logging'
+  }
 
   context 'with log injection enabled' do
     let(:log_injection) { true }
