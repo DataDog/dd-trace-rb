@@ -672,8 +672,8 @@ static void trigger_sample_for_thread(
 
   // The number of times `label_pos++` shows up in this function needs to match `max_label_count`. To avoid "oops I
   // forgot to update max_label_count" in the future, we've also added this validation.
-  // @ivoanjo: I wonder if C compilers are smart enough to statically prove when this check never triggers happens and
-  // remove it entirely.
+  // @ivoanjo: I wonder if C compilers are smart enough to statically prove when this check never triggers and
+  // remove it entirely?
   if (label_pos > max_label_count) {
     rb_raise(rb_eRuntimeError, "BUG: Unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
