@@ -50,6 +50,8 @@ module Datadog
           TAG_STATE_MACHINE_NAME: "statemachinename"
 
           TAG_BUCKET_NAME: "bucketname"
+
+          PEER_SERVICE_SOURCE_AWS: Array[string]
         end
       end
     end
