@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Core
     module Configuration
@@ -6,17 +8,17 @@ module Datadog
       module Ext
         # @public_api
         module Diagnostics
-          ENV_DEBUG_ENABLED = 'DD_TRACE_DEBUG'.freeze
-          ENV_HEALTH_METRICS_ENABLED = 'DD_HEALTH_METRICS_ENABLED'.freeze
-          ENV_STARTUP_LOGS_ENABLED = 'DD_TRACE_STARTUP_LOGS'.freeze
+          ENV_DEBUG_ENABLED = 'DD_TRACE_DEBUG'
+          ENV_HEALTH_METRICS_ENABLED = 'DD_HEALTH_METRICS_ENABLED'
+          ENV_STARTUP_LOGS_ENABLED = 'DD_TRACE_STARTUP_LOGS'
         end
 
         module Metrics
-          ENV_DEFAULT_PORT = 'DD_METRIC_AGENT_PORT'.freeze
+          ENV_DEFAULT_PORT = 'DD_METRIC_AGENT_PORT'
         end
 
         module Transport
-          ENV_DEFAULT_HOST = 'DD_AGENT_HOST'.freeze
+          ENV_DEFAULT_HOST = 'DD_AGENT_HOST'
         end
       end
     end
