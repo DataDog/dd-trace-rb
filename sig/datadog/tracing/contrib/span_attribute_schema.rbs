@@ -2,6 +2,11 @@ module Datadog
   module Tracing
     module Contrib
       module SpanAttributeSchema
+        PEER_SERVICE_SOURCE_DB: Array[string]
+        PEER_SERVICE_SOURCE_DEFAULT: Array[string]
+        PEER_SERVICE_SOURCE_MSG: Array[string]
+        PEER_SERVICE_SOURCE_RPC: Array[string]
+
         def self?.fetch_service_name: (string env, string default) -> bool
 
         def self?.default_span_attribute_schema?: () -> bool
