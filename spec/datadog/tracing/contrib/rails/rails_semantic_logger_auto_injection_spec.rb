@@ -12,6 +12,9 @@ RSpec.describe 'Rails Log Auto Injection' do
     [logging_test_controller]
   end
 
+  # RailsSemanticLogger starting from `4.3.0`, uses `swap_subscriber` strategy,
+  # Replacing the default ones with its own.
+  #   ::ActionView::LogSubscriber => ::RailsSemanticLogger::ActionView::LogSubscriber
   #
   # This request-response cycle would creates 6 log entries
   #
@@ -19,6 +22,15 @@ RSpec.describe 'Rails Log Auto Injection' do
   # 2. LoggingTestController -- Processing
   # 3. LoggingTestController -- MY VOICE SHALL BE HEARD
   # 4. ActionView -- Rendering
+  # 5. ActionView -- Rendered
+  # 6. LoggingTestController -- Completed
+  #
+  # Before `4.3.0`, without its own LogSubscriber, it would creates 5 log entries
+  #
+  # 1. Rack -- Started
+  # 2. LoggingTestController -- Processing
+  # 3. LoggingTestController -- MY VOICE SHALL BE HEARD
+  # 4. (Missing)
   # 5. ActionView -- Rendered
   # 6. LoggingTestController -- Completed
   #
@@ -56,7 +68,7 @@ RSpec.describe 'Rails Log Auto Injection' do
     Datadog.configuration.tracing[:semantic_logger].reset_options!
   end
 
-  context 'with log injection enabled', if: Rails.version >= '4.0' do
+  context 'with log injection enabled' do
     let(:log_injection) { true }
 
     context 'with Semantic Logger' do
@@ -78,36 +90,43 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(logs).to_not be_empty
 
-            expect(log_entries).to have(6).items
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber)
+              expect(log_entries).to have(6).items
 
-            expect(log_entries).to all include trace.id.to_s
-            expect(log_entries).to all include 'ddsource: ruby'
+              expect(log_entries).to all include trace.id.to_s
+              expect(log_entries).to all include 'ddsource: ruby'
 
-            rack_started_entry,
-              controller_processing_entry,
-              controller_entry,
-              _rendering_entry,
-              _rendered_entry,
-              controller_completed_entry = log_entries
+              rack_started_entry,
+                controller_processing_entry,
+                controller_entry,
+                _rendering_entry,
+                _rendered_entry,
+                controller_completed_entry = log_entries
 
-            rack_span, controller_span, _render_span = spans
+              rack_span, controller_span, _render_span = spans
 
-            expect(rack_started_entry).to include rack_span.id.to_s
-            expect(controller_processing_entry).to include rack_span.id.to_s
-            expect(controller_entry).to include controller_span.id.to_s
+              expect(rack_started_entry).to include rack_span.id.to_s
+              expect(controller_processing_entry).to include rack_span.id.to_s
+              expect(controller_entry).to include controller_span.id.to_s
 
-            # Flaky specs between tests due to ordering of active support subscriptions from
-            # Datadog tracing and LogSubscriber. To debug, check the value for
-            # `::ActiveSupport::Notifications.notifier.listeners_for("render_template.action_view")`
-            #
-            # The correct order should be
-            # 1. RailsSemanticLogger::ActionView::LogSubscriber
-            # 2. Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription
-            #
-            # expect(_rendering_entry).to include controller_span.id.to_s
-            # expect(_rendered_entry).to include _render_span.id.to_s
+              # Flaky specs between tests due to ordering of active support subscriptions from
+              # Datadog tracing and LogSubscriber. To debug, check the value for
+              # `::ActiveSupport::Notifications.notifier.listeners_for("render_template.action_view")`
+              #
+              # The correct order should be
+              # 1. RailsSemanticLogger::ActionView::LogSubscriber
+              # 2. Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription
+              #
+              # expect(_rendering_entry).to include controller_span.id.to_s
+              # expect(_rendered_entry).to include _render_span.id.to_s
 
-            expect(controller_completed_entry).to include rack_span.id.to_s
+              expect(controller_completed_entry).to include rack_span.id.to_s
+            else
+              expect(log_entries).to have(5).items
+
+              expect(log_entries).to all include trace.id.to_s
+              expect(log_entries).to all include 'ddsource: ruby'
+            end
           end
         end
 
@@ -123,45 +142,54 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(logs).to_not be_empty
 
-            expect(log_entries).to have(6).items
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber)
+              expect(log_entries).to have(6).items
 
-            expect(log_entries).to all include(trace.id.to_s)
-            expect(log_entries).to all include('ddsource: ruby')
-            expect(log_entries).to all include('some_tag')
-            expect(log_entries).to all include('some_value')
+              expect(log_entries).to all include(trace.id.to_s)
+              expect(log_entries).to all include('ddsource: ruby')
+              expect(log_entries).to all include('some_tag')
+              expect(log_entries).to all include('some_value')
 
-            rack_started_entry,
-              controller_processing_entry,
-              controller_entry,
-              _rendering_entry,
-              _rendered_entry,
-              controller_completed_entry = log_entries
+              rack_started_entry,
+                controller_processing_entry,
+                controller_entry,
+                _rendering_entry,
+                _rendered_entry,
+                controller_completed_entry = log_entries
 
-            rack_span, controller_span, _render_span = spans
+              rack_span, controller_span, _render_span = spans
 
-            expect(rack_started_entry).to include rack_span.id.to_s
-            expect(controller_processing_entry).to include rack_span.id.to_s
-            expect(controller_entry).to include controller_span.id.to_s
+              expect(rack_started_entry).to include rack_span.id.to_s
+              expect(controller_processing_entry).to include rack_span.id.to_s
+              expect(controller_entry).to include controller_span.id.to_s
 
-            # Flaky specs between tests due to ordering of active support subscriptions from
-            # Datadog tracing and LogSubscriber. To debug, check the value for
-            # `::ActiveSupport::Notifications.notifier.listeners_for("render_template.action_view")`
-            #
-            # The correct order should be
-            # 1. RailsSemanticLogger::ActionView::LogSubscriber
-            # 2. Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription
-            #
-            # expect(_rendering_entry).to include controller_span.id.to_s
-            # expect(_rendered_entry).to include _render_span.id.to_s
+              # Flaky specs between tests due to ordering of active support subscriptions from
+              # Datadog tracing and LogSubscriber. To debug, check the value for
+              # `::ActiveSupport::Notifications.notifier.listeners_for("render_template.action_view")`
+              #
+              # The correct order should be
+              # 1. RailsSemanticLogger::ActionView::LogSubscriber
+              # 2. Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription
+              #
+              # expect(_rendering_entry).to include controller_span.id.to_s
+              # expect(_rendered_entry).to include _render_span.id.to_s
 
-            expect(controller_completed_entry).to include rack_span.id.to_s
+              expect(controller_completed_entry).to include rack_span.id.to_s
+            else
+              expect(log_entries).to have(5).items
+
+              expect(log_entries).to all include(trace.id.to_s)
+              expect(log_entries).to all include('ddsource: ruby')
+              expect(log_entries).to all include('some_tag')
+              expect(log_entries).to all include('some_value')
+            end
           end
         end
       end
     end
   end
 
-  context 'with log injection disabled', if: Rails.version >= '4.0' do
+  context 'with log injection disabled' do
     let(:log_injection) { false }
 
     before do
@@ -187,7 +215,11 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(logs).to_not be_empty
 
-            expect(log_entries).to have(6).items
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber)
+              expect(log_entries).to have(6).items
+            else
+              expect(log_entries).to have(5).items
+            end
 
             log_entries.each do |l|
               expect(l).to_not be_empty
@@ -210,7 +242,11 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             expect(logs).to_not be_empty
 
-            expect(log_entries).to have(6).items
+            if defined?(RailsSemanticLogger::ActionView::LogSubscriber)
+              expect(log_entries).to have(6).items
+            else
+              expect(log_entries).to have(5).items
+            end
 
             log_entries.each do |l|
               expect(l).to_not be_empty
