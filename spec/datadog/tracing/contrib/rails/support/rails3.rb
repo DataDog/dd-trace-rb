@@ -78,8 +78,15 @@ RSpec.shared_context 'Rails 3 base application' do
   let(:before_test_initialize_block) do
     proc do
       append_routes!
+
       # This is mimicking the side-effect as `Lograge.remove_existing_log_subscriptions`
       # with other Rails versions testing
+      #
+      # Some tests end up with
+      #   uninitialized constant `::ActionView::LogSubscriber`
+      #   uninitialized constant `::ActionController::LogSubscriber`
+      require 'action_view/log_subscriber'
+      require 'action_controller/log_subscriber'
       {
         'render_template.action_view' => ::ActionView::LogSubscriber,
         'start_processing.action_controller' => ::ActionController::LogSubscriber,
