@@ -39,7 +39,7 @@ module Datadog
       private
 
       def load_libddwaf: () -> bool
-      def create_waf_handle: (Configuration::Settings settings, ::Hash[String, untyped] ruleset) -> bool
+      def create_waf_handle: (Datadog::Core::Configuration::Settings::_AppSec settings, ::Hash[String, untyped] ruleset) -> bool
 
       def self.libddwaf_provides_waf?: () -> bool
       def self.require_libddwaf: () -> bool
