@@ -55,6 +55,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       code_provenance_file_name: code_provenance_file_name,
       code_provenance_data: code_provenance_data,
       tags_as_array: tags_as_array,
+      no_signals_workaround_enabled: true,
     )
   end
   let(:start_timestamp) { '2022-02-07T15:59:53.987654321Z' }
@@ -186,6 +187,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       finish_timespec_seconds = 1699718400
       finish_timespec_nanoseconds = 123456789
 
+      internal_metadata_json = '{"no_signals_workaround_enabled":"true"}'
+
       expect(described_class).to receive(:_native_do_export).with(
         kind_of(Array), # exporter_configuration
         upload_timeout_milliseconds,
@@ -197,7 +200,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         pprof_data,
         code_provenance_file_name,
         code_provenance_data,
-        tags_as_array
+        tags_as_array,
+        internal_metadata_json,
       ).and_return([:ok, 200])
 
       export
@@ -307,6 +311,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
+          'internal' => { 'no_signals_workaround_enabled' => 'true' },
         )
       end
 
@@ -354,6 +359,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
+          'internal' => { 'no_signals_workaround_enabled' => 'true' },
         )
 
         expect(body[code_provenance_file_name]).to be nil

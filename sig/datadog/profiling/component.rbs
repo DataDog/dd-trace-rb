@@ -12,6 +12,7 @@ module Datadog
       def self.build_profiler_exporter: (
         untyped settings,
         (Datadog::Profiling::StackRecorder | Datadog::Profiling::OldRecorder) recorder,
+        no_signals_workaround_enabled: bool,
       ) -> Datadog::Profiling::Exporter
 
       def self.build_profiler_oldstack_collector: (
