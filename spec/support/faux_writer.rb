@@ -10,15 +10,15 @@ class FauxWriter < Datadog::Tracing::Writer
   include NetworkHelpers
 
   def initialize(options = {})
-    options[:transport] ||= if ENV['DD_AGENT_HOST'] == 'testagent' && test_agent_running?
-                              Datadog::Transport::HTTP.default do |t|
-                                t.adapter :net_http, 'testagent', 9126, timeout: 30
-                              end
-                              options[:real_tracer] = true
-                            else
-                              FauxTransport.new
-                              options[:real_tracer] = false
-                            end
+    if ENV['DD_AGENT_HOST'] == 'testagent' && test_agent_running?
+      options[:transport] ||= Datadog::Transport::HTTP.default do |t|
+        t.adapter :net_http, 'testagent', 9126, timeout: 30
+      end
+      options[:real_tracer] = true
+    else
+      options[:transport] ||= FauxTransport.new
+      options[:real_tracer] = false
+    end
     options[:call_original] ||= true
     @options = options
 
