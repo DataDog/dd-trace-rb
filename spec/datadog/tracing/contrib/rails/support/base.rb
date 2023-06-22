@@ -97,40 +97,4 @@ RSpec.shared_context 'Rails base application' do
       middleware.each { |m| config.middleware.use m }
     end
   end
-
-  let(:before_test_initialize_block) do
-    proc do
-      append_routes!
-    end
-  end
-
-  let(:after_test_initialize_block) do
-    proc do
-      # Rails autoloader recommends controllers to be loaded
-      # after initialization. This will be enforced when `zeitwerk`
-      # becomes the only supported autoloader.
-      append_controllers!
-
-      # Force connection to initialize, and dump some spans
-      application_record.connection
-
-      # Skip default Rails exception page rendering.
-      # This avoid polluting the trace under test
-      # with render and partial_render templates for the
-      # error page.
-      #
-      # We could completely disable the {DebugExceptions} middleware,
-      # but that affects Rails' internal error propagation logic.
-      # render_for_browser_request(request, wrapper)
-      allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
-        wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
-
-        if Rails.version < '4.0'
-          this.send(:render, wrapper.status_code, 'Test error response body')
-        else
-          this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
-        end
-      end
-    end
-  end
 end
