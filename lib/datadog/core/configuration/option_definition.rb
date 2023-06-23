@@ -13,7 +13,6 @@ module Datadog
           :default,
           :delegate_to,
           :depends_on,
-          :lazy,
           :name,
           :on_set,
           :resetter,
@@ -24,7 +23,6 @@ module Datadog
           @default = meta[:default]
           @delegate_to = meta[:delegate_to]
           @depends_on = meta[:depends_on] || []
-          @lazy = meta[:lazy] || false
           @name = name.to_sym
           @on_set = meta[:on_set]
           @resetter = meta[:resetter]
@@ -48,7 +46,6 @@ module Datadog
             @delegate_to = nil
             @depends_on = []
             @helpers = {}
-            @lazy = false
             @name = name.to_sym
             @on_set = nil
             @resetter = nil
@@ -78,10 +75,6 @@ module Datadog
             @helpers[name] = block
           end
 
-          def lazy(value = true)
-            @lazy = value
-          end
-
           def on_set(&block)
             @on_set = block
           end
@@ -105,7 +98,6 @@ module Datadog
             default(options[:default]) if options.key?(:default)
             delegate_to(&options[:delegate_to]) if options.key?(:delegate_to)
             depends_on(*options[:depends_on]) if options.key?(:depends_on)
-            lazy(options[:lazy]) if options.key?(:lazy)
             on_set(&options[:on_set]) if options.key?(:on_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
             setter(&options[:setter]) if options.key?(:setter)
@@ -121,7 +113,6 @@ module Datadog
               default: @default,
               delegate_to: @delegate_to,
               depends_on: @depends_on,
-              lazy: @lazy,
               on_set: @on_set,
               resetter: @resetter,
               setter: @setter,

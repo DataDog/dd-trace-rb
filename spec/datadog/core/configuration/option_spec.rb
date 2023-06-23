@@ -11,7 +11,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
       name: :test_name,
       default: default,
       delegate_to: delegate,
-      lazy: lazy,
       on_set: nil,
       resetter: nil,
       setter: setter
@@ -19,7 +18,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
   end
   let(:default) { double('default') }
   let(:delegate) { nil }
-  let(:lazy) { false }
   let(:setter) { proc { setter_value } }
   let(:setter_value) { double('setter_value') }
   let(:context) { double('configuration object') }
@@ -238,8 +236,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context 'and #get is called twice' do
           before do
-            expect(definition).to receive(:default)
-              .once
+            allow(definition).to receive(:default)
               .and_return(default)
           end
 
@@ -326,8 +323,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
     let(:default) { double('default') }
 
-    context 'when lazy is true' do
-      let(:lazy) { true }
+    context 'when default is a block' do
       let(:default) { proc {} }
       let(:block_default) { double('block default') }
 
@@ -341,9 +337,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       it { is_expected.to be block_default }
     end
 
-    context 'when lazy is false' do
-      let(:lazy) { false }
-
+    context 'when default is not a block' do
       it { is_expected.to be default }
     end
   end

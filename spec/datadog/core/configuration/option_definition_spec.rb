@@ -54,21 +54,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
   end
 
-  describe '#lazy' do
-    subject(:lazy) { definition.lazy }
-
-    context 'when not initialized with a value' do
-      it { is_expected.to be false }
-    end
-
-    context 'when initialized with a value' do
-      let(:meta) { { lazy: lazy_value } }
-      let(:lazy_value) { double('lazy') }
-
-      it { is_expected.to be lazy_value }
-    end
-  end
-
   describe '#name' do
     subject(:result) { definition.name }
 
@@ -193,7 +178,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               default: nil,
               delegate_to: nil,
               depends_on: [],
-              lazy: false,
               name: name,
               on_set: nil,
               resetter: nil,
@@ -303,22 +287,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
-  describe '#lazy' do
-    context 'given no arguments' do
-      subject(:lazy) { builder.lazy }
-
-      it { is_expected.to be true }
-    end
-
-    context 'given a value' do
-      subject(:lazy) { builder.lazy(value) }
-
-      let(:value) { double('value') }
-
-      it { is_expected.to be value }
-    end
-  end
-
   describe '#on_set' do
     subject(:on_set) { builder.on_set(&block) }
 
@@ -394,16 +362,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given :lazy' do
-      let(:options) { { lazy: value } }
-      let(:value) { double('value') }
-
-      it do
-        expect(builder).to receive(:lazy).with(value)
-        apply_options!
-      end
-    end
-
     context 'given :on_set' do
       let(:options) { { on_set: value } }
       let(:value) { proc {} }
@@ -468,7 +426,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         :default,
         :delegate_to,
         :depends_on,
-        :lazy,
         :on_set,
         :resetter,
         :setter,

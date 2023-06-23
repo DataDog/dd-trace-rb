@@ -17,17 +17,14 @@ module Datadog
 
             option :enabled do |o|
               o.default { env_to_bool(Ext::ENV_ENABLED, true) }
-              o.lazy
             end
 
             option :analytics_enabled do |o|
               o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, false) }
-              o.lazy
             end
 
             option :analytics_sample_rate do |o|
               o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
-              o.lazy
             end
 
             option :distributed_tracing, default: true
@@ -41,7 +38,6 @@ module Datadog
                   Ext::DEFAULT_PEER_SERVICE_NAME
                 )
               end
-              o.lazy
             end
           end
         end
