@@ -30,7 +30,7 @@ module NetworkHelpers
   #
   # @yield [Hash] webmock exclusions to call webmock block with
   def call_web_mock_function_with_agent_host_exclusions
-    if test_agent_running? && ENV['DD_AGENT_HOST'] == 'testagent'
+    if ENV['DD_AGENT_HOST'] == 'testagent' && test_agent_running?
       yield allow: "http://#{TEST_AGENT_HOST}:#{TEST_AGENT_PORT}"
     else
       yield({})

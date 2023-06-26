@@ -34,6 +34,8 @@ class FauxWriter < Datadog::Tracing::Writer
       if @options[:real_tracer]
         parse_tracer_config_and_add_to_headers @options[:transport].client.api.headers
         super(trace)
+      elsif @options[:call_original]
+        super(trace)
       end
       @traces << trace
     end

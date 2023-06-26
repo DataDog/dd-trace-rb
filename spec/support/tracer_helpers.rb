@@ -4,8 +4,6 @@ require 'support/faux_writer'
 require 'support/network_helpers'
 
 module TracerHelpers
-  include NetworkHelpers
-
   # Return a test tracer instance with a faux writer.
   def tracer
     @tracer ||= new_tracer
@@ -14,11 +12,7 @@ module TracerHelpers
   def new_tracer(options = {})
     writer = FauxWriter.new(
       transport: Datadog::Transport::HTTP.default do |t|
-        if test_agent_running? && ENV['DD_AGENT_HOST'] == 'testagent'
-          t.adapter :net_http, 'testagent', 9126, timeout: 30
-        else
-          t.adapter :test
-        end
+        t.adapter :test
       end
     )
 
@@ -29,11 +23,7 @@ module TracerHelpers
   def get_test_writer(options = {})
     options = {
       transport: Datadog::Transport::HTTP.default do |t|
-        if test_agent_running? && ENV['DD_AGENT_HOST'] == 'testagent'
-          t.adapter :net_http, 'testagent', 9126, timeout: 30
-        else
-          t.adapter :test
-        end
+        t.adapter :test
       end
     }.merge(options)
 
