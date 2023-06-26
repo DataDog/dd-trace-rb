@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sinatra
+        module Headers
+          def self?.response_header_tags: (untyped headers, untyped target_headers) -> untyped
+        end
+      end
+    end
+  end
+end

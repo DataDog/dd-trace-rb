@@ -1,0 +1,10 @@
+module Datadog
+  module Core
+    module Utils
+      module Hash
+        module Refinement
+        end
+      end
+    end
+  end
+end

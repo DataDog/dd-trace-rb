@@ -222,6 +222,22 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       it { expect(settings.env).to eq(env) }
     end
+
+    context 'when given a symbol' do
+      let(:env) { :symbol }
+
+      before { set_env }
+
+      it { expect(settings.env).to eq('symbol') }
+    end
+
+    context 'when given `nil`' do
+      let(:env) { nil }
+
+      before { set_env }
+
+      it { expect(settings.env).to be_nil }
+    end
   end
 
   describe '#logger' do
@@ -324,17 +340,35 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#advanced' do
       describe '#max_events' do
+        before { allow(Datadog.logger).to receive(:warn) }
+
         subject(:max_events) { settings.profiling.advanced.max_events }
 
         it { is_expected.to eq(32768) }
       end
 
       describe '#max_events=' do
+        before { allow(Datadog.logger).to receive(:warn) }
+
         it 'updates the #max_events setting' do
           expect { settings.profiling.advanced.max_events = 1234 }
             .to change { settings.profiling.advanced.max_events }
             .from(32768)
             .to(1234)
+        end
+
+        it 'logs a warning informing customers this has been deprecated for removal' do
+          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
+
+          settings.profiling.advanced.max_events = 1234
+        end
+
+        context 'when value is set to default' do
+          it 'does not log a warning' do
+            expect(Datadog.logger).to_not receive(:warn)
+
+            settings.profiling.advanced.max_events = 32768
+          end
         end
       end
 
@@ -389,9 +423,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
                 it { is_expected.to be true }
               end
 
-              { 'true' => true, 'false' => false }.each do |string, value|
-                context "is defined as #{string}" do
-                  let(:environment) { string }
+              [true, false].each do |value|
+                context "is defined as #{value}" do
+                  let(:environment) { value.to_s }
 
                   it { is_expected.to be value }
                 end
@@ -425,42 +459,25 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#force_enable_new_profiler' do
-        subject(:force_enable_new_profiler) { settings.profiling.advanced.force_enable_new_profiler }
+      describe '#force_enable_new_profiler=' do
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
 
-        context 'when DD_PROFILING_FORCE_ENABLE_NEW' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_FORCE_ENABLE_NEW' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be false }
-          end
-
-          { 'true' => true, 'false' => false }.each do |string, value|
-            context "is defined as #{string}" do
-              let(:environment) { string }
-
-              it { is_expected.to be value }
-            end
-          end
+          settings.profiling.advanced.force_enable_new_profiler = true
         end
       end
 
-      describe '#force_enable_new_profiler=' do
-        it 'updates the #force_enable_new_profiler setting' do
-          expect { settings.profiling.advanced.force_enable_new_profiler = true }
-            .to change { settings.profiling.advanced.force_enable_new_profiler }
-            .from(false)
-            .to(true)
+      describe '#legacy_transport_enabled=' do
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
+
+          settings.profiling.advanced.legacy_transport_enabled = true
         end
       end
 
       describe '#force_enable_legacy_profiler' do
+        before { allow(Datadog.logger).to receive(:warn) }
+
         subject(:force_enable_legacy_profiler) { settings.profiling.advanced.force_enable_legacy_profiler }
 
         context 'when DD_PROFILING_FORCE_ENABLE_LEGACY' do
@@ -476,9 +493,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be false }
           end
 
-          { 'true' => true, 'false' => false }.each do |string, value|
-            context "is defined as #{string}" do
-              let(:environment) { string }
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
 
               it { is_expected.to be value }
             end
@@ -487,11 +504,27 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       describe '#force_enable_legacy_profiler=' do
+        before { allow(Datadog.logger).to receive(:warn) }
+
         it 'updates the #force_enable_legacy_profiler setting' do
           expect { settings.profiling.advanced.force_enable_legacy_profiler = true }
             .to change { settings.profiling.advanced.force_enable_legacy_profiler }
             .from(false)
             .to(true)
+        end
+
+        it 'logs a warning informing customers this has been deprecated for removal' do
+          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
+
+          settings.profiling.advanced.force_enable_legacy_profiler = 1234
+        end
+
+        context 'when value is set to false' do
+          it 'does not log a warning' do
+            expect(Datadog.logger).to_not receive(:warn)
+
+            settings.profiling.advanced.force_enable_legacy_profiler = false
+          end
         end
       end
 
@@ -511,9 +544,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be false }
           end
 
-          { 'true' => true, 'false' => false }.each do |string, value|
-            context "is defined as #{string}" do
-              let(:environment) { string }
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
 
               it { is_expected.to be value }
             end
@@ -558,7 +591,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       describe '#skip_mysql2_check' do
-        subject(:force_enable_gc_profiling) { settings.profiling.advanced.skip_mysql2_check }
+        subject(:skip_mysql2_check) { settings.profiling.advanced.skip_mysql2_check }
 
         context 'when DD_PROFILING_SKIP_MYSQL2_CHECK' do
           around do |example|
@@ -573,9 +606,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be false }
           end
 
-          { 'true' => true, 'false' => false }.each do |string, value|
-            context "is defined as #{string}" do
-              let(:environment) { string }
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
 
               it { is_expected.to be value }
             end
@@ -589,6 +622,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.skip_mysql2_check }
             .from(false)
             .to(true)
+        end
+      end
+
+      describe '#no_signals_workaround_enabled' do
+        subject(:no_signals_workaround_enabled) { settings.profiling.advanced.no_signals_workaround_enabled }
+
+        context 'when DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be :auto }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#no_signals_workaround_enabled=' do
+        it 'updates the #no_signals_workaround_enabled setting' do
+          expect { settings.profiling.advanced.no_signals_workaround_enabled = false }
+            .to change { settings.profiling.advanced.no_signals_workaround_enabled }
+            .from(:auto)
+            .to(false)
         end
       end
     end
@@ -765,6 +833,22 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       before { set_service }
 
       it { expect(settings.service).to eq(service) }
+    end
+
+    context 'when given a symbol' do
+      let(:service) { :symbol }
+
+      before { set_service }
+
+      it { expect(settings.service).to eq('symbol') }
+    end
+
+    context 'when given `nil`' do
+      let(:service) { nil }
+
+      before { set_service }
+
+      it { expect(settings.service).to be_nil }
     end
   end
 
@@ -1124,9 +1208,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           it { is_expected.to be true }
         end
 
-        { 'true' => true, 'false' => false }.each do |string, value|
-          context "is defined as #{string}" do
-            let(:env_var_value) { string }
+        [true, false].each do |value|
+          context "is defined as #{value}" do
+            let(:env_var_value) { value.to_s }
 
             it { is_expected.to be value }
           end
@@ -1240,6 +1324,23 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.remote.poll_interval_seconds }
           .from(5.0)
           .to(1.0)
+      end
+    end
+
+    describe '#service' do
+      subject(:service) { settings.remote.service }
+
+      context 'defaults to nil' do
+        it { is_expected.to be nil }
+      end
+    end
+
+    describe '#service=' do
+      it 'updates the #service setting' do
+        expect { settings.remote.service = 'foo' }
+          .to change { settings.remote.service }
+          .from(nil)
+          .to('foo')
       end
     end
   end

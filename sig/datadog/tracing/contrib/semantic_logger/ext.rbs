@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module SemanticLogger
+        module Ext
+          ENV_ENABLED: "DD_TRACE_SEMANTIC_LOGGER_ENABLED"
+        end
+      end
+    end
+  end
+end

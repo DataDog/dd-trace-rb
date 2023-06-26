@@ -1,0 +1,7 @@
+module Datadog
+  module Core
+    module Metrics
+      Metric: untyped
+    end
+  end
+end

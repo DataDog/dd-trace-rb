@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Logging
+      module Ext
+        DD_SOURCE: "ruby"
+      end
+    end
+  end
+end

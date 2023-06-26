@@ -1,4 +1,5 @@
 require 'datadog/tracing/contrib/rails/rails_helper'
+require 'datadog/appsec/contrib/support/integration/shared_examples'
 require 'rack/test'
 
 require 'datadog/tracing'
@@ -135,7 +136,7 @@ RSpec.describe 'Rails integration tests' do
     end
 
     let(:triggers) do
-      json = trace.send(:meta)['_dd.appsec.json']
+      json = service_span.send(:meta)['_dd.appsec.json']
 
       JSON.parse(json).fetch('triggers', []) if json
     end
@@ -143,141 +144,15 @@ RSpec.describe 'Rails integration tests' do
     let(:remote_addr) { '127.0.0.1' }
     let(:client_ip) { remote_addr }
 
+    let(:service_span) do
+      span = sorted_spans.reverse.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
+
+      expect(span.name).to eq 'rack.request'
+
+      span
+    end
+
     let(:span) { rack_span }
-
-    shared_examples 'a GET 200 span' do
-      it do
-        expect(span.get_tag('http.method')).to eq('GET')
-        expect(span.get_tag('http.status_code')).to eq('200')
-        expect(span.status).to eq(0)
-      end
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it do
-          expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('200')
-          expect(span.status).to eq(0)
-        end
-      end
-    end
-
-    shared_examples 'a GET 403 span' do
-      it do
-        expect(span.get_tag('http.method')).to eq('GET')
-        expect(span.get_tag('http.status_code')).to eq('403')
-        expect(span.status).to eq(0)
-      end
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it do
-          expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('200')
-          expect(span.status).to eq(0)
-        end
-      end
-    end
-
-    shared_examples 'a GET 404 span' do
-      it do
-        expect(span.get_tag('http.method')).to eq('GET')
-        expect(span.get_tag('http.status_code')).to eq('404')
-        expect(span.status).to eq(0)
-      end
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it do
-          expect(span.get_tag('http.method')).to eq('GET')
-          expect(span.get_tag('http.status_code')).to eq('404')
-          expect(span.status).to eq(0)
-        end
-      end
-    end
-
-    shared_examples 'a POST 200 span' do
-      it do
-        expect(span.get_tag('http.method')).to eq('POST')
-        expect(span.get_tag('http.status_code')).to eq('200')
-        expect(span.status).to eq(0)
-      end
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it do
-          expect(span.get_tag('http.method')).to eq('POST')
-          expect(span.get_tag('http.status_code')).to eq('200')
-          expect(span.status).to eq(0)
-        end
-      end
-    end
-
-    shared_examples 'a POST 403 span' do
-      it do
-        expect(span.get_tag('http.method')).to eq('POST')
-        expect(span.get_tag('http.status_code')).to eq('403')
-        expect(span.status).to eq(0)
-      end
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it do
-          expect(span.get_tag('http.method')).to eq('POST')
-          expect(span.get_tag('http.status_code')).to eq('200')
-          expect(span.status).to eq(0)
-        end
-      end
-    end
-
-    shared_examples 'a trace without AppSec tags' do
-      it do
-        expect(trace.send(:metrics)['_dd.appsec.enabled']).to be_nil
-        expect(trace.send(:meta)['_dd.runtime_family']).to be_nil
-        expect(trace.send(:meta)['_dd.appsec.waf.version']).to be_nil
-        expect(span.send(:meta)['http.client_ip']).to eq nil
-      end
-    end
-
-    shared_examples 'a trace with AppSec tags' do
-      it do
-        expect(trace.send(:metrics)['_dd.appsec.enabled']).to eq(1.0)
-        expect(trace.send(:meta)['_dd.runtime_family']).to eq('ruby')
-        expect(trace.send(:meta)['_dd.appsec.waf.version']).to match(/^\d+\.\d+\.\d+/)
-        expect(span.send(:meta)['http.client_ip']).to eq client_ip
-      end
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it_behaves_like 'a trace without AppSec tags'
-      end
-    end
-
-    shared_examples 'a trace without AppSec events' do
-      it do
-        expect(spans.select { |s| s.get_tag('appsec.event') }).to be_empty
-        expect(trace.send(:meta)['_dd.appsec.triggers']).to be_nil
-      end
-    end
-
-    shared_examples 'a trace with AppSec events' do
-      it do
-        expect(spans.select { |s| s.get_tag('appsec.event') }).to_not be_empty
-        expect(trace.send(:meta)['_dd.appsec.json']).to be_a String
-      end
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it_behaves_like 'a trace without AppSec events'
-      end
-    end
 
     context 'with a basic route' do
       let(:routes) do
@@ -290,7 +165,6 @@ RSpec.describe 'Rails integration tests' do
 
       before do
         response
-        expect(spans).to_not be_empty
       end
 
       describe 'GET request' do
@@ -304,6 +178,7 @@ RSpec.describe 'Rails integration tests' do
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
@@ -315,6 +190,7 @@ RSpec.describe 'Rails integration tests' do
           it { is_expected.to be_ok }
           it { expect(triggers).to be_a Array }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
@@ -325,6 +201,7 @@ RSpec.describe 'Rails integration tests' do
 
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
@@ -334,9 +211,10 @@ RSpec.describe 'Rails integration tests' do
 
             it { is_expected.to be_forbidden }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
 
@@ -351,6 +229,7 @@ RSpec.describe 'Rails integration tests' do
 
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
@@ -360,9 +239,10 @@ RSpec.describe 'Rails integration tests' do
 
             it { is_expected.to be_forbidden }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
 
@@ -373,9 +253,10 @@ RSpec.describe 'Rails integration tests' do
 
           it { is_expected.to be_forbidden }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 403 span'
           it_behaves_like 'a trace with AppSec tags'
-          it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec events', { blocking: true }
         end
 
         context 'with an event-triggering response' do
@@ -384,6 +265,7 @@ RSpec.describe 'Rails integration tests' do
           it { is_expected.to be_not_found }
           it { expect(triggers).to be_a Array }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 404 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
@@ -394,6 +276,7 @@ RSpec.describe 'Rails integration tests' do
 
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
@@ -403,6 +286,7 @@ RSpec.describe 'Rails integration tests' do
 
             it { is_expected.to be_forbidden }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
@@ -421,6 +305,7 @@ RSpec.describe 'Rails integration tests' do
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
@@ -431,6 +316,7 @@ RSpec.describe 'Rails integration tests' do
 
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
@@ -440,9 +326,10 @@ RSpec.describe 'Rails integration tests' do
 
             it { is_expected.to be_forbidden }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
 
@@ -453,6 +340,7 @@ RSpec.describe 'Rails integration tests' do
 
             it { is_expected.to be_ok }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 200 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
@@ -462,9 +350,10 @@ RSpec.describe 'Rails integration tests' do
 
               it { is_expected.to be_forbidden }
 
+              it_behaves_like 'normal with tracing disable'
               it_behaves_like 'a POST 403 span'
               it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events'
+              it_behaves_like 'a trace with AppSec events', { blocking: true }
             end
           end
         end
@@ -475,6 +364,7 @@ RSpec.describe 'Rails integration tests' do
 
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
@@ -484,9 +374,10 @@ RSpec.describe 'Rails integration tests' do
 
             it { is_expected.to be_forbidden }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
       end
@@ -528,6 +419,7 @@ RSpec.describe 'Rails integration tests' do
           context 'with a non-event-triggering request' do
             it { is_expected.to be_ok }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 200 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace without AppSec events'
@@ -539,6 +431,7 @@ RSpec.describe 'Rails integration tests' do
             it { is_expected.to be_ok }
             it { expect(triggers).to be_a Array }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 200 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
@@ -549,6 +442,7 @@ RSpec.describe 'Rails integration tests' do
 
             it { is_expected.to be_ok }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 200 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
@@ -558,9 +452,10 @@ RSpec.describe 'Rails integration tests' do
 
               it { is_expected.to be_forbidden }
 
+              it_behaves_like 'normal with tracing disable'
               it_behaves_like 'a GET 403 span'
               it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events'
+              it_behaves_like 'a trace with AppSec events', { blocking: true }
             end
           end
         end

@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Propagation
+        module SqlComment
+          class Comment
+            def initialize: (untyped hash) -> void
+
+            def to_s: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

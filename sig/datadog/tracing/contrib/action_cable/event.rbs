@@ -1,0 +1,27 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionCable
+        module Event
+          def self.included: (untyped base) -> untyped
+          module ClassMethods
+            def span_options: () -> ({ service: untyped } | ::Hash[untyped, untyped])
+
+            def configuration: () -> untyped
+          end
+        end
+        module RootContextEvent
+          def self.included: (untyped base) -> untyped
+          module ClassMethods
+            include Contrib::ActionCable::Event::ClassMethods
+
+            def subscription: (*untyped args) -> untyped
+
+            private
+            def ensure_clean_context!: () -> (nil | untyped)
+          end
+        end
+      end
+    end
+  end
+end

@@ -36,30 +36,34 @@ module Datadog
           Response.new(
             status: 403,
             headers: { 'Content-Type' => content_type },
-            body: [Datadog::AppSec::Assets.blocked(format: FORMAT_MAP[content_type])]
+            body: [Datadog::AppSec::Assets.blocked(format: CONTENT_TYPE_TO_FORMAT[content_type])]
           )
         end
 
         private
 
-        FORMAT_MAP = {
-          'text/plain' => :text,
-          'text/html' => :html,
+        CONTENT_TYPE_TO_FORMAT = {
           'application/json' => :json,
+          'text/html' => :html,
+          'text/plain' => :text,
         }.freeze
 
-        DEFAULT_CONTENT_TYPE = 'text/plain'
+        DEFAULT_CONTENT_TYPE = 'application/json'
 
         def content_type(env)
           return DEFAULT_CONTENT_TYPE unless env.key?('HTTP_ACCEPT')
 
-          accepted = env['HTTP_ACCEPT'].split(',').map { |m| Utils::HTTP::MediaRange.new(m) }.sort!.reverse!
+          accept_types = env['HTTP_ACCEPT'].split(',').map(&:strip)
 
-          accepted.each_with_object(DEFAULT_CONTENT_TYPE) do |range, _default|
-            match = FORMAT_MAP.keys.find { |type| range === type }
+          accepted = accept_types.map { |m| Utils::HTTP::MediaRange.new(m) }.sort!.reverse!
 
-            return match if match
+          accepted.each do |range|
+            type_match = CONTENT_TYPE_TO_FORMAT.keys.find { |type| range === type }
+
+            return type_match if type_match
           end
+
+          DEFAULT_CONTENT_TYPE
         rescue Datadog::AppSec::Utils::HTTP::MediaRange::ParseError
           DEFAULT_CONTENT_TYPE
         end

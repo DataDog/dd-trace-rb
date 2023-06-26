@@ -23,6 +23,10 @@ module Datadog
         # Set this tag to `1.0` if the span is a Service Entry span.
         TAG_TOP_LEVEL = '_dd.top_level'
 
+        # Set to `1.0` if profiling is enabled together with tracing, and `0.0` otherwise
+        # See Datadog-internal "RFC: Identifying which spans have profiling enabled " for details
+        TAG_PROFILING_ENABLED = '_dd.profiling.enabled'
+
         # Defines constants for trace analytics
         # @public_api
         module Analytics

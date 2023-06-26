@@ -1,0 +1,31 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sinatra
+        module TracerSetupPatch
+          ONLY_ONCE_PER_APP: untyped
+
+          def setup_middleware: (*untyped args) ?{ () -> untyped } -> untyped
+        end
+        module DefaultMiddlewarePatch
+          ONLY_ONCE_PER_APP: untyped
+
+          def setup_middleware: (*untyped args) ?{ () -> untyped } -> untyped
+        end
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.register_tracer: () -> untyped
+
+          def self?.setup_tracer: () -> untyped
+
+          def self?.patch_default_middlewares: () -> untyped
+        end
+      end
+    end
+  end
+end

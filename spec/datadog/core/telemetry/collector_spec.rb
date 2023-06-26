@@ -86,8 +86,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         end
 
         after do
-          Datadog.configuration.profiling.send(:reset!)
-          Datadog.configuration.appsec.send(:reset!)
+          Datadog.configuration.reset!
         end
 
         it { expect(products.appsec).to eq({ version: '4.2' }) }
@@ -106,8 +105,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         end
 
         after do
-          Datadog.configuration.profiling.send(:reset!)
-          Datadog.configuration.appsec.send(:reset!)
+          Datadog.configuration.reset!
         end
 
         it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
@@ -215,8 +213,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         Datadog.configuration.appsec.enabled = false
       end
       after do
-        Datadog.configuration.profiling.send(:reset!)
-        Datadog.configuration.appsec.send(:reset!)
+        Datadog.configuration.reset!
       end
       it { is_expected.to include('profiling.enabled' => false) }
     end
@@ -243,7 +240,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
           c.appsec.enabled = true
         end
       end
-      after { Datadog.configuration.appsec.send(:reset!) }
+      after { Datadog.configuration.reset! }
 
       it { is_expected.to include('appsec.enabled' => true) }
     end

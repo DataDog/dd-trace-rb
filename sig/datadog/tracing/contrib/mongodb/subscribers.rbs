@@ -1,0 +1,29 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module MongoDB
+        class MongoCommandSubscriber
+          def started: (untyped event) -> (nil | untyped)
+
+          def failed: (untyped event) -> untyped
+
+          def succeeded: (untyped event) -> untyped
+
+          private
+
+          def get_span: (untyped event) -> untyped
+
+          def set_span: (untyped event, untyped span) -> untyped
+
+          def clear_span: (untyped event) -> (nil | untyped)
+
+          def analytics_enabled?: () -> untyped
+
+          def analytics_sample_rate: () -> untyped
+
+          def datadog_configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

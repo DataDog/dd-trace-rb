@@ -1,0 +1,20 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Redis
+        module Configuration
+          UNIX_SCHEME: "unix"
+          class Resolver < Contrib::Configuration::Resolver
+            def resolve: (untyped hash) -> untyped
+
+            def parse_matcher: (untyped matcher) -> untyped
+
+            def normalize: (untyped hash) -> ({ url: untyped } | { host: untyped, port: untyped, db: untyped, scheme: untyped })
+
+            def connection_resolver: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

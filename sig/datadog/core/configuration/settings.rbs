@@ -12,6 +12,10 @@ module Datadog
           def poll_interval_seconds: () -> ::Float
 
           def poll_interval_seconds=: (::Float) -> void
+
+          def service: () -> ::String?
+
+          def service=: (::String) -> void
         end
 
         def initialize: (*untyped _) -> untyped

@@ -1,0 +1,24 @@
+module Datadog
+  module Tracing
+    module Flush
+      class Base
+        def consume!: (untyped trace_op) -> (nil | untyped)
+        def flush?: (untyped trace_op) -> untyped
+        def get_trace: (untyped trace_op) -> untyped
+        def single_sampled?: (untyped span) -> untyped
+      end
+      class Finished < Base
+        def flush?: (untyped trace_op) -> untyped
+      end
+      class Partial < Base
+        DEFAULT_MIN_SPANS_FOR_PARTIAL_FLUSH: 500
+
+        attr_reader min_spans_for_partial: untyped
+
+        def initialize: (?::Hash[untyped, untyped] options) -> void
+
+        def flush?: (untyped trace_op) -> (true | false)
+      end
+    end
+  end
+end
