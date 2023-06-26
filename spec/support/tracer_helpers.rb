@@ -14,7 +14,7 @@ module TracerHelpers
   def new_tracer(options = {})
     writer = FauxWriter.new(
       transport: Datadog::Transport::HTTP.default do |t|
-        if test_agent_running?
+        if test_agent_running? && ENV['DD_AGENT_HOST'] == 'testagent'
           t.adapter :net_http, 'testagent', 9126, timeout: 30
         else
           t.adapter :test
@@ -29,7 +29,7 @@ module TracerHelpers
   def get_test_writer(options = {})
     options = {
       transport: Datadog::Transport::HTTP.default do |t|
-        if test_agent_running?
+        if test_agent_running? && ENV['DD_AGENT_HOST'] == 'testagent'
           t.adapter :net_http, 'testagent', 9126, timeout: 30
         else
           t.adapter :test

@@ -25,8 +25,12 @@ module NetworkHelpers
     @test_agent_running ||= check_availability_by_http_request(TEST_AGENT_HOST, TEST_AGENT_PORT)
   end
 
+  # Yields an exclusion allowing WebMock traffic to APM Test Agent given an inputted block that calls webmock
+  # function, ie: call_web_mock_function_with_agent_host_exclusions { [options] webmock.disable! options }
+  #
+  # @yield [Hash] webmock exclusions to call webmock block with
   def call_web_mock_function_with_agent_host_exclusions
-    if test_agent_running?
+    if test_agent_running? && ENV['DD_AGENT_HOST'] == 'testagent'
       yield allow: "http://#{TEST_AGENT_HOST}:#{TEST_AGENT_PORT}"
     else
       yield({})
@@ -44,6 +48,10 @@ module NetworkHelpers
     false
   end
 
+  # Adds the DD specific tracer configuration environment to the inputted tracer headers as
+  # a comma separated string of `k=v` pairs.
+  #
+  # @return [Hash] trace headers
   def parse_tracer_config_and_add_to_headers(trace_headers)
     dd_service = Datadog.configuration.service
     dd_span_attribute_schema = Datadog.configuration.tracing.span_attribute_schema
