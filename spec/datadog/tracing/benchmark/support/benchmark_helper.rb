@@ -291,7 +291,7 @@ RSpec.shared_context 'minimal agent' do
   after do
     if Process.respond_to?(:fork)
       Process.kill('TERM', @agent_runner) rescue nil
-      Process.wait(@agent_runner)
+      try_wait_until { Process.wait(@agent_runner, Process::WNOHANG) }
     else
       @agent_runner.kill
     end
