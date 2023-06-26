@@ -10,8 +10,14 @@ module Datadog
 
         # Option setting precedence. Higher number means higher precedence.
         module Precedence
+          # Remote configuration provided through the Datadog app.
           REMOTE_CONFIGURATION = [2, :remote_configuration].freeze
+
+          # Configuration provided in Ruby code, in this same process.
           PROGRAMMATIC = [1, :programmatic].freeze
+
+          # Configuration that comes either from environment variables,
+          # or fallback values.
           DEFAULT = [0, :default].freeze
         end
 
