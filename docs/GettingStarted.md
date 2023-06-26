@@ -2135,7 +2135,7 @@ LogJob.perform_async('login')
 
 ## Additional configuration
 
-To change the default behavior of Datadog tracing, you can use, in order of precedence:
+To change the default behavior of `ddtrace`, you can use, in order of priority, with 1 being the highest:
 
 1. [Remote Configuration](#remote-configuration).
 2. Custom options inside a `Datadog.configure` block, e.g.:
@@ -2150,7 +2150,7 @@ To change the default behavior of Datadog tracing, you can use, in order of prec
     ```
 3. Environment variables.
 
-**If a higher precedence value is set for an option, setting that option with a lower precedence value will not change its effective value.**
+**If a higher priority value is set for an option, setting that option with a lower priority value will not change its effective value.**
 
 For example, if `tracing.sampling.default_rate` is configured by [Remote Configuration](#remote-configuration), changing its value through the `Datadog.configure` block will have no effect.
 
