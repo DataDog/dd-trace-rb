@@ -14,8 +14,7 @@ module Datadog
           # Workers::Polling settings
           self.enabled = enabled
           # Workers::IntervalLoop settings
-          interval = heartbeat_interval_seconds
-          self.loop_base_interval = interval
+          self.loop_base_interval = heartbeat_interval_seconds
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_STOP
           super(&block)
           start
