@@ -239,8 +239,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
         it 'adds profiling_enabled to the trace' do
           expect(Datadog::Profiling).to receive(:enabled?).and_return(true)
-          
-          byebug
+
           tracer.trace(name) {}
 
           expect(traces.first.profiling_enabled).to be true
