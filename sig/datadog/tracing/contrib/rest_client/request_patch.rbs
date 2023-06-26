@@ -1,0 +1,26 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module RestClient
+        module RequestPatch
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            def execute: () ?{ () -> untyped } -> untyped
+
+            def datadog_tag_request: (untyped uri, untyped span) -> untyped
+
+            def datadog_trace_request: (untyped uri) { (untyped, untyped) -> untyped } -> untyped
+
+            private
+
+            def datadog_configuration: () -> untyped
+
+            def analytics_enabled?: () -> untyped
+
+            def analytics_sample_rate: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

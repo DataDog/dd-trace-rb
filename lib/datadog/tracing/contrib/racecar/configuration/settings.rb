@@ -26,7 +26,15 @@ module Datadog
               o.lazy
             end
 
-            option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
+            option :service_name do |o|
+              o.default do
+                Contrib::SpanAttributeSchema.fetch_service_name(
+                  '',
+                  Ext::DEFAULT_PEER_SERVICE_NAME
+                )
+              end
+              o.lazy
+            end
           end
         end
       end

@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Distributed
+      module Helpers
+        def self.clamp_sampling_priority: (untyped sampling_priority) -> untyped
+
+        def self.parse_decimal_id: (untyped value) -> (nil | untyped)
+
+        def self.parse_hex_id: (untyped value) -> (nil | untyped)
+      end
+    end
+  end
+end

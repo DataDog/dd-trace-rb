@@ -1,4 +1,3 @@
-require_relative '../../core'
 require_relative '../../core/worker'
 require_relative '../../core/workers/async'
 require_relative '../../core/workers/polling'

@@ -66,6 +66,11 @@ module Datadog
       nil
     end
 
+    def self.enabled?
+      profiler = Datadog.send(:components).profiler
+      !!(profiler.scheduler.running? if profiler)
+    end
+
     private_class_method def self.replace_noop_allocation_count
       def self.allocation_count # rubocop:disable Lint/DuplicateMethods, Lint/NestedMethodDefinition (On purpose!)
         Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_allocation_count
@@ -178,6 +183,10 @@ module Datadog
       end
     end
 
+    # All requires for the profiler should be directly added here; and everything should be loaded eagerly.
+    # (Currently there's a few exceptions for the old profiler, but we should avoid other exceptions.)
+    #
+    # All of the profiler should be loaded and ready to go when this method returns `true`.
     private_class_method def self.load_profiling
       return false unless supported?
 
@@ -197,7 +206,9 @@ module Datadog
       require_relative 'profiling/profiler'
       require_relative 'profiling/native_extension'
       require_relative 'profiling/trace_identifiers/helper'
-      require_relative 'profiling/pprof/pprof_pb'
+      # This file is no longer eagerly loaded as a workaround for an issue. It only gets loaded dynamically if the old
+      # profiler is in use. See Profiling::Component#load_pprof_support for more details.
+      # require_relative 'profiling/pprof/pprof_pb'
       require_relative 'profiling/tag_builder'
       require_relative 'profiling/http_transport'
 

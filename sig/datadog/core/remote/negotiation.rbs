@@ -1,0 +1,17 @@
+module Datadog
+  module Core
+    module Remote
+      class Negotiation
+        @transport_root: Datadog::Core::Transport::Negotiation::Transport
+
+        def initialize: (Datadog::Core::Configuration::Settings _settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
+
+        def endpoint?: (::String path) -> bool
+
+        private
+
+        def network_error?: (::Exception error) -> bool
+      end
+    end
+  end
+end

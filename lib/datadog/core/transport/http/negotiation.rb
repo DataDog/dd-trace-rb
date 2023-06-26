@@ -122,7 +122,7 @@ module Datadog
                 http_response = super(env, &block)
 
                 # Process the response
-                body = JSON.parse(http_response.payload, symbolize_names: true)
+                body = JSON.parse(http_response.payload, symbolize_names: true) if http_response.ok?
 
                 # TODO: there should be more processing here to ensure a proper response_options
                 response_options = body.is_a?(Hash) ? body : {}

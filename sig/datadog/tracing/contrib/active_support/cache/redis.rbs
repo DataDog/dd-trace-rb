@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveSupport
+        module Cache
+          module Redis
+            module Patcher
+              def patch_redis?: (untyped meth) -> untyped
+
+              def cache_store_class: (untyped meth) -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

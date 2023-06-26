@@ -17,16 +17,18 @@ module Datadog
         end
 
         class << self
-          def merge(rules:, data: nil, overrides: nil, exclusions: nil)
+          def merge(rules:, data: [], overrides: [], exclusions: [], custom_rules: [])
             combined_rules = combine_rules(rules)
 
-            rules_data = combine_data(data) if data
-            rules_overrides = combine_overrides(overrides) if overrides
-            rules_exclusions = combine_exclusions(exclusions) if exclusions
+            combined_data = combine_data(data) if data.any?
+            combined_overrides = combine_overrides(overrides) if overrides.any?
+            combined_exclusions = combine_exclusions(exclusions) if exclusions.any?
+            combined_custom_rules = combine_custom_rules(custom_rules) if custom_rules.any?
 
-            combined_rules['rules_data'] = rules_data if rules_data
-            combined_rules['rules_override'] = rules_overrides if rules_overrides
-            combined_rules['exclusions'] = rules_exclusions if rules_exclusions
+            combined_rules['rules_data'] = combined_data if combined_data
+            combined_rules['rules_override'] = combined_overrides if combined_overrides
+            combined_rules['exclusions'] = combined_exclusions if combined_exclusions
+            combined_rules['custom_rules'] = combined_custom_rules if combined_custom_rules
 
             combined_rules
           end
@@ -62,7 +64,7 @@ module Datadog
             result = []
 
             data.each do |data_entry|
-              data_entry['rules_data'].each do |value|
+              data_entry.each do |value|
                 existing_data = result.find { |x| x['id'] == value['id'] }
 
                 if existing_data && existing_data['type'] == value['type']
@@ -113,31 +115,15 @@ module Datadog
           end
 
           def combine_overrides(overrides)
-            rules_override = []
-
-            overrides.each do |override|
-              override['rules_override'].each do |rule_override|
-                rules_override << rule_override
-              end
-            end
-
-            return if rules_override.empty?
-
-            rules_override
+            overrides.flatten
           end
 
           def combine_exclusions(exclusions)
-            rules_exclusions = []
+            exclusions.flatten
+          end
 
-            exclusions.each do |exclusion|
-              exclusion['exclusions'].each do |rule_exclusion|
-                rules_exclusions << rule_exclusion
-              end
-            end
-
-            return if rules_exclusions.empty?
-
-            rules_exclusions
+          def combine_custom_rules(custom_rules)
+            custom_rules.flatten
           end
         end
       end

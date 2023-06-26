@@ -2,6 +2,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'faraday'
 
@@ -44,6 +45,7 @@ RSpec.describe 'Faraday middleware' do
     let(:use_middleware) { false }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'schema version span'
 
     it 'uses default configuration' do
       expect(response.status).to eq(200)
@@ -88,6 +90,7 @@ RSpec.describe 'Faraday middleware' do
       after { WebMock.disable! }
 
       it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+      it_behaves_like 'schema version span'
 
       it 'uses default configuration' do
         expect(response.status).to eq(200)
@@ -132,6 +135,7 @@ RSpec.describe 'Faraday middleware' do
     subject!(:response) { client.get('/success') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'schema version span'
 
     it do
       expect(response).to be_a_kind_of(::Faraday::Response)
@@ -144,6 +148,7 @@ RSpec.describe 'Faraday middleware' do
     subject!(:response) { client.get('/success') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'schema version span'
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Faraday::Ext::ENV_ANALYTICS_ENABLED }
@@ -179,6 +184,7 @@ RSpec.describe 'Faraday middleware' do
     subject!(:response) { client.post('/failure') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'schema version span'
 
     it do
       expect(span.service).to eq(Datadog::Tracing::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
@@ -248,6 +254,7 @@ RSpec.describe 'Faraday middleware' do
     it { expect(span).to_not have_error }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'schema version span'
   end
 
   context 'when there is custom error handling' do
@@ -259,6 +266,7 @@ RSpec.describe 'Faraday middleware' do
     it { expect(span).to have_error }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'schema version span'
   end
 
   context 'when split by domain' do

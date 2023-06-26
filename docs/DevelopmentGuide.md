@@ -248,3 +248,17 @@ Datadog.configure do |c|
   }
 end
 ```
+
+### Generating GRPC proto stubs for tests
+
+If you modify any of the `.proto` files under `./spec/datadog/tracing/contrib/grpc/support/proto` used for
+testing the `grpc` integration, you'll need to regenerate the Ruby code by running:
+
+```
+$ docker run \
+   --platform linux/amd64 \
+   -v ${PWD}:/app \
+   -w /app \
+   ruby:latest \
+   ./spec/datadog/tracing/contrib/grpc/support/gen_proto.sh
+```

@@ -82,9 +82,9 @@ else
   gem 'yard', ['~> 0.9', '< 0.9.27'] # yard 0.9.27 starts pulling webrick as a gem dependency
 end
 
-if RUBY_VERSION >= '2.4.0'
-  gem 'rubocop', ['~> 1.10', '< 1.33.0'], require: false
-  gem 'rubocop-packaging', '~> 0.5', require: false
+if RUBY_VERSION >= '2.6.0'
+  gem 'rubocop', '~> 1.34.0', require: false
+  gem 'rubocop-packaging', '~> 0.5.2', require: false
   gem 'rubocop-performance', '~> 1.9', require: false
   gem 'rubocop-rspec', '~> 2.2', require: false
 end
@@ -112,26 +112,9 @@ if RUBY_PLATFORM != 'java'
 end
 
 group :check do
-  # The steep gem requires pathname >= 0.2.1, which clashes with the default 0.1.0 (on Ruby 3.0) and 0.2.0 (on Ruby 3.1)
-  # on github actions.
-  #
-  # The full error is:
-  # /Users/runner/hostedtoolcache/Ruby/3.1.3/x64/lib/ruby/gems/3.1.0/gems/bundler-2.4.7/lib/bundler/runtime.rb:304:in
-  # `check_for_activated_spec!': You have already activated pathname 0.2.0, but your Gemfile requires pathname 0.2.1.
-  # Since pathname is a default gem, you can either remove your dependency on it or try updating to a newer version of
-  # bundler that supports pathname as a default gem. (Gem::LoadError)
-  #
-  # @ivoanjo: For the life of me, I tried updating to the latest bundler, different ways of invoking rake (binstubs, ...)
-  # and could not fix this issue. As a final workaround, I decided to not install steep on the affected Ruby versions on
-  # GitHub Actions.
-  steep_ci_workaround = ENV['GITHUB_ACTIONS'] == 'true' && RUBY_VERSION.start_with?('3.0.', '3.1.')
-  if RUBY_VERSION >= '2.7.0' && RUBY_PLATFORM != 'java' && !steep_ci_workaround
-    gem 'rbs', '~> 2.8.1', require: false
-    gem 'steep', '~> 1.3.1', require: false
-
-    # parallel 1.23 seems to annoy steep:
-    # cannot load such file -- parallel/processor_count (LoadError)
-    gem 'parallel', '< 1.23'
+  if RUBY_VERSION >= '2.7.0' && RUBY_PLATFORM != 'java'
+    gem 'rbs', '~> 3.1.0', require: false
+    gem 'steep', '~> 1.4.0', require: false
   end
 end
 

@@ -34,21 +34,19 @@ if [[ "$APP_RUBY_VERSION" == "2.1" ]]; then
 fi
 
 if [[ "$APP_RUBY_VERSION" == "2.2" ]]; then
-  echo "Ruby 2.1 is not supported by Rails 6"
+  echo "Ruby 2.2 is not supported by Rails 6"
   exit 1
 fi
 
 if [[ "$APP_RUBY_VERSION" == "2.3" ]]; then
-  echo "Ruby 2.1 is not supported by Rails 6"
+  echo "Ruby 2.3 is not supported by Rails 6"
   exit 1
 fi
 
 if [[ "$APP_RUBY_VERSION" == "2.4" ]]; then
-  echo "Ruby 2.1 is not supported by Rails 6"
+  echo "Ruby 2.4 is not supported by Rails 6"
   exit 1
 fi
-
-# ADD NEW RUBIES HERE
 
 # Set configuration
 APP_BASE_IMAGE=${APP_BASE_IMAGE:-datadog/dd-apm-demo:rb-$APP_RUBY_VERSION}

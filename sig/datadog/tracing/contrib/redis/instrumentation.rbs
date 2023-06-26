@@ -1,0 +1,28 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Redis
+        module Instrumentation
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            def call: (*untyped args) ?{ () -> untyped } -> untyped
+
+            def call_pipeline: (*untyped args) ?{ () -> untyped } -> untyped
+
+            private
+
+            def command_args?: () -> untyped
+
+            def service_name: () -> untyped
+
+            def get_command: (untyped args, untyped show_command_args) -> untyped
+
+            def get_pipeline_commands: (untyped args, untyped show_command_args) -> untyped
+
+            def datadog_configuration: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

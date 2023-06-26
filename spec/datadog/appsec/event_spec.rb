@@ -64,22 +64,39 @@ RSpec.describe Datadog::AppSec::Event do
           trace_op.measure('request') do |span|
             events.each { |e| e[:span] = span }
 
-            described_class.record(*events)
+            10.times do |i|
+              trace_op.measure("span #{i}") {}
+            end
+
+            described_class.record(span, *events)
           end
 
           trace_op.flush!
         end
 
-        it 'records an event on the trace' do
-          expect(trace.send(:meta)).to eq(
+        let(:top_level_span) do
+          trace.spans.find { |s| s.metrics['_dd.top_level'] && s.metrics['_dd.top_level'] > 0.0 }
+        end
+
+        let(:other_spans) do
+          trace.spans - [top_level_span]
+        end
+
+        it 'records an event on the top level span' do
+          expect(top_level_span.meta).to eq(
             '_dd.appsec.json' => '{"triggers":[]}',
             'http.host' => 'example.com',
             'http.useragent' => 'Ruby/0.0',
             'http.request.headers.user-agent' => 'Ruby/0.0',
             'network.client.ip' => '127.0.0.1',
             '_dd.origin' => 'appsec',
-            '_dd.p.dm' => '-5',
           )
+        end
+
+        it 'records nothing on other spans' do
+          other_spans.each do |other_span|
+            expect(other_span.meta).to be_empty
+          end
         end
 
         it 'marks the trace to be kept' do
@@ -94,7 +111,7 @@ RSpec.describe Datadog::AppSec::Event do
           trace_op.measure('request') do |span|
             events.each { |e| e[:span] = span }
 
-            described_class.record(*events)
+            described_class.record(span, *events)
           end
 
           trace_op.flush!
@@ -117,6 +134,22 @@ RSpec.describe Datadog::AppSec::Event do
         end
       end
 
+      context 'with no span' do
+        let(:event_count) { 1 }
+
+        it 'does not attempt to record in the trace' do
+          expect(described_class).to_not receive(:record_via_span)
+
+          described_class.record(nil, events)
+        end
+
+        it 'does not call the rate limiter' do
+          expect(Datadog::AppSec::RateLimiter).to_not receive(:limit)
+
+          described_class.record(nil, events)
+        end
+      end
+
       context 'with many traces' do
         let(:rate_limit) { 100 }
         let(:trace_count) { rate_limit * 2 }
@@ -128,7 +161,7 @@ RSpec.describe Datadog::AppSec::Event do
             trace_op.measure('request') do |span|
               events.each { |e| e[:span] = span }
 
-              described_class.record(*events)
+              described_class.record(span, *events)
             end
 
             trace_op.keep!

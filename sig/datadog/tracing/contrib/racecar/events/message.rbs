@@ -1,0 +1,21 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Racecar
+        module Events
+          module Message
+            include Racecar::Event
+
+            EVENT_NAME: "process_message.racecar"
+
+            def self?.event_name: () -> untyped
+
+            def self?.span_name: () -> untyped
+
+            def self?.span_options: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

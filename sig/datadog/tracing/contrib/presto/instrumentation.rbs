@@ -1,0 +1,28 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Presto
+        module Instrumentation
+          module Client
+            def self.included: (untyped base) -> untyped
+            module InstanceMethods
+              def run: (untyped query) -> untyped
+
+              def query: (untyped query) ?{ () -> untyped } -> untyped
+
+              def kill: (untyped query_id) -> untyped
+
+              private
+
+              def datadog_configuration: () -> untyped
+
+              def decorate!: (untyped span, untyped operation) -> untyped
+
+              def set_nilable_tag!: (untyped span, untyped key, untyped tag_name) -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

@@ -8,21 +8,22 @@ module Datadog
         type options = ::Hash[::Symbol, option]
 
         class Instrument < ::Struct[untyped]
-          def initialize: (::Symbol name, options options) -> void
+          def initialize: (::Symbol name) -> void
           attr_accessor name: ::Symbol
-          attr_accessor options: options
         end
 
-        @instruments: ::Array[Instrument]
+        type instruments = ::Array[Instrument]
+
+        @instruments: instruments
         @options: options
 
         def options: () -> options
 
         def initialize: () -> void
 
-        def instrument: (::Symbol name, ?options options) -> void
+        def instrument: (::Symbol name) -> void
 
-        def instruments: () -> ::Array[Instrument]
+        def instruments: () -> instruments
 
         def enabled=: (bool) -> void
         def ruleset=: (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO) -> void
@@ -33,6 +34,7 @@ module Datadog
         def trace_rate_limit=: (::Integer) -> void
         def obfuscator_key_regex=: (::String | ::Regexp) -> void
         def obfuscator_value_regex=: (::String | ::Regexp) -> void
+        def automated_track_user_events=: (String) -> void
       end
 
       module ClassMethods

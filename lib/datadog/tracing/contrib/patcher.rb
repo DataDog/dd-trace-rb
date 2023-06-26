@@ -1,4 +1,3 @@
-require_relative '../../core'
 require_relative '../../core/utils/only_once'
 
 module Datadog

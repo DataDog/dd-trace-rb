@@ -1,0 +1,24 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module HTTP
+        extend CircuitBreaker
+        class Integration
+          include Contrib::Integration
+
+          MINIMUM_VERSION: untyped
+
+          def self.version: () -> untyped
+
+          def self.loaded?: () -> untyped
+
+          def new_configuration: () -> untyped
+
+          def patcher: () -> untyped
+
+          def resolver: () -> untyped
+        end
+      end
+    end
+  end
+end

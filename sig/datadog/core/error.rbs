@@ -1,0 +1,25 @@
+module Datadog
+  module Core
+    class Error
+      attr_reader type: untyped
+
+      attr_reader message: untyped
+
+      attr_reader backtrace: untyped
+
+      def self.build_from: (untyped value) -> untyped
+
+      private
+      def self.full_backtrace: (untyped ex) -> untyped
+      def self.backtrace_for: (untyped ex, untyped backtrace) -> (nil | untyped)
+
+      public
+
+      def initialize: (?untyped? `type`, ?untyped? message, ?untyped? backtrace) -> void
+
+      BlankError: untyped
+
+      ContainsMessage: untyped
+    end
+  end
+end

@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module SuckerPunch
+        module Instrumentation
+          def self?.patch!: () { (untyped) -> untyped } -> untyped
+        end
+      end
+    end
+  end
+end

@@ -33,6 +33,12 @@ module Datadog
             span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             span.name = Ext::SPAN_COMMAND
             span.resource = context.safely(:resource)
+            aws_service = span.resource.split('.')[0]
+            span.set_tag(Ext::TAG_AWS_SERVICE, aws_service)
+            params = context.safely(:params)
+            if (handler = Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS[aws_service])
+              handler.add_tags(span, params)
+            end
 
             span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
@@ -42,8 +48,9 @@ module Datadog
             # Tag as an external peer service
             if Contrib::SpanAttributeSchema.default_span_attribute_schema?
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, context.safely(:host))
             end
+
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, context.safely(:host))
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -54,6 +61,7 @@ module Datadog
             span.set_tag(Ext::TAG_AGENT, Ext::TAG_DEFAULT_AGENT)
             span.set_tag(Ext::TAG_OPERATION, context.safely(:operation))
             span.set_tag(Ext::TAG_REGION, context.safely(:region))
+            span.set_tag(Ext::TAG_AWS_REGION, context.safely(:region))
             span.set_tag(Ext::TAG_PATH, context.safely(:path))
             span.set_tag(Ext::TAG_HOST, context.safely(:host))
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, context.safely(:http_method))

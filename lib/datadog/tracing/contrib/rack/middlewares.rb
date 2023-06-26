@@ -1,6 +1,7 @@
 require 'date'
 
 require_relative '../../../core/environment/variable_helpers'
+require_relative '../../../core/backport'
 require_relative '../../client_ip'
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
@@ -261,7 +262,9 @@ module Datadog
             )
 
             # Set peer service (so its not believed to belong to this app)
-            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
+            if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
+            end
 
             span
           end
@@ -302,7 +305,7 @@ module Datadog
                        else
                          # normally REQUEST_URI starts at the path, but it
                          # might contain the full URL in some cases (e.g WEBrick)
-                         request_uri.sub(/^#{base_url}/, '')
+                         Datadog::Core::BackportFrom25.string_delete_prefix(request_uri, base_url)
                        end
 
             base_url + fullpath

@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/http_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'ddtrace'
 require 'net/http'
@@ -82,6 +83,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
     end
 
     context 'that returns 404' do
@@ -111,6 +113,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
 
       context 'when configured with #after_request hook' do
         before { Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request(&callback) }
@@ -181,6 +184,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
     end
   end
 
@@ -215,6 +219,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
     end
   end
 

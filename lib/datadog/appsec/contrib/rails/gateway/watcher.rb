@@ -21,26 +21,26 @@ module Datadog
                 gateway.watch('rails.request.action', :appsec) do |stack, gateway_request|
                   block = false
                   event = nil
-                  waf_context = gateway_request.env['datadog.waf.context']
+                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
 
                   AppSec::Reactive::Operation.new('rails.request.action') do |op|
-                    trace = active_trace
-                    span = active_span
-
-                    Rails::Reactive::Action.subscribe(op, waf_context) do |result, _block|
+                    Rails::Reactive::Action.subscribe(op, scope.processor_context) do |result, _block|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
                           waf_result: result,
-                          trace: trace,
-                          span: span,
+                          trace: scope.trace,
+                          span: scope.service_entry_span,
                           request: gateway_request,
                           actions: result.actions
                         }
 
-                        span.set_tag('appsec.event', 'true') if span
+                        if scope.service_entry_span
+                          scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
+                          scope.service_entry_span.set_tag('appsec.event', 'true')
+                        end
 
-                        waf_context.events << event
+                        scope.processor_context.events << event
                       end
                     end
 
@@ -58,24 +58,6 @@ module Datadog
 
                   [ret, res]
                 end
-              end
-
-              private
-
-              def active_trace
-                # TODO: factor out tracing availability detection
-
-                return unless defined?(Datadog::Tracing)
-
-                Datadog::Tracing.active_trace
-              end
-
-              def active_span
-                # TODO: factor out tracing availability detection
-
-                return unless defined?(Datadog::Tracing)
-
-                Datadog::Tracing.active_span
               end
             end
           end

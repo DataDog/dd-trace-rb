@@ -2,6 +2,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'grpc'
 require 'ddtrace'
@@ -93,6 +94,7 @@ RSpec.describe 'tracing on the client connection' do
     it_behaves_like 'environment service name', 'DD_TRACE_GRPC_SERVICE_NAME' do
       let(:configuration_options) { {} }
     end
+    it_behaves_like 'schema version span'
   end
 
   shared_examples 'inject distributed tracing metadata' do
@@ -123,13 +125,21 @@ RSpec.describe 'tracing on the client connection' do
 
     let(:original_metadata) { { some: 'datum' } }
 
+    let(:request_response) do
+      subject.request_response(**keywords) { :returned_object }
+    end
+
     before do
-      subject.request_response(**keywords) {}
+      request_response
     end
 
     it_behaves_like 'span data contents'
 
     it_behaves_like 'inject distributed tracing metadata'
+
+    it 'actually returns the client response' do
+      expect(request_response).to be(:returned_object)
+    end
   end
 
   describe '#client_streamer' do

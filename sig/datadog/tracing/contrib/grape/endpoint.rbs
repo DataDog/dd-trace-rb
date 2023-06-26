@@ -1,0 +1,43 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Grape
+        module Endpoint
+          KEY_RUN: "datadog_grape_endpoint_run"
+
+          KEY_RENDER: "datadog_grape_endpoint_render"
+
+          def self.subscribe: () -> untyped
+
+          def self.endpoint_start_process: (untyped _name, untyped _start, untyped _finish, untyped _id, untyped payload) -> untyped
+
+          def self.endpoint_run: (untyped name, untyped start, untyped finish, untyped id, untyped payload) -> untyped
+
+          def self.endpoint_start_render: () -> untyped
+
+          def self.endpoint_render: (untyped name, untyped start, untyped finish, untyped id, untyped payload) -> untyped
+
+          def self.endpoint_run_filters: (untyped name, untyped start, untyped finish, untyped id, untyped payload) -> untyped
+
+          private
+
+          def self.api_view: (untyped api) -> untyped
+
+          def self.endpoint_expand_path: (untyped endpoint) -> untyped
+
+          def self.service_name: () -> untyped
+
+          def self.analytics_enabled?: () -> untyped
+
+          def self.analytics_sample_rate: () -> untyped
+
+          def self.exception_is_error?: (untyped exception) -> (false | true | untyped)
+
+          def self.enabled?: () -> untyped
+
+          def self.datadog_configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

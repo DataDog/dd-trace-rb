@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionView
+        module Utils
+          def self?.normalize_template_name: (untyped name) -> untyped
+        end
+      end
+    end
+  end
+end

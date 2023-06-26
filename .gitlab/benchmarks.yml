@@ -52,21 +52,33 @@ only-profiling-benchmarks:
   extends: .benchmarks
   variables:
     DD_RELENV_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
 
 profiling-and-tracing-benchmarks:
   extends: .benchmarks
   variables:
     DD_RELENV_CONFIGURATION: profiling-and-tracing
+    DD_PROFILING_ENABLED: "true"
 
 tracing-and-appsec-benchmarks:
   extends: .benchmarks
   variables:
     DD_RELENV_CONFIGURATION: tracing-and-appsec
+    DD_APPSEC_ENABLED: "true"
+
+tracing-and-appsec-and-no-remote-configuration-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: tracing-and-appsec-and-no-remote-configuration
+    DD_APPSEC_ENABLED: "true"
+    DD_REMOTE_CONFIGURATION_ENABLED: "false"
 
 profiling-and-tracing-and-appsec-benchmarks:
   extends: .benchmarks
   variables:
     DD_RELENV_CONFIGURATION: profiling-and-tracing-and-appsec
+    DD_APPSEC_ENABLED: "true"
+    DD_PROFILING_ENABLED: "true"
 
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd

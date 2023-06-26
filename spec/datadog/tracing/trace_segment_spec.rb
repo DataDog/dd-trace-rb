@@ -45,6 +45,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
           sampling_priority: nil,
           service: nil,
           spans: spans,
+          profiling_enabled: nil,
         )
       end
 
@@ -161,6 +162,12 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:metrics) { { 'foo' => 42.0 } }
 
         it { expect(trace_segment.send(:metrics)).to eq({ 'foo' => 42.0 }) }
+      end
+
+      context ':profiling_enabled' do
+        let(:options) { { profiling_enabled: true } }
+
+        it { is_expected.to have_attributes(profiling_enabled: true) }
       end
     end
 

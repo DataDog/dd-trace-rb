@@ -1,0 +1,24 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GraphQL
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.patch_schema!: (untyped schema) -> untyped
+          def self?.patch_legacy_gem!: () -> (nil | untyped)
+
+          def self?.get_option: (untyped option) -> untyped
+          module PatchLegacyGem
+            def tracer: () -> untyped
+            def fallback_transaction_name: (untyped context) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

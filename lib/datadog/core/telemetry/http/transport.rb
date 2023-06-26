@@ -10,6 +10,7 @@ module Datadog
     module Telemetry
       module Http
         # Class to send telemetry data to Telemetry API
+        # Currently only supports the HTTP protocol.
         class Transport
           attr_reader \
             :host,

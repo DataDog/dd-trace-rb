@@ -1,4 +1,3 @@
-require_relative '../core'
 require_relative '../core/environment/ext'
 require_relative '../core/environment/socket'
 
@@ -321,6 +320,7 @@ module Datadog
         if digest
           TraceOperation.new(
             hostname: hostname,
+            profiling_enabled: profiling_enabled,
             id: digest.trace_id,
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,
@@ -330,7 +330,8 @@ module Datadog
           )
         else
           TraceOperation.new(
-            hostname: hostname
+            hostname: hostname,
+            profiling_enabled: profiling_enabled,
           )
         end
       end
@@ -525,6 +526,11 @@ module Datadog
         else
           span
         end
+      end
+
+      def profiling_enabled
+        @profiling_enabled ||=
+          !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?)
       end
     end
   end

@@ -1479,7 +1479,7 @@ elsif ruby_version?('2.7')
       gem 'dogstatsd-ruby', '~> 4'
     end
 # ----------------------------------------------------------------------------------------------------------------------
-elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2')
+elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2') || ruby_version?('3.3')
   appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
     gem 'mysql2', '~> 0.5', platform: :ruby
@@ -1579,7 +1579,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2')
     gem 'semantic_logger', '~> 4.0'
     gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
-    gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
+    gem 'sidekiq', '~> 7'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '>= 1.4.2', platform: :ruby
     gem 'stripe'

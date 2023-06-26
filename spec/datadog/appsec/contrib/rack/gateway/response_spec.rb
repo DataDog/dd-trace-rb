@@ -2,7 +2,7 @@
 
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/rack/gateway/response'
-require 'datadog/appsec/processor'
+require 'datadog/appsec/scope'
 require 'rack'
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
@@ -11,7 +11,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
       'Ok',
       200,
       { 'Content-Type' => 'text/html' },
-      active_context: instance_double(Datadog::AppSec::Processor::Context)
+      scope: instance_double(Datadog::AppSec::Scope)
     )
   end
 

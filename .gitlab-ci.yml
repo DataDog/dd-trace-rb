@@ -13,16 +13,17 @@ variables:
   DOWNSTREAM_BRANCH:
     value: "master"
     description: "Run a specific datadog-reliability-env branch downstream"
-  FORCE_TRIGGER:
-    value: "false"
-    description: "Set to true to override rules in the reliability-env pipeline (e.g. override 'only deploy master')"
 
 .common: &common
   tags: [ "runner:main", "size:large" ]
 
 deploy_to_reliability_env:
   stage: deploy
-  when: on_success
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: on_success
+    - when: manual
+      allow_failure: true
   trigger:
     project: DataDog/apm-reliability/datadog-reliability-env
     branch: $DOWNSTREAM_BRANCH
@@ -31,7 +32,6 @@ deploy_to_reliability_env:
     UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
     UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
     UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
-    FORCE_TRIGGER: $FORCE_TRIGGER
 
 deploy_to_docker_registries:
   stage: deploy

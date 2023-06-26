@@ -1,0 +1,20 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sidekiq
+        class ClientTracer
+          include Utils
+
+          def initialize: (?::Hash[untyped, untyped] options) -> void
+          def call: (untyped worker_class, untyped job, untyped queue, untyped redis_pool) { () -> untyped } -> untyped
+
+          private
+
+          def configuration: () -> untyped
+
+          def propagation: () -> untyped
+        end
+      end
+    end
+  end
+end
