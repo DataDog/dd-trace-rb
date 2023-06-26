@@ -26,7 +26,7 @@ RUN set -ex && \
         mkdir -p /usr/share/man/man1 && \
         apt-get install -y --force-yes --no-install-recommends \
             sudo git openssh-client rsync vim \
-            net-tools netcat parallel unzip zip bzip2 && \
+            net-tools netcat-openbsd parallel unzip zip bzip2 && \
         \
         echo "===> Cleaning up" && \
         rm -rf /var/lib/apt/lists/*;

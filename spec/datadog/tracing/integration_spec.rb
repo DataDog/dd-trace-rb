@@ -561,7 +561,7 @@ RSpec.describe 'Tracer integration tests' do
 
         # Read and return any output
         read.read.tap do
-          Process.waitpid(fork_id)
+          try_wait_until { Process.wait(fork_id, Process::WNOHANG) }
         end
       end
 

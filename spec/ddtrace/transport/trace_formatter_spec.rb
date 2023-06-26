@@ -34,7 +34,8 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         runtime_id: runtime_id,
         sample_rate: sample_rate,
         sampling_priority: sampling_priority,
-        tags: trace_tags
+        tags: trace_tags,
+        profiling_enabled: profiling_enabled,
       }
     end
 
@@ -49,6 +50,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
     let(:runtime_id) { 'trace.runtime_id' }
     let(:sample_rate) { rand }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
+    let(:profiling_enabled) { true }
   end
 
   shared_context 'trace metadata with tags' do
@@ -133,7 +135,8 @@ RSpec.describe Datadog::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => nil,
             Datadog::Core::Runtime::Ext::TAG_ID => nil,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => nil,
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => nil
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => nil,
+            Datadog::Tracing::Metadata::Ext::TAG_PROFILING_ENABLED => nil,
           )
         end
       end
@@ -152,6 +155,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
             Datadog::Core::Runtime::Ext::TAG_ID => runtime_id,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority,
+            Datadog::Tracing::Metadata::Ext::TAG_PROFILING_ENABLED => 1.0,
           )
         end
       end

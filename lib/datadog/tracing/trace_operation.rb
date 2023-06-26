@@ -64,6 +64,7 @@ module Datadog
         sampled: nil,
         sampling_priority: nil,
         service: nil,
+        profiling_enabled: nil,
         tags: nil,
         metrics: nil
       )
@@ -84,6 +85,7 @@ module Datadog
         @sample_rate = sample_rate
         @sampling_priority = sampling_priority
         @service = service
+        @profiling_enabled = profiling_enabled
 
         # Generic tags
         set_tags(tags) if tags
@@ -450,7 +452,8 @@ module Datadog
           service: service,
           tags: meta,
           metrics: metrics,
-          root_span_id: !partial ? root_span && root_span.id : nil
+          root_span_id: !partial ? root_span && root_span.id : nil,
+          profiling_enabled: @profiling_enabled,
         )
       end
 

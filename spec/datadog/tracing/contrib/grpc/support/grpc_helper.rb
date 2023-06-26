@@ -1,10 +1,19 @@
 require 'grpc'
-
 require 'spec/support/thread_helpers'
+
+if RUBY_VERSION < '2.3'
+  require_relative './gen/grpc-1.19.0/test_service_services_pb'
+else
+  require_relative './gen/test_service_services_pb'
+end
 
 module GRPCHelper
   def run_request_reply(address = available_endpoint, client = nil)
     runner(address, client) { |c| c.basic(TestMessage.new) }
+  end
+
+  def run_request_reply_error(address = available_endpoint, client = nil)
+    runner(address, client) { |c| c.error(TestMessage.new) }
   end
 
   def run_client_streamer(address = available_endpoint, client = nil)
@@ -38,61 +47,51 @@ module GRPCHelper
     client ||= TestService.rpc_stub_class.new(address, :this_channel_is_insecure)
 
     yield client
+  rescue StandardError => e
+    Datadog.logger.debug("GRPC call failed: #{e}")
 
+    raise
+  ensure
     server.stop
     until server.stopped?; end
     t.join
   end
 
-  class TestMessage
-    class << self
-      def marshal(_o)
-        ''
-      end
-
-      def unmarshal(_o)
-        new
-      end
-    end
-  end
-
-  class TestService
-    include GRPC::GenericService
-
-    rpc :basic, TestMessage, TestMessage
-    rpc :stream_from_client, stream(TestMessage), TestMessage
-    rpc :stream_from_server, TestMessage, stream(TestMessage)
-    rpc :stream_both_ways, stream(TestMessage), stream(TestMessage)
-
+  class TestService < GRPCHelper::Testing::Service
     attr_reader :received_metadata
 
+    # rubocop:disable Lint/MissingSuper
     def initialize(**keywords)
       @trailing_metadata = keywords
       @received_metadata = []
     end
+    # rubocop:enable Lint/MissingSuper
 
-    # provide implementations for each registered rpc interface
     def basic(_request, call)
       call.output_metadata.update(@trailing_metadata)
       @received_metadata << call.metadata unless call.metadata.nil?
-      TestMessage.new
+      GRPCHelper::TestMessage.new
+    end
+
+    def error(_request, call)
+      raise GRPC::BadStatus.new_status_exception(GRPC::Core::StatusCodes::INVALID_ARGUMENT)
     end
 
     def stream_from_client(call)
       call.output_metadata.update(@trailing_metadata)
       call.each_remote_read.each {} # Consume data
-      TestMessage.new
+      GRPCHelper::TestMessage.new
     end
 
     def stream_from_server(_request, call)
       call.output_metadata.update(@trailing_metadata)
-      [TestMessage.new, TestMessage.new]
+      [GRPCHelper::TestMessage.new, GRPCHelper::TestMessage.new]
     end
 
     def stream_both_ways(_requests, call)
       call.output_metadata.update(@trailing_metadata)
       call.each_remote_read.each {} # Consume data
-      [TestMessage.new, TestMessage.new]
+      [GRPCHelper::TestMessage.new, GRPCHelper::TestMessage.new]
     end
   end
 end

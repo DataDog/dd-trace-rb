@@ -930,7 +930,6 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         sleep(duration_wall_time)
         span_op.stop
 
-        puts "\nduration: #{duration}\nwall_time: #{duration_wall_time * 1e9}\n"
         expect(duration).to be_within(1).of(duration_wall_time * 1e9)
       end
 
