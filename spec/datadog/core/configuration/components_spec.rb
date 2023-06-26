@@ -224,7 +224,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     context 'given settings' do
       let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
-      let(:expected_options) { { enabled: enabled, heartbeat_interval: heartbeat_interval } }
+      let(:expected_options) { { enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds } }
       let(:enabled) { true }
       let(:heartbeat_interval_seconds) { 60 }
 
@@ -241,7 +241,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it { is_expected.to be(telemetry_client) }
 
         context 'and :unix agent adapter' do
-          let(:expected_options) { { enabled: false, heartbeat_interval: heartbeat_interval } }
+          let(:expected_options) { { enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds } }
           let(:agent_settings) do
             instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, adapter: :unix)
           end

@@ -16,13 +16,13 @@ module Datadog
         include Core::Utils::Forking
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
-        # @param interval [Float] How frequently heartbeats will be reported, in seconds.
-        def initialize(heartbeat_interval:, enabled: true)
+        # @param heartbeat_interval_seconds [Float] How frequently heartbeats will be reported, in seconds.
+        def initialize(heartbeat_interval_seconds:, enabled: true)
           @enabled = enabled
           @emitter = Emitter.new
           @stopped = false
           @unsupported = false
-          @worker = Telemetry::Heartbeat.new(enabled: @enabled, interval: heartbeat_interval) do
+          @worker = Telemetry::Heartbeat.new(enabled: @enabled, heartbeat_interval_seconds: heartbeat_interval_seconds) do
             heartbeat!
           end
         end

@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'datadog/core/telemetry/client'
 
 RSpec.describe Datadog::Core::Telemetry::Client do
-  subject(:client) { described_class.new(enabled: enabled, heartbeat_interval: heartbeat_interval) }
+  subject(:client) { described_class.new(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds) }
   let(:enabled) { true }
   let(:heartbeat_interval_seconds) { 1.3 }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     end
 
     context 'with default parameters' do
-      subject(:client) { described_class.new(heartbeat_interval: heartbeat_interval) }
+      subject(:client) { described_class.new(heartbeat_interval_seconds: heartbeat_interval_seconds) }
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(true) }
       it { expect(client.emitter).to be(emitter) }
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
     before do
       allow(Datadog::Core::Telemetry::Heartbeat).to receive(:new)
-        .with(enabled: enabled, interval: heartbeat_interval).and_return(worker)
+        .with(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds).and_return(worker)
       allow(worker).to receive(:start)
       allow(worker).to receive(:stop)
     end

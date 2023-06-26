@@ -10,10 +10,11 @@ module Datadog
       class Heartbeat < Core::Worker
         include Core::Workers::Polling
 
-        def initialize(interval:, enabled: true, &block)
+        def initialize(heartbeat_interval_seconds:, enabled: true, &block)
           # Workers::Polling settings
           self.enabled = enabled
           # Workers::IntervalLoop settings
+          interval = heartbeat_interval_seconds
           self.loop_base_interval = interval
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_STOP
           super(&block)
