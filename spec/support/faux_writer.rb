@@ -10,7 +10,7 @@ class FauxWriter < Datadog::Tracing::Writer
   include NetworkHelpers
 
   def initialize(options = {})
-    if ENV['DD_AGENT_HOST'] == 'testagent' && test_agent_running?
+    if ENV['DD_AGENT_HOST'] == 'testagent' && test_agent_running? && !options[:disable_test_agent]
       options[:transport] ||= Datadog::Transport::HTTP.default do |t|
         t.adapter :net_http, 'testagent', 9126, timeout: 30
       end
