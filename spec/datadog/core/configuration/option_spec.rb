@@ -8,6 +8,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
   let(:definition) do
     instance_double(
       Datadog::Core::Configuration::OptionDefinition,
+      name: :test_name,
       default: default,
       delegate_to: delegate,
       lazy: lazy,
@@ -155,6 +156,18 @@ RSpec.describe Datadog::Core::Configuration::Option do
         it 'does not override with value with precedence DEFAULT' do
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
           expect(option.get).to eq(:original_value)
+        end
+
+        it 'does not record debug log for successful override' do
+          allow(Datadog.logger).to receive(:debug)
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
+          expect(Datadog.logger).to_not receive(:debug)
+        end
+
+        it 'records debug log for ignored override' do
+          allow(Datadog.logger).to receive(:debug)
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+          expect(Datadog.logger).to have_lazy_debug_logged("Option 'test_name' not changed to 'override'")
         end
       end
 

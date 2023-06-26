@@ -32,7 +32,15 @@ module Datadog
         # @param value [Object] the new value to be associated with this option
         # @param precedence [Precedence] from what precedence order this new value comes from
         def set(value, precedence: Precedence::PROGRAMMATIC)
-          return @value if precedence < @precedence_set # Cannot override higher precedence value
+          # Cannot override higher precedence value
+          if precedence < @precedence_set
+            Datadog.logger.debug do
+              "Option '#{definition.name}' not changed to '#{value}' (precedence: #{precedence}) because the higher " \
+                "precedence value '#{@value}' (precedence: #{@precedence_set}) was already set."
+            end
+
+            return @value
+          end
 
           old_value = @value
           (@value = context_exec(value, old_value, &definition.setter)).tap do |v|
