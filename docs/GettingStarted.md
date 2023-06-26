@@ -2141,11 +2141,11 @@ To change the default behavior of Datadog tracing, you can use, in order of prec
 2. Custom options inside a `Datadog.configure` block, e.g.:
     ```ruby
     Datadog.configure do |c|
-    c.service = 'billing-api'
-    c.env = ENV['RACK_ENV']
+      c.service = 'billing-api'
+      c.env = ENV['RACK_ENV']
     
-    c.tracing.report_hostname = true
-    c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
+      c.tracing.report_hostname = true
+      c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
     end
     ```
 3. Environment variables.
