@@ -3,7 +3,9 @@ require 'spec_helper'
 require 'datadog/core/telemetry/heartbeat'
 
 RSpec.describe Datadog::Core::Telemetry::Heartbeat do
-  subject(:heartbeat) { described_class.new(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds, &block) }
+  subject(:heartbeat) do
+    described_class.new(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds, &block)
+  end
 
   let(:enabled) { true }
   let(:heartbeat_interval_seconds) { 1.2 }
