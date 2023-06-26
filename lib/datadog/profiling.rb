@@ -66,6 +66,11 @@ module Datadog
       nil
     end
 
+    def self.enabled?
+      profiler = Datadog.send(:components).profiler
+      !!(profiler.scheduler.running? if profiler)
+    end
+
     private_class_method def self.replace_noop_allocation_count
       def self.allocation_count # rubocop:disable Lint/DuplicateMethods, Lint/NestedMethodDefinition (On purpose!)
         Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_allocation_count

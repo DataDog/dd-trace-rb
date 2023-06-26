@@ -4,6 +4,7 @@ require_relative '../distributed/propagation'
 require_relative '../../analytics'
 require_relative '../ext'
 require_relative '../../ext'
+require_relative '../formatting'
 
 module Datadog
   module Tracing
@@ -16,30 +17,39 @@ module Datadog
           # sending the request to the server.
           class Client < Base
             def trace(keywords)
-              keywords[:metadata] ||= {}
+              formatter = GRPC::Formatting::FullMethodStringFormatter.new(keywords[:method])
 
               options = {
                 span_type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
                 service: service_name, # Maintain client-side service name configuration
-                resource: format_resource(keywords[:method])
+                resource: formatter.resource_name
               }
 
               Tracing.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
-                annotate!(trace, span, keywords[:metadata], keywords[:call])
+                annotate!(trace, span, keywords, formatter)
 
-                yield
+                begin
+                  result = yield
+                rescue StandardError => e
+                  code = e.is_a?(::GRPC::BadStatus) ? e.code : ::GRPC::Core::StatusCodes::UNKNOWN
+                  span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, code)
+
+                  raise
+                end
+                span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, ::GRPC::Core::StatusCodes::OK)
+                result
               end
             end
 
             private
 
-            def annotate!(trace, span, metadata, call)
+            def annotate!(trace, span, keywords, formatter)
+              metadata = keywords[:metadata] || {}
+              call = keywords[:call]
+
               span.set_tags(metadata)
 
-              span.set_tag(Contrib::Ext::RPC::TAG_SYSTEM, Ext::TAG_SYSTEM)
-
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
-
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CLIENT)
 
@@ -47,6 +57,9 @@ module Datadog
                 # Tag as an external peer service
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
               end
+
+              span.set_tag(Contrib::Ext::RPC::TAG_SYSTEM, Ext::TAG_SYSTEM)
+              span.set_tag(Contrib::Ext::RPC::GRPC::TAG_FULL_METHOD, formatter.grpc_full_method)
 
               host, _port = find_host_port(call)
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
@@ -60,14 +73,6 @@ module Datadog
               Distributed::Propagation::INSTANCE.inject!(trace, metadata) if distributed_tracing?
             rescue StandardError => e
               Datadog.logger.debug("GRPC client trace failed: #{e}")
-            end
-
-            def format_resource(proto_method)
-              proto_method
-                .downcase
-                .split('/')
-                .reject(&:empty?)
-                .join('.')
             end
 
             def find_deadline(call)

@@ -84,7 +84,7 @@ RSpec.describe 'tracing on the server connection' do
           expect(span).to have_error_message('test error')
           expect(span).to have_error_type('TestError')
           expect(span).to have_error_stack(include('server_spec.rb'))
-          expect(span.get_tag('rpc.system')).to eq 'grpc'
+          expect(span.get_tag('rpc.system')).to eq('grpc')
           expect(span.get_tag('span.kind')).to eq('server')
         end
       end
