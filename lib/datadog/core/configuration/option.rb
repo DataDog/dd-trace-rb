@@ -10,9 +10,9 @@ module Datadog
 
         # Option setting precedence. Higher number means higher precedence.
         module Precedence
-          REMOTE_CONFIGURATION = 2
-          PROGRAMMATIC = 1
-          DEFAULT = 0
+          REMOTE_CONFIGURATION = [2, :remote_configuration].freeze
+          PROGRAMMATIC = [1, :programmatic].freeze
+          DEFAULT = [0, :default].freeze
         end
 
         def initialize(definition, context)
@@ -33,10 +33,10 @@ module Datadog
         # @param precedence [Precedence] from what precedence order this new value comes from
         def set(value, precedence: Precedence::PROGRAMMATIC)
           # Cannot override higher precedence value
-          if precedence < @precedence_set
+          if precedence[0] < @precedence_set[0]
             Datadog.logger.debug do
-              "Option '#{definition.name}' not changed to '#{value}' (precedence: #{precedence}) because the higher " \
-                "precedence value '#{@value}' (precedence: #{@precedence_set}) was already set."
+              "Option '#{definition.name}' not changed to '#{value}' (precedence: #{precedence[1]}) because the higher " \
+                "precedence value '#{@value}' (precedence: #{@precedence_set[1]}) was already set."
             end
 
             return @value
