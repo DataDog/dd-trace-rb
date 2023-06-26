@@ -15,6 +15,7 @@ module Datadog
           # Instance methods for configuration
           module InstanceMethods
             def log(log, message = nil, progname = nil, &block)
+              return super unless Datadog.configuration.tracing.log_injection
               return super unless Datadog.configuration.tracing[:semantic_logger].enabled
               return super unless log.is_a?(::SemanticLogger::Log)
 
