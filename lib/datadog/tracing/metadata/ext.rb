@@ -17,8 +17,6 @@ module Datadog
         TAG_PEER_HOSTNAME = 'peer.hostname'
         # Name of external service that performed the work
         TAG_PEER_SERVICE = 'peer.service'
-        # Name of tag from which where peer.service information was extracted from
-        TAG_PEER_SERVICE_SOURCE = '_dd.peer.service.source'
 
         TAG_KIND = 'span.kind'
 
