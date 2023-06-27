@@ -176,6 +176,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
           it 'generates an OptionDefinition with defaults' do
             is_expected.to have_attributes(
               default: nil,
+              default_proc: nil,
               delegate_to: nil,
               depends_on: [],
               name: name,
@@ -206,6 +207,23 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
           it 'yields an OptionDefinition with the block\'s value' do
             is_expected.to have_attributes(default: false)
           end
+        end
+      end
+    end
+
+    context 'validate_options!' do
+      context 'when default and default_proc is provided' do
+        let(:initialize_block) do
+          proc do |o|
+            o.default false
+            o.default_proc { true }
+          end
+        end
+
+        it do
+          expect do
+            is_expected
+          end.to raise_error(described_class::InvalidOptionError)
         end
       end
     end
@@ -247,6 +265,16 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     context 'given a value and block' do
       let(:value) { true }
+      let(:block) { proc { false } }
+
+      it { is_expected.to be block }
+    end
+  end
+
+  describe '#default_proc' do
+    subject(:default_proc) { builder.default_proc(&block) }
+
+    context 'given a block' do
       let(:block) { proc { false } }
 
       it { is_expected.to be block }
@@ -424,6 +452,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     it 'contains the arguments for OptionDefinition' do
       expect(meta.keys).to include(
         :default,
+        :default_proc,
         :delegate_to,
         :depends_on,
         :on_set,

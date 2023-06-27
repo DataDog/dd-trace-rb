@@ -33,7 +33,7 @@ module Datadog
             option :tag_data do |o|
               o.default { env_to_bool(Ext::ENV_TAG_DATA_ENABLED, false) }
             end
-            option :error_handler, default: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
+            option :error_handler, default_proc: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
           end
         end
       end

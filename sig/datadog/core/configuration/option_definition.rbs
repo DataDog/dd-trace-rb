@@ -31,6 +31,8 @@ module Datadog
 
           def default: (?untyped? value) { () -> untyped } -> untyped
 
+          def default_proc: () { () -> untyped } -> untyped
+
           def delegate_to: () { () -> untyped } -> untyped
 
           def helper: (untyped name, *untyped _args) { () -> untyped } -> untyped
