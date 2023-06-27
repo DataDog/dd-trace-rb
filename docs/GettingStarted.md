@@ -2138,7 +2138,7 @@ LogJob.perform_async('login')
 To change the default behavior of `ddtrace`, you can use, in order of priority, with 1 being the highest:
 
 1. [Remote Configuration](https://docs.datadoghq.com/agent/remote_config).
-2. Custom options inside a `Datadog.configure` block, e.g.:
+2. Options set inside a `Datadog.configure` block, e.g.:
     ```ruby
     Datadog.configure do |c|
       c.service = 'billing-api'
