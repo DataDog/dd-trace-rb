@@ -13,6 +13,8 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "aws"
 
+          PEER_SERVICE_SOURCES: Array[String]
+
           SPAN_COMMAND: "aws.command"
 
           TAG_AGENT: "aws.agent"

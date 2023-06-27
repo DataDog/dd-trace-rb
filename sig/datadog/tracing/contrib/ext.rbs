@@ -3,6 +3,7 @@ module Datadog
     module Contrib
       module Ext
         module DB
+          PEER_SERVICE_SOURCES: Array[string]
           TAG_INSTANCE: "db.instance"
 
           TAG_USER: "db.user"
@@ -15,25 +16,25 @@ module Datadog
         end
 
         module RPC
+          PEER_SERVICE_SOURCES: Array[string]
           TAG_SYSTEM: "rpc.system"
 
           TAG_SERVICE: "rpc.service"
 
           TAG_METHOD: "rpc.method"
+          module GRPC
+            TAG_STATUS_CODE: "rpc.grpc.status_code"
+            TAG_FULL_METHOD: "rpc.grpc.full_method"
+          end
         end
 
         module Messaging
-          TAG_KAFKA_BOOTSTRAP_SERVERS: "messaging.kafka.bootstrap.servers"
+          PEER_SERVICE_SOURCES: Array[string]
           TAG_SYSTEM: "messaging.system"
-
-          TAG_RABBITMQ_ROUTING_KEY: "messaging.rabbitmq.routing_key"
         end
 
-        module SpanAttributeSchema
-          PEER_SERVICE_SOURCE_AWS: Array[string]
-          PEER_SERVICE_SOURCE_DB: Array[string]
-          PEER_SERVICE_SOURCE_MSG: Array[string]
-          PEER_SERVICE_SOURCE_RPC: Array[string]
+        module Metadata
+          TAG_PEER_SERVICE_SOURCE: "_dd.peer.service.source"
         end
       end
     end

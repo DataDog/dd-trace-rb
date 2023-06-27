@@ -31,13 +31,16 @@ module Datadog
           TAG_RULE_NAME = 'rulename'
           TAG_STATE_MACHINE_NAME = 'statemachinename'
           TAG_BUCKET_NAME = 'bucketname'
-          PEER_SERVICE_SOURCE_AWS = Array[TAG_QUEUE_NAME,
-                                TAG_TOPIC_NAME,
-                                TAG_STREAM_NAME,
-                                TAG_TABLE_NAME,
-                                TAG_BUCKET_NAME,
-                                TAG_RULE_NAME,
-                                TAG_STATE_MACHINE_NAME,].freeze
+          PEER_SERVICE_SOURCES = Array[TAG_QUEUE_NAME,
+            TAG_TOPIC_NAME,
+            TAG_STREAM_NAME,
+            TAG_TABLE_NAME,
+            TAG_BUCKET_NAME,
+            TAG_RULE_NAME,
+            TAG_STATE_MACHINE_NAME,
+            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+            Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end
       end
     end
