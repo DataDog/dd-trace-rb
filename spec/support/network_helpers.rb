@@ -42,7 +42,11 @@ module NetworkHelpers
   # @return [Boolean] if agent on inputted host / port combo is running
   def check_availability_by_http_request(host, port)
     uri = URI("http://#{host}:#{port}/info")
-    response = Net::HTTP.get_response(uri)
+    request = Net::HTTP::Get.new(uri)
+    request['X-Datadog-Untraced-Request'] = true
+    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
+      http.request(request)
+    end
     response.is_a?(Net::HTTPSuccess)
   rescue SocketError
     false
