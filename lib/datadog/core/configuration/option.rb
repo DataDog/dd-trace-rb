@@ -40,7 +40,7 @@ module Datadog
         def set(value, precedence: Precedence::PROGRAMMATIC)
           # Cannot override higher precedence value
           if precedence[0] < @precedence_set[0]
-            Datadog.logger.debug do
+            Datadog.logger.info do
               "Option '#{definition.name}' not changed to '#{value}' (precedence: #{precedence[1]}) because the higher " \
                 "precedence value '#{@value}' (precedence: #{@precedence_set[1]}) was already set."
             end

@@ -158,16 +158,18 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.get).to eq(:original_value)
         end
 
-        it 'does not record debug log for successful override' do
-          allow(Datadog.logger).to receive(:debug)
+        it 'does not record info log for successful override' do
+          allow(Datadog.logger).to receive(:info)
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
-          expect(Datadog.logger).to_not receive(:debug)
+          expect(Datadog.logger).to_not receive(:info)
         end
 
-        it 'records debug log for ignored override' do
-          allow(Datadog.logger).to receive(:debug)
+        it 'records info log for ignored override' do
+          allow(Datadog.logger).to receive(:info)
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
-          expect(Datadog.logger).to have_lazy_debug_logged("Option 'test_name' not changed to 'override'")
+          expect(Datadog.logger).to have_received(:info) do |&block|
+            expect(block.call).to include("Option 'test_name' not changed to 'override'")
+          end
         end
       end
 
