@@ -73,6 +73,7 @@ RSpec.describe 'Mysql2::Client patcher' do
           expect(span.get_tag('span.kind')).to eq('client')
           expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
+          expect(span.get_tag('db.instance')).to eq(database)
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
@@ -90,6 +91,7 @@ RSpec.describe 'Mysql2::Client patcher' do
           expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('mysql2')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('query')
+          expect(span.get_tag('db.instance')).to eq(database)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -130,6 +132,7 @@ RSpec.describe 'Mysql2::Client patcher' do
           expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag('error.message'))
             .to eq("Unknown column 'INVALID' in 'field list'")
+          expect(span.get_tag('db.instance')).to eq(database)
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query', error: Mysql2::Error

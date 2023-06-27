@@ -45,6 +45,7 @@ module Datadog
                 span.set_tag(Ext::TAG_DB_NAME, query_options[:database])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
+                span.set_tag(Tracing::Contrib::Ext::DB::TAG_INSTANCE, query_options[:database])
 
                 propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
 
