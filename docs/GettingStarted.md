@@ -2137,7 +2137,7 @@ LogJob.perform_async('login')
 
 To change the default behavior of `ddtrace`, you can use, in order of priority, with 1 being the highest:
 
-1. [Remote Configuration](#remote-configuration).
+1. [Remote Configuration](https://docs.datadoghq.com/agent/remote_config).
 2. Custom options inside a `Datadog.configure` block, e.g.:
     ```ruby
     Datadog.configure do |c|
@@ -2852,14 +2852,6 @@ If you run into issues with profiling, please check the [Profiler Troubleshootin
 When profiling [Resque](https://github.com/resque/resque) jobs, you should set the `RUN_AT_EXIT_HOOKS=1` option described in the [Resque](https://github.com/resque/resque/blob/v2.0.0/docs/HOOKS.md#worker-hooks) documentation.
 
 Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.
-
-## Remote Configuration
-
-<!--
-TODO: Flush out consistent language regarding Remote Configuration documentation before
-releasing the Remote Configuration feature.
-This could possibly be a simple link to a central documentation page.
--->
 
 ## Known issues and suggested configurations
 
