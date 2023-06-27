@@ -124,7 +124,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
 
           context 'with precedence' do
             subject(:set_option) { options_object.set_option(name, value, precedence: precedence) }
-            let(:precedence) { 123 }
+            let(:precedence) { Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION }
 
             it 'sets the option precedence' do
               set_option
