@@ -35,7 +35,11 @@ module Datadog
           # used for checking if the APM Test Agent is running from being traced.
           # TODO: Remove this when transport implements its own "skip tracing" mechanism.
           def datadog_test_agent_http_request?(request)
-            request['X-Datadog-Untraced-Request'].present?
+            if request['X-Datadog-Untraced-Request']
+              true
+            else
+              false
+            end
           end
 
           def should_skip_distributed_tracing?(client_config)
