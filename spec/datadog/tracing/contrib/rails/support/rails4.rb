@@ -80,6 +80,38 @@ RSpec.shared_context 'Rails 4 base application' do
     klass
   end
 
+  let(:before_test_initialize_block) do
+    proc do
+      append_routes!
+    end
+  end
+
+  let(:after_test_initialize_block) do
+    proc do
+      # Rails autoloader recommends controllers to be loaded
+      # after initialization. This will be enforced when `zeitwerk`
+      # becomes the only supported autoloader.
+      append_controllers!
+
+      # Force connection to initialize, and dump some spans
+      application_record.connection
+
+      # Skip default Rails exception page rendering.
+      # This avoid polluting the trace under test
+      # with render and partial_render templates for the
+      # error page.
+      #
+      # We could completely disable the {DebugExceptions} middleware,
+      # but that affects Rails' internal error propagation logic.
+      # render_for_browser_request(request, wrapper)
+      allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
+        wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
+
+        this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
+      end
+    end
+  end
+
   def append_routes!
     # Make sure to load controllers first
     # otherwise routes won't draw properly.
@@ -117,6 +149,7 @@ RSpec.shared_context 'Rails 4 base application' do
   # Rails 4 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
+    # TODO: Remove this side-effect on missing log entries
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
