@@ -56,6 +56,7 @@ module Datadog
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
+        trace_tags: {},
         writer: Writer.new
       )
         @trace_flush = trace_flush
@@ -65,6 +66,7 @@ module Datadog
         @sampler = sampler
         @span_sampler = span_sampler
         @tags = tags
+        @trace_tags = trace_tags
         @writer = writer
       end
 
@@ -320,18 +322,18 @@ module Datadog
         if digest
           TraceOperation.new(
             hostname: hostname,
-            profiling_enabled: profiling_enabled,
             id: digest.trace_id,
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,
             sampling_priority: digest.trace_sampling_priority,
             # Distributed tags are just regular trace tags with special meaning to Datadog
             tags: digest.trace_distributed_tags,
+            trace_tags: trace_tags,
           )
         else
           TraceOperation.new(
             hostname: hostname,
-            profiling_enabled: profiling_enabled,
+            trace_tags: trace_tags,
           )
         end
       end
