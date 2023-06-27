@@ -87,7 +87,7 @@ module Datadog
           def using_default?(option)
             return options[option].default_precedence? if options[option]
 
-            !self.class.options[option].default.nil?
+            true
           end
 
           def options_hash

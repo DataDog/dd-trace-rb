@@ -155,7 +155,7 @@ RSpec.describe Datadog::Core::Configuration::Base do
         end
 
         context 'with default option' do
-          context 'when not set' do
+          context 'when not set or accessed' do
             it 'returns true' do
               expect(configuration.fake_test.using_default?(:enabled)).to be(true)
             end
@@ -186,9 +186,9 @@ RSpec.describe Datadog::Core::Configuration::Base do
         end
 
         context 'without default option' do
-          context 'when not set' do
-            it 'returns false' do
-              expect(configuration.fake_test.using_default?(:without_default)).to be(false)
+          context 'when not set or accessed' do
+            it 'returns true' do
+              expect(configuration.fake_test.using_default?(:without_default)).to be(true)
             end
           end
 
