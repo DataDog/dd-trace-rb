@@ -10,8 +10,10 @@ RSpec.describe 'net/http patcher' do
   end
 
   before do
-    WebMock.disable_net_connect!(allow_localhost: true)
-    WebMock.enable!
+    call_web_mock_function_with_agent_host_exclusions do |options|
+      WebMock.disable_net_connect!(allow_localhost: true, **options)
+    end
+    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
 
     stub_request(:any, host)
 

@@ -35,6 +35,8 @@ test_containers:
     GRPC_RUBY_BUILD_PROCS: 6
     DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
     TEST_REDIS_OLD_HOST: redis_old
+    DD_AGENT_HOST: testagent
+    DD_TRACE_AGENT_PORT: 9126
     DDTRACE_CI: true
   - &container_parameters_environment
     - *container_base_environment
@@ -88,14 +90,16 @@ test_containers:
   - &container_memcached
     image: memcached:1.5-alpine
   - &memcached_port 11211
-  - &container_agent
-    image: datadog/agent
+  - &container_testagent
+    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:latest
+    name: testagent
     environment:
-      - DD_APM_ENABLED=true
-      - DD_BIND_HOST=0.0.0.0
-      - DD_API_KEY=00000000000000000000000000000000
-      - DD_HOSTNAME=dd-trace-rb-ci
-  - &agent_port 8126
+      - LOG_LEVEL=DEBUG
+      - TRACE_LANGUAGE=ruby
+      - PORT=9126
+      - DD_POOL_TRACE_CHECK_FAILURES=true
+      - DD_DISABLE_ERROR_RESPONSES=true
+  - &testagent_port 9126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
   run:
@@ -176,6 +180,22 @@ step_run_all_tests: &step_run_all_tests
         " >> .rspec-local
 
         bundle exec rake ci
+step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_results
+  run:
+    name: Get APM Test Agent Trace Check Results
+    command: |
+      RESPONSE=$(curl -s -w "\n%{http_code}" -o response.txt http://testagent:9126/test/trace_check/failures)
+      RESPONSE_CODE=$(echo "$RESPONSE" | awk 'END {print $NF}')
+      if [[ $RESPONSE_CODE -eq 200 ]]; then
+        cat response.txt
+        echo "All Check Traces returned successful! (HTTP 200)"
+      else
+        echo "Check Traces failed with response code: $RESPONSE_CODE"
+        echo "Failures:"
+        cat response.txt
+        exit 1
+      fi
+    when: always
 
 filters_all_branches_and_tags: &filters_all_branches_and_tags
   filters:
@@ -269,7 +289,7 @@ orbs:
           - *container_redis_old
           - *container_mongo
           - *container_memcached
-          - *container_agent
+          - *container_testagent
         parallelism: 22
         steps:
           - restore_cache:
@@ -301,8 +321,10 @@ orbs:
           - docker-wait:
               port: *memcached_port
           - docker-wait:
-              port: *agent_port
+              host: "testagent"
+              port: *testagent_port
           - *step_run_all_tests
+          - *step_get_test_agent_trace_check_results
           - store_test_results:
               path: /tmp/rspec
           - persist_to_workspace:
@@ -315,7 +337,7 @@ orbs:
           - <<: *container_base
           - *container_postgres
           - *container_redis
-          - *container_agent
+          - *container_testagent
         steps:
           - restore_cache:
               keys:
@@ -385,6 +407,10 @@ orbs:
       docker-wait:
         description: Wait for containers to listen on a TCP port.
         parameters:
+          host:
+            description: Host name or IP address the container is running on.
+            type: string
+            default: localhost
           port:
             description: TCP port the container is listening on.
             type: integer
@@ -394,8 +420,8 @@ orbs:
             default: 1m
         steps:
           - run:
-              name: Wait for container on port <<parameters.port>>
-              command: dockerize -wait 'tcp://localhost:<<parameters.port>>' -timeout '<<parameters.timeout>>'
+              name: Wait for container at <<parameters.host>>:<<parameters.port>>
+              command: dockerize -wait 'tcp://<<parameters.host>>:<<parameters.port>>' -timeout '<<parameters.timeout>>'
     executors:
       docker-integration:
         docker:
