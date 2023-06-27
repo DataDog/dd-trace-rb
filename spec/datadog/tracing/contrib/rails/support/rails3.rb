@@ -121,11 +121,7 @@ RSpec.shared_context 'Rails 3 base application' do
       allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
         wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
 
-        if Rails.version < '4.0'
-          this.send(:render, wrapper.status_code, 'Test error response body')
-        else
-          this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
-        end
+        this.send(:render, wrapper.status_code, 'Test error response body')
       end
     end
   end
