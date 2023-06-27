@@ -31,7 +31,9 @@ RSpec.describe 'Minitest hooks' do
     expect(span.resource).to eq('SomeTest#test_foo')
     expect(span.service).to eq('ltest')
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_NAME)).to eq('SomeTest#test_foo')
-    # expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SUITE)).to eq(spec.file_path)
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SUITE)).to eq(
+      'spec/datadog/ci/contrib/minitest/instrumentation_spec.rb'
+    )
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SPAN_KIND)).to eq(Datadog::CI::Ext::AppTypes::TYPE_TEST)
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_TYPE)).to eq(Datadog::CI::Contrib::Minitest::Ext::TEST_TYPE)
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK)).to eq(Datadog::CI::Contrib::Minitest::Ext::FRAMEWORK)
@@ -299,21 +301,5 @@ RSpec.describe 'Minitest hooks' do
 
       expect_skip
     end
-  end
-
-  it 'uses relative path for test suite' do
-    klass = Class.new(Minitest::Test) do
-      def self.name
-        'SomeTest'
-      end
-
-      def test_foo; end
-    end
-
-    klass.new(:test_foo).run
-
-    expect(
-      span.get_tag(Datadog::CI::Ext::Test::TAG_SUITE)
-    ).to eq('spec/datadog/ci/contrib/minitest/instrumentation_spec.rb')
   end
 end
