@@ -155,6 +155,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('mongodb')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
         expect(span.get_tag('span.kind')).to eq('client')
+        expect(span.get_tag('db.instance')).to eq(database)
       end
 
       it_behaves_like 'analytics for integration' do

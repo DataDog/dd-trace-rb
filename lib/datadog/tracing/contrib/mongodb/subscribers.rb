@@ -55,6 +55,7 @@ module Datadog
             span.set_tag(Ext::TAG_QUERY, serialized_query)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, event.address.host)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, event.address.port)
+            span.set_tag(Tracing::Contrib::Ext::DB::TAG_INSTANCE, query['database'])
 
             # set the resource with the quantized query
             span.resource = serialized_query
