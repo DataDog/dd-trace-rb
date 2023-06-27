@@ -3,10 +3,12 @@ require 'spec_helper'
 require 'datadog/core/telemetry/heartbeat'
 
 RSpec.describe Datadog::Core::Telemetry::Heartbeat do
-  subject(:heartbeat) { described_class.new(enabled: enabled, interval: interval, &block) }
+  subject(:heartbeat) do
+    described_class.new(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds, &block)
+  end
 
   let(:enabled) { true }
-  let(:interval) { 60 }
+  let(:heartbeat_interval_seconds) { 1.2 }
   let(:block) { proc {} }
 
   after do
@@ -16,11 +18,11 @@ RSpec.describe Datadog::Core::Telemetry::Heartbeat do
 
   describe '.new' do
     context 'when using default settings' do
-      subject(:heartbeat) { described_class.new(&block) }
+      subject(:heartbeat) { described_class.new(heartbeat_interval_seconds: heartbeat_interval_seconds, &block) }
       it do
         is_expected.to have_attributes(
           enabled?: true,
-          loop_base_interval: 60, # seconds
+          loop_base_interval: 1.2, # seconds
           task: block
         )
       end
