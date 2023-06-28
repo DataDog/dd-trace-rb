@@ -15,6 +15,10 @@ module Datadog
 
             # Instance methods for PubSub::Topic
             module InstanceMethods
+
+              DD = ::Datadog::Tracing::Distributed::Datadog.new(fetcher: ::Datadog::Tracing::Distributed::Fetcher)
+              private_constant :DD
+
               def publish(data = nil, attributes = nil, ordering_key: nil, compress: nil, compression_bytes_threshold: nil,
                           **extra_attrs, &block)
                 Tracing.trace(
@@ -28,9 +32,6 @@ module Datadog
                 end
               end
 
-              private
-
-              DD = ::Datadog::Tracing::Distributed::Datadog.new(fetcher: ::Datadog::Tracing::Distributed::Fetcher)
 
               def datadog_configuration
                 Datadog.configuration.tracing[:pubsub]
@@ -57,6 +58,10 @@ module Datadog
 
             # Instance methods for PubSub::Topic
             module InstanceMethods
+
+              DD = ::Datadog::Tracing::Distributed::Datadog.new(fetcher: ::Datadog::Tracing::Distributed::Fetcher)
+              private_constant :DD
+
               def listen(deadline: nil, message_ordering: nil, streams: nil, inventory: nil, threads: {})
                 traced_block = proc do |msg|
                   digest = DD.extract(msg.attributes || {})
@@ -69,10 +74,6 @@ module Datadog
 
                 super(deadline: deadline, message_ordering: message_ordering, streams: streams, inventory: inventory, threads: threads, &traced_block)
               end
-
-              private
-
-              DD = ::Datadog::Tracing::Distributed::Datadog.new(fetcher: ::Datadog::Tracing::Distributed::Fetcher)
             end
           end
         end
