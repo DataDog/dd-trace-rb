@@ -394,7 +394,7 @@ services:
       - ddagent_var_run:/var/run/datadog
 
   testagent:
-    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:latest
+    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.10.1
     ports:
         - "127.0.0.1:${DD_TEST_AGENT_PORT}:9126"
     depends_on:
