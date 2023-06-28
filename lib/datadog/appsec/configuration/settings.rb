@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../core/utils/duration'
+
 module Datadog
   module AppSec
     module Configuration
@@ -67,7 +69,10 @@ module Datadog
               end
 
               option :waf_timeout do |o|
-                o.default { env_to_int('DD_APPSEC_WAF_TIMEOUT', DEFAULT_APPSEC_WAF_TIMEOUT) } # us
+                o.default { ENV.fetch('DD_APPSEC_WAF_TIMEOUT', DEFAULT_APPSEC_WAF_TIMEOUT) } # us
+                o.setter do |v|
+                  Datadog::Core::Utils::Duration.call(v.to_s, base: :us)
+                end
                 o.lazy
               end
 

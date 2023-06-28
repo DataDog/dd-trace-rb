@@ -256,18 +256,53 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
           it { is_expected.to eq(2000) }
         end
+
+        context 'is defined as a float' do
+          let(:appsec_waf_timeout) { '2.5' }
+
+          it { is_expected.to eq(3) }
+        end
+
+        context 'is defined with custom suffix' do
+          let(:appsec_waf_timeout) { '2000s' }
+
+          it { is_expected.to eq(2000000000) }
+        end
+
+        context 'is defined as a float with custom suffix' do
+          let(:appsec_waf_timeout) { '2.5m' }
+
+          it { is_expected.to eq(150000000) }
+        end
       end
     end
 
     describe '#waf_timeout=' do
       subject(:set_appsec_waf_timeout) { settings.appsec.waf_timeout = appsec_waf_timeout }
+      before { set_appsec_waf_timeout }
 
       context 'when given a value' do
         let(:appsec_waf_timeout) { 1000 }
 
-        before { set_appsec_waf_timeout }
-
         it { expect(settings.appsec.waf_timeout).to eq(1000) }
+      end
+
+      context 'when given a value with custom suffix' do
+        let(:appsec_waf_timeout) { '1000h' }
+
+        it { expect(settings.appsec.waf_timeout).to eq(3600000000000) }
+      end
+
+      context 'is defined as a float' do
+        let(:appsec_waf_timeout) { '2.5' }
+
+        it { expect(settings.appsec.waf_timeout).to eq(3) }
+      end
+
+      context 'is defined as a float with custom suffix' do
+        let(:appsec_waf_timeout) { '2.5m' }
+
+        it { expect(settings.appsec.waf_timeout).to eq(150000000) }
       end
     end
 
