@@ -53,7 +53,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Reactive::Action do
         waf_result = double(:waf_result, status: :ok, timeout: false)
         expect(waf_context).to receive(:run).with(
           expected_waf_arguments,
-          Datadog::AppSec.settings.waf_timeout
+          Datadog.configuration.appsec.waf_timeout
         ).and_return(waf_result)
         described_class.subscribe(operation, waf_context)
         result = described_class.publish(operation, request)

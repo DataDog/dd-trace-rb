@@ -48,7 +48,7 @@ module Datadog
       def initialize(ruleset:)
         @ruleset_info = nil
         @addresses = []
-        settings = Datadog::AppSec.settings
+        settings = Datadog.configuration.appsec
 
         unless load_libddwaf && create_waf_handle(settings, ruleset)
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }

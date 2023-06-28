@@ -15,10 +15,8 @@ module Datadog
             integrations << integration.name
           end
 
-          Datadog::AppSec.configure do |c|
-            integrations.each do |integration_name|
-              c.instrument integration_name
-            end
+          integrations.each do |integration_name|
+            Datadog.configuration.appsec.instrument integration_name
           end
         end
       end

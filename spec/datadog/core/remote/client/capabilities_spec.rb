@@ -17,14 +17,8 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   context 'AppSec component' do
     context 'when disabled' do
       let(:settings) do
-        appsec_settings = Datadog::AppSec::Configuration::Settings.new
-        dsl = Datadog::AppSec::Configuration::DSL.new
-        dsl.enabled = false
-        appsec_settings.merge(dsl)
-
         settings = Datadog::Core::Configuration::Settings.new
-        expect(settings).to receive(:appsec).at_least(:once).and_return(appsec_settings)
-
+        settings.appsec.enabled = false
         settings
       end
 
@@ -57,14 +51,8 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
     context 'when enabled' do
       let(:settings) do
-        appsec_settings = Datadog::AppSec::Configuration::Settings.new
-        dsl = Datadog::AppSec::Configuration::DSL.new
-        dsl.enabled = true
-        appsec_settings.merge(dsl)
-
         settings = Datadog::Core::Configuration::Settings.new
-        expect(settings).to receive(:appsec).and_return(appsec_settings)
-
+        settings.appsec.enabled = true
         settings
       end
 

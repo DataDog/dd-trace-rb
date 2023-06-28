@@ -27,6 +27,8 @@ module Datadog
 
           def option_defined?: (untyped name) -> untyped
 
+          def using_default?: (Symbol option) -> bool
+
           def options_hash: () -> untyped
 
           def reset_options!: () -> untyped
