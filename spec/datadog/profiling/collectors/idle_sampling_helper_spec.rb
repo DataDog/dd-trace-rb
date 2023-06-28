@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/idle_sampling_helper'
 
@@ -17,13 +15,13 @@ RSpec.describe Datadog::Profiling::Collectors::IdleSamplingHelper do
 
     it 'resets the IdleSamplingHelper before creating a new thread' do
       expect(described_class).to receive(:_native_reset).with(idle_sampling_helper).ordered
-      expect(Thread).to receive(:new).ordered
+      expect(Thread).to receive(:new).ordered.and_call_original
 
       start
     end
 
     it 'creates a new thread' do
-      expect(Thread).to receive(:new)
+      expect(Thread).to receive(:new).ordered.and_call_original
 
       start
     end

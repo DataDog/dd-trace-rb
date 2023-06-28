@@ -1,11 +1,11 @@
+# frozen_string_literal: true
+
 module Datadog
   module Core
     module Telemetry
       module V1
         # Describes payload for telemetry V1 API app-integrations-change event
         class AppEvent
-          include Kernel
-
           attr_reader \
             :additional_payload,
             :configuration,

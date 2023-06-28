@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'datadog/tracing/contrib/http/distributed/propagation'
@@ -15,6 +13,12 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Propagation do
   subject(:propagation) { described_class.new }
 
   let(:prepare_key) { RackSupport.method(:header_to_rack) }
+
+  before do
+    call_web_mock_function_with_agent_host_exclusions do |options|
+      WebMock.disable_net_connect! options
+    end
+  end
 
   it_behaves_like 'Distributed tracing propagator' do
     subject(:propagator) { propagation }

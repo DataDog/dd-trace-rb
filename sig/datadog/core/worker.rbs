@@ -1,0 +1,6 @@
+module Datadog
+  module Core
+    class Worker
+    end
+  end
+end

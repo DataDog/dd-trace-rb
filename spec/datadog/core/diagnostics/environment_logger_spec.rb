@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'datadog/core/diagnostics/environment_logger'
@@ -10,6 +8,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
   # Reading DD_AGENT_HOST allows this to work in CI
   let(:agent_hostname) { ENV['DD_AGENT_HOST'] || '127.0.0.1' }
+  let(:agent_port) { ENV['DD_TRACE_AGENT_PORT'] || 8126 }
 
   before do
     allow(DateTime).to receive(:now).and_return(DateTime.new(2020))
@@ -33,14 +32,18 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
     before do
       allow(Datadog).to receive(:logger).and_return(tracer_logger)
+      allow(tracer_logger).to receive(:debug?).and_return true
+      allow(tracer_logger).to receive(:debug)
       allow(tracer_logger).to receive(:info)
+      allow(tracer_logger).to receive(:warn)
+      allow(tracer_logger).to receive(:error)
     end
 
     it 'with a default tracer settings' do
       expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION') do |msg|
         json = JSON.parse(msg.partition('-')[2].strip)
         expect(json).to match(
-          'agent_url' => start_with("http://#{agent_hostname}:8126?timeout="),
+          'agent_url' => start_with("http://#{agent_hostname}:#{agent_port}?timeout="),
           'analytics_enabled' => false,
           'date' => '2020-01-01T00:00:00+00:00',
           'debug' => false,
@@ -132,7 +135,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       it 'with a default tracer' do
         is_expected.to match(
           agent_error: nil,
-          agent_url: start_with("http://#{agent_hostname}:8126?timeout="),
+          agent_url: start_with("http://#{agent_hostname}:#{agent_port}?timeout="),
           analytics_enabled: false,
           date: '2020-01-01T00:00:00+00:00',
           dd_version: nil,

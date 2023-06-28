@@ -1,5 +1,3 @@
-# typed: ignore
-
 require_relative '../../../core/utils/only_once'
 
 require_relative '../patcher'
@@ -8,6 +6,7 @@ require_relative '../../response'
 require_relative '../rack/request_middleware'
 require_relative '../rack/request_body_middleware'
 require_relative 'gateway/watcher'
+require_relative 'gateway/request'
 
 require_relative '../../../tracing/contrib/rack/middlewares'
 
@@ -73,13 +72,14 @@ module Datadog
             def process_action(*args)
               env = request.env
 
-              context = env['datadog.waf.context']
+              context = env[Datadog::AppSec::Ext::SCOPE_KEY]
 
               return super unless context
 
               # TODO: handle exceptions, except for super
 
-              request_return, request_response = Instrumentation.gateway.push('rails.request.action', request) do
+              gateway_request = Gateway::Request.new(request)
+              request_return, request_response = Instrumentation.gateway.push('rails.request.action', gateway_request) do
                 super
               end
 

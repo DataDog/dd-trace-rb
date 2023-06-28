@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 require_relative '../action_cable/integration'
 require_relative '../action_mailer/integration'

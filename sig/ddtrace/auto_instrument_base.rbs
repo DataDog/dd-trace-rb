@@ -1,0 +1,5 @@
+module Datadog
+  module AutoInstrumentBase
+    def add_auto_instrument: () -> nil
+  end
+end

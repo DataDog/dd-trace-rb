@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'ext'
 
 require_relative '../metrics/client'
@@ -7,6 +5,7 @@ require_relative '../environment/class_count'
 require_relative '../environment/gc'
 require_relative '../environment/thread_count'
 require_relative '../environment/vm_cache'
+require_relative '../environment/yjit'
 
 module Datadog
   module Core
@@ -80,6 +79,8 @@ module Datadog
               )
             end
           end
+
+          flush_yjit_stats
         end
 
         def gc_metrics
@@ -135,6 +136,46 @@ module Datadog
 
         def gauge_if_not_nil(metric_name, metric_value)
           gauge(metric_name, metric_value) if metric_value
+        end
+
+        def flush_yjit_stats
+          # Only on Ruby >= 3.2
+          try_flush do
+            if Core::Environment::YJIT.available?
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_CODE_GC_COUNT,
+                Core::Environment::YJIT.code_gc_count
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_CODE_REGION_SIZE,
+                Core::Environment::YJIT.code_region_size
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_FREED_CODE_SIZE,
+                Core::Environment::YJIT.freed_code_size
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_FREED_PAGE_COUNT,
+                Core::Environment::YJIT.freed_page_count
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_INLINE_CODE_SIZE,
+                Core::Environment::YJIT.inline_code_size
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_LIVE_PAGE_COUNT,
+                Core::Environment::YJIT.live_page_count
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_OBJECT_SHAPE_COUNT,
+                Core::Environment::YJIT.object_shape_count
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_OUTLINED_CODE_SIZE,
+                Core::Environment::YJIT.outlined_code_size
+              )
+            end
+          end
         end
       end
     end

@@ -1,9 +1,15 @@
+# frozen_string_literal: true
+
+require_relative '../../utils/hash'
+
 module Datadog
   module Core
     module Telemetry
       module V1
         # Describes attributes for products object
         class Product
+          using Core::Utils::Hash::Refinement
+
           attr_reader \
             :appsec,
             :profiler
@@ -16,10 +22,12 @@ module Datadog
           end
 
           def to_h
-            {
+            hash = {
               appsec: @appsec,
               profiler: @profiler
             }
+            hash.compact!
+            hash
           end
         end
       end

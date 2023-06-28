@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'rails'
 
 RSpec.shared_context 'ActionMailer helpers' do

@@ -1,5 +1,6 @@
-# typed: ignore
+# frozen_string_literal: true
 
+require_relative 'gateway/request'
 require_relative '../../instrumentation/gateway'
 require_relative '../../response'
 
@@ -16,15 +17,16 @@ module Datadog
           end
 
           def call(env)
-            context = env['datadog.waf.context']
+            context = env[Datadog::AppSec::Ext::SCOPE_KEY]
 
             return @app.call(env) unless context
 
             # TODO: handle exceptions, except for @app.call
 
-            request = ::Rack::Request.new(env)
-
-            request_return, request_response = Instrumentation.gateway.push('rack.request.body', request) do
+            request_return, request_response = Instrumentation.gateway.push(
+              'rack.request.body',
+              Gateway::Request.new(env)
+            ) do
               @app.call(env)
             end
 

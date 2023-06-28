@@ -1,5 +1,3 @@
-# typed: true
-
 module RailsActiveRecordHelpers
   def get_adapter_name
     Datadog::Tracing::Contrib::ActiveRecord::Utils.adapter_name

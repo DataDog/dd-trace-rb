@@ -1,0 +1,107 @@
+# -----------------------------------------------------
+# Benchmarking Platform configuration
+# -----------------------------------------------------
+
+variables:
+  GITLAB_BENCHMARKS_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-gitlab
+  GITLAB_DDPROF_BENCHMARK_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-ddprof-benchmark
+
+.benchmarks:
+  stage: macrobenchmarks
+  tags: ["runner:apm-k8s-same-cpu"]
+  timeout: 1h
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: always
+    - when: manual
+  # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
+  image: $GITLAB_BENCHMARKS_CI_IMAGE
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/reports" && (mkdir "${ARTIFACTS_DIR}" || :)
+    - export DD_API_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.dd-trace-rb.dd_api_key --with-decryption --query "Parameter.Value" --out text)
+    - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform && cd /platform
+    - ./steps/capture-hardware-software-info.sh
+    - ./steps/run-benchmarks.sh
+    - "./steps/upload-results-to-s3.sh || :"
+  artifacts:
+    name: "reports"
+    paths:
+      - reports/
+    expire_in: 3 months
+  variables:
+    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true" # Important tweak for stability of benchmarks
+    DD_RELENV_DDTRACE_COMMIT_ID: $CI_COMMIT_SHORT_SHA
+    K6_RUN_ID_PREFIX: ci_rb
+    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
+  # Workaround: Currently we're not running the benchmarks on every PR, but GitHub still shows them as pending.
+  # By marking the benchmarks as allow_failure, this should go away. (This workaround should be removed once the
+  # benchmarks get changed to run on every PR)
+  allow_failure: true
+
+baseline-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: baseline
+
+only-tracing-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: only-tracing
+
+only-profiling-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+
+profiling-and-tracing-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: profiling-and-tracing
+    DD_PROFILING_ENABLED: "true"
+
+tracing-and-appsec-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: tracing-and-appsec
+    DD_APPSEC_ENABLED: "true"
+
+tracing-and-appsec-and-no-remote-configuration-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: tracing-and-appsec-and-no-remote-configuration
+    DD_APPSEC_ENABLED: "true"
+    DD_REMOTE_CONFIGURATION_ENABLED: "false"
+
+profiling-and-tracing-and-appsec-benchmarks:
+  extends: .benchmarks
+  variables:
+    DD_RELENV_CONFIGURATION: profiling-and-tracing-and-appsec
+    DD_APPSEC_ENABLED: "true"
+    DD_PROFILING_ENABLED: "true"
+
+# -----------------------------------------------------
+# Microbenchmarks that report to statsd
+# -----------------------------------------------------
+ddprof-benchmark:
+  stage: microbenchmarks
+  tags: ["runner:apm-k8s-same-cpu"]
+  timeout: 1h
+  when: manual
+  image: $GITLAB_DDPROF_BENCHMARK_CI_IMAGE
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/reports" && (mkdir "${ARTIFACTS_DIR}" || :)
+    - export DD_API_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.dd-trace-rb.dd_api_key --with-decryption --query "Parameter.Value" --out text)
+    - git clone --branch ruby/ddprof-benchmark https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform && cd /platform
+    - ./steps/capture-hardware-software-info.sh
+    - ./steps/run-benchmarks.sh
+    - "./steps/upload-results-to-s3.sh || :"
+  artifacts:
+    name: "reports"
+    paths:
+      - reports/
+    expire_in: 3 months
+  variables:
+    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true" # Important tweak for stability of benchmarks
+    LATEST_COMMIT_ID: $CI_COMMIT_SHA
+    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb

@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 module Datadog
   module Transport
@@ -7,7 +7,7 @@ module Datadog
       attr_reader \
         :parcel
 
-      def initialize(parcel)
+      def initialize(parcel = nil)
         @parcel = parcel
       end
     end

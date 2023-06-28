@@ -1,5 +1,3 @@
-# typed: false
-
 RSpec.describe Datadog::Tracing::Contrib::ActionView::Utils do
   describe '#normalize_template_name' do
     subject(:normalize_template_name) { described_class.normalize_template_name(name) }

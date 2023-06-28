@@ -1,5 +1,3 @@
-# typed: false
-
 module StatsdHelpers
   shared_context 'statsd' do
     let(:statsd) { spy('statsd') } # TODO: Make this an instance double.

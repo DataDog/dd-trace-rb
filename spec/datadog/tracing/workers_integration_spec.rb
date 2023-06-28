@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'time'
@@ -243,13 +241,13 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     end
 
     context 'which overruns the timeout' do
-      let(:task) { proc { sleep(interval) } }
+      let(:task) { proc { sleep(10) } }
       let(:trace_task) { task }
       let(:service_task) { task }
 
-      it do
+      it 'interrupts the worker to speed up shutdown' do
         expect(@shutdown_end - @shutdown_beg)
-          .to be_within(0.5).of(
+          .to be_within(5).of(
             Datadog::Tracing::Workers::AsyncTransport::SHUTDOWN_TIMEOUT
           )
       end

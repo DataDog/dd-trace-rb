@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative '../../metadata/ext'
 require_relative '../analytics'
@@ -17,7 +17,10 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
 
               # Tag as an external peer service
-              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+              if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+              end
+
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, client.host)
 
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)

@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'redis'
@@ -7,6 +5,7 @@ require 'ddtrace'
 
 require_relative './shared_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 RSpec.describe 'Redis test' do
   let(:configuration_options) { {} }
@@ -35,6 +34,10 @@ RSpec.describe 'Redis test' do
       let(:redis) { Redis.new(redis_options.freeze) }
 
       it_behaves_like 'environment service name', 'DD_TRACE_REDIS_SERVICE_NAME' do
+        subject { redis.ping }
+      end
+
+      it_behaves_like 'schema version span' do
         subject { redis.ping }
       end
 

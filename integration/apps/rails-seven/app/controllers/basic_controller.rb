@@ -28,6 +28,12 @@ class BasicController < ApplicationController
     head :ok
   end
 
+  def boom
+    # Make the span visible from graph
+    sleep 0.1
+    raise StandardError, 'bala boom!'
+  end
+
   private
 
   def fib(n)

@@ -12,16 +12,32 @@
   // Pick up internal structures from the private Ruby MJIT header file
   #include RUBY_MJIT_HEADER
 #else
-  // On older Rubies, use a copy of the VM internal headers shipped in the debase-ruby_core_source gem
+  // The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
+  // the debase-ruby_core_source gem to get access to private VM headers.
 
   // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
   // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
   #pragma GCC diagnostic ignored "-Wattributes"
+  #pragma GCC diagnostic ignored "-Wpragmas"
+  #pragma GCC diagnostic ignored "-Wexpansion-to-defined"
     #include <vm_core.h>
   #pragma GCC diagnostic pop
-  #include <iseq.h>
+
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunused-parameter"
+    #include <iseq.h>
+  #pragma GCC diagnostic pop
+
+  #include <ruby.h>
+
+  #ifndef NO_RACTOR_HEADER_INCLUDE
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wunused-parameter"
+      #include <ractor_core.h>
+    #pragma GCC diagnostic pop
+  #endif
 #endif
 
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
@@ -204,8 +220,7 @@ ptrdiff_t stack_depth_for(VALUE thread) {
 #endif
 
 // Tries to match rb_thread_list() but that method isn't accessible to extensions
-VALUE ddtrace_thread_list(void) {
-  VALUE result = rb_ary_new();
+void ddtrace_thread_list(VALUE result_array) {
   rb_thread_t *thread = NULL;
 
   // Ruby 3 Safety: Our implementation is inspired by `rb_ractor_thread_list` BUT that method wraps the operations below
@@ -234,13 +249,11 @@ VALUE ddtrace_thread_list(void) {
         case THREAD_RUNNABLE:
         case THREAD_STOPPED:
         case THREAD_STOPPED_FOREVER:
-          rb_ary_push(result, thread->self);
+          rb_ary_push(result_array, thread->self);
         default:
           break;
       }
     }
-
-  return result;
 }
 
 bool is_thread_alive(VALUE thread) {
@@ -654,6 +667,7 @@ check_method_entry(VALUE obj, int can_be_svar)
         if (can_be_svar) {
             return check_method_entry(((struct vm_svar *)obj)->cref_or_me, FALSE);
         }
+        // fallthrough
       default:
 #if VM_CHECK_MODE > 0
         rb_bug("check_method_entry: svar should not be there:");
@@ -712,8 +726,28 @@ check_method_entry(VALUE obj, int can_be_svar)
 #ifndef NO_RACTORS
   // This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
   // repeat it here to be able to use in our code.
-  bool rb_ractor_main_p_(void);
-  extern struct rb_ractor_struct *ruby_single_main_ractor;
+  #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY
+    // Disable fast path for detecting multiple Ractors. Unfortunately this symbol is no longer visible on modern Ruby
+    // versions, so we need to do a bit more work.
+    struct rb_ractor_struct *ruby_single_main_ractor = NULL;
+
+    // Taken from upstream ractor.c at commit a1b01e7701f9fc370f8dff777aad6d39a2c5a3e3 (May 2023, Ruby 3.3.0-preview1)
+    // to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
+    // Modifications:
+    // * None
+    bool rb_ractor_main_p_(void)
+    {
+        VM_ASSERT(rb_multi_ractor_p());
+        rb_execution_context_t *ec = GET_EC();
+        return rb_ec_ractor_ptr(ec) == rb_ec_vm_ptr(ec)->ractor.main_ractor;
+    }
+  #else
+    // Directly access Ruby internal fast path for detecting multiple Ractors.
+    extern struct rb_ractor_struct *ruby_single_main_ractor;
+
+    // Ruby 3.0 to 3.2 directly expose this symbol, we just need to tell the compiler it exists.
+    bool rb_ractor_main_p_(void);
+  #endif
 
   // Taken from upstream ractor_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
   // to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)

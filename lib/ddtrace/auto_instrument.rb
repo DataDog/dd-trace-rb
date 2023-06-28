@@ -1,4 +1,4 @@
-# typed: strict
+# frozen_string_literal: true
 
 # Entrypoint file for auto instrumentation.
 #

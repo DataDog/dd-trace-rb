@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative '../../datadog/core/environment/identity'
 require_relative '../../datadog/core/environment/socket'
@@ -49,7 +49,9 @@ module Datadog
         tag_rate_limiter_rate!
         tag_sample_rate!
         tag_sampling_decision_maker!
+        tag_high_order_trace_id!
         tag_sampling_priority!
+        tag_profiling_enabled!
 
         trace
       end
@@ -165,6 +167,20 @@ module Datadog
         root_span.set_metric(
           Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY,
           trace.sampling_priority
+        )
+      end
+
+      def tag_high_order_trace_id!
+        return unless (high_order_tid = trace.high_order_tid)
+
+        root_span.set_tag(Tracing::Metadata::Ext::Distributed::TAG_TID, high_order_tid)
+      end
+
+      def tag_profiling_enabled!
+        return if trace.profiling_enabled.nil?
+
+        root_span.set_tag(
+          Tracing::Metadata::Ext::TAG_PROFILING_ENABLED, trace.profiling_enabled ? 1 : 0
         )
       end
 

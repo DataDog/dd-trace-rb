@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/ci/spec_helper'
 
 require 'json'
@@ -32,7 +30,7 @@ RSpec.describe Datadog::CI::Ext::Environment do
         context "for fixture #{File.basename(filename)}" do
           # Create a context for each example inside the JSON fixture file
           JSON.parse(f.read).each_with_index do |(env, tags), i|
-            context "##{i}" do
+            context i.to_s do
               # Modify HOME so that '~' expansion matches CI home directory.
               let(:environment_variables) { super().merge('HOME' => env['HOME']) }
               let(:env) { env }

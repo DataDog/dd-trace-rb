@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'sql_comment/comment'
 require_relative 'sql_comment/ext'
 
@@ -30,8 +28,16 @@ module Datadog
             }
 
             if mode.full?
-              tags[Ext::KEY_TRACEPARENT] =
-                Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_traceparent, trace_op.to_digest)
+              # When tracing is disabled, trace_operation is a dummy object that does not contain data to build traceparent
+              if datadog_configuration.tracing.enabled
+                tags[Ext::KEY_TRACEPARENT] =
+                  Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_traceparent, trace_op.to_digest)
+              else
+                Datadog.logger.warn(
+                  'Sql comment propagation with `full` mode is aborted, because tracing is disabled. '\
+                  'Please set `Datadog.configuration.tracing.enabled = true` to continue.'
+                )
+              end
             end
 
             "#{Comment.new(tags)} #{sql}"

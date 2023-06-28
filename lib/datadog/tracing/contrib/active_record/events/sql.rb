@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../../../tracing'
 require_relative '../../../metadata/ext'
 require_relative '../event'
@@ -48,7 +46,10 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SQL)
 
               # Tag as an external peer service
-              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+              if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+              end
+
               # TODO: Populate hostname for JDBC connections
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, config[:host]) if config[:host]
 

@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'spec_helper'
 
 require 'datadog/core/configuration'
@@ -88,8 +86,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         end
 
         after do
-          Datadog.configuration.profiling.send(:reset!)
-          Datadog.configuration.appsec.send(:reset!)
+          Datadog.configuration.reset!
         end
 
         it { expect(products.appsec).to eq({ version: '4.2' }) }
@@ -108,8 +105,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         end
 
         after do
-          Datadog.configuration.profiling.send(:reset!)
-          Datadog.configuration.appsec.send(:reset!)
+          Datadog.configuration.reset!
         end
 
         it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
@@ -217,8 +213,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         Datadog.configuration.appsec.enabled = false
       end
       after do
-        Datadog.configuration.profiling.send(:reset!)
-        Datadog.configuration.appsec.send(:reset!)
+        Datadog.configuration.reset!
       end
       it { is_expected.to include('profiling.enabled' => false) }
     end
@@ -245,7 +240,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
           c.appsec.enabled = true
         end
       end
-      after { Datadog.configuration.appsec.send(:reset!) }
+      after { Datadog.configuration.reset! }
 
       it { is_expected.to include('appsec.enabled' => true) }
     end
@@ -297,7 +292,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       it 'sets integration as enabled' do
         expect(integrations).to include(
-          an_object_having_attributes(name: 'rake', enabled: true, compatible: true, error: nil)
+          an_object_having_attributes(name: 'rake', enabled: true, compatible: true)
         )
       end
 
@@ -335,7 +330,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
               name: 'redis',
               enabled: false,
               compatible: false,
-              error: { type: 'StandardError', message: nil, line: nil }.to_s
+              error: { type: 'StandardError' }.to_s
             )
           )
       end

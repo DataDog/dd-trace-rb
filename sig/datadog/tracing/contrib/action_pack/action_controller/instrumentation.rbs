@@ -1,0 +1,20 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionPack
+        module ActionController
+          module Instrumentation
+            def self?.start_processing: (untyped payload) -> untyped
+
+            def self?.finish_processing: (untyped payload) -> untyped
+            module Metal
+              def process_action: (*untyped args) -> untyped
+
+              def datadog_response_status: () -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,10 +1,8 @@
-# typed: false
-
 module Datadog
   module Profiling
     module Collectors
-      # Used to trigger the periodic execution of Collectors::CpuAndWallTime, which implements all of the sampling logic
-      # itself; this class only implements the "doing it periodically" part.
+      # Used to trigger the periodic execution of Collectors::ThreadState, which implements all of the sampling logic
+      # itself; this class only implements the "when to do it" part.
       # Almost all of this class is implemented as native code.
       #
       # Methods prefixed with _native_ are implemented in `collectors_cpu_and_wall_time_worker.c`
@@ -19,11 +17,36 @@ module Datadog
           recorder:,
           max_frames:,
           tracer:,
+          endpoint_collection_enabled:,
           gc_profiling_enabled:,
-          cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames, tracer: tracer),
-          idle_sampling_helper: IdleSamplingHelper.new
+          allocation_counting_enabled:,
+          no_signals_workaround_enabled:,
+          thread_context_collector: ThreadContext.new(
+            recorder: recorder,
+            max_frames: max_frames,
+            tracer: tracer,
+            endpoint_collection_enabled: endpoint_collection_enabled,
+          ),
+          idle_sampling_helper: IdleSamplingHelper.new,
+          # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
+          # profiler overhead!
+          dynamic_sampling_rate_enabled: true
         )
-          self.class._native_initialize(self, cpu_and_wall_time_collector, gc_profiling_enabled, idle_sampling_helper)
+          unless dynamic_sampling_rate_enabled
+            Datadog.logger.warn(
+              'Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!'
+            )
+          end
+
+          self.class._native_initialize(
+            self,
+            thread_context_collector,
+            gc_profiling_enabled,
+            idle_sampling_helper,
+            allocation_counting_enabled,
+            no_signals_workaround_enabled,
+            dynamic_sampling_rate_enabled,
+          )
           @worker_thread = nil
           @failure_exception = nil
           @start_stop_mutex = Mutex.new
@@ -53,6 +76,7 @@ module Datadog
                 )
               end
             end
+            @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
           end
 
           true

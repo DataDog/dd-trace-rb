@@ -1,0 +1,161 @@
+module Datadog
+  module Core
+    module Remote
+      class Configuration
+        class Repository
+          attr_reader contents: ContentList
+
+          attr_reader opaque_backend_state: String?
+
+          attr_reader root_version: Integer
+
+          attr_reader targets_version: Integer
+
+          UNVERIFIED_ROOT_VERSION: 1
+
+          INITIAL_TARGETS_VERSION: 0
+
+          def initialize: () -> void
+
+          def paths: () -> ::Array[Path]
+
+          def []: (Configuration::Path path) -> Content?
+
+          def transaction: () { (Repository, Transaction) -> void } -> ChangeSet
+
+          def commit: (Transaction transaction) -> ChangeSet
+
+          def state: () -> State
+
+          class State
+            attr_reader root_version: Integer
+
+            attr_reader targets_version: Integer
+
+            attr_reader repository: Repository
+
+            attr_reader config_states: Array[Hash[Symbol, untyped]]
+
+            attr_reader cached_target_files: Array[Hash[Symbol, untyped]]
+
+            attr_reader has_error: bool
+
+            attr_reader error: String
+
+            attr_reader opaque_backend_state: String?
+
+            def initialize: (Repository repository) -> void
+
+            private
+
+            def contents_to_cached_target_files: (ContentList contents) -> Array[Hash[Symbol, untyped]]
+
+            def contents_to_config_states: (ContentList contents) -> Array[Hash[Symbol, untyped]]
+          end
+
+          class Transaction
+            attr_reader operations: Array[operation]
+
+            def initialize: () -> void
+
+            def delete: (Configuration::Path path) -> void
+
+            def insert: (Configuration::Path path, Configuration::Target target, Configuration::Content content) -> void
+
+            def update: (Configuration::Path path, Configuration::Target target, Configuration::Content content) -> void
+
+            def set: (**untyped options) -> void
+          end
+
+          type operation = Operation::Insert | Operation::Update | Operation::Delete | Operation::Set
+
+          module Operation
+            class Delete
+              attr_reader path: Configuration::Path
+
+              def initialize: (Configuration::Path path) -> void
+
+              def apply: (Repository repository) -> void
+            end
+
+            class Insert
+              attr_reader path: Configuration::Path
+
+              attr_reader target: Configuration::Target
+
+              attr_reader content: Configuration::Content
+
+              def initialize: (Configuration::Path path, Configuration::Target target, Configuration::Content content) -> void
+
+              def apply: (Repository repository) -> void
+            end
+
+            class Update
+              attr_reader path: Configuration::Path
+
+              attr_reader target: Configuration::Target
+
+              attr_reader content: Configuration::Content
+
+              def initialize: (Configuration::Path path, Configuration::Target target, Configuration::Content content) -> void
+
+              def apply: (Repository repository) -> void
+            end
+
+            class Set
+              attr_reader opaque_backend_state: String?
+
+              attr_reader targets_version: String?
+
+              def initialize: (**untyped options) -> void
+
+              def apply: (Repository repository) -> void
+            end
+          end
+
+          type change = Change::Deleted | Change::Inserted | Change::Updated
+
+          class ChangeSet < Array[change]
+            def paths: () -> Array[Configuration::Path]?
+
+            def add: (Configuration::Path path, Configuration::Content? previous, Configuration::Content? content) -> ChangeSet?
+
+            def deleted: (Configuration::Path path, Configuration::Content previous) -> ChangeSet
+
+            def inserted: (Configuration::Path path, Configuration::Content content) -> ChangeSet
+
+            def updated: (Configuration::Path path, Configuration::Content content, Configuration::Content previous) -> ChangeSet
+          end
+
+          module Change
+            class Deleted
+              attr_reader path: Configuration::Path
+
+              attr_reader previous: Configuration::Content
+
+              def initialize: (untyped path, Configuration::Content previous) -> void
+            end
+
+            class Inserted
+              attr_reader path: Configuration::Path
+
+              attr_reader content: Configuration::Content
+
+              def initialize: (Configuration::Path path, Configuration::Content content) -> void
+            end
+
+            class Updated
+              attr_reader path: Configuration::Path
+
+              attr_reader content: Configuration::Content
+
+              attr_reader previous: Configuration::Content
+
+              def initialize: (Configuration::Path path, Configuration::Content content, Configuration::Content previous) -> void
+            end
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'spec_helper'
 
 require 'datadog/statsd'
@@ -548,11 +546,14 @@ RSpec.describe 'Tracer integration tests' do
             span.service = 'my.service'
           end
 
-          sleep(1)
+          write.write('!') # Signals that this fork is ready
+          sleep(5) # Should be interrupted
+          exit! # Should not be reached, will skip shutdown hooks
         end
 
-        # Give the fork a chance to setup and sleep
-        sleep(0.2)
+        # Wait for fork to get ready
+        IO.select([read], [], [], 5) # 5 second timeout
+        expect(read.getc).to eq('!') # Child process is ready
 
         # Kill the process
         write.close
@@ -560,7 +561,7 @@ RSpec.describe 'Tracer integration tests' do
 
         # Read and return any output
         read.read.tap do
-          Process.waitpid(fork_id)
+          try_wait_until { Process.wait(fork_id, Process::WNOHANG) }
         end
       end
 
@@ -896,18 +897,80 @@ RSpec.describe 'Tracer integration tests' do
     let(:port) { 34567 }
 
     context 'when :transport_options' do
+      let(:remote_enabled) { false }
+      let(:appsec_enabled) { false }
+      let(:transport_options) { proc { |t| on_build.call(t) } }
+
       before do
         Datadog.configure do |c|
           c.tracing.transport_options = transport_options
+          c.remote.enabled = remote_enabled
+          c.appsec.enabled = appsec_enabled
         end
       end
 
+      after do
+        Datadog.configuration.reset!
+      end
+
       context 'is provided' do
-        let(:transport_options) { proc { |t| on_build.call(t) } }
         let(:on_build) do
           double('on_build').tap do |double|
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Transport::HTTP::Builder))
+              .at_least(1).time
+            expect(double).to receive(:call)
+              .with(kind_of(Datadog::Core::Configuration::AgentSettingsResolver::TransportOptionsResolver))
+              .at_least(1).time
+          end
+        end
+
+        it do
+          configure
+
+          tracer.writer.transport.tap do |transport|
+            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
+            expect(transport.current_api.adapter.hostname).to be hostname
+            expect(transport.current_api.adapter.port).to be port
+          end
+        end
+      end
+
+      context 'is provided and remote configuration enabled, and appsec is disabled' do
+        let(:remote_enabled) { true }
+        let(:on_build) do
+          double('on_build').tap do |double|
+            expect(double).to receive(:call)
+              .with(kind_of(Datadog::Transport::HTTP::Builder))
+              .at_least(1).time
+            expect(double).to receive(:call)
+              .with(kind_of(Datadog::Core::Configuration::AgentSettingsResolver::TransportOptionsResolver))
+              .at_least(1).time
+          end
+        end
+
+        it do
+          configure
+
+          tracer.writer.transport.tap do |transport|
+            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
+            expect(transport.current_api.adapter.hostname).to be hostname
+            expect(transport.current_api.adapter.port).to be port
+          end
+        end
+      end
+
+      context 'is provided and remote configuration, and appsec is enabled' do
+        let(:remote_enabled) { true }
+        let(:appsec_enabled) { true }
+        let(:on_build) do
+          double('on_build').tap do |double|
+            expect(double).to receive(:call)
+              .with(kind_of(Datadog::Transport::HTTP::Builder))
+              .at_least(1).time
+            # For the remote component.
+            expect(double).to receive(:call)
+              .with(kind_of(Datadog::Core::Transport::HTTP::Builder))
               .at_least(1).time
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Core::Configuration::AgentSettingsResolver::TransportOptionsResolver))

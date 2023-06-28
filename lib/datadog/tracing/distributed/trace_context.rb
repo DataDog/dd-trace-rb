@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-# typed: false
 
 module Datadog
   module Tracing
@@ -39,7 +38,7 @@ module Datadog
         def extract(data)
           fetcher = @fetcher.new(data)
 
-          trace_id, dd_trace_id, parent_id, sampled, trace_flags = extract_traceparent(fetcher[@traceparent_key])
+          trace_id, parent_id, sampled, trace_flags = extract_traceparent(fetcher[@traceparent_key])
 
           return unless trace_id # Could not parse traceparent
 
@@ -49,11 +48,10 @@ module Datadog
 
           TraceDigest.new(
             span_id: parent_id,
-            trace_id: dd_trace_id,
+            trace_id: trace_id,
             trace_origin: origin,
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: tags,
-            trace_distributed_id: trace_id,
             trace_flags: trace_flags,
             trace_state: tracestate,
             trace_state_unknown_fields: unknown_fields,
@@ -93,7 +91,7 @@ module Datadog
         # @see https://www.w3.org/TR/trace-context/#traceparent-header
         def build_traceparent(digest)
           build_traceparent_string(
-            digest.trace_distributed_id || digest.trace_id,
+            digest.trace_id,
             digest.span_id,
             build_trace_flags(digest)
           )
@@ -195,20 +193,24 @@ module Datadog
 
         # Serialize `_dd.p.{key}` by first removing the `_dd.p.` prefix.
         # Then replacing invalid characters with `_`.
+        #
+        # The argument `name` is always frozen.
+        # Returns a new String object for the serialized key.
         def serialize_tag_key(name)
           key = name.delete_prefix(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX)
 
           # DEV: It's unlikely that characters will be out of range, as they mostly
           # DEV: come from Datadog-controlled sources.
-          # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
-          if INVALID_TAG_KEY_CHARS.match?(key)
-            key.gsub(INVALID_TAG_KEY_CHARS, '_')
-          else
-            key
-          end
+          # DEV: Trying to `match?` is measurably faster than a `gsub!` that does not match.
+          key.gsub!(INVALID_TAG_KEY_CHARS, '_') if INVALID_TAG_KEY_CHARS.match?(key)
+
+          key
         end
 
-        # Replaces invalid characters with `_`, then replaces `=` with `:`.
+        # Replaces invalid characters with `_`, then replaces `=` with `~`.
+        #
+        # The argument `value` belongs to {TraceDigest}, thus should not be directly modified.
+        # Returns a new String object for the serialized value.
         def serialize_tag_value(value)
           # DEV: It's unlikely that characters will be out of range, as they mostly
           # DEV: come from Datadog-controlled sources.
@@ -219,9 +221,12 @@ module Datadog
                   value
                 end
 
-          # DEV: Checking for an unlikely '=' is faster than a no-op `tr!`.
-          ret.tr!('=', ':') if ret.include?('=')
-          ret
+          # DEV: Checking for an unlikely '=' is faster than a no-op `tr`.
+          if ret.include?('=')
+            ret.tr('=', '~')
+          else
+            ret
+          end
         end
 
         def extract_traceparent(traceparent)
@@ -230,10 +235,9 @@ module Datadog
           # Return unless all traceparent fields are valid.
           return unless trace_id && !trace_id.zero? && parent_id && !parent_id.zero? && trace_flags
 
-          dd_trace_id = parse_datadog_trace_id(trace_id)
           sampled = parse_sampled_flag(trace_flags)
 
-          [trace_id, dd_trace_id, parent_id, sampled, trace_flags]
+          [trace_id, parent_id, sampled, trace_flags]
         end
 
         def parse_traceparent_string(traceparent)
@@ -252,12 +256,6 @@ module Datadog
           [Integer(trace_id, 16), Integer(parent_id, 16), Integer(trace_flags, 16)]
         rescue ArgumentError # Conversion to integer failed
           nil
-        end
-
-        # Datadog only allows 64 bits for the trace id.
-        # We extract the lower 64 bits from the original 128-bit id.
-        def parse_datadog_trace_id(trace_id)
-          trace_id & 0xFFFFFFFFFFFFFFFF
         end
 
         def parse_sampled_flag(trace_flags)
@@ -300,6 +298,10 @@ module Datadog
             when /^t\./
               key.slice!(0..1) # Delete `t.` prefix
 
+              # Ignore the high order 64 bit trace id propagation tag to avoid confusion,
+              # the single source of truth is from traceparent
+              next if key == Tracing::Metadata::Ext::Distributed::TID
+
               value = deserialize_tag_value(value)
 
               tags ||= {}
@@ -314,9 +316,9 @@ module Datadog
           [origin, sampling_priority, tags, unknown_fields]
         end
 
-        # Restore `:` back to `=`.
+        # Restore `~` back to `=`.
         def deserialize_tag_value(value)
-          value.tr!(':', '=')
+          value.tr!('~', '=')
           value
         end
 
@@ -368,9 +370,9 @@ module Datadog
         INVALID_TAG_KEY_CHARS = /[\u0000-\u0020,=\u007F-\u{10FFFF}]/.freeze
         private_constant :INVALID_TAG_KEY_CHARS
 
-        # Replace all characters with `_`, except ASCII characters 0x20-0x7E.
-        # Additionally, `,`, ':' and `;` must also be replaced by `_`.
-        INVALID_TAG_VALUE_CHARS = /[\u0000-\u001F,:;\u007F-\u{10FFFF}]/.freeze
+        # Replace all characters with `_`, except ASCII characters 0x20-0x7D.
+        # Additionally, `,` and `;` must also be replaced by `_`.
+        INVALID_TAG_VALUE_CHARS = /[\u0000-\u001F,;\u007E-\u{10FFFF}]/.freeze
         private_constant :INVALID_TAG_VALUE_CHARS
       end
     end

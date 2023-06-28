@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'http'
 require 'json'
 require 'stringio'
@@ -14,6 +12,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/http_examples'
 require 'spec/support/thread_helpers'
 
@@ -150,6 +149,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
+          it_behaves_like 'schema version span'
         end
 
         context 'response has internal server error status' do
@@ -176,6 +176,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
+          it_behaves_like 'schema version span'
         end
 
         context 'response has not found status' do
@@ -202,6 +203,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
+          it_behaves_like 'schema version span'
         end
 
         context 'distributed tracing default' do

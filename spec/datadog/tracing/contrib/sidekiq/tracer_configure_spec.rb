@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 require_relative 'support/helper'
 
@@ -49,7 +47,7 @@ RSpec.describe 'Tracer configuration' do
       end
 
       it 'uses custom error handler' do
-        expect { perform_async }.to raise_error
+        expect { perform_async }.to raise_error(ZeroDivisionError)
         expect(@error_handler_called).to be_truthy
       end
     end

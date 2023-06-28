@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 module Datadog
   module Core
@@ -9,6 +9,10 @@ module Datadog
         BACK_OFF_RATIO = 1.2
         BACK_OFF_MAX = 5
         BASE_INTERVAL = 1
+
+        # This single shared mutex is used to avoid concurrency issues during the
+        # initialization of per-instance lazy-initialized mutexes.
+        MUTEX_INIT = Mutex.new
 
         def self.included(base)
           base.prepend(PrependedMethods)
@@ -82,7 +86,7 @@ module Datadog
           :loop_base_interval
 
         def mutex
-          @mutex ||= Mutex.new
+          @mutex || MUTEX_INIT.synchronize { @mutex ||= Mutex.new }
         end
 
         private

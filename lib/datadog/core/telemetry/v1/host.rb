@@ -1,9 +1,15 @@
+# frozen_string_literal: true
+
+require_relative '../../utils/hash'
+
 module Datadog
   module Core
     module Telemetry
       module V1
         # Describes attributes for host object
         class Host
+          using Core::Utils::Hash::Refinement
+
           attr_reader \
             :container_id,
             :hostname,
@@ -34,7 +40,7 @@ module Datadog
           end
 
           def to_h
-            {
+            hash = {
               container_id: @container_id,
               hostname: @hostname,
               kernel_name: @kernel_name,
@@ -43,6 +49,8 @@ module Datadog
               os: @os,
               os_version: @os_version,
             }
+            hash.compact!
+            hash
           end
         end
       end

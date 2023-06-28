@@ -1,0 +1,15 @@
+module Datadog
+  module Core
+    module Vendor
+      module Multipart
+        module Post
+          module Multipartable
+            def self.secure_boundary: () -> ::String
+
+            def initialize: (untyped path, untyped params, ?::Hash[untyped, untyped] headers, ?untyped boundary) -> void
+          end
+        end
+      end
+    end
+  end
+end

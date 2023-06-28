@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
@@ -30,7 +28,10 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
 
                 # Tag as an external peer service
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+                if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+                end
+
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, hostname)
 
                 # Set analytics sample rate

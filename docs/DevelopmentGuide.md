@@ -10,7 +10,6 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Running tests](#running-tests)
      - [Checking code quality](#checking-code-quality)
      - [Running benchmarks](#running-benchmarks)
-     - [Type checking](#type-checking)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
      - [Custom transport adapters](#custom-transport-adapters)
@@ -144,6 +143,21 @@ The actionable in this case would be to ensure that the thread created in `worke
 
 Depending on the situation, the thread in question might need to be forced to terminate. It's recommended to have a mechanism in place to terminate it (a shared variable that changes value when the thread should exit), but as a last resort, `Thread#terminate` forces the thread to finish. Keep in mind that regardless of the termination method, `Thread#join` must be called to ensure that the thread has completely finished its shutdown process.
 
+**The APM Test Agent**
+
+The APM test agent emulates the APM endpoints of the Datadog Agent. The Test Agent container
+runs alongside the Ruby tracer locally and in CI, handles all traces during test runs and performs a number 
+of 'Trace Checks'. For more information on these checks, see: 
+https://github.com/DataDog/dd-apm-test-agent#trace-invariant-checks
+
+The APM Test Agent also emits helpful logging, which can be viewed in local testing or in CircleCI as a job step for tracer and contrib
+tests. Locally, to get Test Agent logs:
+
+    $ docker-compose logs -f testagent
+
+Read more about the APM Test Agent:
+https://github.com/datadog/dd-apm-test-agent#readme
+
 ### Checking code quality
 
 **Linting**
@@ -163,19 +177,6 @@ $ bundle exec appraisal ruby-3.0.4-contrib rake spec:benchmark
 ```
 
 Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
-
-## Type checking
-
-This library uses the [Sorbet](https://sorbet.org/) type checker. Sorbet can be run with `bundle exec srb tc` (or `bundle exec rake
-typecheck`). There's also Language Server Protocol support, if your editor supports it.
-
-Type checking can be controlled on a file-by-file manner, using a `# typed: ...` comment. The default (when none is provided) is assuming `# typed: false`.
-
-Things to note:
-
-* For compatibility with older Rubies, we use Sorbet but do not yet allow type annotations in the codebase. If Sorbet is blocking you, feel free to use `# typed: false` or `# typed: ignore` with a quick note on why this was needed. In many cases, Sorbet can typecheck a file correctly with no extra type annotations.
-
-* Most integration-specific code will reference optional external dependencies which Sorbet cannot see into. You'll probably need to use `# typed: false` or `# typed: ignore`  for those files as well.
 
 ## Appendix
 
@@ -261,4 +262,18 @@ Datadog.configure do |c|
     t.adapter custom_adapter
   }
 end
+```
+
+### Generating GRPC proto stubs for tests
+
+If you modify any of the `.proto` files under `./spec/datadog/tracing/contrib/grpc/support/proto` used for
+testing the `grpc` integration, you'll need to regenerate the Ruby code by running:
+
+```
+$ docker run \
+   --platform linux/amd64 \
+   -v ${PWD}:/app \
+   -w /app \
+   ruby:latest \
+   ./spec/datadog/tracing/contrib/grpc/support/gen_proto.sh
 ```

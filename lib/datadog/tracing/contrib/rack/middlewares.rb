@@ -1,8 +1,7 @@
-# typed: false
-
 require 'date'
 
 require_relative '../../../core/environment/variable_helpers'
+require_relative '../../../core/backport'
 require_relative '../../client_ip'
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
@@ -35,22 +34,34 @@ module Datadog
             request_start = Contrib::Rack::QueueTime.get_request_start(env)
             return if request_start.nil?
 
-            frontend_span = Tracing.trace(
-              Ext::SPAN_HTTP_SERVER_QUEUE,
-              span_type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
-              start_time: request_start,
-              service: configuration[:web_service_name]
-            )
+            case configuration[:request_queuing]
+            when true, :include_request # DEV: Switch `true` to `:exclude_request` in v2.0
+              queue_span = trace_http_server(Ext::SPAN_HTTP_SERVER_QUEUE, start_time: request_start)
+              # Tag this span as belonging to Rack
+              queue_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              queue_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
+              queue_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
+              queue_span
+            when :exclude_request
+              request_span = trace_http_server(Ext::SPAN_HTTP_PROXY_REQUEST, start_time: request_start)
+              request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT_HTTP_PROXY)
+              request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_PROXY_REQUEST)
+              request_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PROXY)
 
-            # Tag this span as belonging to Rack
-            frontend_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            frontend_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
-            frontend_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
+              queue_span = trace_http_server(Ext::SPAN_HTTP_PROXY_QUEUE, start_time: request_start)
 
-            # Set peer service (so its not believed to belong to this app)
-            frontend_span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
+              # Measure service stats
+              Contrib::Analytics.set_measured(queue_span)
 
-            frontend_span
+              queue_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT_HTTP_PROXY)
+              queue_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_PROXY_QUEUE)
+              queue_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PROXY)
+              # finish the `queue` span now to record only the time spent *in queue*,
+              # excluding the time spent processing the request itself
+              queue_span.finish
+
+              request_span
+            end
           end
 
           def call(env)
@@ -242,6 +253,22 @@ module Datadog
             Datadog.configuration.tracing[:rack]
           end
 
+          def trace_http_server(span_name, start_time:)
+            span = Tracing.trace(
+              span_name,
+              span_type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
+              start_time: start_time,
+              service: configuration[:web_service_name]
+            )
+
+            # Set peer service (so its not believed to belong to this app)
+            if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
+            end
+
+            span
+          end
+
           def parse_url(env, original_env)
             request_obj = ::Rack::Request.new(env)
 
@@ -278,7 +305,7 @@ module Datadog
                        else
                          # normally REQUEST_URI starts at the path, but it
                          # might contain the full URL in some cases (e.g WEBrick)
-                         request_uri.sub(/^#{base_url}/, '')
+                         Datadog::Core::BackportFrom25.string_delete_prefix(request_uri, base_url)
                        end
 
             base_url + fullpath

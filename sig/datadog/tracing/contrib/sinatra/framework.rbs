@@ -1,0 +1,27 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sinatra
+        module Framework
+          def self.setup: () -> untyped
+
+          def self.config_with_defaults: (untyped datadog_config) -> untyped
+          def self.activate_rack!: (untyped datadog_config, untyped sinatra_config) -> untyped
+          def self.add_middleware: (untyped middleware, untyped builder, *untyped args) ?{ () -> untyped } -> untyped
+
+          alias self.unshift_middleare self.add_middleware
+          def self.append_middleware: (untyped middleware, untyped builder, *untyped args) ?{ () -> untyped } -> untyped
+          def self.add_middleware_before: (untyped before, untyped middleware, untyped builder, *untyped args) ?{ () -> untyped } -> untyped
+          def self.add_middleware_after: (untyped after, untyped middleware, untyped builder, *untyped args) ?{ () -> untyped } -> untyped
+          def self.wrap_middleware: (untyped middleware, *untyped args) ?{ () -> untyped } -> untyped
+          def self.insert_middleware: (untyped builder, untyped middleware, untyped args, untyped block) { (untyped, untyped) -> untyped } -> untyped
+
+          def self.include_middleware?: (untyped middleware, untyped builder) -> untyped
+          def self.middlewares: (untyped builder) -> untyped
+
+          def self.inspect_middlewares: (untyped builder) -> untyped
+        end
+      end
+    end
+  end
+end

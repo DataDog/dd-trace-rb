@@ -1,9 +1,8 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'dalli'
 require 'ddtrace'
@@ -31,6 +30,13 @@ RSpec.describe 'Dalli instrumentation' do
   end
 
   it_behaves_like 'environment service name', 'DD_TRACE_DALLI_SERVICE_NAME' do
+    subject do
+      client.set('abc', 123)
+      try_wait_until { fetch_spans.any? }
+    end
+  end
+
+  it_behaves_like 'schema version span' do
     subject do
       client.set('abc', 123)
       try_wait_until { fetch_spans.any? }

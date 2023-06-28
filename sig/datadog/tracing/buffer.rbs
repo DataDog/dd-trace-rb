@@ -1,0 +1,27 @@
+module Datadog
+  module Tracing
+    module MeasuredBuffer
+      def initialize: (*untyped _) -> void
+
+      def add!: (untyped trace) -> untyped
+
+      def add_all!: (untyped traces) -> untyped
+
+      def replace!: (untyped trace) -> untyped
+      def drain!: () -> untyped
+
+      def measure_accept: (untyped trace) -> untyped
+
+      def measure_drop: (untyped trace) -> untyped
+
+      def measure_pop: (untyped traces) -> untyped
+    end
+    class ThreadSafeTraceBuffer < Core::Buffer::ThreadSafe
+      prepend MeasuredBuffer
+    end
+    class CRubyTraceBuffer < Core::Buffer::CRuby
+      prepend MeasuredBuffer
+    end
+    TraceBuffer: untyped
+  end
+end

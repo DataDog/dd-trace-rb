@@ -1,8 +1,5 @@
-# typed: ignore
-
 require_relative '../integration'
 
-require_relative 'configuration/settings'
 require_relative 'patcher'
 require_relative 'request_middleware'
 require_relative 'request_body_middleware'
@@ -33,10 +30,6 @@ module Datadog
 
           def self.auto_instrument?
             false
-          end
-
-          def default_configuration
-            Configuration::Settings.new
           end
 
           def patcher

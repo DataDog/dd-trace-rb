@@ -1,12 +1,11 @@
 # frozen_string_literal: true
-# typed: true
 
 module Datadog
   module Tracing
     module Distributed
       module Headers
         # DEV-2.0: This module only exists for backwards compatibility with the public API. It should be removed.
-        # @deprecated use [Datadog::Tracing::Distributed::Ext]
+        # @deprecated use [Datadog::Tracing::Distributed::Datadog] and [Datadog::Tracing::Distributed::B3]
         # @public_api
         module Ext
           HTTP_HEADER_TRACE_ID = 'x-datadog-trace-id'

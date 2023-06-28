@@ -1,7 +1,4 @@
-# typed: ignore
 # frozen_string_literal: true
-
-require_relative '../response'
 
 module Datadog
   module AppSec
@@ -12,12 +9,14 @@ module Datadog
           module Response
             ADDRESSES = [
               'response.status',
+              'response.headers',
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, response)
+            def self.publish(op, gateway_response)
               catch(:block) do
-                op.publish('response.status', Rack::Response.status(response))
+                op.publish('response.status', gateway_response.status)
+                op.publish('response.headers', gateway_response.headers)
 
                 nil
               end
@@ -28,12 +27,16 @@ module Datadog
                 Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
 
                 response_status = values[0]
+                response_headers = values[1]
+                response_headers_no_cookies = response_headers.dup.tap { |h| h.delete('set-cookie') }
 
                 waf_args = {
                   'server.response.status' => response_status.to_s,
+                  'server.response.headers' => response_headers,
+                  'server.response.headers.no_cookies' => response_headers_no_cookies,
                 }
 
-                waf_timeout = Datadog::AppSec.settings.waf_timeout
+                waf_timeout = Datadog.configuration.appsec.waf_timeout
                 result = waf_context.run(waf_args, waf_timeout)
 
                 Datadog.logger.debug { "WAF TIMEOUT: #{result.inspect}" } if result.timeout

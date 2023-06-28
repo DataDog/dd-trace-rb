@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 require_relative '../../configuration/settings'
 require_relative '../ext'
@@ -26,7 +26,15 @@ module Datadog
               o.lazy
             end
 
-            option :cache_service, default: Ext::SERVICE_CACHE
+            option :cache_service do |o|
+              o.default do
+                Contrib::SpanAttributeSchema.fetch_service_name(
+                  '',
+                  Ext::SERVICE_CACHE
+                )
+              end
+              o.lazy
+            end
           end
         end
       end

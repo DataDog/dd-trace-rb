@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative 'collector'
 require_relative 'v1/app_event'
 require_relative 'v1/telemetry_request'
@@ -9,8 +7,6 @@ module Datadog
     module Telemetry
       # Class defining methods to construct a Telemetry event
       class Event
-        include Kernel
-
         include Telemetry::Collector
 
         API_VERSION = 'v1'.freeze

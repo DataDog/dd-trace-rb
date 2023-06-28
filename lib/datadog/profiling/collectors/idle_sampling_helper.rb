@@ -1,5 +1,3 @@
-# typed: false
-
 module Datadog
   module Profiling
     module Collectors
@@ -44,12 +42,13 @@ module Datadog
                 )
               end
             end
+            @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
           end
 
           true
         end
 
-        def stop(*_)
+        def stop(*_unused)
           @start_stop_mutex.synchronize do
             Datadog.logger.debug('Requesting IdleSamplingHelper thread shut down')
 

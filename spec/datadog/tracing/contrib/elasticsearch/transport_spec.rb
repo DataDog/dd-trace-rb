@@ -1,8 +1,7 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'time'
 require 'elasticsearch'
 require 'faraday'
@@ -11,8 +10,8 @@ require 'ddtrace'
 
 RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   before do
-    WebMock.enable!
-    WebMock.disable_net_connect!
+    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.disable_net_connect! options }
   end
 
   after do
@@ -104,6 +103,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
         it_behaves_like 'a peer service span'
         it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
+        it_behaves_like 'schema version span'
       end
 
       context 'PUT request' do
@@ -136,6 +136,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
           it_behaves_like 'a peer service span'
           it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
+          it_behaves_like 'schema version span'
         end
 
         context 'with Hash params' do

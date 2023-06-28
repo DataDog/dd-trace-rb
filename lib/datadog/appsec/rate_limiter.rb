@@ -1,5 +1,3 @@
-# typed: ignore
-
 module Datadog
   module AppSec
     # Simple per-thread rate limiter
@@ -52,7 +50,7 @@ module Datadog
         end
 
         def trace_rate_limit
-          Datadog::AppSec.settings.trace_rate_limit
+          Datadog.configuration.appsec.trace_rate_limit
         end
       end
     end

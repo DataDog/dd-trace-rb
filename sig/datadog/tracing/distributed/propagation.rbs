@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class Propagation
+        def initialize: (propagation_styles: untyped) -> void
+        def inject!: (untyped digest, untyped data) -> (nil | untyped)
+        def extract: (untyped data) -> untyped
+      end
+    end
+  end
+end

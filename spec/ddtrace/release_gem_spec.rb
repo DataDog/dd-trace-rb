@@ -30,12 +30,13 @@ RSpec.describe 'gem release process' do
            |Steepfile
            |ddtrace\.gemspec
            |docker-compose\.yml
+           |shell\.nix
           )
           $
         /x
 
         directories_excluded = %r{
-          ^(sig|spec|docs|\.circleci|\.github|benchmarks|gemfiles|integration|tasks|sorbet|yard|vendor/rbs)/
+          ^(sig|spec|docs|\.circleci|\.github|\.gitlab|lib-injection|benchmarks|gemfiles|integration|tasks|yard|vendor/rbs)/
         }x
 
         expect(files)

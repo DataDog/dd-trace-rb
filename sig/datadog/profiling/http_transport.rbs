@@ -1,0 +1,61 @@
+module Datadog
+  module Profiling
+    class HttpTransport
+      type exporter_configuration_array = [:agentless | :agent, untyped]
+
+      @upload_timeout_milliseconds: ::Integer
+      @exporter_configuration: exporter_configuration_array
+
+      def initialize: (
+        agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+        site: ::String?,
+        api_key: ::String?,
+        upload_timeout_seconds: ::Integer,
+      ) -> void
+
+      def export: (Datadog::Profiling::Flush flush) -> bool
+
+      def self.log_failure_to_process_tag: (::String failure_details) -> void
+
+      private
+
+      def base_url_from: (Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> ::String
+
+      def validate_agent_settings: (Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
+
+      def agentless?: (::String? site, ::String? api_key) -> bool
+
+      def validate_exporter: (exporter_configuration_array exporter_configuration) -> [:ok | :error, ::String?]
+
+      def self._native_validate_exporter: (exporter_configuration_array exporter_configuration) -> [:ok | :error, ::String?]
+
+      def do_export: (
+        exporter_configuration: exporter_configuration_array,
+        upload_timeout_milliseconds: ::Integer,
+        start_timespec_seconds: ::Integer,
+        start_timespec_nanoseconds: ::Integer,
+        finish_timespec_seconds: ::Integer,
+        finish_timespec_nanoseconds: ::Integer,
+        pprof_file_name: ::String,
+        pprof_data: ::String,
+        code_provenance_file_name: ::String,
+        code_provenance_data: ::String?,
+        tags_as_array: Array[[::String, ::String]],
+      ) -> [:ok | :error, ::Integer | ::String]
+
+      def self._native_do_export: (
+        exporter_configuration_array exporter_configuration,
+        ::Integer upload_timeout_milliseconds,
+        ::Integer start_timespec_seconds,
+        ::Integer start_timespec_nanoseconds,
+        ::Integer finish_timespec_seconds,
+        ::Integer finish_timespec_nanoseconds,
+        ::String pprof_file_name,
+        ::String pprof_data,
+        ::String code_provenance_file_name,
+        ::String? code_provenance_data,
+        Array[[::String, ::String]] tags_as_array,
+      ) -> [:ok | :error, ::Integer | ::String]
+    end
+  end
+end

@@ -1,12 +1,13 @@
-# typed: ignore
-
 require_relative '../../../tracing/contrib/rack/middlewares'
 
 require_relative '../patcher'
 require_relative '../../response'
 require_relative '../rack/request_middleware'
 require_relative 'framework'
+require_relative 'ext'
 require_relative 'gateway/watcher'
+require_relative 'gateway/route_params'
+require_relative 'gateway/request'
 require_relative '../../../tracing/contrib/sinatra/framework'
 
 module Datadog
@@ -51,15 +52,17 @@ module Datadog
           def dispatch!
             env = @request.env
 
-            context = env['datadog.waf.context']
+            context = env[Datadog::AppSec::Ext::SCOPE_KEY]
 
             return super unless context
 
             # TODO: handle exceptions, except for super
 
-            request_return, request_response = Instrumentation.gateway.push('sinatra.request.dispatch', request) do
+            gateway_request = Gateway::Request.new(env)
+
+            request_return, request_response = Instrumentation.gateway.push('sinatra.request.dispatch', gateway_request) do
               # handle process_route interruption
-              catch(Ext::ROUTE_INTERRUPT) { super }
+              catch(Datadog::AppSec::Contrib::Sinatra::Ext::ROUTE_INTERRUPT) { super }
             end
 
             if request_response && request_response.any? { |action, _event| action == :block }
@@ -78,7 +81,7 @@ module Datadog
           def process_route(*)
             env = @request.env
 
-            context = env['datadog.waf.context']
+            context = env[Datadog::AppSec::Ext::SCOPE_KEY]
 
             return super unless context
 
@@ -92,13 +95,19 @@ module Datadog
               # At this point params has both route params and normal params.
               route_params = params.each.with_object({}) { |(k, v), h| h[k] = v unless base_params.key?(k) }
 
-              _, request_response = Instrumentation.gateway.push('sinatra.request.routed', [request, route_params])
+              gateway_request = Gateway::Request.new(env)
+              gateway_route_params = Gateway::RouteParams.new(route_params)
+
+              _, request_response = Instrumentation.gateway.push(
+                'sinatra.request.routed',
+                [gateway_request, gateway_route_params]
+              )
 
               if request_response && request_response.any? { |action, _event| action == :block }
                 self.response = AppSec::Response.negotiate(env).to_sinatra_response
 
                 # interrupt request and return response to dispatch! for consistency
-                throw(Ext::ROUTE_INTERRUPT, response)
+                throw(Datadog::AppSec::Contrib::Sinatra::Ext::ROUTE_INTERRUPT, response)
               end
 
               yield(*args)

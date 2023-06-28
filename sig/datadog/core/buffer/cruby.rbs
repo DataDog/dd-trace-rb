@@ -1,0 +1,10 @@
+module Datadog
+  module Core
+    module Buffer
+      class CRuby < Random
+        FIXNUM_MAX: untyped
+        def replace!: (untyped item) -> untyped
+      end
+    end
+  end
+end

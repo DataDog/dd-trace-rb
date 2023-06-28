@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/stack'
 
@@ -386,7 +384,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   context 'when trying to sample something which is not a thread' do
     it 'raises a TypeError' do
       expect do
-        sample(:not_a_thread, Datadog::Profiling::StackRecorder.new, metric_values, labels)
+        sample(:not_a_thread, build_stack_recorder, metric_values, labels)
       end.to raise_error(TypeError)
     end
   end
@@ -394,7 +392,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   context 'when max_frames is too small' do
     it 'raises an ArgumentError' do
       expect do
-        sample(Thread.current, Datadog::Profiling::StackRecorder.new, metric_values, labels, max_frames: 4)
+        sample(Thread.current, build_stack_recorder, metric_values, labels, max_frames: 4)
       end.to raise_error(ArgumentError)
     end
   end
@@ -402,7 +400,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   context 'when max_frames is too large' do
     it 'raises an ArgumentError' do
       expect do
-        sample(Thread.current, Datadog::Profiling::StackRecorder.new, metric_values, labels, max_frames: 10_001)
+        sample(Thread.current, build_stack_recorder, metric_values, labels, max_frames: 10_001)
       end.to raise_error(ArgumentError)
     end
   end
@@ -413,7 +411,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
-  def sample_and_decode(thread, max_frames: 400, recorder: Datadog::Profiling::StackRecorder.new, in_gc: false)
+  def sample_and_decode(thread, max_frames: 400, recorder: build_stack_recorder, in_gc: false)
     sample(thread, recorder, metric_values, labels, max_frames: max_frames, in_gc: in_gc)
 
     samples = samples_from_pprof(recorder.serialize!)

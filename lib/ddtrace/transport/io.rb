@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative '../../datadog/core/encoding'
 require_relative 'io/client'

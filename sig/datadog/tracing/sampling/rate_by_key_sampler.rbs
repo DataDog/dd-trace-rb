@@ -1,0 +1,35 @@
+module Datadog
+  module Tracing
+    module Sampling
+      class RateByKeySampler < Sampler
+        attr_reader default_key: untyped
+
+        def initialize: (untyped default_key, ?::Float default_rate, ?decision: untyped?) ?{ () -> untyped } -> void
+
+        def resolve: (untyped trace) -> untyped
+
+        def default_sampler: () -> untyped
+
+        def sample?: (untyped trace) -> untyped
+
+        def sample!: (untyped trace) -> untyped
+
+        def sample_rate: (untyped trace) -> untyped
+
+        def update: (untyped key, untyped rate, ?decision: untyped?) -> untyped
+
+        def update_all: (untyped rate_by_key, ?decision: untyped?) -> untyped
+
+        def delete: (untyped key) -> untyped
+
+        def delete_if: () ?{ () -> untyped } -> untyped
+
+        def length: () -> untyped
+
+        private
+
+        def set_rate: (untyped key, untyped rate, untyped decision) -> untyped
+      end
+    end
+  end
+end

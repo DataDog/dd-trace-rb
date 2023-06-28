@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative '../core/buffer/thread_safe'
 require_relative '../core/utils/object_set'

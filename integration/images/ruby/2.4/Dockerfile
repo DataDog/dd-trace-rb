@@ -1,5 +1,8 @@
 FROM ruby:2.4
 
+# Add stretch repos
+RUN sed -i 's/jessie/stretch/g' /etc/apt/sources.list
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisites
@@ -13,7 +16,7 @@ RUN set -ex && \
         apt-get install -y --force-yes --no-install-recommends nodejs && \
         \
         echo "===> Installing Yarn" && \
-        curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
+        wget https://dl.yarnpkg.com/debian/pubkey.gpg && cat pubkey.gpg | apt-key add - && \
         echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
         apt-get update && \
         apt-get install -y --force-yes --no-install-recommends yarn && \

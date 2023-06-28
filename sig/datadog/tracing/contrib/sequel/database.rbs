@@ -1,0 +1,20 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sequel
+        module Database
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            def run: (untyped sql, ?untyped options) -> untyped
+
+            private
+
+            def adapter_name: () -> untyped
+
+            def parse_opts: (untyped sql, untyped opts) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

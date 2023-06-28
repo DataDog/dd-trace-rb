@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative '../core/configuration/settings'
 require_relative '../core/configuration/components'

@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative 'agent_settings_resolver'
 require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
@@ -8,8 +6,10 @@ require_relative '../runtime/metrics'
 require_relative '../telemetry/client'
 require_relative '../workers/runtime_metrics'
 
+require_relative '../remote/component'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
+require_relative '../../appsec/component'
 
 module Datadog
   module Core
@@ -18,7 +18,6 @@ module Datadog
       class Components
         class << self
           include Datadog::Tracing::Component
-          include Datadog::Profiling::Component
 
           def build_health_metrics(settings)
             settings = settings.diagnostics.health_metrics
@@ -53,39 +52,46 @@ module Datadog
             Core::Workers::RuntimeMetrics.new(options)
           end
 
-          def build_telemetry(settings)
-            Telemetry::Client.new(enabled: settings.telemetry.enabled)
+          def build_telemetry(settings, agent_settings, logger)
+            enabled = settings.telemetry.enabled
+            if agent_settings.adapter != Datadog::Transport::Ext::HTTP::ADAPTER
+              enabled = false
+              logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
+            end
+
+            Telemetry::Client.new(
+              enabled: enabled,
+              heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds
+            )
           end
         end
 
         attr_reader \
           :health_metrics,
           :logger,
+          :remote,
           :profiler,
           :runtime_metrics,
           :telemetry,
-          :tracer
+          :tracer,
+          :appsec
 
         def initialize(settings)
-          # Logger
           @logger = self.class.build_logger(settings)
 
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
-          # Tracer
+          @remote = Remote::Component.build(settings, agent_settings)
           @tracer = self.class.build_tracer(settings, agent_settings)
-
-          # Profiler
-          @profiler = self.class.build_profiler(settings, agent_settings, @tracer)
-
-          # Runtime metrics
+          @profiler = Datadog::Profiling::Component.build_profiler_component(
+            settings: settings,
+            agent_settings: agent_settings,
+            optional_tracer: @tracer,
+          )
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
-
-          # Health metrics
           @health_metrics = self.class.build_health_metrics(settings)
-
-          # Telemetry
-          @telemetry = self.class.build_telemetry(settings)
+          @telemetry = self.class.build_telemetry(settings, agent_settings, logger)
+          @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
         end
 
         # Starts up components
@@ -108,6 +114,12 @@ module Datadog
         # If it has another instance to compare to, it will compare
         # and avoid tearing down parts still in use.
         def shutdown!(replacement = nil)
+          # Shutdown remote configuration
+          remote.shutdown! if remote
+
+          # Decommission AppSec
+          appsec.shutdown! if appsec
+
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
           tracer.shutdown! unless replacement && tracer == replacement.tracer

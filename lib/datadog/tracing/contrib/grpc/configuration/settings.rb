@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 require_relative '../../../span_operation'
 require_relative '../../configuration/settings'
@@ -30,7 +30,12 @@ module Datadog
             option :distributed_tracing, default: true
 
             option :service_name do |o|
-              o.default { ENV.fetch(Ext::ENV_SERVICE_NAME, Ext::DEFAULT_PEER_SERVICE_NAME) }
+              o.default do
+                Contrib::SpanAttributeSchema.fetch_service_name(
+                  Ext::ENV_SERVICE_NAME,
+                  Ext::DEFAULT_PEER_SERVICE_NAME
+                )
+              end
               o.lazy
             end
 

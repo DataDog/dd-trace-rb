@@ -1,5 +1,3 @@
-# typed: false
-
 require 'qless'
 
 require_relative '../../metadata/ext'
@@ -15,8 +13,6 @@ module Datadog
             return super unless datadog_configuration && Tracing.enabled?
 
             Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
-              span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
-
               span.resource = job.klass_name
               span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
               span.set_tag(Ext::TAG_JOB_ID, job.jid)
@@ -37,6 +33,9 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+              span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER)
+
+              span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])

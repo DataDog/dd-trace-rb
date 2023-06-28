@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
@@ -69,8 +69,10 @@ module Datadog
 
               @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
-              # Tag as an external peer service
-              @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, @datadog_multi_span.service)
+              if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+                # Tag as an external peer service
+                @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, @datadog_multi_span.service)
+              end
 
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(@datadog_multi_span, analytics_sample_rate) if analytics_enabled?

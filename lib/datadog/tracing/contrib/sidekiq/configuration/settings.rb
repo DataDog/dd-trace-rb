@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 require_relative '../../../span_operation'
 require_relative '../../configuration/settings'
@@ -36,6 +36,7 @@ module Datadog
             option :client_service_name
             option :error_handler, default: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
             option :quantize, default: {}
+            option :distributed_tracing, default: false
           end
         end
       end

@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 require 'ddtrace'
 require 'datadog/core/metrics/client'
@@ -189,6 +187,58 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
 
             expect(runtime_metrics).to have_received(:gauge)
               .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_CONSTANT_CACHE_MISSES, kind_of(Numeric))
+              .once
+          end
+        end
+      end
+
+      context 'including YJIT stats' do
+        before do
+          skip('This feature is only supported in CRuby') unless PlatformHelpers.mri?
+          skip('Test only runs on Ruby >= 3.2') if RUBY_VERSION < '3.2.'
+        end
+
+        context 'with YJIT enabled and RubyVM::YJIT.stats_enabled? false' do
+          before do
+            unless Datadog::Core::Environment::YJIT.available?
+              skip('Test only runs with YJIT enabled and RubyVM::YJIT.stats_enabled? false')
+            end
+            allow(runtime_metrics).to receive(:gauge)
+          end
+
+          it do
+            flush
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_CODE_GC_COUNT, kind_of(Numeric))
+              .once
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_CODE_REGION_SIZE, kind_of(Numeric))
+              .once
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_FREED_CODE_SIZE, kind_of(Numeric))
+              .once
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_FREED_PAGE_COUNT, kind_of(Numeric))
+              .once
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_INLINE_CODE_SIZE, kind_of(Numeric))
+              .once
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_LIVE_PAGE_COUNT, kind_of(Numeric))
+              .once
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_OBJECT_SHAPE_COUNT, kind_of(Numeric))
+              .once
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_OUTLINED_CODE_SIZE, kind_of(Numeric))
               .once
           end
         end

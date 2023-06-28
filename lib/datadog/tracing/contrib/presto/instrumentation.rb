@@ -1,5 +1,3 @@
-# typed: true
-
 require_relative '../../metadata/ext'
 require_relative 'ext'
 
@@ -81,6 +79,9 @@ module Datadog
               def decorate!(span, operation)
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, operation)
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+
+                span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
                 if (host_port = @options[:server])
                   host, port = Core::Utils.extract_host_port(host_port)
@@ -103,8 +104,10 @@ module Datadog
                 set_nilable_tag!(span, :http_proxy, Ext::TAG_PROXY)
                 set_nilable_tag!(span, :model_version, Ext::TAG_MODEL_VERSION)
 
-                # Tag as an external peer service
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+                if Contrib::SpanAttributeSchema.default_span_attribute_schema?
+                  # Tag as an external peer service
+                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+                end
 
                 # Set analytics sample rate
                 if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])

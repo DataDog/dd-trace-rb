@@ -1,9 +1,8 @@
-# typed: false
-
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'grpc'
 require 'ddtrace'
@@ -54,6 +53,7 @@ RSpec.describe 'tracing on the server connection' do
     it_behaves_like 'environment service name', 'DD_TRACE_GRPC_SERVICE_NAME' do
       let(:configuration_options) { {} }
     end
+    it_behaves_like 'schema version span'
   end
 
   describe '#request_response' do
@@ -84,7 +84,7 @@ RSpec.describe 'tracing on the server connection' do
           expect(span).to have_error_message('test error')
           expect(span).to have_error_type('TestError')
           expect(span).to have_error_stack(include('server_spec.rb'))
-          expect(span.get_tag('rpc.system')).to eq 'grpc'
+          expect(span.get_tag('rpc.system')).to eq('grpc')
           expect(span.get_tag('span.kind')).to eq('server')
         end
       end

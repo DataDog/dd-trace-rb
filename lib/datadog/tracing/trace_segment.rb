@@ -1,11 +1,10 @@
-# typed: true
-
 require_relative '../core/runtime/ext'
 require_relative '../core/utils/safe_dup'
 
 require_relative 'sampling/ext'
 require_relative 'metadata/ext'
 require_relative 'metadata/tagging'
+require_relative 'utils'
 
 module Datadog
   module Tracing
@@ -32,7 +31,8 @@ module Datadog
         :sample_rate,
         :sampling_decision_maker,
         :sampling_priority,
-        :service
+        :service,
+        :profiling_enabled
 
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
@@ -55,7 +55,8 @@ module Datadog
         sampling_priority: nil,
         service: nil,
         tags: nil,
-        metrics: nil
+        metrics: nil,
+        profiling_enabled: nil
       )
         @id = id
         @root_span_id = root_span_id
@@ -81,6 +82,7 @@ module Datadog
         @sampling_decision_maker = sampling_decision_maker_tag
         @sampling_priority = sampling_priority || sampling_priority_tag
         @service = Core::Utils::SafeDup.frozen_or_dup(service || service_tag)
+        @profiling_enabled = profiling_enabled
       end
       # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Metrics/CyclomaticComplexity
@@ -126,6 +128,12 @@ module Datadog
       def sampled?
         sampling_priority == Sampling::Ext::Priority::AUTO_KEEP \
           || sampling_priority == Sampling::Ext::Priority::USER_KEEP
+      end
+
+      def high_order_tid
+        high_order = Tracing::Utils::TraceId.to_high_order(@id)
+
+        high_order.to_s(16) if high_order != 0
       end
 
       protected

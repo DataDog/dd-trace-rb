@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 require 'datadog/profiling'
 
@@ -24,6 +22,70 @@ RSpec.describe Datadog::Profiling do
     context 'with the profiler instance not available' do
       let(:result) { nil }
       it { is_expected.to be(false) }
+    end
+  end
+
+  describe '.allocation_count' do
+    subject(:allocation_count) { described_class.allocation_count }
+
+    context 'when profiling is supported' do
+      before do
+        skip('Test only runs on setups where profiling is supported') unless described_class.supported?
+      end
+
+      it 'delegates to the CpuAndWallTimeWorker' do
+        expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
+          .to receive(:_native_allocation_count).and_return(:allocation_count_result)
+
+        expect(allocation_count).to be :allocation_count_result
+      end
+    end
+
+    context 'when profiling is not supported' do
+      before do
+        skip('Test only runs on setups where profiling is not supported') if described_class.supported?
+      end
+
+      it 'does not reference the CpuAndWallTimeWorker' do
+        if defined?(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
+          without_partial_double_verification do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to_not receive(:_native_allocation_count)
+          end
+        end
+
+        allocation_count
+      end
+
+      it { is_expected.to be nil }
+    end
+  end
+
+  describe '.enabled?' do
+    subject(:enabled?) { described_class.enabled? }
+
+    before do
+      allow(Datadog.send(:components)).to receive(:profiler).and_return(profiler)
+    end
+
+    context 'when no profiler is available' do
+      let(:profiler) { nil }
+
+      it { is_expected.to be(false) }
+    end
+
+    context 'when a profiler is available' do
+      let(:profiler) { instance_double('Datadog::Profiling::Profiler', scheduler: scheduler) }
+      let(:scheduler) { instance_double('Datadog::Profiling::Scheduler', running?: running) }
+
+      context 'when the profiler is running' do
+        let(:running) { true }
+        it { is_expected.to be(true) }
+      end
+
+      context 'when the profiler is not running' do
+        let(:running) { false }
+        it { is_expected.to be(false) }
+      end
     end
   end
 

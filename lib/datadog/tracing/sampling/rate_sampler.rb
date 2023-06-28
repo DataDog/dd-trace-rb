@@ -1,7 +1,3 @@
-# typed: true
-
-require_relative '../../core'
-
 require_relative 'sampler'
 require_relative '../utils'
 

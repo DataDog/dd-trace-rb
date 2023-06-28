@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'datadog/core/utils'
 require 'datadog/tracing'
 require 'datadog/tracing/contrib/sidekiq/client_tracer'
@@ -95,15 +93,22 @@ module SidekiqServerExpectations
 
       # Change options and constants for Sidekiq to stop faster:
       # Reduce number of threads and shutdown timeout.
-
-      # Since the `options` changes across different Sidekiq version.
-      options = if Sidekiq::VERSION.start_with? '6.5'
-                  Sidekiq.tap do |s|
-                    s[:concurrency] = 1
-                    s[:timeout] = 0
+      options = if Sidekiq.respond_to? :default_configuration
+                  Sidekiq.default_configuration.tap do |c|
+                    c[:concurrency] = 1
+                    c[:timeout] = 0
                   end
                 else
-                  Sidekiq.options.merge(concurrency: 1, timeout: 0)
+                  Sidekiq.options.tap do |c|
+                    c[:concurrency] = 1
+                    c[:timeout] = 0
+
+                    unless c.respond_to? :logger
+                      def c.logger
+                        Sidekiq.logger
+                      end
+                    end
+                  end
                 end
 
       # `Sidekiq::Launcher#stop` sleeps before actually starting to shutting down Sidekiq.
@@ -124,7 +129,6 @@ module SidekiqServerExpectations
       # Setting this value to 3 seconds or higher makes the shutdown process almost immediate, as
       # `Util#wait_for` checks immediately if workers have shut down, which is normally the case at this point.
       stub_const('Sidekiq::Util::PAUSE_TIME', 3)
-
       launcher = Sidekiq::Launcher.new(options)
       launcher.stop
 

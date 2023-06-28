@@ -25,8 +25,6 @@ REMOVED_GEMS = {
   :check => [
     'rbs',
     'steep',
-    'spoom',
-    'sorbet',
   ],
 }
 
@@ -349,6 +347,7 @@ elsif ruby_version?('2.2')
     gem 'rack-test'
     gem 'rake', '>= 12.3'
     gem 'rest-client'
+    gem 'redis', '~> 3'
     gem 'resque', '< 2.0'
     gem 'roda', '>= 2.0.0'
     gem 'ruby-kafka', '>= 0.7.10'
@@ -770,7 +769,7 @@ elsif ruby_version?('2.5')
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-    gem 'redis'
+    gem 'redis', '~> 4'
     gem 'redis-store', '~> 1.9'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -831,7 +830,7 @@ elsif ruby_version?('2.5')
     gem 'rails', '~> 6.0.0'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
-    gem 'redis'
+    gem 'redis', '~> 4'
     gem 'redis-store', '~> 1.9'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -1044,7 +1043,7 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1098,7 +1097,7 @@ elsif ruby_version?('2.6')
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1285,7 +1284,7 @@ elsif ruby_version?('2.7')
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1293,7 +1292,7 @@ elsif ruby_version?('2.7')
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1333,7 +1332,7 @@ elsif ruby_version?('2.7')
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
@@ -1341,7 +1340,7 @@ elsif ruby_version?('2.7')
     appraise 'rails6-postgres-redis-activesupport' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis'
+      gem 'redis', '~> 4'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
       gem 'redis-rails'
@@ -1480,7 +1479,7 @@ elsif ruby_version?('2.7')
       gem 'dogstatsd-ruby', '~> 4'
     end
 # ----------------------------------------------------------------------------------------------------------------------
-elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2')
+elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2') || ruby_version?('3.3')
   appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
     gem 'mysql2', '~> 0.5', platform: :ruby
@@ -1580,7 +1579,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2')
     gem 'semantic_logger', '~> 4.0'
     gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
     gem 'shoryuken'
-    gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
+    gem 'sidekiq', '~> 7'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '>= 1.4.2', platform: :ruby
     gem 'stripe'

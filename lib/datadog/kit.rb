@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 module Datadog
   # Datadog::Kit holds public-facing APIs for higher level user-facing

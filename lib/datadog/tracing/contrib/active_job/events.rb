@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 require_relative 'events/discard'
 require_relative 'events/enqueue'

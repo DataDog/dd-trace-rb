@@ -1,5 +1,3 @@
-# typed: false
-
 require 'logger'
 
 require_relative 'base'
@@ -7,6 +5,7 @@ require_relative 'ext'
 require_relative '../environment/ext'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
+require_relative '../remote/ext'
 require_relative '../../profiling/ext'
 
 require_relative '../../tracing/configuration/settings'
@@ -155,6 +154,9 @@ module Datadog
         # @default `DD_ENV` environment variable, otherwise `nil`
         # @return [String,nil]
         option :env do |o|
+          # DEV-2.0: Remove this conversion for symbol.
+          o.setter { |v| v.to_s if v }
+
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_ENVIRONMENT, nil) }
           o.lazy
@@ -203,10 +205,23 @@ module Datadog
 
           # @public_api
           settings :advanced do
+            # @deprecated This setting is ignored when CPU Profiling 2.0 is in use, and will be removed on dd-trace-rb 2.0.
+            #
             # This should never be reduced, as it can cause the resulting profiles to become biased.
-            # The current default should be enough for most services, allowing 16 threads to be sampled around 30 times
+            # The default should be enough for most services, allowing 16 threads to be sampled around 30 times
             # per second for a 60 second period.
-            option :max_events, default: 32768
+            option :max_events do |o|
+              o.default 32768
+              o.on_set do |value|
+                if value != 32768
+                  Datadog.logger.warn(
+                    'The profiling.advanced.max_events setting has been deprecated for removal. It no longer does ' \
+                    'anything unless you the `force_enable_legacy_profiler` option is in use. ' \
+                    'Please remove it from your Datadog.configure block.'
+                  )
+                end
+              end
+            end
 
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
             # produced profiles. Increasing this may increase the overhead of profiling.
@@ -232,11 +247,11 @@ module Datadog
               end
             end
 
-            # Disable gathering of names and versions of gems in use by the service, used to power grouping and
-            # categorization of stack traces.
+            # Can be used to disable the gathering of names and versions of gems in use by the service, used to power
+            # grouping and categorization of stack traces.
             option :code_provenance_enabled, default: true
 
-            # No longer does anything, and will be removed on dd-trace-rb 2.0.
+            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
             #
             # This was added as a temporary support option in case of issues with the new `Profiling::HttpTransport` class
             # but we're now confident it's working nicely so we've removed the old code path.
@@ -249,14 +264,39 @@ module Datadog
               end
             end
 
-            # Forces enabling the new profiler. We do not yet recommend turning on this option.
+            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
             #
-            # Note that setting this to "false" (or not setting it) will not prevent the new profiler from
-            # being automatically used in the future.
-            # This option will be deprecated for removal once the new profiler gets enabled by default for all customers.
+            # This was used prior to the GA of the new CPU Profiling 2.0 profiler. Using CPU Profiling 2.0 is now the
+            # default and this doesn't do anything.
             option :force_enable_new_profiler do |o|
-              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_NEW', false) }
+              o.on_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.force_enable_new_profiler setting has been deprecated for removal and no ' \
+                  'longer does anything. Please remove it from your Datadog.configure block.'
+                )
+              end
+            end
+
+            # @deprecated Will be removed for dd-trace-rb 2.0.
+            #
+            # Forces enabling the *legacy* non-CPU Profiling 2.0 profiler.
+            # Do not use unless instructed to by support.
+            #
+            # @default `DD_PROFILING_FORCE_ENABLE_LEGACY` environment variable, otherwise `false`
+            option :force_enable_legacy_profiler do |o|
+              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_LEGACY', false) }
               o.lazy
+              o.on_set do |value|
+                if value
+                  Datadog.logger.warn(
+                    'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal. ' \
+                    'Do not use unless instructed to by support. ' \
+                    'If you needed to use it due to incompatibilities with the CPU Profiling 2.0 profiler, consider ' \
+                    'using the profiling.advanced.no_signals_workaround_enabled setting instead. ' \
+                    'See <https://dtdg.co/ruby-profiler-troubleshooting> for details.'
+                  )
+                end
+              end
             end
 
             # Forces enabling of profiling of time/resources spent in Garbage Collection.
@@ -264,25 +304,75 @@ module Datadog
             # Note that setting this to "false" (or not setting it) will not prevent the feature from being
             # being automatically enabled in the future.
             #
-            # This toggle was added because, although this feature is safe and enabled by default on Ruby 2.x,
+            # This feature defaults to off for two reasons:
+            # 1. Currently this feature can add a lot of overhead for GC-heavy workloads.
+            # 2. Although this feature is safe on Ruby 2.x, on Ruby 3.x it can break in applications that make use of
+            #    Ractors due to two Ruby VM bugs:
+            #    https://bugs.ruby-lang.org/issues/19112 AND https://bugs.ruby-lang.org/issues/18464.
+            #    If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
+            #    feature is fully safe to enable and this toggle can be used to do so.
+            #
+            # We expect the once the above issues are overcome, we'll automatically enable the feature on fixed Ruby
+            # versions.
+            #
+            # @default `DD_PROFILING_FORCE_ENABLE_GC` environment variable, otherwise `false`
+            option :force_enable_gc_profiling do |o|
+              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
+              o.lazy
+            end
+
+            # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
+            #
+            # This feature is safe and enabled by default on Ruby 2.x, but
             # on Ruby 3.x it can break in applications that make use of Ractors due to two Ruby VM bugs:
             # https://bugs.ruby-lang.org/issues/19112 AND https://bugs.ruby-lang.org/issues/18464.
             #
             # If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
             # feature is fully safe to enable and this toggle can be used to do so.
             #
-            # Furthermore, currently this feature can add a lot of overhead for GC-heavy workloads.
+            # @default `true` on Ruby 2.x, `false` on Ruby 3.x
+            option :allocation_counting_enabled, default: RUBY_VERSION.start_with?('2.')
+
+            # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.
             #
-            # We expect the once the above issues are overcome, we'll automatically enable the feature on fixed Ruby
-            # versions.
-            option :force_enable_gc_profiling do |o|
-              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
+            # This setting is only used when the `mysql2` gem is installed.
+            #
+            # @default `DD_PROFILING_SKIP_MYSQL2_CHECK` environment variable, otherwise `false`
+            option :skip_mysql2_check do |o|
+              o.default { env_to_bool('DD_PROFILING_SKIP_MYSQL2_CHECK', false) }
+              o.lazy
+            end
+
+            # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
+            #
+            # Sending `SIGPROF` is a common profiling approach, and may cause system calls from native
+            # extensions/libraries to be interrupted with a system
+            # [EINTR error code.](https://man7.org/linux/man-pages/man7/signal.7.html#:~:text=Interruption%20of%20system%20calls%20and%20library%20functions%20by%20signal%20handlers)
+            # Rarely, native extensions or libraries called by them may have missing or incorrect error handling for the
+            # `EINTR` error code.
+            #
+            # The "no signals" workaround, when enabled, enables an alternative mode for the profiler where it does not
+            # send `SIGPROF` unix signals. The downside of this approach is that the profiler data will have lower
+            # quality.
+            #
+            # This workaround is automatically enabled when gems that are known to have issues handling
+            # `EINTR` error codes are detected. If you suspect you may be seeing an issue due to the profiler's use of
+            # signals, you can try manually enabling this mode as a fallback.
+            # Please also report these issues to us on <https://github.com/DataDog/dd-trace-rb/issues/new>, so we can
+            # work with the gem authors to fix them!
+            #
+            # @default `DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED` environment variable as a boolean, otherwise `:auto`
+            option :no_signals_workaround_enabled do |o|
+              o.default { env_to_bool('DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED', :auto) }
               o.lazy
             end
           end
 
           # @public_api
           settings :upload do
+            # Network timeout for reporting profiling data to Datadog.
+            #
+            # @default `DD_PROFILING_UPLOAD_TIMEOUT` environment variable, otherwise `30.0`
             option :timeout_seconds do |o|
               o.setter { |value| value.nil? ? 30.0 : value.to_f }
               o.default { env_to_float(Profiling::Ext::ENV_UPLOAD_TIMEOUT, 30.0) }
@@ -312,6 +402,9 @@ module Datadog
         # @default `DD_SERVICE` environment variable, otherwise the program name (e.g. `'ruby'`, `'rails'`, `'pry'`)
         # @return [String]
         option :service do |o|
+          # DEV-2.0: Remove this conversion for symbol.
+          o.setter { |v| v.to_s if v }
+
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_SERVICE, Core::Environment::Ext::FALLBACK_SERVICE_NAME) }
           o.lazy
@@ -427,13 +520,55 @@ module Datadog
         settings :telemetry do
           # Enable telemetry collection. This allows telemetry events to be emitted to the telemetry API.
           #
-          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `false`. In a future release,
-          #   this value will be changed to `true` by default as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
+          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `true`.
+          #   Can be disabled as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, false) }
+            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, true) }
             o.lazy
           end
+
+          # The interval in seconds when telemetry must be sent.
+          #
+          # This method is used internally, for testing purposes only.
+          #
+          # @default `DD_TELEMETRY_HEARTBEAT_INTERVAL` environment variable, otherwise `60`.
+          # @return [Float]
+          # @!visibility private
+          option :heartbeat_interval_seconds do |o|
+            o.default { env_to_float(Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL, 60) }
+            o.lazy
+          end
+        end
+
+        # Remote configuration
+        # @public_api
+        settings :remote do
+          # Enable remote configuration. This allows fetching of remote configuration for live updates.
+          #
+          # @default `DD_REMOTE_CONFIGURATION_ENABLED` environment variable, otherwise `true`.
+          # @return [Boolean]
+          option :enabled do |o|
+            o.default { env_to_bool(Core::Remote::Ext::ENV_ENABLED, true) }
+            o.lazy
+          end
+
+          # Tune remote configuration polling interval.
+          #
+          # @default `DD_REMOTE_CONFIGURATION_POLL_INTERVAL_SECONDS` environment variable, otherwise `5.0` seconds.
+          # @return [Float]
+          option :poll_interval_seconds do |o|
+            o.default { env_to_float(Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS, 5.0) }
+            o.lazy
+          end
+
+          # Declare service name to bind to remote configuration. Use when
+          # DD_SERVICE does not match the correct integration for which remote
+          # configuration applies.
+          #
+          # @default `nil`.
+          # @return [String,nil]
+          option :service
         end
 
         # TODO: Tracing should manage its own settings.

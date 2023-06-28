@@ -1,6 +1,4 @@
-# typed: true
-
-require_relative '../core'
+# frozen_string_literal: true
 
 require_relative 'pipeline'
 require_relative 'runtime/metrics'

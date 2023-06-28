@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'spec_helper'
 require 'opentelemetry/sdk'
 require 'datadog/opentelemetry'

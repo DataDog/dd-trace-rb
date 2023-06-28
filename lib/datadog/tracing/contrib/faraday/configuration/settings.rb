@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 require_relative '../../configuration/settings'
 require_relative '../ext'
@@ -35,7 +35,12 @@ module Datadog
             option :split_by_domain, default: false
 
             option :service_name do |o|
-              o.default { ENV.fetch(Ext::ENV_SERVICE_NAME, Ext::DEFAULT_PEER_SERVICE_NAME) }
+              o.default do
+                Contrib::SpanAttributeSchema.fetch_service_name(
+                  Ext::ENV_SERVICE_NAME,
+                  Ext::DEFAULT_PEER_SERVICE_NAME
+                )
+              end
               o.lazy
             end
           end

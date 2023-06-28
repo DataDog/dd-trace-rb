@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'rest_client'
 require 'restclient/request'
 
@@ -13,6 +11,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
   let(:configuration_options) { {} }
@@ -22,8 +21,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
       c.tracing.instrument :rest_client, configuration_options
     end
 
-    WebMock.disable_net_connect!
-    WebMock.enable!
+    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.disable_net_connect! options }
+    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
   end
 
   around do |example|
@@ -56,6 +55,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_REST_CLIENT_SERVICE_NAME'
+      it_behaves_like 'schema version span'
 
       describe 'created span' do
         context 'response is successfull' do
@@ -248,6 +248,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
             end
 
             it_behaves_like 'environment service name', 'DD_TRACE_REST_CLIENT_SERVICE_NAME'
+            it_behaves_like 'schema version span'
           end
         end
       end

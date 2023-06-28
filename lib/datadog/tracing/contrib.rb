@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative '../tracing'
 require_relative 'contrib/registry'
@@ -69,6 +69,7 @@ require_relative 'contrib/rake/integration'
 require_relative 'contrib/redis/integration'
 require_relative 'contrib/resque/integration'
 require_relative 'contrib/rest_client/integration'
+require_relative 'contrib/roda/integration'
 require_relative 'contrib/semantic_logger/integration'
 require_relative 'contrib/sequel/integration'
 require_relative 'contrib/shoryuken/integration'

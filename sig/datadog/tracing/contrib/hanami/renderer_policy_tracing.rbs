@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Hanami
+        module RendererPolicyTracing
+          def render: (untyped env, untyped response) -> untyped
+
+          def configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

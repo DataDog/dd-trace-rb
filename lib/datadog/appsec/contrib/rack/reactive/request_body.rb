@@ -1,7 +1,4 @@
-# typed: ignore
 # frozen_string_literal: true
-
-require_relative '../request'
 
 module Datadog
   module AppSec
@@ -15,10 +12,10 @@ module Datadog
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, request)
+            def self.publish(op, gateway_request)
               catch(:block) do
                 # params have been parsed from the request body
-                op.publish('request.body', Rack::Request.form_hash(request))
+                op.publish('request.body', gateway_request.form_hash)
 
                 nil
               end
@@ -33,7 +30,7 @@ module Datadog
                   'server.request.body' => body,
                 }
 
-                waf_timeout = Datadog::AppSec.settings.waf_timeout
+                waf_timeout = Datadog.configuration.appsec.waf_timeout
                 result = waf_context.run(waf_args, waf_timeout)
 
                 Datadog.logger.debug { "WAF TIMEOUT: #{result.inspect}" } if result.timeout

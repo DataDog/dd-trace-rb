@@ -51,13 +51,13 @@ jobs:
           - engine: ruby
             version: 3.2.0
             dockerfile: Dockerfile-3.2.0
+          - engine: ruby
+            version: 3.3.0
+            dockerfile: Dockerfile-3.3.0
+          # ADD NEW RUBIES HERE
           - engine: jruby
             version: 9.2.21.0
             dockerfile: Dockerfile-jruby-9.2.21.0
-          # TODO: Disabled for possible removal
-          # - engine: jruby
-          #   version: 9.2.8.0
-          #   dockerfile: Dockerfile-jruby-9.2.8.0
           - engine: jruby
             version: 9.3.9.0
             dockerfile: Dockerfile-jruby-9.3.9.0

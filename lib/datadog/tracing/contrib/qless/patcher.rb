@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative '../patcher'
 
@@ -8,7 +8,6 @@ module Datadog
       module Qless
         # Patcher enables patching of 'qless' module.
         module Patcher
-          include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
           include Contrib::Patcher
 
           module_function

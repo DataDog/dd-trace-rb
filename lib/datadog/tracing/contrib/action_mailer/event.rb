@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 require_relative '../analytics'
 require_relative '../active_support/notifications/event'

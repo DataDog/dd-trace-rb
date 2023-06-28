@@ -1,4 +1,4 @@
-# typed: ignore
+# frozen_string_literal: true
 
 require_relative 'assets'
 require_relative 'utils/http/media_range'
@@ -29,33 +29,43 @@ module Datadog
 
       class << self
         def negotiate(env)
+          content_type = content_type(env)
+
+          Datadog.logger.debug { "negotiated response content type: #{content_type}" }
+
           Response.new(
             status: 403,
-            headers: { 'Content-Type' => 'text/html' },
-            body: [Datadog::AppSec::Assets.blocked(format: format(env))]
+            headers: { 'Content-Type' => content_type },
+            body: [Datadog::AppSec::Assets.blocked(format: CONTENT_TYPE_TO_FORMAT[content_type])]
           )
         end
 
         private
 
-        FORMAT_MAP = {
-          'text/html' => :html,
+        CONTENT_TYPE_TO_FORMAT = {
           'application/json' => :json,
+          'text/html' => :html,
           'text/plain' => :text,
         }.freeze
 
-        DEFAULT_FORMAT = :text
+        DEFAULT_CONTENT_TYPE = 'application/json'
 
-        def format(env)
-          return DEFAULT_FORMAT unless env.key?('HTTP_ACCEPT')
+        def content_type(env)
+          return DEFAULT_CONTENT_TYPE unless env.key?('HTTP_ACCEPT')
 
-          accepted = env['HTTP_ACCEPT'].split(',').map { |m| Utils::HTTP::MediaRange.new(m) }.sort
+          accept_types = env['HTTP_ACCEPT'].split(',').map(&:strip)
 
-          accepted.each_with_object(DEFAULT_FORMAT) do |_default, range|
-            format = FORMAT_MAP.keys.find { |type, _format| range === type }
+          accepted = accept_types.map { |m| Utils::HTTP::MediaRange.new(m) }.sort!.reverse!
 
-            return FORMAT_MAP[format] if format
+          accepted.each do |range|
+            type_match = CONTENT_TYPE_TO_FORMAT.keys.find { |type| range === type }
+
+            return type_match if type_match
           end
+
+          DEFAULT_CONTENT_TYPE
+        rescue Datadog::AppSec::Utils::HTTP::MediaRange::ParseError
+          DEFAULT_CONTENT_TYPE
         end
       end
     end

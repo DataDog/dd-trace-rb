@@ -1,10 +1,9 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/sql_comment_propagation_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
@@ -130,6 +129,10 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
             let(:configuration_options) { {} }
           end
+
+          it_behaves_like 'schema version span' do
+            let(:configuration_options) { {} }
+          end
         end
 
         context 'when a failed query is made' do
@@ -233,6 +236,10 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
             let(:configuration_options) { {} }
           end
+
+          it_behaves_like 'schema version span' do
+            let(:configuration_options) { {} }
+          end
         end
 
         context 'when a failed query is made' do
@@ -334,6 +341,10 @@ RSpec.describe 'PG::Connection patcher' do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+            let(:configuration_options) { {} }
+          end
+
+          it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
           end
         end
@@ -441,6 +452,10 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
             let(:configuration_options) { {} }
           end
+
+          it_behaves_like 'schema version span' do
+            let(:configuration_options) { {} }
+          end
         end
 
         context 'when a failed query is made' do
@@ -545,6 +560,10 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
             let(:configuration_options) { {} }
           end
+
+          it_behaves_like 'schema version span' do
+            let(:configuration_options) { {} }
+          end
         end
 
         context 'when a failed query is made' do
@@ -639,6 +658,10 @@ RSpec.describe 'PG::Connection patcher' do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+            let(:configuration_options) { {} }
+          end
+
+          it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
           end
         end
@@ -747,6 +770,10 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
             let(:configuration_options) { {} }
           end
+
+          it_behaves_like 'schema version span' do
+            let(:configuration_options) { {} }
+          end
         end
 
         context 'when a failed query is made' do
@@ -849,6 +876,10 @@ RSpec.describe 'PG::Connection patcher' do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+            let(:configuration_options) { {} }
+          end
+
+          it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
           end
         end
@@ -963,6 +994,10 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
             let(:configuration_options) { {} }
           end
+
+          it_behaves_like 'schema version span' do
+            let(:configuration_options) { {} }
+          end
         end
 
         context 'when a failed query is made' do
@@ -1065,6 +1100,10 @@ RSpec.describe 'PG::Connection patcher' do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+            let(:configuration_options) { {} }
+          end
+
+          it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
           end
         end
@@ -1170,6 +1209,10 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
             let(:configuration_options) { {} }
           end
+
+          it_behaves_like 'schema version span' do
+            let(:configuration_options) { {} }
+          end
         end
 
         context 'when a failed query is made' do
@@ -1264,6 +1307,10 @@ RSpec.describe 'PG::Connection patcher' do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+            let(:configuration_options) { {} }
+          end
+
+          it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
           end
         end
@@ -1378,6 +1425,10 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
             let(:configuration_options) { {} }
           end
+
+          it_behaves_like 'schema version span' do
+            let(:configuration_options) { {} }
+          end
         end
 
         context 'when a failed query is made' do
@@ -1478,6 +1529,10 @@ RSpec.describe 'PG::Connection patcher' do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+            let(:configuration_options) { {} }
+          end
+
+          it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
           end
         end
@@ -1584,6 +1639,10 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
             let(:configuration_options) { {} }
           end
+
+          it_behaves_like 'schema version span' do
+            let(:configuration_options) { {} }
+          end
         end
 
         context 'when a failed query is made' do
@@ -1685,6 +1744,10 @@ RSpec.describe 'PG::Connection patcher' do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+            let(:configuration_options) { {} }
+          end
+
+          it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
           end
         end
@@ -1789,6 +1852,10 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
             let(:configuration_options) { {} }
           end
+
+          it_behaves_like 'schema version span' do
+            let(:configuration_options) { {} }
+          end
         end
 
         context 'when a failed query is made' do
@@ -1882,6 +1949,10 @@ RSpec.describe 'PG::Connection patcher' do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_PG_SERVICE_NAME' do
+            let(:configuration_options) { {} }
+          end
+
+          it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
           end
         end

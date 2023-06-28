@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'datadog/tracing/distributed/trace_context'
@@ -29,13 +27,6 @@ RSpec.shared_examples 'Trace Context distributed format' do
       let(:options) { {} }
 
       it { expect(traceparent).to eq('00-00000000000000000000000000c0ffee-0000000000000bee-00') }
-
-      context 'with trace_distributed_id' do
-        let(:options) { { trace_distributed_id: 0xACE00000000000000000000000C0FFEE } }
-        it 'prioritizes the original trace_distributed_id' do
-          expect(traceparent).to eq('00-ace00000000000000000000000c0ffee-0000000000000bee-00')
-        end
-      end
 
       context 'with trace_flags' do
         context 'with a dropped trace' do
@@ -135,6 +126,21 @@ RSpec.shared_examples 'Trace Context distributed format' do
         end
       end
 
+      context 'with 128 bit trace id' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
+            span_id: 0xbbbbbbbbbbbbbbbb
+          )
+        end
+
+        it do
+          inject!
+
+          expect(traceparent).to eq('00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00')
+        end
+      end
+
       context 'with trace_distributed_tags' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
@@ -166,7 +172,11 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         context "{ 'key' => 'value=with=equals' }" do
           let(:tags) { { 'key' => 'value=with=equals' } }
-          it { expect(tracestate).to eq('dd=t.key:value:with:equals') }
+          it { expect(tracestate).to eq('dd=t.key:value~with~equals') }
+
+          it 'does not modify the original TraceDigest' do
+            expect(digest.trace_distributed_tags['key']).to eq('value=with=equals')
+          end
         end
 
         context 'too large' do
@@ -203,15 +213,18 @@ RSpec.shared_examples 'Trace Context distributed format' do
             "\u0000", # First unicode character
             "\u001F", # Last lower invalid character
             ',',
-            ':',
             ';',
-            "\u007F", # First upper invalid character
+            '~', # First upper invalid character (\u007E)
             "\u{10FFFF}" # Last unicode character
           ].each do |character|
             context character.inspect do
-              let(:tags) { { 'key' => character } }
+              let(:tags) { { 'key' => character.dup } }
 
               it { expect(tracestate).to eq('dd=t.key:_') }
+
+              it 'does not modify the original TraceDigest' do
+                expect(digest.trace_distributed_tags['key']).to eq(character)
+              end
             end
           end
         end
@@ -313,6 +326,44 @@ RSpec.shared_examples 'Trace Context distributed format' do
       it { is_expected.to be nil }
     end
 
+    context 'with traceparent and distributed_tag `t.tid` in tracestate' do
+      let(:data) do
+        {
+          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
+          prepare_key['tracestate'] => 'dd=t.tid:cccccccccccccccc'
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).to be_nil }
+    end
+
+    context 'with traceparent without tracestate' do
+      let(:data) do
+        {
+          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).to be_nil }
+    end
+
+    context 'with traceparent and with empty tracestate' do
+      let(:data) do
+        {
+          prepare_key['traceparent'] => '00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00',
+          prepare_key['tracestate'] => ''
+        }
+      end
+
+      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+      it { expect(digest.trace_distributed_tags).to be_nil }
+    end
+
     context 'with valid trace_id and parent_id' do
       it { expect(digest.trace_id).to eq(0xC0FFEE) }
       it { expect(digest.span_id).to eq(0xBEE) }
@@ -322,8 +373,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
       context 'and trace_id larger than 64 bits' do
         let(:trace_id) { 'ace00000000000000000000000c0ffee' }
 
-        it { expect(digest.trace_id).to eq(0xC0FFEE) }
-        it { expect(digest.trace_distributed_id).to eq(0xACE00000000000000000000000C0FFEE) }
+        it { expect(digest.trace_id).to eq(0xACE00000000000000000000000C0FFEE) }
       end
 
       context 'with sampling priority' do
@@ -384,9 +434,9 @@ RSpec.shared_examples 'Trace Context distributed format' do
           it { is_expected.to eq('_dd.p.dm' => '-1') }
         end
 
-        context "{ 'key' => 'value=with=equals' }" do
-          let(:tags) { 't.key:value:with:equals' }
-          it { is_expected.to eq('_dd.p.key' => 'value=with=equals') }
+        context "{ 'key' => 'value~with~tilde' }" do
+          let(:tags) { 't.key:value~with~tilde' }
+          it { is_expected.to eq('_dd.p.key' => 'value=with=tilde') }
         end
       end
 

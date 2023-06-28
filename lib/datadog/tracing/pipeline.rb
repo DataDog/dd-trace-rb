@@ -1,7 +1,3 @@
-# typed: true
-
-require_relative '../core'
-
 require_relative 'pipeline/span_filter'
 require_relative 'pipeline/span_processor'
 

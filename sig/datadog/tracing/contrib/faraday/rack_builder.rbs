@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Faraday
+        module RackBuilder
+          def adapter: (*untyped args) -> untyped
+        end
+      end
+    end
+  end
+end

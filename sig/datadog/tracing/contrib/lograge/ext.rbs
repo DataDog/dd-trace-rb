@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Lograge
+        module Ext
+          ENV_ENABLED: "DD_TRACE_LOGRAGE_ENABLED"
+        end
+      end
+    end
+  end
+end

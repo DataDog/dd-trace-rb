@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-# typed: ignore
 
 # Entrypoint file for OpenTelemetry integration.
 #

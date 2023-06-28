@@ -1,0 +1,39 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        module Gateway
+          class Request < Instrumentation::Gateway::Argument
+            attr_reader env: untyped
+
+            def initialize: (untyped env) -> void
+
+            def request: () -> untyped
+
+            def query: () -> untyped
+
+            def headers: () -> untyped
+
+            def body: () -> untyped
+
+            def method: () -> untyped
+
+            def url: () -> untyped
+
+            def cookies: () -> untyped
+
+            def host: () -> untyped
+
+            def user_agent: () -> untyped
+
+            def remote_addr: () -> untyped
+
+            def form_hash: () -> untyped
+
+            def client_ip: () -> (nil | untyped)
+          end
+        end
+      end
+    end
+  end
+end

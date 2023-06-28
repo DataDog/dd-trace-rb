@@ -12,10 +12,16 @@ module Datadog
 
         @context: WAF::Context
 
+        @run_mutex: ::Thread::Mutex
+
         def initialize: (Processor processor) -> void
         def run: (data input, ?::Integer timeout) -> WAF::Result
         def finalize: () -> void
       end
+
+      def self.active_context: () -> Context
+
+      private
 
       attr_reader ruleset_info: untyped
       attr_reader addresses: untyped
@@ -24,22 +30,16 @@ module Datadog
       @ruleset: ::Hash[::String, untyped]
       @addresses: ::Array[::String]
 
-      def initialize: () -> void
+      def initialize: (ruleset: ::Hash[untyped, untyped]) -> void
       def ready?: () -> bool
-      def new_context: () -> Context
-      def update_rule_data: (untyped data) -> untyped
-      def toggle_rules: (untyped map) -> untyped
       def finalize: () -> void
 
       attr_reader handle: untyped
 
       private
 
-      def apply_denylist_data: (Configuration::Settings settings) -> untyped
-      def denylist_data: (String id, ::Array[untyped] denylist) -> ::Hash[::String, untyped | "data_with_expiration"]
       def load_libddwaf: () -> bool
-      def load_ruleset: (Configuration::Settings settings) -> bool
-      def create_waf_handle: (Configuration::Settings settings) -> bool
+      def create_waf_handle: (Datadog::Core::Configuration::Settings::_AppSec settings, ::Hash[String, untyped] ruleset) -> bool
 
       def self.libddwaf_provides_waf?: () -> bool
       def self.require_libddwaf: () -> bool

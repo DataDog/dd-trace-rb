@@ -1,6 +1,4 @@
-# typed: ignore
-
-require_relative 'assets'
+# frozen_string_literal: true
 
 module Datadog
   module AppSec
@@ -16,22 +14,28 @@ module Datadog
           @time_ext_ns = 0.0
           @timeouts = 0
           @events = []
+          @run_mutex = Mutex.new
         end
 
         def run(input, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+          @run_mutex.lock
+
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
+          # this WAF::Context#run call is not thread safe as it mutates the context
           # TODO: remove multiple assignment
-          _code, res = _ = @context.run(input, timeout)
-          # @type var res: WAF::Result
+          _code, res = @context.run(input, timeout)
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
+          # these updates are not thread safe and should be protected
           @time_ns += res.total_runtime
           @time_ext_ns += (stop_ns - start_ns)
           @timeouts += 1 if res.timeout
 
           res
+        ensure
+          @run_mutex.unlock
         end
 
         def finalize
@@ -41,34 +45,18 @@ module Datadog
 
       attr_reader :ruleset_info, :addresses
 
-      def initialize
+      def initialize(ruleset:)
         @ruleset_info = nil
         @addresses = []
-        settings = Datadog::AppSec.settings
+        settings = Datadog.configuration.appsec
 
-        unless load_libddwaf && load_ruleset(settings) && create_waf_handle(settings)
+        unless load_libddwaf && create_waf_handle(settings, ruleset)
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
-
-          return
         end
-
-        apply_denylist_data(settings)
       end
 
       def ready?
-        !@ruleset.nil? && !@handle.nil?
-      end
-
-      def new_context
-        Context.new(self)
-      end
-
-      def update_rule_data(data)
-        @handle.update_rule_data(data)
-      end
-
-      def toggle_rules(map)
-        @handle.toggle_rules(map)
+        !@handle.nil?
       end
 
       def finalize
@@ -81,61 +69,11 @@ module Datadog
 
       private
 
-      def apply_denylist_data(settings)
-        ruledata_setting = []
-        ruledata_setting << denylist_data('blocked_ips', settings.ip_denylist)
-        ruledata_setting << denylist_data('blocked_users', settings.user_id_denylist)
-
-        update_rule_data(ruledata_setting)
-      end
-
-      def denylist_data(id, denylist)
-        {
-          'id' => id,
-          'type' => 'data_with_expiration',
-          'data' => denylist.map { |v| { 'value' => v.to_s, 'expiration' => 2**63 } }
-        }
-      end
-
       def load_libddwaf
         Processor.require_libddwaf && Processor.libddwaf_provides_waf?
       end
 
-      def load_ruleset(settings)
-        ruleset_setting = settings.ruleset
-
-        begin
-          @ruleset = case ruleset_setting
-                     when :recommended, :strict
-                       JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
-                     when :risky
-                       JSON.parse(Datadog::AppSec::Assets.waf_rules(:recommended))
-                       Datadog.logger.warn(
-                         'The :risky Application Security Management ruleset has been deprecated and no longer available.'\
-                         'The `:recommended` ruleset will be used instead.'\
-                         'Please remove the `appsec.ruleset = :risky` setting from your Datadog.configure block.'
-                       )
-                     when String
-                       JSON.parse(File.read(ruleset_setting))
-                     when File, StringIO
-                       JSON.parse(ruleset_setting.read || '').tap { ruleset_setting.rewind }
-                     when Hash
-                       ruleset_setting
-                     else
-                       raise ArgumentError, "unsupported value for ruleset setting: #{ruleset_setting.inspect}"
-                     end
-
-          true
-        rescue StandardError => e
-          Datadog.logger.error do
-            "libddwaf ruleset failed to load, ruleset: #{ruleset_setting.inspect} error: #{e.inspect}"
-          end
-
-          false
-        end
-      end
-
-      def create_waf_handle(settings)
+      def create_waf_handle(settings, ruleset)
         # TODO: this may need to be reset if the main Datadog logging level changes after initialization
         Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && settings.waf_debug
 
@@ -143,7 +81,8 @@ module Datadog
           key_regex: settings.obfuscator_key_regex,
           value_regex: settings.obfuscator_value_regex,
         }
-        @handle = Datadog::AppSec::WAF::Handle.new(@ruleset, obfuscator: obfuscator_config)
+
+        @handle = Datadog::AppSec::WAF::Handle.new(ruleset, obfuscator: obfuscator_config)
         @ruleset_info = @handle.ruleset_info
         @addresses = @handle.required_addresses
 

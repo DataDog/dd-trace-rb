@@ -1,5 +1,3 @@
-# typed: false
-
 require 'datadog/tracing'
 require 'datadog/opentracer'
 require 'datadog/statsd'
@@ -25,10 +23,12 @@ RSpec.describe 'Datadog integration' do
     end
 
     context 'for threads' do
-      let!(:original_thread_count) { thread_count }
+      let(:original_threads) { Thread.list }
+      let!(:original_threads_inspect) { inspect_threads(original_threads) } # Store result as stack trace will change
+      let(:threads) { Thread.list }
 
-      def thread_count
-        Thread.list.count
+      def inspect_threads(threads)
+        threads.map.with_index { |t, idx| "#{idx}=#{t.backtrace}" }.join(';')
       end
 
       it 'closes tracer threads' do
@@ -37,7 +37,9 @@ RSpec.describe 'Datadog integration' do
 
         shutdown
 
-        expect(thread_count).to eq(original_thread_count)
+        expect(threads.size).to eq(original_threads.size),
+          "Expected #{original_threads.size} threads (#{original_threads_inspect}), "\
+                  "got #{threads.size} threads (#{inspect_threads(threads)})"
       end
     end
 

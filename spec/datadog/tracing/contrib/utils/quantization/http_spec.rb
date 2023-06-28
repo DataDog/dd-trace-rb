@@ -1,5 +1,3 @@
-# typed: false
-
 require 'spec_helper'
 
 require 'datadog/tracing/contrib/utils/quantization/http'
@@ -382,14 +380,14 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
         end
 
         context 'with multiple matching substrings' do
-          let(:query) { 'key1=val1&pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&token=03cb9f67dbbc4cb8b966329951e10934&public_key=MDNjYjlmNjctZGJiYy00Y2I4LWI5NjYtMzI5OTUxZTEwOTM0&key3=val3&json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' } # rubocop:disable Metrics/LineLength
+          let(:query) { 'key1=val1&pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&token=03cb9f67dbbc4cb8b966329951e10934&public_key=MDNjYjlmNjctZGJiYy00Y2I4LWI5NjYtMzI5OTUxZTEwOTM0&key3=val3&json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' } # rubocop:disable Layout/LineLength
           let(:options) { { obfuscate: :internal } }
 
-          it { is_expected.to eq('key1=val1&<redacted>&key2=val2&<redacted>&<redacted>&key3=val3&json=%7B%20<redacted>%7D') } # rubocop:disable Metrics/LineLength
+          it { is_expected.to eq('key1=val1&<redacted>&key2=val2&<redacted>&<redacted>&key3=val3&json=%7B%20<redacted>%7D') } # rubocop:disable Layout/LineLength
         end
 
         context 'with a matching, URL-encoded JSON substring' do
-          let(:query) { 'json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' } # rubocop:disable Metrics/LineLength
+          let(:query) { 'json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' } # rubocop:disable Layout/LineLength
           let(:options) { { obfuscate: :internal } }
 
           it { is_expected.to eq('json=%7B%20<redacted>%7D') }

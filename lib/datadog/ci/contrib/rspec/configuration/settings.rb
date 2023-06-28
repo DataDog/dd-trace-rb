@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 require_relative '../../../../tracing/contrib/configuration/settings'
 require_relative '../ext'

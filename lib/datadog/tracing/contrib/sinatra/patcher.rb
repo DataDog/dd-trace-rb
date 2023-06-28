@@ -1,4 +1,4 @@
-# typed: false
+# frozen_string_literal: true
 
 require_relative '../../../core/utils/only_once'
 require_relative '../patcher'
@@ -40,7 +40,6 @@ module Datadog
 
         # Patcher enables patching of 'sinatra' module.
         module Patcher
-          include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
           include Contrib::Patcher
 
           module_function

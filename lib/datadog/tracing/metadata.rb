@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative 'metadata/analytics'
 require_relative 'metadata/tagging'

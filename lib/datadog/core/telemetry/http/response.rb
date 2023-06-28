@@ -1,13 +1,9 @@
-# typed: true
-
 module Datadog
   module Core
     module Telemetry
       module Http
         # Module for base HTTP response
         module Response
-          include Kernel
-
           def payload
             nil
           end

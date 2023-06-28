@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: ignore
-
 require 'rubygems'
 require 'pathname'
 
@@ -14,8 +12,8 @@ module Datadog
       # Can be set to force rubygems to fail gem installation when profiling extension could not be built
       ENV_FAIL_INSTALL_IF_MISSING_EXTENSION = 'DD_PROFILING_FAIL_INSTALL_IF_MISSING_EXTENSION'
 
-      # Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
-      CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
+      # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on debase-ruby_core_source
+      CAN_USE_MJIT_HEADER = RUBY_VERSION.start_with?('2.6', '2.7', '3.0.', '3.1.', '3.2.')
 
       LIBDATADOG_VERSION = '~> 2.0.0.1.0'
 
@@ -174,6 +172,8 @@ module Datadog
           'the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
           'the `pkgconf` package on Arch and Alpine-based Linux;',
           'the `pkgconf-pkg-config` package on Fedora/Red Hat-based Linux.',
+          '(Tip: When fixing this, ensure `pkg-config` is installed **before**',
+          'running `bundle install`, and remember to clear any installed gems cache).',
           suggested: CONTACT_SUPPORT,
         )
 

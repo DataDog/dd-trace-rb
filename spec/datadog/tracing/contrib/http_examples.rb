@@ -1,5 +1,3 @@
-# typed: ignore
-
 RSpec.shared_examples 'with error status code configuration' do
   before { subject }
 

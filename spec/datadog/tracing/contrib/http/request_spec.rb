@@ -1,10 +1,9 @@
-# typed: false
-
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/http_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'ddtrace'
 require 'net/http'
@@ -12,7 +11,7 @@ require 'time'
 require 'json'
 
 RSpec.describe 'net/http requests' do
-  before { WebMock.enable! }
+  before { call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options } }
 
   after do
     WebMock.reset!
@@ -84,6 +83,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
     end
 
     context 'that returns 404' do
@@ -113,6 +113,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
 
       context 'when configured with #after_request hook' do
         before { Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request(&callback) }
@@ -183,6 +184,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
     end
   end
 
@@ -217,6 +219,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
     end
   end
 
@@ -477,7 +480,7 @@ RSpec.describe 'net/http requests' do
 
   context 'when basic auth in url' do
     before do
-      WebMock.enable!
+      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 

@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require 'set'
 require_relative 'span_processor'

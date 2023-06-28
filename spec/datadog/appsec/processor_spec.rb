@@ -1,7 +1,9 @@
-# typed: ignore
+# frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor'
+require 'datadog/appsec/processor/rule_loader'
+require 'datadog/appsec/processor/rule_merger'
 
 RSpec.describe Datadog::AppSec::Processor do
   before do
@@ -19,6 +21,8 @@ RSpec.describe Datadog::AppSec::Processor do
 
     allow(Datadog).to receive(:logger).and_return(logger)
   end
+
+  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended) }
 
   context 'self' do
     it 'detects if the WAF is unavailable' do
@@ -58,7 +62,7 @@ RSpec.describe Datadog::AppSec::Processor do
         allow(Object).to receive(:require).with('libddwaf').and_raise(LoadError)
       end
 
-      it { expect(described_class.new.send(:load_libddwaf)).to be false }
+      it { expect(described_class.new(ruleset: ruleset).send(:load_libddwaf)).to be false }
     end
 
     context 'when loaded but missing mandatory const' do
@@ -67,7 +71,7 @@ RSpec.describe Datadog::AppSec::Processor do
         hide_const('Datadog::AppSec::WAF')
       end
 
-      it { expect(described_class.new.send(:load_libddwaf)).to be false }
+      it { expect(described_class.new(ruleset: ruleset).send(:load_libddwaf)).to be false }
     end
 
     context 'when loaded successfully' do
@@ -78,126 +82,15 @@ RSpec.describe Datadog::AppSec::Processor do
         stub_const('Datadog::AppSec::WAF::LibDDWAF::Error', Class.new(StandardError))
       end
 
-      it { expect(described_class.new.send(:load_libddwaf)).to be true }
-    end
-  end
-
-  describe '#load_ruleset' do
-    let(:settings) { Datadog::AppSec.settings }
-    let(:basic_ruleset) do
-      {
-        'version' => '1.0',
-        'events' => [
-          {
-            'id' => 1,
-            'name' => 'Rule 1',
-            'tags' => { 'type' => 'flow1' },
-            'conditions' => [
-              { 'operation' => 'match_regex', 'parameters' => { 'inputs' => ['value2'], 'regex' => 'rule1' } },
-            ],
-            'action' => 'record',
-          }
-        ]
-      }
-    end
-
-    before do
-      allow(settings).to receive(:ruleset).and_return(ruleset)
-    end
-
-    context 'when ruleset is :recommended' do
-      let(:ruleset) { :recommended }
-
-      before do
-        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original.twice
-      end
-
-      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
-    end
-
-    context 'when ruleset is :strict' do
-      let(:ruleset) { :strict }
-
-      before do
-        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:strict).and_call_original.twice
-      end
-
-      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
-    end
-
-    context 'when ruleset is :risky' do
-      let(:ruleset) { :risky }
-
-      before do
-        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original.twice
-      end
-
-      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
-    end
-
-    context 'when ruleset is an existing path' do
-      let(:ruleset) { "#{__dir__}/../../../lib/datadog/appsec/assets/waf_rules/recommended.json" }
-
-      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
-    end
-
-    context 'when ruleset is a non existing path' do
-      let(:ruleset) { '/does/not/exist' }
-
-      it { expect(described_class.new.send(:load_ruleset, settings)).to be false }
-    end
-
-    context 'when ruleset is IO-like' do
-      let(:ruleset) { StringIO.new(JSON.dump(basic_ruleset)) }
-
-      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
-    end
-
-    context 'when ruleset is Ruby' do
-      let(:ruleset) { basic_ruleset }
-
-      it { expect(described_class.new.send(:load_ruleset, settings)).to be true }
-    end
-
-    context 'when ruleset is not parseable' do
-      let(:ruleset) { StringIO.new('this is not json') }
-
-      it { expect(described_class.new.send(:load_ruleset, settings)).to be false }
-    end
-  end
-
-  describe '#create_waf_handle' do
-    let(:ruleset) { :recommended }
-    let(:settings) { Datadog::AppSec.settings }
-
-    before do
-      allow(settings).to receive(:ruleset).and_return(ruleset)
-    end
-
-    context 'when ruleset is default' do
-      let(:ruleset) { :recommended }
-
-      before do
-        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original
-      end
-
-      it { expect(described_class.new.send(:create_waf_handle, settings)).to be true }
-    end
-
-    context 'when ruleset is invalid' do
-      let(:ruleset) { { 'not' => 'valid' } }
-
-      it { expect(described_class.new.send(:create_waf_handle, settings)).to be false }
+      it { expect(described_class.new(ruleset: ruleset).send(:load_libddwaf)).to be true }
     end
   end
 
   describe '#initialize' do
-    let(:ruleset) { :recommended }
+    subject(:processor) { described_class.new(ruleset: ruleset) }
 
-    subject(:processor) { described_class.new }
-
-    before do
-      allow(Datadog::AppSec.settings).to receive(:ruleset).and_return(ruleset)
+    context 'when valid ruleset' do
+      it { is_expected.to be_ready }
     end
 
     context 'when libddwaf fails to load' do
@@ -221,26 +114,6 @@ RSpec.describe Datadog::AppSec::Processor do
       it { is_expected.to_not be_ready }
     end
 
-    context 'when ruleset is a non existing path' do
-      let(:ruleset) { '/does/not/exist' }
-
-      before do
-        expect(Datadog.logger).to receive(:warn)
-      end
-
-      it { is_expected.to_not be_ready }
-    end
-
-    context 'when ruleset is not parseable' do
-      let(:ruleset) { StringIO.new('this is not json') }
-
-      before do
-        expect(Datadog.logger).to receive(:warn)
-      end
-
-      it { is_expected.to_not be_ready }
-    end
-
     context 'when ruleset is invalid' do
       let(:ruleset) { { 'not' => 'valid' } }
 
@@ -250,230 +123,172 @@ RSpec.describe Datadog::AppSec::Processor do
 
       it { is_expected.to_not be_ready }
     end
+  end
+end
 
-    context 'when loading static data rule configuration' do
-      before do
-        allow(Datadog::AppSec.settings).to receive(:ip_denylist).and_return(['192.192.1.1'])
-        allow(Datadog::AppSec.settings).to receive(:user_id_denylist).and_return(['user3'])
-      end
+RSpec.describe Datadog::AppSec::Processor::Context do
+  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended) }
 
-      it 'calls #update_rule_data with the right value' do
-        expect_any_instance_of(described_class).to receive(:update_rule_data) do |_, args|
-          expect(args.size).to eq(2)
+  let(:input_safe) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Ruby' } } }
+  let(:input_sqli) { { 'server.request.query' => { 'q' => '1 OR 1;' } } }
+  let(:input_scanner) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' } } }
+  let(:input_client_ip) { { 'http.client_ip' => '1.2.3.4' } }
 
-          blocked_ips = args.find { |hash| hash['id'] == 'blocked_ips' }
-          blocked_users = args.find { |hash| hash['id'] == 'blocked_users' }
+  let(:client_ip) { '1.2.3.4' }
 
-          expect(blocked_ips).to_not be_nil
-          expect(blocked_users).to_not be_nil
-          expect(blocked_ips['type']).to eq('data_with_expiration')
-          expect(blocked_users['type']).to eq('data_with_expiration')
+  let(:input) { input_scanner }
 
-          blocked_ips_data = blocked_ips['data']
-          blocked_user_data = blocked_users['data']
-          expect(blocked_ips_data.size).to eq(1)
-          expect(blocked_user_data.size).to eq(1)
-          expect(blocked_ips_data[0]['value']).to eq('192.192.1.1')
-          expect(blocked_user_data[0]['value']).to eq('user3')
-        end
+  let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset) }
 
-        described_class.new
-      end
-    end
+  let(:run_count) { 1 }
+  let(:timeout) { 10_000_000_000 }
 
-    context 'when things are OK' do
-      before do
-        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original
-        expect(Datadog.logger).to_not receive(:warn)
-      end
+  let(:runs) { Array.new(run_count) { context.run(input, timeout) } }
+  let(:results) { runs }
+  let(:overall_runtime) { results.reduce(0) { |a, e| a + e.total_runtime } }
 
-      it { is_expected.to be_ready }
+  let(:run) do
+    expect(runs).to have_attributes(count: 1)
+
+    runs.first
+  end
+
+  let(:result) do
+    expect(results).to have_attributes(count: 1)
+
+    results.first
+  end
+
+  subject(:context) { described_class.new(processor) }
+
+  before do
+    runs
+  end
+
+  after do
+    context.finalize
+    processor.finalize
+  end
+
+  it { expect(result.status).to eq :match }
+  it { expect(context.time_ns).to be > 0 }
+  it { expect(context.time_ext_ns).to be > 0 }
+  it { expect(context.time_ext_ns).to be > context.time_ns }
+  it { expect(context.time_ns).to eq(overall_runtime) }
+  it { expect(context.timeouts).to eq 0 }
+
+  context 'with timeout' do
+    let(:timeout) { 0 }
+
+    it { expect(result.status).to eq :ok }
+    it { expect(context.time_ns).to eq 0 }
+    it { expect(context.time_ext_ns).to be > 0 }
+    it { expect(context.timeouts).to eq run_count }
+  end
+
+  context 'with multiple runs' do
+    let(:run_count) { 10 }
+
+    it { expect(context.time_ns).to eq(overall_runtime) }
+
+    context 'with timeout' do
+      let(:timeout) { 0 }
+
+      it { expect(results.first.status).to eq :ok }
+      it { expect(context.time_ns).to eq 0 }
+      it { expect(context.time_ext_ns).to be > 0 }
+      it { expect(context.timeouts).to eq run_count }
     end
   end
 
-  describe '#new_context' do
-    let(:ruleset) { :recommended }
-
-    let(:input_safe) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Ruby' } } }
-    let(:input_sqli) { { 'server.request.query' => { 'q' => '1 OR 1;' } } }
-    let(:input_scanner) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' } } }
-    let(:input_client_ip) { { 'http.client_ip' => '1.2.3.4' } }
-
-    let(:rule_data_client_ip) do
-      [
-        {
-          'id' => 'blocked_ips',
-          'type' => 'data_with_expiration',
-          'data' => [{ 'value' => '1.2.3.4', 'expiration' => (Time.now + 1000).to_i }]
-        }
-      ]
+  describe '#run' do
+    let(:matches) do
+      results.reject { |r| r.status == :ok }
     end
 
-    let(:rule_toggle_client_ip) { { 'blk-001-001' => false } }
-
-    let(:input) { input_scanner }
-
-    let(:processor) { described_class.new }
-    subject(:context) { processor.new_context }
-
-    after do
-      context.finalize
-      processor.finalize
+    let(:data) do
+      matches.map(&:data).flatten
     end
 
-    it { is_expected.to be_a Datadog::AppSec::Processor::Context }
+    let(:actions) do
+      matches.map(&:actions)
+    end
 
-    describe 'Context' do
-      let(:run_count) { 1 }
-      let(:timeout) { 10_000_000_000 }
+    context 'no attack' do
+      let(:input) { input_safe }
 
-      let(:runs) { Array.new(run_count) { context.run(input, timeout) } }
-      let(:results) { runs }
-      let(:overall_runtime) { results.reduce(0) { |a, e| a + e.total_runtime } }
+      it { expect(matches).to eq [] }
+      it { expect(data).to eq [] }
+      it { expect(actions).to eq [] }
+    end
 
-      let(:run) do
-        expect(runs).to have_attributes(count: 1)
+    context 'one attack' do
+      let(:input) { input_scanner }
 
-        runs.first
+      it { expect(matches).to have_attributes(count: 1) }
+      it { expect(data).to have_attributes(count: 1) }
+      it { expect(actions).to eq [[]] }
+    end
+
+    context 'multiple attacks per run' do
+      let(:input) { input_scanner.merge(input_sqli) }
+
+      it { expect(matches).to have_attributes(count: 1) }
+      it { expect(data).to have_attributes(count: 2) }
+      it { expect(actions).to eq [[]] }
+    end
+
+    context 'multiple runs' do
+      context 'same attack' do
+        let(:runs) do
+          [
+            context.run(input_scanner, timeout),
+            context.run(input_scanner, timeout)
+          ]
+        end
+
+        # when the same attack is detected twice in the same context, it's
+        # only matching once therefore there's only one match result, thus
+        # one action list returned.
+
+        it { expect(matches).to have_attributes(count: 1) }
+        it { expect(data).to have_attributes(count: 1) }
+        it { expect(actions).to eq [[]] }
       end
 
-      let(:result) do
-        expect(results).to have_attributes(count: 1)
+      context 'different attacks' do
+        let(:runs) do
+          [
+            context.run(input_sqli, timeout),
+            context.run(input_scanner, timeout)
+          ]
+        end
 
-        results.first
+        # when two attacks are detected in the same context there are two
+        # match results, thus two action lists, one for each.
+
+        it { expect(matches).to have_attributes(count: 2) }
+        it { expect(data).to have_attributes(count: 2) }
+        it { expect(actions).to eq [[], []] }
+      end
+    end
+
+    context 'one blockable attack' do
+      let(:input) { input_client_ip }
+
+      let(:ruleset) do
+        rules = Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended)
+        data = Datadog::AppSec::Processor::RuleLoader.load_data(ip_denylist: [client_ip])
+
+        Datadog::AppSec::Processor::RuleMerger.merge(
+          rules: [rules],
+          data: data,
+        )
       end
 
-      let(:rule_data) { nil }
-      let(:rule_toggle) { nil }
-
-      before do
-        processor.update_rule_data(rule_data) if rule_data
-        processor.toggle_rules(rule_toggle) if rule_toggle
-        runs
-      end
-
-      it { expect(result.status).to eq :match }
-      it { expect(context.time_ns).to be > 0 }
-      it { expect(context.time_ext_ns).to be > 0 }
-      it { expect(context.time_ext_ns).to be > context.time_ns }
-      it { expect(context.time_ns).to eq(overall_runtime) }
-      it { expect(context.timeouts).to eq 0 }
-
-      context 'with timeout' do
-        let(:timeout) { 0 }
-
-        it { expect(result.status).to eq :ok }
-        it { expect(context.time_ns).to eq 0 }
-        it { expect(context.time_ext_ns).to be > 0 }
-        it { expect(context.timeouts).to eq run_count }
-      end
-
-      context 'with multiple runs' do
-        let(:run_count) { 10 }
-
-        it { expect(context.time_ns).to eq(overall_runtime) }
-
-        context 'with timeout' do
-          let(:timeout) { 0 }
-
-          it { expect(results.first.status).to eq :ok }
-          it { expect(context.time_ns).to eq 0 }
-          it { expect(context.time_ext_ns).to be > 0 }
-          it { expect(context.timeouts).to eq run_count }
-        end
-      end
-
-      describe '#run' do
-        let(:matches) do
-          results.reject { |r| r.status == :ok }
-        end
-
-        let(:data) do
-          matches.map(&:data).flatten
-        end
-
-        let(:actions) do
-          matches.map(&:actions)
-        end
-
-        context 'no attack' do
-          let(:input) { input_safe }
-
-          it { expect(matches).to eq [] }
-          it { expect(data).to eq [] }
-          it { expect(actions).to eq [] }
-        end
-
-        context 'one attack' do
-          let(:input) { input_scanner }
-
-          it { expect(matches).to have_attributes(count: 1) }
-          it { expect(data).to have_attributes(count: 1) }
-          it { expect(actions).to eq [[]] }
-        end
-
-        context 'multiple attacks per run' do
-          let(:input) { input_scanner.merge(input_sqli) }
-
-          it { expect(matches).to have_attributes(count: 1) }
-          it { expect(data).to have_attributes(count: 2) }
-          it { expect(actions).to eq [[]] }
-        end
-
-        context 'multiple runs' do
-          context 'same attack' do
-            let(:runs) do
-              [
-                context.run(input_scanner, timeout),
-                context.run(input_scanner, timeout)
-              ]
-            end
-
-            # when the same attack is detected twice in the same context, it's
-            # only matching once therefore there's only one match result, thus
-            # one action list returned.
-
-            it { expect(matches).to have_attributes(count: 1) }
-            it { expect(data).to have_attributes(count: 1) }
-            it { expect(actions).to eq [[]] }
-          end
-
-          context 'different attacks' do
-            let(:runs) do
-              [
-                context.run(input_sqli, timeout),
-                context.run(input_scanner, timeout)
-              ]
-            end
-
-            # when two attacks are detected in the same context there are two
-            # match results, thus two action lists, one for each.
-
-            it { expect(matches).to have_attributes(count: 2) }
-            it { expect(data).to have_attributes(count: 2) }
-            it { expect(actions).to eq [[], []] }
-          end
-        end
-
-        context 'one blockable attack' do
-          let(:input) { input_client_ip }
-          let(:rule_data) { rule_data_client_ip }
-
-          it { expect(matches).to have_attributes(count: 1) }
-          it { expect(data).to have_attributes(count: 1) }
-          it { expect(actions).to eq [['block']] }
-        end
-
-        context 'one blockable attack on a disabled rule' do
-          let(:input) { input_client_ip }
-          let(:rule_data) { rule_data_client_ip }
-          let(:rule_toggle) { rule_toggle_client_ip }
-
-          it { expect(matches).to have_attributes(count: 0) }
-          it { expect(data).to have_attributes(count: 0) }
-          it { expect(actions).to have_attributes(count: 0) }
-        end
-      end
+      it { expect(matches).to have_attributes(count: 1) }
+      it { expect(data).to have_attributes(count: 1) }
+      it { expect(actions).to eq [['block']] }
     end
   end
 end

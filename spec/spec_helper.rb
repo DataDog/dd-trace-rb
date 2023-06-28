@@ -1,9 +1,11 @@
-# typed: ignore
-
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
+
+Thread.main.name = 'Thread.main' unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+
 require 'pry'
 require 'rspec/collection_matchers'
+require 'rspec/wait'
 require 'webmock/rspec'
 require 'climate_control'
 
@@ -91,6 +93,10 @@ RSpec.configure do |config|
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
 
+  # rspec-wait configuration
+  config.wait_timeout = 5 # default timeout for `wait_for(...)`, in seconds
+  config.wait_delay = 0.01 # default retry delay for `wait_for(...)`, in seconds
+
   if config.files_to_run.one?
     # Use the documentation formatter for detailed output,
     # unless a formatter has already been configured
@@ -160,7 +166,10 @@ RSpec.configure do |config|
         # teardown in those tests.
         # They currently flood the output, making our test
         # suite output unreadable.
-        if example.file_path.start_with?('./spec/datadog/core/workers/', './spec/ddtrace/workers/')
+        if example.file_path.start_with?(
+          './spec/datadog/core/workers/',
+          './spec/ddtrace/workers/'
+        )
           puts # Add newline so we get better output when the progress formatter is being used
           RSpec.warning("FIXME: #{example.file_path}:#{example.metadata[:line_number]} is leaking threads")
           next
@@ -245,12 +254,13 @@ end
 
 Thread.prepend(DatadogThreadDebugger)
 
+require 'spec/support/thread_helpers'
 # Enforce test time limit, to allow us to debug why some test runs get stuck in CI
 if ENV.key?('CI')
-  require 'spec/support/thread_helpers'
-
   ThreadHelpers.with_leaky_thread_creation('Deadline thread') do
     Thread.new do
+      Thread.current.name = 'spec_helper.rb CI debugging Deadline thread' unless RUBY_VERSION.start_with?('2.1.', '2.2.')
+
       sleep_time = 30 * 60 # 30 minutes
       sleep(sleep_time)
 
@@ -276,3 +286,13 @@ end
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be
+
+ThreadHelpers.with_leaky_thread_creation("Timeout's internal thread") do
+  # The Ruby Timeout class uses a long-lived class-level thread that is never terminated.
+  # Creating it early here ensures tests that tests that check for leaking threads are not
+  # triggered by the creation of this thread.
+  #
+  # This has to be one once for the lifetime of this process, and was introduced in Ruby 3.1.
+  # Before 3.1, a thread was created and destroyed on every Timeout#timeout call.
+  Timeout.ensure_timeout_thread_created if Timeout.respond_to?(:ensure_timeout_thread_created)
+end

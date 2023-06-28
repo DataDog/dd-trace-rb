@@ -1,11 +1,9 @@
-# typed: true
-
 require_relative 'core'
 require_relative 'core/environment/variable_helpers'
 require_relative 'core/utils/only_once'
 
 module Datadog
-  # Contains profiler for generating stack profiles, etc.
+  # Datadog Continuous Profiler implementation: https://docs.datadoghq.com/profiler/
   module Profiling
     GOOGLE_PROTOBUF_MINIMUM_VERSION = Gem::Version.new('3.0')
     private_constant :GOOGLE_PROTOBUF_MINIMUM_VERSION
@@ -39,6 +37,44 @@ module Datadog
       # not yet have been started in the fork
       profiler.start if profiler
       !!profiler
+    end
+
+    # Returns an ever-increasing counter of the number of allocations observed by the profiler in this thread.
+    #
+    # Note 1: This counter may not start from zero on new threads. It should only be used to measure how many
+    # allocations have happened between two calls to this API:
+    # ```
+    # allocations_before = Datadog::Profiling.allocation_count
+    # do_some_work()
+    # allocations_after = Datadog::Profiling.allocation_count
+    # puts "Allocations during do_some_work: #{allocations_after - allocations_before}"
+    # ```
+    # (This is similar to some OS-based time representations.)
+    #
+    # Note 2: All fibers in the same thread will share the same counter values.
+    #
+    # Only available when the profiler is running, the new CPU Profiling 2.0 profiler is in use, and allocation-related
+    # features are not disabled via configuration.
+    # For instructions on enabling CPU Profiling 2.0 see the ddtrace release notes.
+    #
+    # @return [Integer] number of allocations observed in the current thread.
+    # @return [nil] when not available.
+    # @public_api
+    def self.allocation_count
+      # This no-op implementation is used when profiling failed to load.
+      # It gets replaced inside #replace_noop_allocation_count.
+      nil
+    end
+
+    def self.enabled?
+      profiler = Datadog.send(:components).profiler
+      !!(profiler.scheduler.running? if profiler)
+    end
+
+    private_class_method def self.replace_noop_allocation_count
+      def self.allocation_count # rubocop:disable Lint/DuplicateMethods, Lint/NestedMethodDefinition (On purpose!)
+        Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_allocation_count
+      end
     end
 
     private_class_method def self.native_library_compilation_skipped?
@@ -82,6 +118,7 @@ module Datadog
 
     private_class_method def self.protobuf_already_loaded?
       defined?(::Google::Protobuf) && !defined?(::Protobuf)
+      !!(defined?(::Google::Protobuf) && !defined?(::Protobuf))
     end
 
     private_class_method def self.protobuf_failed_to_load?
@@ -109,7 +146,7 @@ module Datadog
         # NOTE: We use Kernel#warn here because this code gets run BEFORE Datadog.logger is actually set up.
         # In the future it'd be nice to shuffle the logger startup to happen first to avoid this special case.
         Kernel.warn(
-          '[DDTRACE] Error while loading google-protobuf gem. ' \
+          '[ddtrace] Error while loading google-protobuf gem. ' \
           "Cause: '#{e.class.name} #{e.message}' Location: '#{Array(e.backtrace).first}'. " \
           'This can happen when google-protobuf is missing its native components. ' \
           'To fix this, try removing and reinstalling the gem, forcing it to recompile the components: ' \
@@ -126,7 +163,7 @@ module Datadog
       unless success
         if exception
           'There was an error loading the profiling native extension due to ' \
-          "'#{exception.class.name} #{exception.message}' at '#{exception.backtrace.first}'"
+          "'#{exception.class.name} #{exception.message}' at '#{Array(exception.backtrace).first}'"
         else
           'The profiling native extension did not load correctly. ' \
           'For help solving this issue, please contact Datadog support at <https://docs.datadoghq.com/help/>.' \
@@ -146,17 +183,21 @@ module Datadog
       end
     end
 
+    # All requires for the profiler should be directly added here; and everything should be loaded eagerly.
+    # (Currently there's a few exceptions for the old profiler, but we should avoid other exceptions.)
+    #
+    # All of the profiler should be loaded and ready to go when this method returns `true`.
     private_class_method def self.load_profiling
       return false unless supported?
 
       require_relative 'profiling/ext/forking'
       require_relative 'profiling/collectors/code_provenance'
-      require_relative 'profiling/collectors/cpu_and_wall_time'
       require_relative 'profiling/collectors/cpu_and_wall_time_worker'
       require_relative 'profiling/collectors/dynamic_sampling_rate'
       require_relative 'profiling/collectors/idle_sampling_helper'
       require_relative 'profiling/collectors/old_stack'
       require_relative 'profiling/collectors/stack'
+      require_relative 'profiling/collectors/thread_context'
       require_relative 'profiling/stack_recorder'
       require_relative 'profiling/old_recorder'
       require_relative 'profiling/exporter'
@@ -165,9 +206,13 @@ module Datadog
       require_relative 'profiling/profiler'
       require_relative 'profiling/native_extension'
       require_relative 'profiling/trace_identifiers/helper'
-      require_relative 'profiling/pprof/pprof_pb'
+      # This file is no longer eagerly loaded as a workaround for an issue. It only gets loaded dynamically if the old
+      # profiler is in use. See Profiling::Component#load_pprof_support for more details.
+      # require_relative 'profiling/pprof/pprof_pb'
       require_relative 'profiling/tag_builder'
       require_relative 'profiling/http_transport'
+
+      replace_noop_allocation_count
 
       true
     end

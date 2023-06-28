@@ -1,0 +1,8 @@
+module Datadog
+  module AppSec
+    module Ext
+      INTERRUPT: Symbol
+      SCOPE_KEY: String
+    end
+  end
+end

@@ -156,38 +156,53 @@ See the [demo doc](https://github.com/ruby/typeprof/blob/26ab9108860d9a4ce050acb
 
 ## Useful commands
 
-### Match `.rbs` to `.rb`
+### List stale `.rbs`
 
 ```
-find sig -type f -name '*.rbs' | while read -r sig; do tmp="${sig/%.rbs/}"; lib="${tmp/#sig/lib}.rb"; test -f "${lib}" && echo -n 'OK ' || echo -n 'NO '; echo "${lib}"; done
+# check everything
+bundle exec rake rbs:stale
+
+# check one file
+bundle exec rake rbs:stale[sig/foo/bar.rbs]
+
+# check a directory
+bundle exec rake rbs:stale[sig/foo]
+
+# clean stale files and empty directories
+bundle exec rake rbs:clean
 ```
 
-For each `.rbs` file in `sig` it outputs:
-
-- `OK` when a matching `.rb` file is found in `lib`
-- `NO` when no matching `.rb` file is found in `lib`
-
-Therefore with `| grep '^NO'` it becomes easy to list `.rbs` files that have no match, so, given the layout design, these files are stale.
-
-### Match `.rb` to `.rbs`
+### List missing `.rbs`
 
 ```
-find lib -name \*.rb -print | while read -r lib; do tmp="${lib/%.rb/}"; sig="${tmp/#lib/sig}.rbs"; test -f "${sig}" && echo -n 'OK ' || echo -n 'NO '; echo "${sig}"; done
+# check everything
+bundle exec rake rbs:missing
+
+# check one file
+bundle exec rake rbs:missing[lib/foo/bar.rb]
+
+# check a directory
+bundle exec rake rbs:missing[lib/foo]
 ```
 
-Adjust `find` to restrict scope.
-
-For each `.rb` file in `lib` it outputs:
-
-- `OK` when a matching `.rbs` file is found in `sig`
-- `NO` when no matching `.rbs` file is found in `sig`
-
-Therefore with `| grep '^NO'` it becomes easy to list `.rb` files that have no match, so, given the layout design, these files are missing typing information.
-
-### Mass-generate missing `.rbs` skeletons
-
-Warning: you probably want to adjust that `find` to a subset of `lib`, as incomplete typing information may end up forcing you to type more things than you initially wanted to!
+### Generate `.rbs` skeletons
 
 ```
-find lib -name \*.rb -print | while read -r lib; do tmp="${lib/%.rb/}"; sig="${tmp/#lib/sig}.rbs"; test -f "${sig}" || { echo "${sig}"; mkdir -p "${sig/%.rbs}"; bundle exec rbs prototype rb "${lib}" | grep -v '^ *#' > "${sig}" } done
+# prototype one file if missing
+bundle exec rake rbs:prototype[lib/foo/bar.rb]
+
+# prototype one file unconditionally
+bundle exec rake rbs:prototype[force,lib/foo/bar.rb]
+
+# prototype missing signatures in a directory
+bundle exec rake rbs:prototype[lib/foo]
+
+# prototype all files in a directory
+bundle exec rake rbs:prototype[force, lib/foo]
+
+# prototype every missing file
+bundle exec rake rbs:prototype
+
+# prototype every file
+bundle exec rake rbs:prototype[force]
 ```

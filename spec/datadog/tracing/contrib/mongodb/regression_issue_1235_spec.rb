@@ -1,5 +1,3 @@
-# typed: ignore
-
 require 'ddtrace'
 require 'mongo'
 
@@ -38,7 +36,7 @@ RSpec.describe 'Mongo crash regression #1235' do
       exit(true) # Forcing an immediate Ruby VM exit causes the crash
     end
 
-    _, status = Process.waitpid2(pid)
+    _, status = try_wait_until { Process.wait2(pid, Process::WNOHANG) }
     status
   end
 

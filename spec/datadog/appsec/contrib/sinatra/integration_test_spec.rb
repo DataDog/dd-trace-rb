@@ -1,6 +1,5 @@
-# typed: ignore
-
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/appsec/contrib/support/integration/shared_examples'
 require 'rack/test'
 
 require 'securerandom'
@@ -43,7 +42,8 @@ RSpec.describe 'Sinatra integration tests' do
 
   let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
-  let(:appsec_ip_denylist) { nil }
+  let(:appsec_ip_denylist) { [] }
+  let(:appsec_user_id_denylist) { [] }
   let(:appsec_ruleset) { :recommended }
 
   let(:crs_942_100) do
@@ -99,8 +99,10 @@ RSpec.describe 'Sinatra integration tests' do
       c.tracing.instrument :sinatra
 
       c.appsec.enabled = appsec_enabled
+      c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.instrument :sinatra
       c.appsec.ip_denylist = appsec_ip_denylist
+      c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
 
       # TODO: test with c.appsec.instrument :rack
@@ -108,6 +110,7 @@ RSpec.describe 'Sinatra integration tests' do
   end
 
   after do
+    Datadog.configuration.reset!
     Datadog.registry[:rack].reset_configuration!
     Datadog.registry[:sinatra].reset_configuration!
   end
@@ -128,7 +131,7 @@ RSpec.describe 'Sinatra integration tests' do
     end
 
     let(:triggers) do
-      json = trace.send(:meta)['_dd.appsec.json']
+      json = service_span.send(:meta)['_dd.appsec.json']
 
       JSON.parse(json).fetch('triggers', []) if json
     end
@@ -136,113 +139,15 @@ RSpec.describe 'Sinatra integration tests' do
     let(:remote_addr) { '127.0.0.1' }
     let(:client_ip) { remote_addr }
 
+    let(:service_span) do
+      span = sorted_spans.reverse.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
+
+      expect(span.name).to eq 'rack.request'
+
+      span
+    end
+
     let(:span) { rack_span }
-
-    shared_examples 'a GET 200 span' do
-      it { expect(span.get_tag('http.method')).to eq('GET') }
-      it { expect(span.get_tag('http.status_code')).to eq('200') }
-      it { expect(span.status).to eq(0) }
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it { expect(span.get_tag('http.method')).to eq('GET') }
-        it { expect(span.get_tag('http.status_code')).to eq('200') }
-        it { expect(span.status).to eq(0) }
-      end
-    end
-
-    shared_examples 'a GET 403 span' do
-      it { expect(span.get_tag('http.method')).to eq('GET') }
-      it { expect(span.get_tag('http.status_code')).to eq('403') }
-      it { expect(span.status).to eq(0) }
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it { expect(span.get_tag('http.method')).to eq('GET') }
-        it { expect(span.get_tag('http.status_code')).to eq('200') }
-        it { expect(span.status).to eq(0) }
-      end
-    end
-
-    shared_examples 'a GET 404 span' do
-      it { expect(span.get_tag('http.method')).to eq('GET') }
-      it { expect(span.get_tag('http.status_code')).to eq('404') }
-      it { expect(span.status).to eq(0) }
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it { expect(span.get_tag('http.method')).to eq('GET') }
-        it { expect(span.get_tag('http.status_code')).to eq('404') }
-        it { expect(span.status).to eq(0) }
-      end
-    end
-
-    shared_examples 'a POST 200 span' do
-      it { expect(span.get_tag('http.method')).to eq('POST') }
-      it { expect(span.get_tag('http.status_code')).to eq('200') }
-      it { expect(span.status).to eq(0) }
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it { expect(span.get_tag('http.method')).to eq('POST') }
-        it { expect(span.get_tag('http.status_code')).to eq('200') }
-        it { expect(span.status).to eq(0) }
-      end
-    end
-
-    shared_examples 'a POST 403 span' do
-      it { expect(span.get_tag('http.method')).to eq('POST') }
-      it { expect(span.get_tag('http.status_code')).to eq('403') }
-      it { expect(span.status).to eq(0) }
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it { expect(span.get_tag('http.method')).to eq('POST') }
-        it { expect(span.get_tag('http.status_code')).to eq('200') }
-        it { expect(span.status).to eq(0) }
-      end
-    end
-
-    shared_examples 'a trace without AppSec tags' do
-      it { expect(trace.send(:metrics)['_dd.appsec.enabled']).to be_nil }
-      it { expect(trace.send(:meta)['_dd.runtime_family']).to be_nil }
-      it { expect(trace.send(:meta)['_dd.appsec.waf.version']).to be_nil }
-      it { expect(span.send(:meta)['http.client_ip']).to eq nil }
-    end
-
-    shared_examples 'a trace with AppSec tags' do
-      it { expect(trace.send(:metrics)['_dd.appsec.enabled']).to eq(1.0) }
-      it { expect(trace.send(:meta)['_dd.runtime_family']).to eq('ruby') }
-      it { expect(trace.send(:meta)['_dd.appsec.waf.version']).to match(/^\d+\.\d+\.\d+/) }
-      it { expect(span.send(:meta)['http.client_ip']).to eq client_ip }
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it_behaves_like 'a trace without AppSec tags'
-      end
-    end
-
-    shared_examples 'a trace without AppSec events' do
-      it { expect(spans.select { |s| s.get_tag('appsec.event') }).to be_empty }
-      it { expect(trace.send(:meta)['_dd.appsec.triggers']).to be_nil }
-    end
-
-    shared_examples 'a trace with AppSec events' do
-      it { expect(spans.select { |s| s.get_tag('appsec.event') }).to_not be_empty }
-      it { expect(trace.send(:meta)['_dd.appsec.json']).to be_a String }
-
-      context 'with appsec disabled' do
-        let(:appsec_enabled) { false }
-
-        it_behaves_like 'a trace without AppSec events'
-      end
-    end
 
     context 'with a basic route' do
       let(:routes) do
@@ -254,12 +159,16 @@ RSpec.describe 'Sinatra integration tests' do
           post '/success' do
             'ok'
           end
+
+          get '/set_user' do
+            Datadog::Kit::Identity.set_user(Datadog::Tracing.active_trace, id: 'blocked-user-id')
+            'ok'
+          end
         end
       end
 
       before do
         response
-        expect(spans).to_not be_empty
       end
 
       describe 'GET request' do
@@ -273,6 +182,7 @@ RSpec.describe 'Sinatra integration tests' do
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
@@ -284,6 +194,7 @@ RSpec.describe 'Sinatra integration tests' do
           it { is_expected.to be_ok }
           it { expect(triggers).to be_a Array }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
@@ -294,6 +205,7 @@ RSpec.describe 'Sinatra integration tests' do
 
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
@@ -303,9 +215,10 @@ RSpec.describe 'Sinatra integration tests' do
 
             it { is_expected.to be_forbidden }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
 
@@ -322,6 +235,7 @@ RSpec.describe 'Sinatra integration tests' do
 
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
@@ -331,9 +245,10 @@ RSpec.describe 'Sinatra integration tests' do
 
             it { is_expected.to be_forbidden }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
 
@@ -344,9 +259,10 @@ RSpec.describe 'Sinatra integration tests' do
 
           it { is_expected.to be_forbidden }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 403 span'
           it_behaves_like 'a trace with AppSec tags'
-          it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec events', { blocking: true }
         end
 
         context 'with an event-triggering response' do
@@ -355,9 +271,32 @@ RSpec.describe 'Sinatra integration tests' do
           it { is_expected.to be_not_found }
           it { expect(triggers).to be_a Array }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a GET 404 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+        end
+
+        context 'with user blocking ID' do
+          let(:url) { '/set_user' }
+
+          it { is_expected.to be_ok }
+
+          it_behaves_like 'normal with tracing disable'
+          it_behaves_like 'a GET 200 span'
+          it_behaves_like 'a trace with AppSec tags'
+          it_behaves_like 'a trace without AppSec events'
+
+          context 'with an event-triggering user ID' do
+            let(:appsec_user_id_denylist) { ['blocked-user-id'] }
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'normal with tracing disable'
+            it_behaves_like 'a GET 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
+          end
         end
       end
 
@@ -372,6 +311,7 @@ RSpec.describe 'Sinatra integration tests' do
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
@@ -382,6 +322,7 @@ RSpec.describe 'Sinatra integration tests' do
 
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
@@ -391,9 +332,10 @@ RSpec.describe 'Sinatra integration tests' do
 
             it { is_expected.to be_forbidden }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', { blocking: true }
           end
         end
 
@@ -404,6 +346,7 @@ RSpec.describe 'Sinatra integration tests' do
 
             it { is_expected.to be_ok }
 
+            it_behaves_like 'normal with tracing disable'
             it_behaves_like 'a POST 200 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
@@ -431,6 +374,7 @@ RSpec.describe 'Sinatra integration tests' do
 
           it { is_expected.to be_ok }
 
+          it_behaves_like 'normal with tracing disable'
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'

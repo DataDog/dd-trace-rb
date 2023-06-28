@@ -1,7 +1,3 @@
-# typed: true
-
-require_relative '../../core'
-
 require_relative 'ext'
 require_relative 'rate_limiter'
 require_relative 'rule'

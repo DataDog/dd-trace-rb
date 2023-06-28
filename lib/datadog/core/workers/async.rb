@@ -1,5 +1,3 @@
-# typed: false
-
 require_relative '../logger'
 
 module Datadog
@@ -12,6 +10,10 @@ module Datadog
           FORK_POLICY_STOP = :stop
           FORK_POLICY_RESTART = :restart
           SHUTDOWN_TIMEOUT = 1
+
+          # This single shared mutex is used to avoid concurrency issues during the
+          # initialization of per-instance lazy-initialized mutexes.
+          MUTEX_INIT = Mutex.new
 
           def self.included(base)
             base.prepend(PrependedMethods)
@@ -88,7 +90,7 @@ module Datadog
             :result
 
           def mutex
-            @mutex ||= Mutex.new
+            (defined?(@mutex) && @mutex) || MUTEX_INIT.synchronize { @mutex ||= Mutex.new }
           end
 
           def after_fork
@@ -101,7 +103,7 @@ module Datadog
             :pid
 
           def mutex_after_fork
-            @mutex_after_fork ||= Mutex.new
+            (defined?(@mutex_after_fork) && @mutex_after_fork) || MUTEX_INIT.synchronize { @mutex_after_fork ||= Mutex.new }
           end
 
           def worker

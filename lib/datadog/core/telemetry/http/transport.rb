@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative '../../configuration/settings'
 require_relative 'env'
@@ -10,6 +10,7 @@ module Datadog
     module Telemetry
       module Http
         # Class to send telemetry data to Telemetry API
+        # Currently only supports the HTTP protocol.
         class Transport
           attr_reader \
             :host,

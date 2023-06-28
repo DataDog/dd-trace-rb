@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 module Datadog
   module Tracing
@@ -7,8 +7,8 @@ module Datadog
         # ConcurrentRuby integration constants
         # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
         module Ext
-          APP = 'concurrent-ruby'.freeze
-          ENV_ENABLED = 'DD_TRACE_CONCURRENT_RUBY_ENABLED'.freeze
+          APP = 'concurrent-ruby'
+          ENV_ENABLED = 'DD_TRACE_CONCURRENT_RUBY_ENABLED'
         end
       end
     end

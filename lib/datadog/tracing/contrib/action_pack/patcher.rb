@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative '../patcher'
 require_relative 'action_controller/patcher'

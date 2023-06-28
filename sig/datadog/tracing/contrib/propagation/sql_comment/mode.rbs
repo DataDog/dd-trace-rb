@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Propagation
+        module SqlComment
+          Mode: untyped
+        end
+      end
+    end
+  end
+end

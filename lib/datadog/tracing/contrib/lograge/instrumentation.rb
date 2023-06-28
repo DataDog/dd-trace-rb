@@ -1,4 +1,4 @@
-# typed: true
+# frozen_string_literal: true
 
 require_relative '../../../core/logging/ext'
 
@@ -15,6 +15,7 @@ module Datadog
           # Instance methods for configuration
           module InstanceMethods
             def custom_options(event)
+              return super unless Datadog.configuration.tracing.log_injection
               return super unless Datadog.configuration.tracing[:lograge].enabled
 
               original_custom_options = super(event)
