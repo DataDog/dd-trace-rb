@@ -62,12 +62,7 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, context.safely(:http_method))
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, context.safely(:status_code))
 
-            # Tag as an external peer service
-            if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-            else
-              Contrib::SpanAttributeSchema.set_peer_service(span, Ext::PEER_SERVICE_SOURCES)
-            end
+            Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
           end
 
           def configuration
