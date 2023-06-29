@@ -71,6 +71,11 @@ module Datadog
                   ::Datadog::Tracing.trace(Ext::SPAN_RECEIVE_MESSAGES, continue_from: digest) do |span_op, _|
                     span_op.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_MESSAGING_SYSTEM)
                     span_op.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER)
+
+                    span_op.set_tag(Ext::TAG_TOPIC, self.topic.name)
+                    span_op.set_tag(Ext::TAG_SUBSCRIPTION, self.name)
+                    span_op.resource = self.name
+
                     yield msg
                   end
                 end
