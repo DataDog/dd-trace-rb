@@ -8,3 +8,6 @@
 
 // Safety: This function is assumed never to raise exceptions by callers when raise_on_failure == false
 long monotonic_wall_time_now_ns(bool raise_on_failure);
+
+// Safety: This function is assumed never to raise exceptions by callers when raise_on_failure == false
+long system_epoch_time_now_ns(bool raise_on_failure);
