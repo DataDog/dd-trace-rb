@@ -1,21 +1,39 @@
 stages:
+  - package
   - deploy
   - macrobenchmarks
   - microbenchmarks
 
-include: ".gitlab/benchmarks.yml"
+include:
+  - remote: https://gitlab-templates.ddbuild.io/apm/packaging.yml
+  - local: ".gitlab/benchmarks.yml"
 
 # -----------------------------------------------------
 # Reliability Environment configuration
 # -----------------------------------------------------
 
 variables:
+  RUBY_PACKAGE_VERSION:
+    description: "The version of the gem to build the rpm/deb package"
   DOWNSTREAM_BRANCH:
     value: "master"
     description: "Run a specific datadog-reliability-env branch downstream"
 
 .common: &common
   tags: [ "runner:main", "size:large" ]
+
+package:
+  extends: .package
+  rules:
+  - if: $RUBY_PACKAGE_VERSION
+    when: on_success
+  - if: '$CI_COMMIT_TAG =~ /^v.*/'
+    when: on_success
+  script:
+    - ../.gitlab/build-deb-rpm.sh
+
+.release-package:
+  stage: deploy
 
 deploy_to_reliability_env:
   stage: deploy
