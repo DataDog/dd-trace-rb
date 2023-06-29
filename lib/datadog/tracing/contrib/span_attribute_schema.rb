@@ -31,34 +31,6 @@ module Datadog
           # TODO: add logic for remap as long as the above expression is true
         end
 
-        # set_peer_service?: returns boolean to reflect if peer.service should be set as long
-        # This is to prevent overwriting of pre-existing peer.service tags
-        def set_peer_service?(span)
-          # Check if peer.service is set
-          if span.service != Datadog.configuration.service
-            if not_empty_tag?(span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              span.set_tag(
-                Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_SOURCE,
-                Tracing::Metadata::Ext::TAG_PEER_SERVICE
-              )
-            end
-          else
-            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-            span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_SOURCE, Tracing::Metadata::Ext::TAG_PEER_SERVICE)
-          end
-
-          # Check that peer.service is only set on spankind client/producer spans while v1 is enabled
-          if ((span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_CLIENT) ||
-            (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)) &&
-              (Datadog.configuration.tracing.span_attribute_schema ==
-                  Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE)
-            return true
-            # TODO: add specific env var just for peer.service independent of v1
-          end
-
-          false
-        end
-
         # set_peer_service_from_source: Implements the extraction logic to determine the peer.service value
         # based on the list of source tags passed as a parameter.
         #
@@ -80,9 +52,51 @@ module Datadog
           false
         end
 
+        # set_peer_service?: returns boolean to reflect if peer.service should be set as long
+        # This is to prevent overwriting of pre-existing peer.service tags
+        def set_peer_service?(span)
+          # Do not override existing peer.service tag if it exists based on schema version
+          # if v0 then check if span.service != DD_service implying peer.service should be overrode so
+          # set peer source before returning
+          # if v1 then it is implied that peer.service is manually set by user so
+          # set peer source as well before return
+          ps = span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+          if not_empty_tag?(ps)
+            if Datadog.configuration.tracing.span_attribute_schema !=
+                Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE
+              if span.service != Datadog.configuration.service
+                span.set_tag(
+                  Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_SOURCE,
+                  Tracing::Metadata::Ext::TAG_PEER_SERVICE
+                )
+                return false
+              end
+            else
+              span.set_tag(
+                Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_SOURCE,
+                Tracing::Metadata::Ext::TAG_PEER_SERVICE
+              )
+              return false
+            end
+          end
+
+          # Check that peer.service is only set on spankind client/producer spans while v1 is enabled
+          if ((span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_CLIENT) ||
+            (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)) &&
+              (Datadog.configuration.tracing.span_attribute_schema ==
+                Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE)
+            return true
+            # TODO: add specific env var just for peer.service independent of v1
+          end
+
+          false
+        end
+
         def not_empty_tag?(tag)
           tag && (tag != '')
         end
+
+        private_class_method :not_empty_tag?, :set_peer_service_from_source, :set_peer_service?
       end
     end
   end
