@@ -13,6 +13,7 @@ module Datadog
         module SpanAttributeSchema
           ENV_SPAN_ATTRIBUTE_SCHEMA = 'DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'
           DEFAULT_VERSION = 'v0'
+          VERSION_ZERO = 'v0'
           VERSION_ONE = 'v1'
         end
 
