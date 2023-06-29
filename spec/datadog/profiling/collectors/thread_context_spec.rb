@@ -132,6 +132,18 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(t3_sample.labels).to include(:'thread name' => 'thread t3')
     end
 
+    it 'includes a fallback name for the main thread, when not set' do
+      expect(Thread.main.name).to eq('Thread.main') # We set this in the spec_helper.rb
+
+      Thread.main.name = nil
+
+      sample
+
+      expect(samples_for_thread(samples, Thread.main).first.labels).to include(:'thread name' => 'main')
+
+      Thread.main.name = 'Thread.main'
+    end
+
     it 'includes the wall-time elapsed between samples' do
       sample
       wall_time_at_first_sample =
