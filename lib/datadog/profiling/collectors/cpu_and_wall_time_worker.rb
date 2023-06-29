@@ -27,6 +27,7 @@ module Datadog
             max_frames: max_frames,
             tracer: tracer,
             endpoint_collection_enabled: endpoint_collection_enabled,
+            timeline_enabled: timeline_enabled,
           ),
           idle_sampling_helper: IdleSamplingHelper.new,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the

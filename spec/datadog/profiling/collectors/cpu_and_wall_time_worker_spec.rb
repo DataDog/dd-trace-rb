@@ -42,6 +42,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           cpu_and_wall_time_worker
         end
       end
+
+      context "when timeline_enabled is #{value}" do
+        let(:timeline_enabled) { value }
+
+        it "initializes the ThreadContext collector with timeline_enabled: #{value}" do
+          expect(Datadog::Profiling::Collectors::ThreadContext)
+            .to receive(:new).with(hash_including(timeline_enabled: value)).and_call_original
+
+          cpu_and_wall_time_worker
+        end
+      end
     end
   end
 
@@ -547,7 +558,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
     let(:thread_context_collector) do
       Datadog::Profiling::Collectors::ThreadContext.new(
-        recorder: recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: endpoint_collection_enabled,
+        recorder: recorder,
+        max_frames: 400,
+        tracer: nil,
+        endpoint_collection_enabled: endpoint_collection_enabled,
+        timeline_enabled: timeline_enabled,
       )
     end
     let(:options) { { thread_context_collector: thread_context_collector } }

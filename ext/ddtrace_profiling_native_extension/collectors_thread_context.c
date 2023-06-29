@@ -99,6 +99,8 @@ struct thread_context_collector_state {
   VALUE thread_list_buffer;
   // Used to omit endpoint names (retrieved from tracer) from collected data
   bool endpoint_collection_enabled;
+  // Used to omit timestamps / timeline events from collected data
+  bool timeline_enabled;
 
   struct stats {
     // Track how many garbage collection samples we've taken.
@@ -148,7 +150,8 @@ static VALUE _native_initialize(
   VALUE recorder_instance,
   VALUE max_frames,
   VALUE tracer_context_key,
-  VALUE endpoint_collection_enabled
+  VALUE endpoint_collection_enabled,
+  VALUE timeline_enabled
 );
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
@@ -207,7 +210,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 5);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 6);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
@@ -294,6 +297,7 @@ static VALUE _native_new(VALUE klass) {
   state->tracer_context_key = MISSING_TRACER_CONTEXT_KEY;
   state->thread_list_buffer = rb_ary_new();
   state->endpoint_collection_enabled = true;
+  state->timeline_enabled = true;
 
   return TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
 }
@@ -304,9 +308,11 @@ static VALUE _native_initialize(
   VALUE recorder_instance,
   VALUE max_frames,
   VALUE tracer_context_key,
-  VALUE endpoint_collection_enabled
+  VALUE endpoint_collection_enabled,
+  VALUE timeline_enabled
 ) {
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
+  ENFORCE_BOOLEAN(timeline_enabled);
 
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -319,6 +325,7 @@ static VALUE _native_initialize(
   // hash_map_per_thread_context is already initialized, nothing to do here
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
+  state->timeline_enabled = (timeline_enabled == Qtrue);
 
   if (RTEST(tracer_context_key)) {
     ENFORCE_TYPE(tracer_context_key, T_SYMBOL);
@@ -753,6 +760,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" sample_count=%u", state->sample_count));
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
+  rb_str_concat(result, rb_sprintf(" timeline_enabled=%"PRIsVALUE, state->timeline_enabled ? Qtrue : Qfalse));
 
   return result;
 }

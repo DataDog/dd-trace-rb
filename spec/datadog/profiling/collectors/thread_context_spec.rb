@@ -38,6 +38,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:invalid_time) { -1 }
   let(:tracer) { nil }
   let(:endpoint_collection_enabled) { true }
+  let(:timeline_enabled) { false }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -45,6 +46,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       max_frames: max_frames,
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
+      timeline_enabled: timeline_enabled,
     )
   end
 
