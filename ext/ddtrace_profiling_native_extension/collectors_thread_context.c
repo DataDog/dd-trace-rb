@@ -63,7 +63,6 @@
 // allowed to happen during Ruby's garbage collection start/finish hooks.
 // ---
 
-#define INVALID_TIME -1
 #define THREAD_ID_LIMIT_CHARS 44 // Why 44? "#{2**64} (#{2**64})".size + 1 for \0
 #define IS_WALL_TIME true
 #define IS_NOT_WALL_TIME false
@@ -101,6 +100,8 @@ struct thread_context_collector_state {
   bool endpoint_collection_enabled;
   // Used to omit timestamps / timeline events from collected data
   bool timeline_enabled;
+  // Used when calling monotonic_to_system_epoch_ns
+  monotonic_to_system_epoch_state time_converter_state;
 
   struct stats {
     // Track how many garbage collection samples we've taken.
@@ -171,7 +172,8 @@ static void trigger_sample_for_thread(
   VALUE stack_from_thread,
   struct per_thread_context *thread_context,
   sample_values values,
-  sample_type type
+  sample_type type,
+  long current_monotonic_wall_time_ns
 );
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state);
@@ -298,6 +300,7 @@ static VALUE _native_new(VALUE klass) {
   state->thread_list_buffer = rb_ary_new();
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
+  state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
 
   return TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
 }
@@ -450,7 +453,8 @@ void update_metrics_and_sample(
     stack_from_thread,
     thread_context,
     (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
-    SAMPLE_REGULAR
+    SAMPLE_REGULAR,
+    current_monotonic_wall_time_ns
   );
 }
 
@@ -592,7 +596,8 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
       /* stack_from_thread: */ thread,
       thread_context,
       (sample_values) {.cpu_time_ns = gc_cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = gc_wall_time_elapsed_ns},
-      SAMPLE_IN_GC
+      SAMPLE_IN_GC,
+      INVALID_TIME // For now we're not collecting timestamps for these events
     );
 
     // Mark thread as no longer in GC
@@ -622,12 +627,14 @@ static void trigger_sample_for_thread(
   VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
   sample_values values,
-  sample_type type
+  sample_type type,
+  long current_monotonic_wall_time_ns
 ) {
   int max_label_count =
     1 + // thread id
     1 + // thread name
     1 + // profiler overhead
+    1 + // end_timestamp_ns
     2;  // local root span id and span id
   ddog_prof_Label labels[max_label_count];
   int label_pos = 0;
@@ -674,6 +681,13 @@ static void trigger_sample_for_thread(
     labels[label_pos++] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("profiler overhead"),
       .num = 1
+    };
+  }
+
+  if (state->timeline_enabled && current_monotonic_wall_time_ns != INVALID_TIME) {
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("end_timestamp_ns"),
+      .num = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns)
     };
   }
 
@@ -761,6 +775,11 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" timeline_enabled=%"PRIsVALUE, state->timeline_enabled ? Qtrue : Qfalse));
+  rb_str_concat(result, rb_sprintf(
+    " time_converter_state={.system_epoch_ns_reference=%ld, .delta_to_epoch_ns=%ld}",
+    state->time_converter_state.system_epoch_ns_reference,
+    state->time_converter_state.delta_to_epoch_ns
+  ));
 
   return result;
 }
@@ -997,7 +1016,8 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     /* stack_from_thread: */ current_thread,
     get_or_create_context_for(current_thread, state),
     (sample_values) {.alloc_samples = sample_weight},
-    SAMPLE_REGULAR
+    SAMPLE_REGULAR,
+    INVALID_TIME // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
   );
 }
 

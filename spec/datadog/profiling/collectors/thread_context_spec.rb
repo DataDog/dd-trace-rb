@@ -543,6 +543,30 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(second_sample_stack.first.labels).to_not include(:'profiler overhead' => anything)
       expect(profiler_overhead_stack.first.labels).to include(:'profiler overhead' => 1)
     end
+
+    describe 'timeline support' do
+      context 'when timeline is disabled' do
+        let(:timeline_enabled) { false }
+
+        it 'does not include end_timestamp_ns labels in samples' do
+          sample
+
+          expect(samples.map(&:labels).flat_map(&:keys).uniq).to_not include(:end_timestamp_ns)
+        end
+      end
+
+      context 'when timeline is enabled' do
+        let(:timeline_enabled) { true }
+
+        it 'includes a end_timestamp_ns containing epoch time in every sample' do
+          time_before = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+          sample
+          time_after = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+
+          expect(samples.first.labels).to include(end_timestamp_ns: be_between(time_before, time_after))
+        end
+      end
+    end
   end
 
   describe '#on_gc_start' do
@@ -846,6 +870,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
         end
       end
+
+      context 'when timeline is enabled' do
+        let(:timeline_enabled) { true }
+
+        it 'does not include end_timestamp_ns labels in GC samples' do
+          sample_after_gc
+
+          expect(gc_samples.first.labels.keys).to_not include(:end_timestamp_ns)
+        end
+      end
     end
   end
 
@@ -914,6 +948,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             :'trace endpoint' => 'trace_resource',
           )
         end
+      end
+    end
+
+    context 'when timeline is enabled' do
+      let(:timeline_enabled) { true }
+
+      it 'does not include end_timestamp_ns labels in GC samples' do
+        sample_allocation(weight: 123)
+
+        expect(single_sample.labels.keys).to_not include(:end_timestamp_ns)
       end
     end
   end
