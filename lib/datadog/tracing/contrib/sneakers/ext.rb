@@ -18,6 +18,7 @@ module Datadog
           TAG_COMPONENT = 'sneakers'
           TAG_OPERATION_JOB = 'job'
           TAG_MESSAGING_SYSTEM = 'rabbitmq'
+          TAG_RABBITMQ_ROUTING_KEY = 'messaging.rabbitmq.routing_key'
         end
       end
     end
