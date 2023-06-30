@@ -228,7 +228,7 @@ module Datadog
             end
 
             HeaderTagging.tag_request_headers(request_span, env, configuration)
-            HeaderTagging.tag_response_headers(request_span, headers, configuration)
+            HeaderTagging.tag_response_headers(request_span, headers, configuration) if headers
 
             # detect if the status code is a 5xx and flag the request span as an error
             # unless it has been already set by the underlying framework
