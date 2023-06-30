@@ -230,11 +230,6 @@ module Datadog
             HeaderTagging.tag_request_headers(request_span, env, configuration)
             HeaderTagging.tag_response_headers(request_span, headers, configuration)
 
-            # Response headers
-            response_headers_tags.each do |name, value|
-              request_span.set_tag(name, value) if request_span.get_tag(name).nil?
-            end
-
             # detect if the status code is a 5xx and flag the request span as an error
             # unless it has been already set by the underlying framework
             request_span.status = 1 if status.to_s.start_with?('5') && request_span.status.zero?
