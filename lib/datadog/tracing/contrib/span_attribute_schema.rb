@@ -17,9 +17,9 @@ module Datadog
         def active_version
           case Datadog.configuration.tracing.span_attribute_schema
           when 'v1'
-            VersionOne
+            V1
           else
-            VersionZero # Default Version
+            V0 # Default Version
           end
         end
 
@@ -37,17 +37,15 @@ module Datadog
         private_class_method :active_version
 
         # Contains implementation of methods specific to v0
-        module VersionZero
+        module V0
           module_function
 
           def fetch_service_name(env, default)
-            ENV.fetch(env) do
-              default
-            end
+            ENV.fetch(env) { default }
           end
 
           # TODO: add logic for env var enabling peer service in v0
-          def set_peer_service!(span, sources)
+          def set_peer_service!(span, _)
             span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
             false
             # TODO: add logic for remap if necessary
@@ -55,13 +53,14 @@ module Datadog
         end
 
         # Contains implementation of methods specific to v1
-        module VersionOne
+        module V1
           module_function
 
-          def fetch_service_name(env, default)
-            ENV.fetch(env) do
-              Datadog.configuration.service
-            end
+          REFLEXIVE_SOURCES = [Tracing::Metadata::Ext::TAG_PEER_SERVICE].freeze
+          NO_SOURCE = [].freeze
+
+          def fetch_service_name(env, _)
+            ENV.fetch(env) { Datadog.configuration.service }
           end
 
           def set_peer_service!(span, sources)
@@ -76,7 +75,8 @@ module Datadog
           # Sets the source of where the information for peer.service was extracted from
           # Returns a boolean if peer.service was successfully set or not
           def set_peer_service_from_source(span, sources = [])
-            return false unless set_peer_service?(span)
+            # Filter out sources based on existence of peer.service tag
+            sources = filter_peer_service_sources(span, sources)
 
             # Find a possible peer.service source from the list of source tags passed in
             sources.each do |source|
@@ -90,33 +90,28 @@ module Datadog
             false
           end
 
-          # set_peer_service?: returns boolean to reflect if peer.service should be set as long
+          # filter_peer_service_sources: returns filtered sources based on existence of peer.service tag
+          # If peer.service exists, we do not read from any other source rather use peer.service as source
           # This is to prevent overwriting of pre-existing peer.service tags
-          def set_peer_service?(span)
-            # Do not override existing peer.service tag if it exists based on schema version
+          def filter_peer_service_sources(span, sources)
             ps = span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
-            if not_empty_tag?(ps)
-              span.set_tag(
-                Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_SOURCE,
-                Tracing::Metadata::Ext::TAG_PEER_SERVICE
-              )
-              return false
-            end
+            # Do not override existing peer.service tag if it exists based on schema version
+            return REFLEXIVE_SOURCES if not_empty_tag?(ps)
 
-            # Check that peer.service is only set on spankind client/producer spans while v1 is enabled
+            # Check that peer.service is only set on spankind client/producer spans
             if (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_CLIENT) ||
                 (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
-              return true
+              return sources
             end
 
-            false
+            NO_SOURCES
           end
 
           def not_empty_tag?(tag)
             tag && (tag != '')
           end
 
-          private_class_method :not_empty_tag?, :set_peer_service_from_source, :set_peer_service?
+          private_class_method :not_empty_tag?, :set_peer_service_from_source, :filter_peer_service_sources
         end
       end
     end
