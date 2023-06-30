@@ -19,7 +19,7 @@ variables:
     value: "master"
     description: "Run a specific datadog-reliability-env branch downstream"
 
-.common: &common
+default:
   tags: [ "runner:main", "size:large" ]
 
 install-base-ruby-gems:
