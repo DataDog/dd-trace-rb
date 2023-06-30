@@ -1,0 +1,18 @@
+module Datadog
+  module Tracing
+    module Configuration
+      module HTTP
+        class HeaderTags
+          @header_tags: Array[String]
+          @request_headers: Hash[String, String]
+          @response_headers: Hash[String, String]
+
+          def initialize: (Array[String] header_tags) -> void
+          def request_tags: (Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection headers) -> Array[Array[String]]
+          def response_tags: (Hash[String, String] headers) -> Array[Array[String]]
+          def to_s: () -> String
+        end
+      end
+    end
+  end
+end

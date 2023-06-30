@@ -278,6 +278,45 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe '#header_tags' do
+      subject(:header_tags) { settings.tracing.header_tags }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_HEADER_TAGS}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_HEADER_TAGS => tags) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:tags) { nil }
+
+          it { is_expected.to eq([]) }
+        end
+
+        context 'is set to content-type' do
+          let(:tags) { 'content-type' }
+
+          it { is_expected.to eq(['content-type']) }
+        end
+
+        context 'is set to content-type,cookie' do
+          let(:tags) { 'content-type,cookie' }
+
+          it { is_expected.to eq(['content-type', 'cookie']) }
+        end
+      end
+    end
+
+    describe '#header_tags=' do
+      it 'updates the #header_tags setting' do
+        expect { settings.tracing.header_tags = ['content-type'] }
+          .to change { settings.tracing.header_tags }
+          .from([])
+          .to(['content-type'])
+      end
+    end
+
     describe '#instance' do
       subject(:instance) { settings.tracing.instance }
 

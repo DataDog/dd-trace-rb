@@ -1,4 +1,5 @@
 require_relative '../../tracing/configuration/ext'
+require_relative 'http'
 
 module Datadog
   module Tracing
@@ -9,6 +10,7 @@ module Datadog
       # rubocop:disable Metrics/BlockLength
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/MethodLength
+      # rubocop:disable Metrics/PerceivedComplexity
       # rubocop:disable Layout/LineLength
       module Settings
         def self.extended(base)
@@ -171,6 +173,25 @@ module Datadog
               option :enabled do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::ENV_ENABLED, true) }
                 o.lazy
+              end
+
+              # Comma-separated, case-insensitive list of header names that are reported in incoming and outgoing HTTP requests.
+              #
+              # Each header in the list can either be:
+              # * A header name, which is mapped to the respective tags `http.request.headers.<header name>` and `http.response.headers.<header name>`.
+              # * A key value pair, "header name:tag name", which is mapped to the span tag `tag name`.
+              #
+              # You can mix the two types of header declaration in the same list.
+              # Tag names will be normalized based on the [Datadog tag normalization rules](https://docs.datadoghq.com/getting_started/tagging/#defining-tags).
+              #
+              # @default `DD_TRACE_HEADER_TAGS` environment variable, otherwise `nil`
+              # @return [Array<String>]
+              option :header_tags do |o|
+                o.default { env_to_list(Configuration::Ext::ENV_HEADER_TAGS, nil, comma_separated_only: true) }
+                o.lazy
+                o.setter do |header_tags, _old_value|
+                  Configuration::HTTP::HeaderTags.new(header_tags) if header_tags
+                end
               end
 
               # Enable 128 bit trace id generation.
@@ -459,6 +480,7 @@ module Datadog
       # rubocop:enable Metrics/BlockLength
       # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/MethodLength
+      # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Layout/LineLength
     end
   end

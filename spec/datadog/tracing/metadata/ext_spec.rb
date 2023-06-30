@@ -37,5 +37,17 @@ RSpec.describe Datadog::Tracing::Metadata::Ext::HTTP::Headers do
         is_expected.to eq('_' * tag.size)
       end
     end
+
+    context 'with `allow_nested: true`' do
+      subject(:to_tag) { described_class.to_tag(tag, allow_nested: true) }
+
+      context 'with a period' do
+        let(:tag) { 'a.b.' }
+
+        it 'does not replace period with underscore' do
+          is_expected.to eq('a.b.')
+        end
+      end
+    end
   end
 end

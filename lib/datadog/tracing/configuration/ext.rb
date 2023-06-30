@@ -7,6 +7,7 @@ module Datadog
       # e.g. Env vars, default values, enums, etc...
       module Ext
         ENV_ENABLED = 'DD_TRACE_ENABLED'
+        ENV_HEADER_TAGS = 'DD_TRACE_HEADER_TAGS'
         ENV_TRACE_ID_128_BIT_GENERATION_ENABLED = 'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED'
 
         # @public_api

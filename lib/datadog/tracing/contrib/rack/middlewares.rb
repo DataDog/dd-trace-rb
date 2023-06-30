@@ -9,6 +9,7 @@ require_relative '../analytics'
 require_relative '../utils/quantization/http'
 require_relative 'ext'
 require_relative 'header_collection'
+require_relative 'header_tagging'
 require_relative 'request_queue'
 
 module Datadog
@@ -138,8 +139,6 @@ module Datadog
           # rubocop:disable Metrics/MethodLength
           def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
             request_header_collection = Header::RequestHeaderCollection.new(env)
-            request_headers_tags = parse_request_headers(request_header_collection)
-            response_headers_tags = parse_response_headers(headers || {})
 
             # Since it could be mutated, it would be more accurate to fetch from the original env,
             # e.g. ActionDispatch::ShowExceptions middleware with Rails exceptions_app configuration
@@ -228,10 +227,8 @@ module Datadog
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent)
             end
 
-            # Request headers
-            request_headers_tags.each do |name, value|
-              request_span.set_tag(name, value) if request_span.get_tag(name).nil?
-            end
+            HeaderTagging.tag_request_headers(request_span, env, configuration)
+            HeaderTagging.tag_response_headers(request_span, headers, configuration)
 
             # Response headers
             response_headers_tags.each do |name, value|
@@ -315,18 +312,12 @@ module Datadog
             headers.get(Tracing::Metadata::Ext::HTTP::HEADER_USER_AGENT)
           end
 
-          def parse_request_headers(headers)
-            whitelist = configuration[:headers][:request] || []
-            whitelist.each_with_object({}) do |header, result|
-              header_value = headers.get(header)
-              unless header_value.nil?
-                header_tag = Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)
-                result[header_tag] = header_value
-              end
-            end
-          end
-
           def parse_response_headers(headers)
+            # Use global DD_TRACE_HEADER_TAGS if integration-level configuration is not provided
+            if configuration.using_default?(:headers) && Datadog.configuration.tracing.header_tags
+              return Datadog.configuration.tracing.header_tags.response_tags(headers)
+            end
+
             {}.tap do |result|
               whitelist = configuration[:headers][:response] || []
               whitelist.each do |header|
