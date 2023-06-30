@@ -1036,7 +1036,7 @@ RSpec.describe 'Rack integration tests' do
         let(:headers) { { 'HTTP_REQUEST_ID' => 'test-id' } }
 
         include_examples 'with request tracer header tags' do
-          let(:request_header_tag) { 'Request-Id' }
+          let(:request_header_tag) { 'request-id' }
           let(:request_header_tag_value) { 'test-id' }
 
           before { response }
