@@ -99,7 +99,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
     context 'with Tagged Logging' do
       before do
-        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return('true')
       end
 
       context 'with Tagged logging setup and no tags' do
@@ -147,7 +147,7 @@ RSpec.describe 'Rails Log Auto Injection' do
         require 'lograge'
 
         before do
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return('true')
         end
 
         context 'with lograge enabled' do
@@ -255,8 +255,8 @@ RSpec.describe 'Rails Log Auto Injection' do
         require 'lograge'
 
         before do
-          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return('true')
+          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return('true')
         end
 
         context 'with lograge and tagged logging enabled' do
@@ -422,7 +422,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
     context 'with Tagged Logging' do
       before do
-        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return('true')
       end
 
       context 'with Tagged logging setup and no tags' do
@@ -470,7 +470,7 @@ RSpec.describe 'Rails Log Auto Injection' do
         require 'lograge'
 
         before do
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return('true')
         end
 
         context 'with lograge enabled' do
