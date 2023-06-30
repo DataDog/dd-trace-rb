@@ -60,6 +60,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [httpclient](#httpclient)
      - [httpx](#httpx)
      - [Kafka](#kafka)
+     - [Minitest](#minitest)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#nethttp)
@@ -1284,6 +1285,30 @@ Datadog.configure do |c|
   c.tracing.instrument :kafka
 end
 ```
+
+### Minitest
+
+The Minitest integration will trace all executions of tests when using `minitest` test framework.
+
+To activate your integration, use the `Datadog.configure` method:
+
+```ruby
+require 'minitest'
+require 'ddtrace'
+
+# Configure default Minitest integration
+Datadog.configure do |c|
+  c.ci.instrument :minitest, **options
+end
+```
+
+`options` are the following keyword arguments:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `enabled` | Defines whether Minitest tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
+| `service_name` | Service name used for `minitest` instrumentation. | `'minitest'` |
+| `operation_name` | Operation name used for `minitest` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'minitest.test'` |
 
 ### MongoDB
 
