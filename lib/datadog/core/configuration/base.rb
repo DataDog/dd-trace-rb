@@ -1,4 +1,4 @@
-require_relative '../environment/variable_helpers'
+require_relative '../utils/variable_helpers'
 require_relative 'options'
 
 module Datadog
@@ -8,8 +8,8 @@ module Datadog
       # @public_api
       module Base
         def self.included(base)
-          base.extend(Core::Environment::VariableHelpers)
-          base.include(Core::Environment::VariableHelpers)
+          base.extend(Core::Utils::VariableHelpers)
+          base.include(Core::Utils::VariableHelpers)
           base.include(Options)
 
           base.extend(ClassMethods)
