@@ -480,7 +480,7 @@ module Datadog
         # @default `->{ Time.now }`
         # @return [Proc<Time>]
         option :time_now_provider do |o|
-          o.default_proc do
+          o.experimental_default_proc do
             ::Time.now
           end
           o.on_set do |time_provider|

@@ -6,6 +6,8 @@ module Datadog
 
         attr_reader default: untyped
 
+        attr_reader experimental_default_proc: untyped
+
         attr_reader delegate_to: untyped
 
         attr_reader depends_on: untyped
@@ -31,7 +33,7 @@ module Datadog
 
           def default: (?untyped? value) { () -> untyped } -> untyped
 
-          def default_proc: () { () -> untyped } -> untyped
+          def experimental_default_proc: () { () -> untyped } -> untyped
 
           def delegate_to: () { () -> untyped } -> untyped
 

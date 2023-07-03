@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       Datadog::Core::Configuration::OptionDefinition,
       name: :test_name,
       default: default,
-      default_proc: default_proc,
+      experimental_default_proc: experimental_default_proc,
       delegate_to: delegate,
       on_set: nil,
       resetter: nil,
@@ -18,7 +18,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
     )
   end
   let(:default) { double('default') }
-  let(:default_proc) { nil }
+  let(:experimental_default_proc) { nil }
   let(:delegate) { nil }
   let(:setter) { proc { setter_value } }
   let(:setter_value) { double('setter_value') }
@@ -343,10 +343,10 @@ RSpec.describe Datadog::Core::Configuration::Option do
       it { is_expected.to be default }
     end
 
-    context 'when default_proc is defined' do
-      let(:default_proc) { proc { 'default_proc' } }
+    context 'when experimental_default_proc is defined' do
+      let(:experimental_default_proc) { proc { 'experimental_default_proc' } }
 
-      it { is_expected.to be default_proc }
+      it { is_expected.to be experimental_default_proc }
     end
   end
 end
