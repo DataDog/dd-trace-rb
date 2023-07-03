@@ -86,6 +86,15 @@ module Datadog
             @helpers[name] = block
           end
 
+          def lazy(_value = true)
+            Datadog::Core.log_deprecation do
+              'The `lazy` option is deprecated. You no longer need to specify an option to be lazy '\
+              "when the default value is a block.\n"\
+              'In the case edge case that you need the default value to be a block, please use the the expriemntal option:'\
+              'experimental_default_proc'
+            end
+          end
+
           def on_set(&block)
             @on_set = block
           end
@@ -110,6 +119,7 @@ module Datadog
             experimental_default_proc(&options[:experimental_default_proc]) if options.key?(:experimental_default_proc)
             delegate_to(&options[:delegate_to]) if options.key?(:delegate_to)
             depends_on(*options[:depends_on]) if options.key?(:depends_on)
+            lazy(options[:lazy]) if options.key?(:lazy)
             on_set(&options[:on_set]) if options.key?(:on_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
             setter(&options[:setter]) if options.key?(:setter)
