@@ -1,8 +1,6 @@
 #!/bin/bash
 
-cd WIP
+cd vendor
 
-# TODO: Remove patch version from version string
-mkdir -p $RUBY_VERSION
-
-# gem install --file Gemfile --install-dir $RUBY_VERSION --no-document --verbose
+export INSTALL_DDTRACE_NATIVE_DEPS=true
+ruby install_ddtrace_deps.rb

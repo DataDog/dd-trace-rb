@@ -34,7 +34,7 @@ install-base-ruby-gems:
     - .gitlab/install-gem-to-folder.sh
   artifacts:
     paths:
-      - WIP
+      - vendor
 
 install-version-dependant-gems:
   image: registry.ddbuild.io/images/mirror/ruby:$RUBY_VERSION
@@ -52,7 +52,7 @@ install-version-dependant-gems:
     - .gitlab/install-gem-to-folder-version-specific.sh
   artifacts:
     paths:
-      - WIP
+      - vendor
 
 package:
   extends: .package
@@ -63,7 +63,7 @@ package:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: on_success
   script:
-    - ls ../WIP
+    - ls ../vendor
     - ../.gitlab/build-deb-rpm.sh
 
 .release-package:

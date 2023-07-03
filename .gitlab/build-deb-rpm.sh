@@ -12,6 +12,6 @@ fpm_wrapper "datadog-apm-library-ruby" "$RUBY_PACKAGE_VERSION" \
  --url "https://github.com/DataDog/dd-trace-rb" \
  --description "Datadog APM client library for Ruby" \
  --license "BSD-3-Clause" \
- --chdir=../WIP \
+ --chdir=../vendor \
  --prefix "$LIBRARIES_INSTALL_BASE/ruby" \
  .=.
