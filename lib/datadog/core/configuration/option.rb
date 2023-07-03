@@ -62,7 +62,7 @@ module Datadog
           elsif definition.delegate_to
             context_eval(&definition.delegate_to)
           else
-            set(default_value, precedence: Precedence::DEFAULT)
+            set_value_from_env_or_default
           end
         end
 
@@ -100,6 +100,19 @@ module Datadog
 
         def context_eval(&block)
           @context.instance_eval(&block)
+        end
+
+        def set_value_from_env_or_default
+          if definition.env_var && ENV[definition.env_var]
+            set(ENV[definition.env_var], precedence: Precedence::PROGRAMMATIC)
+          elsif definition.deprecated_env_var && ENV[definition.deprecated_env_var]
+            Datadog::Core.log_deprecation do
+              "#{definition.deprecated_env_var} environment variable is deprecated, use #{definition.env_var} instead."
+            end
+            set(ENV[definition.deprecated_env_var], precedence: Precedence::PROGRAMMATIC)
+          else
+            set(default_value, precedence: Precedence::DEFAULT)
+          end
         end
 
         # Used for testing

@@ -11,6 +11,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
       name: :test_name,
       default: default,
       experimental_default_proc: experimental_default_proc,
+      env_var: env_var,
+      deprecated_env_var: deprecated_env_var,
       delegate_to: delegate,
       on_set: nil,
       resetter: nil,
@@ -20,6 +22,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
   let(:default) { double('default') }
   let(:experimental_default_proc) { nil }
   let(:delegate) { nil }
+  let(:env_var) { nil }
+  let(:deprecated_env_var) { nil }
   let(:setter) { proc { setter_value } }
   let(:setter_value) { double('setter_value') }
   let(:context) { double('configuration object') }
@@ -223,6 +227,76 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
   describe '#get' do
     subject(:get) { option.get }
+
+    context 'when env_var is defined' do
+      before do
+        expect(context).to receive(:instance_exec) do |*args|
+          args[0]
+        end
+      end
+
+      let(:env_var) { 'TEST' }
+
+      context 'when env_var is not set' do
+        it 'use default value' do
+          expect(option.get).to be default
+        end
+      end
+
+      context 'when env_var is set' do
+        around do |example|
+          ClimateControl.modify('TEST' => 'test') do
+            example.run
+          end
+        end
+
+        it 'uses env var value' do
+          expect(option.get).to eq 'test'
+        end
+
+        it 'set precedence_set to programmatic' do
+          option.get
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
+        end
+      end
+    end
+
+    context 'when deprecated_env_var is defined' do
+      before do
+        expect(context).to receive(:instance_exec) do |*args|
+          args[0]
+        end
+      end
+
+      let(:deprecated_env_var) { 'TEST' }
+      context 'when env var is not set' do
+        it 'use default value' do
+          expect(option.get).to be default
+        end
+      end
+
+      context 'when env var is set' do
+        around do |example|
+          ClimateControl.modify('TEST' => 'test') do
+            example.run
+          end
+        end
+
+        it 'uses env var value' do
+          expect(option.get).to eq 'test'
+        end
+
+        it 'set precedence_set to programmatic' do
+          option.get
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
+        end
+
+        it 'log deprecation warning' do
+          expect(Datadog::Core).to receive(:log_deprecation)
+          option.get
+        end
+      end
+    end
 
     context 'when #set' do
       context 'hasn\'t been called' do
