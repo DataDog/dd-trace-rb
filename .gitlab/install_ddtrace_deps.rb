@@ -1,7 +1,6 @@
 # require "fileutils"
 require "open3"
 require "bundler"
-require "pry"
 
 lock_file_path = "./Gemfile.lock"
 install_dir = "./vendor"
