@@ -40,7 +40,7 @@ install-version-dependant-gems:
   image: registry.ddbuild.io/images/mirror/ruby:$RUBY_VERSION
   parallel:
     matrix:
-      - RUBY_VERSION: [ "3.0.0"]
+      - RUBY_VERSION: [ "3.0.0", "3.1.4"]
   rules:
     - if: $RUBY_PACKAGE_VERSION
       when: on_success
