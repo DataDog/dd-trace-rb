@@ -112,6 +112,7 @@ module Datadog
 
                     quantized_url = Datadog::Tracing::Contrib::Elasticsearch::Quantize.format_url(url)
                     span.resource = "#{method} #{quantized_url}"
+                    Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                   rescue StandardError => e
                     Datadog.logger.error(e.message)
                   ensure
@@ -120,7 +121,6 @@ module Datadog
                     span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
                   end
                 end
-                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                 response
               end
 
