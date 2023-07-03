@@ -11,6 +11,7 @@ module Datadog
 
           ENV_SERVICE_NAME: "DD_TRACE_DALLI_SERVICE_NAME"
 
+          PEER_SERVICE_SOURCES: Array[String]
           QUANTIZE_MAX_CMD_LENGTH: 100
 
           DEFAULT_PEER_SERVICE_NAME: "memcached"
