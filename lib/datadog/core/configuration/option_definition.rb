@@ -16,17 +16,22 @@ module Datadog
           # clear to the reader that they should not rely on it and that is subject to change.
           # Currently is only use internally.
           :experimental_default_proc,
+          :env_var,
+          :deprecated_env_var,
           :delegate_to,
           :depends_on,
           :name,
           :on_set,
           :resetter,
           :setter,
-          :type
+          :type,
+          :type_options
 
         def initialize(name, meta = {}, &block)
           @default = meta[:default]
           @experimental_default_proc = meta[:experimental_default_proc]
+          @env_var = meta[:env_var]
+          @deprecated_env_var = meta[:deprecated_env_var]
           @delegate_to = meta[:delegate_to]
           @depends_on = meta[:depends_on] || []
           @name = name.to_sym
@@ -34,6 +39,7 @@ module Datadog
           @resetter = meta[:resetter]
           @setter = meta[:setter] || block || IDENTITY
           @type = meta[:type]
+          @type_options = meta[:type_options]
         end
 
         # Creates a new Option, bound to the context provided.
@@ -50,6 +56,8 @@ module Datadog
             :helpers
 
           def initialize(name, options = {})
+            @env_var = nil
+            @deprecated_env_var = nil
             @default = nil
             @experimental_default_proc = nil
             @delegate_to = nil
@@ -60,7 +68,7 @@ module Datadog
             @resetter = nil
             @setter = OptionDefinition::IDENTITY
             @type = nil
-
+            @type_options = {}
             # If options were supplied, apply them.
             apply_options!(options)
 
@@ -72,6 +80,14 @@ module Datadog
 
           def depends_on(*values)
             @depends_on = values.flatten
+          end
+
+          def env_var(value)
+            @env_var = value
+          end
+
+          def deprecated_env_var(value)
+            @deprecated_env_var = value
           end
 
           def default(value = nil, &block)
@@ -112,8 +128,11 @@ module Datadog
             @setter = block
           end
 
-          def type(value = nil)
+          def type(value, type_options = {})
             @type = value
+            @type_options = type_options
+
+            value
           end
 
           # For applying options for OptionDefinition
@@ -121,14 +140,15 @@ module Datadog
             return if options.nil? || options.empty?
 
             default(options[:default]) if options.key?(:default)
-            experimental_default_proc(&options[:experimental_default_proc]) if options.key?(:experimental_default_proc)
+            env_var(options[:env_var]) if options.key?(:env_var)
+            deprecated_env_var(options[:deprecated_env_var]) if options.key?(:deprecated_env_var)
             delegate_to(&options[:delegate_to]) if options.key?(:delegate_to)
             depends_on(*options[:depends_on]) if options.key?(:depends_on)
             lazy(options[:lazy]) if options.key?(:lazy)
             on_set(&options[:on_set]) if options.key?(:on_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
             setter(&options[:setter]) if options.key?(:setter)
-            type(&options[:type]) if options.key?(:type)
+            type(options[:type]) if options.key?(:type)
           end
 
           def to_definition
@@ -139,12 +159,15 @@ module Datadog
             {
               default: @default,
               experimental_default_proc: @experimental_default_proc,
+              env_var: @env_var,
+              deprecated_env_var: @deprecated_env_var,
               delegate_to: @delegate_to,
               depends_on: @depends_on,
               on_set: @on_set,
               resetter: @resetter,
               setter: @setter,
-              type: @type
+              type: @type,
+              type_options: @type_options
             }
           end
 

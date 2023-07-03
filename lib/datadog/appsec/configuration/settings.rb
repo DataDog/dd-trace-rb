@@ -33,10 +33,9 @@ module Datadog
           base.class_eval do
             settings :appsec do
               option :enabled do |o|
-                o.default { env_to_bool('DD_APPSEC_ENABLED', DEFAULT_APPSEC_ENABLED) }
-                o.setter do |v|
-                  v ? true : false
-                end
+                o.type :bool
+                o.env_var 'DD_APPSEC_ENABLED'
+                o.default DEFAULT_APPSEC_ENABLED
               end
 
               define_method(:instrument) do |integration_name|
@@ -53,73 +52,71 @@ module Datadog
               end
 
               option :ruleset do |o|
-                o.default { ENV.fetch('DD_APPSEC_RULES', DEFAULT_APPSEC_RULESET) }
+                o.env_var 'DD_APPSEC_RULES'
+                o.default DEFAULT_APPSEC_RULESET
               end
 
               option :ip_denylist do |o|
-                o.default { [] }
+                o.type :array
+                o.default []
               end
 
               option :user_id_denylist do |o|
-                o.default { [] }
+                o.type :array
+                o.default []
               end
 
               option :waf_timeout do |o|
-                o.default { ENV.fetch('DD_APPSEC_WAF_TIMEOUT', DEFAULT_APPSEC_WAF_TIMEOUT) } # us
+                o.env_var 'DD_APPSEC_WAF_TIMEOUT'
+                o.default DEFAULT_APPSEC_WAF_TIMEOUT
                 o.setter do |v|
                   Datadog::Core::Utils::Duration.call(v.to_s, base: :us)
                 end
               end
 
               option :waf_debug do |o|
-                o.default { env_to_bool('DD_APPSEC_WAF_DEBUG', DEFAULT_APPSEC_WAF_DEBUG) }
-                o.setter do |v|
-                  v ? true : false
-                end
+                o.env_var 'DD_APPSEC_WAF_DEBUG'
+                o.default DEFAULT_APPSEC_WAF_DEBUG
+                o.type :bool
               end
 
               option :trace_rate_limit do |o|
-                o.default { env_to_int('DD_APPSEC_TRACE_RATE_LIMIT', DEFAULT_APPSEC_TRACE_RATE_LIMIT) } # trace/s
+                o.type :int
+                o.env_var 'DD_APPSEC_TRACE_RATE_LIMIT'
+                o.default DEFAULT_APPSEC_TRACE_RATE_LIMIT
               end
 
               option :obfuscator_key_regex do |o|
-                o.default { ENV.fetch('DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP', DEFAULT_OBFUSCATOR_KEY_REGEX) }
+                o.type :string
+                o.env_var 'DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP'
+                o.default DEFAULT_OBFUSCATOR_KEY_REGEX
               end
 
               option :obfuscator_value_regex do |o|
-                o.default do
-                  ENV.fetch(
-                    'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP',
-                    DEFAULT_OBFUSCATOR_VALUE_REGEX
-                  )
-                end
+                o.type :string
+                o.env_var 'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP'
+                o.default DEFAULT_OBFUSCATOR_VALUE_REGEX
               end
 
               settings :track_user_events do
                 option :enabled do |o|
-                  o.default do
-                    ENV.fetch(
-                      'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING',
-                      DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_ENABLED
-                    )
-                  end
-                  o.setter do |v|
-                    if v
-                      v.to_s != 'disabled'
+                  o.env_var 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
+                  o.default DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_ENABLED
+                  o.setter do |value|
+                    if value.is_a?(String)
+                      value != 'disabled'
                     else
-                      false
+                      !!value # rubocop:disable Style/DoubleNegation
                     end
                   end
                 end
 
                 option :mode do |o|
-                  o.default do
-                    ENV.fetch('DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING', DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE)
-                  end
+                  o.env_var 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
+                  o.default DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE
                   o.setter do |v|
-                    string_value = v.to_s
-                    if APPSEC_VALID_TRACK_USER_EVENTS_MODE.include?(string_value)
-                      string_value
+                    if APPSEC_VALID_TRACK_USER_EVENTS_MODE.include?(v.to_s)
+                      v.to_s
                     else
                       Datadog.logger.warn(
                         'The appsec.track_user_events.mode value provided is not supported.' \

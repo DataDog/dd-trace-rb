@@ -160,7 +160,11 @@ RSpec.describe Datadog::Core::Configuration::Options do
             let(:meta) { super().merge(default: default_value) }
             let(:default_value) { double('default_value') }
 
-            it { is_expected.to be(default_value) }
+            it do
+              # mock .dup lib/datadog/core/configuration/option.rbL87
+              expect(default_value).to receive(:dup).and_return(default_value)
+              is_expected.to be(default_value)
+            end
           end
         end
 
@@ -185,6 +189,8 @@ RSpec.describe Datadog::Core::Configuration::Options do
             before { options_object.set_option(name, value) }
 
             it do
+              # mock .dup lib/datadog/core/configuration/option.rbL87
+              expect(default_value).to receive(:dup).and_return(default_value)
               expect { reset_option }.to change { options_object.get_option(name) }
                 .from(value)
                 .to(default_value)

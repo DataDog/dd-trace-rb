@@ -11,15 +11,23 @@ RSpec.describe Datadog::Core::Configuration::Option do
       name: :test_name,
       default: default,
       experimental_default_proc: experimental_default_proc,
+      env_var: env_var,
+      deprecated_env_var: deprecated_env_var,
       delegate_to: delegate,
       on_set: nil,
       resetter: nil,
-      setter: setter
+      setter: setter,
+      type: type,
+      type_options: type_options,
     )
   end
   let(:default) { double('default') }
   let(:experimental_default_proc) { nil }
   let(:delegate) { nil }
+  let(:env_var) { nil }
+  let(:type) { nil }
+  let(:type_options) { {} }
+  let(:deprecated_env_var) { nil }
   let(:setter) { proc { setter_value } }
   let(:setter_value) { double('setter_value') }
   let(:context) { double('configuration object') }
@@ -219,14 +227,224 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
     end
+
+    context 'value validation' do
+      before { allow(context).to receive(:instance_exec) }
+
+      context 'when type is not defined' do
+        it 'does not raise exception' do
+          expect { set }.not_to raise_exception
+        end
+      end
+
+      context 'when type is defined' do
+        context 'value is same as type' do
+          let(:type) { :string }
+          let(:value) { 'Hello' }
+          it 'does not raise exception' do
+            expect { set }.not_to raise_exception
+          end
+        end
+
+        context 'value is not same as type' do
+          let(:type) { :string }
+          let(:value) { ['Hello'] }
+          it 'raise exception' do
+            expect { set }.to raise_exception(ArgumentError)
+          end
+        end
+
+        context 'allow nil values' do
+          let(:type) { :string }
+          let(:type_options) { { nil: true } }
+          let(:value) { nil }
+
+          it 'does not raise exception' do
+            expect { set }.to_not raise_exception
+          end
+
+          context 'value is not nil' do
+            let(:value) { ['Hello'] }
+
+            it 'does raise exception' do
+              expect { set }.to raise_exception(ArgumentError)
+            end
+          end
+        end
+      end
+    end
   end
 
   describe '#get' do
     subject(:get) { option.get }
 
+    shared_examples_for 'env_var coercion' do
+      context 'when type is defined' do
+        context ':int' do
+          let(:type) { :int }
+          let(:env_var_value) { '1234' }
+
+          it 'coerce valule' do
+            expect(option.get).to eq 1234
+          end
+        end
+
+        context ':float' do
+          let(:type) { :float }
+          let(:env_var_value) { '12.34' }
+
+          it 'coerce valule' do
+            expect(option.get).to eq 12.34
+          end
+        end
+
+        context ':array' do
+          let(:type) { :array }
+
+          context 'value with commas' do
+            let(:env_var_value) { '12,34' }
+
+            it 'coerce valule' do
+              expect(option.get).to eq ['12', '34']
+            end
+
+            context 'remove empty values' do
+              let(:env_var_value) { '12,34,,,56,' }
+
+              it 'coerce valule' do
+                expect(option.get).to eq ['12', '34', '56']
+              end
+            end
+          end
+
+          context 'value with spaces' do
+            let(:env_var_value) { '12 34' }
+
+            it 'coerce valule' do
+              expect(option.get).to eq ['12', '34']
+            end
+
+            context 'remove empty values' do
+              let(:env_var_value) { '12 34     56' }
+
+              it 'coerce valule' do
+                expect(option.get).to eq ['12', '34', '56']
+              end
+            end
+          end
+        end
+
+        context ':bool' do
+          let(:type) { :bool }
+
+          context 'truthy value' do
+            let(:env_var_value) { '1' }
+
+            it 'cource value' do
+              expect(option.get).to eq true
+            end
+          end
+
+          context 'non-truthy value' do
+            let(:env_var_value) { 'something' }
+
+            it 'cource value' do
+              expect(option.get).to eq false
+            end
+          end
+        end
+      end
+    end
+
+    context 'when env_var is defined' do
+      before do
+        expect(context).to receive(:instance_exec) do |*args|
+          args[0]
+        end
+      end
+
+      let(:env_var) { 'TEST' }
+
+      context 'when env_var is not set' do
+        it 'use default value' do
+          # mock .dup lib/datadog/core/configuration/option.rbL87
+          expect(default).to receive(:dup).and_return(default)
+
+          expect(option.get).to be default
+        end
+      end
+
+      context 'when env_var is set' do
+        around do |example|
+          ClimateControl.modify(env_var => env_var_value) do
+            example.run
+          end
+        end
+
+        let(:env_var_value) { 'test' }
+
+        it 'uses env var value' do
+          expect(option.get).to eq env_var_value
+        end
+
+        it 'set precedence_set to programmatic' do
+          option.get
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
+        end
+
+        it_behaves_like 'env_var coercion'
+      end
+    end
+
+    context 'when deprecated_env_var is defined' do
+      before do
+        expect(context).to receive(:instance_exec) do |*args|
+          args[0]
+        end
+      end
+
+      let(:deprecated_env_var) { 'TEST' }
+      context 'when env var is not set' do
+        it do
+          # mock .dup lib/datadog/core/configuration/option.rbL87
+          expect(default).to receive(:dup).and_return(default)
+          expect(option.get).to be default
+        end
+      end
+
+      context 'when env var is set' do
+        around do |example|
+          ClimateControl.modify(deprecated_env_var => env_var_value) do
+            example.run
+          end
+        end
+
+        let(:env_var_value) { 'test' }
+
+        it 'uses env var value' do
+          expect(option.get).to eq 'test'
+        end
+
+        it 'set precedence_set to programmatic' do
+          option.get
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
+        end
+
+        it 'log deprecation warning' do
+          expect(Datadog::Core).to receive(:log_deprecation)
+          option.get
+        end
+
+        it_behaves_like 'env_var coercion'
+      end
+    end
+
     context 'when #set' do
       context 'hasn\'t been called' do
         before do
+          # mock .dup lib/datadog/core/configuration/option.rbL87
+          expect(default).to receive(:dup).and_return(default)
+
           expect(context).to receive(:instance_exec) do |*args, &block|
             expect(args.first).to be(default)
             expect(block).to be setter
@@ -286,7 +504,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
           before { reset }
 
-          it { is_expected.to be(default) }
+          it do
+            # mock .dup lib/datadog/core/configuration/option.rbL87
+            expect(default).to receive(:dup).and_return(default)
+            is_expected.to be(default)
+          end
         end
       end
 
@@ -331,7 +553,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
       before do
         expect(context).to receive(:instance_eval) do |&block|
-          expect(block).to be default
+          expect(block).to eq(default)
           block_default
         end
       end
@@ -340,7 +562,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
     end
 
     context 'when default is not a block' do
-      it { is_expected.to be default }
+      it do
+        # mock .dup lib/datadog/core/configuration/option.rbL87
+        expect(default).to receive(:dup).and_return(default)
+        is_expected.to be default
+      end
     end
 
     context 'when experimental_default_proc is defined' do

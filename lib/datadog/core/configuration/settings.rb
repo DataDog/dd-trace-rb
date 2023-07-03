@@ -79,7 +79,8 @@ module Datadog
         # @default `DD_API_KEY` environment variable, otherwise `nil`
         # @return [String,nil]
         option :api_key do |o|
-          o.default { ENV.fetch(Core::Environment::Ext::ENV_API_KEY, nil) }
+          o.type :string, nil: true
+          o.env_var Core::Environment::Ext::ENV_API_KEY
         end
 
         # Datadog diagnostic settings.
@@ -98,7 +99,9 @@ module Datadog
           # @default `DD_TRACE_DEBUG` environment variable, otherwise `false`
           # @return [Boolean]
           option :debug do |o|
-            o.default { env_to_bool(Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED, false) }
+            o.env_var Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED
+            o.default false
+            o.type :bool
             o.on_set do |enabled|
               # Enable rich debug print statements.
               # We do not need to unnecessarily load 'pp' unless in debugging mode.
@@ -115,7 +118,9 @@ module Datadog
             # @default `DD_HEALTH_METRICS_ENABLED` environment variable, otherwise `false`
             # @return [Boolean]
             option :enabled do |o|
-              o.default { env_to_bool(Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED, false) }
+              o.env_var Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED
+              o.default false
+              o.type :bool
             end
 
             # {Datadog::Statsd} instance to collect health metrics.
@@ -136,11 +141,12 @@ module Datadog
             # If `nil`, defaults to logging startup logs when `ddtrace` detects that the application
             # is *not* running in a development environment.
             #
-            # @default `DD_TRACE_STARTUP_LOGS` environment variable, otherwise `nil`
-            # @return [Boolean,nil]
+            # @default `DD_TRACE_STARTUP_LOGS` environment variable, otherwise `false`
+            # @return [Boolean]
             option :enabled do |o|
-              # Defaults to nil as we want to know when the default value is being used
-              o.default { env_to_bool(Datadog::Core::Configuration::Ext::Diagnostics::ENV_STARTUP_LOGS_ENABLED, nil) }
+              o.env_var Datadog::Core::Configuration::Ext::Diagnostics::ENV_STARTUP_LOGS_ENABLED
+              o.default false
+              o.type :bool
             end
           end
         end
@@ -154,7 +160,7 @@ module Datadog
           o.setter { |v| v.to_s if v }
 
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-          o.default { ENV.fetch(Core::Environment::Ext::ENV_ENVIRONMENT, nil) }
+          o.env_var Core::Environment::Ext::ENV_ENVIRONMENT
         end
 
         # Internal `Datadog.logger` configuration.
@@ -189,7 +195,9 @@ module Datadog
           # @default `DD_PROFILING_ENABLED` environment variable, otherwise `false`
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Profiling::Ext::ENV_ENABLED, false) }
+            o.env_var Profiling::Ext::ENV_ENABLED
+            o.default false
+            o.type :bool
           end
 
           # @public_api
@@ -222,7 +230,9 @@ module Datadog
             #
             # @default `DD_PROFILING_MAX_FRAMES` environment variable, otherwise 400
             option :max_frames do |o|
-              o.default { env_to_int(Profiling::Ext::ENV_MAX_FRAMES, 400) }
+              o.type :int
+              o.env_var Profiling::Ext::ENV_MAX_FRAMES
+              o.default 400
             end
 
             # @public_api
@@ -234,7 +244,9 @@ module Datadog
                 # @default `DD_PROFILING_ENDPOINT_COLLECTION_ENABLED` environment variable, otherwise `true`
                 # @return [Boolean]
                 option :enabled do |o|
-                  o.default { env_to_bool(Profiling::Ext::ENV_ENDPOINT_COLLECTION_ENABLED, true) }
+                  o.env_var Profiling::Ext::ENV_ENDPOINT_COLLECTION_ENABLED
+                  o.default true
+                  o.type :bool
                 end
               end
             end
@@ -276,7 +288,9 @@ module Datadog
             #
             # @default `DD_PROFILING_FORCE_ENABLE_LEGACY` environment variable, otherwise `false`
             option :force_enable_legacy_profiler do |o|
-              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_LEGACY', false) }
+              o.env_var 'DD_PROFILING_FORCE_ENABLE_LEGACY'
+              o.default false
+              o.type :bool
               o.on_set do |value|
                 if value
                   Datadog.logger.warn(
@@ -308,7 +322,9 @@ module Datadog
             #
             # @default `DD_PROFILING_FORCE_ENABLE_GC` environment variable, otherwise `false`
             option :force_enable_gc_profiling do |o|
-              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
+              o.env_var 'DD_PROFILING_FORCE_ENABLE_GC'
+              o.type :bool
+              o.default false
             end
 
             # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
@@ -329,7 +345,18 @@ module Datadog
             #
             # @default `DD_PROFILING_SKIP_MYSQL2_CHECK` environment variable, otherwise `false`
             option :skip_mysql2_check do |o|
-              o.default { env_to_bool('DD_PROFILING_SKIP_MYSQL2_CHECK', false) }
+              o.type :bool
+              o.env_var 'DD_PROFILING_SKIP_MYSQL2_CHECK'
+              o.default false
+            end
+
+            # Enables data collection for the timeline feature. This is still experimental and not recommended yet.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED` environment variable as a boolean, otherwise `false`
+            option :experimental_timeline_enabled do |o|
+              o.type :bool
+              o.env_var 'DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED'
+              o.default false
             end
 
             # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
@@ -352,14 +379,19 @@ module Datadog
             #
             # @default `DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED` environment variable as a boolean, otherwise `:auto`
             option :no_signals_workaround_enabled do |o|
-              o.default { env_to_bool('DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED', :auto) }
-            end
-
-            # Enables data collection for the timeline feature. This is still experimental and not recommended yet.
-            #
-            # @default `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED` environment variable as a boolean, otherwise `false`
-            option :experimental_timeline_enabled do |o|
-              o.default { env_to_bool('DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED', false) }
+              o.env_var 'DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED'
+              o.default :auto
+              o.setter do |value|
+                if ['true', true, '1', 'false', false, :auto].include?(value)
+                  if value == :auto
+                    value
+                  else
+                    ['true', true, '1'].include?(value)
+                  end
+                else
+                  value
+                end
+              end
             end
           end
 
@@ -369,8 +401,9 @@ module Datadog
             #
             # @default `DD_PROFILING_UPLOAD_TIMEOUT` environment variable, otherwise `30.0`
             option :timeout_seconds do |o|
-              o.setter { |value| value.nil? ? 30.0 : value.to_f }
-              o.default { env_to_float(Profiling::Ext::ENV_UPLOAD_TIMEOUT, 30.0) }
+              o.type :float
+              o.env_var Profiling::Ext::ENV_UPLOAD_TIMEOUT
+              o.default 30.0
             end
           end
         end
@@ -383,10 +416,12 @@ module Datadog
           # @default `DD_RUNTIME_METRICS_ENABLED` environment variable, otherwise `false`
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Core::Runtime::Ext::Metrics::ENV_ENABLED, false) }
+            o.env_var Core::Runtime::Ext::Metrics::ENV_ENABLED
+            o.default false
+            o.type :bool
           end
 
-          option :opts, default: ->(_i) { {} }
+          option :opts, default: {}, type: :hash
           option :statsd
         end
 
@@ -399,14 +434,15 @@ module Datadog
           o.setter { |v| v.to_s if v }
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-          o.default { ENV.fetch(Core::Environment::Ext::ENV_SERVICE, Core::Environment::Ext::FALLBACK_SERVICE_NAME) }
+          o.env_var Core::Environment::Ext::ENV_SERVICE
+          o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
           # nil instead so that one can do
           # nice_service_name = Datadog.configuration.service_without_fallback || nice_service_name_default
           o.helper(:service_without_fallback) do
             service_name = service
-            service_name unless service_name.equal?(Core::Environment::Ext::FALLBACK_SERVICE_NAME)
+            service_name unless service_name === Core::Environment::Ext::FALLBACK_SERVICE_NAME
           end
         end
 
@@ -421,7 +457,8 @@ module Datadog
         # @default `DD_SITE` environment variable, otherwise `nil` which sends data to `app.datadoghq.com`
         # @return [String,nil]
         option :site do |o|
-          o.default { ENV.fetch(Core::Environment::Ext::ENV_SITE, nil) }
+          o.type :string, nil: true
+          o.env_var Core::Environment::Ext::ENV_SITE
         end
 
         # Default tags
@@ -431,36 +468,54 @@ module Datadog
         # @default `DD_TAGS` environment variable (in the format `'tag1:value1,tag2:value2'`), otherwise `{}`
         # @return [Hash<String,String>]
         option :tags do |o|
-          o.default do
-            tags = {}
+          o.env_var Core::Environment::Ext::ENV_TAGS
+          o.setter do |new_value, old_value|
+            tag_list = case new_value
+                       when String
+                         values = if new_value.include?(',')
+                                    new_value.split(',')
+                                  else
+                                    new_value.split(' ') # rubocop:disable Style/RedundantArgument
+                                  end
 
-            # Parse tags from environment
-            env_to_list(Core::Environment::Ext::ENV_TAGS, comma_separated_only: false).each do |tag|
-              key, value = tag.split(':', 2)
-              tags[key] = value if value && !value.empty?
-            end
+                         values.map! do |v|
+                           v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+                           v.empty? ? nil : v
+                         end
+
+                         values.compact!
+                         values.each_with_object({}) do |tag, tags|
+                           key, value = tag.split(':', 2)
+                           tags[key] = value if value && !value.empty?
+                         end
+                       when Hash
+                         new_value
+                       else
+                         {}
+                       end
+
+            env_value = env
+            version_value = version
+            service_name = service_without_fallback
 
             # Override tags if defined
-            tags[Core::Environment::Ext::TAG_ENV] = env unless env.nil?
-            tags[Core::Environment::Ext::TAG_VERSION] = version unless version.nil?
+            tag_list[Core::Environment::Ext::TAG_ENV] = env_value unless env_value.nil?
+            tag_list[Core::Environment::Ext::TAG_VERSION] = version_value unless version_value.nil?
 
-            tags
-          end
-
-          o.setter do |new_value, old_value|
             # Coerce keys to strings
-            string_tags = new_value.collect { |k, v| [k.to_s, v] }.to_h
+            string_tags = tag_list.collect { |k, v| [k.to_s, v] }.to_h
 
             # Cross-populate tag values with other settings
             if env.nil? && string_tags.key?(Core::Environment::Ext::TAG_ENV)
               self.env = string_tags[Core::Environment::Ext::TAG_ENV]
             end
 
-            if version.nil? && string_tags.key?(Core::Environment::Ext::TAG_VERSION)
+            if version_value.nil? && string_tags.key?(Core::Environment::Ext::TAG_VERSION)
               self.version = string_tags[Core::Environment::Ext::TAG_VERSION]
             end
 
-            if service_without_fallback.nil? && string_tags.key?(Core::Environment::Ext::TAG_SERVICE)
+            if service_name.nil? && string_tags.key?(Core::Environment::Ext::TAG_SERVICE)
               self.service = string_tags[Core::Environment::Ext::TAG_SERVICE]
             end
 
@@ -479,9 +534,9 @@ module Datadog
         # @default `->{ Time.now }`
         # @return [Proc<Time>]
         option :time_now_provider do |o|
-          o.experimental_default_proc do
-            ::Time.now
-          end
+          o.experimental_default_proc { ::Time.now }
+          o.type :block
+
           o.on_set do |time_provider|
             Core::Utils::Time.now_provider = time_provider
           end
@@ -501,7 +556,8 @@ module Datadog
         # @return [String,nil]
         option :version do |o|
           # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-          o.default { ENV.fetch(Core::Environment::Ext::ENV_VERSION, nil) }
+          o.type :string, nil: true
+          o.env_var Core::Environment::Ext::ENV_VERSION
         end
 
         # Client-side telemetry configuration
@@ -513,7 +569,9 @@ module Datadog
           #   Can be disabled as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, true) }
+            o.env_var Core::Telemetry::Ext::ENV_ENABLED
+            o.default true
+            o.type :bool
           end
 
           # The interval in seconds when telemetry must be sent.
@@ -524,7 +582,9 @@ module Datadog
           # @return [Float]
           # @!visibility private
           option :heartbeat_interval_seconds do |o|
-            o.default { env_to_float(Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL, 60) }
+            o.type :float
+            o.env_var Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL
+            o.default 60.0
           end
         end
 
@@ -536,7 +596,9 @@ module Datadog
           # @default `DD_REMOTE_CONFIGURATION_ENABLED` environment variable, otherwise `true`.
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Core::Remote::Ext::ENV_ENABLED, true) }
+            o.env_var Core::Remote::Ext::ENV_ENABLED
+            o.default true
+            o.type :bool
           end
 
           # Tune remote configuration polling interval.
@@ -544,7 +606,9 @@ module Datadog
           # @default `DD_REMOTE_CONFIGURATION_POLL_INTERVAL_SECONDS` environment variable, otherwise `5.0` seconds.
           # @return [Float]
           option :poll_interval_seconds do |o|
-            o.default { env_to_float(Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS, 5.0) }
+            o.env_var Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS
+            o.type :float
+            o.default 5.0
           end
 
           # Declare service name to bind to remote configuration. Use when
