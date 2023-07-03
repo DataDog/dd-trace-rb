@@ -103,7 +103,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
         it_behaves_like 'a peer service span'
         it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-        it_behaves_like 'schema version span'
+        it_behaves_like 'schema version span', 'elasticsearch', 'peer.hostname'
       end
 
       context 'PUT request' do
@@ -136,7 +136,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
           it_behaves_like 'a peer service span'
           it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-          it_behaves_like 'schema version span'
+          it_behaves_like 'schema version span', 'elasticsearch', 'peer.hostname'
         end
 
         context 'with Hash params' do

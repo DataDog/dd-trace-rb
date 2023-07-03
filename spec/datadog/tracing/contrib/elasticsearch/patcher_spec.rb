@@ -63,7 +63,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       before { request }
 
       it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-      it_behaves_like 'schema version span'
+      it_behaves_like 'schema version span', 'elasticsearch', 'peer.hostname'
 
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
@@ -129,7 +129,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it_behaves_like 'measured span for integration', false
 
       it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-      it_behaves_like 'schema version span'
+      it_behaves_like 'schema version span', 'elasticsearch', 'peer.hostname'
 
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }

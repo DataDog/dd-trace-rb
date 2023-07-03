@@ -89,11 +89,6 @@ module Datadog
                     params = JSON.generate(params) if params && !params.is_a?(String)
                     body = JSON.generate(body) if body && !body.is_a?(String)
 
-                    # Tag as an external peer service
-                    if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                      span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-                    end
-
                     span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 
                     # Set analytics sample rate
@@ -125,6 +120,7 @@ module Datadog
                     span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
                   end
                 end
+                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                 response
               end
 
