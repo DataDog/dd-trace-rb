@@ -19,17 +19,51 @@ variables:
     value: "master"
     description: "Run a specific datadog-reliability-env branch downstream"
 
-.common: &common
+default:
   tags: [ "runner:main", "size:large" ]
+
+install-base-ruby-gems:
+  image: registry.ddbuild.io/images/mirror/ruby:3.2.2
+  stage: package
+  rules:
+    - if: $RUBY_PACKAGE_VERSION
+      when: on_success
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: on_success
+  script:
+    - .gitlab/install-gem-to-folder.sh
+  artifacts:
+    paths:
+      - WIP
+
+install-version-dependant-gems:
+  image: registry.ddbuild.io/images/mirror/ruby:$RUBY_VERSION
+  parallel:
+    matrix:
+      - RUBY_VERSION: [ "3.0.0", "3.1.2-slim"]
+  rules:
+    - if: $RUBY_PACKAGE_VERSION
+      when: on_success
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: on_success
+  stage: package
+  needs: [ "install-base-ruby-gems" ]
+  script:
+    - .gitlab/install-gem-to-folder-version-specific.sh
+  artifacts:
+    paths:
+      - WIP
 
 package:
   extends: .package
+  needs: ["install-version-dependant-gems", "install-base-ruby-gems"]
   rules:
-  - if: $RUBY_PACKAGE_VERSION
-    when: on_success
-  - if: '$CI_COMMIT_TAG =~ /^v.*/'
-    when: on_success
+    - if: $RUBY_PACKAGE_VERSION
+      when: on_success
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: on_success
   script:
+    - ls ../WIP
     - ../.gitlab/build-deb-rpm.sh
 
 .release-package:
