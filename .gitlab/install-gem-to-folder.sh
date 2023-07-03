@@ -23,4 +23,4 @@ cp lib-injection/host_inject.rb vendor
 export INSTALL_DDTRACE_NATIVE_DEPS=true
 export INSTALL_DDTRACE_NON_NATIVE_DEPS=true
 
-ruby install_ddtrace_deps.rb
+ruby vendor/install_ddtrace_deps.rb
