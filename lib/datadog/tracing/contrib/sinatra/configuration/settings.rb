@@ -14,15 +14,27 @@ module Datadog
             }.freeze
 
             option :enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ENABLED, true) }
+              o.env_var Ext::ENV_ENABLED
+              o.default true
+              o.setter do |value|
+                val_to_bool(value)
+              end
             end
 
             option :analytics_enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) }
+              o.env_var Ext::ENV_ANALYTICS_ENABLED
+              o.default false
+              o.setter do |value|
+                val_to_bool(value)
+              end
             end
 
             option :analytics_sample_rate do |o|
-              o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
+              o.env_var Ext::ENV_ANALYTICS_SAMPLE_RATE
+              o.default 1.0
+              o.setter do |value|
+                val_to_float(value)
+              end
             end
 
             option :distributed_tracing, default: true

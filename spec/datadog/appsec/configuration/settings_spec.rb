@@ -75,7 +75,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
 
       context 'when given a truthy value' do
-        let(:appsec_enabled) { 'enabled' }
+        let(:appsec_enabled) { true }
 
         before { set_appsec_enabled }
 
@@ -342,7 +342,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
 
       context 'when given a truthy value' do
-        let(:appsec_waf_debug) { 'waf_debug' }
+        let(:appsec_waf_debug) { true }
 
         before { set_appsec_waf_debug }
 

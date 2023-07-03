@@ -11,7 +11,11 @@ module Datadog
           # Configuration for Hanami instrumentation
           class Settings < Contrib::Configuration::Settings
             option :enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ENABLED, true) }
+              o.env_var Ext::ENV_ENABLED
+              o.default true
+              o.setter do |value|
+                val_to_bool(value)
+              end
             end
           end
         end

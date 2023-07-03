@@ -39,11 +39,11 @@ module Datadog
           # Are we logging the environment data?
           def log?
             startup_logs_enabled = Datadog.configuration.diagnostics.startup_logs.enabled
-            if startup_logs_enabled.nil?
-              !repl? # Suppress logs if we running in a REPL
-            else
-              startup_logs_enabled
+            unless startup_logs_enabled
+              return !repl? # Suppress logs if we running in a REPL
             end
+
+            startup_logs_enabled
           end
 
           REPL_PROGRAM_NAMES = %w[irb pry].freeze

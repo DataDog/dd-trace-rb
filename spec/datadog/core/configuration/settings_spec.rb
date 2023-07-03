@@ -516,7 +516,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'logs a warning informing customers this has been deprecated for removal' do
           expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
 
-          settings.profiling.advanced.force_enable_legacy_profiler = 1234
+          settings.profiling.advanced.force_enable_legacy_profiler = true
         end
 
         context 'when value is set to false' do
@@ -1273,7 +1273,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:env_var_value) { nil }
 
-          it { is_expected.to be 60 }
+          it { is_expected.to be 60.0 }
         end
 
         context 'is defined' do

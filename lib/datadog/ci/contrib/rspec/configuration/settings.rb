@@ -12,15 +12,21 @@ module Datadog
           # TODO: mark as `@public_api` when GA
           class Settings < Datadog::Tracing::Contrib::Configuration::Settings
             option :enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ENABLED, true) }
+              o.env_var Ext::ENV_ENABLED
+              o.default true
+              o.setter do |value|
+                val_to_bool(value)
+              end
             end
 
             option :service_name do |o|
               o.default { Datadog.configuration.service_without_fallback || Ext::SERVICE_NAME }
+              o.lazy
             end
 
             option :operation_name do |o|
-              o.default { ENV.fetch(Ext::ENV_OPERATION_NAME, Ext::OPERATION_NAME) }
+              o.env_var Ext::ENV_OPERATION_NAME
+              o.default ENV[Ext::OPERATION_NAME]
             end
           end
         end
