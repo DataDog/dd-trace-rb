@@ -17,7 +17,7 @@ bundle lock
 
 cp Gemfile vendor
 cp Gemfile.lock vendor
-cp install_ddtrace_deps.rb vendor
+cp .gitlab/install_ddtrace_deps.rb vendor
 cp lib-injection/host_inject.rb vendor
 
 export INSTALL_DDTRACE_NATIVE_DEPS=true
