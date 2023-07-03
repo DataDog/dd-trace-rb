@@ -11,6 +11,10 @@ module Datadog
 
         attr_reader \
           :default,
+          # experimental_default_proc is used when we want to store a block as part of the option value.
+          # Since this new option is experimental and we might not need it in the near future, I gave it a name that is
+          # clear to the reader that they should not rely on it and that is subject to change.
+          # Currently is only use internally.
           :experimental_default_proc,
           :delegate_to,
           :depends_on,
@@ -88,10 +92,11 @@ module Datadog
 
           def lazy(_value = true)
             Datadog::Core.log_deprecation do
-              'The `lazy` option is deprecated. You no longer need to specify an option to be lazy '\
-              "when the default value is a block.\n"\
-              'In the case edge case that you need the default value to be a block, please use the the expriemntal option:'\
-              'experimental_default_proc'
+              'Defining an option as lazy is deprecated for removal. Options now always behave as lazy. '\
+              "Please remove all references to the lazy setting.\n"\
+              'Non-lazy options that were previously stored as blocks are no longer supported. '\
+              'If you used this feature, please let us know by opening an issue on: '\
+              'https://github.com/datadog/dd-trace-rb/issues/new so we can better understand and support your use case.'
             end
           end
 
