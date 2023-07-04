@@ -6,8 +6,6 @@ require 'datadog/tracing/contrib/rack/middlewares'
 require 'rack/test'
 require 'grape'
 
-require_relative '../support/http'
-
 RSpec.describe 'Grape instrumentation' do
   include Rack::Test::Methods
 
@@ -28,7 +26,6 @@ RSpec.describe 'Grape instrumentation' do
         namespace :base do
           desc 'Returns a success message'
           get :success do
-            header 'response-header-tag', 'response-header-tag-value'
             'OK'
           end
 

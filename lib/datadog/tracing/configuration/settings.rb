@@ -10,7 +10,6 @@ module Datadog
       # rubocop:disable Metrics/BlockLength
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/MethodLength
-      # rubocop:disable Metrics/PerceivedComplexity
       # rubocop:disable Layout/LineLength
       module Settings
         def self.extended(base)
@@ -184,14 +183,12 @@ module Datadog
               # You can mix the two types of header declaration in the same list.
               # Tag names will be normalized based on the [Datadog tag normalization rules](https://docs.datadoghq.com/getting_started/tagging/#defining-tags).
               #
-              # @default `DD_TRACE_HEADER_TAGS` environment variable, otherwise `nil`
+              # @default `DD_TRACE_HEADER_TAGS` environment variable, otherwise an empty set of tags
               # @return [Array<String>]
               option :header_tags do |o|
                 o.default { env_to_list(Configuration::Ext::ENV_HEADER_TAGS, nil, comma_separated_only: true) }
                 o.lazy
-                o.setter do |header_tags, _old_value|
-                  Configuration::HTTP::HeaderTags.new(header_tags) if header_tags
-                end
+                o.setter { |header_tags, _| Configuration::HTTP::HeaderTags.new(header_tags) }
               end
 
               # Enable 128 bit trace id generation.
@@ -480,7 +477,6 @@ module Datadog
       # rubocop:enable Metrics/BlockLength
       # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/MethodLength
-      # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Layout/LineLength
     end
   end

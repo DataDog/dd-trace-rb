@@ -5,7 +5,7 @@ RSpec.shared_context 'with trace header tags' do
     end
   end
 
-  let(:header_span) { span }
+  let(:header_span) { defined?(super) ? super() : span }
   let(:trace_header_tags_config) { nil }
 end
 

@@ -291,7 +291,8 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         context 'is not defined' do
           let(:tags) { nil }
 
-          it { is_expected.to be_nil }
+          it { is_expected.to be_a(Datadog::Tracing::Configuration::HTTP::HeaderTags) }
+          it { expect(header_tags.to_s).to eq('') }
         end
 
         context 'is set to content-type' do
@@ -314,7 +315,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       it 'updates the #header_tags setting' do
         expect { settings.tracing.header_tags = ['content-type'] }
           .to change { settings.tracing.header_tags }
-          .from(nil)
+          .from(->(actual) { expect(actual.to_s).to be_empty })
           .to(->(actual) { expect(actual.to_s).to eq('content-type') })
       end
     end

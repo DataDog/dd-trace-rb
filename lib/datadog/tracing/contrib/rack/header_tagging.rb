@@ -10,7 +10,7 @@ module Datadog
             headers = Header::RequestHeaderCollection.new(env)
 
             # Use global DD_TRACE_HEADER_TAGS if integration-level configuration is not provided
-            tags = if configuration.using_default?(:headers) && Datadog.configuration.tracing.header_tags
+            tags = if configuration.using_default?(:headers) && Datadog.configuration.tracing.header_tags.configured?
                      Datadog.configuration.tracing.header_tags.request_tags(headers)
                    else
                      whitelist = configuration[:headers][:request] || []
@@ -28,8 +28,10 @@ module Datadog
 
           def self.tag_response_headers(span, headers, configuration)
             # Use global DD_TRACE_HEADER_TAGS if integration-level configuration is not provided
-            tags = if configuration.using_default?(:headers) && Datadog.configuration.tracing.header_tags
-                     Datadog.configuration.tracing.header_tags.response_tags(headers)
+            tags = if configuration.using_default?(:headers) && Datadog.configuration.tracing.header_tags.configured?
+                     Datadog.configuration.tracing.header_tags.response_tags(
+                       Core::Utils::Hash::CaseInsensitiveWrapper.new(headers)
+                     )
                    else
                      whitelist = configuration[:headers][:response] || []
                      whitelist.each_with_object({}) do |header, result|

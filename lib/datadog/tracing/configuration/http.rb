@@ -16,12 +16,12 @@ module Datadog
           def initialize(header_tags)
             @request_headers = {}
             @response_headers = {}
-            @header_tags = header_tags
+            @header_tags = header_tags || EMPTY
 
-            header_tags.each do |header_tag|
+            @header_tags.each do |header_tag|
               header, tag = header_tag.split(':', 2)
 
-              next unless header # RBS type guard for `nil`
+              next unless header # Empty string guard
 
               if tag
                 # When a custom tag name is provided, use that name for both
@@ -40,7 +40,7 @@ module Datadog
             end
           end
 
-          # Receives a {RequestHeaderCollection} with the request headers and returns
+          # Receives a case insensitive hash with the request headers and returns
           # a list of tag names and values that can be set in a span.
           def request_tags(headers)
             @request_headers.map do |header_name, span_tag|
@@ -51,16 +51,21 @@ module Datadog
             end.compact
           end
 
-          # Receives a Hash with the response headers and returns
+          # Receives a case insensitive hash with the response headers and returns
           # a list of tag names and values that can be set in a span.
           def response_tags(headers)
             @response_headers.map do |header_name, span_tag|
               # Case-insensitive search
-              # DEV: `String#casecmp?` can be used starting with Ruby 2.4. It's measurable faster than `String#casecmp`.
-              _, header_value = headers.find { |h, _| header_name.casecmp(h) == 0 }
+              header_value = headers[header_name]
 
               [span_tag, header_value] if header_value
             end.compact
+          end
+
+          # Returns false if this class was explicitly configured
+          # or left without configuration.
+          def configured?
+            !@header_tags.equal?(EMPTY)
           end
 
           # For easy configuration inspection,
@@ -68,6 +73,10 @@ module Datadog
           def to_s
             @header_tags.join(',').to_s
           end
+
+          # Pin to know if we are using a fallback empty list.
+          EMPTY = [].freeze
+          private_constant :EMPTY
         end
       end
     end

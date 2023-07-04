@@ -1,11 +1,13 @@
 require 'spec_helper'
 
 require 'datadog/tracing/configuration/http'
+require 'datadog/core/utils/hash'
 
 RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
   subject(:http_header_tags) { described_class.new(header_tags) }
   let(:header_tags) { [header_tag] }
-  let(:headers) { { 'my-header' => 'MY-VALUE', 'another-header' => 'another-value' } }
+  let(:headers) { { 'My-Header' => 'MY-VALUE', 'Another-Header' => 'another-value' } }
+  let(:case_insensitive_hash) { Datadog::Core::Utils::Hash::CaseInsensitiveWrapper.new(headers) }
 
   shared_context 'a header tag processor' do
     context 'with simple element' do
@@ -24,6 +26,10 @@ RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
             ["http.#{direction}.headers.another-header", 'another-value']
           )
         end
+      end
+
+      it 'is considered configured' do
+        expect(http_header_tags.configured?).to eq(true)
       end
 
       it '#to_s returns the configured object in the original format' do
@@ -58,6 +64,10 @@ RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
         end
       end
 
+      it 'is considered configured' do
+        expect(http_header_tags.configured?).to eq(true)
+      end
+
       it '#to_s returns the configured object in the original format' do
         expect(http_header_tags.to_s).to eq('my-header:my-tag')
       end
@@ -70,6 +80,10 @@ RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
         is_expected.to contain_exactly(['my_header-1_2.3/4_5', 'MY-VALUE'])
       end
 
+      it 'is considered configured' do
+        expect(http_header_tags.configured?).to eq(true)
+      end
+
       it '#to_s returns the configured object in the original format' do
         expect(http_header_tags.to_s).to eq('my-header:My,Header-1_2.3/4@5')
       end
@@ -77,24 +91,24 @@ RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
   end
 
   context 'with request headers' do
-    subject(:request) { http_header_tags.request_tags(header_collection) }
+    subject(:request) { http_header_tags.request_tags(case_insensitive_hash) }
     let(:direction) { 'request' }
-
-    let(:header_collection) do
-      Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(
-        headers.map do |key, value|
-          [Datadog::Tracing::Contrib::Rack::Header.to_rack_header(key), value]
-        end.to_h
-      )
-    end
 
     it_behaves_like 'a header tag processor'
   end
 
   context 'with response headers' do
-    subject(:response) { http_header_tags.response_tags(headers) }
+    subject(:response) { http_header_tags.response_tags(case_insensitive_hash) }
     let(:direction) { 'response' }
 
     it_behaves_like 'a header tag processor'
+  end
+
+  context 'without configuration' do
+    let(:header_tags) { nil }
+
+    it 'is not considered configured' do
+      expect(http_header_tags.configured?).to eq(false)
+    end
   end
 end

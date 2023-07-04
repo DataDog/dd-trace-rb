@@ -306,29 +306,6 @@ module Datadog
           def parse_user_agent_header(headers)
             headers.get(Tracing::Metadata::Ext::HTTP::HEADER_USER_AGENT)
           end
-
-          def parse_response_headers(headers)
-            # Use global DD_TRACE_HEADER_TAGS if integration-level configuration is not provided
-            if configuration.using_default?(:headers) && Datadog.configuration.tracing.header_tags
-              return Datadog.configuration.tracing.header_tags.response_tags(headers)
-            end
-
-            {}.tap do |result|
-              whitelist = configuration[:headers][:response] || []
-              whitelist.each do |header|
-                if headers.key?(header)
-                  result[Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
-                else
-                  # Try a case-insensitive lookup
-                  uppercased_header = header.to_s.upcase
-                  matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
-                  if matching_header
-                    result[Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
-                  end
-                end
-              end
-            end
-          end
         end
       end
     end
