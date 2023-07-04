@@ -8,6 +8,7 @@ require 'datadog/tracing/contrib/ethon/easy_patch'
 require 'datadog/tracing/contrib/ethon/multi_patch'
 require 'datadog/tracing/contrib/ethon/shared_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/support/http'
 
 require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
 
@@ -70,14 +71,34 @@ RSpec.describe 'Ethon integration tests' do
       easy = EthonSupport.ethon_easy_new(url: url)
       easy.customrequest = 'GET'
       easy.set_attributes(timeout_ms: timeout * 1000)
-      easy.headers = { key: 'value' }
+      easy.headers = request_headers
       easy.perform
       # Use Typhoeus response wrapper to simplify tests
       Typhoeus::Response.new(easy.mirror.options)
     end
 
+    let(:request_headers) { { key: 'value' } }
+
     it_behaves_like 'instrumented request' do
       let(:method) { 'N/A' }
+    end
+
+    context 'when configured with global tag headers' do
+      include_context 'integration context'
+
+      before { request }
+
+      let(:request_headers) { { 'Request-Id' => 'test-request' } }
+
+      include_examples 'with request tracer header tags' do
+        let(:request_header_tag) { 'request-id' }
+        let(:request_header_tag_value) { 'test-request' }
+      end
+
+      include_examples 'with response tracer header tags' do
+        let(:response_header_tag) { 'connection' }
+        let(:response_header_tag_value) { 'Keep-Alive' }
+      end
     end
   end
 

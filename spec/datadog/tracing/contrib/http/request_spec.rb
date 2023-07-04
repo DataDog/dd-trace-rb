@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/http_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/support/http'
 
 require 'ddtrace'
 require 'net/http'
@@ -48,9 +49,10 @@ RSpec.describe 'net/http requests' do
     subject(:response) { client.get(path) }
 
     context 'that returns 200' do
-      before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
+      before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}', headers: response_headers) }
 
       let(:content) { JSON.parse(response.body) }
+      let(:response_headers) { {} }
 
       it 'generates a well-formed trace' do
         expect(response.code).to eq('200')
@@ -84,6 +86,27 @@ RSpec.describe 'net/http requests' do
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
       it_behaves_like 'schema version span'
+
+      context 'when configured with global tag headers' do
+        subject(:response) { client.get(path, request_headers) }
+
+        let(:request_headers) { { 'Request-Id' => 'test-request' } }
+        let(:response_headers) { { 'Response-Id' => 'test-response' } }
+
+        include_examples 'with request tracer header tags' do
+          let(:request_header_tag) { 'request-id' }
+          let(:request_header_tag_value) { 'test-request' }
+
+          before { response }
+        end
+
+        include_examples 'with response tracer header tags' do
+          let(:response_header_tag) { 'response-id' }
+          let(:response_header_tag_value) { 'test-response' }
+
+          before { response }
+        end
+      end
     end
 
     context 'that returns 404' do
