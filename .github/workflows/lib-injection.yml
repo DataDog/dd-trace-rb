@@ -48,10 +48,11 @@ jobs:
       DOCKER_REGISTRY_IMAGES_PATH: ghcr.io/datadog
       DOCKER_IMAGE_TAG: ${{ github.sha }}
       BUILDX_PLATFORMS: linux/amd64,linux/arm64/v8
+      MODE: manual
     steps:
       - name: lib-injection test runner
         id: lib-injection-test-runner
-        uses: DataDog/system-tests/lib-injection/runner@495d99b7a5d62ae8e2b7de39ec16334cbeb16523
+        uses: DataDog/system-tests/lib-injection/runner@main
         with:
           docker-registry: ghcr.io
           docker-registry-username: ${{ github.repository_owner }}
