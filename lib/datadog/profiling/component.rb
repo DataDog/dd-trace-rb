@@ -77,6 +77,7 @@ module Datadog
             gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
             no_signals_workaround_enabled: no_signals_workaround_enabled?(settings),
+            timeline_enabled: settings.profiling.advanced.experimental_timeline_enabled,
           )
         else
           load_pprof_support
