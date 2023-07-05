@@ -115,6 +115,8 @@ RSpec.describe 'Mysql2::Client patcher' do
 
         it_behaves_like 'schema version span' do
           let(:configuration_options) { {} }
+          let(:peer_service_val) { database }
+          let(:peer_service_source) { 'mysql2.db.name' }
         end
       end
 

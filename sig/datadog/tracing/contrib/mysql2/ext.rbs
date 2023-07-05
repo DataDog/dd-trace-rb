@@ -13,6 +13,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "mysql2"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_QUERY: "mysql2.query"
 
           TAG_DB_NAME: "mysql2.db.name"

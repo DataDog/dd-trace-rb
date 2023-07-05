@@ -17,6 +17,7 @@ module Datadog
           TAG_COMPONENT = 'mysql2'
           TAG_OPERATION_QUERY = 'query'
           TAG_SYSTEM = 'mysql'
+          PEER_SERVICE_SOURCES = (Array[Ext::TAG_DB_NAME] + Contrib::Ext::DB::PEER_SERVICE_SOURCES).freeze
         end
       end
     end
