@@ -655,9 +655,10 @@ static void trigger_sample_for_thread(
       .str = char_slice_from_ruby_string(thread_name)
     };
   } else if (thread == state->main_thread) { // Threads are often not named, but we can have a nice fallback for this special thread
+    ddog_CharSlice main_thread_name = DDOG_CHARSLICE_C("main");
     labels[label_pos++] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("thread name"),
-      .str = DDOG_CHARSLICE_C("main")
+      .str = main_thread_name
     };
   }
 
