@@ -102,6 +102,8 @@ struct thread_context_collector_state {
   bool timeline_enabled;
   // Used when calling monotonic_to_system_epoch_ns
   monotonic_to_system_epoch_state time_converter_state;
+  // Used to identify the main thread, to give it a fallback name
+  VALUE main_thread;
 
   struct stats {
     // Track how many garbage collection samples we've taken.
@@ -254,6 +256,7 @@ static void thread_context_collector_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->recorder_instance);
   st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_mark, 0 /* unused */);
   rb_gc_mark(state->thread_list_buffer);
+  rb_gc_mark(state->main_thread);
 }
 
 static void thread_context_collector_typed_data_free(void *state_ptr) {
@@ -301,6 +304,7 @@ static VALUE _native_new(VALUE klass) {
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
+  state->main_thread = rb_thread_main();
 
   return TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
 }
@@ -650,6 +654,12 @@ static void trigger_sample_for_thread(
       .key = DDOG_CHARSLICE_C("thread name"),
       .str = char_slice_from_ruby_string(thread_name)
     };
+  } else if (thread == state->main_thread) { // Threads are often not named, but we can have a nice fallback for this special thread
+    ddog_CharSlice main_thread_name = DDOG_CHARSLICE_C("main");
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("thread name"),
+      .str = main_thread_name
+    };
   }
 
   struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
@@ -780,6 +790,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
     state->time_converter_state.system_epoch_ns_reference,
     state->time_converter_state.delta_to_epoch_ns
   ));
+  rb_str_concat(result, rb_sprintf(" main_thread=%"PRIsVALUE, state->main_thread));
 
   return result;
 }
