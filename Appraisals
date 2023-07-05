@@ -679,6 +679,7 @@ elsif ruby_version?('2.4')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'minitest', '>= 5.0.0'
     gem 'mysql2', '< 0.5'
+    gem 'opensearch-ruby'
     gem 'pg', '>= 0.18.4'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
@@ -948,6 +949,7 @@ elsif ruby_version?('2.5')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
+    gem 'opensearch-ruby'
     gem 'pg', '>= 0.18.4', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
     gem 'racecar', '>= 0.3.5'
@@ -1199,6 +1201,7 @@ elsif ruby_version?('2.6')
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+      gem 'opensearch-ruby'
       gem 'pg', '>= 0.18.4', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'racecar', '>= 0.3.5'
@@ -1435,6 +1438,7 @@ elsif ruby_version?('2.7')
       gem 'minitest', '>= 5.0.0'
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
+      gem 'opensearch-ruby'
       gem 'pg', '>= 0.18.4', platform: :ruby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -1572,6 +1576,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2') || ru
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+    gem 'opensearch-ruby'
     gem 'pg', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
     gem 'racecar', '>= 0.3.5'
