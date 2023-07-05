@@ -778,9 +778,9 @@ static const rb_iseq_t *maybe_thread_invoke_proc_iseq(VALUE thread_value) {
 
   if (thread->invoke_type != thread_invoke_type_proc) return NULL;
 
-  VALUE iseq_value = thread->invoke_arg.proc.proc;
+  VALUE proc = thread->invoke_arg.proc.proc;
 
-  const rb_iseq_t *iseq = rb_proc_get_iseq(iseq_value, 0);
+  const rb_iseq_t *iseq = rb_proc_get_iseq(proc, 0);
   if (iseq == NULL) return NULL;
 
   rb_iseq_check(iseq);
@@ -796,5 +796,5 @@ VALUE invoke_file_location_for(VALUE thread) {
 VALUE invoke_line_location_for(VALUE thread) {
   const rb_iseq_t *iseq = maybe_thread_invoke_proc_iseq(thread);
 
-  return iseq != NULL ? RB_INT2NUM(ISEQ_BODY(iseq)->location.first_lineno) : Qnil;
+  return iseq != NULL ? rb_iseq_first_lineno(iseq) : Qnil;
 }

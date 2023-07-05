@@ -64,6 +64,7 @@
 // ---
 
 #define THREAD_ID_LIMIT_CHARS 44 // Why 44? "#{2**64} (#{2**64})".size + 1 for \0
+#define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
 #define IS_WALL_TIME true
 #define IS_NOT_WALL_TIME false
 #define MISSING_TRACER_CONTEXT_KEY 0
@@ -117,6 +118,8 @@ struct thread_context_collector_state {
 struct per_thread_context {
   char thread_id[THREAD_ID_LIMIT_CHARS];
   ddog_CharSlice thread_id_char_slice;
+  char thread_invoke_location[THREAD_INVOKE_LOCATION_LIMIT_CHARS];
+  ddog_CharSlice thread_invoke_location_char_slice;
   thread_cpu_time_id thread_cpu_time_id;
   long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
@@ -757,6 +760,27 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
 
+  VALUE invoke_file_location = invoke_file_location_for(thread);
+  VALUE invoke_line_location = invoke_line_location_for(thread);
+  if (invoke_file_location != Qnil) {
+    if (invoke_line_location == Qnil) invoke_line_location = RB_INT2NUM(0);
+
+    snprintf(
+      thread_context->thread_invoke_location,
+      THREAD_INVOKE_LOCATION_LIMIT_CHARS,
+      "%s:%d",
+      StringValueCStr(invoke_file_location),
+      NUM2INT(invoke_line_location)
+    );
+  } else {
+    snprintf(thread_context->thread_invoke_location, THREAD_INVOKE_LOCATION_LIMIT_CHARS, "%s", "");
+  }
+
+  thread_context->thread_invoke_location_char_slice = (ddog_CharSlice) {
+    .ptr = thread_context->thread_invoke_location,
+    .len = strlen(thread_context->thread_invoke_location)
+  };
+
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 
   // These will get initialized during actual sampling
@@ -810,6 +834,7 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
 
   VALUE arguments[] = {
     ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
+    ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new2(thread_context->thread_invoke_location),
     ID2SYM(rb_intern("thread_cpu_time_id_valid?")),       /* => */ thread_context->thread_cpu_time_id.valid ? Qtrue : Qfalse,
     ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ CLOCKID2NUM(thread_context->thread_cpu_time_id.clock_id),
     ID2SYM(rb_intern("cpu_time_at_previous_sample_ns")),  /* => */ LONG2NUM(thread_context->cpu_time_at_previous_sample_ns),

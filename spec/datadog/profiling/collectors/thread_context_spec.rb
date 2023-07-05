@@ -1086,6 +1086,24 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
         end
       end
+
+      describe ':thread_invoke_location' do
+        it 'is empty for the main thread' do
+          expect(per_thread_context.fetch(Thread.main).fetch(:thread_invoke_location)).to be_empty
+        end
+
+        # NOTE: As of this writing, the dd-trace-rb spec_helper.rb includes a monkey patch to Thread creation that we use
+        # to track specs that leak threads. This means that the invoke_location of every thread will point at the
+        # spec_helper in our test suite. Just in case you're looking at the output and being a bit confused :)
+        it 'contains the file and line for the started threads' do
+          [t1, t2, t3].each do |thread|
+            invoke_location = per_thread_context.fetch(thread).fetch(:thread_invoke_location)
+
+            expect(thread.to_s).to include(invoke_location)
+            expect(invoke_location).to match(/.+\.rb:\d+/)
+          end
+        end
+      end
     end
 
     context 'after sampling multiple times' do
