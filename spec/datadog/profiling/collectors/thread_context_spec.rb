@@ -1107,7 +1107,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           [t1, t2, t3].each do |thread|
             invoke_location = per_thread_context.fetch(thread).fetch(:thread_invoke_location)
 
-            expect(thread.to_s).to include(invoke_location)
+            expect(thread.inspect).to include(invoke_location)
             expect(invoke_location).to match(/.+\.rb:\d+/)
           end
         end

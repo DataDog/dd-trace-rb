@@ -776,9 +776,15 @@ check_method_entry(VALUE obj, int can_be_svar)
 static const rb_iseq_t *maybe_thread_invoke_proc_iseq(VALUE thread_value) {
   rb_thread_t *thread = thread_struct_from_object(thread_value);
 
-  if (thread->invoke_type != thread_invoke_type_proc) return NULL;
+  #ifndef NO_THREAD_INVOKE_ARG // Ruby 2.6+
+    if (thread->invoke_type != thread_invoke_type_proc) return NULL;
 
-  VALUE proc = thread->invoke_arg.proc.proc;
+    VALUE proc = thread->invoke_arg.proc.proc;
+  #else
+    if (thread->first_func || !thread->first_proc) return NULL;
+
+    VALUE proc = thread->first_proc;
+  #endif
 
   const rb_iseq_t *iseq = rb_proc_get_iseq(proc, 0);
   if (iseq == NULL) return NULL;
