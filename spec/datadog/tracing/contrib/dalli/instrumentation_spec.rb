@@ -36,7 +36,7 @@ RSpec.describe 'Dalli instrumentation' do
     end
   end
 
-  it_behaves_like 'schema version span', 'memcached', 'peer.hostname' do
+  it_behaves_like 'schema version span', ENV.fetch('TEST_MEMCACHED_HOST', '127.0.0.1'), 'peer.hostname' do
     subject do
       client.set('abc', 123)
       try_wait_until { fetch_spans.any? }

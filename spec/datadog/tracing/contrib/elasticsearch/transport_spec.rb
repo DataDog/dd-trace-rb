@@ -20,7 +20,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     WebMock.disable!
   end
 
-  let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
+  let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze }
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '1234').to_i }
   let(:server) { "http://#{host}:#{port}" }
 
@@ -103,7 +103,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
         it_behaves_like 'a peer service span'
         it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-        it_behaves_like 'schema version span', 'elasticsearch', 'peer.hostname'
+        it_behaves_like 'schema version span', ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze, 'peer.hostname'
       end
 
       context 'PUT request' do
@@ -136,7 +136,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
           it_behaves_like 'a peer service span'
           it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-          it_behaves_like 'schema version span', 'elasticsearch', 'peer.hostname'
+          it_behaves_like 'schema version span', ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze, 'peer.hostname'
         end
 
         context 'with Hash params' do
