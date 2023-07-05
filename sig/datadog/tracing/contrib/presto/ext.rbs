@@ -13,6 +13,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "presto"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_QUERY: "presto.query"
 
           SPAN_KILL: "presto.kill_query"

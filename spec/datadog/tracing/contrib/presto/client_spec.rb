@@ -110,7 +110,10 @@ RSpec.describe 'Presto::Client instrumentation' do
     shared_examples_for 'a configurable Presto trace' do
       context 'when the client is configured' do
         it_behaves_like 'environment service name', 'DD_TRACE_PRESTO_SERVICE_NAME'
-        it_behaves_like 'schema version span'
+        it_behaves_like 'schema version span' do
+          let(:peer_service_val) { schema }
+          let(:peer_service_source) { 'presto.schema' }
+        end
 
         context 'with a different service name' do
           let(:service) { 'presto-primary' }
