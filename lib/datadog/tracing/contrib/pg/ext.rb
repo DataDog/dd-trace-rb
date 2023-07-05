@@ -24,8 +24,8 @@ module Datadog
           TAG_DB_NAME = 'pg.db.name'
           TAG_COMPONENT = 'pg'
           TAG_OPERATION_QUERY = 'query'
-
           TAG_SYSTEM = 'postgresql'
+          PEER_SERVICE_SOURCES = Contrib::Ext::DB::PEER_SERVICE_SOURCES.freeze
         end
       end
     end

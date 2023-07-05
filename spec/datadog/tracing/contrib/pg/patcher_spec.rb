@@ -132,6 +132,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -239,6 +241,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -346,6 +350,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -455,6 +461,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -563,6 +571,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -663,6 +673,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -773,6 +785,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -881,6 +895,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -997,6 +1013,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1105,6 +1123,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1212,6 +1232,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1312,6 +1334,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1428,6 +1452,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1534,6 +1560,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1642,6 +1670,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1749,6 +1779,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1855,6 +1887,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1954,6 +1988,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
         end
 
