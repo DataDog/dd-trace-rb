@@ -44,7 +44,10 @@ RSpec.describe 'AWS instrumentation' do
       it_behaves_like 'measured span for integration'
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'sts.us-stubbed-1.amazonaws.com', 'peer.hostname'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'sts.us-stubbed-1.amazonaws.com' }
+        let(:peer_service_source) { 'peer.hostname' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -97,7 +100,10 @@ RSpec.describe 'AWS instrumentation' do
       it_behaves_like 'measured span for integration'
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 's3.us-stubbed-1.amazonaws.com', 'peer.hostname'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 's3.us-stubbed-1.amazonaws.com' }
+        let(:peer_service_source) { 'peer.hostname' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -141,7 +147,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'bucketname', 'bucketname'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'bucketname' }
+        let(:peer_service_source) { 'bucketname' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -219,7 +228,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'MyQueueName', 'queuename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'MyQueueName' }
+        let(:peer_service_source) { 'queuename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -294,7 +306,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'MyQueueName', 'queuename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'MyQueueName' }
+        let(:peer_service_source) { 'queuename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -342,7 +357,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'MyQueueName', 'queuename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'MyQueueName' }
+        let(:peer_service_source) { 'queuename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -394,7 +412,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'my-topic-name', 'topicname'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'my-topic-name' }
+        let(:peer_service_source) { 'topicname' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -450,7 +471,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'topicName', 'topicname'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'topicName' }
+        let(:peer_service_source) { 'topicname' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -498,7 +522,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'my-table-name', 'tablename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'my-table-name' }
+        let(:peer_service_source) { 'tablename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -550,8 +577,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'my-stream-name', 'streamname'
-
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'my-stream-name' }
+        let(:peer_service_source) { 'streamname' }
+      end
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
@@ -602,7 +631,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'my-stream', 'streamname'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'my-stream' }
+        let(:peer_service_source) { 'streamname' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -652,7 +684,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'my-stream', 'streamname'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'my-stream' }
+        let(:peer_service_source) { 'streamname' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -706,7 +741,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'RuleName', 'rulename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'RuleName' }
+        let(:peer_service_source) { 'rulename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -752,7 +790,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'RuleName', 'rulename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'RuleName' }
+        let(:peer_service_source) { 'rulename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -803,7 +844,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'MyStateMachine', 'statemachinename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'MyStateMachine' }
+        let(:peer_service_source) { 'statemachinename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -853,7 +897,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'my-state-machine-name', 'statemachinename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'my-state-machine-name' }
+        let(:peer_service_source) { 'statemachinename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -909,7 +956,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'my-state-machine-name', 'statemachinename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'my-state-machine-name' }
+        let(:peer_service_source) { 'statemachinename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -955,7 +1005,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'my-state-machine-name', 'statemachinename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'my-state-machine-name' }
+        let(:peer_service_source) { 'statemachinename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -999,7 +1052,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'my-state-machine-name', 'statemachinename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'my-state-machine-name' }
+        let(:peer_service_source) { 'statemachinename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -1059,7 +1115,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'example-state-machine', 'statemachinename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'example-state-machine' }
+        let(:peer_service_source) { 'statemachinename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -1105,7 +1164,10 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'a peer service span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
-      it_behaves_like 'schema version span', 'example-state-machine', 'statemachinename'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'example-state-machine' }
+        let(:peer_service_source) { 'statemachinename' }
+      end
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')

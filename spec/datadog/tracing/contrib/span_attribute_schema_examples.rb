@@ -1,4 +1,4 @@
-RSpec.shared_examples 'schema version span' do |peer_service_val = nil, peer_service_source = nil|
+RSpec.shared_examples 'schema version span' do
   before do
     subject
   end
@@ -25,10 +25,11 @@ RSpec.shared_examples 'schema version span' do |peer_service_val = nil, peer_ser
 
     context 'test peer.service values' do
       it do
-        unless peer_service_val.nil?
-          expect(span.get_tag('peer.service')).to eq(peer_service_val)
-          expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
-        end
+        skip('No let(:peer_service_val) defined.') unless defined?(peer_service_val)
+        skip('No let(:peer_service_source) defined.') unless defined?(peer_service_source)
+
+        expect(span.get_tag('peer.service')).to eq(peer_service_val)
+        expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
       end
     end
   end

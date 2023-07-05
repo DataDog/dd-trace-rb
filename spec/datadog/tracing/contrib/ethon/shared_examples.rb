@@ -66,7 +66,7 @@ RSpec.shared_examples_for 'span' do
   it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME'
   it_behaves_like 'schema version span' do
     let(:peer_service_val) { host }
-    let(:peer_service_source) { 'peer.service' }
+    let(:peer_service_source) { 'peer.hostname' }
   end
 end
 
