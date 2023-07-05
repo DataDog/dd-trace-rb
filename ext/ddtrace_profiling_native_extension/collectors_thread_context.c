@@ -663,6 +663,13 @@ static void trigger_sample_for_thread(
       .key = DDOG_CHARSLICE_C("thread name"),
       .str = main_thread_name
     };
+  } else {
+    // For other threads without name, we use the "invoke location" (first file:line of the block used to start the thread), if any.
+    // This is what Ruby shows in `Thread#to_s`.
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("thread name"),
+      .str = thread_context->thread_invoke_location_char_slice // This is an empty string if no invoke location was available
+    };
   }
 
   struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
