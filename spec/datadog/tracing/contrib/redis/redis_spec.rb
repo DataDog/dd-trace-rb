@@ -38,6 +38,8 @@ RSpec.describe 'Redis test' do
       end
 
       it_behaves_like 'schema version span' do
+        let(:peer_service_val) {  ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
+        let(:peer_service_source) { 'peer.hostname' }
         subject { redis.ping }
       end
 

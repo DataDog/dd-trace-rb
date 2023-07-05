@@ -17,6 +17,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "redis"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_COMMAND: "redis.command"
 
           TAG_DB: "out.redis_db"
