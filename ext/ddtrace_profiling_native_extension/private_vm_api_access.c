@@ -767,3 +767,34 @@ check_method_entry(VALUE obj, int can_be_svar)
   // they're always on the main Ractor
   bool ddtrace_rb_ractor_main_p(void) { return true; }
 #endif // NO_RACTORS
+
+// This is a tweaked and inlined version of
+// threadptr_invoke_proc_location + rb_proc_location + iseq_location .
+//
+// It's useful to have here because not all of the methods above are accessible to extensions + to avoid the
+// array allocation that iseq_location did to contain its return value.
+static const rb_iseq_t *maybe_thread_invoke_proc_iseq(VALUE thread_value) {
+  rb_thread_t *thread = thread_struct_from_object(thread_value);
+
+  if (thread->invoke_type != thread_invoke_type_proc) return NULL;
+
+  VALUE iseq_value = thread->invoke_arg.proc.proc;
+
+  const rb_iseq_t *iseq = rb_proc_get_iseq(iseq_value, 0);
+  if (iseq == NULL) return NULL;
+
+  rb_iseq_check(iseq);
+  return iseq;
+}
+
+VALUE invoke_file_location_for(VALUE thread) {
+  const rb_iseq_t *iseq = maybe_thread_invoke_proc_iseq(thread);
+
+  return iseq != NULL ? rb_iseq_path(iseq) : Qnil;
+}
+
+VALUE invoke_line_location_for(VALUE thread) {
+  const rb_iseq_t *iseq = maybe_thread_invoke_proc_iseq(thread);
+
+  return iseq != NULL ? RB_INT2NUM(ISEQ_BODY(iseq)->location.first_lineno) : Qnil;
+}
