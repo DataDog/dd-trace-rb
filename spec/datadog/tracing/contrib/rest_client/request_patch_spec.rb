@@ -55,7 +55,10 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_REST_CLIENT_SERVICE_NAME'
-      it_behaves_like 'schema version span'
+      it_behaves_like 'schema version span' do
+        let(:peer_service_val) { 'example.com' }
+        let(:peer_service_source) { 'peer.hostname' }
+      end
 
       describe 'created span' do
         context 'response is successfull' do
@@ -248,7 +251,10 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
             end
 
             it_behaves_like 'environment service name', 'DD_TRACE_REST_CLIENT_SERVICE_NAME'
-            it_behaves_like 'schema version span'
+            it_behaves_like 'schema version span' do
+              let(:peer_service_val) { 'example.com' }
+              let(:peer_service_source) { 'peer.hostname' }
+            end
           end
         end
       end
