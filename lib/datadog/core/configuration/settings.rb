@@ -360,7 +360,6 @@ module Datadog
             # @default `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_timeline_enabled do |o|
               o.default { env_to_bool('DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED', false) }
-              o.lazy
             end
           end
 
