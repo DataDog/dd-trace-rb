@@ -2,7 +2,7 @@
 require "open3"
 require "bundler"
 
-lock_file_path = "./Gemfile.lock"
+lock_file_path = "./vendor/Gemfile.lock"
 install_dir = "./vendor"
 
 lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file(lock_file_path))
