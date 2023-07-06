@@ -2135,17 +2135,24 @@ LogJob.perform_async('login')
 
 ## Additional configuration
 
-To change the default behavior of Datadog tracing, you can set environment variables, or provide custom options inside a `Datadog.configure` block, e.g.:
+To change the default behavior of `ddtrace`, you can use, in order of priority, with 1 being the highest:
 
-```ruby
-Datadog.configure do |c|
-  c.service = 'billing-api'
-  c.env = ENV['RACK_ENV']
+1. [Remote Configuration](https://docs.datadoghq.com/agent/remote_config).
+2. Options set inside a `Datadog.configure` block, e.g.:
+    ```ruby
+    Datadog.configure do |c|
+      c.service = 'billing-api'
+      c.env = ENV['RACK_ENV']
+    
+      c.tracing.report_hostname = true
+      c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
+    end
+    ```
+3. Environment variables.
 
-  c.tracing.report_hostname = true
-  c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
-end
-```
+**If a higher priority value is set for an option, setting that option with a lower priority value will not change its effective value.**
+
+For example, if `tracing.sampling.default_rate` is configured by [Remote Configuration](#remote-configuration), changing its value through the `Datadog.configure` block will have no effect.
 
 **Available configuration options:**
 

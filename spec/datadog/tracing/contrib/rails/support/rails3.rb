@@ -74,6 +74,58 @@ RSpec.shared_context 'Rails 3 base application' do
     klass
   end
 
+  let(:before_test_initialize_block) do
+    proc do
+      append_routes!
+
+      # This is mimicking the side-effect as `Lograge.remove_existing_log_subscriptions`
+      # with other Rails versions testing
+      #
+      # Some tests end up with
+      #   uninitialized constant `::ActionView::LogSubscriber`
+      #   uninitialized constant `::ActionController::LogSubscriber`
+      require 'action_view/log_subscriber'
+      require 'action_controller/log_subscriber'
+      {
+        'render_template.action_view' => ::ActionView::LogSubscriber,
+        'start_processing.action_controller' => ::ActionController::LogSubscriber,
+        'process_action.action_controller' => ::ActionController::LogSubscriber,
+      }.each do |pattern, log_subscriber_class|
+        ActiveSupport::Notifications.notifier.listeners_for(pattern).each do |listener|
+          if log_subscriber_class === listener.instance_variable_get('@delegate')
+            ActiveSupport::Notifications.unsubscribe listener
+          end
+        end
+      end
+    end
+  end
+
+  let(:after_test_initialize_block) do
+    proc do
+      # Rails autoloader recommends controllers to be loaded
+      # after initialization. This will be enforced when `zeitwerk`
+      # becomes the only supported autoloader.
+      append_controllers!
+
+      # Force connection to initialize, and dump some spans
+      application_record.connection
+
+      # Skip default Rails exception page rendering.
+      # This avoid polluting the trace under test
+      # with render and partial_render templates for the
+      # error page.
+      #
+      # We could completely disable the {DebugExceptions} middleware,
+      # but that affects Rails' internal error propagation logic.
+      # render_for_browser_request(request, wrapper)
+      allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
+        wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
+
+        this.send(:render, wrapper.status_code, 'Test error response body')
+      end
+    end
+  end
+
   def append_routes!
     # Make sure to load controllers first
     # otherwise routes won't draw properly.
@@ -110,8 +162,6 @@ RSpec.shared_context 'Rails 3 base application' do
   # Version of Ruby < 4 have initializers with persistent side effects:
   # actionpack-3.0.20/lib/action_view/railtie.rb:22
   def after_rails_application_creation
-    Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
-
     Rails.application.config.action_view = ActiveSupport::OrderedOptions.new
 
     # Prevent initializer from performing destructive operation on configuration.

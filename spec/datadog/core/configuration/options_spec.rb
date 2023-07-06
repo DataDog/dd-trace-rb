@@ -114,6 +114,23 @@ RSpec.describe Datadog::Core::Configuration::Options do
           before { options_class.send(:option, name) }
 
           it { expect { set_option }.to change { options_object.send(name) }.from(nil).to(value) }
+
+          it 'defaults to PROGRAMMATIC precedence' do
+            set_option
+
+            expect(options_object.options[name].send(:precedence_set))
+              .to eq(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+          end
+
+          context 'with precedence' do
+            subject(:set_option) { options_object.set_option(name, value, precedence: precedence) }
+            let(:precedence) { Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION }
+
+            it 'sets the option precedence' do
+              set_option
+              expect(options_object.options[name].send(:precedence_set)).to eq(precedence)
+            end
+          end
         end
 
         context 'when the option is not defined' do

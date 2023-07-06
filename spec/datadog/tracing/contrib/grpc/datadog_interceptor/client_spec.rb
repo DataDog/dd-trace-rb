@@ -125,13 +125,21 @@ RSpec.describe 'tracing on the client connection' do
 
     let(:original_metadata) { { some: 'datum' } }
 
+    let(:request_response) do
+      subject.request_response(**keywords) { :returned_object }
+    end
+
     before do
-      subject.request_response(**keywords) {}
+      request_response
     end
 
     it_behaves_like 'span data contents'
 
     it_behaves_like 'inject distributed tracing metadata'
+
+    it 'actually returns the client response' do
+      expect(request_response).to be(:returned_object)
+    end
   end
 
   describe '#client_streamer' do

@@ -6,7 +6,7 @@ RSpec.describe Datadog::AppSec::Remote do
   describe '.capabilities' do
     context 'remote configuration disabled' do
       before do
-        expect(Datadog::AppSec).to receive(:default_setting?).with(:ruleset).and_return(false)
+        expect(described_class).to receive(:remote_features_enabled?).and_return(false)
       end
 
       it 'returns empty array' do
@@ -16,7 +16,7 @@ RSpec.describe Datadog::AppSec::Remote do
 
     context 'remote configuration enabled' do
       before do
-        expect(Datadog::AppSec).to receive(:default_setting?).with(:ruleset).and_return(true)
+        expect(described_class).to receive(:remote_features_enabled?).and_return(true)
       end
 
       it 'returns capabilities' do
@@ -28,7 +28,7 @@ RSpec.describe Datadog::AppSec::Remote do
   describe '.products' do
     context 'remote configuration disabled' do
       before do
-        expect(Datadog::AppSec).to receive(:default_setting?).with(:ruleset).and_return(false)
+        expect(described_class).to receive(:remote_features_enabled?).and_return(false)
       end
 
       it 'returns empty array' do
@@ -38,7 +38,7 @@ RSpec.describe Datadog::AppSec::Remote do
 
     context 'remote configuration enabled' do
       before do
-        expect(Datadog::AppSec).to receive(:default_setting?).with(:ruleset).and_return(true)
+        expect(described_class).to receive(:remote_features_enabled?).and_return(true)
       end
 
       it 'returns products' do
@@ -50,7 +50,7 @@ RSpec.describe Datadog::AppSec::Remote do
   describe '.receivers' do
     context 'remote configuration disabled' do
       before do
-        expect(Datadog::AppSec).to receive(:default_setting?).with(:ruleset).and_return(false)
+        expect(described_class).to receive(:remote_features_enabled?).and_return(false)
       end
 
       it 'returns empty array' do
@@ -60,7 +60,7 @@ RSpec.describe Datadog::AppSec::Remote do
 
     context 'remote configuration enabled' do
       before do
-        expect(Datadog::AppSec).to receive(:default_setting?).with(:ruleset).and_return(true)
+        expect(described_class).to receive(:remote_features_enabled?).and_return(true)
       end
 
       it 'returns receivers' do

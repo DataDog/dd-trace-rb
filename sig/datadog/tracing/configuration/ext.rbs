@@ -12,6 +12,7 @@ module Datadog
           DEFAULT_VERSION: "v0"
 
           VERSION_ONE: "v1"
+          VERSION_ZERO: "v0"
         end
         module Analytics
           ENV_TRACE_ANALYTICS_ENABLED: "DD_TRACE_ANALYTICS_ENABLED"

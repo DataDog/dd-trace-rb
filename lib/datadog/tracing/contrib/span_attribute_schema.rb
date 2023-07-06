@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'ext'
+
 module Datadog
   module Tracing
     module Contrib
@@ -7,21 +9,114 @@ module Datadog
       module SpanAttributeSchema
         module_function
 
-        def fetch_service_name(env, default)
-          ENV.fetch(env) do
-            if Datadog.configuration.tracing.span_attribute_schema ==
-                Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE ||
-                Datadog.configuration.tracing.service_name_override
-              Datadog.configuration.service
-            else
-              default
-            end
-          end
-        end
-
         def default_span_attribute_schema?
           Datadog.configuration.tracing.span_attribute_schema ==
             Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
+        end
+
+        def active_version
+          case Datadog.configuration.tracing.span_attribute_schema
+          when 'v1'
+            V1
+          else
+            V0 # Default Version
+          end
+        end
+
+        # TODO: add specific env var just for service naming independent of v1
+        def fetch_service_name(env, default)
+          active_version.fetch_service_name(env, default)
+        end
+
+        # TODO: implement function in all integrations with spankind
+        # TODO: add specific env var just for peer.service independent of v1
+        def set_peer_service!(span, sources)
+          active_version.set_peer_service!(span, sources)
+        end
+
+        private_class_method :active_version
+
+        # Contains implementation of methods specific to v0
+        module V0
+          module_function
+
+          def fetch_service_name(env, default)
+            ENV.fetch(env) do
+              if Datadog.configuration.tracing.service_name_override
+                Datadog.configuration.service
+              end
+              default
+            end
+          end
+
+          # TODO: add logic for env var enabling peer service in v0
+          def set_peer_service!(span, _)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+            false
+            # TODO: add logic for remap if necessary
+          end
+        end
+
+        # Contains implementation of methods specific to v1
+        module V1
+          module_function
+
+          REFLEXIVE_SOURCES = [Tracing::Metadata::Ext::TAG_PEER_SERVICE].freeze
+          NO_SOURCE = [].freeze
+
+          def fetch_service_name(env, _)
+            ENV.fetch(env) { Datadog.configuration.service }
+          end
+
+          def set_peer_service!(span, sources)
+            set_peer_service_from_source(span, sources)
+            # TODO: add logic for remap as long as the above expression is true
+          end
+
+          # set_peer_service_from_source: Implements the extraction logic to determine the peer.service value
+          # based on the list of source tags passed as a parameter.
+          #
+          # If no values are found, it checks the default list for all spans before returning false for no result
+          # Sets the source of where the information for peer.service was extracted from
+          # Returns a boolean if peer.service was successfully set or not
+          def set_peer_service_from_source(span, sources = [])
+            # Filter out sources based on existence of peer.service tag
+            sources = filter_peer_service_sources(span, sources)
+
+            # Find a possible peer.service source from the list of source tags passed in
+            sources.each do |source|
+              source_val = span.get_tag(source)
+              next unless not_empty_tag?(source_val)
+
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, source_val)
+              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_SOURCE, source)
+              return true
+            end
+            false
+          end
+
+          # filter_peer_service_sources: returns filtered sources based on existence of peer.service tag
+          # If peer.service exists, we do not read from any other source rather use peer.service as source
+          # This is to prevent overwriting of pre-existing peer.service tags
+          def filter_peer_service_sources(span, sources)
+            ps = span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+            # Do not override existing peer.service tag if it exists based on schema version
+            return REFLEXIVE_SOURCES if not_empty_tag?(ps)
+
+            # Check that peer.service is only set on spankind client/producer spans
+            if (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_CLIENT) ||
+                (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
+              return sources
+            end
+
+            NO_SOURCES
+          end
+
+          def not_empty_tag?(tag)
+            tag && (tag != '')
+          end
+
+          private_class_method :not_empty_tag?, :set_peer_service_from_source, :filter_peer_service_sources
         end
       end
     end

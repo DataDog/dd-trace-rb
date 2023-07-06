@@ -527,6 +527,18 @@ module Datadog
             o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, true) }
             o.lazy
           end
+
+          # The interval in seconds when telemetry must be sent.
+          #
+          # This method is used internally, for testing purposes only.
+          #
+          # @default `DD_TELEMETRY_HEARTBEAT_INTERVAL` environment variable, otherwise `60`.
+          # @return [Float]
+          # @!visibility private
+          option :heartbeat_interval_seconds do |o|
+            o.default { env_to_float(Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL, 60) }
+            o.lazy
+          end
         end
 
         # Remote configuration

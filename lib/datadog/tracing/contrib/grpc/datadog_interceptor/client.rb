@@ -29,15 +29,15 @@ module Datadog
                 annotate!(trace, span, keywords, formatter)
 
                 begin
-                  yield
+                  result = yield
                 rescue StandardError => e
                   code = e.is_a?(::GRPC::BadStatus) ? e.code : ::GRPC::Core::StatusCodes::UNKNOWN
                   span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, code)
 
                   raise
-                else
-                  span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, ::GRPC::Core::StatusCodes::OK)
                 end
+                span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, ::GRPC::Core::StatusCodes::OK)
+                result
               end
             end
 

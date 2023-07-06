@@ -13,6 +13,8 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "aws"
 
+          PEER_SERVICE_SOURCES: Array[String]
+
           SPAN_COMMAND: "aws.command"
 
           TAG_AGENT: "aws.agent"
@@ -50,6 +52,8 @@ module Datadog
           TAG_STATE_MACHINE_NAME: "statemachinename"
 
           TAG_BUCKET_NAME: "bucketname"
+
+          PEER_SERVICE_SOURCE_AWS: Array[string]
         end
       end
     end
