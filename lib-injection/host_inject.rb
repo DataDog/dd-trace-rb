@@ -1,4 +1,5 @@
 return if ENV["DD_TRACE_SKIP_LIB_INJECTION"] == "true"
+require "rubygems"
 
 Gem.paths = {
   "GEM_PATH" => "/opt/datadog/apm/library/ruby/#{RUBY_VERSION.split(".")[0..1].join(".")}:/opt/datadog/apm/library/ruby:#{ENV["GEM_PATH"]}"
