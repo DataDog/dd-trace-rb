@@ -7,7 +7,7 @@ module Datadog
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
-      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:)
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
         return unless settings.profiling.enabled
 
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
@@ -64,7 +64,11 @@ module Datadog
 
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
+        no_signals_workaround_enabled = false
+
         if enable_new_profiler?(settings)
+          no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
+
           recorder = Datadog::Profiling::StackRecorder.new(
             cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
             alloc_samples_enabled: false, # Always disabled for now -- work in progress
@@ -76,7 +80,7 @@ module Datadog
             endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
             gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
-            no_signals_workaround_enabled: no_signals_workaround_enabled?(settings),
+            no_signals_workaround_enabled: no_signals_workaround_enabled,
             timeline_enabled: settings.profiling.advanced.experimental_timeline_enabled,
           )
         else
@@ -86,7 +90,7 @@ module Datadog
           collector = build_profiler_oldstack_collector(settings, recorder, optional_tracer)
         end
 
-        exporter = build_profiler_exporter(settings, recorder)
+        exporter = build_profiler_exporter(settings, recorder, no_signals_workaround_enabled: no_signals_workaround_enabled)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
 
@@ -97,11 +101,15 @@ module Datadog
         Profiling::OldRecorder.new([Profiling::Events::StackSample], settings.profiling.advanced.max_events)
       end
 
-      private_class_method def self.build_profiler_exporter(settings, recorder)
+      private_class_method def self.build_profiler_exporter(settings, recorder, no_signals_workaround_enabled:)
         code_provenance_collector =
           (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
-        Profiling::Exporter.new(pprof_recorder: recorder, code_provenance_collector: code_provenance_collector)
+        Profiling::Exporter.new(
+          pprof_recorder: recorder,
+          code_provenance_collector: code_provenance_collector,
+          no_signals_workaround_enabled: no_signals_workaround_enabled,
+        )
       end
 
       private_class_method def self.build_profiler_oldstack_collector(settings, old_recorder, tracer)

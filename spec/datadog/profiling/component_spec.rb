@@ -90,6 +90,13 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
+        it 'sets up the Exporter with no_signals_workaround_enabled: false' do
+          expect(Datadog::Profiling::Exporter)
+            .to receive(:new).with(hash_including(no_signals_workaround_enabled: false))
+
+          build_profiler_component
+        end
+
         [true, false].each do |value|
           context "when endpoint_collection_enabled is #{value}" do
             before { settings.profiling.advanced.endpoint.collection.enabled = value }
@@ -125,6 +132,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         it 'initializes a CpuAndWallTimeWorker collector' do
+          expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
           expect(settings.profiling.advanced).to receive(:max_frames).and_return(:max_frames_config)
           expect(settings.profiling.advanced)
             .to receive(:experimental_timeline_enabled).and_return(:experimental_timeline_enabled_config)
@@ -136,7 +144,7 @@ RSpec.describe Datadog::Profiling::Component do
             endpoint_collection_enabled: anything,
             gc_profiling_enabled: anything,
             allocation_counting_enabled: anything,
-            no_signals_workaround_enabled: eq(true).or(eq(false)),
+            no_signals_workaround_enabled: :no_signals_result,
             timeline_enabled: :experimental_timeline_enabled_config,
           )
 
@@ -246,6 +254,16 @@ RSpec.describe Datadog::Profiling::Component do
         it 'sets up the Exporter with the StackRecorder' do
           expect(Datadog::Profiling::Exporter)
             .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::StackRecorder)))
+
+          build_profiler_component
+        end
+
+        it 'sets up the Exporter with no_signals_workaround_enabled setting' do
+          allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
+
+          expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
+          expect(Datadog::Profiling::Exporter)
+            .to receive(:new).with(hash_including(no_signals_workaround_enabled: :no_signals_result))
 
           build_profiler_component
         end
