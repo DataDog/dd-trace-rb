@@ -31,29 +31,23 @@ module Datadog
         # TODO: implement function in all integrations with spankind
         # TODO: add specific env var just for peer.service independent of v1
         def set_peer_service!(span, sources)
-          V1.set_peer_service!(span, sources)
+          active_version.set_peer_service!(span, sources)
         end
 
         private_class_method :active_version
 
-        # Contains implementation of methods specific to v0
-        module V0
-          module_function
-
-          def fetch_service_name(env, default)
-            ENV.fetch(env) { default }
-          end
-        end
-
-        # Contains implementation of methods specific to v1
-        module V1
-          module_function
-
+        # Contains interface of methods to be implemented
+        module Base
           REFLEXIVE_SOURCES = [Tracing::Metadata::Ext::TAG_PEER_SERVICE].freeze
           NO_SOURCE = [].freeze
+          IMPLEMENT_ERROR = 'SpanAttributeSchema Version must implement fetch_service_name'
 
-          def fetch_service_name(env, _)
-            ENV.fetch(env) { Datadog.configuration.service }
+          def self.extended(base)
+            base.private_class_method :not_empty_tag?, :set_peer_service_from_source, :filter_peer_service_sources
+          end
+
+          def fetch_service_name(_env, _default)
+            raise NotImplementedError, IMPLEMENT_ERROR
           end
 
           def set_peer_service!(span, sources)
@@ -103,8 +97,28 @@ module Datadog
           def not_empty_tag?(tag)
             tag && (tag != '')
           end
+        end
 
-          private_class_method :not_empty_tag?, :set_peer_service_from_source, :filter_peer_service_sources
+        # Contains implementation of methods specific to v0
+        module V0
+          extend Base
+
+          module_function
+
+          def fetch_service_name(env, default)
+            ENV.fetch(env) { default }
+          end
+        end
+
+        # Contains implementation of methods specific to v1
+        module V1
+          extend Base
+
+          module_function
+
+          def fetch_service_name(env, _)
+            ENV.fetch(env) { Datadog.configuration.service }
+          end
         end
       end
     end
