@@ -302,7 +302,8 @@ VALUE thread_name_for(VALUE thread) {
 // Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
-// Modifications: None
+// Modifications:
+// * Support int first_lineno for Ruby 3.2.0+ (https://github.com/ruby/ruby/pull/6430)
 //
 // `node_id` gets used depending on Ruby VM compilation settings (USE_ISEQ_NODE_ID being defined).
 // To avoid getting false "unused argument" warnings in setups where it's not used, we need to do this weird dance
@@ -322,7 +323,11 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
             VM_ASSERT(! ISEQ_BODY(iseq)->local_table_size);
             return 0;
         }
-        if (lineno) *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
+        # ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
+          if (lineno) *lineno = ISEQ_BODY(iseq)->location.first_lineno;
+        # else
+          if (lineno) *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
+        #endif
 #ifdef USE_ISEQ_NODE_ID
         if (node_id) *node_id = -1;
 #endif

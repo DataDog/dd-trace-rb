@@ -307,6 +307,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
+          'internal' => {},
         )
       end
 
@@ -354,6 +355,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
+          'internal' => {},
         )
 
         expect(body[code_provenance_file_name]).to be nil

@@ -184,7 +184,8 @@ namespace :spec do
   # Datadog CI integrations
   [
     :cucumber,
-    :rspec
+    :rspec,
+    :minitest
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/datadog/ci/contrib/#{contrib}/**/*_spec.rb"
