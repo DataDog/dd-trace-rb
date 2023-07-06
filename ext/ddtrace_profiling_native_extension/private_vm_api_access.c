@@ -798,14 +798,11 @@ static const rb_iseq_t *maybe_thread_invoke_proc_iseq(VALUE thread_value) {
   return iseq;
 }
 
-VALUE invoke_file_location_for(VALUE thread) {
+VALUE invoke_location_for(VALUE thread, int *line_location) {
   const rb_iseq_t *iseq = maybe_thread_invoke_proc_iseq(thread);
 
-  return iseq != NULL ? rb_iseq_path(iseq) : Qnil;
-}
+  if (iseq == NULL) return Qnil;
 
-VALUE invoke_line_location_for(VALUE thread) {
-  const rb_iseq_t *iseq = maybe_thread_invoke_proc_iseq(thread);
-
-  return iseq != NULL ? rb_iseq_first_lineno(iseq) : Qnil;
+  *line_location = NUM2INT(rb_iseq_first_lineno(iseq));
+  return rb_iseq_path(iseq);
 }

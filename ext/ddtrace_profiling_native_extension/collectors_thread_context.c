@@ -767,17 +767,15 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
 
-  VALUE invoke_file_location = invoke_file_location_for(thread);
-  VALUE invoke_line_location = invoke_line_location_for(thread);
+  int invoke_line_location;
+  VALUE invoke_file_location = invoke_location_for(thread, &invoke_line_location);
   if (invoke_file_location != Qnil) {
-    if (invoke_line_location == Qnil) invoke_line_location = RB_INT2NUM(0);
-
     snprintf(
       thread_context->thread_invoke_location,
       THREAD_INVOKE_LOCATION_LIMIT_CHARS,
       "%s:%d",
       StringValueCStr(invoke_file_location),
-      NUM2INT(invoke_line_location)
+      invoke_line_location
     );
   } else {
     snprintf(thread_context->thread_invoke_location, THREAD_INVOKE_LOCATION_LIMIT_CHARS, "%s", "");
