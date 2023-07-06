@@ -205,8 +205,16 @@ static VALUE perform_export(
   uint64_t timeout_milliseconds
 ) {
   ddog_prof_ProfiledEndpointsStats *endpoints_stats = NULL; // Not in use yet
-  ddog_prof_Exporter_Request_BuildResult build_result =
-    ddog_prof_Exporter_Request_build(exporter, start, finish, slice_files, additional_tags, endpoints_stats, timeout_milliseconds);
+  ddog_prof_Exporter_Request_BuildResult build_result = ddog_prof_Exporter_Request_build(
+    exporter,
+    start,
+    finish,
+    slice_files,
+    additional_tags,
+    endpoints_stats,
+    NULL, // TODO: PR #2927 will start to use this
+    timeout_milliseconds
+  );
 
   if (build_result.tag == DDOG_PROF_EXPORTER_REQUEST_BUILD_RESULT_ERR) {
     ddog_prof_Exporter_drop(exporter);
