@@ -2,6 +2,7 @@
 
 require_relative '../tracking'
 require_relative '../resource'
+require_relative '../event_information'
 
 module Datadog
   module AppSec
@@ -13,9 +14,11 @@ module Datadog
             def create
               return super unless AppSec.enabled?
 
-              return unless Datadog.configuration.appsec.track_user_events.enabled
+              track_user_events_configuration = Datadog.configuration.appsec.track_user_events
 
-              automated_track_user_events_mode = Datadog.configuration.appsec.track_user_events.mode
+              return super unless track_user_events_configuration.enabled
+
+              automated_track_user_events_mode = track_user_events_configuration.mode
 
               appsec_scope = Datadog::AppSec.active_scope
               return super unless appsec_scope
@@ -24,18 +27,11 @@ module Datadog
                 if resource.persisted?
                   devise_resource = Resource.new(resource)
 
-                  event_information = {}
-                  user_id = devise_resource.id if devise_resource && devise_resource.id
+                  event_information = EventInformation.extract(devise_resource, automated_track_user_events_mode)
 
-                  if automated_track_user_events_mode == Patcher::EXTENDED_MODE
-                    resource_email = devise_resource.email
-                    resource_username = devise_resource.username
+                  if event_information[:id]
+                    user_id = event_information.delete(:id)
 
-                    event_information[:email] = resource_email if resource_email
-                    event_information[:username] = resource_username if resource_username
-                  end
-
-                  if user_id
                     Tracking.track_signup(
                       appsec_scope.trace,
                       appsec_scope.service_entry_span,

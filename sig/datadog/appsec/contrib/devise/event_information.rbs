@@ -1,0 +1,17 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        module EventInformation
+          UUID_REGEX: ::Regexp
+
+          SAFE_MODE: String
+
+          EXTENDED_MODE: String
+
+          def self.extract: (Devise::Resource? resource, String mode) -> Hash[Symbol, untyped]
+        end
+      end
+    end
+  end
+end

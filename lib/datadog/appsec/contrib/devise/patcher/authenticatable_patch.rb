@@ -2,6 +2,7 @@
 
 require_relative '../tracking'
 require_relative '../resource'
+require_relative '../event_information'
 
 module Datadog
   module AppSec
@@ -10,14 +11,16 @@ module Datadog
         module Patcher
           # Hook in devise validate method
           module AuthenticatablePatch
-            # rubocop:disable Metrics/MethodLength, Metrics/PerceivedComplexity
+            # rubocop:disable Metrics/MethodLength
             def validate(resource, &block)
               result = super
               return result unless AppSec.enabled?
 
-              return unless Datadog.configuration.appsec.track_user_events.enabled
+              track_user_events_configuration = Datadog.configuration.appsec.track_user_events
 
-              automated_track_user_events_mode = Datadog.configuration.appsec.track_user_events.mode
+              return result unless track_user_events_configuration.enabled
+
+              automated_track_user_events_mode = track_user_events_configuration.mode
 
               appsec_scope = Datadog::AppSec.active_scope
 
@@ -25,21 +28,12 @@ module Datadog
 
               devise_resource = resource ? Resource.new(resource) : nil
 
-              event_information = {}
-              user_id = nil
-
-              if automated_track_user_events_mode == Patcher::EXTENDED_MODE && devise_resource
-                resource_email = devise_resource.email
-                resource_username = devise_resource.username
-
-                event_information[:email] = resource_email if resource_email
-                event_information[:username] = resource_username if resource_username
-              end
-
-              user_id = devise_resource.id if devise_resource && devise_resource.id
+              event_information = EventInformation.extract(devise_resource, automated_track_user_events_mode)
 
               if result
-                if user_id
+                if event_information[:id]
+                  user_id = event_information.delete(:id)
+
                   Tracking.track_login_success(
                     appsec_scope.trace,
                     appsec_scope.service_entry_span,
@@ -61,6 +55,8 @@ module Datadog
               end
 
               if devise_resource
+                user_id = event_information.delete(:id)
+
                 Tracking.track_login_failure(
                   appsec_scope.trace,
                   appsec_scope.service_entry_span,
@@ -82,7 +78,7 @@ module Datadog
 
               result
             end
-            # rubocop:enable Metrics/MethodLength, Metrics/PerceivedComplexity
+            # rubocop:enable Metrics/MethodLength
           end
         end
       end
