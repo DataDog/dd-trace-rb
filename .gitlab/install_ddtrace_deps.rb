@@ -5,9 +5,6 @@ require "bundler"
 lock_file_path = "./Gemfile.lock"
 install_dir = "./vendor"
 
-# lock_file_path = "/opt/datadog/apm/library/ruby/Gemfile.lock"
-# install_dir = "./vendor"
-
 lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file(lock_file_path))
 
 gem_version_mapping = lock_file_parser.specs.each_with_object({}) do |spec, hash|
