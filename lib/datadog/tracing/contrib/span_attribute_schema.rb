@@ -31,7 +31,7 @@ module Datadog
         # TODO: implement function in all integrations with spankind
         # TODO: add specific env var just for peer.service independent of v1
         def set_peer_service!(span, sources)
-          active_version.set_peer_service!(span, sources)
+          V1.set_peer_service!(span, sources)
         end
 
         private_class_method :active_version
@@ -42,13 +42,6 @@ module Datadog
 
           def fetch_service_name(env, default)
             ENV.fetch(env) { default }
-          end
-
-          # TODO: add logic for env var enabling peer service in v0
-          def set_peer_service!(span, _)
-            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-            false
-            # TODO: add logic for remap if necessary
           end
         end
 
@@ -104,7 +97,7 @@ module Datadog
               return sources
             end
 
-            NO_SOURCES
+            NO_SOURCE
           end
 
           def not_empty_tag?(tag)

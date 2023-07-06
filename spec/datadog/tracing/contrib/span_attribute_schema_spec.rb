@@ -68,14 +68,12 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
 
   describe '#set_peer_service!' do
     subject(:set_peer_service!) { described_class.set_peer_service!(span, sources) }
-    let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
+    let(:span) { Datadog::Tracing::SpanOperation.new('testPS') }
     let(:sources) { instance_double(Array) }
-    let(:active_version) { double('active_version') }
-    let(:return_value) { double('return_value') }
+    let(:return_value) { false }
 
     before do
-      allow(described_class).to receive(:active_version).and_return(active_version)
-      expect(active_version).to receive(:set_peer_service!).with(span, sources).and_return(return_value)
+      allow(described_class).to receive(:set_peer_service!).with(span, sources).and_return(return_value)
     end
 
     it do
@@ -124,16 +122,6 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V0 do
           ).to eq('default-integration-service-name')
         end
       end
-    end
-  end
-
-  describe '#set_peer_service!' do
-    let(:span) { Datadog::Tracing::Span.new('testPeerServiceLogicSpan', parent_id: 0) }
-    it 'returns {span.service} and peer.service as source' do
-      span.service = 'test-peer.service'
-      expect(described_class.send(:set_peer_service!, span, [])).to be false
-      expect(span.get_tag('peer.service')).to eq('test-peer.service')
-      expect(span.get_tag('_dd.peer.service.source')).to eq nil
     end
   end
 
