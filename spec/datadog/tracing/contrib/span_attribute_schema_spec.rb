@@ -125,6 +125,20 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V0 do
         end
       end
     end
+
+    context 'when DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
+      it 'returns DD_SERVICE' do
+        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0',
+          DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
+          DD_SERVICE: 'service' do
+            expect(
+              described_class
+                .fetch_service_name('DD_INTEGRATION_SERVICE',
+                  'default-integration-service-name')
+            ).to eq('service')
+          end
+      end
+    end
   end
 
   describe '#set_peer_service!' do
@@ -355,20 +369,6 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V1 do
               span.clear_tag(precursor)
             end
           end
-        end
-      end
-
-      context 'when v0 schema is set AND DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
-        it 'returns DD_SERVICE' do
-          with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0',
-            DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
-            DD_SERVICE: 'service' do
-              expect(
-                described_class
-                  .fetch_service_name('DD_INTEGRATION_SERVICE',
-                    'default-integration-service-name')
-              ).to eq('service')
-            end
         end
       end
     end
