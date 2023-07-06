@@ -50,7 +50,7 @@ module Datadog
                   host = url.host
                   port = url.port
                   scheme = url.scheme
-                  # Set url.user to nil to remove sensitive information
+                  # Set url.user to nil to remove sensitive information (i.e. user's username and password)
                   url.user = nil
 
                   # Set url tags
