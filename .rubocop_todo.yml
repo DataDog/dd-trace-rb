@@ -145,7 +145,7 @@ Style/ClassVars:
     - 'spec/datadog/tracing/contrib/rails/support/rails5.rb'
     - 'spec/datadog/tracing/contrib/rails/support/rails6.rb'
 
-# Offense count: 607
+# Offense count: 253
 # This cop supports unsafe autocorrection (--autocorrect-all).
 # Configuration parameters: EnforcedStyle.
 # SupportedStyles: always, always_true, never
@@ -153,27 +153,17 @@ Style/FrozenStringLiteralComment:
   Exclude:
     - 'lib/datadog/appsec/assets.rb'
     - 'lib/datadog/appsec/autoload.rb'
-    - 'lib/datadog/appsec/configuration/settings.rb'
     - 'lib/datadog/appsec/contrib/rack/gateway/watcher.rb'
     - 'lib/datadog/appsec/contrib/rack/integration.rb'
-    - 'lib/datadog/appsec/contrib/rack/reactive/request.rb'
-    - 'lib/datadog/appsec/contrib/rack/reactive/request_body.rb'
-    - 'lib/datadog/appsec/contrib/rack/reactive/response.rb'
-    - 'lib/datadog/appsec/contrib/rack/request_body_middleware.rb'
     - 'lib/datadog/appsec/contrib/rack/request_middleware.rb'
     - 'lib/datadog/appsec/contrib/rails/gateway/watcher.rb'
     - 'lib/datadog/appsec/contrib/rails/integration.rb'
     - 'lib/datadog/appsec/contrib/rails/patcher.rb'
-    - 'lib/datadog/appsec/contrib/rails/reactive/action.rb'
     - 'lib/datadog/appsec/contrib/sinatra/gateway/watcher.rb'
     - 'lib/datadog/appsec/contrib/sinatra/integration.rb'
     - 'lib/datadog/appsec/contrib/sinatra/patcher.rb'
-    - 'lib/datadog/appsec/contrib/sinatra/reactive/routed.rb'
     - 'lib/datadog/appsec/event.rb'
-    - 'lib/datadog/appsec/processor.rb'
     - 'lib/datadog/appsec/rate_limiter.rb'
-    - 'lib/datadog/appsec/reactive/operation.rb'
-    - 'lib/datadog/appsec/response.rb'
     - 'lib/datadog/appsec/utils/http/media_range.rb'
     - 'lib/datadog/appsec/utils/http/media_type.rb'
     - 'lib/datadog/ci/contrib/cucumber/integration.rb'
@@ -193,7 +183,6 @@ Style/FrozenStringLiteralComment:
     - 'lib/datadog/core/environment/cgroup.rb'
     - 'lib/datadog/core/environment/container.rb'
     - 'lib/datadog/core/environment/platform.rb'
-    - 'lib/datadog/core/environment/variable_helpers.rb'
     - 'lib/datadog/core/logger.rb'
     - 'lib/datadog/core/metrics/client.rb'
     - 'lib/datadog/core/metrics/logging.rb'
@@ -216,8 +205,6 @@ Style/FrozenStringLiteralComment:
     - 'lib/datadog/core/utils/string_table.rb'
     - 'lib/datadog/core/workers/async.rb'
     - 'lib/datadog/core/workers/polling.rb'
-    - 'lib/datadog/kit/enable_core_dumps.rb'
-    - 'lib/datadog/kit/identity.rb'
     - 'lib/datadog/opentracer/distributed_headers.rb'
     - 'lib/datadog/opentracer/rack_propagator.rb'
     - 'lib/datadog/opentracer/span.rb'
@@ -375,7 +362,6 @@ Style/FrozenStringLiteralComment:
     - 'lib/datadog/tracing/contrib/sequel/utils.rb'
     - 'lib/datadog/tracing/contrib/shoryuken/integration.rb'
     - 'lib/datadog/tracing/contrib/sidekiq/integration.rb'
-    - 'lib/datadog/tracing/contrib/sidekiq/tracing.rb'
     - 'lib/datadog/tracing/contrib/sinatra/configuration/settings.rb'
     - 'lib/datadog/tracing/contrib/sinatra/env.rb'
     - 'lib/datadog/tracing/contrib/sinatra/framework.rb'
@@ -384,7 +370,6 @@ Style/FrozenStringLiteralComment:
     - 'lib/datadog/tracing/contrib/status_code_matcher.rb'
     - 'lib/datadog/tracing/contrib/sucker_punch/instrumentation.rb'
     - 'lib/datadog/tracing/contrib/sucker_punch/integration.rb'
-    - 'lib/datadog/tracing/contrib/utils/database.rb'
     - 'lib/datadog/tracing/contrib/utils/quantization/hash.rb'
     - 'lib/datadog/tracing/contrib/utils/quantization/http.rb'
     - 'lib/datadog/tracing/correlation.rb'
@@ -418,4 +403,7 @@ Style/FrozenStringLiteralComment:
     - 'lib/ddtrace/transport/response.rb'
     - 'lib/ddtrace/transport/serializable_trace.rb'
     - 'lib/ddtrace/transport/traces.rb'
-    - 'lib/ddtrace/version.rb'
+
+Metrics/BlockNesting:
+  Exclude:
+    - 'lib/datadog/appsec/configuration/settings.rb'

@@ -366,6 +366,14 @@ module Datadog
               o.default { env_to_bool('DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED', :auto) }
               o.lazy
             end
+
+            # Enables data collection for the timeline feature. This is still experimental and not recommended yet.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED` environment variable as a boolean, otherwise `false`
+            option :experimental_timeline_enabled do |o|
+              o.default { env_to_bool('DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED', false) }
+              o.lazy
+            end
           end
 
           # @public_api
@@ -525,6 +533,18 @@ module Datadog
           # @return [Boolean]
           option :enabled do |o|
             o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, true) }
+            o.lazy
+          end
+
+          # The interval in seconds when telemetry must be sent.
+          #
+          # This method is used internally, for testing purposes only.
+          #
+          # @default `DD_TELEMETRY_HEARTBEAT_INTERVAL` environment variable, otherwise `60`.
+          # @return [Float]
+          # @!visibility private
+          option :heartbeat_interval_seconds do |o|
+            o.default { env_to_float(Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL, 60) }
             o.lazy
           end
         end

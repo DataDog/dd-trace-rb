@@ -4,8 +4,8 @@ require 'stripe'
 
 RSpec.describe Datadog::Tracing::Contrib::Stripe::Request do
   before do
-    WebMock.enable!
-    WebMock.disable_net_connect!
+    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.disable_net_connect! options }
 
     Stripe.api_key = 'sk_test_123'
 

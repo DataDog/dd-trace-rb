@@ -7,9 +7,7 @@ module Datadog
         # Rails specific framework tie
         module Framework
           def self.setup
-            Datadog::AppSec.configure do |datadog_config|
-              datadog_config.instrument(:rack)
-            end
+            Datadog.configuration.appsec.instrument(:rack)
           end
         end
       end

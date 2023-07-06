@@ -15,9 +15,9 @@ module Datadog
               result = super
               return result unless AppSec.enabled?
 
-              automated_track_user_events_mode = AppSec.settings.automated_track_user_events
+              return unless Datadog.configuration.appsec.track_user_events.enabled
 
-              return result if automated_track_user_events_mode == Patcher::DISABLED_MODE
+              automated_track_user_events_mode = Datadog.configuration.appsec.track_user_events.mode
 
               appsec_scope = Datadog::AppSec.active_scope
 

@@ -32,7 +32,7 @@ module Datadog
 
           def self.track(event, trace, span, **others)
             span.set_tag("appsec.events.#{event}.track", 'true')
-            span.set_tag("_dd.appsec.events.#{event}.auto.mode", AppSec.settings.automated_track_user_events)
+            span.set_tag("_dd.appsec.events.#{event}.auto.mode", Datadog.configuration.appsec.track_user_events.mode)
 
             others.each do |k, v|
               raise ArgumentError, 'key cannot be :track' if k.to_sym == :track

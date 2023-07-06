@@ -59,7 +59,10 @@ module Datadog
               logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
             end
 
-            Telemetry::Client.new(enabled: enabled)
+            Telemetry::Client.new(
+              enabled: enabled,
+              heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds
+            )
           end
         end
 

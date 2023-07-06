@@ -27,9 +27,26 @@ RSpec.shared_context 'Rails base application' do
   end
 
   # for log_injection testing
-  let(:log_output) { StringIO.new }
+  let(:log_output) do
+    StringIO.new
+  end
+
   let(:logger) do
-    Logger.new(log_output)
+    # Use `ActiveSupport::Logger::SimpleFormatter` to exclude unnecessary metadata.
+    #
+    # This must not be replaced by `ActiveSupport::Logger` instance with `ActiveSupport::Logger.new(log_output)`,
+    # because RailsSemanticLogger monkey patch
+    #
+    # see: https://github.com/reidmorrison/rails_semantic_logger/tree/master/lib/rails_semantic_logger/extensions/active_support
+    Logger.new(log_output).tap do |l|
+      l.formatter = if defined?(ActiveSupport::Logger::SimpleFormatter)
+                      ActiveSupport::Logger::SimpleFormatter.new
+                    else
+                      proc do |_, _, _, msg|
+                        "#{String === msg ? msg : msg.inspect}\n"
+                      end
+                    end
+    end
   end
 
   let(:initialize_block) do
@@ -37,72 +54,47 @@ RSpec.shared_context 'Rails base application' do
     logger = self.logger
 
     proc do
-      if ENV['USE_TAGGED_LOGGING'] == true
-        config.log_tags = ENV['LOG_TAGS'] || []
-        Rails.logger = ActiveSupport::TaggedLogging.new(logger)
+      #
+      # It is important to distinguish between `nil` and an empty array.
+      #
+      # If `nil` (which is the default), `Rails::Rack::Logger` would initialize with an new array.
+      # https://github.com/rails/rails/blob/e88857bbb9d4e1dd64555c34541301870de4a45b/railties/lib/rails/application/default_middleware_stack.rb#L51
+      #
+      # Datadog integration need to provide an array during `before_initialize` hook
+      #
+      config.log_tags = ENV['LOG_TAGS'] if ENV['LOG_TAGS']
+
+      config.logger = if ENV['USE_TAGGED_LOGGING'] == true
+                        ActiveSupport::TaggedLogging.new(logger)
+                      else
+                        logger
+                      end
+
+      # Not to use ANSI color codes when logging information
+      config.colorize_logging = false
+
+      if config.respond_to?(:lograge)
+        # `keep_original_rails_log` is important to prevent monkey patching from `lograge`
+        #  which leads to flaky spec in the same test process
+        config.lograge.keep_original_rails_log = true
+        config.lograge.logger = config.logger
+
+        if ENV['USE_LOGRAGE'] == true
+          config.lograge.enabled = true
+          config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS'] if ENV['LOGRAGE_CUSTOM_OPTIONS']
+        else
+          # ensure no test leakage from other tests
+          config.lograge.enabled = false
+        end
       end
 
+      # Semantic Logger settings should be exclusive to `ActiveSupport::TaggedLogging` and `Lograge`
       if ENV['USE_SEMANTIC_LOGGER'] == true
-        config.log_tags = ENV['LOG_TAGS'] || {}
         config.rails_semantic_logger.add_file_appender = false
         config.semantic_logger.add_appender(logger: logger)
       end
 
-      if ENV['USE_LOGRAGE'] == true
-        config.logger = logger
-
-        config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS'] unless ENV['LOGRAGE_CUSTOM_OPTIONS'].nil?
-
-        if ENV['LOGRAGE_DISABLED'].nil?
-          config.lograge.enabled = true
-          config.lograge.base_controller_class = 'LogrageTestController'
-          config.lograge.logger = logger
-        else
-          config.lograge.enabled = false
-        end
-      # ensure no test leakage from other tests
-      elsif config.respond_to?(:lograge)
-        config.lograge.enabled = false
-        config.lograge.keep_original_rails_log = true
-      end
-
       middleware.each { |m| config.middleware.use m }
-    end
-  end
-
-  let(:before_test_initialize_block) do
-    proc do
-      append_routes!
-    end
-  end
-
-  let(:after_test_initialize_block) do
-    proc do
-      # Rails autoloader recommends controllers to be loaded
-      # after initialization. This will be enforced when `zeitwerk`
-      # becomes the only supported autoloader.
-      append_controllers!
-
-      # Force connection to initialize, and dump some spans
-      application_record.connection
-
-      # Skip default Rails exception page rendering.
-      # This avoid polluting the trace under test
-      # with render and partial_render templates for the
-      # error page.
-      #
-      # We could completely disable the {DebugExceptions} middleware,
-      # but that affects Rails' internal error propagation logic.
-      # render_for_browser_request(request, wrapper)
-      allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
-        wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
-
-        if Rails.version < '4.0'
-          this.send(:render, wrapper.status_code, 'Test error response body')
-        else
-          this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
-        end
-      end
     end
   end
 end

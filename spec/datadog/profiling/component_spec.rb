@@ -133,15 +133,19 @@ RSpec.describe Datadog::Profiling::Component do
 
         it 'initializes a CpuAndWallTimeWorker collector' do
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
+          expect(settings.profiling.advanced).to receive(:max_frames).and_return(:max_frames_config)
+          expect(settings.profiling.advanced)
+            .to receive(:experimental_timeline_enabled).and_return(:experimental_timeline_enabled_config)
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             recorder: instance_of(Datadog::Profiling::StackRecorder),
-            max_frames: settings.profiling.advanced.max_frames,
+            max_frames: :max_frames_config,
             tracer: tracer,
             endpoint_collection_enabled: anything,
             gc_profiling_enabled: anything,
             allocation_counting_enabled: anything,
             no_signals_workaround_enabled: :no_signals_result,
+            timeline_enabled: :experimental_timeline_enabled_config,
           )
 
           build_profiler_component

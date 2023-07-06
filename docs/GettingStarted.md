@@ -60,6 +60,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [httpclient](#httpclient)
      - [httpx](#httpx)
      - [Kafka](#kafka)
+     - [Minitest](#minitest)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#nethttp)
@@ -1285,6 +1286,30 @@ Datadog.configure do |c|
 end
 ```
 
+### Minitest
+
+The Minitest integration will trace all executions of tests when using `minitest` test framework.
+
+To activate your integration, use the `Datadog.configure` method:
+
+```ruby
+require 'minitest'
+require 'ddtrace'
+
+# Configure default Minitest integration
+Datadog.configure do |c|
+  c.ci.instrument :minitest, **options
+end
+```
+
+`options` are the following keyword arguments:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `enabled` | Defines whether Minitest tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
+| `service_name` | Service name used for `minitest` instrumentation. | `'minitest'` |
+| `operation_name` | Operation name used for `minitest` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'minitest.test'` |
+
 ### MongoDB
 
 The integration traces any `Command` that is sent from the [MongoDB Ruby Driver](https://github.com/mongodb/mongo-ruby-driver) to a MongoDB cluster. By extension, Object Document Mappers (ODM) such as Mongoid are automatically instrumented if they use the official Ruby driver. To activate the integration, simply:
@@ -2135,17 +2160,24 @@ LogJob.perform_async('login')
 
 ## Additional configuration
 
-To change the default behavior of Datadog tracing, you can set environment variables, or provide custom options inside a `Datadog.configure` block, e.g.:
+To change the default behavior of `ddtrace`, you can use, in order of priority, with 1 being the highest:
 
-```ruby
-Datadog.configure do |c|
-  c.service = 'billing-api'
-  c.env = ENV['RACK_ENV']
+1. [Remote Configuration](https://docs.datadoghq.com/agent/remote_config).
+2. Options set inside a `Datadog.configure` block, e.g.:
+    ```ruby
+    Datadog.configure do |c|
+      c.service = 'billing-api'
+      c.env = ENV['RACK_ENV']
+    
+      c.tracing.report_hostname = true
+      c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
+    end
+    ```
+3. Environment variables.
 
-  c.tracing.report_hostname = true
-  c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
-end
-```
+**If a higher priority value is set for an option, setting that option with a lower priority value will not change its effective value.**
+
+For example, if `tracing.sampling.default_rate` is configured by [Remote Configuration](#remote-configuration), changing its value through the `Datadog.configure` block will have no effect.
 
 **Available configuration options:**
 

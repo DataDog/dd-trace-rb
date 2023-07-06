@@ -8,8 +8,6 @@ require_relative 'appsec/ext'
 module Datadog
   # Namespace for Datadog AppSec instrumentation
   module AppSec
-    include Configuration
-
     class << self
       def enabled?
         Datadog.configuration.appsec.enabled
