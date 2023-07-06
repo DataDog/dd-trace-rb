@@ -27,7 +27,7 @@ module Datadog
                 if resource.persisted?
                   devise_resource = Resource.new(resource)
 
-                  event_information = EventInformation.extract(devise_resource, automated_track_user_events_mode)
+                  event_information = Event.extract(devise_resource, automated_track_user_events_mode)
 
                   if event_information[:id]
                     user_id = event_information.delete(:id)

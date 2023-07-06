@@ -5,7 +5,7 @@ module Datadog
     module Contrib
       module Devise
         # Module to extract event information from the resource
-        module EventInformation
+        module Event
           UUID_REGEX = /^\h{8}-\h{4}-\h{4}-\h{4}-\h{12}$/.freeze
 
           SAFE_MODE = 'safe'

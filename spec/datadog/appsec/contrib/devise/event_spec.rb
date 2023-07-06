@@ -2,7 +2,7 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/devise/resource'
 require 'datadog/appsec/contrib/devise/event_information'
 
-RSpec.describe Datadog::AppSec::Contrib::Devise::EventInformation do
+RSpec.describe Datadog::AppSec::Contrib::Devise::Event do
   subject(:event_information) { described_class.extract(resource, mode) }
   let(:resource) { Datadog::AppSec::Contrib::Devise::Resource.new(object) }
 

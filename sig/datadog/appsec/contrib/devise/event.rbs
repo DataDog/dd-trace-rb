@@ -2,7 +2,7 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        module EventInformation
+        module Event
           UUID_REGEX: ::Regexp
 
           SAFE_MODE: String

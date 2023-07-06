@@ -28,7 +28,7 @@ module Datadog
 
               devise_resource = resource ? Resource.new(resource) : nil
 
-              event_information = EventInformation.extract(devise_resource, automated_track_user_events_mode)
+              event_information = Event.extract(devise_resource, automated_track_user_events_mode)
 
               if result
                 if event_information[:id]
