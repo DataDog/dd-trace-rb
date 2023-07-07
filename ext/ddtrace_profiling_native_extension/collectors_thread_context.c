@@ -63,8 +63,8 @@
 // allowed to happen during Ruby's garbage collection start/finish hooks.
 // ---
 
-#define INVALID_TIME -1
 #define THREAD_ID_LIMIT_CHARS 44 // Why 44? "#{2**64} (#{2**64})".size + 1 for \0
+#define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
 #define IS_WALL_TIME true
 #define IS_NOT_WALL_TIME false
 #define MISSING_TRACER_CONTEXT_KEY 0
@@ -99,6 +99,12 @@ struct thread_context_collector_state {
   VALUE thread_list_buffer;
   // Used to omit endpoint names (retrieved from tracer) from collected data
   bool endpoint_collection_enabled;
+  // Used to omit timestamps / timeline events from collected data
+  bool timeline_enabled;
+  // Used when calling monotonic_to_system_epoch_ns
+  monotonic_to_system_epoch_state time_converter_state;
+  // Used to identify the main thread, to give it a fallback name
+  VALUE main_thread;
 
   struct stats {
     // Track how many garbage collection samples we've taken.
@@ -112,6 +118,8 @@ struct thread_context_collector_state {
 struct per_thread_context {
   char thread_id[THREAD_ID_LIMIT_CHARS];
   ddog_CharSlice thread_id_char_slice;
+  char thread_invoke_location[THREAD_INVOKE_LOCATION_LIMIT_CHARS];
+  ddog_CharSlice thread_invoke_location_char_slice;
   thread_cpu_time_id thread_cpu_time_id;
   long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
@@ -148,7 +156,8 @@ static VALUE _native_initialize(
   VALUE recorder_instance,
   VALUE max_frames,
   VALUE tracer_context_key,
-  VALUE endpoint_collection_enabled
+  VALUE endpoint_collection_enabled,
+  VALUE timeline_enabled
 );
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
@@ -168,7 +177,8 @@ static void trigger_sample_for_thread(
   VALUE stack_from_thread,
   struct per_thread_context *thread_context,
   sample_values values,
-  sample_type type
+  sample_type type,
+  long current_monotonic_wall_time_ns
 );
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state);
@@ -207,7 +217,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 5);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 6);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
@@ -249,6 +259,7 @@ static void thread_context_collector_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->recorder_instance);
   st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_mark, 0 /* unused */);
   rb_gc_mark(state->thread_list_buffer);
+  rb_gc_mark(state->main_thread);
 }
 
 static void thread_context_collector_typed_data_free(void *state_ptr) {
@@ -294,6 +305,9 @@ static VALUE _native_new(VALUE klass) {
   state->tracer_context_key = MISSING_TRACER_CONTEXT_KEY;
   state->thread_list_buffer = rb_ary_new();
   state->endpoint_collection_enabled = true;
+  state->timeline_enabled = true;
+  state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
+  state->main_thread = rb_thread_main();
 
   return TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
 }
@@ -304,9 +318,11 @@ static VALUE _native_initialize(
   VALUE recorder_instance,
   VALUE max_frames,
   VALUE tracer_context_key,
-  VALUE endpoint_collection_enabled
+  VALUE endpoint_collection_enabled,
+  VALUE timeline_enabled
 ) {
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
+  ENFORCE_BOOLEAN(timeline_enabled);
 
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -319,6 +335,7 @@ static VALUE _native_initialize(
   // hash_map_per_thread_context is already initialized, nothing to do here
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
+  state->timeline_enabled = (timeline_enabled == Qtrue);
 
   if (RTEST(tracer_context_key)) {
     ENFORCE_TYPE(tracer_context_key, T_SYMBOL);
@@ -443,7 +460,8 @@ void update_metrics_and_sample(
     stack_from_thread,
     thread_context,
     (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
-    SAMPLE_REGULAR
+    SAMPLE_REGULAR,
+    current_monotonic_wall_time_ns
   );
 }
 
@@ -585,7 +603,8 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
       /* stack_from_thread: */ thread,
       thread_context,
       (sample_values) {.cpu_time_ns = gc_cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = gc_wall_time_elapsed_ns},
-      SAMPLE_IN_GC
+      SAMPLE_IN_GC,
+      INVALID_TIME // For now we're not collecting timestamps for these events
     );
 
     // Mark thread as no longer in GC
@@ -615,12 +634,14 @@ static void trigger_sample_for_thread(
   VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
   sample_values values,
-  sample_type type
+  sample_type type,
+  long current_monotonic_wall_time_ns
 ) {
   int max_label_count =
     1 + // thread id
     1 + // thread name
     1 + // profiler overhead
+    1 + // end_timestamp_ns
     2;  // local root span id and span id
   ddog_prof_Label labels[max_label_count];
   int label_pos = 0;
@@ -635,6 +656,19 @@ static void trigger_sample_for_thread(
     labels[label_pos++] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("thread name"),
       .str = char_slice_from_ruby_string(thread_name)
+    };
+  } else if (thread == state->main_thread) { // Threads are often not named, but we can have a nice fallback for this special thread
+    ddog_CharSlice main_thread_name = DDOG_CHARSLICE_C("main");
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("thread name"),
+      .str = main_thread_name
+    };
+  } else {
+    // For other threads without name, we use the "invoke location" (first file:line of the block used to start the thread), if any.
+    // This is what Ruby shows in `Thread#to_s`.
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("thread name"),
+      .str = thread_context->thread_invoke_location_char_slice // This is an empty string if no invoke location was available
     };
   }
 
@@ -670,10 +704,17 @@ static void trigger_sample_for_thread(
     };
   }
 
+  if (state->timeline_enabled && current_monotonic_wall_time_ns != INVALID_TIME) {
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("end_timestamp_ns"),
+      .num = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns)
+    };
+  }
+
   // The number of times `label_pos++` shows up in this function needs to match `max_label_count`. To avoid "oops I
   // forgot to update max_label_count" in the future, we've also added this validation.
-  // @ivoanjo: I wonder if C compilers are smart enough to statically prove when this check never triggers happens and
-  // remove it entirely.
+  // @ivoanjo: I wonder if C compilers are smart enough to statically prove this check never triggers unless someone
+  // changes the code erroneously and remove it entirely?
   if (label_pos > max_label_count) {
     rb_raise(rb_eRuntimeError, "BUG: Unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
@@ -726,6 +767,25 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
 
+  int invoke_line_location;
+  VALUE invoke_file_location = invoke_location_for(thread, &invoke_line_location);
+  if (invoke_file_location != Qnil) {
+    snprintf(
+      thread_context->thread_invoke_location,
+      THREAD_INVOKE_LOCATION_LIMIT_CHARS,
+      "%s:%d",
+      StringValueCStr(invoke_file_location),
+      invoke_line_location
+    );
+  } else {
+    snprintf(thread_context->thread_invoke_location, THREAD_INVOKE_LOCATION_LIMIT_CHARS, "%s", "");
+  }
+
+  thread_context->thread_invoke_location_char_slice = (ddog_CharSlice) {
+    .ptr = thread_context->thread_invoke_location,
+    .len = strlen(thread_context->thread_invoke_location)
+  };
+
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 
   // These will get initialized during actual sampling
@@ -753,6 +813,13 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" sample_count=%u", state->sample_count));
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
+  rb_str_concat(result, rb_sprintf(" timeline_enabled=%"PRIsVALUE, state->timeline_enabled ? Qtrue : Qfalse));
+  rb_str_concat(result, rb_sprintf(
+    " time_converter_state={.system_epoch_ns_reference=%ld, .delta_to_epoch_ns=%ld}",
+    state->time_converter_state.system_epoch_ns_reference,
+    state->time_converter_state.delta_to_epoch_ns
+  ));
+  rb_str_concat(result, rb_sprintf(" main_thread=%"PRIsVALUE, state->main_thread));
 
   return result;
 }
@@ -772,6 +839,7 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
 
   VALUE arguments[] = {
     ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
+    ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new2(thread_context->thread_invoke_location),
     ID2SYM(rb_intern("thread_cpu_time_id_valid?")),       /* => */ thread_context->thread_cpu_time_id.valid ? Qtrue : Qfalse,
     ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ CLOCKID2NUM(thread_context->thread_cpu_time_id.clock_id),
     ID2SYM(rb_intern("cpu_time_at_previous_sample_ns")),  /* => */ LONG2NUM(thread_context->cpu_time_at_previous_sample_ns),
@@ -989,7 +1057,8 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     /* stack_from_thread: */ current_thread,
     get_or_create_context_for(current_thread, state),
     (sample_values) {.alloc_samples = sample_weight},
-    SAMPLE_REGULAR
+    SAMPLE_REGULAR,
+    INVALID_TIME // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
   );
 }
 

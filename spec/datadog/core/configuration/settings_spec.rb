@@ -659,6 +659,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(false)
         end
       end
+
+      describe '#experimental_timeline_enabled' do
+        subject(:experimental_timeline_enabled) { settings.profiling.advanced.experimental_timeline_enabled }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_timeline_enabled=' do
+        it 'updates the #experimental_timeline_enabled setting' do
+          expect { settings.profiling.advanced.experimental_timeline_enabled = true }
+            .to change { settings.profiling.advanced.experimental_timeline_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
     end
 
     describe '#upload' do

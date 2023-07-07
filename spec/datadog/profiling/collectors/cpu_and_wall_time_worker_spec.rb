@@ -9,6 +9,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:gc_profiling_enabled) { true }
   let(:allocation_counting_enabled) { true }
   let(:no_signals_workaround_enabled) { false }
+  let(:timeline_enabled) { false }
   let(:options) { {} }
 
   subject(:cpu_and_wall_time_worker) do
@@ -20,6 +21,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       gc_profiling_enabled: gc_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
+      timeline_enabled: timeline_enabled,
       **options
     )
   end
@@ -36,6 +38,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         it "initializes the ThreadContext collector with endpoint_collection_enabled: #{value}" do
           expect(Datadog::Profiling::Collectors::ThreadContext)
             .to receive(:new).with(hash_including(endpoint_collection_enabled: value)).and_call_original
+
+          cpu_and_wall_time_worker
+        end
+      end
+
+      context "when timeline_enabled is #{value}" do
+        let(:timeline_enabled) { value }
+
+        it "initializes the ThreadContext collector with timeline_enabled: #{value}" do
+          expect(Datadog::Profiling::Collectors::ThreadContext)
+            .to receive(:new).with(hash_including(timeline_enabled: value)).and_call_original
 
           cpu_and_wall_time_worker
         end
@@ -545,7 +558,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
     let(:thread_context_collector) do
       Datadog::Profiling::Collectors::ThreadContext.new(
-        recorder: recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: endpoint_collection_enabled,
+        recorder: recorder,
+        max_frames: 400,
+        tracer: nil,
+        endpoint_collection_enabled: endpoint_collection_enabled,
+        timeline_enabled: timeline_enabled,
       )
     end
     let(:options) { { thread_context_collector: thread_context_collector } }
@@ -692,6 +709,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       gc_profiling_enabled: gc_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
+      timeline_enabled: timeline_enabled,
     )
   end
 end
