@@ -46,8 +46,16 @@ module Datadog
               #
               # https://github.com/rails/rails/blob/e88857bbb9d4e1dd64555c34541301870de4a45b/railties/lib/rails/rack/logger.rb#L16-L19
               #
-              Contrib::Rails::LogInjection.set_mutatable_default(app)
+              # Contrib::Rails::LogInjection.set_mutatable_default(app)
+              app.config.log_tags << LogTags
             end
+          end
+
+          LogTags = Proc.new do |request|
+            next unless defined?(::ActiveSupport::TaggedLogging)
+            next unless ::Rails.logger.is_a?(::ActiveSupport::TaggedLogging)
+
+            Tracing.log_correlation if enabled?
           end
 
           def add_middleware(app)
