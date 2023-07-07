@@ -30,22 +30,17 @@ module Datadog
                   event_information = Event.new(devise_resource, automated_track_user_events_mode)
 
                   if event_information.user_id
-                    Tracking.track_signup(
-                      appsec_scope.trace,
-                      appsec_scope.service_entry_span,
-                      user_id: event_information.user_id,
-                      **event_information.to_h
-                    )
                     Datadog.logger.debug { 'User Signup Event' }
                   else
-                    Tracking.track_signup(
-                      appsec_scope.trace,
-                      appsec_scope.service_entry_span,
-                      user_id: nil,
-                      **event_information.to_h
-                    )
                     Datadog.logger.warn { 'User Signup Event, but can\'t extract user ID. Tracking empty event' }
                   end
+
+                  Tracking.track_signup(
+                    appsec_scope.trace,
+                    appsec_scope.service_entry_span,
+                    user_id: event_information.user_id,
+                    **event_information.to_h
+                  )
                 end
               end
             end

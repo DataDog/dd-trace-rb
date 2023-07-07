@@ -32,45 +32,38 @@ module Datadog
 
               if result
                 if event_information.user_id
-                  Tracking.track_login_success(
-                    appsec_scope.trace,
-                    appsec_scope.service_entry_span,
-                    user_id: event_information.user_id,
-                    **event_information.to_h
-                  )
                   Datadog.logger.debug { 'User Login Event success' }
                 else
-                  Tracking.track_login_success(
-                    appsec_scope.trace,
-                    appsec_scope.service_entry_span,
-                    user_id: nil,
-                    **event_information.to_h
-                  )
                   Datadog.logger.debug { 'User Login Event success, but can\'t extract user ID. Tracking empty event' }
                 end
+
+                Tracking.track_login_success(
+                  appsec_scope.trace,
+                  appsec_scope.service_entry_span,
+                  user_id: event_information.user_id,
+                  **event_information.to_h
+                )
 
                 return result
               end
 
+              user_exists = nil
+
               if resource
-                Tracking.track_login_failure(
-                  appsec_scope.trace,
-                  appsec_scope.service_entry_span,
-                  user_id: event_information.user_id,
-                  user_exists: true,
-                  **event_information.to_h
-                )
+                user_exists = true
                 Datadog.logger.debug { 'User Login Event failure users exists' }
               else
-                Tracking.track_login_failure(
-                  appsec_scope.trace,
-                  appsec_scope.service_entry_span,
-                  user_id: nil,
-                  user_exists: false,
-                  **event_information.to_h
-                )
+                user_exists = false
                 Datadog.logger.debug { 'User Login Event failure user do not exists' }
               end
+
+              Tracking.track_login_failure(
+                appsec_scope.trace,
+                appsec_scope.service_entry_span,
+                user_id: event_information.user_id,
+                user_exists: user_exists,
+                **event_information.to_h
+              )
 
               result
             end
