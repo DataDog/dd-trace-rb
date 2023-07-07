@@ -1,5 +1,6 @@
 require 'datadog/appsec/spec_helper'
 
+require 'securerandom'
 require 'datadog/appsec/contrib/devise/patcher'
 require 'datadog/appsec/contrib/devise/patcher/authenticatable_patch'
 
@@ -31,21 +32,24 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
   end
 
   let(:nil_resource) { nil }
-  let(:resource) { mock_resource.new(1, 'hello@gmail.com', 'John') }
+  let(:resource) { mock_resource.new(SecureRandom.uuid, 'hello@gmail.com', 'John') }
   let(:mode) { 'safe' }
-  let(:automated_track_user_events) { double(automated_track_user_events: mode) }
+  let(:automated_track_user_events) { double(enabled: track_user_events_enabled, mode: mode) }
   let(:success_login) { mock_klass.new(true) }
   let(:failed_login) {  mock_klass.new(false) }
 
   before do
     expect(Datadog::AppSec).to receive(:enabled?).and_return(appsec_enabled)
-    expect(Datadog::AppSec).to receive(:settings).and_return(automated_track_user_events) if appsec_enabled
+    if appsec_enabled
+      expect(Datadog.configuration.appsec).to receive(:track_user_events).and_return(automated_track_user_events)
 
-    expect(Datadog::AppSec).to receive(:active_scope).and_return(appsec_scope) if appsec_enabled && mode != 'disable'
+      expect(Datadog::AppSec).to receive(:active_scope).and_return(appsec_scope) if track_user_events_enabled
+    end
   end
 
   context 'AppSec disabled' do
     let(:appsec_enabled) { false }
+    let(:track_user_events_enabled) { false }
 
     it 'do not tracks event' do
       expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_login_success)
@@ -55,7 +59,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
   context 'Automated user tracking is disabled' do
     let(:appsec_enabled) { true }
-    let(:mode) { 'disable' }
+    let(:track_user_events_enabled) { false }
 
     it 'do not tracks event' do
       expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_login_success)
@@ -65,6 +69,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
   context 'AppSec scope is nil ' do
     let(:appsec_enabled) { true }
+    let(:track_user_events_enabled) { true }
     let(:mode) { 'safe' }
     let(:appsec_scope) { nil }
 
@@ -76,6 +81,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
   context 'successful login' do
     let(:appsec_enabled) { true }
+    let(:track_user_events_enabled) { true }
     let(:appsec_scope) { instance_double(Datadog::AppSec::Scope, trace: double, service_entry_span: double) }
 
     context 'with resource ID' do
@@ -143,6 +149,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
   context 'unsuccessful login' do
     let(:appsec_enabled) { true }
+    let(:track_user_events_enabled) { true }
     let(:appsec_scope) { instance_double(Datadog::AppSec::Scope, trace: double, service_entry_span: double) }
 
     context 'with resource' do
