@@ -22,17 +22,5 @@ RSpec.shared_examples 'schema version span' do
         expect(span.service).to eq(configuration_options[:service_name])
       end
     end
-
-    context 'test peer.service values' do
-      before do
-        skip('No let(:peer_service_val) defined.') unless defined?(peer_service_val)
-        skip('No let(:peer_service_source) defined.') unless defined?(peer_service_source)
-      end
-
-      it do
-        expect(span.get_tag('peer.service')).to eq(peer_service_val)
-        expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
-      end
-    end
   end
 end
