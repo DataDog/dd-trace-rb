@@ -144,7 +144,6 @@ RSpec.describe 'AWS instrumentation' do
         let(:peer_service_source) { 'bucketname' }
       end
 
-
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
