@@ -86,22 +86,22 @@ module Datadog
             end
 
             def tag_params(params, span)
-              if params
-                params = JSON.generate(params) unless params.is_a?(String)
-                span.set_tag(OpenSearch::Ext::TAG_PARAMS, params)
-              end
+              return unless params
+
+              params = JSON.generate(params) unless params.is_a?(String)
+              span.set_tag(OpenSearch::Ext::TAG_PARAMS, params)
             end
 
             def tag_body(body, span)
-              if body
-                body = JSON.generate(body) unless body.is_a?(String)
-                quantize_options = datadog_configuration[:quantize]
-                quantized_body = OpenSearch::Quantize.format_body(
-                  body,
-                  quantize_options
-                )
-                span.set_tag(OpenSearch::Ext::TAG_BODY, quantized_body)
-              end
+              return unless body
+
+              body = JSON.generate(body) unless body.is_a?(String)
+              quantize_options = datadog_configuration[:quantize]
+              quantized_body = OpenSearch::Quantize.format_body(
+                body,
+                quantize_options
+              )
+              span.set_tag(OpenSearch::Ext::TAG_BODY, quantized_body)
             end
 
             def datadog_configuration
