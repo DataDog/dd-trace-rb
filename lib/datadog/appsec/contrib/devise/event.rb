@@ -4,38 +4,51 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        # Module to extract event information from the resource
-        module Event
+        # Class to extract event information from the resource
+        class Event
           UUID_REGEX = /^\h{8}-\h{4}-\h{4}-\h{4}-\h{12}$/.freeze
 
           SAFE_MODE = 'safe'
           EXTENDED_MODE = 'extended'
 
-          def self.extract(resource, mode)
-            event = {}
+          attr_reader :user_id
 
-            return event unless resource
+          def initialize(resource, mode)
+            @resource = resource
+            @mode = mode
+            @user_id = nil
+            @email = nil
+            @username = nil
 
-            resource_id = resource.id
+            extract if @resource
+          end
 
-            case mode
+          def to_h
+            return @event if defined?(@event)
+
+            @event = {}
+            @event[:email] = @email if @email
+            @event[:username] = @username if @username
+            @event
+          end
+
+          private
+
+          def extract
+            @user_id = @resource.id
+
+            case @mode
             when EXTENDED_MODE
-              resource_email = resource.email
-              resource_username = resource.username
-
-              event[:id] = resource_id if resource_id
-              event[:email] = resource_email if resource_email
-              event[:username] = resource_username if resource_username
+              @email = @resource.email
+              @username = @resource.username
             when SAFE_MODE
-              event[:id] = resource_id if resource_id && resource_id.to_s =~ UUID_REGEX
+              @user_id = nil unless @user_id && @user_id.to_s =~ UUID_REGEX
             else
               Datadog.logger.warn(
-                "Invalid automated user evenst mode: `#{mode}`. "\
+                "Invalid automated user evenst mode: `#{@mode}`. "\
                               'Supported modes are: `safe` and `extended`.'
               )
             end
-
-            event
           end
         end
       end

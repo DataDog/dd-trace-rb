@@ -2,7 +2,7 @@
 
 require_relative '../tracking'
 require_relative '../resource'
-require_relative '../event_information'
+require_relative '../event'
 
 module Datadog
   module AppSec
@@ -28,17 +28,15 @@ module Datadog
 
               devise_resource = resource ? Resource.new(resource) : nil
 
-              event_information = Event.extract(devise_resource, automated_track_user_events_mode)
+              event_information = Event.new(devise_resource, automated_track_user_events_mode)
 
               if result
-                if event_information[:id]
-                  user_id = event_information.delete(:id)
-
+                if event_information.user_id
                   Tracking.track_login_success(
                     appsec_scope.trace,
                     appsec_scope.service_entry_span,
-                    user_id: user_id,
-                    **event_information
+                    user_id: event_information.user_id,
+                    **event_information.to_h
                   )
                   Datadog.logger.debug { 'User Login Event success' }
                 else
@@ -46,7 +44,7 @@ module Datadog
                     appsec_scope.trace,
                     appsec_scope.service_entry_span,
                     user_id: nil,
-                    **event_information
+                    **event_information.to_h
                   )
                   Datadog.logger.debug { 'User Login Event success, but can\'t extract user ID. Tracking empty event' }
                 end
@@ -54,15 +52,13 @@ module Datadog
                 return result
               end
 
-              if devise_resource
-                user_id = event_information.delete(:id)
-
+              if resource
                 Tracking.track_login_failure(
                   appsec_scope.trace,
                   appsec_scope.service_entry_span,
-                  user_id: user_id,
+                  user_id: event_information.user_id,
                   user_exists: true,
-                  **event_information
+                  **event_information.to_h
                 )
                 Datadog.logger.debug { 'User Login Event failure users exists' }
               else
@@ -71,7 +67,7 @@ module Datadog
                   appsec_scope.service_entry_span,
                   user_id: nil,
                   user_exists: false,
-                  **event_information
+                  **event_information.to_h
                 )
                 Datadog.logger.debug { 'User Login Event failure user do not exists' }
               end

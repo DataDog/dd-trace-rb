@@ -1,9 +1,9 @@
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/devise/resource'
-require 'datadog/appsec/contrib/devise/event_information'
+require 'datadog/appsec/contrib/devise/event'
 
 RSpec.describe Datadog::AppSec::Contrib::Devise::Event do
-  subject(:event_information) { described_class.extract(resource, mode) }
+  let(:event) { described_class.new(resource, mode) }
   let(:resource) { Datadog::AppSec::Contrib::Devise::Resource.new(object) }
 
   let(:object_class) do
@@ -23,7 +23,9 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Event do
     let(:resource) { nil }
     let(:mode) { 'safe' }
 
-    it { is_expected.to eq({}) }
+    it do
+      expect(event.to_h).to eq({})
+    end
   end
 
   context 'safe mode' do
@@ -32,14 +34,18 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Event do
     context 'with ID but not UUID' do
       let(:object) { object_class.new(id: 1234) }
 
-      it { is_expected.to eq({}) }
+      it do
+        expect(event.user_id).to be_nil
+      end
     end
 
     context 'with ID as UUID' do
       let(:uuid) { '123e4567-e89b-12d3-a456-426655440000' }
       let(:object) { object_class.new(uuid: uuid) }
 
-      it { is_expected.to eq({ id: uuid }) }
+      it do
+        expect(event.user_id).to eq(uuid)
+      end
     end
   end
 
@@ -50,21 +56,27 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Event do
       context 'with ID but not UUID' do
         let(:object) { object_class.new(id: 1234) }
 
-        it { is_expected.to eq({ id: 1234 }) }
+        it do
+          expect(event.user_id).to eq(1234)
+        end
       end
 
       context 'with ID as UUID' do
         let(:uuid) { '123e4567-e89b-12d3-a456-426655440000' }
         let(:object) { object_class.new(uuid: uuid) }
 
-        it { is_expected.to eq({ id: uuid }) }
+        it do
+          expect(event.user_id).to eq(uuid)
+        end
       end
     end
 
     context 'Email and username' do
       let(:object) { object_class.new(id: 1234, email: 'foo@test.com', username: 'John') }
 
-      it { is_expected.to eq({ email: 'foo@test.com', id: 1234, username: 'John' }) }
+      it do
+        expect(event.to_h).to eq({ email: 'foo@test.com', username: 'John' })
+      end
     end
   end
 
@@ -74,7 +86,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Event do
 
     it do
       expect(Datadog.logger).to receive(:warn)
-      is_expected.to eq({})
+      expect(event.to_h).to eq({})
     end
   end
 end

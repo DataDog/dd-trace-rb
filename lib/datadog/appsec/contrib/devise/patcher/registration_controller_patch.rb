@@ -2,7 +2,7 @@
 
 require_relative '../tracking'
 require_relative '../resource'
-require_relative '../event_information'
+require_relative '../event'
 
 module Datadog
   module AppSec
@@ -27,16 +27,14 @@ module Datadog
                 if resource.persisted?
                   devise_resource = Resource.new(resource)
 
-                  event_information = Event.extract(devise_resource, automated_track_user_events_mode)
+                  event_information = Event.new(devise_resource, automated_track_user_events_mode)
 
-                  if event_information[:id]
-                    user_id = event_information.delete(:id)
-
+                  if event_information.user_id
                     Tracking.track_signup(
                       appsec_scope.trace,
                       appsec_scope.service_entry_span,
-                      user_id: user_id,
-                      **event_information
+                      user_id: event_information.user_id,
+                      **event_information.to_h
                     )
                     Datadog.logger.debug { 'User Signup Event' }
                   else
@@ -44,7 +42,7 @@ module Datadog
                       appsec_scope.trace,
                       appsec_scope.service_entry_span,
                       user_id: nil,
-                      **event_information
+                      **event_information.to_h
                     )
                     Datadog.logger.warn { 'User Signup Event, but can\'t extract user ID. Tracking empty event' }
                   end
