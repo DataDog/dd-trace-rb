@@ -51,11 +51,13 @@ module Datadog
             end
           end
 
-          LogTags = Proc.new do |request|
-            next unless defined?(::ActiveSupport::TaggedLogging)
-            next unless ::Rails.logger.is_a?(::ActiveSupport::TaggedLogging)
+          LogTags = proc do |_request|
+            if defined?(::ActiveSupport::TaggedLogging) &&
+              ::Rails.logger.is_a?(::ActiveSupport::TaggedLogging) &&
+              Datadog.configuration.tracing.log_injection
 
-            Tracing.log_correlation if enabled?
+              Tracing.log_correlation
+            end
           end
 
           def add_middleware(app)
@@ -101,7 +103,7 @@ module Datadog
 
               # `after_initialize` will respect the configuration from `config/initializers/datadog.rb`
               # and add tags to `::ActiveSupport::TaggedLogging`
-              add_tags_to_logger(app) if Datadog.configuration.tracing.log_injection
+              # add_tags_to_logger(app) if Datadog.configuration.tracing.log_injection
             end
           end
 

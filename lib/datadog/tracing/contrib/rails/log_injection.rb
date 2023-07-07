@@ -4,6 +4,7 @@ module Datadog
       # Instrument Rails.
       module Rails
         # Rails log injection helper methods
+        # TODO: clean up this file
         module LogInjection
           module_function
 
