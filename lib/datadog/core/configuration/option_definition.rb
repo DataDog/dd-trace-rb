@@ -11,9 +11,13 @@ module Datadog
 
         attr_reader \
           :default,
+          # experimental_default_proc is used when we want to store a block as part of the option value.
+          # Since this new option is experimental and we might not need it in the near future, I gave it a name that is
+          # clear to the reader that they should not rely on it and that is subject to change.
+          # Currently is only use internally.
+          :experimental_default_proc,
           :delegate_to,
           :depends_on,
-          :lazy,
           :name,
           :on_set,
           :resetter,
@@ -22,9 +26,9 @@ module Datadog
 
         def initialize(name, meta = {}, &block)
           @default = meta[:default]
+          @experimental_default_proc = meta[:experimental_default_proc]
           @delegate_to = meta[:delegate_to]
           @depends_on = meta[:depends_on] || []
-          @lazy = meta[:lazy] || false
           @name = name.to_sym
           @on_set = meta[:on_set]
           @resetter = meta[:resetter]
@@ -40,15 +44,17 @@ module Datadog
         # Acts as DSL for building OptionDefinitions
         # @public_api
         class Builder
+          class InvalidOptionError < StandardError; end
+
           attr_reader \
             :helpers
 
           def initialize(name, options = {})
             @default = nil
+            @experimental_default_proc = nil
             @delegate_to = nil
             @depends_on = []
             @helpers = {}
-            @lazy = false
             @name = name.to_sym
             @on_set = nil
             @resetter = nil
@@ -60,6 +66,8 @@ module Datadog
 
             # Apply block if given.
             yield(self) if block_given?
+
+            validate_options!
           end
 
           def depends_on(*values)
@@ -70,6 +78,10 @@ module Datadog
             @default = block || value
           end
 
+          def experimental_default_proc(&block)
+            @experimental_default_proc = block
+          end
+
           def delegate_to(&block)
             @delegate_to = block
           end
@@ -78,8 +90,14 @@ module Datadog
             @helpers[name] = block
           end
 
-          def lazy(value = true)
-            @lazy = value
+          def lazy(_value = true)
+            Datadog::Core.log_deprecation do
+              'Defining an option as lazy is deprecated for removal. Options now always behave as lazy. '\
+              "Please remove all references to the lazy setting.\n"\
+              'Non-lazy options that were previously stored as blocks are no longer supported. '\
+              'If you used this feature, please let us know by opening an issue on: '\
+              'https://github.com/datadog/dd-trace-rb/issues/new so we can better understand and support your use case.'
+            end
           end
 
           def on_set(&block)
@@ -103,6 +121,7 @@ module Datadog
             return if options.nil? || options.empty?
 
             default(options[:default]) if options.key?(:default)
+            experimental_default_proc(&options[:experimental_default_proc]) if options.key?(:experimental_default_proc)
             delegate_to(&options[:delegate_to]) if options.key?(:delegate_to)
             depends_on(*options[:depends_on]) if options.key?(:depends_on)
             lazy(options[:lazy]) if options.key?(:lazy)
@@ -119,14 +138,25 @@ module Datadog
           def meta
             {
               default: @default,
+              experimental_default_proc: @experimental_default_proc,
               delegate_to: @delegate_to,
               depends_on: @depends_on,
-              lazy: @lazy,
               on_set: @on_set,
               resetter: @resetter,
               setter: @setter,
               type: @type
             }
+          end
+
+          private
+
+          def validate_options!
+            if !@default.nil? && @experimental_default_proc
+              raise InvalidOptionError,
+                'Using `default` and `experimental_default_proc` is not allowed. Please use one or the other.' \
+                                'If you want to store a block as the default value use `experimental_default_proc`'\
+                                ' otherwise use `default`'
+            end
           end
         end
       end

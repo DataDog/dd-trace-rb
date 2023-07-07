@@ -2,6 +2,7 @@
 
 require_relative '../tracking'
 require_relative '../resource'
+require_relative '../event'
 
 module Datadog
   module AppSec
@@ -10,14 +11,16 @@ module Datadog
         module Patcher
           # Hook in devise validate method
           module AuthenticatablePatch
-            # rubocop:disable Metrics/MethodLength, Metrics/PerceivedComplexity
+            # rubocop:disable Metrics/MethodLength
             def validate(resource, &block)
               result = super
               return result unless AppSec.enabled?
 
-              return unless Datadog.configuration.appsec.track_user_events.enabled
+              track_user_events_configuration = Datadog.configuration.appsec.track_user_events
 
-              automated_track_user_events_mode = Datadog.configuration.appsec.track_user_events.mode
+              return result unless track_user_events_configuration.enabled
+
+              automated_track_user_events_mode = track_user_events_configuration.mode
 
               appsec_scope = Datadog::AppSec.active_scope
 
@@ -25,64 +28,46 @@ module Datadog
 
               devise_resource = resource ? Resource.new(resource) : nil
 
-              event_information = {}
-              user_id = nil
-
-              if automated_track_user_events_mode == Patcher::EXTENDED_MODE && devise_resource
-                resource_email = devise_resource.email
-                resource_username = devise_resource.username
-
-                event_information[:email] = resource_email if resource_email
-                event_information[:username] = resource_username if resource_username
-              end
-
-              user_id = devise_resource.id if devise_resource && devise_resource.id
+              event_information = Event.new(devise_resource, automated_track_user_events_mode)
 
               if result
-                if user_id
-                  Tracking.track_login_success(
-                    appsec_scope.trace,
-                    appsec_scope.service_entry_span,
-                    user_id: user_id,
-                    **event_information
-                  )
+                if event_information.user_id
                   Datadog.logger.debug { 'User Login Event success' }
                 else
-                  Tracking.track_login_success(
-                    appsec_scope.trace,
-                    appsec_scope.service_entry_span,
-                    user_id: nil,
-                    **event_information
-                  )
                   Datadog.logger.debug { 'User Login Event success, but can\'t extract user ID. Tracking empty event' }
                 end
+
+                Tracking.track_login_success(
+                  appsec_scope.trace,
+                  appsec_scope.service_entry_span,
+                  user_id: event_information.user_id,
+                  **event_information.to_h
+                )
 
                 return result
               end
 
-              if devise_resource
-                Tracking.track_login_failure(
-                  appsec_scope.trace,
-                  appsec_scope.service_entry_span,
-                  user_id: user_id,
-                  user_exists: true,
-                  **event_information
-                )
+              user_exists = nil
+
+              if resource
+                user_exists = true
                 Datadog.logger.debug { 'User Login Event failure users exists' }
               else
-                Tracking.track_login_failure(
-                  appsec_scope.trace,
-                  appsec_scope.service_entry_span,
-                  user_id: nil,
-                  user_exists: false,
-                  **event_information
-                )
+                user_exists = false
                 Datadog.logger.debug { 'User Login Event failure user do not exists' }
               end
 
+              Tracking.track_login_failure(
+                appsec_scope.trace,
+                appsec_scope.service_entry_span,
+                user_id: event_information.user_id,
+                user_exists: user_exists,
+                **event_information.to_h
+              )
+
               result
             end
-            # rubocop:enable Metrics/MethodLength, Metrics/PerceivedComplexity
+            # rubocop:enable Metrics/MethodLength
           end
         end
       end
