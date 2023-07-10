@@ -140,7 +140,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'a peer service span' do
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { 'localhost' }
+            let(:peer_service_source) { 'peer.hostname' }
           end
 
           it_behaves_like 'analytics for integration' do
@@ -149,10 +150,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
-          it_behaves_like 'schema version span' do
-            let(:peer_service_val) { 'localhost' }
-            let(:peer_service_source) { 'peer.hostname' }
-          end
+          it_behaves_like 'schema version span'
         end
 
         context 'response has internal server error status' do
@@ -179,10 +177,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
-          it_behaves_like 'schema version span' do
-            let(:peer_service_val) { 'localhost' }
-            let(:peer_service_source) { 'peer.hostname' }
-          end
+          it_behaves_like 'schema version span'
         end
 
         context 'response has not found status' do
@@ -209,10 +204,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
-          it_behaves_like 'schema version span' do
-            let(:peer_service_val) { 'localhost' }
-            let(:peer_service_source) { 'peer.hostname' }
-          end
+          it_behaves_like 'schema version span'
         end
 
         context 'distributed tracing default' do
