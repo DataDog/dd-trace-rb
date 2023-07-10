@@ -88,7 +88,6 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
   end
 end
 
-
 RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
   subject(:schema) do
     Module.new { extend Datadog::Tracing::Contrib::SpanAttributeSchema::Base }
@@ -302,7 +301,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V0 do
         end
       end
     end
-    
+
     context 'when DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
       it 'returns DD_SERVICE' do
         with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0',
@@ -313,41 +312,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V0 do
                 .fetch_service_name('DD_INTEGRATION_SERVICE',
                   'default-integration-service-name')
             ).to eq('service')
-         end
-      end
-    end
-   end
-
-  def with_modified_env(options = {}, &block)
-    ClimateControl.modify(options, &block)
-  end
-end
-
-RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V1 do
-  describe '#fetch_service_name' do
-    context 'for v1' do
-      context 'when integration service is set' do
-        it 'returns the integration specific service name' do
-          with_modified_env DD_INTEGRATION_SERVICE: 'integration-service-name' do
-            expect(
-              described_class
-                .fetch_service_name('DD_INTEGRATION_SERVICE',
-                  'default-integration-service-name')
-            ).to eq('integration-service-name')
           end
-        end
-      end
-    end
-    
-    context 'when DD_SERVICE is not set' do
-      it 'returns default integration service name' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-          expect(
-            described_class
-              .fetch_service_name('DD_INTEGRATION_SERVICE',
-                'default-integration-service-name')
-          ).to eq('default-integration-service-name')
-        end
       end
     end
   end

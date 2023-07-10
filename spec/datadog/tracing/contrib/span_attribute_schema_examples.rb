@@ -1,4 +1,4 @@
-RSpec.shared_examples 'schema version span' do |peer_service_val, peer_service_source|
+RSpec.shared_examples 'schema version span' do |_peer_service_val, _peer_service_source|
   before do
     subject
   end

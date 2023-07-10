@@ -23,7 +23,6 @@ module Datadog
           end
         end
 
-        # TODO: add specific env var just for service naming independent of v1
         def fetch_service_name(env, default)
           active_version.fetch_service_name(env, default)
         end
@@ -97,16 +96,8 @@ module Datadog
           def not_empty_tag?(tag)
             tag && (tag != '')
           end
-
-          # TODO: add logic for env var enabling peer service in v0
-          def set_peer_service!(span, _)
-            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-            false
-            # TODO: add logic for remap if necessary
-          end
         end
 
-              
         # Contains implementation of methods specific to v0
         module V0
           extend Base
@@ -118,6 +109,7 @@ module Datadog
               return Datadog.configuration.service if Datadog.configuration.tracing.service_name_override
 
               default
+            end
           end
         end
 

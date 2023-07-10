@@ -439,7 +439,6 @@ module Datadog
               # @return [Boolean]
               option :service_name_override do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SERVICE_NAME_OVERRIDE, false) }
-                o.lazy
               end
             end
           end
