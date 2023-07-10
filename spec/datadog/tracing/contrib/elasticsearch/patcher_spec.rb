@@ -63,7 +63,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       before { request }
 
       it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-      it_behaves_like 'schema version span' do
+      it_behaves_like 'a peer service span' do
         let(:peer_service_val) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
         let(:peer_service_source) { 'peer.hostname' }
       end
@@ -91,9 +91,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
           .to eq('query')
       }
 
-      it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
-      end
+      it_behaves_like 'schema version span'
     end
   end
 
@@ -131,7 +129,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it_behaves_like 'measured span for integration', false
 
       it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-      it_behaves_like 'schema version span' do
+      it_behaves_like 'a peer service span' do
         let(:peer_service_val) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
         let(:peer_service_source) { 'peer.hostname' }
       end
@@ -165,9 +163,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
           .to eq('{"field":"?","nested_object":{"value":"?"},"nested_array":["?"],"nested_object_array":[{"a":"?"},"?"]}')
       end
 
-      it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
-      end
+      it_behaves_like 'schema version span'
     end
   end
 end

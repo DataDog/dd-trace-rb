@@ -104,9 +104,9 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
           expect(span.get_tag('out.port')).to eq(port)
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'schema version span'
         it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-        it_behaves_like 'schema version span' do
+        it_behaves_like 'a peer service span' do
           let(:peer_service_val) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
           let(:peer_service_source) { 'peer.hostname' }
         end
@@ -140,9 +140,9 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
             expect(span.get_tag('out.port')).to eq(port)
           end
 
-          it_behaves_like 'a peer service span'
+          it_behaves_like 'schema version span'
           it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-          it_behaves_like 'schema version span' do
+          it_behaves_like 'a peer service span' do
             let(:peer_service_val) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
             let(:peer_service_source) { 'peer.hostname' }
           end
