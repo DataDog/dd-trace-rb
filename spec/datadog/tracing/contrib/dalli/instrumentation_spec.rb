@@ -37,9 +37,6 @@ RSpec.describe 'Dalli instrumentation' do
   end
 
   it_behaves_like 'schema version span' do
-    let(:peer_service_val) { ENV.fetch('TEST_MEMCACHED_HOST', '127.0.0.1') }
-    let(:peer_service_source) { 'peer.hostname' }
-
     subject do
       client.set('abc', 123)
       try_wait_until { fetch_spans.any? }
@@ -75,7 +72,8 @@ RSpec.describe 'Dalli instrumentation' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { test_host }
+      let(:peer_service_val) { ENV.fetch('TEST_MEMCACHED_HOST', '127.0.0.1') }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -111,7 +109,8 @@ RSpec.describe 'Dalli instrumentation' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { test_host }
+        let(:peer_service_val) { ENV.fetch('TEST_MEMCACHED_HOST', '127.0.0.1') }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
   end
