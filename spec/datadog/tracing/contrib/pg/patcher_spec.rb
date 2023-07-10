@@ -76,7 +76,6 @@ RSpec.describe 'PG::Connection patcher' do
 
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -99,7 +98,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -119,7 +118,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { exec }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -132,8 +132,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -185,7 +183,6 @@ RSpec.describe 'PG::Connection patcher' do
 
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -208,7 +205,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -228,7 +225,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { exec }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -241,8 +239,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -294,7 +290,6 @@ RSpec.describe 'PG::Connection patcher' do
 
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -317,7 +312,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -337,7 +332,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { exec_params }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -350,8 +346,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -405,7 +399,6 @@ RSpec.describe 'PG::Connection patcher' do
 
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -428,7 +421,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -448,7 +441,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { exec_params }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -461,8 +455,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -516,7 +508,6 @@ RSpec.describe 'PG::Connection patcher' do
             exec_prepared
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_override)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
           end
         end
 
@@ -538,7 +529,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -558,7 +549,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { exec_prepared }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -571,8 +563,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -618,7 +608,6 @@ RSpec.describe 'PG::Connection patcher' do
             exec_prepared
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_override)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
           end
         end
 
@@ -640,7 +629,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -660,7 +649,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { exec_prepared }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -673,8 +663,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -729,7 +717,6 @@ RSpec.describe 'PG::Connection patcher' do
 
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -752,7 +739,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -772,7 +759,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { async_exec }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -785,8 +773,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -839,7 +825,6 @@ RSpec.describe 'PG::Connection patcher' do
 
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -862,7 +847,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -882,7 +867,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { async_exec }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -895,8 +881,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -957,7 +941,6 @@ RSpec.describe 'PG::Connection patcher' do
 
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -980,7 +963,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1000,7 +983,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { async_exec_params }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -1013,8 +997,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1067,7 +1049,6 @@ RSpec.describe 'PG::Connection patcher' do
 
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -1090,7 +1071,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1110,7 +1091,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { async_exec_params }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -1123,8 +1105,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1177,7 +1157,6 @@ RSpec.describe 'PG::Connection patcher' do
             async_exec_prepared
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_override)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
           end
         end
 
@@ -1199,7 +1178,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1219,7 +1198,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { async_exec_prepared }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -1232,8 +1212,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1279,7 +1257,6 @@ RSpec.describe 'PG::Connection patcher' do
             async_exec_prepared
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_override)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
           end
         end
 
@@ -1301,7 +1278,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1321,7 +1298,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { async_exec_prepared }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -1334,8 +1312,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1396,7 +1372,6 @@ RSpec.describe 'PG::Connection patcher' do
 
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -1419,7 +1394,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1439,7 +1414,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { sync_exec }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -1452,8 +1428,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1504,7 +1478,6 @@ RSpec.describe 'PG::Connection patcher' do
 
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -1527,7 +1500,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1547,7 +1520,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { sync_exec }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -1560,8 +1534,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1614,7 +1586,6 @@ RSpec.describe 'PG::Connection patcher' do
             sync_exec_params
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -1637,7 +1608,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1657,7 +1628,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { sync_exec_params }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -1670,8 +1642,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1723,7 +1693,6 @@ RSpec.describe 'PG::Connection patcher' do
             sync_exec_params
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_name)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
           end
         end
 
@@ -1746,7 +1715,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1766,7 +1735,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { sync_exec_params }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -1779,8 +1749,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1832,7 +1800,6 @@ RSpec.describe 'PG::Connection patcher' do
             sync_exec_prepared
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_override)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
           end
         end
 
@@ -1854,7 +1821,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1874,7 +1841,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { sync_exec_prepared }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -1887,8 +1855,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
@@ -1933,7 +1899,6 @@ RSpec.describe 'PG::Connection patcher' do
             sync_exec_prepared
             expect(spans.count).to eq(1)
             expect(span.service).to eq(service_override)
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
           end
         end
 
@@ -1955,7 +1920,7 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_OPERATION_QUERY)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-              .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
+              .to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
@@ -1975,7 +1940,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'a peer service span' do
             before { sync_exec_prepared }
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { dbname }
+            let(:peer_service_source) { 'db.instance' }
           end
 
           it_behaves_like 'measured span for integration', false do
@@ -1988,8 +1954,6 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'schema version span' do
             let(:configuration_options) { {} }
-            let(:peer_service_val) { dbname }
-            let(:peer_service_source) { 'db.instance' }
           end
         end
 
