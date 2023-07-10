@@ -62,6 +62,7 @@ module Datadog
                   # Define span resource
                   quantized_url = OpenSearch::Quantize.format_url(url)
                   span.resource = "#{method} #{quantized_url}"
+                  Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                 rescue StandardError => e
                   Datadog.logger.error(e.message)
                 ensure

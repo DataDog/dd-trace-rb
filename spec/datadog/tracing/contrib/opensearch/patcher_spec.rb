@@ -1,7 +1,11 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'opensearch'
+require 'datadog/tracing/contrib/integration_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'ddtrace'
+
+require 'opensearch'
+
 require 'datadog/tracing/contrib/opensearch/integration'
 
 RSpec.describe 'OpenSearch instrumentation' do
@@ -71,6 +75,13 @@ RSpec.describe 'OpenSearch instrumentation' do
       )
     end
 
+    it_behaves_like 'a peer service span' do
+      let(:peer_service_val) { ENV.fetch('TEST_OPENSEARCH_HOST', '127.0.0.1') }
+      let(:peer_service_source) { 'peer.hostname' }
+    end
+
+    it_behaves_like 'schema version span'
+
     it 'sets the correct span tags and resource' do
       delete_indices
 
@@ -96,6 +107,13 @@ RSpec.describe 'OpenSearch instrumentation' do
         body: index_body
       )
     end
+
+    it_behaves_like 'a peer service span' do
+      let(:peer_service_val) { ENV.fetch('TEST_OPENSEARCH_HOST', '127.0.0.1') }
+      let(:peer_service_source) { 'peer.hostname' }
+    end
+
+    it_behaves_like 'schema version span'
 
     it 'sets the correct span tags and resource' do
       create_indices
@@ -128,6 +146,13 @@ RSpec.describe 'OpenSearch instrumentation' do
         refresh: true
       )
     end
+
+    it_behaves_like 'a peer service span' do
+      let(:peer_service_val) { ENV.fetch('TEST_OPENSEARCH_HOST', '127.0.0.1') }
+      let(:peer_service_source) { 'peer.hostname' }
+    end
+
+    it_behaves_like 'schema version span'
 
     it 'sets the correct span tags and resource' do
       index
@@ -174,6 +199,13 @@ RSpec.describe 'OpenSearch instrumentation' do
       )
     end
 
+    it_behaves_like 'a peer service span' do
+      let(:peer_service_val) { ENV.fetch('TEST_OPENSEARCH_HOST', '127.0.0.1') }
+      let(:peer_service_source) { 'peer.hostname' }
+    end
+
+    it_behaves_like 'schema version span'
+
     it 'sets the correct span tags and resource' do
       search
 
@@ -204,6 +236,13 @@ RSpec.describe 'OpenSearch instrumentation' do
       )
     end
 
+    it_behaves_like 'a peer service span' do
+      let(:peer_service_val) { ENV.fetch('TEST_OPENSEARCH_HOST', '127.0.0.1') }
+      let(:peer_service_source) { 'peer.hostname' }
+    end
+
+    it_behaves_like 'schema version span'
+
     it 'sets the correct span tags and resource' do
       delete
 
@@ -221,6 +260,13 @@ RSpec.describe 'OpenSearch instrumentation' do
         body: index_body
       )
     end
+
+    it_behaves_like 'a peer service span' do
+      let(:peer_service_val) { ENV.fetch('TEST_OPENSEARCH_HOST', '127.0.0.1') }
+      let(:peer_service_source) { 'peer.hostname' }
+    end
+
+    it_behaves_like 'schema version span'
 
     it 'sets the correct span tags and resource. marks the span with an error' do
       expect { test_error }.to raise_error(OpenSearch::Transport::Transport::Errors::BadRequest)
