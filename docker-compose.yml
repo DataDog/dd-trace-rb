@@ -468,6 +468,11 @@ services:
     environment:
       - discovery.type=single-node
       - DISABLE_SECURITY_PLUGIN=true
+      # make sure it works on nearly full disk
+      - cluster.routing.allocation.disk.watermark.low=3gb
+      - cluster.routing.allocation.disk.watermark.high=2gb
+      - cluster.routing.allocation.disk.watermark.flood_stage=1gb
+      - cluster.routing.allocation.disk.threshold_enabled=false
     ports:
       - 9201:9200
   postgres:
