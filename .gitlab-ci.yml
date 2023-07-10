@@ -35,7 +35,7 @@ build-image:
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
     matrix:
-      - BUILD_NAME: [ '3.2.2' ]
+      - BUILD_NAME: [ '3.2.2', '3.1.4', '3.0.6' ]
   script:
     - >
       docker build
@@ -51,7 +51,7 @@ promote-image:
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
     matrix:
-      - BUILD_NAME: [ '3.2.2' ]
+      - BUILD_NAME: [ '3.2.2', '3.1.4', '3.0.6' ]
   script:
     - docker pull $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:$CI_PIPELINE_ID
     - docker tag $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:$CI_PIPELINE_ID $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:current
