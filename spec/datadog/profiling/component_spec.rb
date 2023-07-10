@@ -551,6 +551,32 @@ RSpec.describe Datadog::Profiling::Component do
                 no_signals_workaround_enabled?
               end
             end
+
+            context 'when mysql2-aurora gem is loaded and libmysqlclient < 8.0.0' do
+              before do
+                fake_original_client = double('Fake original Mysql2::Client')
+                stub_const('Mysql2::Aurora::ORIGINAL_CLIENT_CLASS', fake_original_client)
+                expect(fake_original_client).to receive(:info).and_return({ version: '7.9.9' })
+
+                client_replaced_by_aurora = double('Fake Aurora Mysql2::Client')
+                stub_const('Mysql2::Client', client_replaced_by_aurora)
+              end
+
+              it { is_expected.to be true }
+            end
+
+            context 'when mysql2-aurora gem is loaded and libmysqlclient >= 8.0.0' do
+              before do
+                fake_original_client = double('Fake original Mysql2::Client')
+                stub_const('Mysql2::Aurora::ORIGINAL_CLIENT_CLASS', fake_original_client)
+                expect(fake_original_client).to receive(:info).and_return({ version: '8.0.0' })
+
+                client_replaced_by_aurora = double('Fake Aurora Mysql2::Client')
+                stub_const('Mysql2::Client', client_replaced_by_aurora)
+              end
+
+              it { is_expected.to be false }
+            end
           end
         end
 
