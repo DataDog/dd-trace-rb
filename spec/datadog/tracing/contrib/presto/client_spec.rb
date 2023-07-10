@@ -110,10 +110,7 @@ RSpec.describe 'Presto::Client instrumentation' do
     shared_examples_for 'a configurable Presto trace' do
       context 'when the client is configured' do
         it_behaves_like 'environment service name', 'DD_TRACE_PRESTO_SERVICE_NAME'
-        it_behaves_like 'schema version span' do
-          let(:peer_service_val) { schema }
-          let(:peer_service_source) { 'presto.schema' }
-        end
+        it_behaves_like 'schema version span'
 
         context 'with a different service name' do
           let(:service) { 'presto-primary' }
@@ -230,7 +227,8 @@ RSpec.describe 'Presto::Client instrumentation' do
       it_behaves_like 'measured span for integration', false
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { schema }
+        let(:peer_service_source) { 'presto.schema' }
       end
     end
 
