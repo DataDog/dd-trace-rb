@@ -40,7 +40,7 @@ build-image:
     - >
       docker build
       --tag $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:$CI_PIPELINE_ID
-      --file gitlab/Dockerfile.$BUILD_NAME
+      --file .gitlab/Dockerfile.$BUILD_NAME
       .
     - docker push --all-tags $CI_DOCKER_IMAGE_BASE/$BUILD_NAME
 
