@@ -79,14 +79,12 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
-      end
-
-      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
-      it_behaves_like 'schema version span' do
         let(:peer_service_val) { '127.0.0.1' }
         let(:peer_service_source) { 'peer.hostname' }
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
     end
 
     context 'that returns 404' do
@@ -112,14 +110,12 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
-      end
-
-      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
-      it_behaves_like 'schema version span' do
         let(:peer_service_val) { '127.0.0.1' }
         let(:peer_service_source) { 'peer.hostname' }
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
 
       context 'when configured with #after_request hook' do
         before { Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request(&callback) }
@@ -186,14 +182,12 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
-      end
-
-      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
-      it_behaves_like 'schema version span' do
         let(:peer_service_val) { '127.0.0.1' }
         let(:peer_service_source) { 'peer.hostname' }
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
     end
   end
 
@@ -224,14 +218,12 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
-      end
-
-      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
-      it_behaves_like 'schema version span' do
         let(:peer_service_val) { '127.0.0.1' }
         let(:peer_service_source) { 'peer.hostname' }
       end
+
+      it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'schema version span'
     end
   end
 
@@ -255,7 +247,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
   end
