@@ -13,8 +13,6 @@ RSpec.shared_examples 'schema version span' do |peer_service_val, peer_service_s
     context 'test the v1 default' do
       it do
         expect(span.service).to eq('rspec')
-        expect(span.get_tag('peer.service')).to eq(peer_service_val)
-        expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
       end
     end
 
@@ -22,8 +20,6 @@ RSpec.shared_examples 'schema version span' do |peer_service_val, peer_service_s
       let(:configuration_options) { { service_name: 'configured' } }
       it do
         expect(span.service).to eq(configuration_options[:service_name])
-        expect(span.get_tag('peer.service')).to eq(peer_service_val)
-        expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
       end
     end
   end

@@ -302,7 +302,8 @@ VALUE thread_name_for(VALUE thread) {
 // Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
-// Modifications: None
+// Modifications:
+// * Support int first_lineno for Ruby 3.2.0+ (https://github.com/ruby/ruby/pull/6430)
 //
 // `node_id` gets used depending on Ruby VM compilation settings (USE_ISEQ_NODE_ID being defined).
 // To avoid getting false "unused argument" warnings in setups where it's not used, we need to do this weird dance
@@ -322,7 +323,11 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
             VM_ASSERT(! ISEQ_BODY(iseq)->local_table_size);
             return 0;
         }
-        if (lineno) *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
+        # ifndef NO_INT_FIRST_LINENO // Ruby 3.2+
+          if (lineno) *lineno = ISEQ_BODY(iseq)->location.first_lineno;
+        # else
+          if (lineno) *lineno = FIX2INT(ISEQ_BODY(iseq)->location.first_lineno);
+        #endif
 #ifdef USE_ISEQ_NODE_ID
         if (node_id) *node_id = -1;
 #endif
@@ -767,3 +772,37 @@ check_method_entry(VALUE obj, int can_be_svar)
   // they're always on the main Ractor
   bool ddtrace_rb_ractor_main_p(void) { return true; }
 #endif // NO_RACTORS
+
+// This is a tweaked and inlined version of
+// threadptr_invoke_proc_location + rb_proc_location + iseq_location .
+//
+// It's useful to have here because not all of the methods above are accessible to extensions + to avoid the
+// array allocation that iseq_location did to contain its return value.
+static const rb_iseq_t *maybe_thread_invoke_proc_iseq(VALUE thread_value) {
+  rb_thread_t *thread = thread_struct_from_object(thread_value);
+
+  #ifndef NO_THREAD_INVOKE_ARG // Ruby 2.6+
+    if (thread->invoke_type != thread_invoke_type_proc) return NULL;
+
+    VALUE proc = thread->invoke_arg.proc.proc;
+  #else
+    if (thread->first_func || !thread->first_proc) return NULL;
+
+    VALUE proc = thread->first_proc;
+  #endif
+
+  const rb_iseq_t *iseq = rb_proc_get_iseq(proc, 0);
+  if (iseq == NULL) return NULL;
+
+  rb_iseq_check(iseq);
+  return iseq;
+}
+
+VALUE invoke_location_for(VALUE thread, int *line_location) {
+  const rb_iseq_t *iseq = maybe_thread_invoke_proc_iseq(thread);
+
+  if (iseq == NULL) return Qnil;
+
+  *line_location = NUM2INT(rb_iseq_first_lineno(iseq));
+  return rb_iseq_path(iseq);
+}

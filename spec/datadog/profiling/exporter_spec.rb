@@ -5,7 +5,12 @@ require 'datadog/core/logger'
 
 RSpec.describe Datadog::Profiling::Exporter do
   subject(:exporter) do
-    described_class.new(pprof_recorder: pprof_recorder, code_provenance_collector: code_provenance_collector, **options)
+    described_class.new(
+      pprof_recorder: pprof_recorder,
+      code_provenance_collector: code_provenance_collector,
+      no_signals_workaround_enabled: no_signals_workaround_enabled,
+      **options
+    )
   end
 
   let(:start) { Time.now }
@@ -19,6 +24,7 @@ RSpec.describe Datadog::Profiling::Exporter do
     allow(collector).to receive(:refresh).and_return(collector)
     collector
   end
+  let(:no_signals_workaround_enabled) { false }
   let(:logger) { Datadog.logger }
   let(:options) { {} }
 
@@ -69,6 +75,16 @@ RSpec.describe Datadog::Profiling::Exporter do
       let(:finish) { start + 1 }
 
       it { is_expected.to_not be nil }
+    end
+
+    context 'when no_signals_workaround_enabled is true' do
+      let(:no_signals_workaround_enabled) { true }
+      it { is_expected.to have_attributes(internal_metadata_json: '{"no_signals_workaround_enabled":"true"}') }
+    end
+
+    context 'when no_signals_workaround_enabled is false' do
+      let(:no_signals_workaround_enabled) { false }
+      it { is_expected.to have_attributes(internal_metadata_json: '{"no_signals_workaround_enabled":"false"}') }
     end
   end
 

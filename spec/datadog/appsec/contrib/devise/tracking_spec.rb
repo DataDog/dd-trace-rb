@@ -4,7 +4,7 @@ require 'datadog/appsec/contrib/devise/tracking'
 
 RSpec.describe Datadog::AppSec::Contrib::Devise::Tracking do
   let(:trace_op) { Datadog::Tracing::TraceOperation.new }
-  let(:auto_mode) { Datadog.configuration.appsec.automated_track_user_events.to_s }
+  let(:auto_mode) { Datadog.configuration.appsec.track_user_events.mode.to_s }
 
   describe '#track_login_success' do
     it 'sets event tracking key on trace' do

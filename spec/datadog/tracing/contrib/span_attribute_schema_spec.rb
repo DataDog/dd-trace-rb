@@ -88,7 +88,184 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
   end
 end
 
+
+RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
+  subject(:schema) do
+    Module.new { extend Datadog::Tracing::Contrib::SpanAttributeSchema::Base }
+  end
+
+  describe '#set_peer_service!' do
+    let(:span) { Datadog::Tracing::Span.new('testPeerServiceLogicSpan', parent_id: 0) }
+    context 'AWS Span' do
+      let(:precursors) do
+        ['statemachinename',
+         'rulename',
+         'bucketname',
+         'tablename',
+         'streamname',
+         'topicname',
+         'queuename']
+      end
+      it 'returns {AWS_PRECURSOR} as peer.service and source' do
+        span.set_tag('aws_service', 'test-service')
+        span.set_tag('span.kind', 'client')
+        precursors.each do |precursor|
+          span.set_tag(precursor, 'test-' << precursor)
+
+          expect(schema.set_peer_service!(span, precursors)).to be true
+          expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+          expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+          span.clear_tag('peer.service')
+          span.clear_tag('_dd.peer.service.source')
+          span.clear_tag(precursor)
+        end
+      end
+
+      context 'DB Span' do
+        let(:precursors) { ['db.instance'] }
+        it 'returns {DB_PRECURSOR} as peer.service and source' do
+          span.set_tag('db.system', 'test-db')
+          span.set_tag('span.kind', 'client')
+          precursors.each do |precursor|
+            span.set_tag(precursor, 'test-' << precursor)
+
+            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+            span.clear_tag('peer.service')
+            span.clear_tag('_dd.peer.service.source')
+            span.clear_tag(precursor)
+          end
+        end
+      end
+
+      context 'Messaging Span' do
+        let(:precursors) { [] }
+        it 'returns {MSG_PRECURSOR} as peer.service and source' do
+          span.set_tag('messaging.system', 'test-msg-system')
+          span.set_tag('span.kind', 'producer')
+          precursors.each do |precursor|
+            span.set_tag(precursor, 'test-' << precursor)
+
+            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+            span.clear_tag('peer.service')
+            span.clear_tag('_dd.peer.service.source')
+            span.clear_tag(precursor)
+          end
+        end
+      end
+
+      context 'RPC Span' do
+        let(:precursors) { ['rpc.service'] }
+        it 'returns {RPC_PRECURSOR} as peer.service and source' do
+          span.set_tag('rpc.system', 'test-rpc')
+          span.set_tag('span.kind', 'client')
+          precursors.each do |precursor|
+            span.set_tag(precursor, 'test-' << precursor)
+
+            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+            expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+            span.clear_tag('peer.service')
+            span.clear_tag('_dd.peer.service.source')
+            span.clear_tag(precursor)
+          end
+        end
+      end
+
+      context 'no precursor tags set' do
+        let(:precursors) { ['out.host', 'peer.hostname', 'network.destination.name'] }
+        context 'AWS Span' do
+          it 'returns {PRECURSOR} as peer.service and source' do
+            span.set_tag('aws_service', 'test-service')
+            span.set_tag('span.kind', 'client')
+            precursors.each do |precursor|
+              span.set_tag(precursor, 'test-' << precursor)
+
+              expect(schema.set_peer_service!(span, precursors)).to be true
+              expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+              expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+              span.clear_tag('peer.service')
+              span.clear_tag('_dd.peer.service.source')
+              span.clear_tag(precursor)
+            end
+          end
+        end
+
+        context 'DB Span' do
+          it 'returns {PRECURSOR} as peer.service and source' do
+            span.set_tag('db.system', 'test-db')
+            span.set_tag('span.kind', 'client')
+            precursors.each do |precursor|
+              span.set_tag(precursor, 'test-' << precursor)
+
+              expect(schema.set_peer_service!(span, precursors)).to be true
+              expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+              expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+              span.clear_tag('peer.service')
+              span.clear_tag('_dd.peer.service.source')
+              span.clear_tag(precursor)
+            end
+          end
+        end
+
+        context 'Messaging Span' do
+          it 'returns {PRECURSOR} as peer.service and source' do
+            span.set_tag('messaging.system', 'test-msg-system')
+            span.set_tag('span.kind', 'client')
+            precursors.each do |precursor|
+              span.set_tag(precursor, 'test-' << precursor)
+
+              expect(schema.set_peer_service!(span, precursors)).to be true
+              expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+              expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+              span.clear_tag('peer.service')
+              span.clear_tag('_dd.peer.service.source')
+              span.clear_tag(precursor)
+            end
+          end
+        end
+
+        context 'RPC Span' do
+          it 'returns {PRECURSOR} as peer.service and source' do
+            span.set_tag('rpc.system', 'test-rpc')
+            span.set_tag('span.kind', 'client')
+            precursors.each do |precursor|
+              span.set_tag(precursor, 'test-' << precursor)
+
+              expect(schema.set_peer_service!(span, precursors)).to be true
+              expect(span.get_tag('peer.service')).to eq('test-' << precursor)
+              expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
+
+              span.clear_tag('peer.service')
+              span.clear_tag('_dd.peer.service.source')
+              span.clear_tag(precursor)
+            end
+          end
+        end
+      end
+    end
+  end
+
+  def with_modified_env(options = {}, &block)
+    ClimateControl.modify(options, &block)
+  end
+end
+
 RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V0 do
+  it do
+    expect(described_class).to be_a_kind_of(Datadog::Tracing::Contrib::SpanAttributeSchema::Base)
+  end
+
   describe '#fetch_service_name' do
     context 'when integration service is set' do
       it 'returns the integration specific service name' do
@@ -125,7 +302,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V0 do
         end
       end
     end
-
+    
     context 'when DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
       it 'returns DD_SERVICE' do
         with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0',
@@ -136,20 +313,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V0 do
                 .fetch_service_name('DD_INTEGRATION_SERVICE',
                   'default-integration-service-name')
             ).to eq('service')
-          end
+         end
       end
     end
-  end
-
-  describe '#set_peer_service!' do
-    let(:span) { Datadog::Tracing::Span.new('testPeerServiceLogicSpan', parent_id: 0) }
-    it 'returns {span.service} and peer.service as source' do
-      span.service = 'test-peer.service'
-      expect(described_class.send(:set_peer_service!, span, [])).to be false
-      expect(span.get_tag('peer.service')).to eq('test-peer.service')
-      expect(span.get_tag('_dd.peer.service.source')).to eq nil
-    end
-  end
+   end
 
   def with_modified_env(options = {}, &block)
     ClimateControl.modify(options, &block)
@@ -169,19 +336,41 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V1 do
             ).to eq('integration-service-name')
           end
         end
+      end
+    end
+    
+    context 'when DD_SERVICE is not set' do
+      it 'returns default integration service name' do
+        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
+          expect(
+            described_class
+              .fetch_service_name('DD_INTEGRATION_SERVICE',
+                'default-integration-service-name')
+          ).to eq('default-integration-service-name')
+        end
+      end
+    end
+  end
 
-        context 'when DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
-          it 'returns DD_SERVICE' do
-            with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1',
-              DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
-              DD_SERVICE: 'service' do
-                expect(
-                  described_class
-                    .fetch_service_name('DD_INTEGRATION_SERVICE',
-                      'default-integration-service-name')
-                ).to eq('service')
-              end
-          end
+  def with_modified_env(options = {}, &block)
+    ClimateControl.modify(options, &block)
+  end
+end
+
+RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V1 do
+  it do
+    expect(described_class).to be_a_kind_of(Datadog::Tracing::Contrib::SpanAttributeSchema::Base)
+  end
+
+  describe '#fetch_service_name' do
+    context 'when integration service is set' do
+      it 'returns the integration specific service name' do
+        with_modified_env DD_INTEGRATION_SERVICE: 'integration-service-name' do
+          expect(
+            described_class
+              .fetch_service_name('DD_INTEGRATION_SERVICE',
+                'default-integration-service-name')
+          ).to eq('integration-service-name')
         end
       end
 
@@ -204,171 +393,6 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V1 do
               .fetch_service_name('DD_INTEGRATION_SERVICE',
                 'default-integration-service-name')
           ).to eq('rspec')
-        end
-      end
-    end
-  end
-
-  describe '#set_peer_service!' do
-    let(:span) { Datadog::Tracing::Span.new('testPeerServiceLogicSpan', parent_id: 0) }
-    context 'for v1' do
-      context 'AWS Span' do
-        it 'returns {AWS_PRECURSOR} as peer.service and source' do
-          span.set_tag('aws_service', 'test-service')
-          span.set_tag('span.kind', 'client')
-          precursors = Array['statemachinename',
-            'rulename',
-            'bucketname',
-            'tablename',
-            'streamname',
-            'topicname',
-            'queuename']
-          precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
-
-            expect(described_class.send(:set_peer_service!, span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
-            expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
-
-            span.clear_tag('peer.service')
-            span.clear_tag('_dd.peer.service.source')
-            span.clear_tag(precursor)
-          end
-        end
-      end
-
-      context 'DB Span' do
-        it 'returns {DB_PRECURSOR} as peer.service and source' do
-          span.set_tag('db.system', 'test-db')
-          span.set_tag('span.kind', 'client')
-          precursors = Array['db.instance']
-          precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
-
-            expect(described_class.send(:set_peer_service!, span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
-            expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
-
-            span.clear_tag('peer.service')
-            span.clear_tag('_dd.peer.service.source')
-            span.clear_tag(precursor)
-          end
-        end
-      end
-
-      context 'Messaging Span' do
-        it 'returns {MSG_PRECURSOR} as peer.service and source' do
-          span.set_tag('messaging.system', 'test-msg-system')
-          span.set_tag('span.kind', 'producer')
-          precursors = Array[]
-          precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
-
-            expect(described_class.send(:set_peer_service!, span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
-            expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
-
-            span.clear_tag('peer.service')
-            span.clear_tag('_dd.peer.service.source')
-            span.clear_tag(precursor)
-          end
-        end
-      end
-
-      context 'RPC Span' do
-        it 'returns {RPC_PRECURSOR} as peer.service and source' do
-          span.set_tag('rpc.system', 'test-rpc')
-          span.set_tag('span.kind', 'client')
-          precursors = Array['rpc.service']
-          precursors.each do |precursor|
-            span.set_tag(precursor, 'test-' << precursor)
-
-            expect(described_class.send(:set_peer_service!, span, precursors)).to be true
-            expect(span.get_tag('peer.service')).to eq('test-' << precursor)
-            expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
-
-            span.clear_tag('peer.service')
-            span.clear_tag('_dd.peer.service.source')
-            span.clear_tag(precursor)
-          end
-        end
-      end
-
-      context 'no precursor tags set' do
-        context 'AWS Span' do
-          it 'returns {PRECURSOR} as peer.service and source' do
-            span.set_tag('aws_service', 'test-service')
-            span.set_tag('span.kind', 'client')
-            precursors = Array['out.host', 'peer.hostname', 'network.destination.name']
-            precursors.each do |precursor|
-              span.set_tag(precursor, 'test-' << precursor)
-
-              expect(described_class.send(:set_peer_service!, span, precursors)).to be true
-              expect(span.get_tag('peer.service')).to eq('test-' << precursor)
-              expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
-
-              span.clear_tag('peer.service')
-              span.clear_tag('_dd.peer.service.source')
-              span.clear_tag(precursor)
-            end
-          end
-        end
-
-        context 'DB Span' do
-          it 'returns {PRECURSOR} as peer.service and source' do
-            span.set_tag('db.system', 'test-db')
-            span.set_tag('span.kind', 'client')
-            precursors = Array['out.host', 'peer.hostname', 'network.destination.name']
-            precursors.each do |precursor|
-              span.set_tag(precursor, 'test-' << precursor)
-
-              expect(described_class.send(:set_peer_service!, span, precursors)).to be true
-              expect(span.get_tag('peer.service')).to eq('test-' << precursor)
-              expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
-
-              span.clear_tag('peer.service')
-              span.clear_tag('_dd.peer.service.source')
-              span.clear_tag(precursor)
-            end
-          end
-        end
-
-        context 'Messaging Span' do
-          it 'returns {PRECURSOR} as peer.service and source' do
-            span.set_tag('messaging.system', 'test-msg-system')
-            span.set_tag('span.kind', 'client')
-            precursors = Array['out.host', 'peer.hostname', 'network.destination.name']
-            precursors.each do |precursor|
-              span.set_tag(precursor, 'test-' << precursor)
-
-              expect(described_class.send(:set_peer_service!, span, precursors)).to be true
-              expect(span.get_tag('peer.service')).to eq('test-' << precursor)
-              expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
-
-              span.clear_tag('peer.service')
-              span.clear_tag('_dd.peer.service.source')
-              span.clear_tag(precursor)
-            end
-          end
-        end
-
-        context 'RPC Span' do
-          it 'returns {PRECURSOR} as peer.service and source' do
-            span.set_tag('rpc.system', 'test-rpc')
-            span.set_tag('span.kind', 'client')
-            precursors = Array['out.host', 'peer.hostname', 'network.destination.name']
-            precursors.each do |precursor|
-              span.set_tag(precursor, 'test-' << precursor)
-
-              expect(described_class.send(:set_peer_service!, span, precursors)).to be true
-              expect(span.get_tag('peer.service')).to eq('test-' << precursor)
-              expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
-
-              span.clear_tag('peer.service')
-              span.clear_tag('_dd.peer.service.source')
-              span.clear_tag(precursor)
-            end
-          end
         end
       end
     end

@@ -12,9 +12,6 @@ module Datadog
         module Patcher
           include Datadog::AppSec::Contrib::Patcher
 
-          DISABLED_MODE = 'disabled'
-          EXTENDED_MODE = 'extended'
-
           module_function
 
           def patched?

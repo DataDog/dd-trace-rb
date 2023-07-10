@@ -35,6 +35,8 @@ test_containers:
     GRPC_RUBY_BUILD_PROCS: 6
     DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
     TEST_REDIS_OLD_HOST: redis_old
+    TEST_OPENSEARCH_HOST: opensearch
+    TEST_OPENSEARCH_PORT: 9200
     DD_AGENT_HOST: testagent
     DD_TRACE_AGENT_PORT: 9126
     DDTRACE_CI: true
@@ -69,6 +71,14 @@ test_containers:
       - MYSQL_PASSWORD=mysql
       - MYSQL_USER=mysql
   - &mysql_port 3306
+  - &opensearch_host opensearch
+  - &container_opensearch
+    image: opensearchproject/opensearch:2.8.0
+    name: *opensearch_host
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+  - &opensearch_port 9200
   - &container_elasticsearch
     image: elasticsearch:8.1.3
     environment:
@@ -284,6 +294,7 @@ orbs:
           - *container_postgres
           - *container_presto
           - *container_mysql
+          - *container_opensearch
           - *container_elasticsearch
           - *container_redis
           - *container_redis_old
@@ -310,6 +321,9 @@ orbs:
               port: *presto_port
           - docker-wait:
               port: *mysql_port
+          - docker-wait:
+              host: *opensearch_host
+              port: *opensearch_port
           - docker-wait:
               port: *elasticsearch_port
           - docker-wait:

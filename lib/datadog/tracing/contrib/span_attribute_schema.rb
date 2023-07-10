@@ -36,35 +36,18 @@ module Datadog
 
         private_class_method :active_version
 
-        # Contains implementation of methods specific to v0
-        module V0
-          module_function
-
-          def fetch_service_name(env, default)
-            ENV.fetch(env) do
-              return Datadog.configuration.service if Datadog.configuration.tracing.service_name_override
-
-              default
-            end
-          end
-
-          # TODO: add logic for env var enabling peer service in v0
-          def set_peer_service!(span, _)
-            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-            false
-            # TODO: add logic for remap if necessary
-          end
-        end
-
-        # Contains implementation of methods specific to v1
-        module V1
-          module_function
-
+        # Contains interface of methods to be implemented
+        module Base
           REFLEXIVE_SOURCES = [Tracing::Metadata::Ext::TAG_PEER_SERVICE].freeze
           NO_SOURCE = [].freeze
+          IMPLEMENT_ERROR = 'SpanAttributeSchema Version must implement fetch_service_name'
 
-          def fetch_service_name(env, _)
-            ENV.fetch(env) { Datadog.configuration.service }
+          def self.extended(base)
+            base.private_class_method :not_empty_tag?, :set_peer_service_from_source, :filter_peer_service_sources
+          end
+
+          def fetch_service_name(_env, _default)
+            raise NotImplementedError, IMPLEMENT_ERROR
           end
 
           def set_peer_service!(span, sources)
@@ -108,14 +91,45 @@ module Datadog
               return sources
             end
 
-            NO_SOURCES
+            NO_SOURCE
           end
 
           def not_empty_tag?(tag)
             tag && (tag != '')
           end
 
-          private_class_method :not_empty_tag?, :set_peer_service_from_source, :filter_peer_service_sources
+          # TODO: add logic for env var enabling peer service in v0
+          def set_peer_service!(span, _)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+            false
+            # TODO: add logic for remap if necessary
+          end
+        end
+
+              
+        # Contains implementation of methods specific to v0
+        module V0
+          extend Base
+
+          module_function
+
+          def fetch_service_name(env, default)
+            ENV.fetch(env) do
+              return Datadog.configuration.service if Datadog.configuration.tracing.service_name_override
+
+              default
+          end
+        end
+
+        # Contains implementation of methods specific to v1
+        module V1
+          extend Base
+
+          module_function
+
+          def fetch_service_name(env, _)
+            ENV.fetch(env) { Datadog.configuration.service }
+          end
         end
       end
     end
