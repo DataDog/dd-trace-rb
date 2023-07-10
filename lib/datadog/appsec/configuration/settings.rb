@@ -55,27 +55,23 @@ module Datadog
 
               option :ruleset do |o|
                 o.env_var 'DD_APPSEC_RULES'
-                o.default { DEFAULT_APPSEC_RULESET }
-                o.lazy
+                o.default DEFAULT_APPSEC_RULESET
               end
 
               option :ip_denylist do |o|
-                o.default { [] }
-                o.lazy
+                o.default []
               end
 
               option :user_id_denylist do |o|
-                o.default { [] }
-                o.lazy
+                o.default []
               end
 
               option :waf_timeout do |o|
                 o.env_var 'DD_APPSEC_WAF_TIMEOUT'
-                o.default { DEFAULT_APPSEC_WAF_TIMEOUT } # us
+                o.default DEFAULT_APPSEC_WAF_TIMEOUT # us
                 o.setter do |v|
                   Datadog::Core::Utils::Duration.call(v.to_s, base: :us)
                 end
-                o.lazy
               end
 
               option :waf_debug do |o|
@@ -96,20 +92,18 @@ module Datadog
 
               option :obfuscator_key_regex do |o|
                 o.env_var 'DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP'
-                o.default { DEFAULT_OBFUSCATOR_KEY_REGEX }
-                o.lazy
+                o.default  DEFAULT_OBFUSCATOR_KEY_REGEX
               end
 
               option :obfuscator_value_regex do |o|
                 o.env_var 'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP'
-                o.default { DEFAULT_OBFUSCATOR_VALUE_REGEX }
-                o.lazy
+                o.default  DEFAULT_OBFUSCATOR_VALUE_REGEX
               end
 
               settings :track_user_events do
                 option :enabled do |o|
                   o.env_var 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
-                  o.default { DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_ENABLED }
+                  o.default  DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_ENABLED
                   o.setter do |v|
                     if v
                       v.to_s != 'disabled'
@@ -117,12 +111,11 @@ module Datadog
                       false
                     end
                   end
-                  o.lazy
                 end
 
                 option :mode do |o|
                   o.env_var 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
-                  o.default { DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE }
+                  o.default  DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE
                   o.setter do |v|
                     string_value = v.to_s
                     if APPSEC_VALID_TRACK_USER_EVENTS_MODE.include?(string_value)
@@ -136,7 +129,6 @@ module Datadog
                       DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE
                     end
                   end
-                  o.lazy
                 end
               end
             end

@@ -80,8 +80,6 @@ module Datadog
         # @return [String,nil]
         option :api_key do |o|
           o.env_var Core::Environment::Ext::ENV_API_KEY
-          o.default { nil }
-          o.lazy
         end
 
         # Datadog diagnostic settings.
@@ -432,7 +430,7 @@ module Datadog
             end
           end
 
-          option :opts, default: ->(_i) { {} }, lazy: true
+          option :opts, default: ->(_i) { {} }
           option :statsd
         end
 
@@ -446,8 +444,7 @@ module Datadog
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env_var Core::Environment::Ext::ENV_SERVICE
-          o.default { Core::Environment::Ext::FALLBACK_SERVICE_NAME }
-          o.lazy
+          o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
           # nil instead so that one can do
@@ -470,8 +467,6 @@ module Datadog
         # @return [String,nil]
         option :site do |o|
           o.env_var Core::Environment::Ext::ENV_SITE
-          o.default { nil }
-          o.lazy
         end
 
         # Default tags
@@ -482,7 +477,7 @@ module Datadog
         # @return [Hash<String,String>]
         option :tags do |o|
           o.env_var Core::Environment::Ext::ENV_TAGS
-          o.default { {} }
+          o.default {}
           o.setter do |new_value, old_value|
             tag_list = if new_value && new_value.is_a?(String)
                          val_to_list(new_value, comma_separated_only: false).each_with_object({}) do |tag, tags|
@@ -520,7 +515,6 @@ module Datadog
             # Merge with previous tags
             (old_value || {}).merge(string_tags)
           end
-          o.lazy
         end
 
         # The time provider used by Datadog. It must respect the interface of [Time](https://ruby-doc.org/core-3.0.1/Time.html).
@@ -533,7 +527,7 @@ module Datadog
         # @default `->{ Time.now }`
         # @return [Proc<Time>]
         option :time_now_provider do |o|
-          o.default { ::Time.now }
+          o.experimental_default_proc { ::Time.now }
 
           o.on_set do |time_provider|
             Core::Utils::Time.now_provider = time_provider
@@ -555,8 +549,6 @@ module Datadog
         option :version do |o|
           # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env_var Core::Environment::Ext::ENV_VERSION
-          o.default { nil }
-          o.lazy
         end
 
         # Client-side telemetry configuration

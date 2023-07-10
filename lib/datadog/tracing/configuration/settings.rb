@@ -346,7 +346,6 @@ module Datadog
                       end
                     end
                   end
-                  o.lazy
                 end
               end
 
@@ -366,14 +365,10 @@ module Datadog
                   end
                 end
 
-                option :trace_flush do |o|
-                  o.default { nil }
-                  o.lazy
-                end
+                option :trace_flush
 
                 option :writer_options do |o|
-                  o.default { {} }
-                  o.lazy
+                  o.default {}
                 end
               end
 
@@ -401,7 +396,7 @@ module Datadog
               #
               # @default `{}`
               # @return [Hash,nil]
-              option :writer_options, default: ->(_i) { {} }, lazy: true
+              option :writer_options, default: ->(_i) { {} }
 
               # Client IP configuration
               # @public_api
@@ -432,7 +427,6 @@ module Datadog
                     # ENABLED env var takes precedence over deprecated DISABLED
                     val_to_bool(ENV[Tracing::Configuration::Ext::ClientIp::ENV_ENABLED] || enabled)
                   end
-                  o.lazy
                 end
 
                 # An optional name of a custom header to resolve the client IP from.
@@ -441,8 +435,6 @@ module Datadog
                 # @return [String,nil]
                 option :header_name do |o|
                   o.env_var Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME
-                  o.default { nil }
-                  o.lazy
                 end
               end
 

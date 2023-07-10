@@ -38,14 +38,10 @@ module Datadog
               # TODO: Deprecate in the next major version, as `instrument` better describes this method's purpose
               alias_method :use, :instrument
 
-              option :trace_flush do |o|
-                o.default { nil }
-                o.lazy
-              end
+              option :trace_flush
 
               option :writer_options do |o|
-                o.default { {} }
-                o.lazy
+                o.default {}
               end
             end
           end
