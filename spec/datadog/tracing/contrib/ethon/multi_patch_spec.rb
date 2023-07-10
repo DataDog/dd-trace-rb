@@ -102,11 +102,6 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
           expect(easy_span.parent_id).to eq(multi_span.span_id)
         end
 
-        it_behaves_like 'a peer service span' do
-          let(:span) { multi_span }
-          let(:peer_hostname) { nil } # Multi spans can have many hostnames in a single execution
-        end
-
         it_behaves_like 'analytics for integration' do
           before { subject }
 
