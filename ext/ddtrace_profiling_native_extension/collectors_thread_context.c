@@ -75,6 +75,7 @@ static ID at_id_id;           // id of :@id in Ruby
 static ID at_resource_id;     // id of :@resource in Ruby
 static ID at_root_span_id;    // id of :@root_span in Ruby
 static ID at_type_id;         // id of :@type in Ruby
+static ID at_name_id;         // id of :@name in Ruby
 
 // Contains state for a single ThreadContext instance
 struct thread_context_collector_state {
@@ -143,6 +144,7 @@ struct trace_identifiers {
   uint64_t local_root_span_id;
   uint64_t span_id;
   VALUE trace_endpoint;
+  VALUE operation;
 };
 
 static void thread_context_collector_typed_data_mark(void *state_ptr);
@@ -235,6 +237,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   at_resource_id = rb_intern_const("@resource");
   at_root_span_id = rb_intern_const("@root_span");
   at_type_id = rb_intern_const("@type");
+  at_name_id = rb_intern_const("@name");
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct thread_context_collector_state
@@ -642,6 +645,7 @@ static void trigger_sample_for_thread(
     1 + // thread name
     1 + // profiler overhead
     1 + // end_timestamp_ns
+    2 + // wip operation
     2;  // local root span id and span id
   ddog_prof_Label labels[max_label_count];
   int label_pos = 0;
@@ -672,7 +676,7 @@ static void trigger_sample_for_thread(
     };
   }
 
-  struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
+  struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil, .operation = Qnil};
   trace_identifiers_for(state, thread, &trace_identifiers_result);
 
   if (trace_identifiers_result.valid) {
@@ -694,6 +698,11 @@ static void trigger_sample_for_thread(
         trace_identifiers_result.local_root_span_id,
         char_slice_from_ruby_string(trace_identifiers_result.trace_endpoint)
       );
+    }
+
+    if (trace_identifiers_result.operation != Qnil) {
+      labels[label_pos++] = (ddog_prof_Label) {.key = DDOG_CHARSLICE_C("operation"), .str = char_slice_from_ruby_string(trace_identifiers_result.operation)};
+      labels[label_pos++] = (ddog_prof_Label) {.key = DDOG_CHARSLICE_C("_dd.trace.operation"), .str = char_slice_from_ruby_string(trace_identifiers_result.operation)};
     }
   }
 
@@ -999,6 +1008,8 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
   trace_identifiers_result->span_id = NUM2ULL(numeric_span_id);
 
   trace_identifiers_result->valid = true;
+
+  trace_identifiers_result->operation = rb_ivar_get(active_span, at_name_id /* @name */);
 
   if (!state->endpoint_collection_enabled) return;
 
