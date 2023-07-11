@@ -42,18 +42,22 @@ def install_ddtrace_deps_with_native_extensions(gem_version_mapping: ,location: 
     "ffi",
     "ddtrace"
   ].each do |gem|
+    env = {}
     gem_install_cmd = "gem install #{gem} "\
       "--version #{gem_version_mapping[gem]} "\
       "--install-dir #{location} "\
       "--no-document "\
       "--ignore-dependencies "
 
-    if gem == "ffi"
+    case gem
+    when "ffi"
       gem_install_cmd << "-- --disable-system-libffi"
+    when "ddtrace"
+      env["DD_PROFILING_NO_EXTENSION"] = "true"
     end
 
     STDOUT.puts "Execute: #{gem_install_cmd}"
-    output, status = Open3.capture2e(gem_install_cmd)
+    output, status = Open3.capture2e(env, gem_install_cmd)
     STDOUT.puts output
 
     if status.success?
