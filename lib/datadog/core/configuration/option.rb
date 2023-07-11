@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../utils/safe_dup'
+
 module Datadog
   module Core
     module Configuration
@@ -84,7 +86,7 @@ module Datadog
           if definition.default.instance_of?(Proc)
             context_eval(&definition.default)
           else
-            definition.experimental_default_proc || definition.default.dup
+            definition.experimental_default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
           end
         end
 
