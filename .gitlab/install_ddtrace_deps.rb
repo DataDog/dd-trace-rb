@@ -48,6 +48,10 @@ def install_ddtrace_deps_with_native_extensions(gem_version_mapping: ,location: 
       "--no-document "\
       "--ignore-dependencies "
 
+    if gem == "ffi"
+      gem_install_cmd << "-- --disable-system-libffi"
+    end
+
     STDOUT.puts "Execute: #{gem_install_cmd}"
     output, status = Open3.capture2e(gem_install_cmd)
     STDOUT.puts output
