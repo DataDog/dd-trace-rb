@@ -207,7 +207,7 @@ module Datadog
         if Gem.loaded_specs['mysql2'] && incompatible_libmysqlclient_version?(settings)
           Datadog.logger.warn(
             'Enabling the profiling "no signals" workaround because an incompatible version of the mysql2 gem is ' \
-            'installed. Profiling data will have lower quality.' \
+            'installed. Profiling data will have lower quality. ' \
             'To fix this, upgrade the libmysqlclient in your OS image to version 8.0.0 or above.'
           )
           return true
@@ -245,9 +245,22 @@ module Datadog
         begin
           require 'mysql2'
 
-          return true unless defined?(Mysql2::Client) && Mysql2::Client.respond_to?(:info)
+          # The mysql2-aurora gem likes to monkey patch itself in replacement of Mysql2::Client, and uses
+          # `method_missing` to delegate to the original BUT unfortunately does not implement `respond_to_missing?` and
+          # thus our `respond_to?(:info)` below was failing.
+          #
+          # But on the bright side, the gem does stash a reference to the original Mysql2::Client class in a constant,
+          # so if that constant exists, we use that for our probing.
+          mysql2_client_class =
+            if defined?(Mysql2::Aurora::ORIGINAL_CLIENT_CLASS)
+              Mysql2::Aurora::ORIGINAL_CLIENT_CLASS
+            elsif defined?(Mysql2::Client)
+              Mysql2::Client
+            end
 
-          libmysqlclient_version = Gem::Version.new(Mysql2::Client.info[:version])
+          return true unless mysql2_client_class && mysql2_client_class.respond_to?(:info)
+
+          libmysqlclient_version = Gem::Version.new(mysql2_client_class.info[:version])
 
           compatible = libmysqlclient_version >= Gem::Version.new('8.0.0')
 
