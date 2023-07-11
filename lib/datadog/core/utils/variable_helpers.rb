@@ -62,8 +62,6 @@ module Datadog
         def val_to_list(val, default = [], comma_separated_only:)
           if val
             values = case val
-                     when Array
-                       val
                      when String
                        if val.include?(',') || comma_separated_only
                          val.split(',')
@@ -71,13 +69,21 @@ module Datadog
                          val.split(' ') # rubocop:disable Style/RedundantArgument
                        end
                      else
-                       raise ArgumentError, "Value `#{val}` can not be converted to an Array"
+                       begin
+                         Array(val)
+                       rescue ArgumentError => e
+                         raise e.class, "Value `#{val}` can not be converted to an Array"
+                       end
                      end
 
             result = values.map do |v|
-              v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+              if v.is_a?(String)
+                v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
 
-              v.empty? ? nil : v
+                v.empty? ? nil : v
+              else
+                v
+              end
             end
 
             result.compact!

@@ -38,7 +38,6 @@ module Datadog
             option :service_name do |o|
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
-                  '',
                   Ext::DEFAULT_PEER_SERVICE_NAME
                 )
               end

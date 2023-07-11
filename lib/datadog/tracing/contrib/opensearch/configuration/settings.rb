@@ -20,7 +20,7 @@ module Datadog
             end
 
             option :analytics_enabled do |o|
-              o.env_var Ext::ENV_ANALYTICS_ENABLED, false
+              o.env_var Ext::ENV_ANALYTICS_ENABLED
               o.default false
               o.setter do |value|
                 val_to_bool(value)

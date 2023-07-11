@@ -33,14 +33,13 @@ module Datadog
 
             option :analytics_enabled do |o|
               o.env_var Ext::ENV_ANALYTICS_ENABLED
-              o.default false
               o.setter do |value|
-                val_to_bool(value)
+                val_to_bool(value) unless value.nil?
               end
 
               o.on_set do |value|
                 # Update ActionPack analytics too
-                Datadog.configuration.tracing[:action_pack][:analytics_enabled] = value
+                Datadog.configuration.tracing[:action_pack][:analytics_enabled] = value unless value.nil?
               end
             end
 

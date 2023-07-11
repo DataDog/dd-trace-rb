@@ -402,8 +402,12 @@ module Datadog
               o.env_var 'DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED'
               o.default :auto
               o.setter do |value|
-                if value != :auto
-                  val_to_bool(value)
+                if ['true', true, 'false', false, :auto].include?(value)
+                  if value == :auto
+                    value
+                  else
+                    val_to_bool(value)
+                  end
                 else
                   value
                 end

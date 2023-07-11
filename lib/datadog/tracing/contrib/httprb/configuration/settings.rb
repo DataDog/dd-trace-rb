@@ -50,7 +50,7 @@ module Datadog
             option :error_status_codes do |o|
               o.env_var Ext::ENV_ERROR_STATUS_CODES
               o.setter do |value|
-                value_to_list(value, 400...600, comma_separated_only: false)
+                val_to_list(value, Array(400...600), comma_separated_only: false)
               end
             end
 

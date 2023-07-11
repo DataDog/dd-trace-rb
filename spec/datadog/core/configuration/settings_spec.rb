@@ -1277,7 +1277,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:env_var_value) { nil }
 
-          it { is_expected.to be 60.0 }
+          it { is_expected.to eq 60.0 }
         end
 
         context 'is defined' do

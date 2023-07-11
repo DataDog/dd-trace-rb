@@ -7,7 +7,8 @@ module Datadog
       module SpanAttributeSchema
         module_function
 
-        def fetch_service_name(value, default)
+        # rubocop:disable Style/OptionalArguments
+        def fetch_service_name(value = nil, default)
           if value
             value
           elsif Datadog.configuration.tracing.span_attribute_schema ==
@@ -17,6 +18,7 @@ module Datadog
             default
           end
         end
+        # rubocop:enable Style/OptionalArguments
 
         def default_span_attribute_schema?
           Datadog.configuration.tracing.span_attribute_schema ==

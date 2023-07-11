@@ -25,6 +25,7 @@ RSpec.describe 'Faraday middleware' do
   let(:use_middleware) { true }
   let(:middleware_options) { {} }
   let(:configuration_options) { {} }
+  let(:custom_handler) { ->(env) { (400...600).cover?(env[:status]) } }
 
   before do
     Datadog.configure do |c|
@@ -181,6 +182,7 @@ RSpec.describe 'Faraday middleware' do
   end
 
   context 'when there is a failing request' do
+    let(:middleware_options) { { error_handler: custom_handler } }
     subject!(:response) { client.post('/failure') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
@@ -261,7 +263,6 @@ RSpec.describe 'Faraday middleware' do
     subject!(:response) { client.get('not_found') }
 
     let(:middleware_options) { { error_handler: custom_handler } }
-    let(:custom_handler) { ->(env) { (400...600).cover?(env[:status]) } }
 
     it { expect(span).to have_error }
 
