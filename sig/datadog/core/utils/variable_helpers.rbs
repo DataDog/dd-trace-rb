@@ -1,0 +1,12 @@
+module Datadog
+  module Core
+    module Utils
+      module VariableHelpers
+        def self?.val_to_bool: (untyped val) -> untyped
+        def self?.val_to_int: (untyped val) -> untyped
+        def self?.val_to_float: (untyped val) -> untyped
+        def self?.val_to_list: (untyped val, ?untyped default, comma_separated_only: untyped) -> untyped
+      end
+    end
+  end
+end

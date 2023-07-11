@@ -74,14 +74,14 @@ module Datadog
                        raise ArgumentError, "Value `#{val}` can not be converted to an Array"
                      end
 
-            values.map! do |v|
+            result = values.map do |v|
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
 
               v.empty? ? nil : v
             end
 
-            values.compact!
-            values
+            result.compact!
+            result
           else
             default
           end
