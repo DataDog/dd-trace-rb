@@ -42,6 +42,7 @@ module Datadog
         module Metadata
           # Name of tag from which where peer.service information was extracted from
           TAG_PEER_SERVICE_SOURCE = '_dd.peer.service.source'
+          TAG_PEER_SERVICE_REMAP = '_dd.peer.service.remapped_from'
         end
       end
     end

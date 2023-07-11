@@ -51,8 +51,16 @@ module Datadog
           end
 
           def set_peer_service!(span, sources)
-            set_peer_service_from_source(span, sources)
-            # TODO: add logic for remap as long as the above expression is true
+            peer_service_val = set_peer_service_from_source(span, sources)
+            if peer_service_val
+              remap_val = Datadog.configuration.tracing.peer_service_mapping[peer_service_val.to_sym]
+              if remap_val
+                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, remap_val)
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_REMAP, peer_service_val)
+              end
+              return true
+            end
+            false
           end
 
           # set_peer_service_from_source: Implements the extraction logic to determine the peer.service value
@@ -60,7 +68,7 @@ module Datadog
           #
           # If no values are found, it checks the default list for all spans before returning false for no result
           # Sets the source of where the information for peer.service was extracted from
-          # Returns a boolean if peer.service was successfully set or not
+          # Returns a peer.service value if successfully set or not
           def set_peer_service_from_source(span, sources = [])
             # Filter out sources based on existence of peer.service tag
             sources = filter_peer_service_sources(span, sources)
@@ -72,7 +80,7 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, source_val)
               span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_SOURCE, source)
-              return true
+              return source_val
             end
             false
           end

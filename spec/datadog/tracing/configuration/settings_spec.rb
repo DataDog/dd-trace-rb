@@ -800,5 +800,31 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
       end
     end
+
+    describe '#peer_service_mapping' do
+      subject { settings.tracing.peer_service_mapping }
+
+      context 'when given environment variable DD_TRACE_PEER_SERVICE_MAPPING' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TRACE_PEER_SERVICE_MAPPING' => env_var
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var) { nil }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context 'is defined' do
+          let(:env_var) { 'key:value' }
+
+          it { is_expected.to eq({ :key => 'value' }) }
+        end
+      end
+    end
   end
 end
