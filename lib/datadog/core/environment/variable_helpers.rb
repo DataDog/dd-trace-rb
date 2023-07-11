@@ -134,8 +134,8 @@ module Datadog
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
 
               unless v.empty?
-                pair = v.split(':')
-                values_hash[pair[0].to_sym] = pair[1..].join(':')
+                pair = v.split(':', 2)
+                values_hash[pair[0].to_sym] = pair[1]
               end
             end
 
