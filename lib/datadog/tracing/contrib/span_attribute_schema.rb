@@ -52,8 +52,10 @@ module Datadog
 
           def set_peer_service!(span, sources)
             peer_service_val = set_peer_service_from_source(span, sources)
+            # Check if peer.service value is actually set prior to checking for remapping
             if peer_service_val
               remap_val = Datadog.configuration.tracing.peer_service_mapping[peer_service_val.to_sym]
+              # If remap value found then overwrite peer.service with remap value and add remapped_from tag w/old value
               if remap_val
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, remap_val)
                 span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_REMAP, peer_service_val)
