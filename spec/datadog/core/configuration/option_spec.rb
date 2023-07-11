@@ -239,6 +239,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
       context 'when env_var is not set' do
         it 'use default value' do
+          # mock .dup lib/datadog/core/configuration/option.rbL87
+          expect(default).to receive(:dup).and_return(default)
+
           expect(option.get).to be default
         end
       end
@@ -270,7 +273,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
       let(:deprecated_env_var) { 'TEST' }
       context 'when env var is not set' do
-        it 'use default value' do
+        it do
+          # mock .dup lib/datadog/core/configuration/option.rbL87
+          expect(default).to receive(:dup).and_return(default)
           expect(option.get).to be default
         end
       end
@@ -301,6 +306,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
     context 'when #set' do
       context 'hasn\'t been called' do
         before do
+          # mock .dup lib/datadog/core/configuration/option.rbL87
+          expect(default).to receive(:dup).and_return(default)
+
           expect(context).to receive(:instance_exec) do |*args, &block|
             expect(args.first).to be(default)
             expect(block).to be setter
@@ -360,7 +368,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
           before { reset }
 
-          it { is_expected.to be(default) }
+          it do
+            # mock .dup lib/datadog/core/configuration/option.rbL87
+            expect(default).to receive(:dup).and_return(default)
+            is_expected.to be(default)
+          end
         end
       end
 
@@ -405,7 +417,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
       before do
         expect(context).to receive(:instance_eval) do |&block|
-          expect(block).to be default
+          expect(block).to eq(default)
           block_default
         end
       end
@@ -414,7 +426,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
     end
 
     context 'when default is not a block' do
-      it { is_expected.to be default }
+      it do
+        # mock .dup lib/datadog/core/configuration/option.rbL87
+        expect(default).to receive(:dup).and_return(default)
+        is_expected.to be default
+      end
     end
 
     context 'when experimental_default_proc is defined' do

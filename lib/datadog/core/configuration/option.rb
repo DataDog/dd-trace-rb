@@ -84,7 +84,7 @@ module Datadog
           if definition.default.instance_of?(Proc)
             context_eval(&definition.default)
           else
-            definition.experimental_default_proc || definition.default
+            definition.experimental_default_proc || definition.default.dup
           end
         end
 

@@ -368,7 +368,7 @@ module Datadog
                 option :trace_flush
 
                 option :writer_options do |o|
-                  o.default {}
+                  o.default({})
                 end
               end
 

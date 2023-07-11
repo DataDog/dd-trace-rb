@@ -368,6 +368,17 @@ module Datadog
               end
             end
 
+            # Enables data collection for the timeline feature. This is still experimental and not recommended yet.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED` environment variable as a boolean, otherwise `false`
+            option :experimental_timeline_enabled do |o|
+              o.env_var 'DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED'
+              o.default false
+              o.setter do |value|
+                val_to_bool(value)
+              end
+            end
+
             # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
             #
             # Sending `SIGPROF` is a common profiling approach, and may cause system calls from native
@@ -451,7 +462,7 @@ module Datadog
           # nice_service_name = Datadog.configuration.service_without_fallback || nice_service_name_default
           o.helper(:service_without_fallback) do
             service_name = service
-            service_name unless service_name.equal?(Core::Environment::Ext::FALLBACK_SERVICE_NAME)
+            service_name unless service_name === Core::Environment::Ext::FALLBACK_SERVICE_NAME
           end
         end
 
@@ -477,7 +488,7 @@ module Datadog
         # @return [Hash<String,String>]
         option :tags do |o|
           o.env_var Core::Environment::Ext::ENV_TAGS
-          o.default {}
+          o.default({})
           o.setter do |new_value, old_value|
             tag_list = if new_value && new_value.is_a?(String)
                          val_to_list(new_value, comma_separated_only: false).each_with_object({}) do |tag, tags|
