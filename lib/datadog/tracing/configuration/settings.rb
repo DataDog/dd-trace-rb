@@ -10,6 +10,7 @@ module Datadog
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Layout/LineLength
+      # rubocop:disable Metrics/PerceivedComplexity
       module Settings
         def self.extended(base)
           base.class_eval do
@@ -471,6 +472,7 @@ module Datadog
       # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/MethodLength
       # rubocop:enable Layout/LineLength
+      # rubocop:enable Metrics/PerceivedComplexity
     end
   end
 end
