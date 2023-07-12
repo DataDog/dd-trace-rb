@@ -13,32 +13,27 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             option :enabled do |o|
+              o.type :bool
               o.env_var Ext::ENV_ENABLED
               o.default true
-              o.setter do |value|
-                val_to_bool(value)
-              end
             end
 
             option :analytics_enabled do |o|
+              o.type :bool
               o.env_var Ext::ENV_ANALYTICS_ENABLED
               o.default false
-              o.setter do |value|
-                val_to_bool(value)
-              end
             end
 
             option :analytics_sample_rate do |o|
+              o.type :float
               o.env_var Ext::ENV_ANALYTICS_SAMPLE_RATE
               o.default 1.0
-              o.setter do |value|
-                val_to_float(value)
-              end
             end
 
-            option :distributed_tracing, default: true
+            option :distributed_tracing, default: true, type: :bool
 
             option :service_name do |o|
+              o.type :string, nil: true
               o.env_var Ext::ENV_SERVICE_NAME
               o.setter do |value|
                 Contrib::SpanAttributeSchema.fetch_service_name(
@@ -48,7 +43,7 @@ module Datadog
               end
             end
 
-            option :error_handler, experimental_default_proc: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
+            option :error_handler, type: :proc, experimental_default_proc: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
           end
         end
       end

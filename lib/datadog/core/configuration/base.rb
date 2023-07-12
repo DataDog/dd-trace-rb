@@ -8,8 +8,8 @@ module Datadog
       # @public_api
       module Base
         def self.included(base)
-          base.extend(Core::Utils::VariableHelpers)
-          base.include(Core::Utils::VariableHelpers)
+          base.extend(Core::Environment::VariableHelpers)
+          base.include(Core::Environment::VariableHelpers)
           base.include(Options)
 
           base.extend(ClassMethods)
@@ -34,8 +34,6 @@ module Datadog
                 value.reset! if value.respond_to?(:reset!)
                 value
               end
-
-              o.type settings_class
             end
           end
 

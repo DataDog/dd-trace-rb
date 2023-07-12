@@ -14,30 +14,24 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             option :enabled do |o|
+              o.type :bool
               o.env_var Ext::ENV_ENABLED
               o.default true
-              o.setter do |value|
-                val_to_bool(value)
-              end
             end
 
             option :analytics_enabled do |o|
+              o.type :bool
               o.env_var Ext::ENV_ANALYTICS_ENABLED
               o.default false
-              o.setter do |value|
-                val_to_bool(value)
-              end
             end
 
             option :analytics_sample_rate do |o|
+              o.type :float
               o.env_var Ext::ENV_ANALYTICS_SAMPLE_RATE
               o.default 1.0
-              o.setter do |value|
-                val_to_float(value)
-              end
             end
 
-            option :quantize, default: {}
+            option :quantize, default: {}, type: :hash
             option :service_name
 
             # A list of rake tasks, using their string names, to be instrumented.
@@ -45,8 +39,8 @@ module Datadog
             # Automatically instrumenting all Rake tasks can lead to long-running tasks
             # causing undue memory accumulation, as the trace for such tasks is never flushed.
             option :tasks do |o|
+              o.type :array
               o.default []
-
               o.on_set do |value|
                 # DEV: It should be possible to modify the value after it's set. E.g. for normalization.
                 options[:tasks].instance_variable_set(:@value, value.map(&:to_s).to_set)

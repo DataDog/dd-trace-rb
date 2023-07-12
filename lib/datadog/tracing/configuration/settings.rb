@@ -10,7 +10,6 @@ module Datadog
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Layout/LineLength
-      # rubocop:disable Metrics/PerceivedComplexity
       module Settings
         def self.extended(base)
           base.class_eval do
@@ -27,10 +26,8 @@ module Datadog
                 # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
                 # @return [Boolean,nil]
                 option :enabled do |o|
+                  o.type bool, nil: true
                   o.env_var Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED
-                  o.setter do |value|
-                    val_to_bool(value) if value
-                  end
                 end
               end
 
@@ -54,22 +51,16 @@ module Datadog
                 #   otherwise `['Datadog','b3multi','b3']`.
                 # @return [Array<String>]
                 option :propagation_extract_style do |o|
+                  o.type :array
                   o.deprecated_env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT_OLD
                   o.env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT
-                  o.setter do |value|
-                    # DEV-2.0: Change default value to `tracecontext, Datadog`.
-                    # Look for all headers by default
-                    val_to_list(
-                      value,
-                      [
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                      ],
-                      comma_separated_only: true
-                    )
-                  end
-
+                  o.default(
+                    [
+                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
+                    ]
+                  )
                   o.on_set do |styles|
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
@@ -94,17 +85,10 @@ module Datadog
                 # @default `DD_TRACE_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
                 # @return [Array<String>]
                 option :propagation_inject_style do |o|
+                  o.type :array
                   o.deprecated_env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD
                   o.env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT
-                  o.setter do |value|
-                    # DEV-2.0: Change default value to `tracecontext, Datadog`.
-                    val_to_list(
-                      value,
-                      [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG],
-                      comma_separated_only: true # Only inject Datadog headers by default
-                    )
-                  end
-
+                  o.default [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG]
                   o.on_set do |styles|
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
@@ -130,13 +114,11 @@ module Datadog
                 # @default `DD_TRACE_PROPAGATION_STYLE` environment variable (comma-separated list).
                 # @return [Array<String>]
                 option :propagation_style do |o|
+                  o.type :array
                   o.env_var Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
-                  o.setter do |value|
-                    val_to_list(value, nil, comma_separated_only: true)
-                  end
-
+                  o.default []
                   o.on_set do |styles|
-                    next unless styles
+                    next if styles.empty?
 
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
@@ -167,9 +149,7 @@ module Datadog
               option :enabled do |o|
                 o.env_var Tracing::Configuration::Ext::ENV_ENABLED
                 o.default true
-                o.setter do |value|
-                  val_to_bool(value)
-                end
+                o.type :bool
               end
 
               # Enable 128 bit trace id generation.
@@ -179,9 +159,7 @@ module Datadog
               option :trace_id_128_bit_generation_enabled do |o|
                 o.env_var Tracing::Configuration::Ext::ENV_TRACE_ID_128_BIT_GENERATION_ENABLED
                 o.default false
-                o.setter do |value|
-                  val_to_bool(value)
-                end
+                o.type :bool
               end
 
               # Enable 128 bit trace id injected for logging.
@@ -193,9 +171,7 @@ module Datadog
               option :trace_id_128_bit_logging_enabled do |o|
                 o.env_var Tracing::Configuration::Ext::Correlation::ENV_TRACE_ID_128_BIT_LOGGING_ENABLED
                 o.default false
-                o.setter do |value|
-                  val_to_bool(value)
-                end
+                o.type :bool
               end
 
               # A custom tracer instance.
@@ -218,9 +194,7 @@ module Datadog
               option :log_injection do |o|
                 o.env_var Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED
                 o.default true
-                o.setter do |value|
-                  val_to_bool(value)
-                end
+                o.type :bool
               end
 
               # Configures an alternative trace transport behavior, where
@@ -237,7 +211,7 @@ module Datadog
                 #
                 # @default `false`
                 # @return [Boolean]
-                option :enabled, default: false
+                option :enabled, default: false, type: :bool
 
                 # Minimum number of finished spans required in a single unfinished trace before
                 # the tracer will consider that trace for partial flushing.
@@ -250,7 +224,7 @@ module Datadog
                 #
                 # @default 500
                 # @return [Integer]
-                option :min_spans_threshold, default: 500
+                option :min_spans_threshold, default: 500, type: :int
               end
 
               # Enables {https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/#datadog-intelligent-retention-filter
@@ -262,9 +236,7 @@ module Datadog
               option :report_hostname do |o|
                 o.env_var Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME
                 o.default false
-                o.setter do |value|
-                  val_to_bool(value)
-                end
+                o.type :bool
               end
 
               # A custom sampler instance.
@@ -286,11 +258,8 @@ module Datadog
                 # @default `DD_TRACE_SAMPLE_RATE` environment variable, otherwise `nil`.
                 # @return [Float]
                 option :default_rate do |o|
+                  o.type :float, nil: true
                   o.env_var Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
-                  o.default nil
-                  o.setter do |value|
-                    val_to_float(value)
-                  end
                 end
 
                 # Rate limit for number of spans per second.
@@ -301,11 +270,9 @@ module Datadog
                 # @default `DD_TRACE_RATE_LIMIT` environment variable, otherwise 100.
                 # @return [Numeric,nil]
                 option :rate_limit do |o|
+                  o.type :int, nil: true
                   o.env_var Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT
                   o.default 100
-                  o.setter do |value|
-                    val_to_float(value)
-                  end
                 end
 
                 # Single span sampling rules.
@@ -320,6 +287,7 @@ module Datadog
                 # @return [String,nil]
                 # @public_api
                 option :span_rules do |o|
+                  o.type :string, nil: true
                   o.default do
                     rules = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
                     rules_file = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
@@ -360,15 +328,15 @@ module Datadog
                 # @default `DD_TRACE_TEST_MODE_ENABLED` environment variable, otherwise `false`
                 # @return [Boolean]
                 option :enabled do |o|
+                  o.type :bool
+                  o.default false
                   o.env_var Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED
-                  o.setter do |value|
-                    val_to_bool(value)
-                  end
                 end
 
                 option :trace_flush
 
                 option :writer_options do |o|
+                  o.type :hash
                   o.default({})
                 end
               end
@@ -380,8 +348,10 @@ module Datadog
               # @yieldparam [Datadog::Transport::HTTP] t transport to be configured.
               # @default `nil`
               # @return [Proc,nil]
-              option :transport_options, default: nil
-
+              option :transport_options do |o|
+                o.type :proc, nil: true
+                o.default nil
+              end
               # A custom writer instance.
               # The object must respect the {Datadog::Tracing::Writer} interface.
               #
@@ -397,7 +367,10 @@ module Datadog
               #
               # @default `{}`
               # @return [Hash,nil]
-              option :writer_options, default: ->(_i) { {} }
+              option :writer_options do |o|
+                o.type :hash, nil: true
+                o.default {}
+              end
 
               # Client IP configuration
               # @public_api
@@ -412,8 +385,9 @@ module Datadog
                 # @default `DD_TRACE_CLIENT_IP_ENABLED` environment variable, otherwise `false`.
                 # @return [Boolean]
                 option :enabled do |o|
+                  o.type :bool
                   o.default do
-                    disabled = ENV[Tracing::Configuration::Ext::ClientIp::ENV_DISABLED]
+                    disabled = env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED)
 
                     enabled = if disabled.nil?
                                 false
@@ -426,7 +400,7 @@ module Datadog
                               end
 
                     # ENABLED env var takes precedence over deprecated DISABLED
-                    val_to_bool(ENV[Tracing::Configuration::Ext::ClientIp::ENV_ENABLED] || enabled)
+                    env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_ENABLED, enabled)
                   end
                 end
 
@@ -435,6 +409,7 @@ module Datadog
                 # @default `DD_TRACE_CLIENT_IP_HEADER` environment variable, otherwise `nil`.
                 # @return [String,nil]
                 option :header_name do |o|
+                  o.type :string, nil: true
                   o.env_var Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME
                 end
               end
@@ -448,11 +423,9 @@ module Datadog
               # @default `DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH` environment variable, otherwise `512`
               # @return [Integer]
               option :x_datadog_tags_max_length do |o|
+                o.type :int
                 o.env_var Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
-                o.setter do |value|
-                  val_to_int(value)
-                end
               end
 
               # Schema version for span attributes that enables various features
@@ -460,6 +433,7 @@ module Datadog
               # @default `DD_TRACE_SPAN_ATTRIBUTE_SCHEMA` environment variable, otherwise default `v0` currently
               # @return [String]
               option :span_attribute_schema do |o|
+                o.type :string
                 o.env_var Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA
                 o.default Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
               end
@@ -472,7 +446,6 @@ module Datadog
       # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/MethodLength
       # rubocop:enable Layout/LineLength
-      # rubocop:enable Metrics/PerceivedComplexity
     end
   end
 end

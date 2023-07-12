@@ -12,34 +12,31 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             option :enabled do |o|
+              o.type :bool
               o.env_var Ext::ENV_ENABLED
               o.default true
-              o.setter do |value|
-                val_to_bool(value)
-              end
             end
 
             option :analytics_enabled do |o|
+              o.type :bool
               o.env_var Ext::ENV_ANALYTICS_ENABLED
               o.default false
-              o.setter do |value|
-                val_to_bool(value)
-              end
             end
 
             option :analytics_sample_rate do |o|
+              o.type :float
               o.env_var Ext::ENV_ANALYTICS_SAMPLE_RATE
               o.default 1.0
-              o.setter do |value|
-                val_to_float(value)
-              end
             end
 
-            option :distributed_tracing, default: true
-            option :error_handler
-            option :split_by_domain, default: false
+            option :distributed_tracing, default: true, type: :bool
+            option :error_handler do
+              o.type :proc, nil: true
+            end
+            option :split_by_domain, default: false, type: :bool
 
             option :service_name do |o|
+              o.type :string, nil: true
               o.env_var Ext::ENV_SERVICE_NAME
               o.setter do |value|
                 Contrib::SpanAttributeSchema.fetch_service_name(

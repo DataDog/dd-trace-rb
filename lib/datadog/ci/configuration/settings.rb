@@ -16,11 +16,9 @@ module Datadog
           base.class_eval do
             settings :ci do
               option :enabled do |o|
+                o.type :bool
                 o.env_var CI::Ext::Settings::ENV_MODE_ENABLED
                 o.default false
-                o.setter do |value|
-                  val_to_bool(value)
-                end
               end
 
               # DEV: Alias to Datadog::Tracing::Contrib::Extensions::Configuration::Settings#instrument.
@@ -41,6 +39,7 @@ module Datadog
               option :trace_flush
 
               option :writer_options do |o|
+                o.type :hash
                 o.default({})
               end
             end

@@ -24,7 +24,8 @@ module Datadog
           :on_set,
           :resetter,
           :setter,
-          :type
+          :type,
+          :type_opts
 
         def initialize(name, meta = {}, &block)
           @default = meta[:default]
@@ -38,6 +39,7 @@ module Datadog
           @resetter = meta[:resetter]
           @setter = meta[:setter] || block || IDENTITY
           @type = meta[:type]
+          @type_opts = meta[:type_opts]
         end
 
         # Creates a new Option, bound to the context provided.
@@ -66,6 +68,7 @@ module Datadog
             @resetter = nil
             @setter = OptionDefinition::IDENTITY
             @type = nil
+            @type_opts = {}
 
             # If options were supplied, apply them.
             apply_options!(options)
@@ -126,8 +129,9 @@ module Datadog
             @setter = block
           end
 
-          def type(value = nil)
+          def type(value = nil, opts = {})
             @type = value
+            @type_opts = opts
           end
 
           # For applying options for OptionDefinition
@@ -161,7 +165,8 @@ module Datadog
               on_set: @on_set,
               resetter: @resetter,
               setter: @setter,
-              type: @type
+              type: @type,
+              type_opts: @type_opts
             }
           end
 

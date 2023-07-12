@@ -191,7 +191,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
         before { set_appsec_ruleset }
 
-        it { expect(settings.appsec.ruleset).to eq(nil) }
+        it { expect(settings.appsec.ruleset).to be_nil }
       end
     end
 
