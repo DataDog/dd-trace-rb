@@ -43,3 +43,9 @@ bool ddtrace_rb_ractor_main_p(void);
 
 // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
 #define PLACEHOLDER_STACK_IN_NATIVE_CODE -1
+
+// This method provides the file and line of the "invoke location" of a thread (first file:line of the block used to
+// start the thread), if any.
+// This is what Ruby shows in `Thread#to_s`.
+// The file is returned directly, and the line is recorded onto *line_location.
+VALUE invoke_location_for(VALUE thread, int *line_location);

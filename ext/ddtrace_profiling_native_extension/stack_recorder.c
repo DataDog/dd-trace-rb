@@ -6,6 +6,7 @@
 #include "stack_recorder.h"
 #include "libdatadog_helpers.h"
 #include "ruby_helpers.h"
+#include "time_helpers.h"
 
 // Used to wrap a ddog_prof_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
@@ -208,7 +209,7 @@ static VALUE _native_active_slot(DDTRACE_UNUSED VALUE _self, VALUE recorder_inst
 static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
-static ddog_Timespec time_now(void);
+static ddog_Timespec system_epoch_now_timespec(void);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec timestamp);
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
@@ -347,7 +348,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  ddog_Timespec finish_timestamp = time_now();
+  ddog_Timespec finish_timestamp = system_epoch_now_timespec();
   // Need to do this while still holding on to the Global VM Lock; see comments on method for why
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
@@ -547,14 +548,9 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
   }
 }
 
-// Note that this is using CLOCK_REALTIME (e.g. actual time since unix epoch) and not the CLOCK_MONOTONIC as we use in
-// monotonic_wall_time_now_ns (used in other parts of the codebase)
-static ddog_Timespec time_now(void) {
-  struct timespec current_time;
-
-  if (clock_gettime(CLOCK_REALTIME, &current_time) != 0) ENFORCE_SUCCESS_GVL(errno);
-
-  return (ddog_Timespec) {.seconds = current_time.tv_sec, .nanoseconds = (uint32_t) current_time.tv_nsec};
+static ddog_Timespec system_epoch_now_timespec(void) {
+  long now_ns = system_epoch_time_now_ns(RAISE_ON_FAILURE);
+  return (ddog_Timespec) {.seconds = now_ns / SECONDS_AS_NS(1), .nanoseconds = now_ns % SECONDS_AS_NS(1)};
 }
 
 // After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.

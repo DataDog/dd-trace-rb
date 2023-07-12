@@ -12,6 +12,7 @@ module Datadog
           gc_profiling_enabled: bool,
           allocation_counting_enabled: bool,
           no_signals_workaround_enabled: bool,
+          timeline_enabled: bool,
           ?thread_context_collector: Datadog::Profiling::Collectors::ThreadContext,
           ?idle_sampling_helper: Datadog::Profiling::Collectors::IdleSamplingHelper,
           ?dynamic_sampling_rate_enabled: bool,

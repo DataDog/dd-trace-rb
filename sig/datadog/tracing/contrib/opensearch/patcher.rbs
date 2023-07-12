@@ -1,0 +1,22 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module OpenSearch
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.patch: () -> untyped
+          module Client
+            def perform_request: (*untyped args) -> untyped
+
+            def tag_params: (untyped params, untyped span) -> (untyped | nil)
+
+            def tag_body: (untyped body, untyped span) -> (untyped | nil)
+
+            def datadog_configuration: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

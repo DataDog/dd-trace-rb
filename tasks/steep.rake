@@ -14,7 +14,7 @@ namespace :steep do
           |  **Hello there, fellow contributor who just triggered a Steep type error**   |
           |                                                                              |
           | We're still experimenting with Steep on this codebase. If possible, take a   |
-          | stab at getting it to work; you'll find a guide for how to use it here.      |
+          | stab at getting it to work; you'll find a guide for how to use it here:      |
           |                                                                              |
           |   less docs/StaticTypingGuide.md                                             |
           |                                                                              |

@@ -31,7 +31,6 @@ RSpec.describe Datadog::Core::Configuration::Base do
 
               is_expected.to have_attributes(
                 default: kind_of(Proc),
-                lazy: true,
                 resetter: kind_of(Proc)
               )
             end
