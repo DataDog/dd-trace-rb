@@ -120,10 +120,10 @@ module Datadog
         end
 
         def default_value
-          if definition.lazy
+          if definition.default.instance_of?(Proc)
             context_eval(&definition.default)
           else
-            definition.default
+            definition.experimental_default_proc || definition.default
           end
         end
 

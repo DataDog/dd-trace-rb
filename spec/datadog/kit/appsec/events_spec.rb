@@ -52,6 +52,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       trace_op.measure('root') do |span, _trace|
         described_class.track_login_success(trace_op, user: { id: '42' })
         expect(span.tags).to include('appsec.events.users.login.success.track' => 'true')
+        expect(span.tags).to include('_dd.appsec.events.users.login.success.sdk' => 'true')
       end
     end
 
@@ -101,6 +102,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       trace_op.measure('root') do |span, _trace|
         described_class.track_login_failure(trace_op, user_id: '42', user_exists: true)
         expect(span.tags).to include('appsec.events.users.login.failure.track' => 'true')
+        expect(span.tags).to include('_dd.appsec.events.users.login.failure.sdk' => 'true')
       end
     end
 
@@ -147,6 +149,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       trace_op.measure('root') do |span, _trace|
         described_class.track_signup(trace_op, user: { id: '42' })
         expect(span.tags).to include('appsec.events.users.signup.track' => 'true')
+        expect(span.tags).to include('_dd.appsec.events.users.signup.sdk' => 'true')
       end
     end
 
@@ -196,6 +199,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       trace_op.measure('root') do |span, _trace|
         described_class.track('foo', trace_op)
         expect(span.tags).to include('appsec.events.foo.track' => 'true')
+        expect(span.tags).to include('_dd.appsec.events.foo.sdk' => 'true')
       end
     end
 

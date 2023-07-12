@@ -151,6 +151,7 @@ if ruby_version?('2.1')
     gem 'httpclient'
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '< 2.5'
+    gem 'minitest', '>= 5.0.0'
     gem 'mysql2', '0.3.21'
     gem 'pg', '>= 0.18.4', '< 1.0'
     gem 'rack', '1.4.7'
@@ -338,6 +339,7 @@ elsif ruby_version?('2.2')
     gem 'lograge', '~> 0.11'
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '>= 2.8.0'
+    gem 'minitest', '>= 5.0.0'
     gem 'mysql2', '< 0.5'
     gem 'pg', '>= 0.18.4'
     gem 'presto-client', '>=  0.5.14'
@@ -539,6 +541,7 @@ elsif ruby_version?('2.3')
     gem 'lograge', '~> 0.11'
     gem 'makara'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
+    gem 'minitest', '>= 5.0.0'
     gem 'mysql2', '< 0.5'
     gem 'pg', '>= 0.18.4'
     gem 'racecar', '>= 0.3.5'
@@ -674,7 +677,9 @@ elsif ruby_version?('2.4')
     gem 'lograge', '~> 0.11'
     gem 'makara'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
+    gem 'minitest', '>= 5.0.0'
     gem 'mysql2', '< 0.5'
+    gem 'opensearch-ruby'
     gem 'pg', '>= 0.18.4'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
@@ -940,9 +945,11 @@ elsif ruby_version?('2.5')
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
     gem 'makara'
+    gem 'minitest', '>= 5.0.0'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
+    gem 'opensearch-ruby'
     gem 'pg', '>= 0.18.4', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
     gem 'racecar', '>= 0.3.5'
@@ -1190,9 +1197,11 @@ elsif ruby_version?('2.6')
       gem 'httpclient'
       gem 'lograge', '~> 0.11'
       gem 'makara'
+      gem 'minitest', '>= 5.0.0'
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+      gem 'opensearch-ruby'
       gem 'pg', '>= 0.18.4', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'racecar', '>= 0.3.5'
@@ -1426,8 +1435,10 @@ elsif ruby_version?('2.7')
       gem 'httpclient'
       gem 'lograge', '~> 0.11'
       gem 'makara'
+      gem 'minitest', '>= 5.0.0'
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
+      gem 'opensearch-ruby'
       gem 'pg', '>= 0.18.4', platform: :ruby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -1561,9 +1572,11 @@ elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2') || ru
     gem 'httpclient'
     gem 'lograge'
     gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
+    gem 'minitest', '>= 5.0.0'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+    gem 'opensearch-ruby'
     gem 'pg', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
     gem 'racecar', '>= 0.3.5'

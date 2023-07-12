@@ -14,6 +14,7 @@ end
 # Integrations
 require_relative 'ci/contrib/cucumber/integration'
 require_relative 'ci/contrib/rspec/integration'
+require_relative 'ci/contrib/minitest/integration'
 
 # Extensions
 require_relative 'ci/extensions'
