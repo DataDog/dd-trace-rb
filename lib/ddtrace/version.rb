@@ -15,7 +15,7 @@ module DDTrace
 
     # Restrict the installation of this gem with untested future versions of Ruby.
     #
-    # This prevents crashes in the native extension code and sends a clear signal to the 
+    # This prevents crashes in the native extension code and sends a clear signal to the
     # user that this version of the gem is untested for the host Ruby version.
     #
     # To allow testing with the next unreleased version of Ruby, the version check is performed
