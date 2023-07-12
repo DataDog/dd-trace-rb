@@ -21,5 +21,25 @@ module Datadog
         end
       end
     end
+
+    # This module is used to provide features from Ruby 2.4+ to older Rubies
+    module BackportFrom24
+      module_function
+
+      if RUBY_VERSION < '2.4'
+        def dup(value)
+          case value
+          when NilClass, TrueClass, FalseClass, Integer, Float
+            value
+          else
+            value.dup
+          end
+        end
+      else
+        def dup(value)
+          value.dup
+        end
+      end
+    end
   end
 end
