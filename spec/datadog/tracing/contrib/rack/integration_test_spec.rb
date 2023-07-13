@@ -1042,6 +1042,36 @@ RSpec.describe 'Rack integration tests' do
         expect(span.get_tag('span.kind')).to eq('server')
       end
     end
+
+    context 'test web_server_name versioning' do
+      let(:routes) do
+        proc do
+          map '/request_queuing_enabled' do
+            run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+          end
+        end
+      end
+
+      let(:rack_options) { { request_queuing: :include_request } }
+
+      around do |example|
+        ClimateControl.modify DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
+          example.run
+        end
+      end
+
+      it 'creates web_server_span and rack span' do
+        get 'request_queuing_enabled',
+          nil,
+          { Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}" }
+
+        expect(trace.resource).to eq('GET 200')
+
+        expect(spans).to have(2).items
+
+        expect(spans[0].service).to eq('rspec')
+      end
+    end
   end
 
   context 'for a nested instrumentation' do
