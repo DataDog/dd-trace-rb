@@ -11,14 +11,13 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
           expect(input).to be_frozen
 
-          expect(result).to eq(input)
           expect(result).to be(input)
           expect(result).to be_frozen
         end
       end
 
       context 'when given a string' do
-        it 'returns a non frozen dupliacte' do
+        it 'returns a non-frozen dupliacte' do
           input = 'a_string'
 
           result = described_class.frozen_or_dup(input)
@@ -41,7 +40,6 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
           expect(input).to be_frozen
 
-          expect(result).to eq(input)
           expect(result).to be(input)
           expect(result).to be_frozen
         end
@@ -73,14 +71,13 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
           expect(input).to be_frozen
 
-          expect(result).to eq(input)
           expect(result).to be(input)
           expect(result).to be_frozen
         end
       end
 
       context 'when given a hash' do
-        it 'returns a non frozen dupliacte' do
+        it 'returns a non-frozen dupliacte' do
           input = { a: :b }
 
           result = described_class.frozen_or_dup(input)
@@ -103,7 +100,6 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
           expect(input).to be_frozen
 
-          expect(result).to eq(input)
           expect(result).to be(input)
           expect(result).to be_frozen
         end
@@ -139,7 +135,6 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
           expect(input).to be_frozen
 
-          expect(result).to eq(input)
           expect(result).to be(input)
           expect(result).to be_frozen
         end
@@ -155,7 +150,6 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
           expect(input).to be_frozen
 
-          expect(result).to eq(input)
           expect(result).to be(input)
           expect(result).to be_frozen
         end
@@ -173,14 +167,13 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
           expect(input).to be_frozen
 
-          expect(result).to eq(input)
           expect(result).to be(input)
           expect(result).to be_frozen
         end
       end
 
-      context 'when given a string' do
-        it 'returns a non frozen array' do
+      context 'when given an array' do
+        it 'returns a non-frozen copy of that array' do
           input = [1]
 
           result = described_class.frozen_or_dup(input)
@@ -203,13 +196,12 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
           expect(input).to be_frozen
 
-          expect(result).to eq(input)
           expect(result).to be(input)
           expect(result).to be_frozen
         end
       end
 
-      context 'when given a array' do
+      context 'when given an array' do
         it 'returns a frozen duplicate' do
           input = [1]
 
@@ -235,7 +227,6 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
           expect(input).to be_frozen
 
-          expect(result).to eq(input)
           expect(result).to be(input)
           expect(result).to be_frozen
         end
@@ -251,7 +242,6 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
 
           expect(input).to be_frozen
 
-          expect(result).to eq(input)
           expect(result).to be(input)
           expect(result).to be_frozen
         end
