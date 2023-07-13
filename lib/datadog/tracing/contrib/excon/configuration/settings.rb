@@ -30,7 +30,7 @@ module Datadog
             end
 
             option :distributed_tracing, default: true, type: :bool
-            option :error_handler do
+            option :error_handler do |o|
               o.type :proc, nil: true
             end
             option :split_by_domain, default: false, type: :bool

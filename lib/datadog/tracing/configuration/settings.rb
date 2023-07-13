@@ -26,7 +26,7 @@ module Datadog
                 # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
                 # @return [Boolean,nil]
                 option :enabled do |o|
-                  o.type bool, nil: true
+                  o.type :bool, nil: true
                   o.env_var Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED
                 end
               end
@@ -366,9 +366,9 @@ module Datadog
               # This option is recommended for internal use only.
               #
               # @default `{}`
-              # @return [Hash,nil]
+              # @return [Hash]
               option :writer_options do |o|
-                o.type :hash, nil: true
+                o.type :hash
                 o.default {}
               end
 

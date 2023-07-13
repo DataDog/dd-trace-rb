@@ -86,7 +86,7 @@ module Datadog
           if definition.default.instance_of?(Proc)
             context_eval(&definition.default)
           else
-            definition.experimental_default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
+            definition.experimental_default_proc || definition.default.dup
           end
         end
 
@@ -127,36 +127,42 @@ module Datadog
         end
 
         def validate_type(value)
-          invalid_type = case @definition.type
-                         when :string
-                           value.is_a?(String)
-                         when :int
-                           value.is_a?(Integer)
-                         when :float
-                           value.is_a?(Float)
-                         when :array
-                           value.is_a?(Array)
-                         when :hash
-                           value.is_a?(Hash)
-                         when :bool
-                           value.is_a?(TrueClass) || value.is_a?(FalseClass)
-                         when :block
-                           value.is_a?(Proc)
-                         else
-                           false
-                         end
+          valid_type = case @definition.type
+                       when :string
+                         value.is_a?(String)
+                       when :int
+                         value.is_a?(Integer)
+                       when :float
+                         value.is_a?(Float)
+                       when :array
+                         value.is_a?(Array)
+                       when :hash
+                         value.is_a?(Hash)
+                       when :bool
+                         value.is_a?(TrueClass) || value.is_a?(FalseClass)
+                       when :block
+                         value.is_a?(Proc)
+                       else
+                         true
+                       end
 
-          raise_exception = if @definition.type_opts[:nil]
-                              vale.is_a?(NilClass) || invalid_type
-                            else
-                              invalid_type
-                            end
+          raise_exception = false
+
+          unless valid_type
+            raise_exception = if @definition.type_opts[:nil]
+                                !value.is_a?(NilClass)
+                              else
+                                true
+                              end
+          end
 
           if raise_exception
             raise ArgumentError,
               "Expected the value for option #{@definition.name} to be of type #{@definition.type}, "\
               "but the value is #{value.class}"
           end
+
+          value
         end
 
         def context_exec(*args, &block)

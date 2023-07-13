@@ -33,7 +33,7 @@ module Datadog
               o.type :string, nil: true
               o.setter do |value|
                 Contrib::SpanAttributeSchema.fetch_service_name(
-                  value
+                  value,
                   Ext::DEFAULT_PEER_SERVICE_NAME
                 )
               end

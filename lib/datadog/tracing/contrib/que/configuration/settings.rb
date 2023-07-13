@@ -32,15 +32,15 @@ module Datadog
               o.default 1.0
             end
 
-            option :tag_job_data do |o|
+            option :tag_args do |o|
               o.type :bool
-              o.env_var Ext::ENV_TAG_JOB_DATA
+              o.env_var Ext::ENV_TAG_ARGS_ENABLED
               o.default false
             end
 
-            option :tag_job_tags do |o|
+            option :tag_data do |o|
               o.type :bool
-              o.env_var Ext::ENV_TAG_JOB_TAGS
+              o.env_var Ext::ENV_TAG_DATA_ENABLED
               o.default false
             end
 
