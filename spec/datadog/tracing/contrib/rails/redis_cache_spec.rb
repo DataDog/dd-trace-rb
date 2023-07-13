@@ -94,8 +94,6 @@ MESSAGE
         .to eq('active_support')
       expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
-      expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq('active_support-cache')
     end
 
     it_behaves_like 'a peer service span' do
@@ -131,15 +129,11 @@ MESSAGE
           .to eq('active_support')
         expect(cache_get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('cache')
-        expect(cache_get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-          .to eq('active_support-cache')
 
         expect(cache_set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
           .to eq('active_support')
         expect(cache_set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('cache')
-        expect(cache_set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-          .to eq('active_support-cache')
 
         # check that the value is really updated, and persistent
         expect(cache.read(key)).to eq(51)
@@ -158,8 +152,6 @@ MESSAGE
           .to eq('active_support')
         expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('cache')
-        expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-          .to eq('active_support-cache')
       end
     end
   end
@@ -186,8 +178,6 @@ MESSAGE
         .to eq('active_support')
       expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
-      expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq('active_support-cache')
     end
 
     it_behaves_like 'a peer service span' do
@@ -217,8 +207,6 @@ MESSAGE
         .to eq('active_support')
       expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
-      expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq('active_support-cache')
     end
 
     it_behaves_like 'a peer service span' do
