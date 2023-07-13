@@ -14,9 +14,16 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `collectors_thread_context.c`
       class ThreadContext
-        def initialize(recorder:, max_frames:, tracer:, endpoint_collection_enabled:)
+        def initialize(recorder:, max_frames:, tracer:, endpoint_collection_enabled:, timeline_enabled:)
           tracer_context_key = safely_extract_context_key_from(tracer)
-          self.class._native_initialize(self, recorder, max_frames, tracer_context_key, endpoint_collection_enabled)
+          self.class._native_initialize(
+            self,
+            recorder,
+            max_frames,
+            tracer_context_key,
+            endpoint_collection_enabled,
+            timeline_enabled,
+          )
         end
 
         def inspect

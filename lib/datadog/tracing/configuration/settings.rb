@@ -28,7 +28,6 @@ module Datadog
                 # @return [Boolean,nil]
                 option :enabled do |o|
                   o.default { env_to_bool(Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
-                  o.lazy
                 end
               end
 
@@ -83,8 +82,6 @@ module Datadog
                       end
                     end
                   end
-
-                  o.lazy
                 end
 
                 # The data propagation styles the tracer will use to inject distributed tracing propagation
@@ -121,8 +118,6 @@ module Datadog
                       end
                     end
                   end
-
-                  o.lazy
                 end
 
                 # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
@@ -157,8 +152,6 @@ module Datadog
                     set_option(:propagation_extract_style, styles)
                     set_option(:propagation_inject_style, styles)
                   end
-
-                  o.lazy
                 end
               end
 
@@ -171,7 +164,6 @@ module Datadog
               # @return [Boolean]
               option :enabled do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::ENV_ENABLED, true) }
-                o.lazy
               end
 
               # Comma-separated, case-insensitive list of header names that are reported in incoming and outgoing HTTP requests.
@@ -197,7 +189,6 @@ module Datadog
               # @return [Boolean]
               option :trace_id_128_bit_generation_enabled do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::ENV_TRACE_ID_128_BIT_GENERATION_ENABLED, false) }
-                o.lazy
               end
 
               # Enable 128 bit trace id injected for logging.
@@ -208,7 +199,6 @@ module Datadog
               # It is not supported by our backend yet. Do not enable it.
               option :trace_id_128_bit_logging_enabled do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::Correlation::ENV_TRACE_ID_128_BIT_LOGGING_ENABLED, false) }
-                o.lazy
               end
 
               # A custom tracer instance.
@@ -230,7 +220,6 @@ module Datadog
               # @return [Boolean]
               option :log_injection do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED, true) }
-                o.lazy
               end
 
               # Configures an alternative trace transport behavior, where
@@ -271,7 +260,6 @@ module Datadog
 
               option :report_hostname do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME, false) }
-                o.lazy
               end
 
               # A custom sampler instance.
@@ -294,7 +282,6 @@ module Datadog
                 # @return [Float,nil]
                 option :default_rate do |o|
                   o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE, nil) }
-                  o.lazy
                 end
 
                 # Rate limit for number of spans per second.
@@ -306,7 +293,6 @@ module Datadog
                 # @return [Numeric,nil]
                 option :rate_limit do |o|
                   o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT, 100) }
-                  o.lazy
                 end
 
                 # Single span sampling rules.
@@ -348,7 +334,6 @@ module Datadog
                       end
                     end
                   end
-                  o.lazy
                 end
               end
 
@@ -363,17 +348,14 @@ module Datadog
                 # @return [Boolean]
                 option :enabled do |o|
                   o.default { env_to_bool(Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED, false) }
-                  o.lazy
                 end
 
                 option :trace_flush do |o|
                   o.default { nil }
-                  o.lazy
                 end
 
                 option :writer_options do |o|
                   o.default { {} }
-                  o.lazy
                 end
               end
 
@@ -401,7 +383,7 @@ module Datadog
               #
               # @default `{}`
               # @return [Hash,nil]
-              option :writer_options, default: ->(_i) { {} }, lazy: true
+              option :writer_options, default: ->(_i) { {} }
 
               # Client IP configuration
               # @public_api
@@ -430,7 +412,6 @@ module Datadog
                     # ENABLED env var takes precedence over deprecated DISABLED
                     env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_ENABLED, enabled)
                   end
-                  o.lazy
                 end
 
                 # An optional name of a custom header to resolve the client IP from.
@@ -439,7 +420,6 @@ module Datadog
                 # @return [String,nil]
                 option :header_name do |o|
                   o.default { ENV.fetch(Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME, nil) }
-                  o.lazy
                 end
               end
 
@@ -453,7 +433,6 @@ module Datadog
               # @return [Integer]
               option :x_datadog_tags_max_length do |o|
                 o.default { env_to_int(Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH, 512) }
-                o.lazy
               end
 
               # Schema version for span attributes that enables various features
@@ -467,7 +446,6 @@ module Datadog
                     Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
                   )
                 end
-                o.lazy
               end
             end
           end

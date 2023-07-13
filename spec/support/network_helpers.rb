@@ -43,7 +43,7 @@ module NetworkHelpers
   def check_availability_by_http_request(host, port)
     uri = URI("http://#{host}:#{port}/info")
     request = Net::HTTP::Get.new(uri)
-    request['X-Datadog-Untraced-Request'] = true
+    request[Datadog::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST] = '1'
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
     end

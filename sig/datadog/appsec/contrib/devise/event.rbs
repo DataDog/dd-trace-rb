@@ -1,0 +1,26 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        class Event
+          UUID_REGEX: ::Regexp
+
+          SAFE_MODE: String
+
+          EXTENDED_MODE: String
+
+          attr_reader user_id: untyped
+
+          def initialize: (Devise::Resource? resource, String mode) -> void
+
+
+          def to_h: () -> Hash[Symbol, untyped]
+
+          private
+
+          def extract: () -> void
+        end
+      end
+    end
+  end
+end
