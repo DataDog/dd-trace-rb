@@ -5,6 +5,9 @@ module Datadog
     end
 
     module BackportFrom24
+      Fixnum: Integer
+      Bignum: Integer
+
       def self.dup: (Object value) -> Object
     end
   end
