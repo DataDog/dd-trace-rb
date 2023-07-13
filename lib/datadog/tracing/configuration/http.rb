@@ -23,7 +23,7 @@ module Datadog
 
               next unless header # Empty string guard
 
-              if tag
+              if tag && !tag.empty?
                 # When a custom tag name is provided, use that name for both
                 # request and response tags.
                 normalized_tag = Tracing::Metadata::Ext::HTTP::Headers.to_tag(tag, allow_nested: true)
