@@ -40,8 +40,6 @@ RSpec.describe 'ActiveRecord instrumentation' do
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
-    it_behaves_like 'a non-peer service span'
-
     it_behaves_like 'measured span for integration', false
 
     it 'calls the instrumentation when is used standalone' do
