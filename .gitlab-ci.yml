@@ -91,14 +91,6 @@ install-version-dependant-gems:
     paths:
       - vendor
 
-# Hack, remove later
-.package:
-  before_script:
-    - mkdir -p packaging
-    - cd packaging
-    - if [ $CI_PROJECT_NAME != "auto_inject" ]; then cp /packaging/* .; fi
-    - if [ -z "$CI_COMMIT_TAG" ]; then export CI_VERSION_SUFFIX="~pipeline.${CI_PIPELINE_ID}.beta.${CI_COMMIT_SHORT_SHA}"; fi
-
 package:
   extends: .package
   needs: ["install-version-dependant-gems", "install-base-ruby-gems"]
