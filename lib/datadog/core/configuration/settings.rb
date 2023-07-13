@@ -541,8 +541,9 @@ module Datadog
 
           # Tune remote configuration polling interval.
           #
-          # @default `DD_REMOTE_CONFIGURATION_POLL_INTERVAL_SECONDS` environment variable, otherwise `5.0` seconds.
+          # @default `DD_REMOTE_CONFIG_POLL_INTERVAL_SECONDS` environment variable, otherwise `5.0` seconds.
           # @return [Float]
+          # @!visibility private
           option :poll_interval_seconds do |o|
             o.default { env_to_float(Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS, 5.0) }
           end
