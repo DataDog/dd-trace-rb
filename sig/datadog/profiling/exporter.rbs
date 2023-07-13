@@ -6,22 +6,19 @@ module Datadog
       private
 
       attr_reader pprof_recorder: (Datadog::Profiling::StackRecorder | Datadog::Profiling::OldRecorder)
-
       attr_reader code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?
-
       attr_reader minimum_duration_seconds: ::Integer
-
       attr_reader time_provider: untyped
-
       attr_reader last_flush_finish_at: ::Time?
-
       attr_reader created_at: ::Time
+      attr_reader no_signals_workaround_enabled: bool
 
       public
 
       def initialize: (
         pprof_recorder: (Datadog::Profiling::StackRecorder | Datadog::Profiling::OldRecorder),
         code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?,
+        no_signals_workaround_enabled: bool,
         ?minimum_duration_seconds: ::Integer,
         ?time_provider: untyped
       ) -> void

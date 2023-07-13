@@ -37,7 +37,6 @@ module Datadog
                 o.setter do |v|
                   v ? true : false
                 end
-                o.lazy
               end
 
               define_method(:instrument) do |integration_name|
@@ -55,17 +54,14 @@ module Datadog
 
               option :ruleset do |o|
                 o.default { ENV.fetch('DD_APPSEC_RULES', DEFAULT_APPSEC_RULESET) }
-                o.lazy
               end
 
               option :ip_denylist do |o|
                 o.default { [] }
-                o.lazy
               end
 
               option :user_id_denylist do |o|
                 o.default { [] }
-                o.lazy
               end
 
               option :waf_timeout do |o|
@@ -73,7 +69,6 @@ module Datadog
                 o.setter do |v|
                   Datadog::Core::Utils::Duration.call(v.to_s, base: :us)
                 end
-                o.lazy
               end
 
               option :waf_debug do |o|
@@ -81,17 +76,14 @@ module Datadog
                 o.setter do |v|
                   v ? true : false
                 end
-                o.lazy
               end
 
               option :trace_rate_limit do |o|
                 o.default { env_to_int('DD_APPSEC_TRACE_RATE_LIMIT', DEFAULT_APPSEC_TRACE_RATE_LIMIT) } # trace/s
-                o.lazy
               end
 
               option :obfuscator_key_regex do |o|
                 o.default { ENV.fetch('DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP', DEFAULT_OBFUSCATOR_KEY_REGEX) }
-                o.lazy
               end
 
               option :obfuscator_value_regex do |o|
@@ -101,7 +93,6 @@ module Datadog
                     DEFAULT_OBFUSCATOR_VALUE_REGEX
                   )
                 end
-                o.lazy
               end
 
               settings :track_user_events do
@@ -119,7 +110,6 @@ module Datadog
                       false
                     end
                   end
-                  o.lazy
                 end
 
                 option :mode do |o|
@@ -139,7 +129,6 @@ module Datadog
                       DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE
                     end
                   end
-                  o.lazy
                 end
               end
             end

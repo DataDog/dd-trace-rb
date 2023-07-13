@@ -143,6 +143,9 @@ $defs << '-DNO_RB_NATIVE_THREAD' if RUBY_VERSION < '3.2'
 # On older Rubies, there was no struct rb_thread_sched (it was struct rb_global_vm_lock_struct)
 $defs << '-DNO_RB_THREAD_SCHED' if RUBY_VERSION < '3.2'
 
+# On older Rubies, the first_lineno inside a location was a VALUE and not a int (https://github.com/ruby/ruby/pull/6430)
+$defs << '-DNO_INT_FIRST_LINENO' if RUBY_VERSION < '3.2'
+
 # On older Rubies, there was no tid member in the internal thread structure
 $defs << '-DNO_THREAD_TID' if RUBY_VERSION < '3.1'
 
@@ -154,6 +157,9 @@ $defs << '-DNO_RACTORS' if RUBY_VERSION < '3'
 
 # On older Rubies, rb_global_vm_lock_struct did not include the owner field
 $defs << '-DNO_GVL_OWNER' if RUBY_VERSION < '2.6'
+
+# On older Rubies, there was no thread->invoke_arg
+$defs << '-DNO_THREAD_INVOKE_ARG' if RUBY_VERSION < '2.6'
 
 # On older Rubies, we need to use rb_thread_t instead of rb_execution_context_t
 $defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT' if RUBY_VERSION < '2.5'
