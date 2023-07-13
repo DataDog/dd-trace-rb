@@ -37,7 +37,14 @@ module Datadog
 
             option :service_name
 
-            option :web_service_name, default: Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME
+            option :web_service_name do |o|
+              o.default do
+                Contrib::SpanAttributeSchema.fetch_service_name(
+                  '',
+                  Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME
+                )
+              end
+            end
           end
         end
       end
