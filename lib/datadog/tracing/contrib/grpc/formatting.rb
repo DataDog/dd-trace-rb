@@ -34,12 +34,12 @@ module Datadog
             private
 
             def format_full_method(grpc_method_object)
-              service = extract_grpc_service(grpc_method_object)
+              service = extract_rpc_service(grpc_method_object)
               method = extract_grpc_method(grpc_method_object)
               "/#{service}/#{method}"
             end
 
-            def extract_grpc_service(grpc_method_object)
+            def extract_rpc_service(grpc_method_object)
               owner = grpc_method_object.owner
               return VALUE_UNKNOWN unless owner.instance_variable_defined?(:@service_name)
 
@@ -92,13 +92,13 @@ module Datadog
             # resource_name is used for the span resource name.
             attr_reader :resource_name
 
-            # rpc_service represents the $service part of the grpc_full_method string.
+            # rpc_service represents the $package.$service part of the grpc_full_method string.
             attr_reader :rpc_service
 
             def initialize(grpc_full_method)
               @grpc_full_method = grpc_full_method
               @resource_name = format_resource_name(grpc_full_method)
-              @rpc_service = extract_grpc_service(grpc_full_method)
+              @rpc_service = extract_rpc_service(grpc_full_method)
             end
 
             private
@@ -111,17 +111,12 @@ module Datadog
                 .join('.')
             end
 
-            def extract_grpc_service(grpc_full_method)
+            def extract_rpc_service(grpc_full_method)
               parts = grpc_full_method.split('/')
               if parts.length < 3
                 VALUE_UNKNOWN
               else
-                service_parts = parts[1].split('.')
-                if service_parts.length < 2
-                  VALUE_UNKNOWN
-                else
-                  service_parts[-1]
-                end
+                parts[1]
               end
             end
           end
