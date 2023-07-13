@@ -23,16 +23,14 @@ module Datadog
     # This module is used to provide features from Ruby 2.4+ to older Rubies
     module BackportFrom24
       if RUBY_VERSION < '2.4'
-        # rubocop:disable Lint/UnifiedInteger
         def self.dup(value)
           case value
-          when NilClass, TrueClass, FalseClass, Integer, Float, Bignum, Fixnum
+          when NilClass, TrueClass, FalseClass, Numeric
             value
           else
             value.dup
           end
         end
-        # rubocop:enable Lint/UnifiedInteger
       else
         def self.dup(value)
           value.dup

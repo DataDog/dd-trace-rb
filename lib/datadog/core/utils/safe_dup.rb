@@ -13,7 +13,7 @@ module Datadog
             # they are faster and chepaer on the memory side.
             # Check the benchmark on
             # https://github.com/DataDog/dd-trace-rb/pull/2704
-            if v === String
+            if v.is_a?(String)
               # If the string is not frozen, the +(-v) will:
               # - first create a frozen deduplicated copy with -v
               # - then it will dup it more efficiently with +v
@@ -29,7 +29,7 @@ module Datadog
             # they are faster and chepaer on the memory side.
             # Check the benchmark on
             # https://github.com/DataDog/dd-trace-rb/pull/2704
-            if v === String
+            if v.is_a?(String)
               -v if v
             else
               v.frozen? ? v : Core::BackportFrom24.dup(v).freeze
