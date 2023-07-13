@@ -195,11 +195,11 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
           expect(widget_span.service).to eq(default_db_service_name)
         end
 
-        it_behaves_like 'a peer service span' do
+        it_behaves_like 'a non-peer service span' do
           let(:span) { gadget_span }
         end
 
-        it_behaves_like 'a peer service span' do
+        it_behaves_like 'a non-peer service span' do
           let(:span) { widget_span }
         end
       end
@@ -221,11 +221,11 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
           expect(widget_span.service).to eq(widget_db_service_name)
         end
 
-        it_behaves_like 'a peer service span' do
+        it_behaves_like 'a non-peer service span' do
           let(:span) { gadget_span }
         end
 
-        it_behaves_like 'a peer service span' do
+        it_behaves_like 'a non-peer service span' do
           let(:span) { widget_span }
         end
       end
@@ -250,11 +250,11 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
         expect(widget_span.service).to eq(widget_db_service_name)
       end
 
-      it_behaves_like 'a peer service span' do
+      it_behaves_like 'a non-peer service span' do
         let(:span) { gadget_span }
       end
 
-      it_behaves_like 'a peer service span' do
+      it_behaves_like 'a non-peer service span' do
         let(:span) { widget_span }
       end
     end
