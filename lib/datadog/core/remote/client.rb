@@ -36,6 +36,7 @@ module Datadog
             # when response is completely empty, do nothing as in: leave as is
             if response.empty?
               Datadog.logger.debug { 'remote: empty response => NOOP' }
+
               return
             end
 
@@ -59,9 +60,7 @@ module Datadog
 
             changes = repository.transaction do |current, transaction|
               # paths to be removed: previously applied paths minus ingress paths
-              (current.paths - paths).each do |p|
-                transaction.delete(p)
-              end
+              (current.paths - paths).each { |p| transaction.delete(p) }
 
               # go through each ingress path
               paths.each do |path|

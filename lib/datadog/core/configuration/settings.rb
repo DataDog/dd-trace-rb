@@ -544,7 +544,7 @@ module Datadog
           # @default `DD_REMOTE_CONFIGURATION_POLL_INTERVAL_SECONDS` environment variable, otherwise `5.0` seconds.
           # @return [Float]
           option :poll_interval_seconds do |o|
-            o.default { env_to_float(Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS, 1.0) }
+            o.default { env_to_float(Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS, 5.0) }
           end
 
           # Declare service name to bind to remote configuration. Use when
