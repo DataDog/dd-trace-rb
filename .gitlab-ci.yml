@@ -35,7 +35,7 @@ build-image:
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
     matrix:
-      - BUILD_NAME: [ '3.2.2', '3.1.4', '3.0.6' ]
+      - BUILD_NAME: [ '3.2.2', '3.1.4', '3.0.6', '2.7.8' ]
   script:
     - >
       docker build
@@ -51,14 +51,13 @@ promote-image:
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
     matrix:
-      - BUILD_NAME: [ '3.2.2', '3.1.4', '3.0.6' ]
+      - BUILD_NAME: [ '3.2.2', '3.1.4', '3.0.6', '2.7.8' ]
   script:
     - docker pull $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:$CI_PIPELINE_ID
     - docker tag $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:$CI_PIPELINE_ID $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:current
     - docker push $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:current
 
 install-base-ruby-gems:
-  # image: registry.ddbuild.io/images/mirror/ruby:3.2.2
   image: registry.ddbuild.io/ci/auto_inject/3.2.2:current
   stage: package
   rules:
@@ -73,11 +72,10 @@ install-base-ruby-gems:
       - vendor
 
 install-version-dependant-gems:
-  # image: registry.ddbuild.io/images/mirror/ruby:$RUBY_VERSION
   image: registry.ddbuild.io/ci/auto_inject/$RUBY_VERSION:current
   parallel:
     matrix:
-      - RUBY_VERSION: [ "3.0.6", "3.1.4"]
+      - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4"]
   rules:
     - if: $RUBY_PACKAGE_VERSION
       when: on_success
