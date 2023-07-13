@@ -32,7 +32,7 @@ module Datadog
             end
 
             option :service_name do |o|
-              o.type :string, nil: true
+              o.type :string, additional_types: [:nil]
               o.env_var Ext::ENV_SERVICE_NAME
               o.setter do |value|
                 Contrib::SpanAttributeSchema.fetch_service_name(
@@ -43,7 +43,7 @@ module Datadog
             end
 
             option :comment_propagation do |o|
-              o.type :bool
+              o.type :string
               o.env_var Contrib::Propagation::SqlComment::Ext::ENV_DBM_PROPAGATION_MODE
               o.default Contrib::Propagation::SqlComment::Ext::DISABLED
             end

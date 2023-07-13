@@ -86,7 +86,7 @@ module Datadog
           if definition.default.instance_of?(Proc)
             context_eval(&definition.default)
           else
-            definition.experimental_default_proc || definition.default.dup
+            definition.experimental_default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
           end
         end
 
@@ -119,7 +119,7 @@ module Datadog
             values
           when :bool
             string_value = value
-            string_value.downcase!
+            string_value = string_value.downcase
             string_value == 'true' || string_value == '1' # rubocop:disable Style/MultipleComparison
           else
             value
@@ -127,42 +127,43 @@ module Datadog
         end
 
         def validate_type(value)
-          valid_type = case @definition.type
-                       when :string
-                         value.is_a?(String)
-                       when :int
-                         value.is_a?(Integer)
-                       when :float
-                         value.is_a?(Float)
-                       when :array
-                         value.is_a?(Array)
-                       when :hash
-                         value.is_a?(Hash)
-                       when :bool
-                         value.is_a?(TrueClass) || value.is_a?(FalseClass)
-                       when :block
-                         value.is_a?(Proc)
-                       else
-                         true
-                       end
+          valid_type = validate(@definition.type, value)
+          valid_additional_types = @definition.additional_types.map do |additional_type|
+            validate(additional_type, value)
+          end.any?
 
-          raise_exception = false
-
-          unless valid_type
-            raise_exception = if @definition.type_opts[:nil]
-                                !value.is_a?(NilClass)
-                              else
-                                true
-                              end
-          end
-
-          if raise_exception
+          unless valid_type || valid_additional_types
             raise ArgumentError,
-              "Expected the value for option #{@definition.name} to be of type #{@definition.type}, "\
-              "but the value is #{value.class}"
+              "The option #{@definition.name} support this types `#{@definition.type}` and these additional types "\
+              "#{@definition.additional_types.inspect}, but the value provided is #{value.class}"
           end
 
           value
+        end
+
+        def validate(type, value)
+          case type
+          when :string
+            value.is_a?(String)
+          when :int
+            value.is_a?(Integer)
+          when :float
+            value.is_a?(Float)
+          when :array
+            value.is_a?(Array)
+          when :hash
+            value.is_a?(Hash)
+          when :bool
+            value.is_a?(TrueClass) || value.is_a?(FalseClass)
+          when :block
+            value.is_a?(Proc)
+          when :nil
+            value.is_a?(NilClass)
+          when :symbol
+            value.is_a?(Symbol)
+          else
+            true
+          end
         end
 
         def context_exec(*args, &block)

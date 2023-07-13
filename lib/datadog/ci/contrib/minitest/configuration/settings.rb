@@ -18,12 +18,12 @@ module Datadog
             end
 
             option :service_name do |o|
-              o.type :bool
+              o.type :string
               o.default { Datadog.configuration.service_without_fallback || Ext::SERVICE_NAME }
             end
 
             option :operation_name do |o|
-              o.type :bool
+              o.type :string
               o.env_var Ext::ENV_OPERATION_NAME
               o.default Ext::OPERATION_NAME
             end

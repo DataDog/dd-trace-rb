@@ -30,7 +30,7 @@ module Datadog
             end
 
             option :analytics_enabled do |o|
-              o.type :bool, nil: true
+              o.type :bool, additional_types: [:nil]
               o.env_var Ext::ENV_ANALYTICS_ENABLED
               o.on_set do |value|
                 # Update ActionPack analytics too
@@ -50,8 +50,10 @@ module Datadog
 
             option :distributed_tracing, default: true, type: :bool
 
-            option :request_queuing, default: false
-
+            option :request_queuing do |o|
+              o.default false
+              o.type :bool, additional_types: [:symbol]
+            end
             # DEV-2.0: Breaking changes for removal.
             option :exception_controller do |o|
               o.on_set do |value|

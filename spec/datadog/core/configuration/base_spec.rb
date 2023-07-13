@@ -26,9 +26,6 @@ RSpec.describe Datadog::Core::Configuration::Base do
             it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinition) }
 
             it 'sets default properties' do
-              expect(definition.type).to be_a_kind_of(Class)
-              expect(definition.type.ancestors).to include(described_class)
-
               is_expected.to have_attributes(
                 default: kind_of(Proc),
                 resetter: kind_of(Proc)
@@ -50,7 +47,7 @@ RSpec.describe Datadog::Core::Configuration::Base do
     describe 'instance behavior' do
       subject(:base_object) { base_class.new }
 
-      it { is_expected.to be_a_kind_of(Datadog::Core::Utils::VariableHelpers) }
+      it { is_expected.to be_a_kind_of(Datadog::Core::Environment::VariableHelpers) }
 
       describe '#initialize' do
         subject(:base_object) { base_class.new(options) }

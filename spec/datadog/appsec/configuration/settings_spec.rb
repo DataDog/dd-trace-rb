@@ -66,14 +66,6 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe '#enabled=' do
       subject(:set_appsec_enabled) { settings.appsec.enabled = appsec_enabled }
 
-      context 'when given a falsy value' do
-        let(:appsec_enabled) { nil }
-
-        before { set_appsec_enabled }
-
-        it { expect(settings.appsec.enabled).to eq(false) }
-      end
-
       context 'when given a truthy value' do
         let(:appsec_enabled) { true }
 
@@ -333,14 +325,6 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe '#waf_debug=' do
       subject(:set_appsec_waf_debug) { settings.appsec.waf_debug = appsec_waf_debug }
 
-      context 'when given a falsy value' do
-        let(:appsec_waf_debug) { nil }
-
-        before { set_appsec_waf_debug }
-
-        it { expect(settings.appsec.waf_debug).to eq(false) }
-      end
-
       context 'when given a truthy value' do
         let(:appsec_waf_debug) { true }
 
@@ -496,8 +480,8 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           settings.appsec.track_user_events.enabled = track_user_events_enabled
         end
 
-        context 'when given a falsy value' do
-          let(:track_user_events_enabled) { nil }
+        context 'when given a disabled' do
+          let(:track_user_events_enabled) { 'disabled' }
 
           before { set_appsec_track_user_events_enabled }
 
@@ -505,7 +489,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
 
         context 'when given a truthy value' do
-          let(:track_user_events_enabled) { 'enabled' }
+          let(:track_user_events_enabled) { true }
 
           before { set_appsec_track_user_events_enabled }
 

@@ -727,18 +727,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       describe '#timeout_seconds=' do
         it 'updates the #timeout_seconds setting' do
-          expect { settings.profiling.upload.timeout_seconds = 10 }
+          expect { settings.profiling.upload.timeout_seconds = 10.0 }
             .to change { settings.profiling.upload.timeout_seconds }
             .from(30.0)
             .to(10.0)
-        end
-
-        context 'given nil' do
-          it 'uses the default setting' do
-            expect { settings.profiling.upload.timeout_seconds = nil }
-              .to_not change { settings.profiling.upload.timeout_seconds }
-              .from(30.0)
-          end
         end
       end
     end
@@ -787,7 +779,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#opts=' do
-      let(:opts) { double('opts') }
+      let(:opts) { { a: :b } }
 
       it 'changes the #opts setting' do
         expect { settings.runtime_metrics.opts = opts }
@@ -1359,7 +1351,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#poll_interval_seconds=' do
       it 'updates the #poll_interval_seconds setting' do
-        expect { settings.remote.poll_interval_seconds = 1 }
+        expect { settings.remote.poll_interval_seconds = 1.0 }
           .to change { settings.remote.poll_interval_seconds }
           .from(5.0)
           .to(1.0)

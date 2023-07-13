@@ -12,7 +12,7 @@ module Datadog
         DEFAULT_OBFUSCATOR_VALUE_REGEX = '(?i)(?:p(?:ass)?w(?:or)?d|pass(?:_?phrase)?|secret|(?:api_?|private_?|public_?|access_?|secret_?)key(?:_?id)?|token|consumer_?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?)(?:\s*=[^;]|"\s*:\s*"[^"]+")|bearer\s+[a-z0-9\._\-]+|token:[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L][\w=-]+\.ey[I-L][\w=-]+(?:\.[\w.+\/=-]+)?|[\-]{5}BEGIN[a-z\s]+PRIVATE\sKEY[\-]{5}[^\-]+[\-]{5}END[a-z\s]+PRIVATE\sKEY|ssh-rsa\s*[a-z0-9\/\.+]{100,}'
         # rubocop:enable Layout/LineLength
         DEFAULT_APPSEC_ENABLED = false
-        DEFAULT_APPSEC_RULESET = 'recommended'
+        DEFAULT_APPSEC_RULESET = :recommended
         DEFAULT_APPSEC_WAF_TIMEOUT = 5_000 # us
         DEFAULT_APPSEC_WAF_DEBUG = false
         DEFAULT_APPSEC_TRACE_RATE_LIMIT = 100 # traces/s
@@ -52,7 +52,7 @@ module Datadog
               end
 
               option :ruleset do |o|
-                o.type :string, nil: true
+                o.type :string, additional_types: [:symbol, :nil, :hash]
                 o.env_var 'DD_APPSEC_RULES'
                 o.default DEFAULT_APPSEC_RULESET
               end
@@ -70,9 +70,9 @@ module Datadog
               option :waf_timeout do |o|
                 o.env_var 'DD_APPSEC_WAF_TIMEOUT'
                 o.default DEFAULT_APPSEC_WAF_TIMEOUT
-                o.type :string
+                o.type :string, additional_types: [:int]
                 o.setter do |v|
-                  Datadog::Core::Utils::Duration.call(v, base: :us)
+                  Datadog::Core::Utils::Duration.call(v.to_s, base: :us)
                 end
               end
 
@@ -102,7 +102,7 @@ module Datadog
 
               settings :track_user_events do
                 option :enabled do |o|
-                  o.type :string
+                  o.type :bool, additional_types: [:string]
                   o.env_var 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
                   o.default DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_ENABLED
                   o.setter do |value|
@@ -115,12 +115,12 @@ module Datadog
                 end
 
                 option :mode do |o|
-                  o.type :string
+                  o.type :string, additional_types: [:symbol]
                   o.env_var 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
                   o.default DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE
                   o.setter do |v|
-                    if APPSEC_VALID_TRACK_USER_EVENTS_MODE.include?(v)
-                      v
+                    if APPSEC_VALID_TRACK_USER_EVENTS_MODE.include?(v.to_s)
+                      v.to_s
                     else
                       Datadog.logger.warn(
                         'The appsec.track_user_events.mode value provided is not supported.' \

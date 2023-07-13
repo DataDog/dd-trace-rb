@@ -16,7 +16,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
       delegate_to: delegate,
       on_set: nil,
       resetter: nil,
-      setter: setter
+      setter: setter,
+      type: nil,
+      additional_types: [],
     )
   end
   let(:default) { double('default') }
