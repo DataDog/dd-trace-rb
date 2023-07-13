@@ -23,6 +23,10 @@ module Datadog
         HEADER_META_LANG_VERSION = 'Datadog-Meta-Lang-Version'
         HEADER_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'
         HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'
+
+        # Header that prevents the Net::HTTP integration from tracing internal trace requests.
+        # Set it to any value to skip tracing.
+        HEADER_DD_INTERNAL_UNTRACED_REQUEST = 'DD-Internal-Untraced-Request'
       end
 
       # @public_api
