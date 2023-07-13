@@ -20,7 +20,4 @@ cp Gemfile.lock vendor
 cp .gitlab/install_ddtrace_deps.rb vendor
 cp lib-injection/host_inject.rb vendor
 
-export INSTALL_DDTRACE_NATIVE_DEPS=true
-export INSTALL_DDTRACE_NON_NATIVE_DEPS=true
-
-ruby vendor/install_ddtrace_deps.rb
+ruby vendor/install_ddtrace_deps.rb debase-ruby_core_source libdatadog libddwaf msgpack ffi ddtrace

@@ -27,7 +27,6 @@ done
 
 chmod a+r -R ../vendor/*
 
-# Not sure how it is called
 fpm_wrapper "datadog-apm-library-ruby" "$RUBY_PACKAGE_VERSION" \
  --input-type dir \
  --url "https://github.com/DataDog/dd-trace-rb" \
