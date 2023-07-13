@@ -75,8 +75,8 @@ begin
 
       begin
         # Copies for trial
-        FileUtils.cp gemfile, datadog_gemfile
-        FileUtils.cp lockfile, datadog_lockfile
+        ::FileUtils.cp gemfile, datadog_gemfile
+        ::FileUtils.cp lockfile, datadog_lockfile
 
         output, status = Open3.capture2e(
           {"DD_TRACE_SKIP_LIB_INJECTION" => "true", "BUNDLE_GEMFILE" => datadog_gemfile.to_s},
@@ -86,15 +86,15 @@ begin
         if status.success?
           STDOUT.puts "[ddtrace] Datadog lib injection successfully added #{g} to the application."
 
-          FileUtils.cp datadog_gemfile, gemfile
-          FileUtils.cp datadog_lockfile, lockfile
+          ::FileUtils.cp datadog_gemfile, gemfile
+          ::FileUtils.cp datadog_lockfile, lockfile
         else
           warn "[ddtrace] #{failure_prefix} Unable to add ddtrace. Error output:\n#{output.split("\n").map { |l| "[ddtrace] #{l}" }.join("\n")}\n#{support_message}"
         end
       ensure
         # Remove the copies
-        FileUtils.rm datadog_gemfile
-        FileUtils.rm datadog_lockfile
+        ::FileUtils.rm datadog_gemfile
+        ::FileUtils.rm datadog_lockfile
       end
 
     end
