@@ -10,6 +10,7 @@ ENV["GEM_PATH"] = Gem.path.join(":")
 begin
   require "open3"
   require "bundler"
+  require "bundler/cli"
   require "shellwords"
   require "fileutils"
 
@@ -18,6 +19,11 @@ begin
 
   unless Bundler::SharedHelpers.in_bundle?
     STDOUT.puts "[ddtrace] Not in bundle... skipping host injection" if ENV["DD_TRACE_DEBUG"] == "true"
+    return
+  end
+
+  unless Bundler::CLI.commands["add"] && Bundler::CLI.commands["add"].options.key?("require")
+    STDOUT.puts "[ddtrace] You are currently using Bundler version #{Bundler::VERSION} which is not supported by host injection. Please upgrade >= 2.3, check https://github.com/rubygems/rubygems/blob/master/bundler/CHANGELOG.md#enhancements-31" if ENV["DD_TRACE_DEBUG"] == "true"
     return
   end
 
