@@ -25,6 +25,7 @@ module Datadog
         HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'
 
         # Header that prevents the Net::HTTP integration from tracing internal trace requests.
+        # Set it to any value to skip tracing.
         HEADER_DD_INTERNAL_UNTRACED_REQUEST = 'DD-Internal-Untraced-Request'
       end
 
