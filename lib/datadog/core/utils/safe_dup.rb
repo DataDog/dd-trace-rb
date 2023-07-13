@@ -8,13 +8,12 @@ module Datadog
         # String#+@ was introduced in Ruby 2.3
         if String.method_defined?(:+@) && String.method_defined?(:-@)
           def self.frozen_or_dup(v)
-            case v
             # For the case of a String we use the methods +@ and -@.
             # Those methods are only for String objects
             # they are faster and chepaer on the memory side.
             # Check the benchmark on
             # https://github.com/DataDog/dd-trace-rb/pull/2704
-            when String
+            if v === String
               # If the string is not frozen, the +(-v) will:
               # - first create a frozen deduplicated copy with -v
               # - then it will dup it more efficiently with +v
@@ -25,13 +24,12 @@ module Datadog
           end
 
           def self.frozen_dup(v)
-            case v
             # For the case of a String we use the methods -@
             # That method are only for String objects
             # they are faster and chepaer on the memory side.
             # Check the benchmark on
             # https://github.com/DataDog/dd-trace-rb/pull/2704
-            when String
+            if v === String
               -v if v
             else
               v.frozen? ? v : Core::BackportFrom24.dup(v).freeze
