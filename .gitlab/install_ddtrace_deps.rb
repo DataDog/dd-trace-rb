@@ -25,8 +25,8 @@ gem_version_mapping.each do |gem, version|
 
   case gem
   when "ffi"
-    gem_install_cmd << "-- --disable-system-libffi "
     gem_install_cmd << "--install-dir #{install_dir}/#{ruby_version} "
+    gem_install_cmd << "-- --disable-system-libffi "
   when "ddtrace"
     env["DD_PROFILING_NO_EXTENSION"] = "true"
     gem_install_cmd << "--install-dir #{install_dir}/#{ruby_version} "
