@@ -1,4 +1,4 @@
-require_relative '../utils/variable_helpers'
+require_relative '../environment/variable_helpers'
 require_relative 'options'
 
 module Datadog
