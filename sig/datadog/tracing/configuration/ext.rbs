@@ -44,6 +44,7 @@ module Datadog
           ENV_REPORT_HOSTNAME: "DD_TRACE_REPORT_HOSTNAME"
         end
         module Sampling
+          ENV_RULES: String
           ENV_SAMPLE_RATE: "DD_TRACE_SAMPLE_RATE"
 
           ENV_RATE_LIMIT: "DD_TRACE_RATE_LIMIT"
