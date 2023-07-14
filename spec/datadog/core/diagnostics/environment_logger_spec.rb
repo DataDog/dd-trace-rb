@@ -291,8 +291,6 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           it { is_expected.to include integration_http_distributed_tracing: 'true' }
           it { is_expected.to include integration_http_split_by_domain: 'false' }
         end
-
-        # Check with Marco
       end
 
       context 'with MRI' do
