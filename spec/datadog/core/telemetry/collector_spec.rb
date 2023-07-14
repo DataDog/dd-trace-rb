@@ -10,6 +10,7 @@ require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/product'
 require 'ddtrace/transport/ext'
+require 'datadog/profiling/profiler'
 
 require 'ddtrace'
 require 'ddtrace/version'
