@@ -26,7 +26,8 @@ module Datadog
                 # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
                 # @return [Boolean,nil]
                 option :enabled do |o|
-                  o.default { env_to_bool(Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
+                  o.type :bool, nil: true
+                  o.env_var Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED
                 end
               end
 
@@ -50,23 +51,16 @@ module Datadog
                 #   otherwise `['Datadog','b3multi','b3']`.
                 # @return [Array<String>]
                 option :propagation_extract_style do |o|
-                  o.default do
-                    # DEV-2.0: Change default value to `tracecontext, Datadog`.
-                    # Look for all headers by default
-                    env_to_list(
-                      [
-                        Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT,
-                        Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT_OLD
-                      ],
-                      [
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                      ],
-                      comma_separated_only: true
-                    )
-                  end
-
+                  o.type :array
+                  o.deprecated_env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT_OLD
+                  o.env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT
+                  o.default(
+                    [
+                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
+                    ]
+                  )
                   o.on_set do |styles|
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
@@ -91,18 +85,10 @@ module Datadog
                 # @default `DD_TRACE_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
                 # @return [Array<String>]
                 option :propagation_inject_style do |o|
-                  o.default do
-                    # DEV-2.0: Change default value to `tracecontext, Datadog`.
-                    env_to_list(
-                      [
-                        Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT,
-                        Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD
-                      ],
-                      [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG],
-                      comma_separated_only: true # Only inject Datadog headers by default
-                    )
-                  end
-
+                  o.type :array
+                  o.deprecated_env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD
+                  o.env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT
+                  o.default [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG]
                   o.on_set do |styles|
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
@@ -128,12 +114,11 @@ module Datadog
                 # @default `DD_TRACE_PROPAGATION_STYLE` environment variable (comma-separated list).
                 # @return [Array<String>]
                 option :propagation_style do |o|
-                  o.default do
-                    env_to_list(Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE, nil, comma_separated_only: true)
-                  end
-
+                  o.type :array
+                  o.env_var Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
+                  o.default []
                   o.on_set do |styles|
-                    next unless styles
+                    next if styles.empty?
 
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
@@ -162,7 +147,9 @@ module Datadog
               # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :enabled do |o|
-                o.default { env_to_bool(Tracing::Configuration::Ext::ENV_ENABLED, true) }
+                o.env_var Tracing::Configuration::Ext::ENV_ENABLED
+                o.default true
+                o.type :bool
               end
 
               # Enable 128 bit trace id generation.
@@ -170,7 +157,9 @@ module Datadog
               # @default `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` environment variable, otherwise `false`
               # @return [Boolean]
               option :trace_id_128_bit_generation_enabled do |o|
-                o.default { env_to_bool(Tracing::Configuration::Ext::ENV_TRACE_ID_128_BIT_GENERATION_ENABLED, false) }
+                o.env_var Tracing::Configuration::Ext::ENV_TRACE_ID_128_BIT_GENERATION_ENABLED
+                o.default false
+                o.type :bool
               end
 
               # Enable 128 bit trace id injected for logging.
@@ -180,7 +169,9 @@ module Datadog
               #
               # It is not supported by our backend yet. Do not enable it.
               option :trace_id_128_bit_logging_enabled do |o|
-                o.default { env_to_bool(Tracing::Configuration::Ext::Correlation::ENV_TRACE_ID_128_BIT_LOGGING_ENABLED, false) }
+                o.env_var Tracing::Configuration::Ext::Correlation::ENV_TRACE_ID_128_BIT_LOGGING_ENABLED
+                o.default false
+                o.type :bool
               end
 
               # A custom tracer instance.
@@ -201,7 +192,9 @@ module Datadog
               # @see https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#trace-correlation
               # @return [Boolean]
               option :log_injection do |o|
-                o.default { env_to_bool(Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED, true) }
+                o.env_var Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED
+                o.default true
+                o.type :bool
               end
 
               # Configures an alternative trace transport behavior, where
@@ -218,7 +211,7 @@ module Datadog
                 #
                 # @default `false`
                 # @return [Boolean]
-                option :enabled, default: false
+                option :enabled, default: false, type: :bool
 
                 # Minimum number of finished spans required in a single unfinished trace before
                 # the tracer will consider that trace for partial flushing.
@@ -231,7 +224,7 @@ module Datadog
                 #
                 # @default 500
                 # @return [Integer]
-                option :min_spans_threshold, default: 500
+                option :min_spans_threshold, default: 500, type: :int
               end
 
               # Enables {https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/#datadog-intelligent-retention-filter
@@ -241,7 +234,9 @@ module Datadog
               option :priority_sampling
 
               option :report_hostname do |o|
-                o.default { env_to_bool(Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME, false) }
+                o.env_var Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME
+                o.default false
+                o.type :bool
               end
 
               # A custom sampler instance.
@@ -261,9 +256,10 @@ module Datadog
                 # for resources not seen recently).
                 #
                 # @default `DD_TRACE_SAMPLE_RATE` environment variable, otherwise `nil`.
-                # @return [Float,nil]
+                # @return [Float]
                 option :default_rate do |o|
-                  o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE, nil) }
+                  o.type :float, nil: true
+                  o.env_var Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
                 end
 
                 # Rate limit for number of spans per second.
@@ -274,7 +270,9 @@ module Datadog
                 # @default `DD_TRACE_RATE_LIMIT` environment variable, otherwise 100.
                 # @return [Numeric,nil]
                 option :rate_limit do |o|
-                  o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT, 100) }
+                  o.type :int, nil: true
+                  o.env_var Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT
+                  o.default 100
                 end
 
                 # Trace sampling rules.
@@ -305,6 +303,7 @@ module Datadog
                 # @return [String,nil]
                 # @public_api
                 option :span_rules do |o|
+                  o.type :string, nil: true
                   o.default do
                     rules = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
                     rules_file = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
@@ -345,15 +344,16 @@ module Datadog
                 # @default `DD_TRACE_TEST_MODE_ENABLED` environment variable, otherwise `false`
                 # @return [Boolean]
                 option :enabled do |o|
-                  o.default { env_to_bool(Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED, false) }
+                  o.type :bool
+                  o.default false
+                  o.env_var Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED
                 end
 
-                option :trace_flush do |o|
-                  o.default { nil }
-                end
+                option :trace_flush
 
                 option :writer_options do |o|
-                  o.default { {} }
+                  o.type :hash
+                  o.default({})
                 end
               end
 
@@ -364,8 +364,10 @@ module Datadog
               # @yieldparam [Datadog::Transport::HTTP] t transport to be configured.
               # @default `nil`
               # @return [Proc,nil]
-              option :transport_options, default: nil
-
+              option :transport_options do |o|
+                o.type :proc, nil: true
+                o.default nil
+              end
               # A custom writer instance.
               # The object must respect the {Datadog::Tracing::Writer} interface.
               #
@@ -380,8 +382,11 @@ module Datadog
               # This option is recommended for internal use only.
               #
               # @default `{}`
-              # @return [Hash,nil]
-              option :writer_options, default: ->(_i) { {} }
+              # @return [Hash]
+              option :writer_options do |o|
+                o.type :hash
+                o.default({})
+              end
 
               # Client IP configuration
               # @public_api
@@ -396,13 +401,16 @@ module Datadog
                 # @default `DD_TRACE_CLIENT_IP_ENABLED` environment variable, otherwise `false`.
                 # @return [Boolean]
                 option :enabled do |o|
+                  o.type :bool
                   o.default do
                     disabled = env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED)
 
                     enabled = if disabled.nil?
                                 false
                               else
-                                Datadog.logger.warn { "#{Tracing::Configuration::Ext::ClientIp::ENV_DISABLED} environment variable is deprecated, found set to #{disabled}, use #{Tracing::Configuration::Ext::ClientIp::ENV_ENABLED}=#{!disabled}" }
+                                Datadog::Core.log_deprecation do
+                                  "#{Tracing::Configuration::Ext::ClientIp::ENV_DISABLED} environment variable is deprecated, use #{Tracing::Configuration::Ext::ClientIp::ENV_ENABLED} instead."
+                                end
 
                                 !disabled
                               end
@@ -417,7 +425,8 @@ module Datadog
                 # @default `DD_TRACE_CLIENT_IP_HEADER` environment variable, otherwise `nil`.
                 # @return [String,nil]
                 option :header_name do |o|
-                  o.default { ENV.fetch(Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME, nil) }
+                  o.type :string, nil: true
+                  o.env_var Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME
                 end
               end
 
@@ -430,7 +439,9 @@ module Datadog
               # @default `DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH` environment variable, otherwise `512`
               # @return [Integer]
               option :x_datadog_tags_max_length do |o|
-                o.default { env_to_int(Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH, 512) }
+                o.type :int
+                o.env_var Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
+                o.default 512
               end
 
               # Schema version for span attributes that enables various features
@@ -438,12 +449,9 @@ module Datadog
               # @default `DD_TRACE_SPAN_ATTRIBUTE_SCHEMA` environment variable, otherwise default `v0` currently
               # @return [String]
               option :span_attribute_schema do |o|
-                o.default do
-                  ENV.fetch(
-                    Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA,
-                    Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
-                  )
-                end
+                o.type :string
+                o.env_var Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA
+                o.default Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
               end
             end
           end
