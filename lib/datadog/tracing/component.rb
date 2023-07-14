@@ -62,6 +62,20 @@ module Datadog
           else
             ensure_priority_sampling(sampler, settings)
           end
+        elsif (rules = settings.tracing.sampling.rules)
+          Tracing::Sampling::PrioritySampler.new(
+            base_sampler: Tracing::Sampling::AllSampler.new,
+            post_sampler: Tracing::Sampling::RuleSampler.parse(
+              rules,
+              settings.tracing.sampling.rate_limit,
+              settings.tracing.sampling.default_rate
+            ) ||
+              # Fallback RuleSampler in case `rules` parsing fails
+              Tracing::Sampling::RuleSampler.new(
+                rate_limit: settings.tracing.sampling.rate_limit,
+                default_sample_rate: settings.tracing.sampling.default_rate
+              )
+          )
         elsif settings.tracing.priority_sampling == false
           Tracing::Sampling::RuleSampler.new(
             rate_limit: settings.tracing.sampling.rate_limit,
