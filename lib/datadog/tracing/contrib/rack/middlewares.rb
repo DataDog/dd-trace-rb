@@ -227,7 +227,7 @@ module Datadog
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent)
             end
 
-            HeaderTagging.tag_request_headers(request_span, env, configuration)
+            HeaderTagging.tag_request_headers(request_span, request_header_collection, configuration)
             HeaderTagging.tag_response_headers(request_span, headers, configuration) if headers
 
             # detect if the status code is a 5xx and flag the request span as an error

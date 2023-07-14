@@ -44,7 +44,7 @@ module Datadog
           # a list of tag names and values that can be set in a span.
           def request_tags(headers)
             @request_headers.map do |header_name, span_tag|
-              # Case-insensitive search. {RequestHeaderCollection} already ensures case-insensitiveness.
+              # Case-insensitive search
               header_value = headers[header_name]
 
               [span_tag, header_value] if header_value

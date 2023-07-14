@@ -7,7 +7,8 @@ module Datadog
         # Matches Rack-style headers with a matcher and sets matching headers into a span.
         module HeaderTagging
           def self.tag_request_headers(span, env, configuration)
-            headers = Header::RequestHeaderCollection.new(env)
+            # Wrap env in a case-insensitive Rack-style accessor.
+            headers = env.is_a?(Header::RequestHeaderCollection) ? env : Header::RequestHeaderCollection.new(env)
 
             # Use global DD_TRACE_HEADER_TAGS if integration-level configuration is not provided
             tags = if configuration.using_default?(:headers) && Datadog.configuration.tracing.header_tags.configured?
