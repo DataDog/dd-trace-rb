@@ -28,13 +28,12 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
   describe '#fetch_service_name' do
     context 'when integration service is set' do
       it 'returns the integration specific service name' do
-        with_modified_env DD_INTEGRATION_SERVICE: 'integration-service-name' do
-          expect(
-            described_class
-                          .fetch_service_name('DD_INTEGRATION_SERVICE',
-                            'default-integration-service-name')
-          ).to eq('integration-service-name')
-        end
+        expect(
+          described_class.fetch_service_name(
+            'integration-service-name',
+            'default-integration-service-name'
+          )
+        ).to eq('integration-service-name')
       end
     end
 
@@ -44,9 +43,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           it 'returns DD_SERVICE' do
             with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1', DD_SERVICE: 'service' do
               expect(
-                described_class
-                                  .fetch_service_name('DD_INTEGRATION_SERVICE',
-                                    'default-integration-service-name')
+                described_class.fetch_service_name('default-integration-service-name')
               ).to eq('service')
             end
           end
@@ -56,9 +53,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           it 'returns default program name' do
             with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
               expect(
-                described_class
-                                  .fetch_service_name('DD_INTEGRATION_SERVICE',
-                                    'default-integration-service-name')
+                described_class.fetch_service_name('default-integration-service-name')
               ).to eq('rspec')
             end
           end
@@ -69,9 +64,9 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         it 'returns default integration service name' do
           with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0', DD_SERVICE: 'service' do
             expect(
-              described_class
-                              .fetch_service_name('DD_INTEGRATION_SERVICE',
-                                'default-integration-service-name')
+              described_class.fetch_service_name(
+                'default-integration-service-name'
+              )
             ).to eq('default-integration-service-name')
           end
         end

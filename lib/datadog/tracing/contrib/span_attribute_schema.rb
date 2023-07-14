@@ -7,16 +7,18 @@ module Datadog
       module SpanAttributeSchema
         module_function
 
-        def fetch_service_name(env, default)
-          ENV.fetch(env) do
-            if Datadog.configuration.tracing.span_attribute_schema ==
-                Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE
-              Datadog.configuration.service
-            else
-              default
-            end
+        # rubocop:disable Style/OptionalArguments
+        def fetch_service_name(value = nil, default)
+          if value
+            value
+          elsif Datadog.configuration.tracing.span_attribute_schema ==
+              Tracing::Configuration::Ext::SpanAttributeSchema::VERSION_ONE
+            Datadog.configuration.service
+          else
+            default
           end
         end
+        # rubocop:enable Style/OptionalArguments
 
         def default_span_attribute_schema?
           Datadog.configuration.tracing.span_attribute_schema ==

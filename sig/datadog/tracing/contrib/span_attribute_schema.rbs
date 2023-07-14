@@ -2,7 +2,7 @@ module Datadog
   module Tracing
     module Contrib
       module SpanAttributeSchema
-        def self?.fetch_service_name: (untyped env, untyped default) -> untyped
+        def self?.fetch_service_name: (untyped value, untyped default) -> untyped
 
         def self?.default_span_attribute_schema?: () -> untyped
       end
