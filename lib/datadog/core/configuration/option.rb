@@ -170,8 +170,6 @@ module Datadog
             value.is_a?(TrueClass) || value.is_a?(FalseClass)
           when :block
             value.is_a?(Proc)
-          when :nil
-            value.is_a?(NilClass)
           when :symbol
             value.is_a?(Symbol)
           else
