@@ -36,6 +36,16 @@ module Datadog
           value.dup
         end
       end
+
+      if ::Hash.method_defined?(:compact!)
+        def self.hash_compact!(hash)
+          hash.compact!
+        end
+      else
+        def self.hash_compact!(hash)
+          hash.reject! { |_key, value| value.nil? }
+        end
+      end
     end
   end
 end
