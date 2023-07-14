@@ -52,7 +52,6 @@ module Datadog
               end
 
               option :ruleset do |o|
-                o.type :string, additional_types: [:symbol, :nil, :hash]
                 o.env_var 'DD_APPSEC_RULES'
                 o.default DEFAULT_APPSEC_RULESET
               end
@@ -70,7 +69,6 @@ module Datadog
               option :waf_timeout do |o|
                 o.env_var 'DD_APPSEC_WAF_TIMEOUT'
                 o.default DEFAULT_APPSEC_WAF_TIMEOUT
-                o.type :string, additional_types: [:int]
                 o.setter do |v|
                   Datadog::Core::Utils::Duration.call(v.to_s, base: :us)
                 end
@@ -102,20 +100,18 @@ module Datadog
 
               settings :track_user_events do
                 option :enabled do |o|
-                  o.type :bool, additional_types: [:string]
                   o.env_var 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
                   o.default DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_ENABLED
                   o.setter do |value|
-                    if value
+                    if value.is_a?(String)
                       value != 'disabled'
                     else
-                      false
+                      !!value # rubocop:disable Style/DoubleNegation
                     end
                   end
                 end
 
                 option :mode do |o|
-                  o.type :string, additional_types: [:symbol]
                   o.env_var 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
                   o.default DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE
                   o.setter do |v|

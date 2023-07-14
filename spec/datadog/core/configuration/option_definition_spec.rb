@@ -348,11 +348,11 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
   describe '#type' do
     subject(:type) do
-      builder.type(value, additional_types: additional_types)
+      builder.type(value, opts)
       builder.meta[:type]
     end
     let(:value) { nil }
-    let(:additional_types) { [] }
+    let(:opts) { {} }
 
     context 'given a value' do
       let(:value) { :string }
@@ -361,13 +361,13 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
     end
 
-    context 'given a value and additional_types' do
+    context 'given options' do
       let(:value) { :string }
-      let(:additional_types) { [:symbol] }
+      let(:opts) { { nil: true } }
 
       it { is_expected.to be value }
       it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
-      it { expect { type }.to change { builder.meta[:additional_types] }.from([]).to(additional_types) }
+      it { expect { type }.to change { builder.meta[:type_options] }.from({}).to(opts) }
     end
   end
 

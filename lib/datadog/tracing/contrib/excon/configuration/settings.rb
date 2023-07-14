@@ -31,12 +31,12 @@ module Datadog
 
             option :distributed_tracing, default: true, type: :bool
             option :error_handler do |o|
-              o.type :proc, additional_types: [:nil]
+              o.type :proc, nil: true
             end
             option :split_by_domain, default: false, type: :bool
 
             option :service_name do |o|
-              o.type :string, additional_types: [:nil]
+              o.type :string, nil: true
               o.env_var Ext::ENV_SERVICE_NAME
               o.setter do |value|
                 Contrib::SpanAttributeSchema.fetch_service_name(

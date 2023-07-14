@@ -127,15 +127,28 @@ module Datadog
         end
 
         def validate_type(value)
-          valid_type = validate(@definition.type, value)
-          valid_additional_types = @definition.additional_types.map do |additional_type|
-            validate(additional_type, value)
-          end.any?
+          raise_error = false
 
-          unless valid_type || valid_additional_types
-            raise ArgumentError,
-              "The option #{@definition.name} support this types `#{@definition.type}` and these additional types "\
-              "#{@definition.additional_types.inspect}, but the value provided is #{value.class}"
+          valid_type = validate(@definition.type, value)
+
+          unless valid_type
+            raise_error = if @definition.type_options[:nil]
+                            !value.is_a?(NilClass)
+                          else
+                            true
+                          end
+          end
+
+          if raise_error
+            error_msg = if @definition.type_options[:nil]
+                          "The option #{@definition.name} support this types `#{@definition.type}` "\
+                                      "and `nil` but the value provided is #{value.class}"
+                        else
+                          "The option #{@definition.name} support this types `#{@definition.type}` "\
+                          "but the value provided is #{value.class}"
+                        end
+
+            raise ArgumentError, error_msg
           end
 
           value

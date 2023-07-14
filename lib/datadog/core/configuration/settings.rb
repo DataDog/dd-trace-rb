@@ -157,12 +157,10 @@ module Datadog
         # @return [String,nil]
         option :env do |o|
           # DEV-2.0: Remove this conversion for symbol.
-          o.type :string, additional_types: [:symbol, :nil]
           o.setter { |v| v.to_s if v }
 
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env_var Core::Environment::Ext::ENV_ENVIRONMENT
-          o.default nil
         end
 
         # Internal `Datadog.logger` configuration.
@@ -433,7 +431,6 @@ module Datadog
         # @return [String]
         option :service do |o|
           # DEV-2.0: Remove this conversion for symbol.
-          o.type :string, additional_types: [:symbol, :nil]
           o.setter { |v| v.to_s if v }
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
@@ -460,7 +457,7 @@ module Datadog
         # @default `DD_SITE` environment variable, otherwise `nil` which sends data to `app.datadoghq.com`
         # @return [String,nil]
         option :site do |o|
-          o.type :string, additional_types: [:nil]
+          o.type :string, nil: true
           o.env_var Core::Environment::Ext::ENV_SITE
         end
 
@@ -472,16 +469,30 @@ module Datadog
         # @return [Hash<String,String>]
         option :tags do |o|
           o.env_var Core::Environment::Ext::ENV_TAGS
-          o.type :array, additional_types: [:hash]
-          o.default([])
           o.setter do |new_value, old_value|
-            tag_list = if new_value.is_a?(Array)
-                         new_value.each_with_object({}) do |tag, tags|
+            tag_list = case new_value
+                       when String
+                         values = if new_value.include?(',')
+                                    new_value.split(',')
+                                  else
+                                    new_value.split(' ') # rubocop:disable Style/RedundantArgument
+                                  end
+
+                         values.map! do |v|
+                           v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+                           v.empty? ? nil : v
+                         end
+
+                         values.compact!
+                         values.each_with_object({}) do |tag, tags|
                            key, value = tag.split(':', 2)
                            tags[key] = value if value && !value.empty?
                          end
-                       else
+                       when Hash
                          new_value
+                       else
+                         {}
                        end
 
             env_value = env
@@ -545,7 +556,7 @@ module Datadog
         # @return [String,nil]
         option :version do |o|
           # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-          o.type :string, additional_types: [:nil]
+          o.type :string, nil: true
           o.env_var Core::Environment::Ext::ENV_VERSION
         end
 

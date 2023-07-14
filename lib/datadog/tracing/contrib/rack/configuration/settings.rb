@@ -23,7 +23,7 @@ module Datadog
             end
 
             option :analytics_enabled do |o|
-              o.type :bool, additional_types: [:nil]
+              o.type :bool, nil: true
               o.env_var Ext::ENV_ANALYTICS_ENABLED
             end
 
@@ -39,7 +39,6 @@ module Datadog
             option :middleware_names, default: false, type: :bool
             option :quantize, default: {}, type: :hash
             option :request_queuing do |o|
-              o.type :bool, additional_types: [:symbol]
               o.default false
             end
 
