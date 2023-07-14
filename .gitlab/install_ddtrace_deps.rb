@@ -37,7 +37,7 @@ gem_version_mapping.each do |gem, version|
   end
 
   STDOUT.puts "Execute: #{gem_install_cmd}"
-  output, status = Open3.capture2e(gem_install_cmd)
+  output, status = Open3.capture2e(env, gem_install_cmd)
   STDOUT.puts output
 
   if status.success?
