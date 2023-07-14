@@ -540,6 +540,7 @@ module Datadog
           end
 
           # Tune remote configuration polling interval.
+          # This is a private setting. Do not use outside of Datadog. It might change at any point in time.
           #
           # @default `DD_REMOTE_CONFIG_POLL_INTERVAL_SECONDS` environment variable, otherwise `5.0` seconds.
           # @return [Float]
