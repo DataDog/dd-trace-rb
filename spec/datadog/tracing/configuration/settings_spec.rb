@@ -457,6 +457,24 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
       end
 
+      describe '#rules' do
+        subject(:rules) { settings.tracing.sampling.rules }
+
+        context 'default' do
+          it { is_expected.to be_nil }
+        end
+
+        context 'when ENV is provided' do
+          around do |example|
+            ClimateControl.modify('DD_TRACE_SAMPLING_RULES' => '[{"sample_rate":0.2}]') do
+              example.run
+            end
+          end
+
+          it { is_expected.to eq('[{"sample_rate":0.2}]') }
+        end
+      end
+
       describe '#span_rules' do
         subject(:rules) { settings.tracing.sampling.span_rules }
 
