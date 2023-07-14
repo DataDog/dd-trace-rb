@@ -62,7 +62,9 @@ module Datadog
               name: rule['name'],
               service: rule['service'],
               sample_rate: sample_rate,
-            }.compact
+            }
+
+            Core::BackportFrom24.hash_compact!(kwargs)
 
             SimpleRule.new(**kwargs)
           end
