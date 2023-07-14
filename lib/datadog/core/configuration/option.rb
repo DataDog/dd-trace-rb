@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../utils/safe_dup'
+
 module Datadog
   module Core
     module Configuration
@@ -49,7 +51,7 @@ module Datadog
           end
 
           old_value = @value
-          (@value = context_exec(value, old_value, &definition.setter)).tap do |v|
+          (@value = context_exec(validate_type(value), old_value, &definition.setter)).tap do |v|
             @is_set = true
             @precedence_set = precedence
             context_exec(v, old_value, &definition.on_set) if definition.on_set
@@ -62,7 +64,7 @@ module Datadog
           elsif definition.delegate_to
             context_eval(&definition.delegate_to)
           else
-            set(default_value, precedence: Precedence::DEFAULT)
+            set_value_from_env_or_default
           end
         end
 
@@ -84,7 +86,7 @@ module Datadog
           if definition.default.instance_of?(Proc)
             context_eval(&definition.default)
           else
-            definition.experimental_default_proc || definition.default
+            definition.experimental_default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
           end
         end
 
@@ -94,12 +96,108 @@ module Datadog
 
         private
 
+        def coerce_env_variable(value)
+          case @definition.type
+          when :int
+            value.to_i
+          when :float
+            value.to_f
+          when :array
+            values = if value.include?(',')
+                       value.split(',')
+                     else
+                       value.split(' ') # rubocop:disable Style/RedundantArgument
+                     end
+
+            values.map! do |v|
+              v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+              v.empty? ? nil : v
+            end
+
+            values.compact!
+            values
+          when :bool
+            string_value = value
+            string_value = string_value.downcase
+            string_value == 'true' || string_value == '1' # rubocop:disable Style/MultipleComparison
+          else
+            value
+          end
+        end
+
+        def validate_type(value)
+          raise_error = false
+
+          valid_type = validate(@definition.type, value)
+
+          unless valid_type
+            raise_error = if @definition.type_options[:nil]
+                            !value.is_a?(NilClass)
+                          else
+                            true
+                          end
+          end
+
+          if raise_error
+            error_msg = if @definition.type_options[:nil]
+                          "The option #{@definition.name} support this type `#{@definition.type}` "\
+                                      "and `nil` but the value provided is #{value.class}"
+                        else
+                          "The option #{@definition.name} support this type `#{@definition.type}` "\
+                          "but the value provided is #{value.class}"
+                        end
+
+            raise ArgumentError, error_msg
+          end
+
+          value
+        end
+
+        def validate(type, value)
+          case type
+          when :string
+            value.is_a?(String)
+          when :int
+            value.is_a?(Integer)
+          when :float
+            value.is_a?(Float)
+          when :array
+            value.is_a?(Array)
+          when :hash
+            value.is_a?(Hash)
+          when :bool
+            value.is_a?(TrueClass) || value.is_a?(FalseClass)
+          when :block
+            value.is_a?(Proc)
+          when :nil
+            value.is_a?(NilClass)
+          when :symbol
+            value.is_a?(Symbol)
+          else
+            true
+          end
+        end
+
         def context_exec(*args, &block)
           @context.instance_exec(*args, &block)
         end
 
         def context_eval(&block)
           @context.instance_eval(&block)
+        end
+
+        def set_value_from_env_or_default
+          if definition.env_var && ENV[definition.env_var]
+            set(coerce_env_variable(ENV[definition.env_var]), precedence: Precedence::PROGRAMMATIC)
+          elsif definition.deprecated_env_var && ENV[definition.deprecated_env_var]
+            Datadog::Core.log_deprecation do
+              "#{definition.deprecated_env_var} environment variable is deprecated, use #{definition.env_var} instead."
+            end
+            set(coerce_env_variable(ENV[definition.deprecated_env_var]), precedence: Precedence::PROGRAMMATIC)
+          else
+            set(default_value, precedence: Precedence::DEFAULT)
+          end
         end
 
         # Used for testing

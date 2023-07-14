@@ -8,6 +8,10 @@ module Datadog
 
         attr_reader experimental_default_proc: untyped
 
+        attr_reader env_var: untyped
+
+        attr_reader deprecated_env_var: untyped
+
         attr_reader delegate_to: untyped
 
         attr_reader depends_on: untyped
@@ -31,11 +35,17 @@ module Datadog
 
           def depends_on: (*untyped values) -> untyped
 
-          def default: (?untyped? value) { () -> untyped } -> untyped
+          def default: (?untyped? value) ?{ () -> untyped } -> untyped
 
           def experimental_default_proc: () { () -> untyped } -> untyped
 
           def delegate_to: () { () -> untyped } -> untyped
+
+          def env_var: (untyped value) -> untyped
+
+          def deprecated_env_var: (untyped value) -> untyped
+
+          def type: (Symbol value, ?::Hash[untyped, untyped] type_options) -> untyped
 
           def helper: (untyped name, *untyped _args) { () -> untyped } -> untyped
 

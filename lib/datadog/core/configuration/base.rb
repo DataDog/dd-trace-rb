@@ -34,8 +34,6 @@ module Datadog
                 value.reset! if value.respond_to?(:reset!)
                 value
               end
-
-              o.type settings_class
             end
           end
 
