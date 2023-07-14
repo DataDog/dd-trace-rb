@@ -370,7 +370,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
       context 'with changes' do
         let(:expected_config_states) do
           [
-            { :id => path.config_id, :product => path.product, :version => 1 }
+            { :id => path.config_id, :product => path.product, :version => 1, apply_error: nil, apply_state: 1 }
           ]
         end
 
@@ -397,7 +397,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
             end
 
             expected_updated_config_states = [
-              { :id => path.config_id, :product => path.product, :version => 2 }
+              { :id => path.config_id, :product => path.product, :version => 2, apply_error: nil, apply_state: 1 }
             ]
 
             expect(repository.state.config_states).to_not eq(expected_config_states)
