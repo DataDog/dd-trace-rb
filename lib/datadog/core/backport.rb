@@ -43,7 +43,7 @@ module Datadog
         end
       else
         def self.hash_compact!(hash)
-          hash.reject! {|_key, value| value == nil}
+          hash.reject! { |_key, value| value.nil? }
         end
       end
     end
