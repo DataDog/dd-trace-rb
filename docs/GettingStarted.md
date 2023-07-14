@@ -122,7 +122,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 | Type  | Documentation              | Version | Support type                         | Gem version support |
 | ----- | -------------------------- | -----   | ------------------------------------ | ------------------- |
-| MRI   | https://www.ruby-lang.org/ | 3.1     | Full                                 | Latest              |
+| MRI   | https://www.ruby-lang.org/ | 3.2     | Full                                 | Latest              |
+|       |                            | 3.1     | Full                                 | Latest              |
 |       |                            | 3.0     | Full                                 | Latest              |
 |       |                            | 2.7     | Full                                 | Latest              |
 |       |                            | 2.6     | Full                                 | Latest              |
@@ -1714,7 +1715,7 @@ end
 |  2.4          |                |  4.2.8 - 5.2   |
 |  2.5          |                |  4.2.8 - 6.1   |
 |  2.6 - 2.7    |  9.2           |  5.0 - 6.1     |
-|  3.0          |                |  6.1           |
+|  3.0 - 3.2    |                |  6.1           |
 
 ### Rake
 
