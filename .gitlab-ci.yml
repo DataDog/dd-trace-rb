@@ -19,6 +19,7 @@ variables:
   DOWNSTREAM_BRANCH:
     value: "master"
     description: "Run a specific datadog-reliability-env branch downstream"
+  RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
 
 default:
   tags: [ "runner:main", "size:large" ]
@@ -28,21 +29,21 @@ build-image:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
       changes:
-        - .gitlab/Dockerfile.*
+        - .gitlab/Dockerfile-*
     - when: manual
       allow_failure: true
   tags: [ "runner:docker" ]
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
     matrix:
-      - BUILD_NAME: [ '3.2.2', '3.1.4', '3.0.6', '2.7.8' ]
+      - RUBY_VERSION: [ '3.2.2', '3.1.4', '3.0.6', '2.7.8' ]
   script:
     - >
       docker build
-      --tag $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:$CI_PIPELINE_ID
-      --file .gitlab/Dockerfile.$BUILD_NAME
+      --tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION:$CI_PIPELINE_ID
+      --file .gitlab/Dockerfile-$RUBY_VERSION
       .
-    - docker push --all-tags $CI_DOCKER_IMAGE_BASE/$BUILD_NAME
+    - docker push --all-tags $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION
 
 promote-image:
   stage: manual-images
@@ -51,14 +52,14 @@ promote-image:
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
     matrix:
-      - BUILD_NAME: [ '3.2.2', '3.1.4', '3.0.6', '2.7.8' ]
+      - RUBY_VERSION: [ '3.2.2', '3.1.4', '3.0.6', '2.7.8' ]
   script:
-    - docker pull $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:$CI_PIPELINE_ID
-    - docker tag $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:$CI_PIPELINE_ID $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:current
-    - docker push $CI_DOCKER_IMAGE_BASE/$BUILD_NAME:current
+    - docker pull $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION:$CI_PIPELINE_ID
+    - docker tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION:$CI_PIPELINE_ID $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION:current
+    - docker push $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION:current
 
 install-base-ruby-gems:
-  image: registry.ddbuild.io/ci/auto_inject/3.2.2:current
+  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2:current
   stage: package
   rules:
     - if: $RUBY_PACKAGE_VERSION
@@ -72,7 +73,7 @@ install-base-ruby-gems:
       - vendor
 
 install-version-dependant-gems:
-  image: registry.ddbuild.io/ci/auto_inject/$RUBY_VERSION:current
+  image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION:current
   parallel:
     matrix:
       - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4"]
