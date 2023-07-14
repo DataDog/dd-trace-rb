@@ -18,6 +18,10 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
   let(:options) { {} }
 
   describe '#tracing' do
+    after do
+      settings.reset!
+    end
+
     describe '#analytics' do
       describe '#enabled' do
         subject(:enabled) { settings.tracing.analytics.enabled }
@@ -207,7 +211,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           context 'is not defined' do
             let(:var_value) { nil }
 
-            it { is_expected.to be_nil }
+            it { is_expected.to eq [] }
 
             it 'does not change propagation_extract_style' do
               expect { propagation_style }.to_not change { propagation_extract_style }

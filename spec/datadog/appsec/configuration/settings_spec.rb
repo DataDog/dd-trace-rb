@@ -66,16 +66,8 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe '#enabled=' do
       subject(:set_appsec_enabled) { settings.appsec.enabled = appsec_enabled }
 
-      context 'when given a falsy value' do
-        let(:appsec_enabled) { nil }
-
-        before { set_appsec_enabled }
-
-        it { expect(settings.appsec.enabled).to eq(false) }
-      end
-
       context 'when given a truthy value' do
-        let(:appsec_enabled) { 'enabled' }
+        let(:appsec_enabled) { true }
 
         before { set_appsec_enabled }
 
@@ -191,7 +183,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
         before { set_appsec_ruleset }
 
-        it { expect(settings.appsec.ruleset).to eq(nil) }
+        it { expect(settings.appsec.ruleset).to be_nil }
       end
     end
 
@@ -333,16 +325,8 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe '#waf_debug=' do
       subject(:set_appsec_waf_debug) { settings.appsec.waf_debug = appsec_waf_debug }
 
-      context 'when given a falsy value' do
-        let(:appsec_waf_debug) { nil }
-
-        before { set_appsec_waf_debug }
-
-        it { expect(settings.appsec.waf_debug).to eq(false) }
-      end
-
       context 'when given a truthy value' do
-        let(:appsec_waf_debug) { 'waf_debug' }
+        let(:appsec_waf_debug) { true }
 
         before { set_appsec_waf_debug }
 
@@ -399,7 +383,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_obfuscator_key_regex) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_OBFUSCATOR_KEY_REGEX }
+          it { is_expected.to eq described_class::DEFAULT_OBFUSCATOR_KEY_REGEX }
         end
 
         context 'is defined' do
@@ -435,7 +419,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_obfuscator_value_regex) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_OBFUSCATOR_VALUE_REGEX }
+          it { is_expected.to eq described_class::DEFAULT_OBFUSCATOR_VALUE_REGEX }
         end
 
         context 'is defined' do
@@ -496,8 +480,8 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           settings.appsec.track_user_events.enabled = track_user_events_enabled
         end
 
-        context 'when given a falsy value' do
-          let(:track_user_events_enabled) { nil }
+        context 'when given a disabled' do
+          let(:track_user_events_enabled) { 'disabled' }
 
           before { set_appsec_track_user_events_enabled }
 
@@ -505,7 +489,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
 
         context 'when given a truthy value' do
-          let(:track_user_events_enabled) { 'enabled' }
+          let(:track_user_events_enabled) { true }
 
           before { set_appsec_track_user_events_enabled }
 
@@ -526,7 +510,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           context 'is not defined' do
             let(:track_user_events_mode) { nil }
 
-            it { is_expected.to be described_class::DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE }
+            it { is_expected.to eq described_class::DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE }
           end
 
           context 'is defined' do

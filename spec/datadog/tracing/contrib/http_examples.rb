@@ -3,7 +3,7 @@ RSpec.shared_examples 'with error status code configuration' do
 
   context 'with a custom range' do
     context 'with an Range object' do
-      let(:configuration_options) { { error_status_codes: 500..502 } }
+      let(:configuration_options) { { error_status_codes: (500..502).to_a } }
 
       context 'with a status code within the range' do
         let(:status_code) { 501 }
