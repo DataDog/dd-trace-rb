@@ -77,7 +77,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     end
   end
 
-  describe 'parse' do
+  describe '.parse' do
     subject(:parse) { described_class.parse(rules.to_json, rate_limit, default_sample_rate) }
     let(:rules) { [rule] }
     let(:rate_limit) { nil }
@@ -104,7 +104,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       end
 
       context 'and name' do
-        let(:rule) { super().merge(name: 'test-name') }
+        let(:rule) { { sample_rate: 0.1, name: 'test-name' } }
 
         it 'parses matching any service' do
           expect(actual_rule.matcher.name).to eq('test-name')
@@ -114,7 +114,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       end
 
       context 'and service' do
-        let(:rule) { super().merge(service: 'test-service') }
+        let(:rule) { { sample_rate: 0.1, service: 'test-service' } }
 
         it 'parses matching any name' do
           expect(actual_rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)

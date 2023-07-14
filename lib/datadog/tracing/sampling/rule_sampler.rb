@@ -49,7 +49,7 @@ module Datadog
         end
 
         def self.parse(rules, rate_limit, default_sample_rate)
-          rules = JSON.parse(rules).map do |rule|
+          parsed_rules = JSON.parse(rules).map do |rule|
             sample_rate = rule['sample_rate']
 
             begin
@@ -67,7 +67,7 @@ module Datadog
             SimpleRule.new(**kwargs)
           end
 
-          new(rules, rate_limit: rate_limit, default_sample_rate: default_sample_rate)
+          new(parsed_rules, rate_limit: rate_limit, default_sample_rate: default_sample_rate)
         rescue => e
           Datadog.logger.error do
             "Could not parse trace sampling rules '#{rules}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
