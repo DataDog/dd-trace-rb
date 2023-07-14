@@ -70,6 +70,11 @@ module Datadog
             options[name].set(value, precedence: precedence)
           end
 
+          def unset_option(name, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
+            add_option(name) unless options.key?(name)
+            options[name].unset(precedence)
+          end
+
           def get_option(name)
             add_option(name) unless options.key?(name)
             options[name].get

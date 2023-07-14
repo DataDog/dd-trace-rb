@@ -141,6 +141,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         before do
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
+          allow(Datadog.logger).to receive(:info)
         end
 
         it 'overrides with value with the same precedence' do
@@ -178,6 +179,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         before do
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+          allow(Datadog.logger).to receive(:info)
         end
 
         it 'overrides with value with precedence REMOTE_CONFIGURATION' do
@@ -216,6 +218,98 @@ RSpec.describe Datadog::Core::Configuration::Option do
         it 'overrides with value with the same precedence' do
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
           expect(option.get).to eq(:override)
+        end
+      end
+    end
+  end
+
+  describe '#unset' do
+    before do
+      allow(context).to(receive(:instance_exec)) { |value, _| value }
+      allow(Datadog.logger).to receive(:info)
+    end
+
+    # Sanity check for the combinatorial test setup that follows
+    it 'expect precedence list to not be empty' do
+      expect(Datadog::Core::Configuration::Option::Precedence::LIST).to_not be_empty
+    end
+
+    # Generate all combinations of precedences to seed the Option object with all possible values set.
+    # For each combination, try to `unset` on every precedence.
+    #
+    # For example, if we have 2 precedences, `default` and `rc`,
+    # for an existing Option:
+    #
+    # | With these precedences set | `#unset` precedence | Assert that     |
+    # |----------------------------|---------------------|-----------------|
+    # | (empty)                    | rc                  | no change       |
+    # | (empty)                    | default             | no change       |
+    # | rc                         | rc                  | Option is reset |
+    # | rc                         | default             | no change       |
+    # | default                    | rc                  | no change       |
+    # | default                    | default             | Option is reset |
+    # | rc, default                | rc                  | default         |
+    # | rc, default                | default             | rc              |
+    all_precedences = Datadog::Core::Configuration::Option::Precedence::LIST
+    (all_precedences.size + 1).times.flat_map { |s| all_precedences.combination(s).to_a }.each do |state|
+      context "for #{state.map { |s| s[1].to_s }} set" do
+        before do
+          # See this Option with many values set a different precedences.
+          state.each do |precedence|
+            # For convenience, the option value is set to the same object as the precedence.
+            value = precedence
+
+            @highest_value ||= value
+            option.set(value, precedence: precedence)
+          end
+        end
+
+        # Far all scenarios, try to remove each precedence and assert the correct behavior.
+        all_precedences.each do |precedence|
+          context "unsetting '#{precedence[1]}'" do
+            subject!(:unset) { option.unset(precedence) }
+            let(:precedence) { precedence }
+            let(:get) { option.get }
+
+            if state.empty?
+              context 'when no value is set' do
+                it 'resets the option' do
+                  expect(get).to eq(default)
+                  expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+                end
+              end
+            elsif precedence < state[0]
+              context 'when a value with lower precedence is unset' do
+                it 'does not modify the option value' do
+                  expect(get).to eq(@highest_value)
+                  expect(option.send(:precedence_set)).to eq(state[0])
+                end
+              end
+            elsif precedence == state[0]
+              context 'the highest precedence value is unset' do
+                if state.size == 1
+                  context 'removing the only value set' do
+                    it 'resets the option' do
+                      expect(get).to eq(default)
+                      expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+                    end
+                  end
+                else
+                  it 'falls back to lower precedence value' do
+                    expect(get).to eq(state[1])
+                    expect(option.send(:precedence_set)).to eq(state[1])
+                  end
+                end
+              end
+            elsif precedence > state[0]
+              context 'when a nonexistent value with higher precedence is unset' do
+                it 'does not modify the option value' do
+                  expect(get).to eq(@highest_value)
+                  expect(option.send(:precedence_set)).to eq(state[0])
+                end
+              end
+            end
+          end
         end
       end
     end
