@@ -9,6 +9,7 @@ target :ddtrace do
 
   ignore 'lib/datadog/appsec.rb'
   ignore 'lib/datadog/appsec/component.rb'
+  ignore 'lib/datadog/appsec/configuration/settings.rb'
   ignore 'lib/datadog/appsec/contrib/auto_instrument.rb'
   ignore 'lib/datadog/appsec/contrib/integration.rb'
   ignore 'lib/datadog/appsec/contrib/rack/gateway/request.rb'
