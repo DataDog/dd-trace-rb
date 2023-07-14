@@ -36,7 +36,7 @@ module Datadog
 
             def format_resource_name: (String grpc_full_method) -> String
 
-            def extract_rpc_service: (String grpc_full_method) -> String
+            def extract_grpc_service: (String grpc_full_method) -> String
           end
         end
       end
