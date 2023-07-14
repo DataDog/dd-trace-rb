@@ -1,7 +1,6 @@
 require 'time'
 
 require_relative '../../metadata/ext'
-require_relative '../rack/header_collection'
 require_relative 'ext'
 
 module Datadog
