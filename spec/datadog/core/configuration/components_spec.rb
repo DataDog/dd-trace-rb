@@ -634,6 +634,26 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
+      context 'with sampling.rules' do
+        before { allow(settings.tracing.sampling).to receive(:rules).and_return(rules) }
+
+        context 'with rules' do
+          let(:rules) { '[{"sample_rate":"0.123"}]' }
+
+          it_behaves_like 'new tracer' do
+            let(:sampler) do
+              lambda do |sampler|
+                expect(sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+                expect(sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+
+                expect(sampler.priority_sampler.rules).to have(1).item
+                expect(sampler.priority_sampler.rules[0].sampler.sample_rate).to eq(0.123)
+              end
+            end
+          end
+        end
+      end
+
       context 'with sampling.span_rules' do
         before { allow(settings.tracing.sampling).to receive(:span_rules).and_return(rules) }
 
