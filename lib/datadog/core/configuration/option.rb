@@ -141,10 +141,10 @@ module Datadog
 
           if raise_error
             error_msg = if @definition.type_options[:nil]
-                          "The option #{@definition.name} support this types `#{@definition.type}` "\
+                          "The option #{@definition.name} support this type `#{@definition.type}` "\
                                       "and `nil` but the value provided is #{value.class}"
                         else
-                          "The option #{@definition.name} support this types `#{@definition.type}` "\
+                          "The option #{@definition.name} support this type `#{@definition.type}` "\
                           "but the value provided is #{value.class}"
                         end
 
