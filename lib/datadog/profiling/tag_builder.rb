@@ -42,6 +42,8 @@ module Datadog
         tags[FORM_FIELD_TAG_ENV] = env if env
         tags[FORM_FIELD_TAG_SERVICE] = service if service
         tags[FORM_FIELD_TAG_VERSION] = version if version
+        # See https://github.com/DataDog/web-ui/pull/84750 for reference
+        tags['ddprof.custom_ctx'] = '_dd.trace.operation'
 
         # Make sure everything is an utf-8 string, to avoid encoding issues in native code/libddprof/further downstream
         user_tags.merge(tags).map do |key, value|
