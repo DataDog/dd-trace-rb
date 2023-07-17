@@ -3,6 +3,8 @@ require "bundler"
 
 lock_file_path = "./vendor/Gemfile.lock"
 install_dir = "./vendor"
+
+# This would return MAJOR.MINOR without PATCH version, for example 3.1, 3.2
 ruby_version = RUBY_VERSION.split(".")[0..1].join(".")
 
 lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file(lock_file_path))
