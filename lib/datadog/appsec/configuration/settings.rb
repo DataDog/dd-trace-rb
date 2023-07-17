@@ -95,6 +95,62 @@ module Datadog
                 o.default DEFAULT_OBFUSCATOR_VALUE_REGEX
               end
 
+              settings :block do
+                # HTTP status code to block with
+                option :status do |o|
+                  o.default { 403 }
+                end
+
+                # only applies to redirect status codes
+                option :location do |o|
+                  o.setter { |v| URI(v) unless v.nil? }
+                end
+
+                # only applies to non-redirect status codes with bodies
+                option :templates do |o|
+                  o.default do
+                    json = ENV.fetch(
+                      'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON',
+                      :json
+                    )
+
+                    html = ENV.fetch(
+                      'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML',
+                      :html
+                    )
+
+                    text = ENV.fetch(
+                      'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT',
+                      :text
+                    )
+
+                    {
+                      'application/json' => json,
+                      'text/html' => html,
+                      'text/plain' => text,
+                    }
+                  end
+                  o.setter do |v|
+                    next if v.nil?
+
+                    # TODO: should merge with o.default to allow overriding only one mime type
+
+                    v.each do |k, w|
+                      case w
+                      when :json, :html, :text
+                        next
+                      when String, Pathname
+                        next if File.exist?(w.to_s)
+
+                        raise(ArgumentError, "appsec.templates.#{k}: file not found: #{w}")
+                      else
+                        raise ArgumentError, "appsec.templates.#{k}: unexpected value: #{w.inspect}"
+                      end
+                    end
+                  end
+                end
+              end
+
               settings :track_user_events do
                 option :enabled do |o|
                   o.default true

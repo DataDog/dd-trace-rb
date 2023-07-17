@@ -33,10 +33,16 @@ module Datadog
 
           Datadog.logger.debug { "negotiated response content type: #{content_type}" }
 
+          headers = { 'Content-Type' => content_type }
+          headers['Location'] = location.to_s if redirect?
+
+          body = []
+          body << content(content_type) unless redirect?
+
           Response.new(
-            status: 403,
-            headers: { 'Content-Type' => content_type },
-            body: [Datadog::AppSec::Assets.blocked(format: CONTENT_TYPE_TO_FORMAT[content_type])]
+            status: status,
+            headers: headers,
+            body: body,
           )
         end
 
@@ -49,6 +55,7 @@ module Datadog
         }.freeze
 
         DEFAULT_CONTENT_TYPE = 'application/json'
+        REDIRECT_STATUS = [301, 302, 303, 307, 308].freeze
 
         def content_type(env)
           return DEFAULT_CONTENT_TYPE unless env.key?('HTTP_ACCEPT')
@@ -66,6 +73,37 @@ module Datadog
           DEFAULT_CONTENT_TYPE
         rescue Datadog::AppSec::Utils::HTTP::MediaRange::ParseError
           DEFAULT_CONTENT_TYPE
+        end
+
+        def status
+          Datadog.configuration.appsec.block.status
+        end
+
+        def redirect?
+          REDIRECT_STATUS.include?(status)
+        end
+
+        def location
+          Datadog.configuration.appsec.block.location
+        end
+
+        def content(content_type)
+          setting = Datadog.configuration.appsec.block.templates[content_type]
+
+          case setting
+          when :html, :json, :text
+            Datadog::AppSec::Assets.blocked(format: setting)
+          when String, Pathname
+            path = setting.to_s
+
+            cache[path] ||= (File.open(path, 'rb', &:read) || '')
+          else
+            raise ArgumentError, "unexpected type: #{content_type.inspect}"
+          end
+        end
+
+        def cache
+          @cache ||= {}
         end
       end
     end
