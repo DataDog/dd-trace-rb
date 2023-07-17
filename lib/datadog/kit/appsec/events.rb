@@ -110,7 +110,7 @@ module Datadog
               check_trace_span_integrity(trace, span)
 
               span.set_tag("appsec.events.#{event}.track", 'true')
-              span.set_tag("_dd.appsec.appsec.events.#{event}.sdk", 'true')
+              span.set_tag("_dd.appsec.events.#{event}.sdk", 'true')
 
               others.each do |k, v|
                 raise ArgumentError, 'key cannot be :track' if k.to_sym == :track
@@ -122,7 +122,7 @@ module Datadog
             else
               set_trace_and_span_context('track', trace, span) do |active_trace, active_span|
                 active_span.set_tag("appsec.events.#{event}.track", 'true')
-                active_span.set_tag("_dd.appsec.appsec.events.#{event}.sdk", 'true')
+                active_span.set_tag("_dd.appsec.events.#{event}.sdk", 'true')
 
                 others.each do |k, v|
                   raise ArgumentError, 'key cannot be :track' if k.to_sym == :track

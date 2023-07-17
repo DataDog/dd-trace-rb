@@ -659,6 +659,7 @@ target :ddtrace do
   library 'google-protobuf'
   library 'protobuf-cucumber'
   library 'mysql2'
+  library 'mysql2-aurora'
   library 'opentracing'
   library 'concurrent-ruby'
   library 'faraday'

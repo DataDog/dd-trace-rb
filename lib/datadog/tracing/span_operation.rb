@@ -3,6 +3,7 @@ require 'time'
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
 require_relative '../core/utils/time'
+require_relative '../core/utils/safe_dup'
 
 require_relative 'event'
 require_relative 'metadata'
@@ -434,19 +435,6 @@ module Datadog
         :parent,
         :span
 
-      if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
-        # Ensures #initialize can call nil.dup safely
-        module RefineNil
-          refine NilClass do
-            def dup
-              self
-            end
-          end
-        end
-
-        using RefineNil
-      end
-
       # Create a Span from the operation which represents
       # the finalized measurement. We #dup here to prevent
       # mutation by reference; when this span is returned,
@@ -457,8 +445,8 @@ module Datadog
           duration: duration,
           end_time: @end_time,
           id: @id,
-          meta: meta.dup,
-          metrics: metrics.dup,
+          meta: Core::Utils::SafeDup.frozen_or_dup(meta),
+          metrics: Core::Utils::SafeDup.frozen_or_dup(metrics),
           parent_id: @parent_id,
           resource: @resource,
           service: @service,
