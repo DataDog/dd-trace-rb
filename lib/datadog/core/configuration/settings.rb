@@ -535,7 +535,7 @@ module Datadog
         # @return [Proc<Time>]
         option :time_now_provider do |o|
           o.experimental_default_proc { ::Time.now }
-          o.type :block
+          o.type :proc
 
           o.on_set do |time_provider|
             Core::Utils::Time.now_provider = time_provider

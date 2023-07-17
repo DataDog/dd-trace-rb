@@ -264,7 +264,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           end
         end
 
-        after { Datadog.configure { |c| c.tracing.transport_options = {} } }
+        after { Datadog.configuration.reset! }
 
         it { is_expected.to include agent_url: include('unix') }
         it { is_expected.to include agent_url: include('/tmp/trace.sock') }
