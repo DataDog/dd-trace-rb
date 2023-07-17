@@ -18,7 +18,7 @@ module Datadog
 
             def open: () ?{ () -> untyped } -> untyped
 
-            def post: (untyped env) -> untyped
+            def post: (untyped env) -> Datadog::Core::Telemetry::Http::Adapters::Net::Response
             class Response
               include Datadog::Core::Telemetry::Http::Response
 
