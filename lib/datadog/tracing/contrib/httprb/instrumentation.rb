@@ -79,6 +79,10 @@ module Datadog
               end
 
               set_analytics_sample_rate(span, req_options)
+
+              span.set_tags(
+                Datadog.configuration.tracing.header_tags.request_tags(req.headers)
+              )
             end
 
             def annotate_span_with_response!(span, response, request_options)
@@ -91,6 +95,10 @@ module Datadog
                 # parsing the response body message will alter downstream application behavior
                 span.set_error(["Error #{response.code}", 'Error'])
               end
+
+              span.set_tags(
+                Datadog.configuration.tracing.header_tags.response_tags(response.headers)
+              )
             end
 
             def annotate_span_with_error!(span, error)

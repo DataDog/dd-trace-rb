@@ -61,12 +61,20 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, env[:method].to_s.upcase)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, env[:url].host)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, env[:url].port)
+
+            span.set_tags(
+              Datadog.configuration.tracing.header_tags.request_tags(env[:request_headers])
+            )
           end
 
           def handle_response(span, env, options)
             span.set_error(["Error #{env[:status]}", env[:body]]) if options.fetch(:error_handler).call(env)
 
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, env[:status])
+
+            span.set_tags(
+              Datadog.configuration.tracing.header_tags.response_tags(env[:response_headers])
+            )
           end
 
           def propagate!(trace, span, env)

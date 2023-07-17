@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/support/http'
 
 require 'excon'
 require 'ddtrace'
@@ -12,7 +13,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
   let(:connection_options) { { mock: true } }
   let(:connection) do
     Excon.new('http://example.com', connection_options).tap do
-      Excon.stub({ method: :get, path: '/success' }, body: 'OK', status: 200)
+      Excon.stub({ method: :get, path: '/success' }, body: 'OK', status: 200, headers: response_headers)
       Excon.stub({ method: :post, path: '/failure' }, body: 'Boom!', status: 500)
       Excon.stub({ method: :get, path: '/not_found' }, body: 'Not Found.', status: 404)
       Excon.stub(
@@ -25,6 +26,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
   end
   let(:middleware_options) { {} }
   let(:configuration_options) { {} }
+  let(:response_headers) { {} }
 
   let(:request_span) do
     spans.find { |span| span.name == Datadog::Tracing::Contrib::Excon::Ext::SPAN_REQUEST }
@@ -80,7 +82,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
   end
 
   context 'when there is successful request' do
-    subject!(:response) { connection.get(path: '/success') }
+    subject!(:response) { connection.get(path: '/success', headers: request_headers) }
+    let(:request_headers) { {} }
 
     it_behaves_like 'environment service name', 'DD_TRACE_EXCON_SERVICE_NAME'
     it_behaves_like 'schema version span'
@@ -113,6 +116,22 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
 
     it_behaves_like 'a peer service span' do
       let(:peer_hostname) { 'example.com' }
+    end
+
+    context 'when configured with global tag headers' do
+      let(:header_span) { request_span }
+      let(:request_headers) { { 'Request-Id' => 'test-request' } }
+      let(:response_headers) { { 'Response-Id' => 'test-response' } }
+
+      include_examples 'with request tracer header tags' do
+        let(:request_header_tag) { 'request-id' }
+        let(:request_header_tag_value) { 'test-request' }
+      end
+
+      include_examples 'with response tracer header tags' do
+        let(:response_header_tag) { 'response-id' }
+        let(:response_header_tag_value) { 'test-response' }
+      end
     end
   end
 

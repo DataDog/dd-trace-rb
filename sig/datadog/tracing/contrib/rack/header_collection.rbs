@@ -6,6 +6,7 @@ module Datadog
           class RequestHeaderCollection < Datadog::Core::HeaderCollection
             def initialize: (untyped env) -> void
             def get: (untyped header_name) -> untyped
+            alias [] get
             def key?: (untyped header_name) -> untyped
           end
 
