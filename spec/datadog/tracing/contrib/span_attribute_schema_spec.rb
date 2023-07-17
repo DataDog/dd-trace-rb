@@ -43,7 +43,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           it 'returns DD_SERVICE' do
             with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1', DD_SERVICE: 'service' do
               expect(
-                described_class.fetch_service_name('default-integration-service-name')
+                described_class.fetch_service_name(nil, 'default-integration-service-name')
               ).to eq('service')
             end
           end
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           it 'returns default program name' do
             with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
               expect(
-                described_class.fetch_service_name('default-integration-service-name')
+                described_class.fetch_service_name(nil, 'default-integration-service-name')
               ).to eq('rspec')
             end
           end
@@ -65,6 +65,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0', DD_SERVICE: 'service' do
             expect(
               described_class.fetch_service_name(
+                nil,
                 'default-integration-service-name'
               )
             ).to eq('default-integration-service-name')

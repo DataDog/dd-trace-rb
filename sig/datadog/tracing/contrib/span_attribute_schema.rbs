@@ -2,9 +2,9 @@ module Datadog
   module Tracing
     module Contrib
       module SpanAttributeSchema
-        def self?.fetch_service_name: (untyped value, untyped default) -> untyped
+        def self?.fetch_service_name: (String? value, String default) -> String
 
-        def self?.default_span_attribute_schema?: () -> untyped
+        def self?.default_span_attribute_schema?: () -> bool
       end
     end
   end
