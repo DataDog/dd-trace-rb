@@ -121,8 +121,10 @@ module Datadog
             string_value = value
             string_value = string_value.downcase
             string_value == 'true' || string_value == '1' # rubocop:disable Style/MultipleComparison
-          else
+          when :string, NilClass
             value
+          else
+            raise ArgumentError, "The option #{@definition.name} is using an unknown type option `#{@definition.type}`"
           end
         end
 
@@ -168,12 +170,14 @@ module Datadog
             value.is_a?(Hash)
           when :bool
             value.is_a?(TrueClass) || value.is_a?(FalseClass)
-          when :block
+          when :proc
             value.is_a?(Proc)
           when :symbol
             value.is_a?(Symbol)
-          else
+          when NilClass
             true
+          else
+            raise ArgumentError, "The option #{@definition.name} is using an unknown type option `#{@definition.type}`"
           end
         end
 

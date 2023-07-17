@@ -238,6 +238,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       context 'when type is defined' do
+        context 'type is invalid value' do
+          let(:type) { :nullable_string }
+          let(:value) { 'Hello' }
+          it 'raise exception' do
+            expect { set }.to raise_exception(ArgumentError)
+          end
+        end
+
         context 'value is same as type' do
           let(:type) { :string }
           let(:value) { 'Hello' }
@@ -353,12 +361,21 @@ RSpec.describe Datadog::Core::Configuration::Option do
             end
           end
         end
+
+        context 'invalid type' do
+          let(:type) { :invalid_type }
+          let(:env_var_value) { '1' }
+
+          it 'raise exception' do
+            expect { option.get }.to raise_exception(ArgumentError)
+          end
+        end
       end
     end
 
     context 'when env_var is defined' do
       before do
-        expect(context).to receive(:instance_exec) do |*args|
+        allow(context).to receive(:instance_exec) do |*args|
           args[0]
         end
       end
@@ -398,7 +415,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
     context 'when deprecated_env_var is defined' do
       before do
-        expect(context).to receive(:instance_exec) do |*args|
+        allow(context).to receive(:instance_exec) do |*args|
           args[0]
         end
       end
