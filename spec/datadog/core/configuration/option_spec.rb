@@ -234,7 +234,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       expect(Datadog::Core::Configuration::Option::Precedence::LIST).to_not be_empty
     end
 
-    # Generate all combinations of precedences to seed the Option object with all possible values set.
+    # Test all combinations of precedences to seed the Option object with all possible values set.
     # For each combination, try to `unset` on every precedence.
     #
     # For example, if we have 2 precedences, `default` and `rc`,
@@ -253,9 +253,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
 {
   no_precedence: [],
   remote_configuration: [Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION],
-  programatic: [Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC],
+  programmatic: [Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC],
   default: [Datadog::Core::Configuration::Option::Precedence::DEFAULT],
-  remote_and_programattic: [
+  remote_and_programmatic: [
     Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
     Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
   ],
@@ -263,7 +263,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
     Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION,
     Datadog::Core::Configuration::Option::Precedence::DEFAULT
   ],
-  programatice_and_default: [
+  programmatic_and_default: [
     Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC,
     Datadog::Core::Configuration::Option::Precedence::DEFAULT
   ],
