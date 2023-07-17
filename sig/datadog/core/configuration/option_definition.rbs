@@ -6,11 +6,11 @@ module Datadog
 
         attr_reader default: untyped
 
+        attr_reader experimental_default_proc: untyped
+
         attr_reader delegate_to: untyped
 
         attr_reader depends_on: untyped
-
-        attr_reader lazy: untyped
 
         attr_reader name: untyped
 
@@ -33,11 +33,11 @@ module Datadog
 
           def default: (?untyped? value) { () -> untyped } -> untyped
 
+          def experimental_default_proc: () { () -> untyped } -> untyped
+
           def delegate_to: () { () -> untyped } -> untyped
 
           def helper: (untyped name, *untyped _args) { () -> untyped } -> untyped
-
-          def lazy: (?bool value) -> untyped
 
           def on_set: () { () -> untyped } -> untyped
 
@@ -49,7 +49,7 @@ module Datadog
 
           def to_definition: () -> untyped
 
-          def meta: () -> { default: untyped, delegate_to: untyped, depends_on: untyped, lazy: untyped, on_set: untyped, resetter: untyped, setter: untyped }
+          def meta: () -> { default: untyped, delegate_to: untyped, depends_on: untyped, on_set: untyped, resetter: untyped, setter: untyped }
         end
       end
     end
