@@ -94,7 +94,7 @@ module Datadog
             @default = block || value
           end
 
-          def experimental_default_proc(&block)
+          def experimental_default_proc(block)
             @experimental_default_proc = block
           end
 

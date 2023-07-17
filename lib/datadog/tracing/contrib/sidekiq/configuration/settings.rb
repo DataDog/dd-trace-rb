@@ -38,7 +38,10 @@ module Datadog
 
             option :service_name
             option :client_service_name
-            option :error_handler, type: :proc, experimental_default_proc: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
+            option :error_handler do |o|
+              o.type :proc, nil: true
+              o.experimental_default_proc Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
+            end
             option :quantize, default: {}, type: :hash
             option :distributed_tracing, default: false, type: :bool
           end

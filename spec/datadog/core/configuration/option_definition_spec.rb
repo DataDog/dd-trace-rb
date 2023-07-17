@@ -216,7 +216,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         let(:initialize_block) do
           proc do |o|
             o.default false
-            o.experimental_default_proc { true }
+            o.experimental_default_proc proc { true }
           end
         end
 
@@ -272,7 +272,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
   end
 
   describe '#experimental_default_proc' do
-    subject(:experimental_default_proc) { builder.experimental_default_proc(&block) }
+    subject(:experimental_default_proc) { builder.experimental_default_proc(block) }
 
     context 'given a block' do
       let(:block) { proc { false } }

@@ -34,7 +34,10 @@ module Datadog
             end
 
             option :distributed_tracing, default: true, type: :bool
-            option :error_handler, type: :proc, experimental_default_proc: DEFAULT_ERROR_HANDLER
+            option :error_handler do |o|
+              o.type :proc, nil: true
+              o.experimental_default_proc DEFAULT_ERROR_HANDLER
+            end
             option :split_by_domain, default: false, type: :bool
 
             option :service_name do |o|
