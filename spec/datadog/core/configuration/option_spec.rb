@@ -8,17 +8,18 @@ RSpec.describe Datadog::Core::Configuration::Option do
   let(:definition) do
     instance_double(
       Datadog::Core::Configuration::OptionDefinition,
+      name: :test_name,
       default: default,
+      experimental_default_proc: experimental_default_proc,
       delegate_to: delegate,
-      lazy: lazy,
       on_set: nil,
       resetter: nil,
       setter: setter
     )
   end
   let(:default) { double('default') }
+  let(:experimental_default_proc) { nil }
   let(:delegate) { nil }
-  let(:lazy) { false }
   let(:setter) { proc { setter_value } }
   let(:setter_value) { double('setter_value') }
   let(:context) { double('configuration object') }
@@ -134,6 +135,89 @@ RSpec.describe Datadog::Core::Configuration::Option do
           it { is_expected.to be(setter_value) }
         end
       end
+
+      context 'with precedence REMOTE_CONFIGURATION' do
+        let(:setter) { proc { |value| value } }
+
+        before do
+          option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
+        end
+
+        it 'overrides with value with the same precedence' do
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
+          expect(option.get).to eq(:override)
+        end
+
+        it 'does not override with value with precedence PROGRAMMATIC' do
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+          expect(option.get).to eq(:original_value)
+        end
+
+        it 'does not override with value with precedence DEFAULT' do
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+          expect(option.get).to eq(:original_value)
+        end
+
+        it 'does not record info log for successful override' do
+          allow(Datadog.logger).to receive(:info)
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
+          expect(Datadog.logger).to_not receive(:info)
+        end
+
+        it 'records info log for ignored override' do
+          allow(Datadog.logger).to receive(:info)
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+          expect(Datadog.logger).to have_received(:info) do |&block|
+            expect(block.call).to include("Option 'test_name' not changed to 'override'")
+          end
+        end
+      end
+
+      context 'with precedence PROGRAMMATIC' do
+        let(:setter) { proc { |value| value } }
+
+        before do
+          option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+        end
+
+        it 'overrides with value with precedence REMOTE_CONFIGURATION' do
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
+          expect(option.get).to eq(:override)
+        end
+
+        it 'overrides with value with the same precedence' do
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+          expect(option.get).to eq(:override)
+        end
+
+        it 'does not override with value with precedence DEFAULT' do
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+          expect(option.get).to eq(:original_value)
+        end
+      end
+
+      context 'with precedence DEFAULT' do
+        let(:setter) { proc { |value| value } }
+
+        before do
+          option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+        end
+
+        it 'overrides with value with precedence REMOTE_CONFIGURATION' do
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
+          expect(option.get).to eq(:override)
+        end
+
+        it 'overrides with value with precedence PROGRAMMATIC' do
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+          expect(option.get).to eq(:override)
+        end
+
+        it 'overrides with value with the same precedence' do
+          option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+          expect(option.get).to eq(:override)
+        end
+      end
     end
   end
 
@@ -154,8 +238,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context 'and #get is called twice' do
           before do
-            expect(definition).to receive(:default)
-              .once
+            allow(definition).to receive(:default)
               .and_return(default)
           end
 
@@ -229,6 +312,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
           it { is_expected.to be(resetter_value) }
         end
       end
+
+      it 'resets precedence to DEFAULT' do
+        reset
+        expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+      end
     end
   end
 
@@ -237,8 +325,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
     let(:default) { double('default') }
 
-    context 'when lazy is true' do
-      let(:lazy) { true }
+    context 'when default is a block' do
       let(:default) { proc {} }
       let(:block_default) { double('block default') }
 
@@ -252,10 +339,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
       it { is_expected.to be block_default }
     end
 
-    context 'when lazy is false' do
-      let(:lazy) { false }
-
+    context 'when default is not a block' do
       it { is_expected.to be default }
+    end
+
+    context 'when experimental_default_proc is defined' do
+      let(:experimental_default_proc) { proc { 'experimental_default_proc' } }
+
+      it { is_expected.to be experimental_default_proc }
     end
   end
 end

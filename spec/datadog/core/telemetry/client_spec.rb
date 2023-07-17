@@ -3,8 +3,9 @@ require 'spec_helper'
 require 'datadog/core/telemetry/client'
 
 RSpec.describe Datadog::Core::Telemetry::Client do
-  subject(:client) { described_class.new(enabled: enabled) }
+  subject(:client) { described_class.new(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds) }
   let(:enabled) { true }
+  let(:heartbeat_interval_seconds) { 1.3 }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
   let(:response) { double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
   let(:not_found) { false }
@@ -21,8 +22,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       client.worker.join
     end
 
-    context 'when no params provided' do
-      subject(:client) { described_class.new }
+    context 'with default parameters' do
+      subject(:client) { described_class.new(heartbeat_interval_seconds: heartbeat_interval_seconds) }
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(true) }
       it { expect(client.emitter).to be(emitter) }
@@ -164,7 +165,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     let(:worker) { instance_double(Datadog::Core::Telemetry::Heartbeat) }
 
     before do
-      allow(Datadog::Core::Telemetry::Heartbeat).to receive(:new).and_return(worker)
+      allow(Datadog::Core::Telemetry::Heartbeat).to receive(:new)
+        .with(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds).and_return(worker)
       allow(worker).to receive(:start)
       allow(worker).to receive(:stop)
     end

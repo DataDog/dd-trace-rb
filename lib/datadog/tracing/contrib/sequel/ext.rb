@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Tracing
     module Contrib
@@ -5,14 +7,14 @@ module Datadog
         # Sequel integration constants
         # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
         module Ext
-          ENV_ENABLED = 'DD_TRACE_SEQUEL_ENABLED'.freeze
-          ENV_ANALYTICS_ENABLED = 'DD_TRACE_SEQUEL_ANALYTICS_ENABLED'.freeze
-          ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SEQUEL_ANALYTICS_SAMPLE_RATE'.freeze
-          SPAN_QUERY = 'sequel.query'.freeze
-          TAG_DB_VENDOR = 'sequel.db.vendor'.freeze
-          TAG_PREPARED_NAME = 'sequel.prepared.name'.freeze
-          TAG_COMPONENT = 'sequel'.freeze
-          TAG_OPERATION_QUERY = 'query'.freeze
+          ENV_ENABLED = 'DD_TRACE_SEQUEL_ENABLED'
+          ENV_ANALYTICS_ENABLED = 'DD_TRACE_SEQUEL_ANALYTICS_ENABLED'
+          ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SEQUEL_ANALYTICS_SAMPLE_RATE'
+          SPAN_QUERY = 'sequel.query'
+          TAG_DB_VENDOR = 'sequel.db.vendor'
+          TAG_PREPARED_NAME = 'sequel.prepared.name'
+          TAG_COMPONENT = 'sequel'
+          TAG_OPERATION_QUERY = 'query'
         end
       end
     end

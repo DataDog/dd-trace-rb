@@ -2,46 +2,6 @@ module Datadog
   module AppSec
     module Extensions
       def self.activate!: () -> untyped
-
-      module Settings
-        @appsec: AppSecAdapter
-
-        def appsec: () -> AppSecAdapter
-      end
-
-      class AppSecAdapter
-        @settings: Configuration::Settings
-
-        def initialize: (Configuration::Settings settings) -> void
-
-        def instrument: (::Symbol name, ?Configuration::DSL::options options) -> void
-
-        def enabled=: (bool arg) -> untyped
-        def ruleset=: ((::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO) arg) -> untyped
-        def ip_denylist=: (::Array[::String] arg) -> untyped
-        def user_id_denylist=: (::Array[::String] arg) -> untyped
-        def waf_timeout=: (::Integer arg) -> untyped
-        def waf_debug=: (bool arg) -> untyped
-        def trace_rate_limit=: (::Integer arg) -> untyped
-        def obfuscator_key_regex=: (::String | ::Regexp) -> void
-        def obfuscator_value_regex=: (::String | ::Regexp) -> void
-
-        def enabled: () -> bool
-        def ruleset: () -> (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO)
-        def ip_denylist: () -> ::Array[::String]
-        def user_id_denylist: () -> ::Array[::String]
-        def waf_timeout: () -> ::Integer
-        def waf_debug: () -> bool
-        def trace_rate_limit: () -> ::Integer
-        def obfuscator_key_regex: () -> ::String
-        def obfuscator_value_regex: () -> ::String
-
-        def merge: (untyped arg) -> untyped
-
-        private
-
-        def reset!: () -> void
-      end
     end
   end
 end

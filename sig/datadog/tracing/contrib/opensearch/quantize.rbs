@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module OpenSearch
+        module Quantize
+          PLACEHOLDER: "/?"
+
+          include Contrib::Elasticsearch::Quantize
+
+          def self?.format_url: (untyped url) -> untyped
+
+          def self?.format_body: (untyped body, ?::Hash[untyped, untyped] options) -> untyped
+        end
+      end
+    end
+  end
+end

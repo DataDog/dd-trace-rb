@@ -18,7 +18,7 @@ require 'datadog/tracing/utils'
 require 'datadog/tracing/writer'
 
 RSpec.describe Datadog::Tracing::Tracer do
-  let(:writer) { FauxWriter.new }
+  let(:writer) { FauxWriter.new disable_test_agent: true }
   let(:tracer_options) { {} }
 
   subject(:tracer) { described_class.new(writer: writer, **tracer_options) }
@@ -234,6 +234,26 @@ RSpec.describe Datadog::Tracing::Tracer do
                 expect(trace.hostname).to be nil
               end
             end
+          end
+        end
+
+        it 'adds profiling_enabled to the trace' do
+          expect(Datadog::Profiling).to receive(:enabled?).and_return(true)
+
+          tracer.trace(name) {}
+
+          expect(traces.first.profiling_enabled).to be true
+        end
+
+        context 'when profiler is not available' do
+          before do
+            expect(Datadog::Profiling).to receive(:respond_to?).with(:enabled?).and_return(false)
+          end
+
+          it 'adds profiling_enabled as false to the trace' do
+            tracer.trace(name) {}
+
+            expect(traces.first.profiling_enabled).to be false
           end
         end
       end

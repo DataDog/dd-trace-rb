@@ -7,7 +7,7 @@ module Datadog
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
-      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:)
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
         return unless settings.profiling.enabled
 
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
@@ -64,7 +64,11 @@ module Datadog
 
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
+        no_signals_workaround_enabled = false
+
         if enable_new_profiler?(settings)
+          no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
+
           recorder = Datadog::Profiling::StackRecorder.new(
             cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
             alloc_samples_enabled: false, # Always disabled for now -- work in progress
@@ -76,7 +80,8 @@ module Datadog
             endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
             gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
-            no_signals_workaround_enabled: no_signals_workaround_enabled?(settings),
+            no_signals_workaround_enabled: no_signals_workaround_enabled,
+            timeline_enabled: settings.profiling.advanced.experimental_timeline_enabled,
           )
         else
           load_pprof_support
@@ -85,7 +90,7 @@ module Datadog
           collector = build_profiler_oldstack_collector(settings, recorder, optional_tracer)
         end
 
-        exporter = build_profiler_exporter(settings, recorder)
+        exporter = build_profiler_exporter(settings, recorder, no_signals_workaround_enabled: no_signals_workaround_enabled)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
 
@@ -96,11 +101,15 @@ module Datadog
         Profiling::OldRecorder.new([Profiling::Events::StackSample], settings.profiling.advanced.max_events)
       end
 
-      private_class_method def self.build_profiler_exporter(settings, recorder)
+      private_class_method def self.build_profiler_exporter(settings, recorder, no_signals_workaround_enabled:)
         code_provenance_collector =
           (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
-        Profiling::Exporter.new(pprof_recorder: recorder, code_provenance_collector: code_provenance_collector)
+        Profiling::Exporter.new(
+          pprof_recorder: recorder,
+          code_provenance_collector: code_provenance_collector,
+          no_signals_workaround_enabled: no_signals_workaround_enabled,
+        )
       end
 
       private_class_method def self.build_profiler_oldstack_collector(settings, old_recorder, tracer)
@@ -198,7 +207,7 @@ module Datadog
         if Gem.loaded_specs['mysql2'] && incompatible_libmysqlclient_version?(settings)
           Datadog.logger.warn(
             'Enabling the profiling "no signals" workaround because an incompatible version of the mysql2 gem is ' \
-            'installed. Profiling data will have lower quality.' \
+            'installed. Profiling data will have lower quality. ' \
             'To fix this, upgrade the libmysqlclient in your OS image to version 8.0.0 or above.'
           )
           return true
@@ -236,9 +245,22 @@ module Datadog
         begin
           require 'mysql2'
 
-          return true unless defined?(Mysql2::Client) && Mysql2::Client.respond_to?(:info)
+          # The mysql2-aurora gem likes to monkey patch itself in replacement of Mysql2::Client, and uses
+          # `method_missing` to delegate to the original BUT unfortunately does not implement `respond_to_missing?` and
+          # thus our `respond_to?(:info)` below was failing.
+          #
+          # But on the bright side, the gem does stash a reference to the original Mysql2::Client class in a constant,
+          # so if that constant exists, we use that for our probing.
+          mysql2_client_class =
+            if defined?(Mysql2::Aurora::ORIGINAL_CLIENT_CLASS)
+              Mysql2::Aurora::ORIGINAL_CLIENT_CLASS
+            elsif defined?(Mysql2::Client)
+              Mysql2::Client
+            end
 
-          libmysqlclient_version = Gem::Version.new(Mysql2::Client.info[:version])
+          return true unless mysql2_client_class && mysql2_client_class.respond_to?(:info)
+
+          libmysqlclient_version = Gem::Version.new(mysql2_client_class.info[:version])
 
           compatible = libmysqlclient_version >= Gem::Version.new('8.0.0')
 

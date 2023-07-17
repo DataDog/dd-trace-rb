@@ -54,21 +54,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
   end
 
-  describe '#lazy' do
-    subject(:lazy) { definition.lazy }
-
-    context 'when not initialized with a value' do
-      it { is_expected.to be false }
-    end
-
-    context 'when initialized with a value' do
-      let(:meta) { { lazy: lazy_value } }
-      let(:lazy_value) { double('lazy') }
-
-      it { is_expected.to be lazy_value }
-    end
-  end
-
   describe '#name' do
     subject(:result) { definition.name }
 
@@ -191,9 +176,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
           it 'generates an OptionDefinition with defaults' do
             is_expected.to have_attributes(
               default: nil,
+              experimental_default_proc: nil,
               delegate_to: nil,
               depends_on: [],
-              lazy: false,
               name: name,
               on_set: nil,
               resetter: nil,
@@ -222,6 +207,23 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
           it 'yields an OptionDefinition with the block\'s value' do
             is_expected.to have_attributes(default: false)
           end
+        end
+      end
+    end
+
+    context 'validate_options!' do
+      context 'when default and experimental_default_proc is provided' do
+        let(:initialize_block) do
+          proc do |o|
+            o.default false
+            o.experimental_default_proc { true }
+          end
+        end
+
+        it do
+          expect do
+            is_expected
+          end.to raise_error(described_class::InvalidOptionError)
         end
       end
     end
@@ -269,6 +271,16 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
+  describe '#experimental_default_proc' do
+    subject(:experimental_default_proc) { builder.experimental_default_proc(&block) }
+
+    context 'given a block' do
+      let(:block) { proc { false } }
+
+      it { is_expected.to be block }
+    end
+  end
+
   describe '#delegate_to' do
     subject(:delegate_to) { builder.delegate_to(&block) }
 
@@ -304,18 +316,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
   end
 
   describe '#lazy' do
-    context 'given no arguments' do
-      subject(:lazy) { builder.lazy }
-
-      it { is_expected.to be true }
-    end
-
-    context 'given a value' do
-      subject(:lazy) { builder.lazy(value) }
-
-      let(:value) { double('value') }
-
-      it { is_expected.to be value }
+    it 'logs deprecation warning' do
+      expect(Datadog::Core).to receive(:log_deprecation)
+      builder.lazy
     end
   end
 
@@ -394,16 +397,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given :lazy' do
-      let(:options) { { lazy: value } }
-      let(:value) { double('value') }
-
-      it do
-        expect(builder).to receive(:lazy).with(value)
-        apply_options!
-      end
-    end
-
     context 'given :on_set' do
       let(:options) { { on_set: value } }
       let(:value) { proc {} }
@@ -466,9 +459,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     it 'contains the arguments for OptionDefinition' do
       expect(meta.keys).to include(
         :default,
+        :experimental_default_proc,
         :delegate_to,
         :depends_on,
-        :lazy,
         :on_set,
         :resetter,
         :setter,

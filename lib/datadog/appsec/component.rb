@@ -13,6 +13,15 @@ module Datadog
           return unless settings.respond_to?(:appsec) && settings.appsec.enabled
 
           processor = create_processor(settings)
+          # We want to always instrument user events when AppSec is enabled.
+          # There could be cases in which users use the DD_APPSEC_ENABLED Env variable to
+          # enable AppSec, in that case, Devise is already instrumented.
+          # In the case that users do not use DD_APPSEC_ENABLED, we have to instrument it,
+          # hence the lines above.
+
+          devise_integration = Datadog::AppSec::Contrib::Devise::Integration.new
+          settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
+
           new(processor: processor)
         end
 

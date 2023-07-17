@@ -94,6 +94,11 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  RSpec::Core::RakeTask.new(:yjit) do |t, args|
+    t.pattern = 'spec/datadog/core/runtime/metrics_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
   # rails_semantic_logger is the dog at the dog park that doesnt play nicely with other
   # logging gems, aka it tries to bite/monkeypatch them, so we have to put it in its own appraisal and rake task
   # in order to isolate its effects for rails logs auto injection
@@ -149,6 +154,7 @@ namespace :spec do
     :lograge,
     :mongodb,
     :mysql2,
+    :opensearch,
     :pg,
     :presto,
     :qless,
@@ -179,7 +185,8 @@ namespace :spec do
   # Datadog CI integrations
   [
     :cucumber,
-    :rspec
+    :rspec,
+    :minitest
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/datadog/ci/contrib/#{contrib}/**/*_spec.rb"
@@ -188,7 +195,7 @@ namespace :spec do
   end
 
   namespace :appsec do
-    task all: [:main, :rack, :rails, :sinatra]
+    task all: [:main, :rack, :rails, :sinatra, :devise]
 
     # Datadog AppSec main specs
     RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -203,6 +210,7 @@ namespace :spec do
       :rack,
       :sinatra,
       :rails,
+      :devise,
     ].each do |contrib|
       RSpec::Core::RakeTask.new(contrib) do |t, args|
         t.pattern = "spec/datadog/appsec/contrib/#{contrib}/**/*_spec.rb"
@@ -296,6 +304,7 @@ task :ci do
   declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:lograge'
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:mongodb'
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby' => 'bundle exec appraisal contrib rake spec:mysql2' # disabled on JRuby, built-in jdbc is used instead
+  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:opensearch'
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby' => 'bundle exec appraisal contrib rake spec:pg'
   declare '✅ 2.1 / ✅ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby' => 'bundle exec appraisal contrib rake spec:presto'
   declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:que'
@@ -393,6 +402,7 @@ task :ci do
   # AppSec contrib specs
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:appsec:rack'
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:appsec:sinatra'
+  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:appsec:devise'
 
   # AppSec Rails specs
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby' => 'bundle exec appraisal rails32-mysql2 rake spec:appsec:rails'

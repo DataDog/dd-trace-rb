@@ -1,3 +1,11 @@
+RSpec.shared_examples 'normal with tracing disable' do
+  let(:tracing_enabled) { false }
+
+  it do
+    expect(spans).to have(0).items
+  end
+end
+
 RSpec.shared_examples 'a GET 200 span' do
   it do
     expect(span.get_tag('http.method')).to eq('GET')

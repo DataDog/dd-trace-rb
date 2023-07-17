@@ -143,6 +143,21 @@ The actionable in this case would be to ensure that the thread created in `worke
 
 Depending on the situation, the thread in question might need to be forced to terminate. It's recommended to have a mechanism in place to terminate it (a shared variable that changes value when the thread should exit), but as a last resort, `Thread#terminate` forces the thread to finish. Keep in mind that regardless of the termination method, `Thread#join` must be called to ensure that the thread has completely finished its shutdown process.
 
+**The APM Test Agent**
+
+The APM test agent emulates the APM endpoints of the Datadog Agent. The Test Agent container
+runs alongside the Ruby tracer locally and in CI, handles all traces during test runs and performs a number 
+of 'Trace Checks'. For more information on these checks, see: 
+https://github.com/DataDog/dd-apm-test-agent#trace-invariant-checks
+
+The APM Test Agent also emits helpful logging, which can be viewed in local testing or in CircleCI as a job step for tracer and contrib
+tests. Locally, to get Test Agent logs:
+
+    $ docker-compose logs -f testagent
+
+Read more about the APM Test Agent:
+https://github.com/datadog/dd-apm-test-agent#readme
+
 ### Checking code quality
 
 **Linting**
@@ -247,4 +262,18 @@ Datadog.configure do |c|
     t.adapter custom_adapter
   }
 end
+```
+
+### Generating GRPC proto stubs for tests
+
+If you modify any of the `.proto` files under `./spec/datadog/tracing/contrib/grpc/support/proto` used for
+testing the `grpc` integration, you'll need to regenerate the Ruby code by running:
+
+```
+$ docker run \
+   --platform linux/amd64 \
+   -v ${PWD}:/app \
+   -w /app \
+   ruby:latest \
+   ./spec/datadog/tracing/contrib/grpc/support/gen_proto.sh
 ```

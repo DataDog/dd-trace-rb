@@ -371,7 +371,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
 
   context 'when basic auth in url' do
     before do
-      WebMock.enable!
+      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 

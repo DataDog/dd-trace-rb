@@ -1,48 +1,30 @@
 module Datadog
   module AppSec
     module Configuration
-      class Settings
-        def initialize: () -> void
+      # Settings
+      module Settings
+        extend Datadog::Core::Environment::VariableHelpers
+        extend Datadog::Core::Configuration::Base::ClassMethods
+        include Datadog::Core::Configuration::Base::InstanceMethods
+        extend Datadog::Core::Configuration::Options::ClassMethods
+        include Datadog::Core::Configuration::Options::InstanceMethods
 
-        type duration = (::Integer | ::Float)
-        type options = Configuration::DSL::options
-
-        class Integration < ::Struct[untyped]
-          def initialize: (untyped integration) -> void
-          attr_accessor integration: untyped
-        end
-
-        def self.boolean: () -> ^(::String) -> bool
-        def self.string: () -> ^(::String) -> ::String
-        def self.integer: () -> ^(::String) -> ::Integer
-        def self.duration: (?::Symbol base, ?::Symbol type) -> ^(::String, ::Symbol) -> duration
-
-        DEFAULTS: options
-        ENVS: Hash[::String, ::Array[untyped]]
-        DEFAULT_OBFUSCATOR_VALUE_REGEX: ::String
         DEFAULT_OBFUSCATOR_KEY_REGEX: ::String
+        DEFAULT_OBFUSCATOR_VALUE_REGEX: ::String
+        DEFAULT_APPSEC_ENABLED: bool
+        DEFAULT_APPSEC_RULESET: :recommended
+        DEFAULT_APPSEC_WAF_TIMEOUT: Integer
+        DEFAULT_APPSEC_WAF_DEBUG: bool
+        DEFAULT_APPSEC_TRACE_RATE_LIMIT: Integer
+        DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_ENABLED: bool
+        DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE: String
+        APPSEC_VALID_TRACK_USER_EVENTS_MODE: ::Array[String]
 
-        @options: options
-        @integrations: ::Array[Integration]
-        @configured: Set[Symbol]
+        def self.extended: (untyped base) -> untyped
 
-        def enabled: () -> bool
-        def ruleset: () -> (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO)
-        def ip_denylist: () -> ::Array[::String]
-        def user_id_denylist: () -> ::Array[::String]
-        def waf_timeout: () -> ::Integer
-        def waf_debug: () -> bool
-        def trace_rate_limit: () -> ::Integer
-        def obfuscator_key_regex: () -> ::String
-        def obfuscator_value_regex: () -> ::String
+        def self.add_settings!: (untyped base) -> untyped
 
-        def merge: (DSL) -> Settings
-
-        private
-
-        def default?: (Symbol option) -> bool
-
-        def reset!: () -> void
+        def self.enabled:  -> bool
       end
     end
   end

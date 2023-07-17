@@ -31,7 +31,6 @@ RSpec.describe Datadog::Core::Configuration::Base do
 
               is_expected.to have_attributes(
                 default: kind_of(Proc),
-                lazy: true,
                 resetter: kind_of(Proc)
               )
             end
@@ -139,6 +138,81 @@ RSpec.describe Datadog::Core::Configuration::Base do
           let(:options) { %w[debug enabled] }
 
           it { is_expected.to be(true) }
+        end
+      end
+
+      describe '#using_default?' do
+        let(:configuration) do
+          Class.new do
+            include Datadog::Core::Configuration::Base
+
+            settings :fake_test do
+              option :enabled, default: true
+              option :without_default
+            end
+          end.new
+        end
+
+        context 'with default option' do
+          context 'when not set or accessed' do
+            it 'returns true' do
+              expect(configuration.fake_test.using_default?(:enabled)).to be(true)
+            end
+          end
+
+          context 'when not set but accessed' do
+            it 'returns true' do
+              configuration.fake_test.enabled
+              expect(configuration.fake_test.using_default?(:enabled)).to be(true)
+            end
+          end
+
+          context 'when set' do
+            it 'returns false' do
+              configuration.fake_test.enabled = false
+              expect(configuration.fake_test.using_default?(:enabled)).to be(false)
+            end
+          end
+
+          context 'when set and reset' do
+            it 'returns false' do
+              configuration.fake_test.enabled = false
+              expect(configuration.fake_test.using_default?(:enabled)).to be(false)
+              configuration.fake_test.reset!
+              expect(configuration.fake_test.using_default?(:enabled)).to be(true)
+            end
+          end
+        end
+
+        context 'without default option' do
+          context 'when not set or accessed' do
+            it 'returns true' do
+              expect(configuration.fake_test.using_default?(:without_default)).to be(true)
+            end
+          end
+
+          context 'when not set but accessed' do
+            it 'returns true' do
+              configuration.fake_test.without_default
+              expect(configuration.fake_test.using_default?(:without_default)).to be(true)
+            end
+          end
+
+          context 'when set' do
+            it 'returns false' do
+              configuration.fake_test.without_default = false
+              expect(configuration.fake_test.using_default?(:without_default)).to be(false)
+            end
+          end
+
+          context 'when set and reset' do
+            it 'returns false' do
+              configuration.fake_test.without_default = false
+              expect(configuration.fake_test.using_default?(:without_default)).to be(false)
+              configuration.fake_test.reset!
+              expect(configuration.fake_test.using_default?(:without_default)).to be(true)
+            end
+          end
         end
       end
 

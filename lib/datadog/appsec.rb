@@ -8,8 +8,6 @@ require_relative 'appsec/ext'
 module Datadog
   # Namespace for Datadog AppSec instrumentation
   module AppSec
-    include Configuration
-
     class << self
       def enabled?
         Datadog.configuration.appsec.enabled
@@ -57,5 +55,6 @@ end
 require_relative 'appsec/contrib/rack/integration'
 require_relative 'appsec/contrib/sinatra/integration'
 require_relative 'appsec/contrib/rails/integration'
+require_relative 'appsec/contrib/devise/integration'
 
 require_relative 'appsec/autoload'

@@ -636,6 +636,9 @@ target :ddtrace do
   ignore 'lib/ddtrace/transport/traces.rb'
   ignore 'lib/ddtrace/version.rb'
 
+  # References `RubyVM::YJIT`, which does not have type information.
+  ignore 'lib/datadog/core/environment/yjit.rb'
+
   library 'pathname'
   library 'cgi'
   library 'logger', 'monitor'
@@ -656,6 +659,7 @@ target :ddtrace do
   library 'google-protobuf'
   library 'protobuf-cucumber'
   library 'mysql2'
+  library 'mysql2-aurora'
   library 'opentracing'
   library 'concurrent-ruby'
   library 'faraday'

@@ -80,7 +80,6 @@ module Datadog
         # @return [String,nil]
         option :api_key do |o|
           o.default { ENV.fetch(Core::Environment::Ext::ENV_API_KEY, nil) }
-          o.lazy
         end
 
         # Datadog diagnostic settings.
@@ -100,7 +99,6 @@ module Datadog
           # @return [Boolean]
           option :debug do |o|
             o.default { env_to_bool(Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED, false) }
-            o.lazy
             o.on_set do |enabled|
               # Enable rich debug print statements.
               # We do not need to unnecessarily load 'pp' unless in debugging mode.
@@ -118,7 +116,6 @@ module Datadog
             # @return [Boolean]
             option :enabled do |o|
               o.default { env_to_bool(Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED, false) }
-              o.lazy
             end
 
             # {Datadog::Statsd} instance to collect health metrics.
@@ -144,7 +141,6 @@ module Datadog
             option :enabled do |o|
               # Defaults to nil as we want to know when the default value is being used
               o.default { env_to_bool(Datadog::Core::Configuration::Ext::Diagnostics::ENV_STARTUP_LOGS_ENABLED, nil) }
-              o.lazy
             end
           end
         end
@@ -159,7 +155,6 @@ module Datadog
 
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_ENVIRONMENT, nil) }
-          o.lazy
         end
 
         # Internal `Datadog.logger` configuration.
@@ -195,7 +190,6 @@ module Datadog
           # @return [Boolean]
           option :enabled do |o|
             o.default { env_to_bool(Profiling::Ext::ENV_ENABLED, false) }
-            o.lazy
           end
 
           # @public_api
@@ -229,7 +223,6 @@ module Datadog
             # @default `DD_PROFILING_MAX_FRAMES` environment variable, otherwise 400
             option :max_frames do |o|
               o.default { env_to_int(Profiling::Ext::ENV_MAX_FRAMES, 400) }
-              o.lazy
             end
 
             # @public_api
@@ -242,7 +235,6 @@ module Datadog
                 # @return [Boolean]
                 option :enabled do |o|
                   o.default { env_to_bool(Profiling::Ext::ENV_ENDPOINT_COLLECTION_ENABLED, true) }
-                  o.lazy
                 end
               end
             end
@@ -285,7 +277,6 @@ module Datadog
             # @default `DD_PROFILING_FORCE_ENABLE_LEGACY` environment variable, otherwise `false`
             option :force_enable_legacy_profiler do |o|
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_LEGACY', false) }
-              o.lazy
               o.on_set do |value|
                 if value
                   Datadog.logger.warn(
@@ -318,7 +309,6 @@ module Datadog
             # @default `DD_PROFILING_FORCE_ENABLE_GC` environment variable, otherwise `false`
             option :force_enable_gc_profiling do |o|
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
-              o.lazy
             end
 
             # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
@@ -340,7 +330,6 @@ module Datadog
             # @default `DD_PROFILING_SKIP_MYSQL2_CHECK` environment variable, otherwise `false`
             option :skip_mysql2_check do |o|
               o.default { env_to_bool('DD_PROFILING_SKIP_MYSQL2_CHECK', false) }
-              o.lazy
             end
 
             # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
@@ -364,7 +353,13 @@ module Datadog
             # @default `DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED` environment variable as a boolean, otherwise `:auto`
             option :no_signals_workaround_enabled do |o|
               o.default { env_to_bool('DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED', :auto) }
-              o.lazy
+            end
+
+            # Enables data collection for the timeline feature. This is still experimental and not recommended yet.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED` environment variable as a boolean, otherwise `false`
+            option :experimental_timeline_enabled do |o|
+              o.default { env_to_bool('DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED', false) }
             end
           end
 
@@ -376,7 +371,6 @@ module Datadog
             option :timeout_seconds do |o|
               o.setter { |value| value.nil? ? 30.0 : value.to_f }
               o.default { env_to_float(Profiling::Ext::ENV_UPLOAD_TIMEOUT, 30.0) }
-              o.lazy
             end
           end
         end
@@ -390,10 +384,9 @@ module Datadog
           # @return [Boolean]
           option :enabled do |o|
             o.default { env_to_bool(Core::Runtime::Ext::Metrics::ENV_ENABLED, false) }
-            o.lazy
           end
 
-          option :opts, default: ->(_i) { {} }, lazy: true
+          option :opts, default: ->(_i) { {} }
           option :statsd
         end
 
@@ -407,7 +400,6 @@ module Datadog
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_SERVICE, Core::Environment::Ext::FALLBACK_SERVICE_NAME) }
-          o.lazy
 
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
           # nil instead so that one can do
@@ -430,7 +422,6 @@ module Datadog
         # @return [String,nil]
         option :site do |o|
           o.default { ENV.fetch(Core::Environment::Ext::ENV_SITE, nil) }
-          o.lazy
         end
 
         # Default tags
@@ -476,8 +467,6 @@ module Datadog
             # Merge with previous tags
             (old_value || {}).merge(string_tags)
           end
-
-          o.lazy
         end
 
         # The time provider used by Datadog. It must respect the interface of [Time](https://ruby-doc.org/core-3.0.1/Time.html).
@@ -490,8 +479,9 @@ module Datadog
         # @default `->{ Time.now }`
         # @return [Proc<Time>]
         option :time_now_provider do |o|
-          o.default { ::Time.now }
-
+          o.experimental_default_proc do
+            ::Time.now
+          end
           o.on_set do |time_provider|
             Core::Utils::Time.now_provider = time_provider
           end
@@ -512,7 +502,6 @@ module Datadog
         option :version do |o|
           # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_VERSION, nil) }
-          o.lazy
         end
 
         # Client-side telemetry configuration
@@ -525,7 +514,17 @@ module Datadog
           # @return [Boolean]
           option :enabled do |o|
             o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, true) }
-            o.lazy
+          end
+
+          # The interval in seconds when telemetry must be sent.
+          #
+          # This method is used internally, for testing purposes only.
+          #
+          # @default `DD_TELEMETRY_HEARTBEAT_INTERVAL` environment variable, otherwise `60`.
+          # @return [Float]
+          # @!visibility private
+          option :heartbeat_interval_seconds do |o|
+            o.default { env_to_float(Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL, 60) }
           end
         end
 
@@ -538,17 +537,25 @@ module Datadog
           # @return [Boolean]
           option :enabled do |o|
             o.default { env_to_bool(Core::Remote::Ext::ENV_ENABLED, true) }
-            o.lazy
           end
 
           # Tune remote configuration polling interval.
+          # This is a private setting. Do not use outside of Datadog. It might change at any point in time.
           #
-          # @default `DD_REMOTE_CONFIGURATION_POLL_INTERVAL_SECONDS` environment variable, otherwise `5.0` seconds.
+          # @default `DD_REMOTE_CONFIG_POLL_INTERVAL_SECONDS` environment variable, otherwise `5.0` seconds.
           # @return [Float]
+          # @!visibility private
           option :poll_interval_seconds do |o|
             o.default { env_to_float(Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS, 5.0) }
-            o.lazy
           end
+
+          # Declare service name to bind to remote configuration. Use when
+          # DD_SERVICE does not match the correct integration for which remote
+          # configuration applies.
+          #
+          # @default `nil`.
+          # @return [String,nil]
+          option :service
         end
 
         # TODO: Tracing should manage its own settings.

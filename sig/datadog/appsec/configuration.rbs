@@ -1,52 +1,6 @@
 module Datadog
   module AppSec
     module Configuration
-      def self.included: (::Module base) -> void
-
-      class DSL
-        type option = ::Integer | bool | ::Symbol | ::String | ::StringIO | ::File | ::Regexp | ::Hash[::Symbol | ::String, option] | ::Array[option]
-        type options = ::Hash[::Symbol, option]
-
-        class Instrument < ::Struct[untyped]
-          def initialize: (::Symbol name) -> void
-          attr_accessor name: ::Symbol
-        end
-
-        type instruments = ::Array[Instrument]
-
-        @instruments: instruments
-        @options: options
-
-        def options: () -> options
-
-        def initialize: () -> void
-
-        def instrument: (::Symbol name) -> void
-
-        def instruments: () -> instruments
-
-        def enabled=: (bool) -> void
-        def ruleset=: (::Symbol | ::String | ::Hash[::String, untyped] | ::File | ::StringIO) -> void
-        def ip_denylist=: (::Array[::String]) -> void
-        def user_id_denylist=: (::Array[::String]) -> void
-        def waf_timeout=: (::Integer) -> void
-        def waf_debug=: (bool) -> void
-        def trace_rate_limit=: (::Integer) -> void
-        def obfuscator_key_regex=: (::String | ::Regexp) -> void
-        def obfuscator_value_regex=: (::String | ::Regexp) -> void
-      end
-
-      module ClassMethods
-        @settings: Settings
-
-        def configure: () { (DSL) -> void } -> void
-
-        def settings: () -> Settings
-
-        private
-
-        def default_setting?: (Symbol setting) -> bool
-      end
     end
   end
 end

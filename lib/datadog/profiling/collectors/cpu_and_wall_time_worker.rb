@@ -21,11 +21,13 @@ module Datadog
           gc_profiling_enabled:,
           allocation_counting_enabled:,
           no_signals_workaround_enabled:,
+          timeline_enabled:,
           thread_context_collector: ThreadContext.new(
             recorder: recorder,
             max_frames: max_frames,
             tracer: tracer,
             endpoint_collection_enabled: endpoint_collection_enabled,
+            timeline_enabled: timeline_enabled,
           ),
           idle_sampling_helper: IdleSamplingHelper.new,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
@@ -76,6 +78,7 @@ module Datadog
                 )
               end
             end
+            @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
           end
 
           true

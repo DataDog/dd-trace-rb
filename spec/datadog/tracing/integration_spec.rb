@@ -285,6 +285,17 @@ RSpec.describe 'Tracer integration tests' do
       it_behaves_like 'sampling decision', nil
     end
 
+    shared_context 'DD_TRACE_SAMPLING_RULES configuration' do
+      let(:sampler) { nil }
+      let(:rules_json) { [rule].to_json }
+
+      around do |example|
+        ClimateControl.modify('DD_TRACE_SAMPLING_RULES' => rules_json) do
+          example.run
+        end
+      end
+    end
+
     context 'with rule' do
       let(:rule_sampler) { Datadog::Tracing::Sampling::RuleSampler.new([rule], **rule_sampler_opt) }
       let(:rule_sampler_opt) { {} }
@@ -298,6 +309,18 @@ RSpec.describe 'Tracer integration tests' do
         it_behaves_like 'rate limit metric', 1.0
         it_behaves_like 'sampling decision', '-3'
 
+        context 'set through DD_TRACE_SAMPLING_RULES environment variable' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) { { name: 'my.op', sample_rate: 1.0 } }
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 1.0
+          it_behaves_like 'sampling decision', '-3'
+        end
+
         context 'with low sample rate' do
           let(:rule) { Datadog::Tracing::Sampling::SimpleRule.new(sample_rate: Float::MIN) }
 
@@ -306,6 +329,18 @@ RSpec.describe 'Tracer integration tests' do
           it_behaves_like 'rule sampling rate metric', Float::MIN
           it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
           it_behaves_like 'sampling decision', nil
+
+          context 'set through DD_TRACE_SAMPLING_RULES environment variable' do
+            include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+              let(:rule) { { sample_rate: Float::MIN } }
+            end
+
+            it_behaves_like 'flushed trace'
+            it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
+            it_behaves_like 'rule sampling rate metric', Float::MIN
+            it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
+            it_behaves_like 'sampling decision', nil
+          end
         end
 
         context 'rate limited' do
@@ -328,6 +363,19 @@ RSpec.describe 'Tracer integration tests' do
         it_behaves_like 'rule sampling rate metric', nil
         it_behaves_like 'rate limit metric', nil
         it_behaves_like 'sampling decision', '-0'
+
+        context 'set through DD_TRACE_SAMPLING_RULES environment variable' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) { { name: 'not.my.op' } }
+
+            it_behaves_like 'flushed trace'
+            # The PrioritySampler was responsible for the sampling decision, not the Rule Sampler.
+            it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
+            it_behaves_like 'rule sampling rate metric', nil
+            it_behaves_like 'rate limit metric', nil
+            it_behaves_like 'sampling decision', '-0'
+          end
+        end
       end
     end
   end
@@ -561,7 +609,7 @@ RSpec.describe 'Tracer integration tests' do
 
         # Read and return any output
         read.read.tap do
-          Process.waitpid(fork_id)
+          try_wait_until { Process.wait(fork_id, Process::WNOHANG) }
         end
       end
 
@@ -907,6 +955,10 @@ RSpec.describe 'Tracer integration tests' do
           c.remote.enabled = remote_enabled
           c.appsec.enabled = appsec_enabled
         end
+      end
+
+      after do
+        Datadog.configuration.reset!
       end
 
       context 'is provided' do

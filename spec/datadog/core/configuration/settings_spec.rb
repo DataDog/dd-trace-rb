@@ -659,6 +659,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(false)
         end
       end
+
+      describe '#experimental_timeline_enabled' do
+        subject(:experimental_timeline_enabled) { settings.profiling.advanced.experimental_timeline_enabled }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_timeline_enabled=' do
+        it 'updates the #experimental_timeline_enabled setting' do
+          expect { settings.profiling.advanced.experimental_timeline_enabled = true }
+            .to change { settings.profiling.advanced.experimental_timeline_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
     end
 
     describe '#upload' do
@@ -1192,25 +1227,25 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
   describe '#telemetry' do
     around do |example|
-      ClimateControl.modify(Datadog::Core::Telemetry::Ext::ENV_ENABLED => environment) do
+      ClimateControl.modify(env_var_name => env_var_value) do
         example.run
       end
     end
-    let(:environment) { 'true' }
 
     describe '#enabled' do
       subject(:enabled) { settings.telemetry.enabled }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_TELEMETRY_ENABLED' }
 
-      context "when #{Datadog::Core::Telemetry::Ext::ENV_ENABLED}" do
+      context 'when DD_INSTRUMENTATION_TELEMETRY_ENABLED' do
         context 'is not defined' do
-          let(:environment) { nil }
+          let(:env_var_value) { nil }
 
           it { is_expected.to be true }
         end
 
         [true, false].each do |value|
           context "is defined as #{value}" do
-            let(:environment) { value.to_s }
+            let(:env_var_value) { value.to_s }
 
             it { is_expected.to be value }
           end
@@ -1219,12 +1254,43 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#enabled=' do
-      let(:environment) { 'true' }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_TELEMETRY_ENABLED' }
+      let(:env_var_value) { 'true' }
+
       it 'updates the #enabled setting' do
         expect { settings.telemetry.enabled = false }
           .to change { settings.telemetry.enabled }
           .from(true)
           .to(false)
+      end
+    end
+
+    describe '#heartbeat_interval' do
+      subject(:heartbeat_interval_seconds) { settings.telemetry.heartbeat_interval_seconds }
+      let(:env_var_name) { 'DD_TELEMETRY_HEARTBEAT_INTERVAL' }
+
+      context 'when DD_TELEMETRY_HEARTBEAT_INTERVAL' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to be 60 }
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { '1.1' }
+
+          it { is_expected.to eq 1.1 }
+        end
+      end
+    end
+
+    describe '#heartbeat_interval=' do
+      let(:env_var_name) { 'DD_TELEMETRY_HEARTBEAT_INTERVAL' }
+      let(:env_var_value) { '1.1' }
+
+      it 'updates the #heartbeat_interval setting' do
+        expect { settings.telemetry.heartbeat_interval_seconds = 2.2 }
+          .to change { settings.telemetry.heartbeat_interval_seconds }.from(1.1).to(2.2)
       end
     end
   end
@@ -1293,6 +1359,23 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.remote.poll_interval_seconds }
           .from(5.0)
           .to(1.0)
+      end
+    end
+
+    describe '#service' do
+      subject(:service) { settings.remote.service }
+
+      context 'defaults to nil' do
+        it { is_expected.to be nil }
+      end
+    end
+
+    describe '#service=' do
+      it 'updates the #service setting' do
+        expect { settings.remote.service = 'foo' }
+          .to change { settings.remote.service }
+          .from(nil)
+          .to('foo')
       end
     end
   end
