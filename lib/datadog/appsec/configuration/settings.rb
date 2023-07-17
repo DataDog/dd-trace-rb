@@ -67,7 +67,7 @@ module Datadog
               end
 
               option :waf_timeout do |o|
-                o.env_var 'DD_APPSEC_WAF_TIMEOUT'
+                o.env_var 'DD_APPSEC_WAF_TIMEOUT' # us
                 o.default DEFAULT_APPSEC_WAF_TIMEOUT
                 o.setter do |v|
                   Datadog::Core::Utils::Duration.call(v.to_s, base: :us)
@@ -82,7 +82,7 @@ module Datadog
 
               option :trace_rate_limit do |o|
                 o.type :int
-                o.env_var 'DD_APPSEC_TRACE_RATE_LIMIT'
+                o.env_var 'DD_APPSEC_TRACE_RATE_LIMIT' # trace/s
                 o.default DEFAULT_APPSEC_TRACE_RATE_LIMIT
               end
 
