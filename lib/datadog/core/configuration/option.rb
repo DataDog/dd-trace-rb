@@ -130,6 +130,7 @@ module Datadog
                      nil
                    end
 
+          # Reset back to the lowest precedence, to allow all `set`s to succeed right after a reset.
           @precedence_set = Precedence::DEFAULT
         end
 
