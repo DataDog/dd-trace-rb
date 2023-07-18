@@ -14,10 +14,11 @@ RSpec.describe Datadog::Core::Telemetry::Event do
   end
 
   describe '#telemetry_request' do
-    subject(:telemetry_request) { event.telemetry_request(request_type: request_type, seq_id: seq_id) }
+    subject(:telemetry_request) { event.telemetry_request(request_type: request_type, seq_id: seq_id, data: data) }
 
     let(:request_type) { :'app-started' }
     let(:seq_id) { 1 }
+    let(:data) { nil }
 
     it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::TelemetryRequest) }
     it { expect(telemetry_request.api_version).to eql('v1') }
@@ -51,8 +52,14 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
       context 'is app-client-configuration-change' do
         let(:request_type) { 'app-client-configuration-change' }
+        let(:data) { { changes: [double('my-changes')], origin: 'my-origin' } }
 
         it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V2::AppClientConfigurationChange) }
+        it { expect(telemetry_request.request_type).to eq(request_type) }
+
+        it 'passes data to the event object' do
+          expect(telemetry_request.payload.to_h.to_json).to include('my-changes') & include('my-origin')
+        end
       end
 
       context 'is nil' do

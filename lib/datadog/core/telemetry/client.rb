@@ -67,10 +67,11 @@ module Datadog
           @emitter.request(:'app-integrations-change')
         end
 
+        # Report configuration changes caused by Dynamic Configuration.
         def dynamic_configuration_change!(changes)
           return if !@enabled || forked?
 
-          @emitter.request('app-client-configuration-change', data: changes)
+          @emitter.request('app-client-configuration-change', data: { changes: changes, origin: 'remote_config' })
         end
 
         private

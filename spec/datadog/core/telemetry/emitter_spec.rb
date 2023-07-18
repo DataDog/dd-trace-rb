@@ -74,6 +74,17 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
         end
       end
     end
+
+    context 'with data' do
+      subject(:request) { emitter.request(request_type, data: data) }
+      let(:data) { { changes: ['test-data'] } }
+      let(:request_type) { 'app-client-configuration-change' }
+
+      it 'sends data to the emitter' do
+        request
+        expect(http_transport).to have_received(:request).with(payload: include('test-data'), request_type: anything)
+      end
+    end
   end
 
   describe 'when initialized multiple times' do

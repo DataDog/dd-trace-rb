@@ -73,8 +73,8 @@ module Datadog
         # DEV: The `app-client-configuration-change` payload is one of them.
         # DEV: Once V2 is fully implemented, `Telemetry::V2::AppClientConfigurationChange`
         # DEV: should be reusable without major modifications.
-        def app_client_configuration_change(changes)
-          Telemetry::V2::AppClientConfigurationChange.new(changes, origin: 'remote_config')
+        def app_client_configuration_change(data)
+          Telemetry::V2::AppClientConfigurationChange.new(data[:changes], origin: data[:origin])
         end
       end
     end

@@ -16,6 +16,7 @@ module Datadog
             @origin = origin
           end
 
+          # @see [Request#to_h]
           def to_h
             super.merge(payload: payload)
           end
