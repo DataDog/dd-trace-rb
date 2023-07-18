@@ -44,10 +44,17 @@ module Datadog
 
             if value.nil?
               # Restore the local configuration value
-              Datadog.configuration.tracing.unset_option(@setting_key, precedence: PRECEDENCE)
+              configuration_object.unset_option(@setting_key, precedence: PRECEDENCE)
             else
-              Datadog.configuration.tracing.set_option(@setting_key, value, precedence: PRECEDENCE)
+              configuration_object.set_option(@setting_key, value, precedence: PRECEDENCE)
             end
+          end
+
+          protected
+
+          # The base where `setting_key` will apply
+          def configuration_object
+            Datadog.configuration.tracing
           end
         end
       end

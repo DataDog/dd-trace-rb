@@ -33,40 +33,33 @@ module Datadog
         end
 
         # Dynamic configuration for `DD_TRACE_SAMPLE_RATE`.
-        class TracingSamplingRate < Option
+        class TracingSamplingRate < SimpleOption
           def initialize
-            super('tracing_sampling_rate', 'DD_TRACE_SAMPLE_RATE')
+            super('tracing_sampling_rate', 'DD_TRACE_SAMPLE_RATE', :default_rate)
           end
 
-          # `DD_TRACE_SAMPLE_RATE` can be overridden by many options.
-          # This method ensures that all related options are cleared when setting `DD_TRACE_SAMPLE_RATE`.
+          # This method ensures that `DD_TRACE_SAMPLE_RATE` will be applied,
+          # regardless of competing sampling configuration.
+          #
+          # Non-competing sampling configurations still apply (e.g. rate limiting).
           def call(tracing_sampling_rate)
-            configuration = Datadog.configuration
-            tracing = configuration.tracing
+            super
 
-            if tracing_sampling_rate.nil?
-              tracing.sampling.unset_option(:default_rate, precedence: PRECEDENCE)
+            sampler = Tracing::Sampling::PrioritySampler.new(
+              base_sampler: Tracing::Sampling::AllSampler.new,
+              post_sampler: Tracing::Sampling::RuleSampler.new(
+                rate_limit: Datadog.configuration.tracing.sampling.rate_limit,
+                default_sample_rate: Datadog.configuration.tracing.sampling.default_rate
+              )
+            )
 
-              tracing.test_mode.unset_option(:enabled, precedence: PRECEDENCE)
-              tracing.sampling.unset_option(:rules, precedence: PRECEDENCE)
-              tracing.unset_option(:sampler, precedence: PRECEDENCE)
-              tracing.unset_option(:priority_sampling, precedence: PRECEDENCE)
-            else
-              tracing.sampling.set_option(:default_rate, tracing_sampling_rate, precedence: PRECEDENCE)
+            Datadog.send(:components).reconfigure_live_sampler(sampler)
+          end
 
-              # These options affect how the sampler is constructed.
-              # We change them to guarantee that the tracer will respect the configured `default_rate`.
-              tracing.test_mode.set_option(:enabled, false, precedence: PRECEDENCE)
-              tracing.sampling.set_option(:rules, nil, precedence: PRECEDENCE)
-              tracing.set_option(:sampler, nil, precedence: PRECEDENCE)
-              tracing.set_option(:priority_sampling, nil, precedence: PRECEDENCE)
-            end
+          protected
 
-            # Ensures there is not concurrent configuration or reconfiguration during
-            # the sampling swap.
-            Datadog.send(:safely_synchronize) do
-              Datadog.send(:components).reconfigure_sampler(configuration)
-            end
+          def configuration_object
+            Datadog.configuration.tracing.sampling
           end
         end
 

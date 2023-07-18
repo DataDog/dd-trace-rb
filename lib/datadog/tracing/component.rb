@@ -12,12 +12,11 @@ module Datadog
     module Component
       # Methods that interact with component instance fields.
       module InstanceMethods
-        def reconfigure_sampler(settings)
-          tracer.sampler.sampler = if settings.tracing.test_mode.enabled
-                                     self.class.build_test_mode_sampler
-                                   else
-                                     self.class.build_sampler(settings)
-                                   end
+        # Hot-swaps with a new sampler.
+        # This operation acquires the Components lock to ensure
+        # there is not concurrent modification of the sampler.
+        def reconfigure_live_sampler(sampler)
+          safely_synchronize { tracer.sampler.sampler = sampler }
         end
       end
 
@@ -54,27 +53,6 @@ module Datadog
           writer: writer,
           tags: build_tracer_tags(settings),
         )
-      end
-
-      # Sampler wrapper component, to allow for hot-swapping
-      # the sampler instance used by the tracer.
-      # Swapping samplers happens during Dynamic Configuration.
-      class SamplerDelegatorComponent
-        attr_accessor :sampler
-
-        def initialize(sampler)
-          @sampler = sampler
-        end
-
-        def sample!(trace)
-          @sampler.sample!(trace)
-        end
-
-        def update(*args, **kwargs)
-          return unless @sampler.respond_to?(:update)
-
-          @sampler.update(*args, **kwargs)
-        end
       end
 
       def build_trace_flush(settings)
@@ -193,6 +171,27 @@ module Datadog
       def build_span_sampler(settings)
         rules = Tracing::Sampling::Span::RuleParser.parse_json(settings.tracing.sampling.span_rules)
         Tracing::Sampling::Span::Sampler.new(rules || [])
+      end
+
+      # Sampler wrapper component, to allow for hot-swapping
+      # the sampler instance used by the tracer.
+      # Swapping samplers happens during Dynamic Configuration.
+      class SamplerDelegatorComponent
+        attr_accessor :sampler
+
+        def initialize(sampler)
+          @sampler = sampler
+        end
+
+        def sample!(trace)
+          @sampler.sample!(trace)
+        end
+
+        def update(*args, **kwargs)
+          return unless @sampler.respond_to?(:update)
+
+          @sampler.update(*args, **kwargs)
+        end
       end
 
       private
