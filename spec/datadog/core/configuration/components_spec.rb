@@ -431,7 +431,15 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         let(:options) { defined?(super) ? super() : {} }
-        let(:tracer_options) { default_options.merge(options) }
+        let(:tracer_options) do
+          default_options.merge(options).tap do |options|
+            sampler = options[:sampler]
+            options[:sampler] = lambda do |sampler_delegator|
+              expect(sampler_delegator).to be_a(Datadog::Tracing::Component::SamplerDelegatorComponent)
+              expect(sampler_delegator.sampler).to match(sampler)
+            end
+          end
+        end
         let(:writer_options) { defined?(super) ? super() : {} }
 
         before do
@@ -466,8 +474,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       shared_examples 'event publishing writer and priority sampler' do
-        it_behaves_like 'event publishing writer'
-
         before do
           allow(writer.events.after_send).to receive(:subscribe)
         end
@@ -489,6 +495,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block).to be(sampler_rates_callback)
           end
+
           build_tracer
         end
       end
@@ -628,7 +635,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
             it_behaves_like 'new tracer' do
               let(:options) { { sampler: sampler } }
-              it_behaves_like 'event publishing writer'
+              it_behaves_like 'event publishing writer and priority sampler'
             end
           end
         end
