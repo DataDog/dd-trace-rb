@@ -224,10 +224,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
   end
 
   describe '#unset' do
-    before do
-      allow(context).to(receive(:instance_exec)) { |value, _| value }
-      allow(Datadog.logger).to receive(:info)
-    end
+    before { allow(Datadog.logger).to receive(:info) }
 
     # Sanity check for the combinatorial test setup that follows
     it 'expect precedence list to not be empty' do
@@ -275,6 +272,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
     }.each do |name, precedences|
       context "for #{name} set" do
         before do
+          allow(context).to(receive(:instance_exec)) { |value, _| value }
+
           # See this Option with many values set a different precedences.
           precedences.each do |precedence|
             # For convenience, the option value is set to the same object as the precedence.
@@ -332,6 +331,19 @@ RSpec.describe Datadog::Core::Configuration::Option do
             end
           end
         end
+      end
+    end
+
+    context 'with a custom setter' do
+      let(:setter) { ->(value, _) { value + '+setter' } }
+
+      it 'invokes the setter only once when restoring a value' do
+        option.set('prog', precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+        option.set('default', precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
+
+        option.unset(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+
+        expect(option.get).to eq('default+setter')
       end
     end
   end

@@ -71,8 +71,7 @@ module Datadog
             # because it's possible to revert to it by `#unset`ting
             # the existing, higher-precedence value.
             # Effectively, we always store one value pre precedence.
-            old_value = @value_per_precedence[precedence]
-            @value_per_precedence[precedence] = context_exec(value, old_value, &definition.setter)
+            @value_per_precedence[precedence] = value
 
             return @value
           end
