@@ -16,7 +16,7 @@ module Datadog
         # This operation acquires the Components lock to ensure
         # there is not concurrent modification of the sampler.
         def reconfigure_live_sampler(sampler)
-          safely_synchronize { tracer.sampler.sampler = sampler }
+          Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
         end
       end
 
