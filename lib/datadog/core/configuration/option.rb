@@ -190,16 +190,26 @@ module Datadog
         end
 
         def set_value_from_env_or_default
+          value = nil
+          precedence = nil
+
           if definition.env_var && ENV[definition.env_var]
-            set(coerce_env_variable(ENV[definition.env_var]), precedence: Precedence::PROGRAMMATIC)
-          elsif definition.deprecated_env_var && ENV[definition.deprecated_env_var]
+            value = coerce_env_variable(ENV[definition.env_var])
+            precedence = Precedence::PROGRAMMATIC
+          end
+
+          if value.nil? && definition.deprecated_env_var && ENV[definition.deprecated_env_var]
+            value = coerce_env_variable(ENV[definition.deprecated_env_var])
+            precedence = Precedence::PROGRAMMATIC
+
             Datadog::Core.log_deprecation do
               "#{definition.deprecated_env_var} environment variable is deprecated, use #{definition.env_var} instead."
             end
-            set(coerce_env_variable(ENV[definition.deprecated_env_var]), precedence: Precedence::PROGRAMMATIC)
-          else
-            set(default_value, precedence: Precedence::DEFAULT)
           end
+
+          option_value = value.nil? ? default_value : value
+
+          set(option_value, precedence: precedence || Precedence::DEFAULT)
         end
 
         # Used for testing

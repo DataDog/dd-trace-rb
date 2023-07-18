@@ -456,6 +456,81 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
     end
 
+    context 'when env_var and deprecated_env_var are defined' do
+      before do
+        allow(context).to receive(:instance_exec) do |*args|
+          args[0]
+        end
+      end
+
+      let(:env_var) { 'TEST' }
+      let(:deprecated_env_var) { 'DEPRECATED_TEST' }
+      let(:env_var_value) { 'test' }
+      let(:deprecated_env_var_value) { 'old test' }
+
+      context 'env_var found' do
+        around do |example|
+          ClimateControl.modify(env_var => env_var_value, deprecated_env_var => deprecated_env_var_value) do
+            example.run
+          end
+        end
+
+        it 'uses env var value' do
+          expect(option.get).to eq 'test'
+        end
+
+        it 'set precedence_set to programmatic' do
+          option.get
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
+        end
+
+        it 'do not log deprecation warning' do
+          expect(Datadog::Core).to_not receive(:log_deprecation)
+          option.get
+        end
+      end
+
+      context 'env_var not found and deprecated_env_var not found' do
+        around do |example|
+          ClimateControl.modify(deprecated_env_var => deprecated_env_var_value) do
+            example.run
+          end
+        end
+
+        it 'uses env var value' do
+          expect(option.get).to eq 'old test'
+        end
+
+        it 'set precedence_set to programmatic' do
+          option.get
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
+        end
+
+        it 'log deprecation warning' do
+          expect(Datadog::Core).to receive(:log_deprecation)
+          option.get
+        end
+      end
+
+      context 'env_var and deprecated_env_var not found' do
+        it 'uses default value' do
+          # mock .dup lib/datadog/core/configuration/option.rbL87
+          expect(default).to receive(:dup).and_return(default)
+          expect(option.get).to eq default
+        end
+
+        it 'set precedence_set to default' do
+          option.get
+          expect(option.send(:precedence_set)).to eq described_class::Precedence::DEFAULT
+        end
+
+        it 'do not log deprecation warning' do
+          expect(Datadog::Core).to_not receive(:log_deprecation)
+          option.get
+        end
+      end
+    end
+
     context 'when #set' do
       context 'hasn\'t been called' do
         before do
