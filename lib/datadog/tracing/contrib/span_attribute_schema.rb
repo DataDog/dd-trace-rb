@@ -106,7 +106,7 @@ module Datadog
 
           def fetch_service_name(env, default)
             ENV.fetch(env) do
-              return Datadog.configuration.service if Datadog.configuration.tracing.service_name_override
+              return Datadog.configuration.service if Datadog.configuration.tracing.global_default_service_name_enabled
 
               default
             end

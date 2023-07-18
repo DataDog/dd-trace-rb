@@ -437,7 +437,7 @@ module Datadog
               #
               # @default `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED` environment variable, otherwise `false`
               # @return [Boolean]
-              option :service_name_override do |o|
+              option :global_default_service_name_enabled do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SERVICE_NAME_OVERRIDE, false) }
               end
             end
