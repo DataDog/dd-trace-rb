@@ -182,6 +182,7 @@ module Datadog
                 o.default { env_to_list(Configuration::Ext::ENV_HEADER_TAGS, nil, comma_separated_only: true) }
                 o.setter do |header_tags, _|
                   next header_tags if header_tags.is_a?(Configuration::HTTP::HeaderTags)
+
                   Configuration::HTTP::HeaderTags.new(header_tags)
                 end
               end

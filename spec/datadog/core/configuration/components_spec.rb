@@ -910,6 +910,17 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe '#reconfigure_live_sampler' do
+    subject(:reconfigure_live_sampler) { components.reconfigure_live_sampler(sampler) }
+    let(:sampler) { double('sampler') }
+
+    it "changes the SamplerDelegatorComponent's sampler" do
+      expect { reconfigure_live_sampler }.to_not(change { components.tracer.sampler })
+
+      expect(components.tracer.sampler.sampler).to eq(sampler)
+    end
+  end
+
   describe 'writer event callbacks' do
     describe Datadog::Core::Configuration::Components.singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
       subject(:call) { described_class.call(writer, responses) }
