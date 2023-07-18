@@ -440,3 +440,7 @@ Gemspec/RequiredRubyVersion:
 
 Style/WordArray:
   Enabled: false
+
+# `!!` is the de facto way in Ruby to cast an Object to boolean.
+Style/DoubleNegation:
+  Enabled: false
