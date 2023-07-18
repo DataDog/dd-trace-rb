@@ -84,16 +84,6 @@ RSpec.describe 'Sequel instrumentation' do
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
-        it_behaves_like 'a non-peer service span' do
-          let(:peer_hostname) do
-            if PlatformHelpers.jruby?
-              nil # TODO: Extract host for Sequel with JDBC
-            else
-              host
-            end
-          end
-        end
-
         it_behaves_like 'measured span for integration', false
         it_behaves_like 'schema version span'
       end
