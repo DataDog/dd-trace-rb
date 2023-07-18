@@ -8,8 +8,11 @@ module Datadog
       class Option
         attr_reader :definition
 
-        # Option setting precedence. Higher number means higher precedence.
+        # Option setting precedence.
         module Precedence
+          # Represents an Option precedence level.
+          # Each precedence has a `numeric` value; higher values means higher precedence.
+          # `name` is for inspection purposes only.
           Value = Struct.new(:numeric, :name) do
             include Comparable
 
@@ -55,15 +58,20 @@ module Datadog
         # @param value [Object] the new value to be associated with this option
         # @param precedence [Precedence] from what precedence order this new value comes from
         def set(value, precedence: Precedence::PROGRAMMATIC)
-          # Cannot override higher precedence value
-          if precedence < @precedence_set
+          # Is there a higher precedence value set?
+          if @precedence_set > precedence
+            # This should be uncommon, as higher precedence values tend to
+            # happen later in the application lifecycle.
             Datadog.logger.info do
               "Option '#{definition.name}' not changed to '#{value}' (precedence: #{precedence.name}) because the higher " \
                 "precedence value '#{@value}' (precedence: #{@precedence_set.name}) was already set."
             end
 
-            old_value = @value_per_precedence[precedence]
-            @value_per_precedence[precedence] = context_exec(value, old_value, &definition.setter)
+            # But if it happens, we have to store the lower precedence value `value`
+            # because it's possible to revert to it by `#unset`ting
+            # the existing, higher-precedence value.
+            # Effectively, we always store one value pre precedence.
+            @value_per_precedence[precedence] = value
 
             return @value
           end
@@ -75,15 +83,16 @@ module Datadog
           @value_per_precedence[precedence] = UNSET
 
           # If we are unsetting the currently active value, we have to restore
-          # a lower precedence one.
-          #
-          # Otherwise, we are either unsetting a higher precedence value that is not
-          # yet set, thus there's nothing to do; or we are unsetting a lower precedence
-          # value, which also does not change the current value.
+          # a lower precedence one...
           if precedence == @precedence_set
+            # Find a lower precedence value that is already set.
             Precedence::LIST.each do |p|
+              # DEV: This search can be optimized, but the list is small, and unset is
+              # DEV: only called from direct user interaction in the Datadog UI.
               next unless p < precedence
 
+              # Look for value that is set.
+              # The hash `@value_per_precedence` has a custom default value of `UNSET`.
               if (value = @value_per_precedence[p]) != UNSET
                 internal_set(value, p)
                 return nil
@@ -93,6 +102,10 @@ module Datadog
             # If no value is left to fall back on, reset this option
             reset
           end
+
+          # ... otherwise, we are either unsetting a higher precedence value that is not
+          # yet set, thus there's nothing to do; or we are unsetting a lower precedence
+          # value, which also does not change the current value.
         end
 
         def get
@@ -116,6 +129,7 @@ module Datadog
                      nil
                    end
 
+          # Reset back to the lowest precedence, to allow all `set`s to succeed right after a reset.
           @precedence_set = Precedence::DEFAULT
         end
 
@@ -133,6 +147,7 @@ module Datadog
 
         private
 
+        # Directly manipulates the current value and currently set precedence.
         def internal_set(value, precedence)
           old_value = @value
           (@value = context_exec(value, old_value, &definition.setter)).tap do |v|
@@ -155,6 +170,8 @@ module Datadog
         attr_reader :precedence_set
         private :precedence_set
 
+        # Anchor object that represents a value that is not set.
+        # This is necessary because `nil` is a valid value to be set.
         UNSET = Object.new
         private_constant :UNSET
       end
