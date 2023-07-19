@@ -442,7 +442,7 @@ module Datadog
           # nice_service_name = Datadog.configuration.service_without_fallback || nice_service_name_default
           o.helper(:service_without_fallback) do
             service_name = service
-            service_name unless service_name === Core::Environment::Ext::FALLBACK_SERVICE_NAME
+            service_name unless service_name.equal?(Core::Environment::Ext::FALLBACK_SERVICE_NAME)
           end
         end
 
