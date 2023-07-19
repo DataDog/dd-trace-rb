@@ -16,7 +16,7 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
 
     context 'given a normal request' do
       before do
-        allow(circuit_breaker).to receive(:datadog_http_request?)
+        allow(circuit_breaker).to receive(:internal_request?)
           .with(request)
           .and_return(false)
 
@@ -28,7 +28,7 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
 
     context 'given a request that is a Datadog request' do
       before do
-        allow(circuit_breaker).to receive(:datadog_http_request?)
+        allow(circuit_breaker).to receive(:internal_request?)
           .with(request)
           .and_return(true)
       end
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
       end
 
       before do
-        allow(circuit_breaker).to receive(:datadog_http_request?)
+        allow(circuit_breaker).to receive(:internal_request?)
           .with(request)
           .and_return(false)
 
@@ -56,8 +56,8 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
     end
   end
 
-  describe '#datadog_http_request?' do
-    subject(:datadog_http_request?) { circuit_breaker.datadog_http_request?(request) }
+  describe '#internal_request?' do
+    subject(:internal_request?) { circuit_breaker.internal_request?(request) }
 
     context 'given an HTTP request' do
       context "when the #{Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION} header" do
@@ -74,45 +74,19 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
           it { is_expected.to be false }
         end
       end
-    end
 
-    context 'integration' do
-      context 'given a request from' do
-        let(:request) { @request }
-
-        subject(:send_traces) do
-          # Capture the HTTP request directly from the transport,
-          # to make sure we have legitimate example.
-          expect(::Net::HTTP::Post).to receive(:new).and_wrap_original do |m, *args|
-            @request = m.call(*args)
-          end
-
-          # The request may produce an error (because the transport cannot connect)
-          # but ignore this... we just need the request, not a successful response.
-          allow(Datadog.logger).to receive(:error)
-
-          # Send a request, and make sure we captured it.
-          transport.send_traces(get_test_traces(1))
-
-          expect(@request).to be_a_kind_of(::Net::HTTP::Post)
-        end
-
-        context 'a Datadog Net::HTTP transport' do
-          before { expect(::Net::HTTP).to receive(:new) }
-
-          let(:transport) { Datadog::Transport::HTTP.default }
+      context 'with the DD-Internal-Untraced-Request header' do
+        context 'is present' do
+          let(:request) { ::Net::HTTP::Post.new('/some/path', headers) }
+          let(:headers) { { 'DD-Internal-Untraced-Request' => 'anything' } }
 
           it { is_expected.to be true }
         end
 
-        context 'a Datadog UDS transport' do
-          let(:transport) do
-            Datadog::Transport::HTTP.default do |t|
-              t.adapter :unix, '/tmp/ddagent/trace.sock'
-            end
-          end
+        context 'is missing' do
+          let(:request) { ::Net::HTTP::Post.new('/some/path') }
 
-          it { is_expected.to be true }
+          it { is_expected.to be false }
         end
       end
     end

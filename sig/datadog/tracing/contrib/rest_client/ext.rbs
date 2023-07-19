@@ -13,6 +13,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "rest_client"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_REQUEST: "rest_client.request"
 
           TAG_COMPONENT: "rest_client"

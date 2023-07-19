@@ -79,7 +79,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
@@ -109,7 +110,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
@@ -180,7 +182,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
@@ -215,11 +218,36 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
       it_behaves_like 'schema version span'
+    end
+  end
+
+  describe 'with an internal HTTP request' do
+    subject(:response) { client.get(path, headers) }
+    let(:headers) { { 'DD-Internal-Untraced-Request' => '1' } }
+
+    before { stub_request(:get, "#{uri}#{path}") }
+
+    it 'does not trace internal requests' do
+      response
+      expect(spans).to be_empty
+    end
+
+    describe 'integration' do
+      let(:transport) { Datadog::Transport::HTTP.default }
+
+      it 'does not create a span for the transport request' do
+        expect(Datadog::Tracing).to_not receive(:trace)
+
+        transport.send_traces(get_test_traces(1))
+
+        expect(WebMock).to have_requested(:post, %r{/v0.4/traces})
+      end
     end
   end
 
@@ -243,7 +271,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
   end

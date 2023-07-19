@@ -23,13 +23,10 @@ module Datadog
           end
         end
 
-        # TODO: add specific env var just for service naming independent of v1
         def fetch_service_name(env, default)
           active_version.fetch_service_name(env, default)
         end
 
-        # TODO: implement function in all integrations with spankind
-        # TODO: add specific env var just for peer.service independent of v1
         def set_peer_service!(span, sources)
           active_version.set_peer_service!(span, sources)
         end
@@ -63,6 +60,7 @@ module Datadog
               return true
             end
             false
+            set_peer_service_from_source(span, sources)
           end
 
           # set_peer_service_from_source: Implements the extraction logic to determine the peer.service value
@@ -100,7 +98,7 @@ module Datadog
                 (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
               return sources
             end
-
+            
             NO_SOURCE
           end
 

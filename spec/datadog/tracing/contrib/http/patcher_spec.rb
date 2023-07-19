@@ -32,7 +32,8 @@ RSpec.describe 'net/http patcher' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:span) { request_span }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -59,7 +60,8 @@ RSpec.describe 'net/http patcher' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:service) { request_span }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 end
