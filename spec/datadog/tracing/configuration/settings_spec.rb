@@ -833,7 +833,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
         context 'is not defined' do
           let(:env_var) { nil }
-          
+
           it { is_expected.to eq({}) }
         end
 
@@ -844,7 +844,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
       end
     end
-    
+
     describe '#global_default_service_name_enabled' do
       subject { settings.tracing.global_default_service_name.enabled }
 

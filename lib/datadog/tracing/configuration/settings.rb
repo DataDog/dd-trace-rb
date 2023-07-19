@@ -445,7 +445,7 @@ module Datadog
                   )
                 end
               end
-            
+
               # Key-value map for explicitly re-mapping peer.service values
               #
               # @default `DD_TRACE_PEER_SERVICE_MAPPING` environment variable converted to hash
