@@ -32,12 +32,14 @@ module Datadog
           # TODO: Skip sync if no capabilities are registered
           response = transport.send_config(payload)
 
+          puts "response!"
+
           if response.ok?
             # when response is completely empty, do nothing as in: leave as is
             if response.empty?
               Datadog.logger.debug { 'remote: empty response => NOOP' }
 
-              return
+              return []
             end
 
             begin
@@ -53,7 +55,7 @@ module Datadog
             end
 
             # To make sure steep does not complain
-            return unless paths && targets && contents
+            return [] unless paths && targets && contents
 
             # TODO: sometimes it can strangely be so that paths.empty?
             # TODO: sometimes it can strangely be so that targets.empty?
@@ -104,6 +106,7 @@ module Datadog
 
             if changes.empty?
               Datadog.logger.debug { 'remote: no changes' }
+              []
             else
               Datadog.logger.debug { "remote: changes: #{changes.inspect}, #{repository.inspect}" }
               dispatcher.dispatch(changes, repository)

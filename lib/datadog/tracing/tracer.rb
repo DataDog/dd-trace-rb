@@ -464,6 +464,7 @@ module Datadog
       # Sample a span, tagging the trace as appropriate.
       def sample_trace(trace_op)
         begin
+          pp "tracing: #{@sampler.inspect}"
           @sampler.sample!(trace_op)
         rescue StandardError => e
           SAMPLE_TRACE_LOG_ONLY_ONCE.run do

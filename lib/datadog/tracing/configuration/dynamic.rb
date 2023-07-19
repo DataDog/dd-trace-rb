@@ -35,25 +35,15 @@ module Datadog
         # Dynamic configuration for `DD_TRACE_SAMPLE_RATE`.
         class TracingSamplingRate < SimpleOption
           def initialize
-            super('tracing_sampling_rate', 'DD_TRACE_SAMPLE_RATE', :default_rate)
-          end
-
-          # This method ensures that `DD_TRACE_SAMPLE_RATE` will be applied,
-          # regardless of competing sampling configuration.
-          #
-          # Non-competing sampling configurations still apply (e.g. rate limiting).
-          def call(tracing_sampling_rate)
-            super
-
-            sampler = Tracing::Sampling::PrioritySampler.new(
-              base_sampler: Tracing::Sampling::AllSampler.new,
-              post_sampler: Tracing::Sampling::RuleSampler.new(
-                rate_limit: Datadog.configuration.tracing.sampling.rate_limit,
-                default_sample_rate: Datadog.configuration.tracing.sampling.default_rate
-              )
-            )
-
-            Datadog.send(:components).reconfigure_live_sampler(sampler)
+            super('tracing_sampling_rate', 'DD_TRACE_SAMPLE_RATE', :default_rate, after: -> do
+              # Restart tracer to ensure new sampler configuration is applied
+              Thread.new do
+                # This has to be done in a new thread because the this callback could be run
+                # from a component, which will get killed halfway through `Datadog.configure`
+                # and lead the application in a broken state.
+                Datadog.configure {}
+              end
+            end)
           end
 
           protected

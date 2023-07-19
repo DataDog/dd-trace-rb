@@ -15,7 +15,9 @@ module Datadog
         # Hot-swaps with a new sampler.
         # This operation acquires the Components lock to ensure
         # there is not concurrent modification of the sampler.
-        def reconfigure_live_sampler(sampler)
+        def reconfigure_live_sampler
+          sampler = self.class.build_sampler(Datadog.configuration)
+          pp "swapped: #{sampler.inspect}"
           Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
         end
       end
@@ -41,6 +43,8 @@ module Datadog
         # so dynamic instrumentation can hot-swap it.
         # This prevents full tracer reinitialization on sampling changes.
         sampler_delegator = SamplerDelegatorComponent.new(sampler)
+
+        puts "RESTART CONFIG: #{sampler.inspect}"
 
         subscribe_to_writer_events!(writer, sampler_delegator, settings.tracing.test_mode.enabled)
 

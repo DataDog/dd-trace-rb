@@ -88,6 +88,7 @@ module Datadog
         end
 
         def sample!(trace)
+          puts @rules
           sampled = sample_trace(trace) do |t|
             @default_sampler.sample!(t).tap do
               # We want to make sure the trace is tagged with the agent-derived
