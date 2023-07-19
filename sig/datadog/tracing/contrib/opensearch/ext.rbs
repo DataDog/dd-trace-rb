@@ -13,12 +13,14 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "opensearch"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_QUERY: "opensearch.query"
 
           SPAN_TYPE_QUERY: "opensearch"
 
           TAG_COMPONENT: "opensearch"
 
+          TAG_RESPONSE_CONTENT_LENGTH: "http.response.content_length"
           TAG_SYSTEM: "opensearch"
 
           TAG_METHOD: "http.method"

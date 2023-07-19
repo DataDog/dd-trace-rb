@@ -126,11 +126,6 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
-              if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                # Tag as an external peer service
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-              end
-
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host)
 
               span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, db)
@@ -141,6 +136,8 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME, host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT, port)
+
+              Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
             # @param [PG::Result] result

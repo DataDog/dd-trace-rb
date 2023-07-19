@@ -13,6 +13,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "excon"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_REQUEST: "excon.request"
 
           TAG_COMPONENT: "excon"

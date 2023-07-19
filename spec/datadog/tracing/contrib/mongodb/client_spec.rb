@@ -64,7 +64,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  database }
+        let(:peer_service_source) { 'mongodb.db' }
       end
     end
 
@@ -98,7 +99,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
 
         it_behaves_like 'a peer service span' do
-          let(:peer_hostname) { host }
+          let(:peer_service_val) {  database }
+          let(:peer_service_source) { 'mongodb.db' }
         end
       end
 
@@ -123,7 +125,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
 
         it_behaves_like 'a peer service span' do
-          let(:peer_hostname) { secondary_host }
+          let(:peer_service_val) {  database }
+          let(:peer_service_source) { 'mongodb.db' }
         end
       end
     end
@@ -163,7 +166,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  database }
+        let(:peer_service_source) { 'mongodb.db' }
       end
 
       it_behaves_like 'measured span for integration', false

@@ -108,7 +108,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
           end
 
           it_behaves_like 'a peer service span' do
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { 'example.com' }
+            let(:peer_service_source) { 'peer.hostname' }
           end
 
           it_behaves_like 'measured span for integration', false
@@ -244,7 +245,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
             end
 
             it_behaves_like 'a peer service span' do
-              let(:peer_hostname) { host }
+              let(:peer_service_val) { 'example.com' }
+              let(:peer_service_source) { 'peer.hostname' }
             end
 
             it_behaves_like 'environment service name', 'DD_TRACE_REST_CLIENT_SERVICE_NAME'
@@ -342,7 +344,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { 'example.com' }
+        let(:peer_service_val) { 'example.com' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
   end

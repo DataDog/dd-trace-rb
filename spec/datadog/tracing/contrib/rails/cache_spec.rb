@@ -79,15 +79,11 @@ RSpec.describe 'Rails cache' do
         .to eq('active_support')
       expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
-      expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq('rails-cache')
 
       expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('active_support')
       expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
-      expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq('rails-cache')
     end
   end
 
@@ -118,8 +114,6 @@ RSpec.describe 'Rails cache' do
         .to eq('active_support')
       expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
-      expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq('rails-cache')
 
       spans[1..-1].each do |set|
         expect(set.name).to eq('rails.cache')
@@ -127,8 +121,6 @@ RSpec.describe 'Rails cache' do
           .to eq('active_support')
         expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('cache')
-        expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-          .to eq('rails-cache')
       end
     end
   end
@@ -155,8 +147,6 @@ RSpec.describe 'Rails cache' do
         .to eq('active_support')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq('rails-cache')
     end
 
     context 'with custom cache_service' do
@@ -210,8 +200,6 @@ RSpec.describe 'Rails cache' do
           .to eq('active_support')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('cache')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-          .to eq('rails-cache')
       end
 
       context 'with custom cache_service' do
@@ -274,8 +262,6 @@ RSpec.describe 'Rails cache' do
         .to eq('active_support')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq('rails-cache')
     end
   end
 
@@ -310,8 +296,6 @@ RSpec.describe 'Rails cache' do
           .to eq('active_support')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('cache')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-          .to eq('rails-cache')
       end
     end
   end
@@ -353,8 +337,6 @@ RSpec.describe 'Rails cache' do
             .to eq('active_support')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('cache')
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-            .to eq('rails-cache')
         end
       end
     end
@@ -393,8 +375,6 @@ RSpec.describe 'Rails cache' do
         .to eq('active_support')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq('rails-cache')
     end
   end
 end
