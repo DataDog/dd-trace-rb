@@ -99,8 +99,10 @@ module Datadog
         def coerce_env_variable(value)
           case @definition.type
           when :int
+            # DEV-2.0: Change to a more strict coercion method. Integer(value).
             value.to_i
           when :float
+            # DEV-2.0: Change to a more strict coercion method. Float(value).
             value.to_f
           when :array
             values = if value.include?(',')
