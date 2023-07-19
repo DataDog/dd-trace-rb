@@ -30,7 +30,7 @@ module Datadog
             end
 
             option :analytics_enabled do |o|
-              o.type :bool, nil: true
+              o.type :bool, nilable: true
               o.env Ext::ENV_ANALYTICS_ENABLED
               o.on_set do |value|
                 # Update ActionPack analytics too

@@ -30,7 +30,7 @@ module Datadog
             end
 
             option :service_name do |o|
-              o.type :string, nil: true
+              o.type :string, nilable: true
               o.setter do |value|
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   value,

@@ -27,7 +27,7 @@ module Datadog
                 # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
                 # @return [Boolean,nil]
                 option :enabled do |o|
-                  o.type :bool, nil: true
+                  o.type :bool, nilable: true
                   o.env Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED
                 end
               end
@@ -295,7 +295,7 @@ module Datadog
                 # @default `DD_TRACE_SAMPLE_RATE` environment variable, otherwise `nil`.
                 # @return [Float]
                 option :default_rate do |o|
-                  o.type :float, nil: true
+                  o.type :float, nilable: true
                   o.env Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
                 end
 
@@ -307,7 +307,7 @@ module Datadog
                 # @default `DD_TRACE_RATE_LIMIT` environment variable, otherwise 100.
                 # @return [Numeric,nil]
                 option :rate_limit do |o|
-                  o.type :int, nil: true
+                  o.type :int, nilable: true
                   o.env Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT
                   o.default 100
                 end
@@ -340,7 +340,7 @@ module Datadog
                 # @return [String,nil]
                 # @public_api
                 option :span_rules do |o|
-                  o.type :string, nil: true
+                  o.type :string, nilable: true
                   o.default do
                     rules = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
                     rules_file = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
@@ -402,7 +402,7 @@ module Datadog
               # @default `nil`
               # @return [Proc,nil]
               option :transport_options do |o|
-                o.type :proc, nil: true
+                o.type :proc, nilable: true
                 o.default nil
               end
               # A custom writer instance.
@@ -462,7 +462,7 @@ module Datadog
                 # @default `DD_TRACE_CLIENT_IP_HEADER` environment variable, otherwise `nil`.
                 # @return [String,nil]
                 option :header_name do |o|
-                  o.type :string, nil: true
+                  o.type :string, nilable: true
                   o.env Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME
                 end
               end

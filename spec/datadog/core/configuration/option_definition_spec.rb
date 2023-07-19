@@ -366,7 +366,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     context 'given options' do
       let(:value) { :string }
-      let(:opts) { { nil: true } }
+      let(:opts) { { nilable: true } }
 
       it { is_expected.to be value }
       it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }

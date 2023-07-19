@@ -426,7 +426,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context 'Nil values' do
           let(:type) { :string }
-          let(:type_options) { { nil: true } }
+          let(:type_options) { { nilable: true } }
           let(:value) { nil }
 
           it 'does not raise exception' do

@@ -79,7 +79,7 @@ module Datadog
         # @default `DD_API_KEY` environment variable, otherwise `nil`
         # @return [String,nil]
         option :api_key do |o|
-          o.type :string, nil: true
+          o.type :string, nilable: true
           o.env Core::Environment::Ext::ENV_API_KEY
         end
 
@@ -457,7 +457,7 @@ module Datadog
         # @default `DD_SITE` environment variable, otherwise `nil` which sends data to `app.datadoghq.com`
         # @return [String,nil]
         option :site do |o|
-          o.type :string, nil: true
+          o.type :string, nilable: true
           o.env Core::Environment::Ext::ENV_SITE
         end
 
@@ -468,7 +468,7 @@ module Datadog
         # @default `DD_TAGS` environment variable (in the format `'tag1:value1,tag2:value2'`), otherwise `{}`
         # @return [Hash<String,String>]
         option :tags do |o|
-          o.type :hash, nil: true
+          o.type :hash, nilable: true
           o.env Core::Environment::Ext::ENV_TAGS
           o.env_parser do |env_value|
             values = if env_value.include?(',')
@@ -553,7 +553,7 @@ module Datadog
         # @return [String,nil]
         option :version do |o|
           # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-          o.type :string, nil: true
+          o.type :string, nilable: true
           o.env Core::Environment::Ext::ENV_VERSION
         end
 

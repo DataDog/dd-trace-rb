@@ -33,7 +33,7 @@ module Datadog
             option :distributed_tracing, default: true, type: :bool
 
             option :service_name do |o|
-              o.type :string, nil: true
+              o.type :string, nilable: true
               o.env Ext::ENV_SERVICE_NAME
               o.setter do |value|
                 Contrib::SpanAttributeSchema.fetch_service_name(
@@ -44,7 +44,7 @@ module Datadog
             end
 
             option :error_handler do |o|
-              o.type :proc, nil: true
+              o.type :proc, nilable: true
               o.experimental_default_proc Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
             end
           end

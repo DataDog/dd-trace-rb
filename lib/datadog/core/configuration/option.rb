@@ -138,7 +138,7 @@ module Datadog
           valid_type = validate(@definition.type, value)
 
           unless valid_type
-            raise_error = if @definition.type_options[:nil]
+            raise_error = if @definition.type_options[:nilable]
                             !value.is_a?(NilClass)
                           else
                             true
@@ -146,7 +146,7 @@ module Datadog
           end
 
           if raise_error
-            error_msg = if @definition.type_options[:nil]
+            error_msg = if @definition.type_options[:nilable]
                           "The option #{@definition.name} support this type `#{@definition.type}` "\
                                       "and `nil` but the value provided is #{value.class}"
                         else
