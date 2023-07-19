@@ -659,6 +659,7 @@ target :ddtrace do
   library 'google-protobuf'
   library 'protobuf-cucumber'
   library 'mysql2'
+  library 'mysql2-aurora'
   library 'opentracing'
   library 'concurrent-ruby'
   library 'faraday'
@@ -667,6 +668,7 @@ target :ddtrace do
   library 'grpc'
   library 'delayed_job'
   library 'opentelemetry-api'
+  library 'passenger'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'

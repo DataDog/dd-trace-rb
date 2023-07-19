@@ -73,6 +73,7 @@ module Datadog
         module Sampling
           ENV_SAMPLE_RATE = 'DD_TRACE_SAMPLE_RATE'
           ENV_RATE_LIMIT = 'DD_TRACE_RATE_LIMIT'
+          ENV_RULES = 'DD_TRACE_SAMPLING_RULES'
 
           # @public_api
           module Span

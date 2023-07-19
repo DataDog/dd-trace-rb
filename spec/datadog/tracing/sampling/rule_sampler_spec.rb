@@ -77,6 +77,100 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     end
   end
 
+  describe '.parse' do
+    subject(:parse) { described_class.parse(rules.to_json, rate_limit, default_sample_rate) }
+    let(:rules) { [rule] }
+    let(:rate_limit) { nil }
+    let(:default_sample_rate) { nil }
+
+    let(:actual_rule) do
+      subject
+      expect(parse.rules).to have(1).item
+      parse.rules[0]
+    end
+
+    let(:actual_rules) do
+      subject
+      parse.rules
+    end
+
+    context 'with sample_rate' do
+      let(:rule) { { sample_rate: 0.1 } }
+
+      it 'parses as a match any' do
+        expect(actual_rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+        expect(actual_rule.matcher.service).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+        expect(actual_rule.sampler.sample_rate).to eq(0.1)
+      end
+
+      context 'and name' do
+        let(:rule) { { sample_rate: 0.1, name: 'test-name' } }
+
+        it 'parses matching any service' do
+          expect(actual_rule.matcher.name).to eq('test-name')
+          expect(actual_rule.matcher.service).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+          expect(actual_rule.sampler.sample_rate).to eq(0.1)
+        end
+      end
+
+      context 'and service' do
+        let(:rule) { { sample_rate: 0.1, service: 'test-service' } }
+
+        it 'parses matching any name' do
+          expect(actual_rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+          expect(actual_rule.matcher.service).to eq('test-service')
+          expect(actual_rule.sampler.sample_rate).to eq(0.1)
+        end
+      end
+
+      context 'with multiple rules' do
+        let(:rules) { [{ sample_rate: 0.1 }, { sample_rate: 0.2 }] }
+
+        it 'parses all rules in order' do
+          expect(actual_rules).to have(2).item
+          expect(actual_rules[0].sampler.sample_rate).to eq(0.1)
+          expect(actual_rules[1].sampler.sample_rate).to eq(0.2)
+        end
+      end
+    end
+
+    context 'with a non-float sample_rate' do
+      let(:rule) { { sample_rate: 'oops' } }
+
+      it 'does not accept rule with a non-float sample_rate' do
+        expect(Datadog.logger).to receive(:error)
+        is_expected.to be_nil
+      end
+    end
+
+    context 'without a sample_rate' do
+      let(:rule) { { name: 'test' } }
+
+      it 'does not accept rule missing the mandatory sample_rate' do
+        expect(Datadog.logger).to receive(:error)
+        is_expected.to be_nil
+      end
+
+      context 'with multiple rules' do
+        let(:rules) { [{ sample_rate: 0.1 }, { name: 'test' }] }
+
+        it 'rejects all rules if one is missing the mandatory sample_rate' do
+          expect(Datadog.logger).to receive(:error)
+          is_expected.to be_nil
+        end
+      end
+    end
+
+    context 'without a valid JSON array' do
+      let(:rules) { 'not a json array' }
+
+      it 'returns nil in case of parsing error' do
+        expect(Datadog.logger).to receive(:error)
+        is_expected.to be_nil
+      end
+    end
+  end
+
   shared_context 'matching rule' do
     let(:rules) { [rule] }
     let(:rule) { instance_double(Datadog::Tracing::Sampling::Rule) }
