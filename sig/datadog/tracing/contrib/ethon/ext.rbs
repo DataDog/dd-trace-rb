@@ -13,6 +13,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "ethon"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_REQUEST: "ethon.request"
 
           SPAN_MULTI_REQUEST: "ethon.multi.request"

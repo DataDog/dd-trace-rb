@@ -15,6 +15,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "httprb"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_REQUEST: "httprb.request"
 
           TAG_COMPONENT: "httprb"

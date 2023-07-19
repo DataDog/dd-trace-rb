@@ -36,11 +36,6 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
 
-            if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-              # Tag as an external peer service
-              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-            end
-
             span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, event.address.host)
 
             # Set analytics sample rate
@@ -55,6 +50,8 @@ module Datadog
             span.set_tag(Ext::TAG_QUERY, serialized_query)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, event.address.host)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, event.address.port)
+
+            Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
             # set the resource with the quantized query
             span.resource = serialized_query

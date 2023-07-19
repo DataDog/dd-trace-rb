@@ -112,7 +112,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -142,7 +143,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -204,7 +206,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
 
     context 'and the host matches a specific configuration' do
@@ -331,8 +334,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:span) { request_span }
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -351,8 +354,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       it { expect(request_span.service).to eq(service_name) }
 
       it_behaves_like 'a peer service span' do
-        let(:span) { request_span }
-        let(:peer_hostname) { 'example.com' }
+        let(:peer_service_val) { 'example.com' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
 
@@ -363,8 +366,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       it { expect(request_span.service).to eq(service_name) }
 
       it_behaves_like 'a peer service span' do
-        let(:span) { request_span }
-        let(:peer_hostname) { 'example.com' }
+        let(:peer_service_val) { 'example.com' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
   end

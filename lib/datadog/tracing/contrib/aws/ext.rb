@@ -38,8 +38,8 @@ module Datadog
             TAG_BUCKET_NAME,
             TAG_RULE_NAME,
             TAG_STATE_MACHINE_NAME,
-            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
             Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end
       end
