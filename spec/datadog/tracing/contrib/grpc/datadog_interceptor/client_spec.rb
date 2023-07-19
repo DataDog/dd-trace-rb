@@ -33,7 +33,7 @@ RSpec.describe 'tracing on the client connection' do
     let(:keywords) do
       { request: instance_double(Object),
         call: instance_double('GRPC::ActiveCall', peer: peer, deadline: deadline),
-        method: 'MyService.Endpoint',
+        method: '/ruby.test.Testing/Basic',
         metadata: { some: 'datum' } }
     end
 
@@ -51,14 +51,12 @@ RSpec.describe 'tracing on the client connection' do
       default_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.first
       expect(span.service).to eq 'rspec'
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq('rspec')
 
       clear_traces!
 
       configured_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.last
       expect(span.service).to eq 'cepsr'
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq('cepsr')
       expect(
         span.get_tag(Datadog::Tracing::Contrib::GRPC::Ext::TAG_CLIENT_DEADLINE)
       ).to eq '2022-01-02T03:04:05.678Z'
@@ -69,7 +67,7 @@ RSpec.describe 'tracing on the client connection' do
     it { expect(span.name).to eq 'grpc.client' }
     it { expect(span.span_type).to eq 'http' }
     it { expect(span.service).to eq 'rspec' }
-    it { expect(span.resource).to eq 'myservice.endpoint' }
+    it { expect(span.resource).to eq 'ruby.test.testing.basic' }
     it { expect(span.get_tag('grpc.client.deadline')).to be_nil }
     it { expect(span.get_tag('error.stack')).to be_nil }
     it { expect(span.get_tag('some')).to eq 'datum' }
@@ -87,7 +85,8 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { host }
+      let(:peer_service_val) { 'ruby.test.Testing' }
+      let(:peer_service_source) { 'rpc.service' }
     end
 
     it_behaves_like 'measured span for integration', false
@@ -119,7 +118,7 @@ RSpec.describe 'tracing on the client connection' do
     let(:keywords) do
       { request: instance_double(Object),
         call: instance_double('GRPC::ActiveCall', peer: peer),
-        method: 'MyService.Endpoint',
+        method: '/ruby.test.Testing/Basic',
         metadata: original_metadata.clone }
     end
 
@@ -145,7 +144,7 @@ RSpec.describe 'tracing on the client connection' do
   describe '#client_streamer' do
     let(:keywords) do
       { call: instance_double('GRPC::ActiveCall', peer: peer),
-        method: 'MyService.Endpoint',
+        method: '/ruby.test.Testing/Basic',
         metadata: original_metadata.clone }
     end
     let(:original_metadata) { { some: 'datum' } }
@@ -163,7 +162,7 @@ RSpec.describe 'tracing on the client connection' do
     let(:keywords) do
       { request: instance_double(Object),
         call: instance_double('GRPC::ActiveCall', peer: peer),
-        method: 'MyService.Endpoint',
+        method: '/ruby.test.Testing/Basic',
         metadata: original_metadata.clone }
     end
 
@@ -182,7 +181,7 @@ RSpec.describe 'tracing on the client connection' do
     let(:keywords) do
       { requests: instance_double(Array),
         call: instance_double('GRPC::ActiveCall', peer: peer),
-        method: 'MyService.Endpoint',
+        method: '/ruby.test.Testing/Basic',
         metadata: original_metadata.clone }
     end
 
