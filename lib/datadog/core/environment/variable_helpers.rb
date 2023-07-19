@@ -98,6 +98,53 @@ module Datadog
           end
         end
 
+        # Parses comma- or space-separated lists of key:value entries
+        #
+        # If a comma is present, then the list is considered comma-separated.
+        # Otherwise, it is considered space-separated.
+        #
+        # After the entries are separated, commas and whitespaces that are
+        # either trailing or leading are trimmed.
+        #
+        # Each entry is then separated by ':' into an entry of a Hash{key => value}
+        #
+        # Empty entries, after trimmed, are also removed from the result.
+        #
+        #
+        # @param [String] var environment variable
+        # @param [Array<String>] var list of environment variables
+        # @param [Array<Object>] default the default value if the keys in `var` are not present in the environment
+        # @param [Boolean] deprecation_warning when `var` is a list, record a deprecation log when
+        #   the first key in `var` is not used.
+        # @return [Hash<String>] if the environment value is a valid list of key:value entries
+        # @return [default] if the environment value is not found
+        def env_to_hash(var, default = [], comma_separated_only:, deprecation_warning: true)
+          var = decode_array(var, deprecation_warning)
+          if var && ENV.key?(var)
+            value = ENV[var]
+
+            values = if value.include?(',') || comma_separated_only
+                       value.split(',')
+                     else
+                       value.split(' ') # rubocop:disable Style/RedundantArgument
+                     end
+
+            values_hash = Hash.new(0)
+            values.map! do |v|
+              v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+              unless v.empty?
+                pair = v.split(':', 2)
+                values_hash[pair[0].to_sym] = pair[1]
+              end
+            end
+
+            values_hash
+          else
+            default
+          end
+        end
+
         private
 
         def decode_array(var, deprecation_warning)
