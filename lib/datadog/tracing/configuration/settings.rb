@@ -445,6 +445,20 @@ module Datadog
                   )
                 end
               end
+            
+              # Key-value map for explicitly re-mapping peer.service values
+              #
+              # @default `DD_TRACE_PEER_SERVICE_MAPPING` environment variable converted to hash
+              # @return [Hash]
+              option :peer_service_mapping do |o|
+                o.default do
+                  env_to_hash(
+                    Tracing::Configuration::Ext::SpanAttributeSchema::ENV_PEER_SERVICE_MAPPING,
+                    {},
+                    comma_separated_only: true
+                  )
+                end
+              end
 
               # Global service name behavior
               settings :global_default_service_name do
