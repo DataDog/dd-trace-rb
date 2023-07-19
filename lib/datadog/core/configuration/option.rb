@@ -162,10 +162,8 @@ module Datadog
           case type
           when :string
             value.is_a?(String)
-          when :int
-            value.is_a?(Integer)
-          when :float
-            value.is_a?(Float)
+          when :int, :float
+            value.is_a?(Numeric)
           when :array
             value.is_a?(Array)
           when :hash

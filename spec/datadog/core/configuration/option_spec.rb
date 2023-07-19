@@ -246,23 +246,183 @@ RSpec.describe Datadog::Core::Configuration::Option do
           end
         end
 
-        context 'value is same as type' do
-          let(:type) { :string }
-          let(:value) { 'Hello' }
-          it 'does not raise exception' do
-            expect { set }.not_to raise_exception
+        context 'Integer' do
+          let(:type) { :int }
+
+          context 'valid value' do
+            let(:value) { 1 }
+
+            it 'does not raise exception' do
+              expect { set }.not_to raise_exception
+            end
+
+            context 'allow floats too' do
+              let(:value) { 10.0 }
+
+              it 'does not raise exception' do
+                expect { set }.not_to raise_exception
+              end
+            end
+          end
+
+          context 'invalid value' do
+            let(:value) { true }
+
+            it 'raise exception' do
+              expect { set }.to raise_exception(ArgumentError)
+            end
           end
         end
 
-        context 'value is not same as type' do
-          let(:type) { :string }
-          let(:value) { ['Hello'] }
-          it 'raise exception' do
-            expect { set }.to raise_exception(ArgumentError)
+        context 'Float' do
+          let(:type) { :float }
+
+          context 'valid value' do
+            let(:value) { 10.0 }
+
+            it 'does not raise exception' do
+              expect { set }.not_to raise_exception
+            end
+
+            context 'allow integers too' do
+              let(:value) { 10 }
+
+              it 'does not raise exception' do
+                expect { set }.not_to raise_exception
+              end
+            end
+          end
+
+          context 'invalid value' do
+            let(:value) { true }
+
+            it 'raise exception' do
+              expect { set }.to raise_exception(ArgumentError)
+            end
           end
         end
 
-        context 'allow nil values' do
+        context 'String' do
+          let(:type) { :string }
+
+          context 'valid value' do
+            let(:value) { 'Hello' }
+
+            it 'does not raise exception' do
+              expect { set }.not_to raise_exception
+            end
+          end
+
+          context 'invalid value' do
+            let(:value) { ['Hello'] }
+
+            it 'raise exception' do
+              expect { set }.to raise_exception(ArgumentError)
+            end
+          end
+        end
+
+        context 'Array' do
+          let(:type) { :array }
+
+          context 'valid value' do
+            let(:value) { [] }
+
+            it 'does not raise exception' do
+              expect { set }.not_to raise_exception
+            end
+          end
+
+          context 'invalid value' do
+            let(:value) { 'Hello' }
+
+            it 'raise exception' do
+              expect { set }.to raise_exception(ArgumentError)
+            end
+          end
+        end
+
+        context 'Hash' do
+          let(:type) { :hash }
+
+          context 'valid value' do
+            let(:value) { {} }
+
+            it 'does not raise exception' do
+              expect { set }.not_to raise_exception
+            end
+          end
+
+          context 'invalid value' do
+            let(:value) { ['Hello'] }
+
+            it 'raise exception' do
+              expect { set }.to raise_exception(ArgumentError)
+            end
+          end
+        end
+
+        context 'Bool' do
+          let(:type) { :bool }
+
+          context 'valid value' do
+            let(:value) { true }
+
+            it 'does not raise exception' do
+              expect { set }.not_to raise_exception
+            end
+          end
+
+          context 'invalid value' do
+            let(:value) { :hello }
+
+            it 'raise exception' do
+              expect { set }.to raise_exception(ArgumentError)
+            end
+          end
+        end
+
+        context 'Proc' do
+          let(:type) { :proc }
+
+          context 'valid value' do
+            let(:value) { -> {} }
+
+            it 'does not raise exception' do
+              expect { set }.not_to raise_exception
+            end
+          end
+
+          context 'invalid value' do
+            let(:value) { ['Hello'] }
+
+            it 'raise exception' do
+              expect { set }.to raise_exception(ArgumentError)
+            end
+          end
+        end
+
+        context 'Symbol' do
+          let(:type) { :symbol }
+
+          context 'valid value' do
+            let(:value) { :hello }
+
+            it 'does not raise exception' do
+              expect { set }.not_to raise_exception
+            end
+          end
+
+          context 'invalid value' do
+            let(:value) { true }
+
+            it 'raise exception' do
+              expect { set }.to raise_exception(ArgumentError)
+            end
+          end
+        end
+
+        context 'Nil values' do
           let(:type) { :string }
           let(:type_options) { { nil: true } }
           let(:value) { nil }
