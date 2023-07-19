@@ -468,43 +468,40 @@ module Datadog
         # @default `DD_TAGS` environment variable (in the format `'tag1:value1,tag2:value2'`), otherwise `{}`
         # @return [Hash<String,String>]
         option :tags do |o|
+          o.type :hash, nil: true
           o.env_var Core::Environment::Ext::ENV_TAGS
+          o.env_parser do |env_value|
+            values = if env_value.include?(',')
+                       env_value.split(',')
+                     else
+                       env_value.split(' ') # rubocop:disable Style/RedundantArgument
+                     end
+
+            values.map! do |v|
+              v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+              v.empty? ? nil : v
+            end
+
+            values.compact!
+            values.each_with_object({}) do |tag, tags|
+              key, value = tag.split(':', 2)
+              tags[key] = value if value && !value.empty?
+            end
+          end
           o.setter do |new_value, old_value|
-            tag_list = case new_value
-                       when String
-                         values = if new_value.include?(',')
-                                    new_value.split(',')
-                                  else
-                                    new_value.split(' ') # rubocop:disable Style/RedundantArgument
-                                  end
-
-                         values.map! do |v|
-                           v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
-
-                           v.empty? ? nil : v
-                         end
-
-                         values.compact!
-                         values.each_with_object({}) do |tag, tags|
-                           key, value = tag.split(':', 2)
-                           tags[key] = value if value && !value.empty?
-                         end
-                       when Hash
-                         new_value
-                       else
-                         {}
-                       end
+            raw_tags = new_value || {}
 
             env_value = env
             version_value = version
             service_name = service_without_fallback
 
             # Override tags if defined
-            tag_list[Core::Environment::Ext::TAG_ENV] = env_value unless env_value.nil?
-            tag_list[Core::Environment::Ext::TAG_VERSION] = version_value unless version_value.nil?
+            raw_tags[Core::Environment::Ext::TAG_ENV] = env_value unless env_value.nil?
+            raw_tags[Core::Environment::Ext::TAG_VERSION] = version_value unless version_value.nil?
 
             # Coerce keys to strings
-            string_tags = tag_list.collect { |k, v| [k.to_s, v] }.to_h
+            string_tags = raw_tags.collect { |k, v| [k.to_s, v] }.to_h
 
             # Cross-populate tag values with other settings
             if env.nil? && string_tags.key?(Core::Environment::Ext::TAG_ENV)

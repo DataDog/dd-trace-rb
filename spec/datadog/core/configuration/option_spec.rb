@@ -13,6 +13,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       experimental_default_proc: experimental_default_proc,
       env_var: env_var,
       deprecated_env_var: deprecated_env_var,
+      env_parser: env_parser,
       delegate_to: delegate,
       on_set: nil,
       resetter: nil,
@@ -25,6 +26,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
   let(:experimental_default_proc) { nil }
   let(:delegate) { nil }
   let(:env_var) { nil }
+  let(:env_parser) { nil }
   let(:type) { nil }
   let(:type_options) { {} }
   let(:deprecated_env_var) { nil }
@@ -533,6 +535,23 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
     end
 
+    shared_context 'with env_parser' do
+      let(:env_parser) do
+        proc do |env_value|
+          env_value
+        end
+      end
+
+      it 'passes the env varaible value to the env_parser' do
+        expect(context).to receive(:instance_exec) do |*args, &block|
+          expect(args.first).to eq(env_var_value)
+          expect(block).to eq env_parser
+        end
+
+        get
+      end
+    end
+
     context 'when env_var is defined' do
       before do
         allow(context).to receive(:instance_exec) do |*args|
@@ -570,6 +589,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
 
         it_behaves_like 'env_var coercion'
+        it_behaves_like 'with env_parser'
       end
     end
 
@@ -613,6 +633,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
 
         it_behaves_like 'env_var coercion'
+        it_behaves_like 'with env_parser'
       end
     end
 

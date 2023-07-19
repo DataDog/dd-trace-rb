@@ -18,6 +18,7 @@ module Datadog
           :experimental_default_proc,
           :env_var,
           :deprecated_env_var,
+          :env_parser,
           :delegate_to,
           :depends_on,
           :name,
@@ -32,6 +33,7 @@ module Datadog
           @experimental_default_proc = meta[:experimental_default_proc]
           @env_var = meta[:env_var]
           @deprecated_env_var = meta[:deprecated_env_var]
+          @env_parser = meta[:env_parser]
           @delegate_to = meta[:delegate_to]
           @depends_on = meta[:depends_on] || []
           @name = name.to_sym
@@ -58,6 +60,7 @@ module Datadog
           def initialize(name, options = {})
             @env_var = nil
             @deprecated_env_var = nil
+            @env_parser = nil
             @default = nil
             @experimental_default_proc = nil
             @delegate_to = nil
@@ -88,6 +91,10 @@ module Datadog
 
           def deprecated_env_var(value)
             @deprecated_env_var = value
+          end
+
+          def env_parser(&block)
+            @env_parser = block
           end
 
           def default(value = nil, &block)
@@ -142,6 +149,7 @@ module Datadog
             default(options[:default]) if options.key?(:default)
             env_var(options[:env_var]) if options.key?(:env_var)
             deprecated_env_var(options[:deprecated_env_var]) if options.key?(:deprecated_env_var)
+            env_parser(&options[:env_parser]) if options.key?(:env_parser)
             delegate_to(&options[:delegate_to]) if options.key?(:delegate_to)
             depends_on(*options[:depends_on]) if options.key?(:depends_on)
             lazy(options[:lazy]) if options.key?(:lazy)
@@ -161,6 +169,7 @@ module Datadog
               experimental_default_proc: @experimental_default_proc,
               env_var: @env_var,
               deprecated_env_var: @deprecated_env_var,
+              env_parser: @env_parser,
               delegate_to: @delegate_to,
               depends_on: @depends_on,
               on_set: @on_set,

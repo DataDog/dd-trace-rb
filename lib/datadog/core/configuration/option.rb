@@ -97,6 +97,8 @@ module Datadog
         private
 
         def coerce_env_variable(value)
+          return context_exec(value, &@definition.env_parser) if @definition.env_parser
+
           case @definition.type
           when :int
             # DEV-2.0: Change to a more strict coercion method. Integer(value).

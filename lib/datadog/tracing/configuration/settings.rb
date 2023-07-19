@@ -10,6 +10,7 @@ module Datadog
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Layout/LineLength
+      # rubocop:disable Metrics/PerceivedComplexity
       module Settings
         def self.extended(base)
           base.class_eval do
@@ -54,6 +55,17 @@ module Datadog
                   o.type :array
                   o.deprecated_env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT_OLD
                   o.env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT
+                  o.env_parser do |value|
+                    values = value.split(',')
+
+                    values.map! do |v|
+                      v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+                      v.empty? ? nil : v
+                    end
+                    values.compact!
+                    values
+                  end
                   # DEV-2.0: Change default value to `tracecontext, Datadog`.
                   # Look for all headers by default
                   o.default(
@@ -90,6 +102,17 @@ module Datadog
                   o.type :array
                   o.deprecated_env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD
                   o.env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT
+                  o.env_parser do |value|
+                    values = value.split(',')
+
+                    values.map! do |v|
+                      v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+                      v.empty? ? nil : v
+                    end
+                    values.compact!
+                    values
+                  end
                   # DEV-2.0: Change default value to `tracecontext, Datadog`.
                   o.default [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG]
                   o.on_set do |styles|
@@ -119,6 +142,17 @@ module Datadog
                 option :propagation_style do |o|
                   o.type :array
                   o.env_var Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
+                  o.env_parser do |value|
+                    values = value.split(',')
+
+                    values.map! do |v|
+                      v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+                      v.empty? ? nil : v
+                    end
+                    values.compact!
+                    values
+                  end
                   o.default []
                   o.on_set do |styles|
                     next if styles.empty?
@@ -465,6 +499,7 @@ module Datadog
       # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/MethodLength
       # rubocop:enable Layout/LineLength
+      # rubocop:enable Metrics/PerceivedComplexity
     end
   end
 end

@@ -183,7 +183,10 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               on_set: nil,
               resetter: nil,
               setter: Datadog::Core::Configuration::OptionDefinition::IDENTITY,
-              type: nil
+              type: nil,
+              env_var: nil,
+              deprecated_env_var: nil,
+              env_parser: nil
             )
           end
         end
@@ -371,6 +374,16 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
+  describe '#env_parser' do
+    subject(:env_parser) { builder.env_parser(&block) }
+
+    context 'given a block' do
+      let(:block) { proc { false } }
+
+      it { is_expected.to be block }
+    end
+  end
+
   describe '#apply_options!' do
     subject(:apply_options!) { builder.apply_options!(options) }
 
@@ -477,7 +490,10 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         :on_set,
         :resetter,
         :setter,
-        :type
+        :type,
+        :env_var,
+        :deprecated_env_var,
+        :env_parser,
       )
     end
   end

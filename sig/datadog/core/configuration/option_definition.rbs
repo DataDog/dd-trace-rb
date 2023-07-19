@@ -12,6 +12,8 @@ module Datadog
 
         attr_reader deprecated_env_var: untyped
 
+        attr_reader env_parser: untyped
+
         attr_reader delegate_to: untyped
 
         attr_reader depends_on: untyped
@@ -44,6 +46,8 @@ module Datadog
           def env_var: (untyped value) -> untyped
 
           def deprecated_env_var: (untyped value) -> untyped
+
+          def env_parser: () { () -> untyped } -> untyped
 
           def type: (Symbol value, ?::Hash[untyped, untyped] type_options) -> untyped
 
