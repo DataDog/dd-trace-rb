@@ -22,6 +22,10 @@ module Datadog
           TAG_OPERATION_COMMAND = 'command'
           TAG_SYSTEM = 'redis'
           TAG_DATABASE_INDEX = 'db.redis.database_index'
+          PEER_SERVICE_SOURCES = Array[
+            Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end
       end
     end

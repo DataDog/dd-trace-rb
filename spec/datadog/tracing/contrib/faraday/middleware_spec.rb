@@ -68,7 +68,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
 
     it 'executes without warnings' do
@@ -176,7 +177,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -206,7 +208,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -236,7 +239,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
 
       subject do
         begin
@@ -282,7 +286,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
 
     context 'and the host matches a specific configuration' do
@@ -360,7 +365,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -375,7 +381,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 

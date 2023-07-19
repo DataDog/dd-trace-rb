@@ -32,11 +32,6 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
 
-                if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                  # Tag as an external peer service
-                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-                end
-
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, query_options[:host])
 
                 # Set analytics sample rate
@@ -50,6 +45,8 @@ module Datadog
 
                 Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
                 sql = Contrib::Propagation::SqlComment.prepend_comment(sql, span, trace_op, propagation_mode)
+
+                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
                 super(sql, options)
               end

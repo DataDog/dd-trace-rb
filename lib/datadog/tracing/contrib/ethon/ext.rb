@@ -18,6 +18,10 @@ module Datadog
           TAG_COMPONENT = 'ethon'
           TAG_OPERATION_REQUEST = 'request'
           TAG_OPERATION_MULTI_REQUEST = 'multi.request'
+          PEER_SERVICE_SOURCES = Array[
+            Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end
       end
     end

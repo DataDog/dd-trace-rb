@@ -79,7 +79,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
@@ -109,7 +110,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
@@ -180,7 +182,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
@@ -215,7 +218,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
@@ -267,7 +271,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
   end

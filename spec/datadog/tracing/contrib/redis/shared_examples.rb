@@ -41,7 +41,8 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
@@ -67,7 +68,8 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
@@ -89,7 +91,8 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
@@ -154,7 +157,8 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
@@ -198,7 +202,8 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
@@ -243,7 +248,8 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
@@ -271,7 +277,8 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
@@ -302,7 +309,8 @@ RSpec.shared_examples_for 'redis instrumentation' do |options = {}|
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Redis::Ext::ENV_ANALYTICS_ENABLED }
@@ -356,7 +364,8 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
 
@@ -380,7 +389,8 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
 
@@ -405,7 +415,8 @@ RSpec.shared_examples_for 'an authenticated redis instrumentation' do |options =
       it_behaves_like 'a redis span with common tags'
       it_behaves_like 'measured span for integration', false
       it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
+        let(:peer_service_val) {  host }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
   end

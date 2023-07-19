@@ -15,6 +15,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "httpclient"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_REQUEST: "httpclient.request"
 
           TAG_COMPONENT: "httpclient"
