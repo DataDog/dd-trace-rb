@@ -277,6 +277,22 @@ module Datadog
                   o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT, 100) }
                 end
 
+                # Trace sampling rules.
+                # These rules control whether a trace is kept or dropped by the tracer.
+                #
+                # The `rules` format is a String with a JSON array of objects:
+                # Each object must have a `sample_rate`, and the `name` and `service` fields
+                # are optional. The `sample_rate` value must be between 0.0 and 1.0 (inclusive).
+                # `name` and `service` are Strings that allow the `sample_rate` to be applied only
+                # to traces matching the `name` and `service`.
+                #
+                # @default `DD_TRACE_SAMPLING_RULES` environment variable. Otherwise `nil`.
+                # @return [String,nil]
+                # @public_api
+                option :rules do |o|
+                  o.default { ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
+                end
+
                 # Single span sampling rules.
                 # These rules allow a span to be kept when its encompassing trace is dropped.
                 #

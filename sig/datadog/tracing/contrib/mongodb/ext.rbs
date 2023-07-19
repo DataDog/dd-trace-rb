@@ -13,6 +13,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "mongodb"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_COMMAND: "mongo.cmd"
 
           SPAN_TYPE_COMMAND: "mongodb"

@@ -16,6 +16,10 @@ module Datadog
           SPAN_REQUEST = 'http.request'
           TAG_COMPONENT = 'net/http'
           TAG_OPERATION_REQUEST = 'request'
+          PEER_SERVICE_SOURCES = Array[
+            Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end
       end
     end

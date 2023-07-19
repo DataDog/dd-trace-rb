@@ -140,7 +140,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'a peer service span' do
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { 'localhost' }
+            let(:peer_service_source) { 'peer.hostname' }
           end
 
           it_behaves_like 'analytics for integration' do

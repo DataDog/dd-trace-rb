@@ -71,21 +71,17 @@ RSpec.describe 'Sequel instrumentation' do
 
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sequel')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('query')
+
+          if PlatformHelpers.jruby?
+            nil # TODO: Extract host for Sequel with JDBC
+          else
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
+          end
         end
 
         it_behaves_like 'analytics for integration' do
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
-        end
-
-        it_behaves_like 'a peer service span' do
-          let(:peer_hostname) do
-            if PlatformHelpers.jruby?
-              nil # TODO: Extract host for Sequel with JDBC
-            else
-              host
-            end
-          end
         end
 
         it_behaves_like 'measured span for integration', false

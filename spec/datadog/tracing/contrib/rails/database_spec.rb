@@ -56,10 +56,6 @@ RSpec.describe 'Rails database' do
         .to eq('active_record')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('sql')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq(adapter_name)
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
-        .to eq(adapter_host.to_s)
     end
 
     it_behaves_like 'a peer service span'

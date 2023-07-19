@@ -15,6 +15,10 @@ module Datadog
           SPAN_REQUEST = 'faraday.request'
           TAG_COMPONENT = 'faraday'
           TAG_OPERATION_REQUEST = 'request'
+          PEER_SERVICE_SOURCES = Array[
+            Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end
       end
     end

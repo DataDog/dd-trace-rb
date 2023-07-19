@@ -25,6 +25,10 @@ module Datadog
           TAG_PORT = 'http.url_details.port'
           TAG_SCHEME = 'http.url_details.scheme'
           TAG_RESPONSE_CONTENT_LENGTH = 'http.response.content_length'
+          PEER_SERVICE_SOURCES = Array[
+            Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end
       end
     end

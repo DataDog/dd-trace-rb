@@ -13,6 +13,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "elasticsearch"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_QUERY: "elasticsearch.query"
 
           SPAN_TYPE_QUERY: "elasticsearch"
