@@ -18,8 +18,8 @@ module Datadog
           TAG_COMPONENT = 'grpc'
           TAG_OPERATION_CLIENT = 'client'
           TAG_OPERATION_SERVICE = 'service'
-
           TAG_SYSTEM = 'grpc'
+          PEER_SERVICE_SOURCES = Contrib::Ext::RPC::PEER_SERVICE_SOURCES.freeze
         end
       end
     end
