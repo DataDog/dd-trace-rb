@@ -820,7 +820,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     end
 
     describe '#global_default_service_name_enabled' do
-      subject { settings.tracing.global_default_service_name_enabled }
+      subject { settings.tracing.global_default_service_name.enabled }
 
       context 'when given environment variable DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED' do
         around do |example|

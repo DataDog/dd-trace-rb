@@ -446,15 +446,18 @@ module Datadog
                 end
               end
 
-              # Overrides default service name to global service name
-              #
-              # Allows for usage of v1 service name changes without
-              # being forced to update schema versions
-              #
-              # @default `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED` environment variable, otherwise `false`
-              # @return [Boolean]
-              option :global_default_service_name_enabled do |o|
-                o.default { env_to_bool(Tracing::Configuration::Ext::SpanAttributeSchema::ENV_GLOBAL_SERVICE_NAME_ENABLED, false) }
+              # Global service name behavior
+              settings :global_default_service_name do
+                # Overrides default service name to global service name
+                #
+                # Allows for usage of v1 service name changes without
+                # being forced to update schema versions
+                #
+                # @default `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED` environment variable, otherwise `false`
+                # @return [Boolean]
+                option :enabled do |o|
+                  o.default { env_to_bool(Tracing::Configuration::Ext::SpanAttributeSchema::ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED, false) }
+                end
               end
             end
           end
