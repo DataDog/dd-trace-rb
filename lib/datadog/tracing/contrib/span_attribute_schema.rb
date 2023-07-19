@@ -110,7 +110,11 @@ module Datadog
           module_function
 
           def fetch_service_name(env, default)
-            ENV.fetch(env) { default }
+            ENV.fetch(env) do
+              return Datadog.configuration.service if Datadog.configuration.tracing.global_default_service_name.enabled
+
+              default
+            end
           end
         end
 
