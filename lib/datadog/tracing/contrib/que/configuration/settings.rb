@@ -16,31 +16,31 @@ module Datadog
 
             option :enabled do |o|
               o.type :bool
-              o.env_var Ext::ENV_ENABLED
+              o.env Ext::ENV_ENABLED
               o.default true
             end
 
             option :analytics_enabled do |o|
               o.type :bool
-              o.env_var Ext::ENV_ANALYTICS_ENABLED
+              o.env Ext::ENV_ANALYTICS_ENABLED
               o.default false
             end
 
             option :analytics_sample_rate do |o|
               o.type :float
-              o.env_var Ext::ENV_ANALYTICS_SAMPLE_RATE
+              o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
               o.default 1.0
             end
 
             option :tag_args do |o|
               o.type :bool
-              o.env_var Ext::ENV_TAG_ARGS_ENABLED
+              o.env Ext::ENV_TAG_ARGS_ENABLED
               o.default false
             end
 
             option :tag_data do |o|
               o.type :bool
-              o.env_var Ext::ENV_TAG_DATA_ENABLED
+              o.env Ext::ENV_TAG_DATA_ENABLED
               o.default false
             end
 

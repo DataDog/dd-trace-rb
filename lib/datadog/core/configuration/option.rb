@@ -195,17 +195,17 @@ module Datadog
           value = nil
           precedence = nil
 
-          if definition.env_var && ENV[definition.env_var]
-            value = coerce_env_variable(ENV[definition.env_var])
+          if definition.env && ENV[definition.env]
+            value = coerce_env_variable(ENV[definition.env])
             precedence = Precedence::PROGRAMMATIC
           end
 
-          if value.nil? && definition.deprecated_env_var && ENV[definition.deprecated_env_var]
-            value = coerce_env_variable(ENV[definition.deprecated_env_var])
+          if value.nil? && definition.deprecated_env && ENV[definition.deprecated_env]
+            value = coerce_env_variable(ENV[definition.deprecated_env])
             precedence = Precedence::PROGRAMMATIC
 
             Datadog::Core.log_deprecation do
-              "#{definition.deprecated_env_var} environment variable is deprecated, use #{definition.env_var} instead."
+              "#{definition.deprecated_env} environment variable is deprecated, use #{definition.env} instead."
             end
           end
 

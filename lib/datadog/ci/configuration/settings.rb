@@ -17,7 +17,7 @@ module Datadog
             settings :ci do
               option :enabled do |o|
                 o.type :bool
-                o.env_var CI::Ext::Settings::ENV_MODE_ENABLED
+                o.env CI::Ext::Settings::ENV_MODE_ENABLED
                 o.default false
               end
 

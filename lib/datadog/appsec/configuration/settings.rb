@@ -34,7 +34,7 @@ module Datadog
             settings :appsec do
               option :enabled do |o|
                 o.type :bool
-                o.env_var 'DD_APPSEC_ENABLED'
+                o.env 'DD_APPSEC_ENABLED'
                 o.default DEFAULT_APPSEC_ENABLED
               end
 
@@ -52,7 +52,7 @@ module Datadog
               end
 
               option :ruleset do |o|
-                o.env_var 'DD_APPSEC_RULES'
+                o.env 'DD_APPSEC_RULES'
                 o.default DEFAULT_APPSEC_RULESET
               end
 
@@ -67,7 +67,7 @@ module Datadog
               end
 
               option :waf_timeout do |o|
-                o.env_var 'DD_APPSEC_WAF_TIMEOUT' # us
+                o.env 'DD_APPSEC_WAF_TIMEOUT' # us
                 o.default DEFAULT_APPSEC_WAF_TIMEOUT
                 o.setter do |v|
                   Datadog::Core::Utils::Duration.call(v.to_s, base: :us)
@@ -75,32 +75,32 @@ module Datadog
               end
 
               option :waf_debug do |o|
-                o.env_var 'DD_APPSEC_WAF_DEBUG'
+                o.env 'DD_APPSEC_WAF_DEBUG'
                 o.default DEFAULT_APPSEC_WAF_DEBUG
                 o.type :bool
               end
 
               option :trace_rate_limit do |o|
                 o.type :int
-                o.env_var 'DD_APPSEC_TRACE_RATE_LIMIT' # trace/s
+                o.env 'DD_APPSEC_TRACE_RATE_LIMIT' # trace/s
                 o.default DEFAULT_APPSEC_TRACE_RATE_LIMIT
               end
 
               option :obfuscator_key_regex do |o|
                 o.type :string
-                o.env_var 'DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP'
+                o.env 'DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP'
                 o.default DEFAULT_OBFUSCATOR_KEY_REGEX
               end
 
               option :obfuscator_value_regex do |o|
                 o.type :string
-                o.env_var 'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP'
+                o.env 'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP'
                 o.default DEFAULT_OBFUSCATOR_VALUE_REGEX
               end
 
               settings :track_user_events do
                 option :enabled do |o|
-                  o.env_var 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
+                  o.env 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
                   o.default DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_ENABLED
                   o.setter do |value|
                     if value.is_a?(String)
@@ -112,7 +112,7 @@ module Datadog
                 end
 
                 option :mode do |o|
-                  o.env_var 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
+                  o.env 'DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING'
                   o.default DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE
                   o.setter do |v|
                     if APPSEC_VALID_TRACK_USER_EVENTS_MODE.include?(v.to_s)

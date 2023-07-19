@@ -13,7 +13,7 @@ module Datadog
           class Settings < Datadog::Tracing::Contrib::Configuration::Settings
             option :enabled do |o|
               o.type :bool
-              o.env_var Ext::ENV_ENABLED
+              o.env Ext::ENV_ENABLED
               o.default true
             end
 
@@ -24,7 +24,7 @@ module Datadog
 
             option :operation_name do |o|
               o.type :string
-              o.env_var Ext::ENV_OPERATION_NAME
+              o.env Ext::ENV_OPERATION_NAME
               o.default Ext::OPERATION_NAME
             end
           end

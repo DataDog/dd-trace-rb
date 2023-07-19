@@ -184,8 +184,8 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               resetter: nil,
               setter: Datadog::Core::Configuration::OptionDefinition::IDENTITY,
               type: nil,
-              env_var: nil,
-              deprecated_env_var: nil,
+              env: nil,
+              deprecated_env: nil,
               env_parser: nil
             )
           end
@@ -491,8 +491,8 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         :resetter,
         :setter,
         :type,
-        :env_var,
-        :deprecated_env_var,
+        :env,
+        :deprecated_env,
         :env_parser,
       )
     end

@@ -16,8 +16,8 @@ module Datadog
           # clear to the reader that they should not rely on it and that is subject to change.
           # Currently is only use internally.
           :experimental_default_proc,
-          :env_var,
-          :deprecated_env_var,
+          :env,
+          :deprecated_env,
           :env_parser,
           :delegate_to,
           :depends_on,
@@ -31,8 +31,8 @@ module Datadog
         def initialize(name, meta = {}, &block)
           @default = meta[:default]
           @experimental_default_proc = meta[:experimental_default_proc]
-          @env_var = meta[:env_var]
-          @deprecated_env_var = meta[:deprecated_env_var]
+          @env = meta[:env]
+          @deprecated_env = meta[:deprecated_env]
           @env_parser = meta[:env_parser]
           @delegate_to = meta[:delegate_to]
           @depends_on = meta[:depends_on] || []
@@ -58,8 +58,8 @@ module Datadog
             :helpers
 
           def initialize(name, options = {})
-            @env_var = nil
-            @deprecated_env_var = nil
+            @env = nil
+            @deprecated_env = nil
             @env_parser = nil
             @default = nil
             @experimental_default_proc = nil
@@ -85,12 +85,12 @@ module Datadog
             @depends_on = values.flatten
           end
 
-          def env_var(value)
-            @env_var = value
+          def env(value)
+            @env = value
           end
 
-          def deprecated_env_var(value)
-            @deprecated_env_var = value
+          def deprecated_env(value)
+            @deprecated_env = value
           end
 
           def env_parser(&block)
@@ -147,8 +147,8 @@ module Datadog
             return if options.nil? || options.empty?
 
             default(options[:default]) if options.key?(:default)
-            env_var(options[:env_var]) if options.key?(:env_var)
-            deprecated_env_var(options[:deprecated_env_var]) if options.key?(:deprecated_env_var)
+            env(options[:env]) if options.key?(:env)
+            deprecated_env(options[:deprecated_env]) if options.key?(:deprecated_env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
             delegate_to(&options[:delegate_to]) if options.key?(:delegate_to)
             depends_on(*options[:depends_on]) if options.key?(:depends_on)
@@ -167,8 +167,8 @@ module Datadog
             {
               default: @default,
               experimental_default_proc: @experimental_default_proc,
-              env_var: @env_var,
-              deprecated_env_var: @deprecated_env_var,
+              env: @env,
+              deprecated_env: @deprecated_env,
               env_parser: @env_parser,
               delegate_to: @delegate_to,
               depends_on: @depends_on,

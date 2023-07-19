@@ -8,9 +8,9 @@ module Datadog
 
         attr_reader experimental_default_proc: untyped
 
-        attr_reader env_var: untyped
+        attr_reader env: untyped
 
-        attr_reader deprecated_env_var: untyped
+        attr_reader deprecated_env: untyped
 
         attr_reader env_parser: untyped
 
@@ -43,9 +43,9 @@ module Datadog
 
           def delegate_to: () { () -> untyped } -> untyped
 
-          def env_var: (untyped value) -> untyped
+          def env: (untyped value) -> untyped
 
-          def deprecated_env_var: (untyped value) -> untyped
+          def deprecated_env: (untyped value) -> untyped
 
           def env_parser: () { () -> untyped } -> untyped
 

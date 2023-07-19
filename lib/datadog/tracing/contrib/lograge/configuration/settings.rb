@@ -13,7 +13,7 @@ module Datadog
           class Settings < Contrib::Configuration::Settings
             option :enabled do |o|
               o.type :bool
-              o.env_var Ext::ENV_ENABLED
+              o.env Ext::ENV_ENABLED
               o.default true
             end
           end

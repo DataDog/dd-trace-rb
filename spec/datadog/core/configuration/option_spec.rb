@@ -11,8 +11,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
       name: :test_name,
       default: default,
       experimental_default_proc: experimental_default_proc,
-      env_var: env_var,
-      deprecated_env_var: deprecated_env_var,
+      env: env,
+      deprecated_env: deprecated_env,
       env_parser: env_parser,
       delegate_to: delegate,
       on_set: nil,
@@ -25,11 +25,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
   let(:default) { double('default') }
   let(:experimental_default_proc) { nil }
   let(:delegate) { nil }
-  let(:env_var) { nil }
+  let(:env) { nil }
   let(:env_parser) { nil }
   let(:type) { nil }
   let(:type_options) { {} }
-  let(:deprecated_env_var) { nil }
+  let(:deprecated_env) { nil }
   let(:setter) { proc { setter_value } }
   let(:setter_value) { double('setter_value') }
   let(:context) { double('configuration object') }
@@ -448,11 +448,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
   describe '#get' do
     subject(:get) { option.get }
 
-    shared_examples_for 'env_var coercion' do
+    shared_examples_for 'env coercion' do
       context 'when type is defined' do
         context ':int' do
           let(:type) { :int }
-          let(:env_var_value) { '1234' }
+          let(:env_value) { '1234' }
 
           it 'coerce valule' do
             expect(option.get).to eq 1234
@@ -461,7 +461,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context ':float' do
           let(:type) { :float }
-          let(:env_var_value) { '12.34' }
+          let(:env_value) { '12.34' }
 
           it 'coerce valule' do
             expect(option.get).to eq 12.34
@@ -472,14 +472,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
           let(:type) { :array }
 
           context 'value with commas' do
-            let(:env_var_value) { '12,34' }
+            let(:env_value) { '12,34' }
 
             it 'coerce valule' do
               expect(option.get).to eq ['12', '34']
             end
 
             context 'remove empty values' do
-              let(:env_var_value) { '12,34,,,56,' }
+              let(:env_value) { '12,34,,,56,' }
 
               it 'coerce valule' do
                 expect(option.get).to eq ['12', '34', '56']
@@ -488,14 +488,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
           end
 
           context 'value with spaces' do
-            let(:env_var_value) { '12 34' }
+            let(:env_value) { '12 34' }
 
             it 'coerce valule' do
               expect(option.get).to eq ['12', '34']
             end
 
             context 'remove empty values' do
-              let(:env_var_value) { '12 34     56' }
+              let(:env_value) { '12 34     56' }
 
               it 'coerce valule' do
                 expect(option.get).to eq ['12', '34', '56']
@@ -508,7 +508,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           let(:type) { :bool }
 
           context 'truthy value' do
-            let(:env_var_value) { '1' }
+            let(:env_value) { '1' }
 
             it 'cource value' do
               expect(option.get).to eq true
@@ -516,7 +516,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           end
 
           context 'non-truthy value' do
-            let(:env_var_value) { 'something' }
+            let(:env_value) { 'something' }
 
             it 'cource value' do
               expect(option.get).to eq false
@@ -526,7 +526,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         context 'invalid type' do
           let(:type) { :invalid_type }
-          let(:env_var_value) { '1' }
+          let(:env_value) { '1' }
 
           it 'raise exception' do
             expect { option.get }.to raise_exception(ArgumentError)
@@ -544,7 +544,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
       it 'passes the env varaible value to the env_parser' do
         expect(context).to receive(:instance_exec) do |*args, &block|
-          expect(args.first).to eq(env_var_value)
+          expect(args.first).to eq(env_value)
           expect(block).to eq env_parser
         end
 
@@ -552,16 +552,16 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
     end
 
-    context 'when env_var is defined' do
+    context 'when env is defined' do
       before do
         allow(context).to receive(:instance_exec) do |*args|
           args[0]
         end
       end
 
-      let(:env_var) { 'TEST' }
+      let(:env) { 'TEST' }
 
-      context 'when env_var is not set' do
+      context 'when env is not set' do
         it 'use default value' do
           # mock .dup lib/datadog/core/configuration/option.rbL87
           expect(default).to receive(:dup).and_return(default)
@@ -570,17 +570,17 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      context 'when env_var is set' do
+      context 'when env is set' do
         around do |example|
-          ClimateControl.modify(env_var => env_var_value) do
+          ClimateControl.modify(env => env_value) do
             example.run
           end
         end
 
-        let(:env_var_value) { 'test' }
+        let(:env_value) { 'test' }
 
         it 'uses env var value' do
-          expect(option.get).to eq env_var_value
+          expect(option.get).to eq env_value
         end
 
         it 'set precedence_set to programmatic' do
@@ -588,19 +588,19 @@ RSpec.describe Datadog::Core::Configuration::Option do
           expect(option.send(:precedence_set)).to eq described_class::Precedence::PROGRAMMATIC
         end
 
-        it_behaves_like 'env_var coercion'
+        it_behaves_like 'env coercion'
         it_behaves_like 'with env_parser'
       end
     end
 
-    context 'when deprecated_env_var is defined' do
+    context 'when deprecated_env is defined' do
       before do
         allow(context).to receive(:instance_exec) do |*args|
           args[0]
         end
       end
 
-      let(:deprecated_env_var) { 'TEST' }
+      let(:deprecated_env) { 'TEST' }
       context 'when env var is not set' do
         it do
           # mock .dup lib/datadog/core/configuration/option.rbL87
@@ -611,12 +611,12 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
       context 'when env var is set' do
         around do |example|
-          ClimateControl.modify(deprecated_env_var => env_var_value) do
+          ClimateControl.modify(deprecated_env => env_value) do
             example.run
           end
         end
 
-        let(:env_var_value) { 'test' }
+        let(:env_value) { 'test' }
 
         it 'uses env var value' do
           expect(option.get).to eq 'test'
@@ -632,26 +632,26 @@ RSpec.describe Datadog::Core::Configuration::Option do
           option.get
         end
 
-        it_behaves_like 'env_var coercion'
+        it_behaves_like 'env coercion'
         it_behaves_like 'with env_parser'
       end
     end
 
-    context 'when env_var and deprecated_env_var are defined' do
+    context 'when env and deprecated_env are defined' do
       before do
         allow(context).to receive(:instance_exec) do |*args|
           args[0]
         end
       end
 
-      let(:env_var) { 'TEST' }
-      let(:deprecated_env_var) { 'DEPRECATED_TEST' }
-      let(:env_var_value) { 'test' }
-      let(:deprecated_env_var_value) { 'old test' }
+      let(:env) { 'TEST' }
+      let(:deprecated_env) { 'DEPRECATED_TEST' }
+      let(:env_value) { 'test' }
+      let(:deprecated_env_value) { 'old test' }
 
-      context 'env_var found' do
+      context 'env found' do
         around do |example|
-          ClimateControl.modify(env_var => env_var_value, deprecated_env_var => deprecated_env_var_value) do
+          ClimateControl.modify(env => env_value, deprecated_env => deprecated_env_value) do
             example.run
           end
         end
@@ -671,9 +671,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      context 'env_var not found and deprecated_env_var not found' do
+      context 'env not found and deprecated_env found' do
         around do |example|
-          ClimateControl.modify(deprecated_env_var => deprecated_env_var_value) do
+          ClimateControl.modify(deprecated_env => deprecated_env_value) do
             example.run
           end
         end
@@ -693,7 +693,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      context 'env_var and deprecated_env_var not found' do
+      context 'env and deprecated_env not found' do
         it 'uses default value' do
           # mock .dup lib/datadog/core/configuration/option.rbL87
           expect(default).to receive(:dup).and_return(default)

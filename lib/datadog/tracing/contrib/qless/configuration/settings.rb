@@ -13,25 +13,25 @@ module Datadog
           class Settings < Contrib::Configuration::Settings
             option :analytics_enabled do |o|
               o.type :bool
-              o.env_var Ext::ENV_ANALYTICS_ENABLED
+              o.env Ext::ENV_ANALYTICS_ENABLED
               o.default false
             end
 
             option :analytics_sample_rate do |o|
               o.type :float
-              o.env_var Ext::ENV_ANALYTICS_SAMPLE_RATE
+              o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
               o.default 1.0
             end
 
             option :tag_job_data do |o|
               o.type :bool
-              o.env_var Ext::ENV_TAG_JOB_DATA
+              o.env Ext::ENV_TAG_JOB_DATA
               o.default false
             end
 
             option :tag_job_tags do |o|
               o.type :bool
-              o.env_var Ext::ENV_TAG_JOB_TAGS
+              o.env Ext::ENV_TAG_JOB_TAGS
               o.default false
             end
 

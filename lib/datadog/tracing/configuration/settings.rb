@@ -28,7 +28,7 @@ module Datadog
                 # @return [Boolean,nil]
                 option :enabled do |o|
                   o.type :bool, nil: true
-                  o.env_var Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED
+                  o.env Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED
                 end
               end
 
@@ -53,8 +53,8 @@ module Datadog
                 # @return [Array<String>]
                 option :propagation_extract_style do |o|
                   o.type :array
-                  o.deprecated_env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT_OLD
-                  o.env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT
+                  o.deprecated_env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT_OLD
+                  o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT
                   o.env_parser do |value|
                     values = value.split(',')
 
@@ -100,8 +100,8 @@ module Datadog
                 # @return [Array<String>]
                 option :propagation_inject_style do |o|
                   o.type :array
-                  o.deprecated_env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD
-                  o.env_var Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT
+                  o.deprecated_env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD
+                  o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT
                   o.env_parser do |value|
                     values = value.split(',')
 
@@ -141,7 +141,7 @@ module Datadog
                 # @return [Array<String>]
                 option :propagation_style do |o|
                   o.type :array
-                  o.env_var Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
+                  o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
                   o.env_parser do |value|
                     values = value.split(',')
 
@@ -184,7 +184,7 @@ module Datadog
               # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :enabled do |o|
-                o.env_var Tracing::Configuration::Ext::ENV_ENABLED
+                o.env Tracing::Configuration::Ext::ENV_ENABLED
                 o.default true
                 o.type :bool
               end
@@ -194,7 +194,7 @@ module Datadog
               # @default `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` environment variable, otherwise `false`
               # @return [Boolean]
               option :trace_id_128_bit_generation_enabled do |o|
-                o.env_var Tracing::Configuration::Ext::ENV_TRACE_ID_128_BIT_GENERATION_ENABLED
+                o.env Tracing::Configuration::Ext::ENV_TRACE_ID_128_BIT_GENERATION_ENABLED
                 o.default false
                 o.type :bool
               end
@@ -206,7 +206,7 @@ module Datadog
               #
               # It is not supported by our backend yet. Do not enable it.
               option :trace_id_128_bit_logging_enabled do |o|
-                o.env_var Tracing::Configuration::Ext::Correlation::ENV_TRACE_ID_128_BIT_LOGGING_ENABLED
+                o.env Tracing::Configuration::Ext::Correlation::ENV_TRACE_ID_128_BIT_LOGGING_ENABLED
                 o.default false
                 o.type :bool
               end
@@ -229,7 +229,7 @@ module Datadog
               # @see https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#trace-correlation
               # @return [Boolean]
               option :log_injection do |o|
-                o.env_var Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED
+                o.env Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED
                 o.default true
                 o.type :bool
               end
@@ -271,7 +271,7 @@ module Datadog
               option :priority_sampling
 
               option :report_hostname do |o|
-                o.env_var Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME
+                o.env Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME
                 o.default false
                 o.type :bool
               end
@@ -296,7 +296,7 @@ module Datadog
                 # @return [Float]
                 option :default_rate do |o|
                   o.type :float, nil: true
-                  o.env_var Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
+                  o.env Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
                 end
 
                 # Rate limit for number of spans per second.
@@ -308,7 +308,7 @@ module Datadog
                 # @return [Numeric,nil]
                 option :rate_limit do |o|
                   o.type :int, nil: true
-                  o.env_var Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT
+                  o.env Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT
                   o.default 100
                 end
 
@@ -383,7 +383,7 @@ module Datadog
                 option :enabled do |o|
                   o.type :bool
                   o.default false
-                  o.env_var Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED
+                  o.env Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED
                 end
 
                 option :trace_flush
@@ -463,7 +463,7 @@ module Datadog
                 # @return [String,nil]
                 option :header_name do |o|
                   o.type :string, nil: true
-                  o.env_var Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME
+                  o.env Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME
                 end
               end
 
@@ -477,7 +477,7 @@ module Datadog
               # @return [Integer]
               option :x_datadog_tags_max_length do |o|
                 o.type :int
-                o.env_var Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
+                o.env Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
               end
 
@@ -487,7 +487,7 @@ module Datadog
               # @return [String]
               option :span_attribute_schema do |o|
                 o.type :string
-                o.env_var Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA
+                o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA
                 o.default Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
               end
             end

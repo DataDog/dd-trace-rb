@@ -25,13 +25,13 @@ module Datadog
 
             option :enabled do |o|
               o.type :bool
-              o.env_var Ext::ENV_ENABLED
+              o.env Ext::ENV_ENABLED
               o.default true
             end
 
             option :analytics_enabled do |o|
               o.type :bool, nil: true
-              o.env_var Ext::ENV_ANALYTICS_ENABLED
+              o.env Ext::ENV_ANALYTICS_ENABLED
               o.on_set do |value|
                 # Update ActionPack analytics too
                 Datadog.configuration.tracing[:action_pack][:analytics_enabled] = value unless value.nil?
@@ -40,7 +40,7 @@ module Datadog
 
             option :analytics_sample_rate do |o|
               o.type :float
-              o.env_var Ext::ENV_ANALYTICS_SAMPLE_RATE
+              o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
               o.default 1.0
               o.on_set do |value|
                 # Update ActionPack analytics too
