@@ -98,7 +98,6 @@ module Datadog
           end
         end
 
-
         # Contains implementation of methods specific to v0
         module V0
           extend Base
