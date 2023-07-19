@@ -196,7 +196,6 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
               expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
               expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
 
-
               span.clear_tag('peer.service')
               span.clear_tag('_dd.peer.service.source')
               span.clear_tag(precursor)
@@ -262,7 +261,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
         end
       end
     end
-    
+
     context 'remapping tags' do
       let(:precursor) { ['precursor-tag'] }
 

@@ -59,7 +59,7 @@ module Datadog
               end
               return true
             end
-            false
+
             set_peer_service_from_source(span, sources)
           end
 
@@ -98,7 +98,7 @@ module Datadog
                 (span.get_tag(Tracing::Metadata::Ext::TAG_KIND) == Tracing::Metadata::Ext::SpanKind::TAG_PRODUCER)
               return sources
             end
-            
+
             NO_SOURCE
           end
 
