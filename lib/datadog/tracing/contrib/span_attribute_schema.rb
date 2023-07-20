@@ -48,15 +48,23 @@ module Datadog
           end
 
           def set_peer_service!(span, sources)
-            # Check if peer.service value is actually set prior to checking for remapping
-            if (peer_service_val = set_peer_service_from_source(span, sources))
-              if (remap_val = Datadog.configuration.tracing.peer_service_mapping[peer_service_val.to_sym])
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, remap_val)
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_REMAP, peer_service_val)
-              end
-              return true
+            # Acquire all peer.service values as well as any potential remapping
+            peer_service_val, peer_service_source = set_peer_service_from_source(span, sources)
+            remap_val = Datadog.configuration.tracing.peer_service_mapping[peer_service_val]
+
+            # Only continue to setting peer.service if actual source is found
+            return false unless peer_service_source
+
+            span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_SOURCE, peer_service_source)
+
+            # Set peer.service to remapped value if found otherwise normally set peer.service
+            if remap_val
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, remap_val)
+              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_REMAP, peer_service_val)
+            else
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, peer_service_val)
             end
-            false
+            true
           end
 
           # set_peer_service_from_source: Implements the extraction logic to determine the peer.service value
@@ -74,9 +82,7 @@ module Datadog
               source_val = span.get_tag(source)
               next unless not_empty_tag?(source_val)
 
-              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, source_val)
-              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_PEER_SERVICE_SOURCE, source)
-              return source_val
+              return source_val, source
             end
             false
           end
