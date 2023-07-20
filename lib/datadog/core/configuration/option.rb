@@ -161,12 +161,10 @@ module Datadog
             end
 
             values.compact!
-            values_hash = Hash.new(0)
-            values.each do |v|
+            values.each.with_object({}) do |v, hash|
               pair = v.split(':', 2)
-              values_hash[pair[0]] = pair[1]
+              hash[pair[0]] = pair[1]
             end
-            values_hash
           when :int
             # DEV-2.0: Change to a more strict coercion method. Integer(value).
             value.to_i
