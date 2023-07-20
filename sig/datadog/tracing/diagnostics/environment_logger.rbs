@@ -1,5 +1,5 @@
 module Datadog
-  module Core
+  module Tracing
     module Diagnostics
       module EnvironmentLogger
         def self.log!: (untyped transport_responses) -> untyped
