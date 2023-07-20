@@ -35,15 +35,13 @@ module Datadog
         # Dynamic configuration for `DD_TRACE_SAMPLE_RATE`.
         class TracingSamplingRate < SimpleOption
           def initialize
-            super('tracing_sampling_rate', 'DD_TRACE_SAMPLE_RATE', :default_rate, after: -> do
-              # Restart tracer to ensure new sampler configuration is applied
-              Thread.new do
-                # This has to be done in a new thread because the this callback could be run
-                # from a component, which will get killed halfway through `Datadog.configure`
-                # and lead the application in a broken state.
-                Datadog.configure {}
-              end
-            end)
+            super('tracing_sampling_rate', 'DD_TRACE_SAMPLE_RATE', :default_rate)
+          end
+
+          # Ensures sampler is rebuilt and new configuration is applied
+          def call(tracing_sampling_rate)
+            super
+            Datadog.send(:components).reconfigure_live_sampler
           end
 
           protected

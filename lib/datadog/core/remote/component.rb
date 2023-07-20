@@ -31,7 +31,6 @@ module Datadog
           Datadog.logger.debug { "new remote configuration client: #{@client.id}" }
 
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds) do
-            puts 'worker!'
             unless healthy || negotiation.endpoint?('/v0.7/config')
               @barrier.lift
 
@@ -39,18 +38,7 @@ module Datadog
             end
 
             begin
-              puts 1
-              callbacks = @client.sync
-
-              puts 2
-
-              callbacks.flatten.each do |c|
-                puts "callback!"
-                c.call
-              end
-
-              puts 3
-
+              @client.sync
               healthy ||= true
             rescue Client::SyncError => e
               Datadog.logger.error do

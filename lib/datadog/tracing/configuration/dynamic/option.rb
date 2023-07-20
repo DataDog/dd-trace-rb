@@ -31,10 +31,9 @@ module Datadog
           #
           # DEV: `Datadog.configuration` cannot be an argument default value because
           # DEV: it is dynamic. Also, it is not yet declared when this method is parsed by Ruby.
-          def initialize(name, env_var, setting_key, after: nil)
+          def initialize(name, env_var, setting_key)
             super(name, env_var)
             @setting_key = setting_key
-            @after = after
           end
 
           # Reconfigures the provided option, setting its value to `value`.
@@ -49,8 +48,6 @@ module Datadog
             else
               configuration_object.set_option(@setting_key, value, precedence: PRECEDENCE)
             end
-
-            @after
           end
 
           protected

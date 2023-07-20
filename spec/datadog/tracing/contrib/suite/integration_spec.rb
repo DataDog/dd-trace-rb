@@ -11,39 +11,27 @@ require 'rackup'
 RSpec.describe 'contrib integration testing' do
   describe 'dynamic configuration' do
     subject(:update_config) do
-      @reconfigured = false
       stub_rc!
-      # Datadog.configure { |c| c.remote.poll_interval_seconds = Float::MIN }
-      try_wait_until(seconds: 99999) { puts "restarted?"; sleep 1; @reconfigured }
 
-      Make this sane!!!!!
+      @reconfigured = false
+      allow(Datadog::Tracing::Remote).to receive(:process_config).and_wrap_original do |m, *args|
+        m.call(*args).tap { @reconfigured = true }
+      end
+      try_wait_until { @reconfigured }
     end
+
+    let(:stub_rc!) { stub_dynamic_configuration_request(dynamic_configuration) }
 
     before do
       WebMock.enable!
-      Datadog.configure { |c| c.remote.poll_interval_seconds = Float::MIN }
 
-      @reconfigured = false
-      allow(Datadog).to receive(:configure).and_wrap_original do |method, *args, &block|
-        method.call(*args, &block).tap {
-          puts "restarted!"
-          @reconfigured = true
-        }
-      end
+      stub_request(:get, %r{/info}).to_return(body: info_response, status: 200)
+      stub_request(:post, %r{/v0\.7/config}).to_return(body: '{}', status: 200)
+
+      Datadog.configure { |c| c.remote.poll_interval_seconds = 0.001 }
     end
 
-    let(:stub_rc!) do
-      stub_request(:post, %r{/v0\.7/info}).to_return(body: info_response, status: 200)
-      stub_dynamic_configuration_request(dynamic_configuration)
-    end
-
-    let(:info_response) do
-      {
-        endpoints: [
-          '/v0.7/config',
-        ],
-      }.to_json
-    end
+    let(:info_response) { { endpoints: ['/v0.7/config'] }.to_json }
     let(:product) { 'APM_TRACING' }
 
     def new_dynamic_configuration(product = 'TEST-PRODUCT', data = '', config = 'test-config', name = 'test-name')
