@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'json'
 
 require 'datadog/core'
-require 'datadog/core/diagnostics/environment_logger'
+require 'datadog/tracing/diagnostics/environment_logger'
 require 'datadog/tracing/runtime/metrics'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/writer'
