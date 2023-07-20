@@ -24,7 +24,7 @@ In order to ship `ddtrace` and its dependencies as a pre-install package, we nee
 The host inject script would add `ddtrace` to your Ruby on Rails application's `Gemfile` to [instrument your application](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/#rails-or-hanami-applications)).
 
 * Bundler version must be >= 2.3
-* Does not support vendoring gem (Bundler's deployment mode or `BUNDLE_PATH`)
+* Does not support vendoring gem ([Bundler's Deployment Mode](https://www.bundler.cn/man/bundle-install.1.html#DEPLOYMENT-MODE) or `BUNDLE_PATH`)
 
 
 
