@@ -2,8 +2,6 @@ require 'spec_helper'
 
 require 'datadog/tracing/diagnostics/environment_logger'
 require 'ddtrace/transport/io'
-require 'datadog/tracing/logger'
-require 'datadog/profiling/profiler'
 
 RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
@@ -30,7 +28,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
     end
 
     let(:response) { instance_double(Datadog::Transport::Response, ok?: true) }
-    let(:tracer_logger) { instance_double(Datadog::Tracing::Logger) }
+    let(:tracer_logger) { instance_double(Datadog::Core::Logger) }
 
     before do
       allow(Datadog).to receive(:logger).and_return(tracer_logger)
@@ -198,7 +196,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
         before do
           Datadog.configure do |c|
             c.diagnostics.debug = true
-            c.logger.instance = Datadog::Tracing::Logger.new(StringIO.new)
+            c.logger.instance = Datadog::Core::Logger.new(StringIO.new)
           end
         end
 
