@@ -34,7 +34,7 @@ module Datadog
           DEFAULT = Value.new(0, :default).freeze
 
           # All precedences, sorted from highest to lowest
-          LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, DEFAULT].freeze
+          LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, DEFAULT].sort.reverse.freeze
         end
 
         def initialize(definition, context)
