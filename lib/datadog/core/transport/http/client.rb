@@ -28,7 +28,7 @@ module Datadog
           rescue StandardError => e
             message =
               "Internal error during #{self.class.name} request. Cause: #{e.class.name} #{e.message} " \
-              "Location: #{Array(e.backtrace).first}: #{api.inspect}"
+              "Location: #{Array(e.backtrace).first}"
 
             Datadog.logger.error(message)
 

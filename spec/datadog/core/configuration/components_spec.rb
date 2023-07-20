@@ -1090,20 +1090,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
       context 'enabled' do
         before { allow(settings.remote).to receive(:enabled).and_return(true) }
 
-        context 'with agent support' do
-          include_context 'stub remote configuration agent response'
-
-          it 'starts the remote manager' do
-            startup!
-            expect(components.remote.started?).to be_truthy
-          end
-        end
-
-        context 'without agent support' do
-          it 'does not start the remote manager' do
-            startup!
-            expect(components.remote).to be_nil # It doesn't even create it
-          end
+        it 'starts the remote manager' do
+          startup!
+          expect(components.remote.started?).to be_truthy
         end
       end
 

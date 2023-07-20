@@ -45,8 +45,7 @@ module Datadog
             parcel = EncodedParcel.new(json)
             request = Request.new(parcel)
 
-            Datadog.logger.debug { "Config request: #{json}" }
-            @client.send_config_payload(request).tap { |response| Datadog.logger.debug { "Config response: #{response}" } }
+            @client.send_config_payload(request)
           end
 
           def current_api

@@ -27,20 +27,16 @@ module Datadog
             return
           end
 
-          after_calbacks = []
           env_vars = Datadog::Tracing::Configuration::Dynamic::OPTIONS.map do |name, env_var, option|
             value = lib_config[name]
-            after_callback = option.call(value)
+            option.call(value)
 
-            after_calbacks << after_callback if after_callback
             [env_var, value]
           end
 
           content.applied
 
           Datadog.send(:components).telemetry.dynamic_configuration_change!(env_vars)
-
-          after_calbacks
         end
 
         def receivers

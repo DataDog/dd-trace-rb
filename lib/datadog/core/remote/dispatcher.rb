@@ -12,7 +12,7 @@ module Datadog
         end
 
         def dispatch(changes, repository)
-          receivers.map do |receiver|
+          receivers.each do |receiver|
             matching_changes = changes.select { |c| receiver.match?(c.path) }
 
             receiver.call(repository, matching_changes) if matching_changes.any?
