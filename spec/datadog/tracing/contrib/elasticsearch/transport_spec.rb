@@ -10,8 +10,11 @@ require 'ddtrace'
 
 RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   before do
-    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
-    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.disable_net_connect! options }
+    # Seeing flakiness from this test suite when trying to emit traces to the APM Test Agent. Changing hostname resolves it
+    # TODO: Find why using testagent changes the elasticsearch test service name despite no differences between other tests
+    Datadog.configuration.agent.host = 'not-testagent'
+    WebMock.enable!
+    WebMock.disable_net_connect!
   end
 
   after do

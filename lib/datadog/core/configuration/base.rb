@@ -25,25 +25,25 @@ module Datadog
           # e.g. `settings :foo { option :bar }` --> `config.foo.bar`
           # @param [Symbol] name option name. Methods will be created based on this name.
           def settings(name, &block)
-            settings_class = new_settings_class(&block)
+            settings_class = new_settings_class(name, &block)
 
             option(name) do |o|
               o.default { settings_class.new }
-              o.lazy
 
               o.resetter do |value|
                 value.reset! if value.respond_to?(:reset!)
                 value
               end
-
-              o.type settings_class
             end
+
+            settings_class
           end
 
           private
 
-          def new_settings_class(&block)
+          def new_settings_class(name, &block)
             Class.new { include Configuration::Base }.tap do |klass|
+              klass.instance_variable_set(:@settings_name, name)
               klass.instance_eval(&block) if block
             end
           end

@@ -10,6 +10,7 @@ module Datadog
       attr_reader code_provenance_file_name: ::String
       attr_reader code_provenance_data: ::String?
       attr_reader tags_as_array: Array[[::String, ::String]]
+      attr_reader internal_metadata_json: ::String
 
       def initialize: (
         start: ::Time,
@@ -18,7 +19,8 @@ module Datadog
         pprof_data: ::String,
         code_provenance_file_name: ::String,
         code_provenance_data: ::String?,
-        tags_as_array: Array[[::String, ::String]]
+        tags_as_array: Array[[::String, ::String]],
+        no_signals_workaround_enabled: bool,
       ) -> void
     end
   end
