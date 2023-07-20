@@ -28,12 +28,15 @@ module Datadog
           class FullMethodStringFormatter
             attr_reader grpc_full_method: String
             attr_reader resource_name: String
+            attr_reader rpc_service: String
 
             def initialize: (String grpc_full_method) -> void
 
             private
 
             def format_resource_name: (String grpc_full_method) -> String
+
+            def extract_grpc_service: (String grpc_full_method) -> String
           end
         end
       end
