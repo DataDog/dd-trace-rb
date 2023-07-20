@@ -78,13 +78,7 @@ RSpec.describe 'Dalli instrumentation' do
   end
 
   describe 'when multiplexed configuration is provided' do
-    let(:service_name) { 'multiplex-service' }
-
-    before do
-      Datadog.configure do |c|
-        c.tracing.instrument :dalli, describes: "#{test_host}:#{test_port}", service_name: service_name
-      end
-    end
+    let(:configuration_options) { { service_name: 'multiplex-service' } }
 
     context 'and #set is called' do
       before do
@@ -94,7 +88,7 @@ RSpec.describe 'Dalli instrumentation' do
 
       it 'calls instrumentation' do
         expect(spans.size).to eq(1)
-        expect(span.service).to eq(service_name)
+        expect(span.service).to eq('multiplex-service')
         expect(span.name).to eq('memcached.command')
         expect(span.span_type).to eq('memcached')
         expect(span.resource).to eq('SET')
