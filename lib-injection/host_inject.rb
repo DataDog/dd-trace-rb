@@ -9,6 +9,7 @@ Gem.paths = {
   "GEM_PATH" => "/opt/datadog/apm/library/ruby/#{ruby_version}:/opt/datadog/apm/library/ruby:#{ENV["GEM_PATH"]}"
 }
 
+# Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
 ENV["GEM_PATH"] = Gem.path.join(":")
 
 def debug_log(msg)
@@ -36,7 +37,9 @@ begin
   end
 
   if Bundler.frozen_bundle?
-    warn "[ddtrace] #{failure_prefix} Cannot inject with frozen Gemfile, run `bundle config unset deployment` to allow lib injection. To learn more about bundler deployment, check https://bundler.io/guides/deploying.html#deploying-your-application. #{support_message}"
+    warn "[ddtrace] #{failure_prefix} Cannot inject with frozen Gemfile, "\
+      "run `bundle config unset deployment` or add `gem 'ddtrace', require: 'ddtrace/auto_instrument'` to your `Gemfile`. "\
+      "To learn more about bundler deployment, check https://bundler.io/guides/deploying.html#deploying-your-application. #{support_message}"
     return
   end
 
