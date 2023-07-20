@@ -108,35 +108,6 @@ module Datadog
           # value, which also does not change the current value.
         end
 
-        def unset(precedence)
-          @value_per_precedence[precedence] = UNSET
-
-          # If we are unsetting the currently active value, we have to restore
-          # a lower precedence one...
-          if precedence == @precedence_set
-            # Find a lower precedence value that is already set.
-            Precedence::LIST.each do |p|
-              # DEV: This search can be optimized, but the list is small, and unset is
-              # DEV: only called from direct user interaction in the Datadog UI.
-              next unless p < precedence
-
-              # Look for value that is set.
-              # The hash `@value_per_precedence` has a custom default value of `UNSET`.
-              if (value = @value_per_precedence[p]) != UNSET
-                internal_set(value, p)
-                return nil
-              end
-            end
-
-            # If no value is left to fall back on, reset this option
-            reset
-          end
-
-          # ... otherwise, we are either unsetting a higher precedence value that is not
-          # yet set, thus there's nothing to do; or we are unsetting a lower precedence
-          # value, which also does not change the current value.
-        end
-
         def get
           if @is_set
             @value

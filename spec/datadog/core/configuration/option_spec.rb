@@ -731,6 +731,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
     context 'when deprecated_env is defined' do
       before do
+        allow(Datadog.logger).to receive(:warn) # For deprecation warnings
         allow(context).to receive(:instance_exec) do |*args|
           args[0]
         end
@@ -773,6 +774,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
     context 'when env and deprecated_env are defined' do
       before do
+        allow(Datadog.logger).to receive(:warn) # For deprecation warnings
         allow(context).to receive(:instance_exec) do |*args|
           args[0]
         end
