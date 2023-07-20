@@ -1075,6 +1075,47 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
     end
+
+    context 'with remote' do
+      shared_context 'stub remote configuration agent response' do
+        before do
+          WebMock.enable!
+          stub_request(:get, %r{/info}).to_return(body: info_response, status: 200)
+          stub_request(:post, %r{/v0\.7/config}).to_return(body: '{}', status: 200)
+        end
+
+        let(:info_response) { { endpoints: ['/v0.7/config'] }.to_json }
+      end
+
+      context 'enabled' do
+        before { allow(settings.remote).to receive(:enabled).and_return(true) }
+
+        context 'with agent support' do
+          include_context 'stub remote configuration agent response'
+
+          it 'starts the remote manager' do
+            startup!
+            expect(components.remote.started?).to be_truthy
+          end
+        end
+
+        context 'without agent support' do
+          it 'does not start the remote manager' do
+            startup!
+            expect(components.remote).to be_nil # It doesn't even create it
+          end
+        end
+      end
+
+      context 'disabled' do
+        before { allow(settings.remote).to receive(:enabled).and_return(false) }
+
+        it 'does not start the remote manager' do
+          startup!
+          expect(components.remote).to be_nil # It doesn't even create it
+        end
+      end
+    end
   end
 
   describe '#shutdown!' do

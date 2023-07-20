@@ -70,6 +70,14 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     end
   end
 
+  context 'Tracing component' do
+    it 'register capabilities, products, and receivers' do
+      expect(capabilities.capabilities).to be_empty # Tracing does advertise capabilities today
+      expect(capabilities.products).to include('APM_TRACING')
+      expect(capabilities.receivers).to include(->(r) { r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/1/APM_TRACING/_/lib_config') })
+    end
+  end
+
   describe '#capabilities_to_base64' do
     before do
       allow(capabilities).to receive(:capabilities).and_return(

@@ -17,7 +17,7 @@ module Datadog
         end
 
         def capabilities
-          []
+          [] # No capabilities advertised
         end
 
         def process_config(config, content)
@@ -58,7 +58,7 @@ module Datadog
           end
         end
 
-        def receiver(products = [PRODUCT], &block)
+        def receiver(products = [PRODUCT])
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(products)
           [Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
             changes.each do |change|

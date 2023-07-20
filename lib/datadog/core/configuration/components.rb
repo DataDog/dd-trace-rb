@@ -113,7 +113,7 @@ module Datadog
           end
 
           # Initialize dynamic configuration worker
-          @remote.barrier(:once) if @remote
+          @remote.start if @remote
         end
 
         # Shuts down all the components in use.

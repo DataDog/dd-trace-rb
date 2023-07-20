@@ -62,8 +62,15 @@ module Datadog
           end
         end
 
+        def start
+          barrier(:once)
+        end
+
+        def started?
+          @worker.started?
+        end
+
         def barrier(kind)
-          puts "START REMOTE"
           @worker.start
 
           case kind
@@ -134,10 +141,6 @@ module Datadog
           def build(settings, agent_settings)
             return unless settings.remote.enabled
 
-            capabilities = Client::Capabilities.new(settings)
-
-            return if capabilities.products.empty?
-
             negotiation = Negotiation.new(settings, agent_settings)
 
             unless negotiation.endpoint?('/v0.7/config')
@@ -149,6 +152,8 @@ module Datadog
             end
 
             Datadog.logger.debug { 'agent reachable and reports remote configuration endpoint' }
+
+            capabilities = Client::Capabilities.new(settings)
 
             new(settings, capabilities, agent_settings)
           end
