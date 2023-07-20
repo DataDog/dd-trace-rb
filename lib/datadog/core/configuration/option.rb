@@ -127,6 +127,8 @@ module Datadog
         end
 
         def validate_type(value)
+          return value if skip_validation?
+
           raise_error = false
 
           valid_type = validate(@definition.type, value)
@@ -206,6 +208,10 @@ module Datadog
           option_value = value.nil? ? default_value : value
 
           set(option_value, precedence: precedence || Precedence::DEFAULT)
+        end
+
+        def skip_validation?
+          !!ENV['DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION']
         end
 
         # Used for testing

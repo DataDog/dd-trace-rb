@@ -246,6 +246,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
           it 'raise exception' do
             expect { set }.to raise_exception(ArgumentError)
           end
+
+          context 'set DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' do
+            it 'does not raise exception' do
+              ClimateControl.modify('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' => '1') do
+                expect { set }.to_not raise_exception
+              end
+            end
+          end
         end
 
         context 'Integer' do
