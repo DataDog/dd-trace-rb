@@ -1,12 +1,12 @@
 return if ENV["DD_TRACE_SKIP_LIB_INJECTION"] == "true"
 require "rubygems"
+require "rbconfig"
 
-# This would return MAJOR.MINOR without PATCH version, for example 3.1, 3.2
-ruby_version = RUBY_VERSION.split(".")[0..1].join(".")
+ruby_api_version = RbConfig::CONFIG["ruby_version"]
 
 # Look for pre-installed tracers
 Gem.paths = {
-  "GEM_PATH" => "/opt/datadog/apm/library/ruby/#{ruby_version}:/opt/datadog/apm/library/ruby:#{ENV["GEM_PATH"]}"
+  "GEM_PATH" => "/opt/datadog/apm/library/ruby/#{ruby_api_version}:/opt/datadog/apm/library/ruby:#{ENV["GEM_PATH"]}"
 }
 
 # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.

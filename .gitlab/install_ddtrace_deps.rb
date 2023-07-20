@@ -1,11 +1,11 @@
 require "open3"
 require "bundler"
+require 'rbconfig'
 
 lock_file_path = "./vendor/Gemfile.lock"
 install_dir = "./vendor"
 
-# This would return MAJOR.MINOR without PATCH version, for example 3.1, 3.2
-ruby_version = RUBY_VERSION.split(".")[0..1].join(".")
+ruby_api_version = RbConfig::CONFIG["ruby_version"]
 
 lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file(lock_file_path))
 
@@ -27,13 +27,13 @@ gem_version_mapping.each do |gem, version|
 
   case gem
   when "ffi"
-    gem_install_cmd << "--install-dir #{install_dir}/#{ruby_version} "
+    gem_install_cmd << "--install-dir #{install_dir}/#{ruby_api_version} "
     gem_install_cmd << "-- --disable-system-libffi "
   when "ddtrace"
     env["DD_PROFILING_NO_EXTENSION"] = "true"
-    gem_install_cmd << "--install-dir #{install_dir}/#{ruby_version} "
+    gem_install_cmd << "--install-dir #{install_dir}/#{ruby_api_version} "
   when "msgpack"
-    gem_install_cmd << "--install-dir #{install_dir}/#{ruby_version} "
+    gem_install_cmd << "--install-dir #{install_dir}/#{ruby_api_version} "
   else
     gem_install_cmd << "--install-dir #{install_dir} "
   end
