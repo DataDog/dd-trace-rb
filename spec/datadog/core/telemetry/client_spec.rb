@@ -240,4 +240,47 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       end
     end
   end
+
+  describe '#client_configuration_change!' do
+    subject(:client_configuration_change!) { client.client_configuration_change!(changes) }
+    let(:changes) { double('changes') }
+
+    after do
+      client.worker.stop(true)
+      client.worker.join
+    end
+
+    context 'when disabled' do
+      let(:enabled) { false }
+      it do
+        client_configuration_change!
+        expect(emitter).to_not have_received(:request)
+      end
+    end
+
+    context 'when enabled' do
+      let(:enabled) { true }
+      it do
+        client_configuration_change!
+        expect(emitter).to have_received(:request).with(
+          'app-client-configuration-change',
+          data: { changes: changes, origin: 'remote_config' }
+        )
+      end
+
+      it { is_expected.to be(response) }
+    end
+
+    context 'when in fork' do
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+
+      it do
+        client
+        expect_in_fork do
+          client.started!
+          expect(emitter).to_not have_received(:request)
+        end
+      end
+    end
+  end
 end
