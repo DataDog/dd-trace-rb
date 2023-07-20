@@ -4,9 +4,15 @@ module Datadog
       class Option
         attr_reader definition: untyped
 
-        def initialize: (untyped definition, untyped context) -> untyped
+        module Precedence
+          REMOTE_CONFIGURATION: ::Array[2 | :remote_configuration]
+          PROGRAMMATIC: ::Array[1 | :programmatic]
+          DEFAULT: ::Array[0 | :default]
+        end
 
-        def set: (untyped value) -> untyped
+        def initialize: (untyped definition, untyped context) -> void
+
+        def set: (untyped value, ?precedence: untyped) -> untyped
 
         def get: () -> untyped
 
@@ -14,11 +20,23 @@ module Datadog
 
         def default_value: () -> untyped
 
+        def default_precedence?: () -> untyped
+
         private
+
+        def coerce_env_variable: (untyped value) -> untyped
+
+        def validate_type: (untyped value) -> untyped
+
+        def validate: (untyped type, untyped value) -> untyped
 
         def context_exec: (*untyped args) { () -> untyped } -> untyped
 
         def context_eval: () { () -> untyped } -> untyped
+
+        def set_value_from_env_or_default: () -> untyped
+
+        attr_reader precedence_set: untyped
       end
     end
   end

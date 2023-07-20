@@ -668,6 +668,7 @@ target :ddtrace do
   library 'grpc'
   library 'delayed_job'
   library 'opentelemetry-api'
+  library 'passenger'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'
