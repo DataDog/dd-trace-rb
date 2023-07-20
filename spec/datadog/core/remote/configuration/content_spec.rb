@@ -264,5 +264,25 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
         end
       end
     end
+
+    describe '#applied' do
+      subject(:applied) { content.applied }
+
+      it 'sets applied_state to acknowledged' do
+        applied
+        expect(content.apply_state).to eq(2)
+      end
+    end
+
+    describe '#errored' do
+      subject(:errored) { content.errored(message) }
+      let(:message) { 'test-message' }
+
+      it 'sets applied_state to error with message' do
+        errored
+        expect(content.apply_state).to eq(3)
+        expect(content.apply_error).to eq('test-message')
+      end
+    end
   end
 end
