@@ -467,6 +467,7 @@ module Datadog
                 # @return [Boolean]
                 option :enabled do |o|
                   o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED
+                  o.type :bool
                   o.default false
                 end
               end
