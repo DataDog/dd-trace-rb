@@ -184,6 +184,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               resetter: nil,
               setter: Datadog::Core::Configuration::OptionDefinition::IDENTITY,
               type: nil,
+              type_options: {},
               env: nil,
               deprecated_env: nil,
               env_parser: nil
@@ -350,10 +351,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
   end
 
   describe '#type' do
-    subject(:type) do
-      builder.type(value, **opts)
-      builder.meta[:type]
-    end
+    subject(:type) { builder.type(value, **opts) }
     let(:value) { nil }
     let(:opts) { {} }
 
@@ -371,6 +369,26 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       it { is_expected.to be value }
       it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
       it { expect { type }.to change { builder.meta[:type_options] }.from({}).to(opts) }
+    end
+  end
+
+  describe '#env' do
+    subject(:env) { builder.env(value) }
+
+    context 'given a value' do
+      let(:value) { 'TEST' }
+
+      it { is_expected.to be value }
+    end
+  end
+
+  describe '#deprecated_env' do
+    subject(:deprecated_env) { builder.deprecated_env(value) }
+
+    context 'given a value' do
+      let(:value) { 'TEST' }
+
+      it { is_expected.to be value }
     end
   end
 
@@ -491,6 +509,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         :resetter,
         :setter,
         :type,
+        :type_options,
         :env,
         :deprecated_env,
         :env_parser,

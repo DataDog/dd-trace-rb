@@ -122,7 +122,8 @@ module Datadog
           when :string, NilClass
             value
           else
-            raise ArgumentError, "The option #{@definition.name} is using an unknown type option `#{@definition.type}`"
+            raise ArgumentError,
+              "The option #{@definition.name} is using an unsupported type option for env coercion `#{@definition.type}`"
           end
         end
 
@@ -143,16 +144,17 @@ module Datadog
 
           if raise_error
             error_msg = if @definition.type_options[:nilable]
-                          "The setting `#{@definition.name}` inside the `Datadog.configure` block expects a "\
+                          "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a "\
                           "#{@definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})."\
                         else
-                          "The setting `#{@definition.name}` inside the `Datadog.configure` block expects a "\
-                          "#{@definition.type} , but a `#{value.class}` was provided (#{value.inspect})."\
+                          "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a "\
+                          "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})."\
                         end
 
             error_msg = "#{error_msg} Please update your `configure` block. "\
-            'Alternatively, you can disable this validation using `DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION=1`. '\
-            'For help, please open an issue on https://github.com/DataDog/dd-trace-rb/issues/new/choose.'
+            'Alternatively, you can disable this validation using the '\
+            '`DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION=true`environment variable. '\
+            'For help, please open an issue on <https://github.com/datadog/dd-trace-rb/issues/new/choose>.'
 
             raise ArgumentError, error_msg
           end
@@ -177,9 +179,9 @@ module Datadog
           when :symbol
             value.is_a?(Symbol)
           when NilClass
-            true
+            true # No validation is performed when option is typeless
           else
-            raise ArgumentError, "The option #{@definition.name} is using an unknown type option `#{@definition.type}`"
+            raise ArgumentError, "The option #{@definition.name} is using an unsupported type option `#{@definition.type}`"
           end
         end
 
@@ -215,7 +217,7 @@ module Datadog
         end
 
         def skip_validation?
-          !!ENV['DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION']
+          ['true', '1'].include?(ENV.fetch('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION', '').strip)
         end
 
         # Used for testing

@@ -143,6 +143,7 @@ module Datadog
           end
 
           # For applying options for OptionDefinition
+          # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
           def apply_options!(options = {})
             return if options.nil? || options.empty?
 
@@ -157,8 +158,9 @@ module Datadog
             on_set(&options[:on_set]) if options.key?(:on_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
             setter(&options[:setter]) if options.key?(:setter)
-            type(options[:type]) if options.key?(:type)
+            type(options[:type], **(options[:type_options] || {})) if options.key?(:type)
           end
+          # rubocop:enable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 
           def to_definition
             OptionDefinition.new(@name, meta)

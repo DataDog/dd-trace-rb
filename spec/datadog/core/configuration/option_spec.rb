@@ -248,9 +248,21 @@ RSpec.describe Datadog::Core::Configuration::Option do
           end
 
           context 'set DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' do
-            it 'does not raise exception' do
-              ClimateControl.modify('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' => '1') do
-                expect { set }.to_not raise_exception
+            ['1', 'true'].each do |value|
+              context "with #{value}" do
+                it 'does not raise exception' do
+                  ClimateControl.modify('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' => '1') do
+                    expect { set }.to_not raise_exception
+                  end
+                end
+              end
+            end
+
+            context 'with something else' do
+              it 'does not raise exception' do
+                ClimateControl.modify('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' => 'esle') do
+                  expect { set }.to raise_exception(ArgumentError)
+                end
               end
             end
           end
@@ -462,7 +474,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           let(:type) { :int }
           let(:env_value) { '1234' }
 
-          it 'coerce valule' do
+          it 'coerce value' do
             expect(option.get).to eq 1234
           end
         end
@@ -471,7 +483,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           let(:type) { :float }
           let(:env_value) { '12.34' }
 
-          it 'coerce valule' do
+          it 'coerce value' do
             expect(option.get).to eq 12.34
           end
         end
@@ -482,14 +494,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
           context 'value with commas' do
             let(:env_value) { '12,34' }
 
-            it 'coerce valule' do
+            it 'coerce value' do
               expect(option.get).to eq ['12', '34']
             end
 
             context 'remove empty values' do
               let(:env_value) { '12,34,,,56,' }
 
-              it 'coerce valule' do
+              it 'coerce value' do
                 expect(option.get).to eq ['12', '34', '56']
               end
             end
@@ -499,7 +511,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
         context ':bool' do
           let(:type) { :bool }
 
-          context 'truthy value' do
+          context 'with value 1' do
             let(:env_value) { '1' }
 
             it 'cource value' do
@@ -507,7 +519,15 @@ RSpec.describe Datadog::Core::Configuration::Option do
             end
           end
 
-          context 'non-truthy value' do
+          context 'with value true' do
+            let(:env_value) { 'true' }
+
+            it 'cource value' do
+              expect(option.get).to eq true
+            end
+          end
+
+          context 'other value' do
             let(:env_value) { 'something' }
 
             it 'cource value' do
@@ -534,7 +554,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      it 'passes the env varaible value to the env_parser' do
+      it 'passes the env variable value to the env_parser' do
         expect(context).to receive(:instance_exec) do |*args, &block|
           expect(args.first).to eq(env_value)
           expect(block).to eq env_parser
