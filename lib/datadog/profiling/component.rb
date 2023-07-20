@@ -223,6 +223,16 @@ module Datadog
           return true
         end
 
+        if defined?(::PhusionPassenger)
+          Datadog.logger.warn(
+            'Enabling the profiling "no signals" workaround because the passenger web server is in use. ' \
+            'This is needed because passenger is currently incompatible with the normal working mode ' \
+            'of the profiler, as detailed in <https://github.com/DataDog/dd-trace-rb/issues/2976>. ' \
+            'Profiling data will have lower quality.'
+          )
+          return true
+        end
+
         false
       end
 

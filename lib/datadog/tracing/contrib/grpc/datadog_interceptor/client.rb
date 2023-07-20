@@ -60,6 +60,7 @@ module Datadog
 
               span.set_tag(Contrib::Ext::RPC::TAG_SYSTEM, Ext::TAG_SYSTEM)
               span.set_tag(Contrib::Ext::RPC::GRPC::TAG_FULL_METHOD, formatter.grpc_full_method)
+              span.set_tag(Contrib::Ext::RPC::TAG_SERVICE, formatter.rpc_service)
 
               host, _port = find_host_port(call)
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
