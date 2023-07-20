@@ -917,7 +917,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       let(:responses) { [double('response')] }
 
       it 'invokes the environment logger with responses' do
-        expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:log!).with(responses)
+        expect(Datadog::Tracing::Diagnostics::EnvironmentLogger).to receive(:log!).with(responses)
         call
       end
     end
