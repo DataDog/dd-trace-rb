@@ -6,6 +6,7 @@ if [ -n "$CI_COMMIT_TAG" ] && [ -z "$RUBY_PACKAGE_VERSION" ]; then
   RUBY_PACKAGE_VERSION=${CI_COMMIT_TAG##v}
 fi
 
+echo $PWD
 mkdir -p vendor
 cat > Gemfile << EOF
     source "https://rubygems.org"

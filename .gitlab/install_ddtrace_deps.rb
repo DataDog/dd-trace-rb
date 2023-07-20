@@ -1,6 +1,8 @@
 require "open3"
+require "rubygems"
 require "bundler"
-require 'rbconfig'
+require "rbconfig"
+require "fileutils"
 
 lock_file_path = "./vendor/Gemfile.lock"
 install_dir = "./vendor"
@@ -47,4 +49,10 @@ gem_version_mapping.each do |gem, version|
   else
     exit 1
   end
+end
+puts Dir.pwd
+puts "======================"
+puts Dir['./vendor/*']
+FileUtils.cd("#{FileUtils.pwd}/vendor/#{RbConfig::CONFIG["ruby_version"]}/extensions/#{RbConfig::CONFIG["arch"]}", verbose: true) do
+  FileUtils.ln_sf Gem.extension_api_version, RbConfig::CONFIG["ruby_version"]
 end
