@@ -37,7 +37,7 @@ module Datadog
         @code_provenance_data = code_provenance_data
         @tags_as_array = tags_as_array
         @internal_metadata_json = JSON.fast_generate(
-          no_signals_workaround_enabled: (!!no_signals_workaround_enabled).to_s, # rubocop:disable Style/DoubleNegation
+          no_signals_workaround_enabled: (!!no_signals_workaround_enabled).to_s,
         )
       end
     end

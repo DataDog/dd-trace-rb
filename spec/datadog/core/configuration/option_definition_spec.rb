@@ -183,7 +183,11 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               on_set: nil,
               resetter: nil,
               setter: Datadog::Core::Configuration::OptionDefinition::IDENTITY,
-              type: nil
+              type: nil,
+              type_options: {},
+              env: nil,
+              deprecated_env: nil,
+              env_parser: nil
             )
           end
         end
@@ -347,15 +351,54 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
   end
 
   describe '#type' do
-    subject(:type) { builder.type(value) }
-
+    subject(:type) { builder.type(value, **opts) }
     let(:value) { nil }
+    let(:opts) { {} }
 
     context 'given a value' do
-      let(:value) { String }
+      let(:value) { :string }
 
       it { is_expected.to be value }
       it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
+    end
+
+    context 'given options' do
+      let(:value) { :string }
+      let(:opts) { { nilable: true } }
+
+      it { is_expected.to be value }
+      it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
+      it { expect { type }.to change { builder.meta[:type_options] }.from({}).to(opts) }
+    end
+  end
+
+  describe '#env' do
+    subject(:env) { builder.env(value) }
+
+    context 'given a value' do
+      let(:value) { 'TEST' }
+
+      it { is_expected.to be value }
+    end
+  end
+
+  describe '#deprecated_env' do
+    subject(:deprecated_env) { builder.deprecated_env(value) }
+
+    context 'given a value' do
+      let(:value) { 'TEST' }
+
+      it { is_expected.to be value }
+    end
+  end
+
+  describe '#env_parser' do
+    subject(:env_parser) { builder.env_parser(&block) }
+
+    context 'given a block' do
+      let(:block) { proc { false } }
+
+      it { is_expected.to be block }
     end
   end
 
@@ -465,7 +508,11 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         :on_set,
         :resetter,
         :setter,
-        :type
+        :type,
+        :type_options,
+        :env,
+        :deprecated_env,
+        :env_parser,
       )
     end
   end
