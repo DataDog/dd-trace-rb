@@ -15,7 +15,7 @@ module Datadog
 
         def disable!: () -> untyped
 
-        def dynamic_configuration_change!: (Enumerable[[String, Numeric | bool | String]] changes) -> void
+        def client_configuration_change!: (Enumerable[[String, Numeric | bool | String]] changes) -> void
 
         def started!: () -> (nil | untyped)
 

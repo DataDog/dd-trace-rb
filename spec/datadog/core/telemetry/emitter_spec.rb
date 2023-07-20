@@ -79,10 +79,12 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
       subject(:request) { emitter.request(request_type, data: data) }
       let(:data) { { changes: ['test-data'] } }
       let(:request_type) { 'app-client-configuration-change' }
+      let(:event) { double('event') }
 
-      it 'sends data to the emitter' do
+      it 'creates a telemetry event with data' do
+        expect(Datadog::Core::Telemetry::Event).to receive(:new).and_return(event)
+        expect(event).to receive(:telemetry_request).with(request_type: request_type, seq_id: be_a(Integer), data: data)
         request
-        expect(http_transport).to have_received(:request).with(payload: include('test-data'), request_type: anything)
       end
     end
   end

@@ -241,8 +241,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     end
   end
 
-  describe '#dynamic_configuration_change!' do
-    subject(:dynamic_configuration_change!) { client.dynamic_configuration_change!(changes) }
+  describe '#client_configuration_change!' do
+    subject(:client_configuration_change!) { client.client_configuration_change!(changes) }
     let(:changes) { double('changes') }
 
     after do
@@ -253,7 +253,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     context 'when disabled' do
       let(:enabled) { false }
       it do
-        dynamic_configuration_change!
+        client_configuration_change!
         expect(emitter).to_not have_received(:request)
       end
     end
@@ -261,7 +261,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     context 'when enabled' do
       let(:enabled) { true }
       it do
-        dynamic_configuration_change!
+        client_configuration_change!
         expect(emitter).to have_received(:request).with(
           'app-client-configuration-change',
           data: { changes: changes, origin: 'remote_config' }
