@@ -320,44 +320,44 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
       context 'key:value' do
         let(:env_value) { 'key:value' }
 
-        it { is_expected.to eq({ :key => 'value' }) }
+        it { is_expected.to eq({ 'key' => 'value' }) }
       end
 
       context 'key1:value1,key2:value2' do
         let(:env_value) { 'key1:value1,key2:value2' }
 
-        it { is_expected.to eq({ :key1 => 'value1', :key2 => 'value2' }) }
+        it { is_expected.to eq({ 'key1' => 'value1', 'key2' => 'value2' }) }
       end
 
       context ' key1:value1 , key2:value2 ,  key3:value3 ' do
         let(:env_value) { ' key1:value1 , key2:value2 ,  key3:value3 ' }
 
-        it { is_expected.to eq({ :key1 => 'value1', :key2 => 'value2', :key3 => 'value3' }) }
+        it { is_expected.to eq({ 'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3' }) }
       end
 
       context 'key1:value1 key2:value2 key3:value3' do
         let(:env_value) { 'key1:value1 key2:value2 key3:value3' }
 
-        it { is_expected.to eq({ :key1 => 'value1', :key2 => 'value2', :key3 => 'value3' }) }
+        it { is_expected.to eq({ 'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3' }) }
       end
 
       # either comma separated or space separated NOT both
       context 'key1:value1,key2:value2 key3:value3' do
         let(:env_value) { 'key1:value1,key2:value2 key3:value3' }
 
-        it { is_expected.to eq({ :key1 => 'value1', :key2 => 'value2 key3:value3' }) }
+        it { is_expected.to eq({ 'key1' => 'value1', 'key2' => 'value2 key3:value3' }) }
       end
 
       context ' key1:value1  key2:value2   key3:value3 ' do
         let(:env_value) { ' key1:value1  key2:value2   key3:value3 ' }
 
-        it { is_expected.to eq({ :key1 => 'value1', :key2 => 'value2', :key3 => 'value3' }) }
+        it { is_expected.to eq({ 'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3' }) }
       end
 
       context 'key1:value1,, ,key2:value2,key3:value3,' do
         let(:env_value) { 'key1:value1,, ,key2:value2,key3:value3,' }
 
-        it { is_expected.to eq({ :key1 => 'value1', :key2 => 'value2', :key3 => 'value3' }) }
+        it { is_expected.to eq({ 'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3' }) }
       end
 
       context 'and comma_separated_only is set' do
@@ -366,7 +366,7 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
         context 'value with space' do
           let(:env_value) { 'key:value' }
 
-          it { is_expected.to eq({ :key => 'value' }) }
+          it { is_expected.to eq({ 'key' => 'value' }) }
         end
       end
 

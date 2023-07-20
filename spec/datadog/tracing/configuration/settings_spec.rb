@@ -840,7 +840,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         context 'is defined' do
           let(:env_var) { 'key:value' }
 
-          it { is_expected.to eq({ :key => 'value' }) }
+          it { is_expected.to eq({ 'key' => 'value' }) }
         end
       end
     end

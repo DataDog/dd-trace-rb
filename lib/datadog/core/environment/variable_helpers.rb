@@ -130,12 +130,12 @@ module Datadog
                      end
 
             values_hash = Hash.new(0)
-            values.map! do |v|
+            values.each do |v|
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
 
               unless v.empty?
                 pair = v.split(':', 2)
-                values_hash[pair[0].to_sym] = pair[1]
+                values_hash[pair[0]] = pair[1]
               end
             end
 
