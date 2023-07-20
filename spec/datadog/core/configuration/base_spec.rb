@@ -18,6 +18,10 @@ RSpec.describe Datadog::Core::Configuration::Base do
           let(:name) { :debug }
           let(:block) { proc { option :enabled } }
 
+          context 'settings name' do
+            it { expect(settings.instance_variable_get(:@settings_name)).to eq :debug }
+          end
+
           describe 'defines a settings option' do
             subject(:definition) { base_class.options[name] }
 

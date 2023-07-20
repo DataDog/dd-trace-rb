@@ -143,12 +143,16 @@ module Datadog
 
           if raise_error
             error_msg = if @definition.type_options[:nilable]
-                          "The option #{@definition.name} support this type `#{@definition.type}` "\
-                                      "and `nil` but the value provided is #{value.class}"
+                          "The setting `#{@definition.name}` inside the `Datadog.configure` block expects a "\
+                          "#{@definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})."\
                         else
-                          "The option #{@definition.name} support this type `#{@definition.type}` "\
-                          "but the value provided is #{value.class}"
+                          "The setting `#{@definition.name}` inside the `Datadog.configure` block expects a "\
+                          "#{@definition.type} , but a `#{value.class}` was provided (#{value.inspect})."\
                         end
+
+            error_msg = "#{error_msg} Please update your `configure` block. "\
+            'Alternatively, you can disable this validation using `DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION=1`. '\
+            'For help, please open an issue on https://github.com/DataDog/dd-trace-rb/issues/new/choose.'
 
             raise ArgumentError, error_msg
           end
