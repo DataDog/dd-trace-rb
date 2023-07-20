@@ -30,7 +30,7 @@ build-image:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
       changes:
         - .gitlab/Dockerfile-*
-    - when: manual
+      when: manual
       allow_failure: true
   tags: [ "runner:docker" ]
   image: $DOCKER_REGISTRY/docker:20.10.13
