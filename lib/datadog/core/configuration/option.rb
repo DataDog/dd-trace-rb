@@ -98,6 +98,22 @@ module Datadog
           return context_exec(value, &@definition.env_parser) if @definition.env_parser
 
           case @definition.type
+          when :hash
+            values = value.split(',') # By default we only want to support comma separated strings
+
+            values.map! do |v|
+              v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+              v.empty? ? nil : v
+            end
+
+            values.compact!
+            values_hash = Hash.new(0)
+            values.each do |v|
+              pair = v.split(':', 2)
+              values_hash[pair[0]] = pair[1]
+            end
+            values_hash
           when :int
             # DEV-2.0: Change to a more strict coercion method. Integer(value).
             value.to_i

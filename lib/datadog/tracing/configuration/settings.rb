@@ -451,13 +451,9 @@ module Datadog
               # @default `DD_TRACE_PEER_SERVICE_MAPPING` environment variable converted to hash
               # @return [Hash]
               option :peer_service_mapping do |o|
-                o.default do
-                  env_to_hash(
-                    Tracing::Configuration::Ext::SpanAttributeSchema::ENV_PEER_SERVICE_MAPPING,
-                    {},
-                    comma_separated_only: true
-                  )
-                end
+                o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_PEER_SERVICE_MAPPING
+                o.type :hash
+                o.default({})
               end
 
               # Global service name behavior
@@ -470,7 +466,8 @@ module Datadog
                 # @default `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED` environment variable, otherwise `false`
                 # @return [Boolean]
                 option :enabled do |o|
-                  o.default { env_to_bool(Tracing::Configuration::Ext::SpanAttributeSchema::ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED, false) }
+                  o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED
+                  o.default false
                 end
               end
             end
