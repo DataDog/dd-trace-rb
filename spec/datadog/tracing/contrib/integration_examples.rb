@@ -11,14 +11,6 @@ RSpec.shared_examples 'a peer service span' do
       expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
     end
   end
-
-  context 'configured peer service' do
-    let(:configuration_options) { { peer_service: 'peer_service_test' } }
-    it 'contains configured peer service tag' do
-      expect(span.get_tag('peer.service')).to eq('peer_service_test')
-      expect(span.get_tag('_dd.peer.service.source')).to eq('peer.service')
-    end
-  end
 end
 
 RSpec.shared_examples 'a non-peer service span' do
