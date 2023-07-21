@@ -116,20 +116,43 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         .to include(*[Thread.main, t1, t2, t3].map(&:object_id))
     end
 
-    it 'includes the thread names, if available' do
+    it 'includes the thread names' do
       t1.name = 'thread t1'
-      t2.name = nil
-      t3.name = 'thread t3'
+      t2.name = 'thread t2'
 
       sample
 
       t1_sample = samples_for_thread(samples, t1).first
       t2_sample = samples_for_thread(samples, t2).first
-      t3_sample = samples_for_thread(samples, t3).first
 
       expect(t1_sample.labels).to include(:'thread name' => 'thread t1')
-      expect(t2_sample.labels.keys).to_not include(:'thread name')
-      expect(t3_sample.labels).to include(:'thread name' => 'thread t3')
+      expect(t2_sample.labels).to include(:'thread name' => 'thread t2')
+    end
+
+    context 'when no thread names are available' do
+      # NOTE: As of this writing, the dd-trace-rb spec_helper.rb includes a monkey patch to Thread creation that we use
+      # to track specs that leak threads. This means that the invoke_location of every thread will point at the
+      # spec_helper in our test suite. Just in case you're looking at the output and being a bit confused :)
+      it 'uses the thread_invoke_location as a thread name' do
+        t1.name = nil
+        sample
+        t1_sample = samples_for_thread(samples, t1).first
+
+        expect(t1_sample.labels).to include(:'thread name' => per_thread_context.fetch(t1).fetch(:thread_invoke_location))
+        expect(t1_sample.labels).to include(:'thread name' => match(/.+\.rb:\d+/))
+      end
+    end
+
+    it 'includes a fallback name for the main thread, when not set' do
+      expect(Thread.main.name).to eq('Thread.main') # We set this in the spec_helper.rb
+
+      Thread.main.name = nil
+
+      sample
+
+      expect(samples_for_thread(samples, Thread.main).first.labels).to include(:'thread name' => 'main')
+
+      Thread.main.name = 'Thread.main'
     end
 
     it 'includes the wall-time elapsed between samples' do
@@ -906,13 +929,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         Thread.current.name = 'thread_with_name'
         sample_allocation(weight: 123)
       end.join
-      thread_without_name = Thread.new { sample_allocation(weight: 123) }.join
 
       sample_with_name = samples_for_thread(samples, thread_with_name).first
-      sample_without_name = samples_for_thread(samples, thread_without_name).first
 
       expect(sample_with_name.labels).to include(:'thread name' => 'thread_with_name')
-      expect(sample_without_name.labels).to_not include(:'thread name')
     end
 
     describe 'code hotspots' do
@@ -1071,6 +1091,24 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             expect(per_thread_context.values).to all(
               include(thread_cpu_time_id_valid?: true)
             )
+          end
+        end
+      end
+
+      describe ':thread_invoke_location' do
+        it 'is empty for the main thread' do
+          expect(per_thread_context.fetch(Thread.main).fetch(:thread_invoke_location)).to be_empty
+        end
+
+        # NOTE: As of this writing, the dd-trace-rb spec_helper.rb includes a monkey patch to Thread creation that we use
+        # to track specs that leak threads. This means that the invoke_location of every thread will point at the
+        # spec_helper in our test suite. Just in case you're looking at the output and being a bit confused :)
+        it 'contains the file and line for the started threads' do
+          [t1, t2, t3].each do |thread|
+            invoke_location = per_thread_context.fetch(thread).fetch(:thread_invoke_location)
+
+            expect(thread.inspect).to include(invoke_location)
+            expect(invoke_location).to match(/.+\.rb:\d+/)
           end
         end
       end

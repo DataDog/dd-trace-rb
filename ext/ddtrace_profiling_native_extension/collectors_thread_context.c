@@ -64,6 +64,7 @@
 // ---
 
 #define THREAD_ID_LIMIT_CHARS 44 // Why 44? "#{2**64} (#{2**64})".size + 1 for \0
+#define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
 #define IS_WALL_TIME true
 #define IS_NOT_WALL_TIME false
 #define MISSING_TRACER_CONTEXT_KEY 0
@@ -102,6 +103,8 @@ struct thread_context_collector_state {
   bool timeline_enabled;
   // Used when calling monotonic_to_system_epoch_ns
   monotonic_to_system_epoch_state time_converter_state;
+  // Used to identify the main thread, to give it a fallback name
+  VALUE main_thread;
 
   struct stats {
     // Track how many garbage collection samples we've taken.
@@ -115,6 +118,8 @@ struct thread_context_collector_state {
 struct per_thread_context {
   char thread_id[THREAD_ID_LIMIT_CHARS];
   ddog_CharSlice thread_id_char_slice;
+  char thread_invoke_location[THREAD_INVOKE_LOCATION_LIMIT_CHARS];
+  ddog_CharSlice thread_invoke_location_char_slice;
   thread_cpu_time_id thread_cpu_time_id;
   long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
@@ -254,6 +259,7 @@ static void thread_context_collector_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->recorder_instance);
   st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_mark, 0 /* unused */);
   rb_gc_mark(state->thread_list_buffer);
+  rb_gc_mark(state->main_thread);
 }
 
 static void thread_context_collector_typed_data_free(void *state_ptr) {
@@ -301,6 +307,7 @@ static VALUE _native_new(VALUE klass) {
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
+  state->main_thread = rb_thread_main();
 
   return TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
 }
@@ -650,6 +657,19 @@ static void trigger_sample_for_thread(
       .key = DDOG_CHARSLICE_C("thread name"),
       .str = char_slice_from_ruby_string(thread_name)
     };
+  } else if (thread == state->main_thread) { // Threads are often not named, but we can have a nice fallback for this special thread
+    ddog_CharSlice main_thread_name = DDOG_CHARSLICE_C("main");
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("thread name"),
+      .str = main_thread_name
+    };
+  } else {
+    // For other threads without name, we use the "invoke location" (first file:line of the block used to start the thread), if any.
+    // This is what Ruby shows in `Thread#to_s`.
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("thread name"),
+      .str = thread_context->thread_invoke_location_char_slice // This is an empty string if no invoke location was available
+    };
   }
 
   struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
@@ -747,6 +767,25 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
 
+  int invoke_line_location;
+  VALUE invoke_file_location = invoke_location_for(thread, &invoke_line_location);
+  if (invoke_file_location != Qnil) {
+    snprintf(
+      thread_context->thread_invoke_location,
+      THREAD_INVOKE_LOCATION_LIMIT_CHARS,
+      "%s:%d",
+      StringValueCStr(invoke_file_location),
+      invoke_line_location
+    );
+  } else {
+    snprintf(thread_context->thread_invoke_location, THREAD_INVOKE_LOCATION_LIMIT_CHARS, "%s", "");
+  }
+
+  thread_context->thread_invoke_location_char_slice = (ddog_CharSlice) {
+    .ptr = thread_context->thread_invoke_location,
+    .len = strlen(thread_context->thread_invoke_location)
+  };
+
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 
   // These will get initialized during actual sampling
@@ -780,6 +819,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
     state->time_converter_state.system_epoch_ns_reference,
     state->time_converter_state.delta_to_epoch_ns
   ));
+  rb_str_concat(result, rb_sprintf(" main_thread=%"PRIsVALUE, state->main_thread));
 
   return result;
 }
@@ -799,6 +839,7 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
 
   VALUE arguments[] = {
     ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
+    ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new2(thread_context->thread_invoke_location),
     ID2SYM(rb_intern("thread_cpu_time_id_valid?")),       /* => */ thread_context->thread_cpu_time_id.valid ? Qtrue : Qfalse,
     ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ CLOCKID2NUM(thread_context->thread_cpu_time_id.clock_id),
     ID2SYM(rb_intern("cpu_time_at_previous_sample_ns")),  /* => */ LONG2NUM(thread_context->cpu_time_at_previous_sample_ns),

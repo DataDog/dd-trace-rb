@@ -9,6 +9,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -26,6 +27,8 @@ services:
       TEST_MEMCACHED_HOST: memcached
       TEST_MONGODB_HOST: mongodb
       TEST_MYSQL_HOST: mysql
+      TEST_OPENSEARCH_HOST: opensearch
+      TEST_OPENSEARCH_PORT: 9200
       TEST_POSTGRES_HOST: postgres
       TEST_PRESTO_HOST: presto
       TEST_PRESTO_PORT: 8080
@@ -49,6 +52,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -74,6 +78,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -99,6 +104,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -124,6 +130,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -149,6 +156,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -174,6 +182,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -199,6 +208,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -216,6 +226,8 @@ services:
       TEST_MEMCACHED_HOST: memcached
       TEST_MONGODB_HOST: mongodb
       TEST_MYSQL_HOST: mysql
+      TEST_OPENSEARCH_HOST: opensearch
+      TEST_OPENSEARCH_PORT: 9200
       TEST_POSTGRES_HOST: postgres
       TEST_REDIS_HOST: redis
       TEST_REDIS_OLD_HOST: redis_old
@@ -237,6 +249,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -262,6 +275,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -287,6 +301,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -312,6 +327,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -336,6 +352,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -360,6 +377,7 @@ services:
       - memcached
       - mongodb
       - mysql
+      - opensearch
       - postgres
       - presto
       - redis
@@ -446,6 +464,19 @@ services:
       - "3306"
     ports:
       - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
+  opensearch:
+    image: opensearchproject/opensearch:1.3.6 # Version 2.8.0 causes flaky error (https://github.com/opensearch-project/docker-images/issues/31).
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      # Make sure it works on nearly full disk.
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=3gb
+      - cluster.routing.allocation.disk.watermark.high=2gb
+      - cluster.routing.allocation.disk.watermark.flood_stage=1gb
+      - cluster.routing.allocation.disk.threshold_enabled=false
+    ports:
+      - 9201:9200
   postgres:
     image: postgres:9.6
     environment:

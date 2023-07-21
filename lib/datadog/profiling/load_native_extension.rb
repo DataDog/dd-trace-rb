@@ -9,7 +9,13 @@
 # All code on this file is on-purpose at the top-level; this makes it so this file is executed only once,
 # the first time it gets required, to avoid any issues with the native extension being initialized more than once.
 
-require "ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
+begin
+  require "ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
+rescue LoadError => e
+  raise LoadError,
+    'Failed to load the profiling loader extension. To fix this, please remove and then reinstall ddtrace ' \
+    "(Details: #{e.message})"
+end
 
 extension_name = "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
 full_file_path = "#{__dir__}/../../#{extension_name}.#{RbConfig::CONFIG['DLEXT']}"

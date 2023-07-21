@@ -27,9 +27,10 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
     let(:env) { instance_double(Datadog::Core::Telemetry::Http::Env, body: payload, path: path) }
     let(:headers) do
       {
-        Datadog::Core::Telemetry::Http::Ext::HEADER_CONTENT_TYPE => 'application/json',
-        Datadog::Core::Telemetry::Http::Ext::HEADER_DD_TELEMETRY_API_VERSION => 'v1',
-        Datadog::Core::Telemetry::Http::Ext::HEADER_DD_TELEMETRY_REQUEST_TYPE => request_type,
+        'Content-Type' => 'application/json',
+        'DD-Telemetry-API-Version' => 'v1',
+        'DD-Telemetry-Request-Type' => 'app-started',
+        'DD-Internal-Untraced-Request' => '1',
       }
     end
     let(:hostname) { 'foo' }

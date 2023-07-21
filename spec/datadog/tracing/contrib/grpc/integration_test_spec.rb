@@ -83,9 +83,9 @@ RSpec.describe 'gRPC integration test' do
       expect(client_span.get_tag('rpc.system')).to eq('grpc')
       expect(client_span.get_tag('rpc.grpc.status_code')).to eq(0)
       expect(client_span.get_tag('rpc.grpc.full_method')).to eq('/ruby.test.Testing/Basic')
+      expect(client_span.get_tag('rpc.service')).to eq('ruby.test.Testing')
 
       # the following tags should be set by backend
-      expect(client_span.get_tag('rpc.service')).to eq(nil)
       expect(client_span.get_tag('rpc.method')).to eq(nil)
       expect(client_span.get_tag('rpc.grpc.package')).to eq(nil)
     end
@@ -118,9 +118,9 @@ RSpec.describe 'gRPC integration test' do
       expect(client_span.get_tag('rpc.system')).to eq('grpc')
       expect(client_span.get_tag('rpc.grpc.status_code')).to eq(3)
       expect(client_span.get_tag('rpc.grpc.full_method')).to eq('/ruby.test.Testing/Error')
+      expect(client_span.get_tag('rpc.service')).to eq('ruby.test.Testing')
 
       # the following tags should be set by backend
-      expect(client_span.get_tag('rpc.service')).to eq(nil)
       expect(client_span.get_tag('rpc.method')).to eq(nil)
       expect(client_span.get_tag('rpc.grpc.package')).to eq(nil)
     end
