@@ -144,7 +144,7 @@ RSpec.configure do |config|
           # Thread has shut down, but we caught it right as it was still alive
           !t.alive? ||
           # Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
-          t.name == 'Timeout stdlib thread' ||
+          (t.respond_to?(:name) && t.name == 'Timeout stdlib thread') ||
           # JRuby: Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
           t == Timeout.instance_variable_get(:@timeout_thread) ||
           # Internal JRuby thread
