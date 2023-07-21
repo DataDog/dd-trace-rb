@@ -19,5 +19,3 @@ cp Gemfile pkg
 cp Gemfile.lock pkg
 cp .gitlab/install_ddtrace_deps.rb pkg
 cp lib-injection/host_inject.rb pkg
-
-ruby pkg/install_ddtrace_deps.rb debase-ruby_core_source libdatadog libddwaf msgpack ffi ddtrace
