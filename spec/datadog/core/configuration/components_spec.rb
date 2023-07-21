@@ -431,7 +431,15 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         let(:options) { defined?(super) ? super() : {} }
-        let(:tracer_options) { default_options.merge(options) }
+        let(:tracer_options) do
+          default_options.merge(options).tap do |options|
+            sampler = options[:sampler]
+            options[:sampler] = lambda do |sampler_delegator|
+              expect(sampler_delegator).to be_a(Datadog::Tracing::Component::SamplerDelegatorComponent)
+              expect(sampler_delegator.sampler).to match(sampler)
+            end
+          end
+        end
         let(:writer_options) { defined?(super) ? super() : {} }
 
         before do
@@ -466,8 +474,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       shared_examples 'event publishing writer and priority sampler' do
-        it_behaves_like 'event publishing writer'
-
         before do
           allow(writer.events.after_send).to receive(:subscribe)
         end
@@ -489,6 +495,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block).to be(sampler_rates_callback)
           end
+
           build_tracer
         end
       end
@@ -628,7 +635,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
             it_behaves_like 'new tracer' do
               let(:options) { { sampler: sampler } }
-              it_behaves_like 'event publishing writer'
+              it_behaves_like 'event publishing writer and priority sampler'
             end
           end
         end
@@ -910,6 +917,28 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe '#reconfigure_live_sampler' do
+    subject(:reconfigure_live_sampler) { components.reconfigure_live_sampler }
+
+    context 'with configuration changes' do
+      before do
+        Datadog.configuration.tracing.sampling.rate_limit = 123
+      end
+
+      it 'does not change the sampler delegator object' do
+        expect { reconfigure_live_sampler }.to_not(change { components.tracer.sampler })
+      end
+
+      it "changes the sampler delegator's delegatee" do
+        expect { reconfigure_live_sampler }.to(
+          change do
+            components.tracer.sampler.sampler.priority_sampler.rate_limiter.rate
+          end.from(100).to(123)
+        )
+      end
+    end
+  end
+
   describe 'writer event callbacks' do
     describe Datadog::Core::Configuration::Components.singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
       subject(:call) { described_class.call(writer, responses) }
@@ -1054,6 +1083,38 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .with(/is disabled/)
 
           startup!
+        end
+      end
+    end
+
+    context 'with remote' do
+      shared_context 'stub remote configuration agent response' do
+        before do
+          WebMock.enable!
+          stub_request(:get, %r{/info}).to_return(body: info_response, status: 200)
+          stub_request(:post, %r{/v0\.7/config}).to_return(body: '{}', status: 200)
+        end
+
+        after { WebMock.disable! }
+
+        let(:info_response) { { endpoints: ['/v0.7/config'] }.to_json }
+      end
+
+      context 'enabled' do
+        before { allow(settings.remote).to receive(:enabled).and_return(true) }
+
+        it 'starts the remote manager' do
+          startup!
+          expect(components.remote).to be_started
+        end
+      end
+
+      context 'disabled' do
+        before { allow(settings.remote).to receive(:enabled).and_return(false) }
+
+        it 'does not start the remote manager' do
+          startup!
+          expect(components.remote).to be_nil # It doesn't even create it
         end
       end
     end

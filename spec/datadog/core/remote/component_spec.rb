@@ -7,13 +7,12 @@ RSpec.describe Datadog::Core::Remote::Component do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
   let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings) }
+  let(:component) { described_class.new(settings, capabilities, agent_settings) }
 
   describe '.build' do
-    subject(:component) { described_class.build(settings, agent_settings) }
+    subject(:build) { described_class.build(settings, agent_settings) }
 
-    after do
-      component.shutdown! if component
-    end
+    after { build.shutdown! if build }
 
     context 'remote disabled' do
       let(:remote) do
@@ -25,108 +24,19 @@ RSpec.describe Datadog::Core::Remote::Component do
       before { expect(settings).to receive(:remote).and_return(remote) }
 
       it 'returns nil ' do
-        expect(component).to be_nil
+        is_expected.to be_nil
       end
     end
 
-    context 'remote enabled' do
-      context 'appsec' do
-        before { expect(settings).to receive(:appsec).and_return(appsec) }
+    context 'enabled' do
+      let(:capabilities) { double('capabilities') }
+      let(:component) { double('component', shutdown!: nil) }
 
-        let(:appsec) do
-          mock = double('appsec')
-          expect(mock).to receive(:enabled).and_return(appsec_enabled)
-          mock
-        end
+      it 'initializes component' do
+        expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(settings).and_return(capabilities)
+        expect(described_class).to receive(:new).with(settings, capabilities, agent_settings).and_return(component)
 
-        context 'disabled' do
-          let(:appsec_enabled) { false }
-
-          it 'returns nil ' do
-            expect(component).to be_nil
-          end
-        end
-
-        context 'enabled' do
-          let(:appsec_enabled) { true }
-
-          context 'agent comunication' do
-            before do
-              request_class = ::Net::HTTP::Get
-              http_request = instance_double(request_class)
-              allow(http_request).to receive(:body=)
-              allow(request_class).to receive(:new).and_return(http_request)
-
-              http_connection = instance_double(::Net::HTTP)
-              allow(::Net::HTTP).to receive(:new).and_return(http_connection)
-
-              allow(http_connection).to receive(:open_timeout=)
-              allow(http_connection).to receive(:read_timeout=)
-              allow(http_connection).to receive(:use_ssl=)
-
-              allow(http_connection).to receive(:start).and_yield(http_connection)
-              http_response = instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
-              allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
-
-              allow(Datadog.logger).to receive(:error).and_return(nil)
-            end
-
-            context 'agent unreacheable' do
-              let(:response_code) { 500 }
-              let(:response_body) { {}.to_json }
-
-              it 'logs an error' do
-                expect(Datadog.logger).to receive(:error).and_return(nil)
-
-                component
-              end
-
-              it 'returns nil ' do
-                expect(component).to be_nil
-              end
-            end
-
-            context 'agent reachable but no support for remote configuration' do
-              let(:response_code) { 500 }
-              let(:response_body) do
-                {
-                  'endpoints' => ['no_config']
-                }.to_json
-              end
-
-              it 'logs an error' do
-                expect(Datadog.logger).to receive(:error).and_return(nil)
-
-                component
-              end
-
-              it 'returns nil ' do
-                expect(Datadog.logger).to receive(:error).and_return(nil)
-
-                expect(component).to be_nil
-              end
-            end
-
-            context 'agent reachable with support for remote configuration' do
-              let(:response_code) { 200 }
-              let(:response_body) do
-                {
-                  'endpoints' => ['/v0.7/config']
-                }.to_json
-              end
-
-              it 'does not log an error' do
-                expect(Datadog.logger).to_not receive(:error)
-
-                component
-              end
-
-              it 'returns component' do
-                expect(component).to be_a(described_class)
-              end
-            end
-          end
-        end
+        is_expected.to eq(component)
       end
     end
   end
@@ -235,6 +145,42 @@ RSpec.describe Datadog::Core::Remote::Component do
             expect(component.client.object_id).to eql(client.object_id)
           end
         end
+      end
+    end
+  end
+
+  describe '#start' do
+    subject(:start) { component.start }
+
+    it { expect { start }.to change { component.started? }.from(false).to(true) }
+
+    it 'does not wait for first sync' do
+      expect(component.client).to_not receive(:sync)
+      start
+    end
+
+    context 'when already started' do
+      before { component.start }
+
+      it { expect { start }.to_not change { component.started? }.from(true) }
+    end
+  end
+
+  describe '#started?' do
+    subject(:started?) { component.started? }
+
+    context 'before start' do
+      it { is_expected.to eq(false) }
+    end
+
+    context 'after start' do
+      before { component.start }
+      it { is_expected.to eq(true) }
+
+      context 'then shutdown' do
+        before { component.shutdown! }
+
+        it { is_expected.to eq(false) }
       end
     end
   end

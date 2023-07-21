@@ -941,6 +941,25 @@ RSpec.describe Datadog::Core::Configuration::Option do
         reset
         expect(option.send(:precedence_set)).to eq(Datadog::Core::Configuration::Option::Precedence::DEFAULT)
       end
+
+      context 'with previous value in different precedence' do
+        before do
+          allow(context).to receive(:instance_exec).with(:value, any_args).and_return(:value)
+
+          option.set(:value, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+        end
+
+        it 'resetting removes all old precedence values store' do
+          reset
+
+          # For unset to try to restore an old precedence value
+          option.set(:value, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
+          option.unset(Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
+
+          # But no values should be stored, thus the default is returned instead
+          expect(option.get).to eq(default)
+        end
+      end
     end
   end
 

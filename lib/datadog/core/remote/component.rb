@@ -62,8 +62,21 @@ module Datadog
           end
         end
 
-        def barrier(kind)
+        # Starts the Remote Configuration worker without waiting for first run
+        def start
           @worker.start
+        end
+
+        # Is the Remote Configuration worker running?
+        def started?
+          @worker.started?
+        end
+
+        # If the worker is not initialized, initialize it.
+        #
+        # Then, waits for one client sync to be executed if `kind` is `:once`.
+        def barrier(kind)
+          start
 
           case kind
           when :once
@@ -130,26 +143,15 @@ module Datadog
         end
 
         class << self
+          # Because the agent might not be available yet, we can't perform agent-specific checks yet, as they
+          # would prevent remote configuration from ever running.
+          #
+          # Those checks are instead performed inside the worker loop.
+          # This allows users to upgrade their agent while keeping their application running.
           def build(settings, agent_settings)
             return unless settings.remote.enabled
 
-            capabilities = Client::Capabilities.new(settings)
-
-            return if capabilities.products.empty?
-
-            negotiation = Negotiation.new(settings, agent_settings)
-
-            unless negotiation.endpoint?('/v0.7/config')
-              Datadog.logger.error do
-                'endpoint unavailable: disabling remote configuration for this process.'
-              end
-
-              return
-            end
-
-            Datadog.logger.debug { 'agent reachable and reports remote configuration endpoint' }
-
-            new(settings, capabilities, agent_settings)
+            new(settings, Client::Capabilities.new(settings), agent_settings)
           end
         end
       end

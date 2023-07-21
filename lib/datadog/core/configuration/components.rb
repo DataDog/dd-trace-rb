@@ -66,6 +66,8 @@ module Datadog
           end
         end
 
+        include Datadog::Tracing::Component::InstanceMethods
+
         attr_reader \
           :health_metrics,
           :logger,
@@ -108,6 +110,9 @@ module Datadog
           else
             @logger.debug('Profiling is disabled')
           end
+
+          # Start remote configuration worker
+          @remote.start if @remote
         end
 
         # Shuts down all the components in use.
