@@ -5,8 +5,6 @@ module Datadog
     module Diagnostics
       # @public_api
       module Ext
-        LANG = 'ruby'
-        LANG_VERSION = RUBY_VERSION
         # Health
         module Health
           # Metrics
