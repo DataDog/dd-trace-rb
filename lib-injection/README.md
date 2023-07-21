@@ -15,7 +15,7 @@ Currently, we support
 
 In order to ship `ddtrace` and its dependencies as a pre-install package, we need a few tweaks in our build pipeline.
 
-* Use multiple custom built Ruby images to build native extensions. Those images are based on Debian `buster` to support older distribution and Ruby is compiled as a static library with `--disbale-shared` option which disables the creation of shared libraries (also known as dynamic libraries or DLLs).
+* Use multiple custom built Ruby images to build native extensions. Those images are based on Debian `buster` to support older distribution and Ruby is compiled as a static library with `--disable-shared` option which disables the creation of shared libraries (also known as dynamic libraries or DLLs).
 * Install `ffi` gem with its built-in `libffi` native extension instead of using system's `libffi`.
 * After gem installation, the native extensions would be store in `extensions/x86_64-linux/3.2.0-static/`(see `Gem.extension_api_version`). We symlink those directories to remove the `-static` suffix so user’s ruby can detect those  `.so` files and make sure files have read permission.
 

@@ -34,6 +34,7 @@ gem_version_mapping.each do |gem, version|
   case gem
   when "ffi"
     gem_install_cmd << "--install-dir #{versioned_path} "
+    # Install `ffi` gem with its built-in `libffi` native extension instead of using system's `libffi`
     gem_install_cmd << "-- --disable-system-libffi "
   when "ddtrace"
     env["DD_PROFILING_NO_EXTENSION"] = "true"
@@ -56,5 +57,6 @@ gem_version_mapping.each do |gem, version|
 end
 
 FileUtils.cd(versioned_path.join("extensions/#{Gem::Platform.local.to_s}"), verbose: true) do
+  # Symlink those directories to be utilized by Ruby compiled with shared libraries
   FileUtils.ln_sf Gem.extension_api_version, ruby_api_version
 end

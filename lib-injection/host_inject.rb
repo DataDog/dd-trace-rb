@@ -32,7 +32,7 @@ begin
   end
 
   unless Bundler::CLI.commands["add"] && Bundler::CLI.commands["add"].options.key?("require")
-    debug_log "[ddtrace] You are currently using Bundler version #{Bundler::VERSION} which is not supported by host injection. Please upgrade >= 2.3, check https://github.com/rubygems/rubygems/blob/master/bundler/CHANGELOG.md#enhancements-31"
+    debug_log "[ddtrace] You are currently using Bundler version #{Bundler::VERSION} which is not supported by host injection. Please upgrade >= 2.3."
     return
   end
 
