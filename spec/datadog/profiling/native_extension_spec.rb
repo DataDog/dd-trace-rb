@@ -133,6 +133,8 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
         before do
           expect(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
+            STDERR.puts "I'm thread #{Thread.current.inspect} and I called clock_gettime; caller = #{Thread.current.instance_variable_get(:@caller).inspect}"
+
             thread.kill
             thread.join
 
