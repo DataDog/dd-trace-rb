@@ -15,6 +15,7 @@ RSpec.describe Datadog::Core::Configuration do
     allow(telemetry_client).to receive(:stop!)
     allow(telemetry_client).to receive(:emit_closing!)
     allow(Datadog::Core::Telemetry::Client).to receive(:new).and_return(telemetry_client)
+    allow(Datadog::Core::Remote::Component).to receive(:build)
   end
 
   context 'when extended by a class' do
