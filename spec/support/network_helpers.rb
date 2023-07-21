@@ -1,3 +1,5 @@
+require 'byebug'
+
 module NetworkHelpers
   TEST_AGENT_HOST = ENV['DD_TEST_AGENT_HOST'] || 'testagent'
   TEST_AGENT_PORT = ENV['DD_TEST_AGENT_PORT'] || 9126
@@ -59,7 +61,18 @@ module NetworkHelpers
   def parse_tracer_config_and_add_to_headers(trace_headers)
     dd_service = Datadog.configuration.service
     dd_span_attribute_schema = Datadog.configuration.tracing.span_attribute_schema
-    trace_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }.map { |key, value| "#{key}=#{value}" }.join(',')
+    instrumented_integrations = Datadog.configuration.tracing.instrumented_integrations
+
+    # Get all DD_ variables from ENV
+    dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
+    instrumented_integrations.flat_map do |name, integration|
+      config = integration.configuration.to_h
+      if config.key? :service_name
+        service_name = config[:service_name]
+        dd_env_variables["DD_#{name.upcase}_SERVICE"] = service_name
+      end
+    end
+    trace_variables = dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
     if trace_variables.empty?
       trace_variables = "DD_SERVICE=#{dd_service},DD_SPAN_ATTRIBUTE_SCHEMA=#{dd_span_attribute_schema}"
     else
