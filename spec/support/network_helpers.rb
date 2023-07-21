@@ -1,5 +1,3 @@
-require 'byebug'
-
 module NetworkHelpers
   TEST_AGENT_HOST = ENV['DD_TEST_AGENT_HOST'] || 'testagent'
   TEST_AGENT_PORT = ENV['DD_TEST_AGENT_PORT'] || 9126
