@@ -8,7 +8,7 @@ ruby_api_version = Gem.ruby_api_version
 
 current_path = Pathname.new(FileUtils.pwd)
 
-artifact_path = current_path.join("vendor")
+artifact_path = current_path.join("pkg")
 
 lock_file_path = artifact_path.join("Gemfile.lock")
 versioned_path = artifact_path.join(ruby_api_version)

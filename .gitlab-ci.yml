@@ -70,7 +70,7 @@ install-base-ruby-gems:
     - .gitlab/install-gem-to-folder.sh
   artifacts:
     paths:
-      - vendor
+      - pkg
 
 install-version-dependant-gems:
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION:current
@@ -88,7 +88,7 @@ install-version-dependant-gems:
     - .gitlab/install-gem-to-folder-version-specific.sh
   artifacts:
     paths:
-      - vendor
+      - pkg
 
 package:
   extends: .package
@@ -99,7 +99,7 @@ package:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: on_success
   script:
-    - ls ../vendor
+    - ls ../pkg
     - ../.gitlab/build-deb-rpm.sh
 
 .release-package:

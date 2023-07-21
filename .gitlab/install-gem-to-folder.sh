@@ -6,8 +6,7 @@ if [ -n "$CI_COMMIT_TAG" ] && [ -z "$RUBY_PACKAGE_VERSION" ]; then
   RUBY_PACKAGE_VERSION=${CI_COMMIT_TAG##v}
 fi
 
-echo $PWD
-mkdir -p vendor
+mkdir -p pkg
 cat > Gemfile << EOF
     source "https://rubygems.org"
 
@@ -16,9 +15,9 @@ EOF
 
 bundle lock
 
-cp Gemfile vendor
-cp Gemfile.lock vendor
-cp .gitlab/install_ddtrace_deps.rb vendor
-cp lib-injection/host_inject.rb vendor
+cp Gemfile pkg
+cp Gemfile.lock pkg
+cp .gitlab/install_ddtrace_deps.rb pkg
+cp lib-injection/host_inject.rb pkg
 
-ruby vendor/install_ddtrace_deps.rb debase-ruby_core_source libdatadog libddwaf msgpack ffi ddtrace
+ruby pkg/install_ddtrace_deps.rb debase-ruby_core_source libdatadog libddwaf msgpack ffi ddtrace
