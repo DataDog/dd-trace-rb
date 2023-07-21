@@ -62,12 +62,6 @@ module Datadog
             end.compact
           end
 
-          # Returns false if this class was explicitly configured
-          # or left without configuration.
-          def configured?
-            !@header_tags.equal?(EMPTY)
-          end
-
           # For easy configuration inspection,
           # print the original configuration setting.
           def to_s

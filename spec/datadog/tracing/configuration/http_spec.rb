@@ -36,10 +36,6 @@ RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
         end
       end
 
-      it 'is considered configured' do
-        expect(http_header_tags.configured?).to eq(true)
-      end
-
       it '#to_s returns the configured object in the original format' do
         expect(http_header_tags.to_s).to eq('my-header')
       end
@@ -72,10 +68,6 @@ RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
         end
       end
 
-      it 'is considered configured' do
-        expect(http_header_tags.configured?).to eq(true)
-      end
-
       it '#to_s returns the configured object in the original format' do
         expect(http_header_tags.to_s).to eq('my-header:my-tag')
       end
@@ -86,10 +78,6 @@ RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
 
       it 'escapes special characters and lower cases the tag name' do
         is_expected.to contain_exactly(['my_header-1_2.3/4_5', 'MY-VALUE'])
-      end
-
-      it 'is considered configured' do
-        expect(http_header_tags.configured?).to eq(true)
       end
 
       it '#to_s returns the configured object in the original format' do
@@ -110,13 +98,5 @@ RSpec.describe Datadog::Tracing::Configuration::HTTP::HeaderTags do
     let(:direction) { 'response' }
 
     it_behaves_like 'a header tag processor'
-  end
-
-  context 'without configuration' do
-    let(:header_tags) { nil }
-
-    it 'is not considered configured' do
-      expect(http_header_tags.configured?).to eq(false)
-    end
   end
 end
