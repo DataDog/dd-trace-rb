@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+* Runtime Metrics: YJIT statistics on Ruby 3.2 (when YJIT is enabled) ([#2711][])
+
 ## [1.12.1] - 2023-06-14
 
 ### Added
