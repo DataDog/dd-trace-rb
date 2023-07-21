@@ -14,7 +14,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     # TODO: Find why using testagent changes the elasticsearch test service name despite no differences between other tests
     Datadog.configuration.agent.host = 'not-testagent'
     WebMock.enable!
-    WebMock.disable_net_connect!
+    WebMock.allow_net_connect!
   end
 
   after do
