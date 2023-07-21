@@ -685,7 +685,6 @@ elsif ruby_version?('2.4')
     gem 'rack'
     gem 'rack-contrib'
     gem 'rack-test'
-    gem 'rackup' # Used to test a real Rack server locally (e.g. with WEBrick)
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
@@ -957,7 +956,6 @@ elsif ruby_version?('2.5')
     gem 'rack'
     gem 'rack-contrib'
     gem 'rack-test'
-    gem 'rackup' # Used to test a real Rack server locally (e.g. with WEBrick)
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
@@ -1210,7 +1208,6 @@ elsif ruby_version?('2.6')
       gem 'rack'
       gem 'rack-contrib'
       gem 'rack-test'
-      gem 'rackup' # Used to test a real Rack server locally (e.g. with WEBrick)
       gem 'rake', '>= 12.3'
       gem 'redis', '~> 4' # TODO: Support redis 5.x
       gem 'rest-client'
@@ -1447,7 +1444,6 @@ elsif ruby_version?('2.7')
       gem 'rack'
       gem 'rack-contrib'
       gem 'rack-test'
-      gem 'rackup' # Used to test a real Rack server locally (e.g. with WEBrick)
       gem 'rake', '>= 12.3'
       gem 'rest-client'
       gem 'resque'
@@ -1587,7 +1583,6 @@ elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2') || ru
     gem 'rack'
     gem 'rack-contrib'
     gem 'rack-test'
-    gem 'rackup' # Used to test a real Rack server locally (e.g. with WEBrick)
     gem 'rake', '>= 12.3'
     gem 'rest-client'
     gem 'resque'
