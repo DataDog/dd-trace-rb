@@ -30,6 +30,7 @@ module Datadog
             # rubocop:disable Metrics/MethodLength
             def perform_request(method, path, params = {}, body = nil, headers = nil)
               response = nil
+              # rubocop:disable Metrics/BlockLength
               Tracing.trace('opensearch.query', service: datadog_configuration[:service_name]) do |span|
                 begin
                   # Set generic tags
@@ -92,6 +93,7 @@ module Datadog
                   end
                 end
               end
+              # rubocop:enable Metrics/BlockLength
               response
             end
 
