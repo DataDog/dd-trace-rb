@@ -53,6 +53,13 @@ module Datadog
                   # Set url.user to nil to remove sensitive information (i.e. user's username and password)
                   url.user = nil
 
+                  if datadog_configuration[:peer_service]
+                    span.set_tag(
+                      Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                      datadog_configuration[:peer_service]
+                    )
+                  end
+
                   # Set url tags
                   span.set_tag(OpenSearch::Ext::TAG_URL, url)
                   span.set_tag(OpenSearch::Ext::TAG_HOST, host)

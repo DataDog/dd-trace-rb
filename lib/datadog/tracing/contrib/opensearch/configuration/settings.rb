@@ -37,6 +37,8 @@ module Datadog
               end
               o.lazy
             end
+
+            option :peer_service
           end
         end
       end

@@ -39,6 +39,8 @@ module Datadog
             end
 
             option :split_by_domain, default: false
+
+            option :peer_service
           end
         end
       end

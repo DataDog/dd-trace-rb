@@ -42,6 +42,8 @@ module Datadog
                 )
               end
             end
+
+            option :peer_service
           end
         end
       end
