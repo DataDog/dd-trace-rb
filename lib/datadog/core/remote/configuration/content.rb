@@ -41,6 +41,7 @@ module Datadog
           # Sets this configuration as successfully applied.
           def applied
             @apply_state = ApplyState::ACKNOWLEDGED
+            @apply_error = nil
           end
 
           # Sets this configuration as not successfully applied, with

@@ -272,6 +272,14 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
         applied
         expect(content.apply_state).to eq(2)
       end
+
+      it 'clear errors' do
+        content.errored('error message')
+
+        applied
+
+        expect(content.apply_error).to be_nil
+      end
     end
 
     describe '#errored' do
