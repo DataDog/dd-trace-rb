@@ -67,7 +67,8 @@ module NetworkHelpers
       config = integration.configuration.to_h
       if config.key? :service_name
         service_name = config[:service_name]
-        dd_env_variables["DD_#{name.upcase}_SERVICE"] = service_name
+        component_name = {'mongo' => 'mongodb', 'http' => 'net/http'}.fetch(name, name)
+        dd_env_variables["DD_#{component_name.upcase}_SERVICE"] = service_name
       end
     end
     trace_variables = dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
