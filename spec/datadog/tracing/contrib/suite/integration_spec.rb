@@ -221,8 +221,9 @@ RSpec.describe 'contrib integration testing' do
       context 'for log_injection_enabled' do
         let(:tracing_sampling_rate) { 0.0 }
         let(:io) { StringIO.new }
+        let(:appender) {  SemanticLogger.add_appender(io: io) }
         let(:logger) do
-          SemanticLogger.add_appender(io: io)
+          appender
           SemanticLogger['TestClass']
         end
 
@@ -232,7 +233,7 @@ RSpec.describe 'contrib integration testing' do
           end
         end
 
-        after { SemanticLogger.clear_appenders! }
+        after { SemanticLogger.remove_appender(appender) }
 
         it 'changes disables log injection' do
           # Before
