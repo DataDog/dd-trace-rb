@@ -11,7 +11,7 @@ module Datadog
             headers = env.is_a?(Header::RequestHeaderCollection) ? env : Header::RequestHeaderCollection.new(env)
 
             # Use global DD_TRACE_HEADER_TAGS if integration-level configuration is not provided
-            tags = if configuration.using_default?(:headers) && !Datadog.configuration.tracing.using_default(:header_tags)
+            tags = if configuration.using_default?(:headers) && !Datadog.configuration.tracing.using_default?(:header_tags)
                      Datadog.configuration.tracing.header_tags.request_tags(headers)
                    else
                      whitelist = configuration[:headers][:request] || []
@@ -31,7 +31,7 @@ module Datadog
             headers = Core::Utils::Hash::CaseInsensitiveWrapper.new(headers) # Make header access case-insensitive
 
             # Use global DD_TRACE_HEADER_TAGS if integration-level configuration is not provided
-            tags = if configuration.using_default?(:headers) && !Datadog.configuration.tracing.using_default(:header_tags)
+            tags = if configuration.using_default?(:headers) && !Datadog.configuration.tracing.using_default?(:header_tags)
                      Datadog.configuration.tracing.header_tags.response_tags(headers)
                    else
                      whitelist = configuration[:headers][:response] || []
