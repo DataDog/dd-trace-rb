@@ -13,6 +13,13 @@ module Datadog
         module Tags
           class << self
             def set_common_tags(client, span, show_command_args)
+              if datadog_configuration[:peer_service]
+                span.set_tag(
+                  Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                  datadog_configuration[:peer_service]
+                )
+              end
+
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
 
