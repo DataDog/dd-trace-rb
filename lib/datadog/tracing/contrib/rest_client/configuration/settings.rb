@@ -36,7 +36,10 @@ module Datadog
 
             option :split_by_domain, default: false
 
-            option :peer_service
+            option :peer_service do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_PEER_SERVICE
+            end
           end
         end
       end

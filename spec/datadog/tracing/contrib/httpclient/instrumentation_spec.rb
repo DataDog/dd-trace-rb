@@ -14,6 +14,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
 require 'datadog/tracing/contrib/http_examples'
 require 'spec/support/thread_helpers'
 
@@ -140,6 +141,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPCLIENT_SERVICE_NAME'
+          it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPCLIENT_PEER_SERVICE'
           it_behaves_like 'schema version span'
 
           it_behaves_like 'analytics for integration' do
@@ -171,6 +173,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPCLIENT_SERVICE_NAME'
+          it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPCLIENT_PEER_SERVICE'
           it_behaves_like 'schema version span'
         end
 
@@ -197,6 +200,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPCLIENT_SERVICE_NAME'
+          it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPCLIENT_PEER_SERVICE'
           it_behaves_like 'schema version span'
         end
 
