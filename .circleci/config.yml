@@ -347,11 +347,12 @@ orbs:
           - *step_get_test_agent_trace_check_results
           - store_test_results:
               path: /tmp/rspec
+          - store_test_results:
+              path: ./tmp/thread_leak_report
           - persist_to_workspace:
               root: .
               paths:
                 - coverage
-                - tmp/thread_leak_report
       benchmark:
         <<: *test_job_default
         docker:
