@@ -151,6 +151,7 @@ RSpec.describe Datadog::Core::Remote::Component do
 
   describe '#start' do
     subject(:start) { component.start }
+    after { component.shutdown! }
 
     it { expect { start }.to change { component.started? }.from(false).to(true) }
 
@@ -175,6 +176,8 @@ RSpec.describe Datadog::Core::Remote::Component do
 
     context 'after start' do
       before { component.start }
+      after { component.shutdown! }
+
       it { is_expected.to eq(true) }
 
       context 'then shutdown' do
