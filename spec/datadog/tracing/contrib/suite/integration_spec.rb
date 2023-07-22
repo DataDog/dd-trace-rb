@@ -151,11 +151,14 @@ RSpec.describe 'contrib integration testing' do
 
           server.mount '/', Rack::Handler::WEBrick, app
 
-          Thread.new { server.start }
+          @thread = Thread.new { server.start }
           try_wait_until { started }
 
           server
         end
+
+        let(:uri) { URI("http://localhost:#{port}/") }
+        let(:request) { Net::HTTP::Get.new(uri, { 'test-header' => 'test-request' }) }
 
         before do
           Datadog.configure do |c|
@@ -163,11 +166,14 @@ RSpec.describe 'contrib integration testing' do
           end
         end
 
-        after { rack.shutdown }
+        after do
+          rack.shutdown
+          @thread.kill
+        end
 
         it 'changes the HTTP header tagging for span' do
           # Before
-          Net::HTTP.get(URI("http://localhost:#{port}/"), { 'test-header' => 'test-request' })
+          Net::HTTP.start(uri.hostname, uri.port) { |net| net.request(request) }
 
           expect(spans).to have(2).items
           http, rack = spans
@@ -180,7 +186,7 @@ RSpec.describe 'contrib integration testing' do
           # After
           update_config
 
-          Net::HTTP.get(URI("http://localhost:#{port}/"), { 'test-header' => 'test-request' })
+          Net::HTTP.start(uri.hostname, uri.port) { |net| net.request(request) }
 
           expect(spans).to have(2).items
           http, rack = spans
