@@ -221,7 +221,7 @@ RSpec.describe 'contrib integration testing' do
       context 'for log_injection_enabled' do
         let(:tracing_sampling_rate) { 0.0 }
         let(:io) { StringIO.new }
-        let(:appender) {  SemanticLogger.add_appender(io: io) }
+        let(:appender) { SemanticLogger.add_appender(io: io) }
         let(:logger) do
           appender
           SemanticLogger['TestClass']
