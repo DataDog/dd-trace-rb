@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/http_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'ddtrace'
 require 'net/http'
@@ -84,6 +85,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_NET_HTTP_PEER_SERVICE'
       it_behaves_like 'schema version span'
     end
 
@@ -115,6 +117,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_NET_HTTP_PEER_SERVICE'
       it_behaves_like 'schema version span'
 
       context 'when configured with #after_request hook' do
@@ -187,6 +190,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_NET_HTTP_PEER_SERVICE'
       it_behaves_like 'schema version span'
     end
   end
@@ -223,6 +227,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_NET_HTTP_PEER_SERVICE'
       it_behaves_like 'schema version span'
     end
   end
@@ -479,6 +484,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME', error: Net::OpenTimeout
+      it_behaves_like 'configured peer service span', 'DD_TRACE_NET_HTTP_PEER_SERVICE', error: Net::OpenTimeout
     end
 
     context 'that raises an error' do
@@ -504,6 +510,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME', error: StandardError
+      it_behaves_like 'configured peer service span', 'DD_TRACE_NET_HTTP_PEER_SERVICE', error: StandardError
     end
   end
 
