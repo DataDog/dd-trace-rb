@@ -44,6 +44,7 @@ test_containers:
     - *container_base_environment
     - TEST_DATADOG_INTEGRATION: 1
     - COVERAGE_BASE_DIR: coverage
+    - THREAD_LEAK_REPORT: 1
   - &container_base
     image: <<parameters.image>>
     environment:
