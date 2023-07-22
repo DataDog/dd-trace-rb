@@ -351,6 +351,7 @@ orbs:
               root: .
               paths:
                 - coverage
+                - tmp/thread_leak_report
       benchmark:
         <<: *test_job_default
         docker:

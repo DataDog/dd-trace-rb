@@ -194,7 +194,18 @@ RSpec.configure do |config|
               end
           end
 
-          caller = t.instance_variable_get(:@caller) || ['(Not available. Possibly a native thread.)']
+          if (caller = t.instance_variable_get(:@caller))
+            if ENV['THREAD_LEAK_REPORT'] == '1'
+              puts 'Writing new line to the thread leak report'
+
+              line = "#{caller.join(';')}\n"
+              FileUtils.mkdir_p('tmp/thread_leak_report')
+              File.write('tmp/thread_leak_report/report.txt', line, mode: 'a+')
+            end
+          else
+            caller = ['(Not available. Possibly a native thread.)']
+          end
+
           [
             "#{idx + 1}: #{t} (#{t.class.name})",
             'Thread Creation Site:',
