@@ -146,7 +146,7 @@ RSpec.configure do |config|
           # Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
           (t.respond_to?(:name) && t.name == 'Timeout stdlib thread') ||
           # JRuby: Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
-          t == Timeout.instance_variable_get(:@timeout_thread) ||
+          t == Timeout.instance_exec { @timeout_thread if defined?(@timeout_thread) } ||
           # Internal JRuby thread
           defined?(JRuby) && JRuby.reference(t).native_thread.name == 'Finalizer' ||
           # WEBrick singleton thread for handling timeouts
