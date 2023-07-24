@@ -34,6 +34,12 @@ RSpec.describe Datadog::Core::Configuration::Option do
   let(:setter_value) { double('setter_value') }
   let(:context) { double('configuration object') }
 
+  before do
+    allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |args, _block|
+      args
+    end
+  end
+
   describe '#initialize' do
     it { expect(option.definition).to be(definition) }
   end

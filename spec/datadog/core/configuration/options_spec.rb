@@ -10,6 +10,12 @@ RSpec.describe Datadog::Core::Configuration::Options do
       end
     end
 
+    before do
+      allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |args, _block|
+        args
+      end
+    end
+
     describe 'class behavior' do
       describe '#options' do
         subject(:options) { options_class.options }
