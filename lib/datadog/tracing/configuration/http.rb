@@ -16,7 +16,7 @@ module Datadog
           def initialize(header_tags)
             @request_headers = {}
             @response_headers = {}
-            @header_tags = header_tags || EMPTY
+            @header_tags = header_tags
 
             @header_tags.each do |header_tag|
               header, tag = header_tag.split(':', 2)
@@ -67,10 +67,6 @@ module Datadog
           def to_s
             @header_tags.join(',').to_s
           end
-
-          # Pin to know if we are using a fallback empty list.
-          EMPTY = [].freeze
-          private_constant :EMPTY
         end
       end
     end
