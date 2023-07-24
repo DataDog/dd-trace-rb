@@ -108,15 +108,12 @@ module Datadog
 
           # Ensure option DSL is loaded
           def resolve_option(name)
-            if (option = options[name])
-              option
-            else
-              assert_valid_option!(name)
-              definition = self.class.options[name]
-              option = definition.build(self)
-              options[name] = option
-              option
-            end
+            option = options[name]
+            return option if option
+
+            assert_valid_option!(name)
+            definition = self.class.options[name]
+            options[name] = definition.build(self)
           end
 
           def assert_valid_option!(name)
