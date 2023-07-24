@@ -115,8 +115,8 @@ module Datadog
                     else
                       Datadog.logger.warn(
                         'The appsec.track_user_events.mode value provided is not supported.' \
-                        "Supported values are: safe | extended.\n" \
-                        'Using default value safe'
+                        'Supported values are: safe | extended.' \
+                        'Using default value `safe`'
                       )
                       'safe'
                     end
