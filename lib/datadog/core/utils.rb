@@ -67,7 +67,7 @@ module Datadog
       # @!visibility private
       def self.without_warnings
         # This is typically used when monkey patching functions such as
-        # intialize, which Ruby advices you not to. Use cautiously.
+        # initialize, which Ruby advices you not to. Use cautiously.
         v = $VERBOSE
         $VERBOSE = nil
         begin
