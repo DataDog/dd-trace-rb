@@ -23,7 +23,6 @@ module Datadog
           :span_resource,
           :span_service,
           :span_type,
-          :trace_id,
           :trace_name,
           :trace_resource,
           :trace_service,
@@ -65,22 +64,20 @@ module Datadog
             attributes << "#{LOG_ATTR_ENV}=#{env}" unless env.nil?
             attributes << "#{LOG_ATTR_SERVICE}=#{service}"
             attributes << "#{LOG_ATTR_VERSION}=#{version}" unless version.nil?
-            attributes << "#{LOG_ATTR_TRACE_ID}=#{logging_trace_id}"
+            attributes << "#{LOG_ATTR_TRACE_ID}=#{trace_id}"
             attributes << "#{LOG_ATTR_SPAN_ID}=#{span_id}"
             attributes.join(' ')
           end
         end
 
-        private
-
-        def logging_trace_id
-          @logging_trace_id ||=
-            if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
-                !Tracing::Utils::TraceId.to_high_order(@trace_id).zero?
-              Kernel.format('%032x', trace_id)
-            else
-              Tracing::Utils::TraceId.to_low_order(@trace_id)
-            end
+        # DEV-2.0: This public method was returning an Integer, but with 128 bit trace id it would return a String.
+        def trace_id
+          if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
+              !Tracing::Utils::TraceId.to_high_order(@trace_id).zero?
+            Kernel.format('%032x', @trace_id)
+          else
+            Tracing::Utils::TraceId.to_low_order(@trace_id)
+          end
         end
       end
 
