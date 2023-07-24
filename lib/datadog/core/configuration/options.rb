@@ -68,18 +68,15 @@ module Datadog
           end
 
           def set_option(name, value, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
-            add_option(name) unless options.key?(name)
-            options[name].set(value, precedence: precedence)
+            resolve_option(name).set(value, precedence: precedence)
           end
 
           def unset_option(name, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
-            add_option(name) unless options.key?(name)
-            options[name].unset(precedence)
+            resolve_option(name).unset(precedence)
           end
 
           def get_option(name)
-            add_option(name) unless options.key?(name)
-            options[name].get
+            resolve_option(name).get
           end
 
           def reset_option(name)
@@ -91,10 +88,10 @@ module Datadog
             self.class.options.key?(name)
           end
 
-          def using_default?(option)
-            return options[option].default_precedence? if options[option]
-
-            true
+          # Is this option's value the default fallback value?
+          def using_default?(name)
+            get_option(name) # Resolve value check if environment variable overwrote the default
+            options[name].default_precedence?
           end
 
           def options_hash
@@ -109,11 +106,16 @@ module Datadog
 
           private
 
-          def add_option(name)
-            assert_valid_option!(name)
-            definition = self.class.options[name]
-            definition.build(self).tap do |option|
+          # Ensure option DSL is loaded
+          def resolve_option(name)
+            if (option = options[name])
+              option
+            else
+              assert_valid_option!(name)
+              definition = self.class.options[name]
+              option = definition.build(self)
               options[name] = option
+              option
             end
           end
 
