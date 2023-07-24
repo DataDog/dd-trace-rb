@@ -276,6 +276,32 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
       end
     end
 
+    context 'peer.service already set' do
+      let(:precursors) { ['precursor-tag'] }
+      it 'returns true with peer.service already set' do
+        span.set_tag('db.system', 'test-db')
+        span.set_tag('span.kind', 'client')
+        span.set_tag('peer.service', 'peer-service-value')
+        expect(schema.set_peer_service!(span, precursors)).to be true
+        expect(span.get_tag('peer.service')).to eq('peer-service-value')
+        expect(span.get_tag('_dd.peer.service.source')).to eq('peer.service')
+        expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
+      end
+
+      it 'remaps peer.service and source with peer.service already set' do
+        span.set_tag('db.system', 'test-db')
+        span.set_tag('span.kind', 'client')
+        span.set_tag('peer.service', 'peer-service-value')
+
+        with_modified_env DD_TRACE_PEER_SERVICE_MAPPING: 'peer-service-value:test-remap' do
+          expect(schema.set_peer_service!(span, precursors)).to be true
+          expect(span.get_tag('peer.service')).to eq('test-remap')
+          expect(span.get_tag('_dd.peer.service.source')).to eq('peer.service')
+          expect(span.get_tag('_dd.peer.service.remapped_from')).to eq('peer-service-value')
+        end
+      end
+    end
+
     context 'remapping tags' do
       let(:precursor) { ['precursor-tag'] }
 

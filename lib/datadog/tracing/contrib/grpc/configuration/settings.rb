@@ -36,6 +36,11 @@ module Datadog
             end
 
             option :error_handler, experimental_default_proc: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
+
+            option :peer_service do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_PEER_SERVICE
+            end
           end
         end
       end

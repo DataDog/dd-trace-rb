@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'aws-sdk'
 
@@ -44,6 +45,7 @@ RSpec.describe 'AWS instrumentation' do
       it_behaves_like 'measured span for integration'
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'sts.us-stubbed-1.amazonaws.com' }
         let(:peer_service_source) { 'peer.hostname' }
@@ -96,6 +98,7 @@ RSpec.describe 'AWS instrumentation' do
       it_behaves_like 'measured span for integration'
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 's3.us-stubbed-1.amazonaws.com' }
         let(:peer_service_source) { 'peer.hostname' }
@@ -139,6 +142,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'bucketname' }
         let(:peer_service_source) { 'bucketname' }
@@ -218,6 +222,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'MyQueueName' }
         let(:peer_service_source) { 'queuename' }
@@ -294,6 +299,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'MyQueueName' }
         let(:peer_service_source) { 'queuename' }
@@ -343,6 +349,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'MyQueueName' }
         let(:peer_service_source) { 'queuename' }
@@ -396,6 +403,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'my-topic-name' }
         let(:peer_service_source) { 'topicname' }
@@ -453,6 +461,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'topicName' }
         let(:peer_service_source) { 'topicname' }
@@ -502,6 +511,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'my-table-name' }
         let(:peer_service_source) { 'tablename' }
@@ -555,6 +565,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'my-stream-name' }
         let(:peer_service_source) { 'streamname' }
@@ -608,6 +619,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'my-stream' }
         let(:peer_service_source) { 'streamname' }
@@ -659,6 +671,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'my-stream' }
         let(:peer_service_source) { 'streamname' }
@@ -714,6 +727,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'RuleName' }
         let(:peer_service_source) { 'rulename' }
@@ -761,6 +775,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'RuleName' }
         let(:peer_service_source) { 'rulename' }
@@ -813,6 +828,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'MyStateMachine' }
         let(:peer_service_source) { 'statemachinename' }
@@ -864,6 +880,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'my-state-machine-name' }
         let(:peer_service_source) { 'statemachinename' }
@@ -921,6 +938,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'my-state-machine-name' }
         let(:peer_service_source) { 'statemachinename' }
@@ -968,6 +986,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'my-state-machine-name' }
         let(:peer_service_source) { 'statemachinename' }
@@ -1013,6 +1032,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'my-state-machine-name' }
         let(:peer_service_source) { 'statemachinename' }
@@ -1074,6 +1094,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'example-state-machine' }
         let(:peer_service_source) { 'statemachinename' }
@@ -1121,6 +1142,7 @@ RSpec.describe 'AWS instrumentation' do
 
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'example-state-machine' }
         let(:peer_service_source) { 'statemachinename' }

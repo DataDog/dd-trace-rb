@@ -12,6 +12,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
   let(:configuration_options) { {} }
@@ -55,6 +56,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
       end
 
       it_behaves_like 'environment service name', 'DD_TRACE_REST_CLIENT_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_REST_CLIENT_PEER_SERVICE'
       it_behaves_like 'schema version span'
 
       describe 'created span' do
@@ -250,6 +252,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
             end
 
             it_behaves_like 'environment service name', 'DD_TRACE_REST_CLIENT_SERVICE_NAME'
+            it_behaves_like 'configured peer service span', 'DD_TRACE_REST_CLIENT_PEER_SERVICE'
             it_behaves_like 'schema version span'
           end
         end

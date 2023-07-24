@@ -83,6 +83,13 @@ module Datadog
 
                 span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
+                if datadog_configuration[:peer_service]
+                  span.set_tag(
+                    Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                    datadog_configuration[:peer_service]
+                  )
+                end
+
                 if (host_port = @options[:server])
                   host, port = Core::Utils.extract_host_port(host_port)
                   if host && port

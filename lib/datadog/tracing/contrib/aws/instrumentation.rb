@@ -40,6 +40,13 @@ module Datadog
               handler.add_tags(span, params)
             end
 
+            if configuration[:peer_service]
+              span.set_tag(
+                Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                configuration[:peer_service]
+              )
+            end
+
             span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

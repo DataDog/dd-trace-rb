@@ -77,6 +77,13 @@ module Datadog
                     host = connection.host[:host] if connection
                     port = connection.host[:port] if connection
 
+                    if datadog_configuration[:peer_service]
+                      span.set_tag(
+                        Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                        datadog_configuration[:peer_service]
+                      )
+                    end
+
                     span.span_type = Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
 
                     span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

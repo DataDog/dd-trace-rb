@@ -29,6 +29,13 @@ module Datadog
             query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
             serialized_query = query.to_s
 
+            if datadog_configuration[:peer_service]
+              span.set_tag(
+                Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                datadog_configuration[:peer_service]
+              )
+            end
+
             span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
             span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)

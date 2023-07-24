@@ -4,9 +4,12 @@ RSpec.shared_examples 'a peer service span' do
     skip('No let(:peer_service_val) defined.') unless defined?(peer_service_val)
     skip('No let(:peer_service_source) defined.') unless defined?(peer_service_source)
   end
-  it 'contains peer service tag' do
-    expect(span.get_tag('peer.service')).to eq(peer_service_val)
-    expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
+
+  context 'extracted peer service' do
+    it 'contains extracted peer service tag' do
+      expect(span.get_tag('peer.service')).to eq(peer_service_val)
+      expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
+    end
   end
 end
 

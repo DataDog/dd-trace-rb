@@ -122,6 +122,13 @@ module Datadog
               method = @datadog_method.to_s if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
               span.resource = method
 
+              if datadog_configuration[:peer_service]
+                span.set_tag(
+                  Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                  datadog_configuration[:peer_service]
+                )
+              end
+
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 

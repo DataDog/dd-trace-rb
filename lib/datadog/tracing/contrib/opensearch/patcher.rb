@@ -30,6 +30,7 @@ module Datadog
             # rubocop:disable Metrics/MethodLength
             def perform_request(method, path, params = {}, body = nil, headers = nil)
               response = nil
+              # rubocop:disable Metrics/BlockLength
               Tracing.trace('opensearch.query', service: datadog_configuration[:service_name]) do |span|
                 begin
                   # Set generic tags
@@ -52,6 +53,13 @@ module Datadog
                   scheme = url.scheme
                   # Set url.user to nil to remove sensitive information (i.e. user's username and password)
                   url.user = nil
+
+                  if datadog_configuration[:peer_service]
+                    span.set_tag(
+                      Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                      datadog_configuration[:peer_service]
+                    )
+                  end
 
                   # Set url tags
                   span.set_tag(OpenSearch::Ext::TAG_URL, url)
@@ -85,6 +93,7 @@ module Datadog
                   end
                 end
               end
+              # rubocop:enable Metrics/BlockLength
               response
             end
 
