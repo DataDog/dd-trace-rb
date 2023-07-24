@@ -41,12 +41,7 @@ module Datadog
               # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
 
-              # Initialize Rails::Rack::Logger with a mutable taggers
-              # that can be modified by after_initialize hook
-              #
-              # https://github.com/rails/rails/blob/e88857bbb9d4e1dd64555c34541301870de4a45b/railties/lib/rails/rack/logger.rb#L16-L19
-              #
-              Contrib::Rails::LogInjection.set_mutatable_default(app)
+              Rails::LogInjection.configure_log_tags(app)
             end
           end
 
@@ -67,18 +62,6 @@ module Datadog
             app.middleware.insert_after(::ActionDispatch::DebugExceptions, Contrib::Rails::ExceptionMiddleware)
           end
 
-          def add_tags_to_logger(app)
-            # `::Rails.logger` has already been assigned during `initialize_logger`
-            logger = ::Rails.logger
-
-            if logger \
-                && defined?(::ActiveSupport::TaggedLogging) \
-                && logger.is_a?(::ActiveSupport::TaggedLogging)
-
-              Contrib::Rails::LogInjection.append_datadog_correlation_tags(app)
-            end
-          end
-
           def patch_after_intialize
             ::ActiveSupport.on_load(:after_initialize) do
               Contrib::Rails::Patcher.after_intialize(self)
@@ -90,10 +73,6 @@ module Datadog
               # Finish configuring the tracer after the application is initialized.
               # We need to wait for some things, like application name, middleware stack, etc.
               setup_tracer
-
-              # `after_initialize` will respect the configuration from `config/initializers/datadog.rb`
-              # and add tags to `::ActiveSupport::TaggedLogging`
-              add_tags_to_logger(app) if Datadog.configuration.tracing.log_injection
             end
           end
 

@@ -7,14 +7,11 @@ module Datadog
         module LogInjection
           module_function
 
-          def set_mutatable_default(app)
-            app.config.log_tags = Array(app.config.log_tags)
-          end
-
-          def append_datadog_correlation_tags(app)
-            app.config.log_tags << proc { Tracing.log_correlation }
+          # Use `app.config.log_tags` to inject propagation tags into the default Rails logger.
+          def configure_log_tags(app)
+            app.config.log_tags ||= [] # Can be nil, we initialized it if so
+            app.config.log_tags << proc { Tracing.log_correlation if Datadog.configuration.tracing.log_injection }
           rescue StandardError => e
-            # TODO: can we use Datadog.logger at this point?
             Datadog.logger.warn(
               "Unable to add Datadog Trace context to ActiveSupport::TaggedLogging: #{e.class.name} #{e.message}"
             )
