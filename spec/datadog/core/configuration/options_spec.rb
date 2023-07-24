@@ -255,6 +255,52 @@ RSpec.describe Datadog::Core::Configuration::Options do
         end
       end
 
+      describe '#using_default?' do
+        subject(:using_default?) { options_object.using_default?(name) }
+
+        let(:name) { :foo }
+
+        context 'when the option is defined' do
+          before { options_class.send(:option, name, meta) }
+
+          let(:meta) { {} }
+
+          context 'and a value is set' do
+            let(:value) { double('value') }
+
+            before { options_object.set_option(name, value) }
+
+            it { is_expected.to be(false) }
+          end
+
+          context 'and a value is not set' do
+            context 'and no value is configured' do
+              it { is_expected.to be(true) }
+            end
+
+            context 'and a default is configured' do
+              let(:meta) { super().merge(default: 'anything') }
+
+              it { is_expected.to be(true) }
+            end
+
+            context 'and an environment variable is configured' do
+              let(:meta) { super().merge(env: 'TEST_ENV_VAR') }
+
+              around do |example|
+                ClimateControl.modify('TEST_ENV_VAR' => 'anything') { example.run }
+              end
+
+              it { is_expected.to be(false) }
+            end
+          end
+        end
+
+        context 'when the option is not defined' do
+          it { expect { using_default? }.to raise_error(described_class::InvalidOptionError) }
+        end
+      end
+
       describe '#option_defined?' do
         subject(:option_defined?) { options_object.option_defined?(name) }
 
