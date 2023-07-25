@@ -14,6 +14,8 @@ command = case process
             "bundle exec ddtracerb exec rackup -s webrick -o 0.0.0.0 -p 80 /app/config.ru"
           when 'irb'
             "bundle exec ddtracerb exec irb"
+          when 'passenger'
+            "bundle exec ddtracerb exec passenger start --port 80 -R /app/config.ru"
           when nil, ''
             abort("\n== ERROR: Must specify a application process! ==")
           else

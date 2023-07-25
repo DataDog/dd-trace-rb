@@ -94,7 +94,9 @@ module Datadog
                 {
                   id: content.path.config_id,
                   version: content.version,
-                  product: content.path.product
+                  product: content.path.product,
+                  apply_state: content.apply_state,
+                  apply_error: content.apply_error,
                 }
               end
             end

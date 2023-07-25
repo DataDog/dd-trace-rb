@@ -13,6 +13,8 @@ module Datadog
 
         private
 
+        def app_client_configuration_change: (Enumerable[[String, Numeric | bool | String]] changes)-> Datadog::Core::Telemetry::V2::AppClientConfigurationChange
+
         def payload: (untyped request_type) -> untyped
 
         def app_started: () -> untyped
