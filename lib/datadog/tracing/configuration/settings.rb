@@ -432,32 +432,6 @@ module Datadog
               option :x_datadog_tags_max_length do |o|
                 o.default { env_to_int(Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH, 512) }
               end
-
-              # Key-value map for explicitly re-mapping peer.service values
-              #
-              # @default `DD_TRACE_PEER_SERVICE_MAPPING` environment variable converted to hash
-              # @return [Hash]
-              option :peer_service_mapping do |o|
-                o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_PEER_SERVICE_MAPPING
-                o.type :hash
-                o.default({})
-              end
-
-              # Global service name behavior
-              settings :global_default_service_name do
-                # Overrides default service name to global service name
-                #
-                # Allows for usage of v1 service name changes without
-                # being forced to update schema versions
-                #
-                # @default `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED` environment variable, otherwise `false`
-                # @return [Boolean]
-                option :enabled do |o|
-                  o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED
-                  o.type :bool
-                  o.default false
-                end
-              end
             end
           end
         end

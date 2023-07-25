@@ -9,8 +9,6 @@ module Datadog
 
         def self?.fetch_service_name: (string env, string default) -> bool
 
-        def self?.default_span_attribute_schema?: () -> bool
-
         def not_empty_tag?: (string) -> bool
 
         def set_peer_service: -> bool
