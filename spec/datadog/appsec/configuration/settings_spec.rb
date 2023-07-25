@@ -387,7 +387,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_obfuscator_key_regex) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_OBFUSCATOR_KEY_REGEX }
+          it { is_expected.to eq described_class::DEFAULT_OBFUSCATOR_KEY_REGEX }
         end
 
         context 'is defined' do
@@ -423,7 +423,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_obfuscator_value_regex) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_OBFUSCATOR_VALUE_REGEX }
+          it { is_expected.to eq described_class::DEFAULT_OBFUSCATOR_VALUE_REGEX }
         end
 
         context 'is defined' do
