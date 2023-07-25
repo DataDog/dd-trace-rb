@@ -255,7 +255,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
         end
       end
 
-describe '#using_default?' do
+      describe '#using_default?' do
         subject(:using_default?) { options_object.using_default?(name) }
 
         let(:name) { :foo }
@@ -315,6 +315,7 @@ describe '#using_default?' do
             end
           end
         end
+      end
 
       describe '#option_defined?' do
         subject(:option_defined?) { options_object.option_defined?(name) }
