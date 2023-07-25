@@ -433,19 +433,6 @@ module Datadog
                 o.default { env_to_int(Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH, 512) }
               end
 
-              # Schema version for span attributes that enables various features
-              #
-              # @default `DD_TRACE_SPAN_ATTRIBUTE_SCHEMA` environment variable, otherwise default `v0` currently
-              # @return [String]
-              option :span_attribute_schema do |o|
-                o.default do
-                  ENV.fetch(
-                    Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA,
-                    Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
-                  )
-                end
-              end
-
               # Key-value map for explicitly re-mapping peer.service values
               #
               # @default `DD_TRACE_PEER_SERVICE_MAPPING` environment variable converted to hash

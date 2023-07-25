@@ -10,11 +10,6 @@ module Datadog
         REFLEXIVE_SOURCES = [Tracing::Metadata::Ext::TAG_PEER_SERVICE].freeze
         NO_SOURCE = [].freeze
 
-        def self.default_span_attribute_schema?
-          Datadog.configuration.tracing.span_attribute_schema ==
-            Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
-        end
-
         def self.fetch_service_name(env, default)
           ENV.fetch(env) do
             return Datadog.configuration.service if Datadog.configuration.tracing.global_default_service_name.enabled

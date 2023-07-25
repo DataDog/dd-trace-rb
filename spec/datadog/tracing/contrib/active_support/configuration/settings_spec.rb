@@ -9,11 +9,9 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Configuration::Settings
       end
     end
 
-    context 'when without service_name v0' do
+    context 'when without service_name' do
       it do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-          expect(described_class.new.cache_service).to eq('active_support-cache')
-        end
+        expect(described_class.new.cache_service).to eq('active_support-cache')
       end
     end
 

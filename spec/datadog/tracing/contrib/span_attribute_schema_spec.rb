@@ -1,30 +1,6 @@
 require 'datadog/tracing/contrib/span_attribute_schema'
 
 RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
-  describe '#default_span_attribute_schema?' do
-    context 'when default schema is set' do
-      it 'returns true' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-          expect(described_class.default_span_attribute_schema?).to eq(true)
-        end
-      end
-    end
-
-    context 'when default schema is changed' do
-      it 'returns false' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'not-v0' do
-          expect(described_class.default_span_attribute_schema?).to eq(false)
-        end
-      end
-    end
-
-    context 'when default schema is not set' do
-      it 'returns true' do
-        expect(described_class.default_span_attribute_schema?).to eq(true)
-      end
-    end
-  end
-
   describe '#fetch_service_name' do
     context 'when integration service is set' do
       it 'returns the integration specific service name' do
@@ -40,7 +16,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
 
     context 'when DD_SERVICE is set' do
       it 'returns default integration service name' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0', DD_SERVICE: 'service' do
+        with_modified_env DD_SERVICE: 'service' do
           expect(
             described_class
               .fetch_service_name('DD_INTEGRATION_SERVICE',
@@ -52,20 +28,17 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
 
     context 'when DD_SERVICE is not set' do
       it 'returns default integration service name' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-          expect(
-            described_class
-              .fetch_service_name('DD_INTEGRATION_SERVICE',
-                'default-integration-service-name')
-          ).to eq('default-integration-service-name')
-        end
+        expect(
+          described_class
+            .fetch_service_name('DD_INTEGRATION_SERVICE',
+              'default-integration-service-name')
+        ).to eq('default-integration-service-name')
       end
     end
 
     context 'when DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
       it 'returns DD_SERVICE' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0',
-          DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
+        with_modified_env DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
           DD_SERVICE: 'service' do
             expect(
               described_class
