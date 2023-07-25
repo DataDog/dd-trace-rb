@@ -29,7 +29,7 @@ module Datadog
         # @return [String] concatenated list of transport errors
         def agent_error(tracing_responses)
           return nil if tracing_responses.nil?
-          
+
           error_responses = tracing_responses.reject(&:ok?)
 
           return nil if error_responses.empty?
