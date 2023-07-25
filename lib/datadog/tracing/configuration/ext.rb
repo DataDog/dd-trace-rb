@@ -16,7 +16,6 @@ module Datadog
           ENV_PEER_SERVICE_MAPPING = 'DD_TRACE_PEER_SERVICE_MAPPING'
           DEFAULT_VERSION = 'v0'
           VERSION_ZERO = 'v0'
-          VERSION_ONE = 'v1'
         end
 
         # @public_api
