@@ -91,7 +91,7 @@ module Datadog
 
         # @return [Boolean, nil]
         def enabled
-          Datadog.configuration.tracing.enabled
+          raise NotImplementedError, "#{self.class} has not implemented method '#{__method__}'" # implementation in Tracing
         end
 
         # @return [String] configured application service name
@@ -106,14 +106,7 @@ module Datadog
 
         # @return [String, nil] target agent URL for trace flushing
         def agent_url
-          # Retrieve the effect agent URL, regardless of how it was configured
-          transport = Tracing.send(:tracer).writer.transport
-
-          # return `nil` with IO transport
-          return unless transport.respond_to?(:client)
-
-          adapter = transport.client.api.adapter
-          adapter.url
+          raise NotImplementedError, "#{self.class} has not implemented method '#{__method__}'" # implementation in Tracing
         end
 
         # Error returned by Datadog agent during a tracer flush attempt
@@ -133,15 +126,12 @@ module Datadog
 
         # @return [Boolean, nil] analytics enabled in configuration
         def analytics_enabled
-          !!Datadog.configuration.tracing.analytics.enabled
+          raise NotImplementedError, "#{self.class} has not implemented method '#{__method__}'" # implementation in Tracing
         end
 
         # @return [Numeric, nil] tracer sample rate configured
         def sample_rate
-          sampler = Datadog.configuration.tracing.sampler
-          return nil unless sampler
-
-          sampler.sample_rate(nil) rescue nil
+          raise NotImplementedError, "#{self.class} has not implemented method '#{__method__}'" # implementation in Tracing
         end
 
         # DEV: We currently only support SimpleRule instances.
@@ -151,19 +141,7 @@ module Datadog
         #
         # @return [Hash, nil] sample rules configured
         def sampling_rules
-          sampler = Datadog.configuration.tracing.sampler
-          return nil unless sampler.is_a?(Tracing::Sampling::PrioritySampler) &&
-            sampler.priority_sampler.is_a?(Tracing::Sampling::RuleSampler)
-
-          sampler.priority_sampler.rules.map do |rule|
-            next unless rule.is_a?(Tracing::Sampling::SimpleRule)
-
-            {
-              name: rule.matcher.name,
-              service: rule.matcher.service,
-              sample_rate: rule.sampler.sample_rate(nil)
-            }
-          end.compact
+          raise NotImplementedError, "#{self.class} has not implemented method '#{__method__}'" # implementation in Tracing
         end
 
         # @return [Hash, nil] concatenated list of global tracer tags configured
@@ -206,12 +184,12 @@ module Datadog
 
         # @return [Boolean, nil] partial flushing enabled in configuration
         def partial_flushing_enabled
-          !!Datadog.configuration.tracing.partial_flush.enabled
+          raise NotImplementedError, "#{self.class} has not implemented method '#{__method__}'" # implementation in Tracing
         end
 
         # @return [Boolean, nil] priority sampling enabled in configuration
         def priority_sampling_enabled
-          !!Datadog.configuration.tracing.priority_sampling
+          raise NotImplementedError, "#{self.class} has not implemented method '#{__method__}'" # implementation in Tracing
         end
 
         # @return [Boolean, nil] health metrics enabled in configuration
@@ -220,7 +198,7 @@ module Datadog
         end
 
         def profiling_enabled
-          !!Datadog.configuration.profiling.enabled
+          raise NotImplementedError, "#{self.class} has not implemented method '#{__method__}'" # implementation in Profiling
         end
 
         # TODO: Populate when automatic log correlation is implemented
@@ -260,7 +238,7 @@ module Datadog
         private
 
         def instrumented_integrations
-          Datadog.configuration.tracing.instrumented_integrations
+          raise NotImplementedError, "#{self.class} has not implemented method '#{__method__}'" # implementation in Tracing
         end
 
         # Capture all active integration settings into "integrationName_settingName: value" entries.
