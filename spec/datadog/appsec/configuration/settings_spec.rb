@@ -52,7 +52,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_enabled) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_APPSEC_ENABLED }
+          it { is_expected.to eq false }
         end
 
         context 'is defined' do
@@ -66,20 +66,14 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe '#enabled=' do
       subject(:set_appsec_enabled) { settings.appsec.enabled = appsec_enabled }
 
-      context 'when given a falsy value' do
-        let(:appsec_enabled) { nil }
+      [true, false].each do |value|
+        context "when given #{value}" do
+          let(:appsec_enabled) { value }
 
-        before { set_appsec_enabled }
+          before { set_appsec_enabled }
 
-        it { expect(settings.appsec.enabled).to eq(false) }
-      end
-
-      context 'when given a truthy value' do
-        let(:appsec_enabled) { 'enabled' }
-
-        before { set_appsec_enabled }
-
-        it { expect(settings.appsec.enabled).to eq(true) }
+          it { expect(settings.appsec.enabled).to eq(value) }
+        end
       end
     end
 
@@ -172,7 +166,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_ruleset) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_APPSEC_RULESET }
+          it { is_expected.to eq :recommended }
         end
 
         context 'is defined' do
@@ -248,7 +242,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_waf_timeout) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_APPSEC_WAF_TIMEOUT }
+          it { is_expected.to eq 5000 }
         end
 
         context 'is defined' do
@@ -319,7 +313,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_waf_debug) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_APPSEC_WAF_DEBUG }
+          it { is_expected.to eq false }
         end
 
         context 'is defined' do
@@ -333,20 +327,14 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe '#waf_debug=' do
       subject(:set_appsec_waf_debug) { settings.appsec.waf_debug = appsec_waf_debug }
 
-      context 'when given a falsy value' do
-        let(:appsec_waf_debug) { nil }
+      [true, false].each do |value|
+        context "when given #{value}" do
+          let(:appsec_waf_debug) { value }
 
-        before { set_appsec_waf_debug }
+          before { set_appsec_waf_debug }
 
-        it { expect(settings.appsec.waf_debug).to eq(false) }
-      end
-
-      context 'when given a truthy value' do
-        let(:appsec_waf_debug) { 'waf_debug' }
-
-        before { set_appsec_waf_debug }
-
-        it { expect(settings.appsec.waf_debug).to eq(true) }
+          it { expect(settings.appsec.waf_debug).to eq(value) }
+        end
       end
     end
 
@@ -363,7 +351,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_trace_rate_limit) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_APPSEC_TRACE_RATE_LIMIT }
+          it { is_expected.to eq 100 }
         end
 
         context 'is defined' do
@@ -399,7 +387,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_obfuscator_key_regex) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_OBFUSCATOR_KEY_REGEX }
+          it { is_expected.to eq described_class::DEFAULT_OBFUSCATOR_KEY_REGEX }
         end
 
         context 'is defined' do
@@ -435,7 +423,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:appsec_obfuscator_value_regex) { nil }
 
-          it { is_expected.to be described_class::DEFAULT_OBFUSCATOR_VALUE_REGEX }
+          it { is_expected.to eq described_class::DEFAULT_OBFUSCATOR_VALUE_REGEX }
         end
 
         context 'is defined' do
@@ -472,7 +460,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           context 'is not defined' do
             let(:track_user_events_enabled) { nil }
 
-            it { is_expected.to be described_class::DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_ENABLED }
+            it { is_expected.to eq true }
           end
 
           context 'is defined' do
@@ -496,20 +484,14 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           settings.appsec.track_user_events.enabled = track_user_events_enabled
         end
 
-        context 'when given a falsy value' do
-          let(:track_user_events_enabled) { nil }
+        [true, false].each do |value|
+          context "when given #{value}" do
+            let(:track_user_events_enabled) { value }
 
-          before { set_appsec_track_user_events_enabled }
+            before { set_appsec_track_user_events_enabled }
 
-          it { expect(settings.appsec.track_user_events.enabled).to eq(false) }
-        end
-
-        context 'when given a truthy value' do
-          let(:track_user_events_enabled) { 'enabled' }
-
-          before { set_appsec_track_user_events_enabled }
-
-          it { expect(settings.appsec.track_user_events.enabled).to eq(true) }
+            it { expect(settings.appsec.track_user_events.enabled).to eq(value) }
+          end
         end
       end
 
@@ -526,7 +508,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           context 'is not defined' do
             let(:track_user_events_mode) { nil }
 
-            it { is_expected.to be described_class::DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE }
+            it { is_expected.to eq 'safe' }
           end
 
           context 'is defined' do
@@ -539,7 +521,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
             context 'value equal to disabled' do
               let(:track_user_events_mode) { 'disabled' }
 
-              it { is_expected.to eq(described_class::DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE) }
+              it { is_expected.to eq 'safe' }
             end
           end
         end
@@ -551,7 +533,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
 
         context 'when given a supported value' do
-          let(:track_user_events_mode) { :extended }
+          let(:track_user_events_mode) { 'extended' }
 
           before { set_appsec_track_user_events_mode }
 
@@ -564,9 +546,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           before { set_appsec_track_user_events_mode }
 
           it {
-            expect(settings.appsec.track_user_events.mode).to eq(
-              described_class::DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE
-            )
+            expect(settings.appsec.track_user_events.mode).to eq('safe')
           }
         end
       end

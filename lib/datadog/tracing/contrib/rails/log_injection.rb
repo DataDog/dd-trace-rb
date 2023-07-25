@@ -7,17 +7,11 @@ module Datadog
         module LogInjection
           module_function
 
-          def add_as_tagged_logging_logger(app)
-            # we want to check if the current logger is a tagger logger instance
-            # log_tags defaults to nil so we have to set as an array if nothing exists yet
-            if (log_tags = app.config.log_tags).nil?
-              app.config.log_tags = [proc { Tracing.log_correlation }]
-            # if existing log_tags configuration exists, append to the end of the array
-            elsif log_tags.is_a?(Array)
-              app.config.log_tags << proc { Tracing.log_correlation }
-            end
+          # Use `app.config.log_tags` to inject propagation tags into the default Rails logger.
+          def configure_log_tags(app)
+            app.config.log_tags ||= [] # Can be nil, we initialized it if so
+            app.config.log_tags << proc { Tracing.log_correlation if Datadog.configuration.tracing.log_injection }
           rescue StandardError => e
-            # TODO: can we use Datadog.logger at this point?
             Datadog.logger.warn(
               "Unable to add Datadog Trace context to ActiveSupport::TaggedLogging: #{e.class.name} #{e.message}"
             )

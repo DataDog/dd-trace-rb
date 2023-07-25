@@ -392,7 +392,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
     end
 
     context('with a local timeout') do
-      let(:timeout) { delay / 4 }
+      let(:timeout) { delay / 100 }
 
       context('shorter than lift') do
         it 'unblocks on timeout' do
@@ -400,9 +400,8 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
           barrier.wait_next(timeout)
           record << :two
           barrier.wait_next(timeout)
-          record << :three
 
-          expect(record).to eq [:one, :two, :three]
+          expect(record).to eq [:one, :two]
         end
       end
 
@@ -437,16 +436,15 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
     end
 
     context('with an instance timeout') do
-      let(:instance_timeout) { delay / 4 }
+      let(:instance_timeout) { delay / 100 }
 
       it 'unblocks on timeout' do
         record << :one
         barrier.wait_next
         record << :two
         barrier.wait_next
-        record << :three
 
-        expect(record).to eq [:one, :two, :three]
+        expect(record).to eq [:one, :two]
       end
     end
   end

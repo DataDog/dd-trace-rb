@@ -11,13 +11,6 @@ module Datadog
 
         DEFAULT_OBFUSCATOR_KEY_REGEX: ::String
         DEFAULT_OBFUSCATOR_VALUE_REGEX: ::String
-        DEFAULT_APPSEC_ENABLED: bool
-        DEFAULT_APPSEC_RULESET: :recommended
-        DEFAULT_APPSEC_WAF_TIMEOUT: Integer
-        DEFAULT_APPSEC_WAF_DEBUG: bool
-        DEFAULT_APPSEC_TRACE_RATE_LIMIT: Integer
-        DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_ENABLED: bool
-        DEFAULT_APPSEC_AUTOMATED_TRACK_USER_EVENTS_MODE: String
         APPSEC_VALID_TRACK_USER_EVENTS_MODE: ::Array[String]
 
         def self.extended: (untyped base) -> untyped

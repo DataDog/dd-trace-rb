@@ -178,7 +178,9 @@ module Datadog
               # @default `DD_TRACE_HEADER_TAGS` environment variable, otherwise an empty set of tags
               # @return [Array<String>]
               option :header_tags do |o|
-                o.default { env_to_list(Configuration::Ext::ENV_HEADER_TAGS, nil, comma_separated_only: true) }
+                o.env Configuration::Ext::ENV_HEADER_TAGS
+                o.type :array
+                o.default []
                 o.setter { |header_tags, _| Configuration::HTTP::HeaderTags.new(header_tags) }
               end
 

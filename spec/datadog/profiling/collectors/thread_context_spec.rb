@@ -1111,6 +1111,18 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             expect(invoke_location).to match(/.+\.rb:\d+/)
           end
         end
+
+        it 'contains a fallback for threads started in native code' do
+          native_thread = described_class::Testing._native_new_empty_thread
+
+          sample
+
+          native_thread.kill
+          native_thread.join
+
+          invoke_location = per_thread_context.fetch(native_thread).fetch(:thread_invoke_location)
+          expect(invoke_location).to eq '(Unnamed thread from native code)'
+        end
       end
     end
 
