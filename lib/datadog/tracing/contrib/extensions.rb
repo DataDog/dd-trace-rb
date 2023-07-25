@@ -111,14 +111,6 @@ module Datadog
             def self.included(base)
               base.class_eval do
                 settings :contrib do
-                  # Schema version for span attributes that enables various features. Only returns 'v0' for now
-                  #
-                  # @default `v0`
-                  # @return [String]
-                  option :span_attribute_schema do |o|
-                    o.default 'v0'
-                  end
-
                   # Key-value map for explicitly re-mapping peer.service values
                   #
                   # @default `DD_TRACE_PEER_SERVICE_MAPPING` environment variable converted to hash
