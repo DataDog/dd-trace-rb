@@ -1,0 +1,12 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rack
+        module HeaderTagging
+          def self.tag_request_headers: (SpanOperation span, Hash[String,String] env, Configuration configuration) -> untyped
+          def self.tag_response_headers: (SpanOperation span, Hash[String,String] headers, Configuration configuration) -> untyped
+        end
+      end
+    end
+  end
+end

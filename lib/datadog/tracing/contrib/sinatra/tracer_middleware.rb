@@ -3,9 +3,9 @@
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative '../rack/ext'
+require_relative '../rack/header_tagging'
 require_relative 'env'
 require_relative 'ext'
-require_relative 'headers'
 
 module Datadog
   module Tracing
@@ -20,8 +20,6 @@ module Datadog
 
           # rubocop:disable Metrics/AbcSize
           # rubocop:disable Metrics/MethodLength
-          # rubocop:disable Metrics/CyclomaticComplexity
-          # rubocop:disable Metrics/PerceivedComplexity
           def call(env)
             # Set the trace context (e.g. distributed tracing)
             if configuration[:distributed_tracing] && Tracing.active_trace.nil?
@@ -45,9 +43,7 @@ module Datadog
 
                 response = @app.call(env)
               ensure
-                Sinatra::Env.request_header_tags(env, configuration[:headers][:request]).each do |name, value|
-                  span.set_tag(name, value) if span.get_tag(name).nil?
-                end
+                Contrib::Rack::HeaderTagging.tag_request_headers(span, env, configuration)
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
@@ -85,12 +81,7 @@ module Datadog
                   end
 
                   if (headers = response[1])
-                    Sinatra::Headers.response_header_tags(
-                      headers,
-                      configuration[:headers][:response]
-                    ).each do |name, value|
-                      span.set_tag(name, value) if span.get_tag(name).nil?
-                    end
+                    Contrib::Rack::HeaderTagging.tag_response_headers(span, headers, configuration)
                   end
                 end
 
@@ -104,8 +95,6 @@ module Datadog
           end
           # rubocop:enable Metrics/AbcSize
           # rubocop:enable Metrics/MethodLength
-          # rubocop:enable Metrics/CyclomaticComplexity
-          # rubocop:enable Metrics/PerceivedComplexity
 
           private
 

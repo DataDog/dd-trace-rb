@@ -1,4 +1,5 @@
 require_relative '../../tracing/configuration/ext'
+require_relative 'http'
 
 module Datadog
   module Tracing
@@ -163,6 +164,24 @@ module Datadog
               # @return [Boolean]
               option :enabled do |o|
                 o.default { env_to_bool(Tracing::Configuration::Ext::ENV_ENABLED, true) }
+              end
+
+              # Comma-separated, case-insensitive list of header names that are reported in incoming and outgoing HTTP requests.
+              #
+              # Each header in the list can either be:
+              # * A header name, which is mapped to the respective tags `http.request.headers.<header name>` and `http.response.headers.<header name>`.
+              # * A key value pair, "header name:tag name", which is mapped to the span tag `tag name`.
+              #
+              # You can mix the two types of header declaration in the same list.
+              # Tag names will be normalized based on the [Datadog tag normalization rules](https://docs.datadoghq.com/getting_started/tagging/#defining-tags).
+              #
+              # @default `DD_TRACE_HEADER_TAGS` environment variable, otherwise an empty set of tags
+              # @return [Array<String>]
+              option :header_tags do |o|
+                o.env Configuration::Ext::ENV_HEADER_TAGS
+                o.type :array
+                o.default []
+                o.setter { |header_tags, _| Configuration::HTTP::HeaderTags.new(header_tags) }
               end
 
               # Enable 128 bit trace id generation.
