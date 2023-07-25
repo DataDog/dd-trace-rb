@@ -337,7 +337,7 @@ module Datadog
         end
 
         def split_tracestate(tracestate)
-          tracestate.split(/[ \t]*,[ \t]*/)[0..31]
+          tracestate.split(/[ \t]*+,[ \t]*+/)[0..31]
         end
 
         # Version 0xFF is invalid as per spec
