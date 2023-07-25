@@ -12,7 +12,9 @@ module Datadog
 
         def self.fetch_service_name(env, default)
           ENV.fetch(env) do
-            return Datadog.configuration.service if Datadog.configuration.tracing.contrib.global_default_service_name.enabled
+            if Datadog.configuration.tracing.contrib.global_default_service_name.enabled
+              return Datadog.configuration.service
+            end
 
             default
           end
