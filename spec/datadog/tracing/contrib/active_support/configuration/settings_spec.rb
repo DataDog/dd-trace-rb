@@ -3,13 +3,13 @@ require 'datadog/tracing/contrib/service_name_settings_examples'
 
 RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Configuration::Settings do
   describe 'Option `cache_service`' do
-    context 'when with cache_service' do # default to include base
+    context 'when with cache_service' do
       it do
         expect(described_class.new(cache_service: 'test-service').cache_service).to eq('test-service')
       end
     end
 
-    context 'when without service_name v0' do # default to include base
+    context 'when without service_name v0' do
       it do
         with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
           expect(described_class.new.cache_service).to eq('active_support-cache')
@@ -17,9 +17,18 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Configuration::Settings
       end
     end
 
-    context 'when without service_name v1' do # default to include base
+    context 'when without service_name v1' do
       it do
         with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
+          skip('v1 is not fully implemented')
+          expect(described_class.new.cache_service).to eq('rspec')
+        end
+      end
+    end
+
+    context 'when without service_name v0 but uses env var' do
+      it do
+        with_modified_env DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true' do
           expect(described_class.new.cache_service).to eq('rspec')
         end
       end

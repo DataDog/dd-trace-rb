@@ -15,12 +15,10 @@ module Datadog
         end
 
         def active_version
-          case Datadog.configuration.tracing.span_attribute_schema
-          when 'v1'
-            V1
-          else
-            V0 # Default Version
-          end
+          # In the future, when we have multiple versions,
+          # the below configuration value can be used to return the desired version:
+          # Datadog.configuration.tracing.span_attribute_schema
+          V0
         end
 
         def fetch_service_name(env, default)
@@ -125,6 +123,7 @@ module Datadog
         end
 
         # Contains implementation of methods specific to v1
+        # Not fully implemented yet
         module V1
           extend Base
 

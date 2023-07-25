@@ -37,6 +37,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
     context 'when v1 is set' do
       it 'equals v1' do
         with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
+          skip('v1 is not fully implemented')
           expect(described_class.send(:active_version)).to eq(described_class::V1)
         end
       end
