@@ -14,6 +14,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/http_examples'
+require 'datadog/tracing/contrib/support/http'
 require 'spec/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
@@ -150,6 +151,20 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
           it_behaves_like 'schema version span'
+
+          context 'when configured with global tag headers' do
+            let(:headers) { { 'Request-Id' => 'test-request' } }
+
+            include_examples 'with request tracer header tags' do
+              let(:request_header_tag) { 'request-id' }
+              let(:request_header_tag_value) { 'test-request' }
+            end
+
+            include_examples 'with response tracer header tags' do
+              let(:response_header_tag) { 'connection' }
+              let(:response_header_tag_value) { 'close' }
+            end
+          end
         end
 
         context 'response has internal server error status' do

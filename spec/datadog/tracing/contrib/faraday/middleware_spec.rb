@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/support/http'
 
 require 'faraday'
 
@@ -14,7 +15,7 @@ RSpec.describe 'Faraday middleware' do
     ::Faraday.new('http://example.com') do |builder|
       builder.use(:ddtrace, middleware_options) if use_middleware
       builder.adapter(:test) do |stub|
-        stub.get('/success') { |_| [200, {}, 'OK'] }
+        stub.get('/success') { |_| [200, response_headers, 'OK'] }
         stub.post('/failure') { |_| [500, {}, 'Boom!'] }
         stub.get('/not_found') { |_| [404, {}, 'Not Found.'] }
         stub.get('/error') { |_| raise ::Faraday::ConnectionFailed, 'Test error' }
@@ -25,6 +26,7 @@ RSpec.describe 'Faraday middleware' do
   let(:use_middleware) { true }
   let(:middleware_options) { {} }
   let(:configuration_options) { {} }
+  let(:response_headers) { {} }
 
   before do
     Datadog.configure do |c|
@@ -40,7 +42,8 @@ RSpec.describe 'Faraday middleware' do
   end
 
   context 'without explicit middleware configured' do
-    subject(:response) { client.get('/success') }
+    subject(:response) { client.get('/success', nil, request_headers) }
+    let(:request_headers) { {} }
 
     let(:use_middleware) { false }
 
@@ -73,6 +76,23 @@ RSpec.describe 'Faraday middleware' do
 
     it 'executes without warnings' do
       expect { response }.to_not output(/WARNING/).to_stderr
+    end
+
+    context 'when configured with global tag headers' do
+      before { response }
+
+      let(:request_headers) { { 'Request-Id' => 'test-request' } }
+      let(:response_headers) { { 'Response-Id' => 'test-response' } }
+
+      include_examples 'with request tracer header tags' do
+        let(:request_header_tag) { 'request-id' }
+        let(:request_header_tag_value) { 'test-request' }
+      end
+
+      include_examples 'with response tracer header tags' do
+        let(:response_header_tag) { 'response-id' }
+        let(:response_header_tag_value) { 'test-response' }
+      end
     end
 
     context 'with default Faraday connection' do
