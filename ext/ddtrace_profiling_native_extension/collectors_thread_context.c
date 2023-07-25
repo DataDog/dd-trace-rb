@@ -783,7 +783,7 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
     // If the first function of a thread is native code, there won't be an invoke location, so we use this fallback.
     // NOTE: In the future, I wonder if we could take the pointer to the native function, and try to see if there's a native
     // symbol attached to it.
-    snprintf(thread_context->thread_invoke_location, THREAD_INVOKE_LOCATION_LIMIT_CHARS, "%s", "(Unnamed thread from native gem)");
+    snprintf(thread_context->thread_invoke_location, THREAD_INVOKE_LOCATION_LIMIT_CHARS, "%s", "(Unnamed thread from native code)");
   }
 
   thread_context->thread_invoke_location_char_slice = (ddog_CharSlice) {

@@ -1121,7 +1121,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           native_thread.join
 
           invoke_location = per_thread_context.fetch(native_thread).fetch(:thread_invoke_location)
-          expect(invoke_location).to eq '(Unnamed thread from native gem)'
+          expect(invoke_location).to eq '(Unnamed thread from native code)'
         end
       end
     end
