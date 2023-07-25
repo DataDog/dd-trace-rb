@@ -18,10 +18,6 @@ RSpec.describe Datadog::CI::Configuration::Settings do
     end
 
     describe '#ci' do
-      after do
-        settings.reset!
-      end
-
       describe '#enabled' do
         subject(:enabled) { settings.ci.enabled }
 

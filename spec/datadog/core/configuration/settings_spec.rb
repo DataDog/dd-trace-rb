@@ -12,10 +12,6 @@ require 'datadog/profiling/ext'
 RSpec.describe Datadog::Core::Configuration::Settings do
   subject(:settings) { described_class.new(options) }
 
-  after do
-    settings.reset!
-  end
-
   let(:options) { {} }
 
   describe '#api_key' do

@@ -18,10 +18,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
   let(:options) { {} }
 
   describe '#tracing' do
-    after do
-      settings.reset!
-    end
-
     describe '#analytics' do
       describe '#enabled' do
         subject(:enabled) { settings.tracing.analytics.enabled }
