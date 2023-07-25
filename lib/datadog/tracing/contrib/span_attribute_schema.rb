@@ -50,7 +50,7 @@ module Datadog
           def set_peer_service!(span, sources)
             # Acquire all peer.service values as well as any potential remapping
             peer_service_val, peer_service_source = set_peer_service_from_source(span, sources)
-            remap_val = Datadog.configuration.tracing.peer_service_mapping[peer_service_val]
+            remap_val = Datadog.configuration.tracing.contrib.peer_service_mapping[peer_service_val]
 
             # Only continue to setting peer.service if actual source is found
             return false unless peer_service_source
@@ -117,7 +117,7 @@ module Datadog
 
           def fetch_service_name(env, default)
             ENV.fetch(env) do
-              return Datadog.configuration.service if Datadog.configuration.tracing.global_default_service_name.enabled
+              return Datadog.configuration.service if Datadog.configuration.tracing.contrib.global_default_service_name.enabled
 
               default
             end
