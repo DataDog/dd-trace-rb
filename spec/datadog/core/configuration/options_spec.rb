@@ -264,6 +264,68 @@ RSpec.describe Datadog::Core::Configuration::Options do
         end
       end
 
+      describe '#using_default?' do
+        subject(:using_default?) { options_object.using_default?(name) }
+
+        let(:name) { :foo }
+
+        context 'when the option is defined' do
+          before { options_class.send(:option, name, meta) }
+
+          let(:meta) { {} }
+
+          context 'and a value is set' do
+            before { options_object.set_option(name, 'something') }
+
+            it { is_expected.to be(false) }
+          end
+
+          context 'and a value is not set' do
+            context 'and no default value is configured' do
+              it { is_expected.to be(true) }
+            end
+
+            context 'and a default value is configured' do
+              let(:meta) { { default: 'anything' } }
+
+              it { is_expected.to be(true) }
+
+              context 'and an environment variable is configured' do
+                let(:meta) { { default: 'anything', env: 'TEST_ENV_VAR' } }
+
+                context 'and an environmet variable is set' do
+                  around do |example|
+                    ClimateControl.modify('TEST_ENV_VAR' => 'anything') { example.run }
+                  end
+
+                  it { is_expected.to be(false) }
+                end
+
+                context 'and an environment variable is not set' do
+                  it { is_expected.to be(true) }
+                end
+              end
+            end
+
+            context 'an environment variable is configured' do
+              let(:meta) { { env: 'TEST_ENV_VAR' } }
+
+              context 'and an environmet variable is set' do
+                around do |example|
+                  ClimateControl.modify('TEST_ENV_VAR' => 'anything') { example.run }
+                end
+
+                it { is_expected.to be(false) }
+              end
+
+              context 'and an environment variable is not set' do
+                it { is_expected.to be(true) }
+              end
+            end
+          end
+        end
+      end
+
       describe '#option_defined?' do
         subject(:option_defined?) { options_object.option_defined?(name) }
 
