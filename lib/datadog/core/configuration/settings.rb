@@ -141,12 +141,11 @@ module Datadog
             # If `nil`, defaults to logging startup logs when `ddtrace` detects that the application
             # is *not* running in a development environment.
             #
-            # @default `DD_TRACE_STARTUP_LOGS` environment variable, otherwise `false`
-            # @return [Boolean]
+            # @default `DD_TRACE_STARTUP_LOGS` environment variable, otherwise `nil`
+            # @return [Boolean, nil]
             option :enabled do |o|
               o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_STARTUP_LOGS_ENABLED
-              o.default false
-              o.type :bool
+              o.type :bool, nilable: true
             end
           end
         end
