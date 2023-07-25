@@ -34,6 +34,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
   let(:setter_value) { double('setter_value') }
   let(:context) { double('configuration object') }
 
+  # When setting the setting value, we make sure to duplicate it to avoid unwanted modifications
+  # to make sure specs pass when comparing result ex. expect(result).to be value
+  # we ensure that frozen_or_dup returns the same instance
   before do
     allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |args, _block|
       args

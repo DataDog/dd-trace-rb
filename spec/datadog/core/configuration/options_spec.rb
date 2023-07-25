@@ -10,6 +10,9 @@ RSpec.describe Datadog::Core::Configuration::Options do
       end
     end
 
+    # When setting the setting value, we make sure to duplicate it to avoid unwanted modifications
+    # to make sure specs pass when comparing result ex. expect(result).to be value
+    # we ensure that frozen_or_dup returns the same instance
     before do
       allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |args, _block|
         args
