@@ -13,17 +13,17 @@ module Datadog
 
           def self?.patch: () -> untyped
 
-          def self?.patch_before_intialize: () -> untyped
+          def self?.patch_before_initialize: () -> untyped
 
-          def self?.before_intialize: (untyped app) -> untyped
+          def self?.before_initialize: (untyped app) -> untyped
 
           def self?.add_middleware: (untyped app) -> untyped
 
           def self?.add_logger: (untyped app) -> untyped
 
-          def self?.patch_after_intialize: () -> untyped
+          def self?.patch_after_initialize: () -> untyped
 
-          def self?.after_intialize: (untyped app) -> untyped
+          def self?.after_initialize: (untyped app) -> untyped
           def self?.setup_tracer: () -> untyped
         end
       end
