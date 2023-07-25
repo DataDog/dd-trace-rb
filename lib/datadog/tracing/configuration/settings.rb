@@ -259,7 +259,7 @@ module Datadog
                 # for resources not seen recently).
                 #
                 # @default `DD_TRACE_SAMPLE_RATE` environment variable, otherwise `nil`.
-                # @return [Float]
+                # @return [Float, nil]
                 option :default_rate do |o|
                   o.type :float, nilable: true
                   o.env Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
