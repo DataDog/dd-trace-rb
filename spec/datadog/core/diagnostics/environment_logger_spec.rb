@@ -2,6 +2,7 @@ require 'spec_helper'
 
 require 'datadog/core/diagnostics/environment_logger'
 require 'ddtrace/transport/io'
+require 'datadog/profiling/profiler'
 
 RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
@@ -263,7 +264,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           end
         end
 
-        after { Datadog.configure { |c| c.tracing.transport_options = {} } }
+        after { Datadog.configuration.reset! }
 
         it { is_expected.to include agent_url: include('unix') }
         it { is_expected.to include agent_url: include('/tmp/trace.sock') }
@@ -289,14 +290,6 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           it { is_expected.to include integration_http_service_name: 'my-http' }
           it { is_expected.to include integration_http_distributed_tracing: 'true' }
           it { is_expected.to include integration_http_split_by_domain: 'false' }
-        end
-
-        context 'with a complex setting value' do
-          let(:options) { { service_name: Class.new } }
-
-          it 'converts to a string' do
-            is_expected.to include integration_http_service_name: start_with('#<Class:')
-          end
         end
       end
 

@@ -12,18 +12,24 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             option :enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ENABLED, true) }
+              o.type :bool
+              o.env Ext::ENV_ENABLED
+              o.default true
             end
 
             option :analytics_enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, false) }
+              o.type :bool
+              o.env Ext::ENV_ANALYTICS_ENABLED
+              o.default false
             end
 
             option :analytics_sample_rate do |o|
-              o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
+              o.type :float
+              o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
+              o.default 1.0
             end
 
-            option :distributed_tracing, default: true
+            option :distributed_tracing, default: true, type: :bool
 
             option :service_name do |o|
               o.default do
@@ -35,10 +41,26 @@ module Datadog
             end
 
             option :error_status_codes do |o|
-              o.default { env_to_list(Ext::ENV_ERROR_STATUS_CODES, 400...600, comma_separated_only: false) }
+              o.env Ext::ENV_ERROR_STATUS_CODES
+              o.default 400...600
+              o.env_parser do |value|
+                values = if value.include?(',')
+                           value.split(',')
+                         else
+                           value.split
+                         end
+                values.map! do |v|
+                  v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+                  v.empty? ? nil : v
+                end
+
+                values.compact!
+                values
+              end
             end
 
-            option :split_by_domain, default: false
+            option :split_by_domain, default: false, type: :bool
           end
         end
       end

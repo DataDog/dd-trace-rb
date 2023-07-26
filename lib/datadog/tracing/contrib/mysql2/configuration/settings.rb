@@ -14,15 +14,21 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             option :enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ENABLED, true) }
+              o.type :bool
+              o.env Ext::ENV_ENABLED
+              o.default true
             end
 
             option :analytics_enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, false) }
+              o.type :bool
+              o.env Ext::ENV_ANALYTICS_ENABLED
+              o.default false
             end
 
             option :analytics_sample_rate do |o|
-              o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
+              o.type :float
+              o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
+              o.default 1.0
             end
 
             option :service_name do |o|
@@ -35,12 +41,9 @@ module Datadog
             end
 
             option :comment_propagation do |o|
-              o.default do
-                ENV.fetch(
-                  Contrib::Propagation::SqlComment::Ext::ENV_DBM_PROPAGATION_MODE,
-                  Contrib::Propagation::SqlComment::Ext::DISABLED
-                )
-              end
+              o.type :string
+              o.env Contrib::Propagation::SqlComment::Ext::ENV_DBM_PROPAGATION_MODE
+              o.default Contrib::Propagation::SqlComment::Ext::DISABLED
             end
           end
         end
