@@ -133,6 +133,8 @@ module Datadog
 
           # Reset back to the lowest precedence, to allow all `set`s to succeed right after a reset.
           @precedence_set = Precedence::DEFAULT
+          # Reset all stored values
+          @value_per_precedence = Hash.new(UNSET)
         end
 
         def default_value
@@ -246,7 +248,10 @@ module Datadog
           (@value = context_exec(validate_type(value), old_value, &definition.setter)).tap do |v|
             @is_set = true
             @precedence_set = precedence
-            @value_per_precedence[precedence] = v
+            # Store original value to ensure we can always safely call `#internal_set`
+            # when restoring a value from `@value_per_precedence`, and we are only running `definition.setter`
+            # on the original value, not on a valud that has already been processed by `definition.setter`.
+            @value_per_precedence[precedence] = value
             context_exec(v, old_value, &definition.on_set) if definition.on_set
           end
         end
