@@ -107,13 +107,13 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         it { expect(tracestate).to eq('dd=o:synthetics') }
 
-        context 'with invalid characters' do
+        context 'with invalid characters except =' do
           [
             "\u0000", # First unicode character
             "\u0019", # Last lower invalid character
             ',',
             ';',
-            '=',
+            '~',
             "\u007F", # First upper invalid character
             "\u{10FFFF}" # Last unicode character
           ].each do |character|
@@ -121,6 +121,18 @@ RSpec.shared_examples 'Trace Context distributed format' do
               let(:origin) { character }
 
               it { expect(tracestate).to eq('dd=o:_') }
+            end
+          end
+        end
+
+        context 'with = character' do
+          [
+            '=',
+          ].each do |character|
+            context character.inspect do
+              let(:origin) { character }
+
+              it { expect(tracestate).to eq('dd=o:~') }
             end
           end
         end

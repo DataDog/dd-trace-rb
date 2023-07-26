@@ -179,15 +179,21 @@ module Datadog
         end
 
         # If any characters in <origin_value> are invalid, replace each invalid character with 0x5F (underscore).
-        # Invalid characters are: characters outside the ASCII range 0x20 to 0x7E, 0x2C (comma), and 0x3D (equals).
+        # Invalid characters are: characters outside the ASCII range 0x20 to 0x7E, 0x2C (comma), 0x3B (semi-colon), and 0x7E (tilde).
+        # Then, remap 0x3D (equals) to 0x7E (tilde)
         def serialize_origin(value)
           # DEV: It's unlikely that characters will be out of range, as they mostly
           # DEV: come from Datadog-controlled sources.
           # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
+          underscore_value = value
           if INVALID_ORIGIN_CHARS.match?(value)
-            value.gsub(INVALID_ORIGIN_CHARS, '_')
+            underscore_value = value.gsub(INVALID_ORIGIN_CHARS, '_')
+          end
+
+          if REMAP_ORIGIN_CHARS.match?(value)
+            underscore_value.gsub(REMAP_ORIGIN_CHARS, '~')
           else
-            value
+            underscore_value
           end
         end
 
@@ -361,9 +367,13 @@ module Datadog
         private_constant :TRACESTATE_VALUE_SIZE_LIMIT
 
         # Replace all characters with `_`, except ASCII characters 0x20-0x7E.
-        # Additionally, `,`, ';', and `=` must also be replaced by `_`.
-        INVALID_ORIGIN_CHARS = /[\u0000-\u0019,;=\u007F-\u{10FFFF}]/.freeze
+        # Additionally, `,`, ';', and `~` must also be replaced by `_`.
+        INVALID_ORIGIN_CHARS = /[\u0000-\u0019,;~\u007F-\u{10FFFF}]/.freeze
         private_constant :INVALID_ORIGIN_CHARS
+
+        # Additionally, remap `=` to `~`
+        REMAP_ORIGIN_CHARS = /[=]/.freeze
+        private_constant :REMAP_ORIGIN_CHARS
 
         # Replace all characters with `_`, except ASCII characters 0x21-0x7E.
         # Additionally, `,` and `=` must also be replaced by `_`.
