@@ -154,7 +154,11 @@ module Datadog
       end
 
       WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK = lambda do |_, responses|
-        Core::Diagnostics::EnvironmentLogger.log!(responses)
+        data = Tracing::Diagnostics::EnvironmentCollector.collect!
+        Tracing::Diagnostics::EnvironmentLogger.log!(data)
+
+        errors = Tracing::Diagnostics::EnvironmentCollector.collect_agent_errors!(responses)
+        Tracing::Diagnostics::EnvironmentLogger.log_agent_errors!(errors) if errors.any?
       end
 
       # Create new lambda for writer callback,
