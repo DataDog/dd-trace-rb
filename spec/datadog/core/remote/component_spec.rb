@@ -81,8 +81,8 @@ RSpec.describe Datadog::Core::Remote::Component do
                 component
               end
 
-              it 'returns nil ' do
-                expect(component).to be_nil
+              it 'returns component' do
+                expect(component).to be_a(described_class)
               end
             end
 
@@ -100,10 +100,8 @@ RSpec.describe Datadog::Core::Remote::Component do
                 component
               end
 
-              it 'returns nil ' do
-                expect(Datadog.logger).to receive(:error).and_return(nil)
-
-                expect(component).to be_nil
+              it 'returns component' do
+                expect(component).to be_a(described_class)
               end
             end
 

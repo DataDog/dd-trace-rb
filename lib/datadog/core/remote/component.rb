@@ -123,15 +123,11 @@ module Datadog
 
             negotiation = Negotiation.new(settings, agent_settings)
 
-            unless negotiation.endpoint?('/v0.7/config')
-              Datadog.logger.error do
-                'endpoint unavailable: disabling remote configuration for this process.'
-              end
-
-              return
+            if negotiation.endpoint?('/v0.7/config')
+              Datadog.logger.debug { 'agent reachable and reports remote configuration endpoint' }
+            else
+              Datadog.logger.error { 'agent unreachable or endpoint unavailable: check configuration or use a healthcheck' }
             end
-
-            Datadog.logger.debug { 'agent reachable and reports remote configuration endpoint' }
 
             new(settings, capabilities, agent_settings)
           end
