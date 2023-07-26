@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'datadog/core/diagnostics/environment_logger'
 require 'ddtrace/transport/io'
 
-RSpec.describe Datadog::Core::Diagnostics::EnvironmentCollector do
+RSpec.describe Datadog::Tracing::Diagnostics::TracingEnvironmentCollector do
     describe '#collect!' do
       subject(:collect!) { collector.collect!([response]) }
 
