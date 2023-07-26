@@ -10,6 +10,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
   before do
     allow(http_transport).to receive(:request).and_return(response)
+    emitter.class.sequence.reset!
   end
 
   after do

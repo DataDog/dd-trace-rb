@@ -9,6 +9,10 @@ RSpec.describe Datadog::Core::Remote::Component do
   let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings) }
   let(:component) { described_class.new(settings, capabilities, agent_settings) }
 
+  around do |example|
+    ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
+  end
+
   describe '.build' do
     subject(:build) { described_class.build(settings, agent_settings) }
 

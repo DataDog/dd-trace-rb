@@ -14,6 +14,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
   let(:options) { {} }
 
+  around do |example|
+    ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
+  end
+
   describe '#api_key' do
     subject(:api_key) { settings.api_key }
 
