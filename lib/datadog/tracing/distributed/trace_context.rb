@@ -251,6 +251,8 @@ module Datadog
 
           version, trace_id, parent_id, trace_flags, extra = traceparent.strip.split('-')
 
+          return if version[0] < '0' || version[0] > 'f' || version[1] < '0' || version[1] > 'f'
+
           return if version == INVALID_VERSION
 
           # Extra fields are not allowed in version 00, but we have to be lenient for future versions.

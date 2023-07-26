@@ -508,6 +508,11 @@ RSpec.shared_examples 'Trace Context distributed format' do
         let(:version) { 'ff' }
         it { is_expected.to be_nil }
       end
+
+      context 'with a illegal characters' do
+        let(:version) { '.0' }
+        it { is_expected.to be_nil }
+      end
     end
 
     context 'with only trace_id' do
