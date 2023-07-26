@@ -8,18 +8,18 @@
 ## [1.12.1] - 2023-06-14
 
 ### Added
-Appsec: Add `appsec.blocked` tag to span ([#2895][])
-Profiling:  Add workaround for legacy profiler incompatibility with ruby-cloud-profiler gem ([#2891][])
-Core: Allow setting remote configuration service name ([#2853][])
+* Appsec: Add `appsec.blocked` tag to span ([#2895][])
+* Profiling:  Add workaround for legacy profiler incompatibility with ruby-cloud-profiler gem ([#2891][])
+* Core: Allow setting remote configuration service name ([#2853][])
 
 ### Changed
-Appsec: Change the value format for the WAF address `server.request.query` ([#2903][])
-Profiling: Log pkg-config command when building profiling native extension
+* Appsec: Change the value format for the WAF address `server.request.query` ([#2903][])
+* Profiling: Log pkg-config command when building profiling native extension
 
 ### Fixed
-Appsec: Update blocked response content_type resolution ([#2900][])
-Appsec: Ensure to use service entry span. ([#2898][])
-Tracing: Fix AWS integration constant loading ([#2896][])
+* Appsec: Update blocked response content_type resolution ([#2900][])
+* Appsec: Ensure to use service entry span. ([#2898][])
+* Tracing: Fix AWS integration constant loading ([#2896][])
 
 ## [1.12.0] - 2023-06-02
 

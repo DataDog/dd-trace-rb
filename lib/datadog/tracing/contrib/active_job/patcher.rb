@@ -21,7 +21,7 @@ module Datadog
 
           def patch
             Events.subscribe!
-            inject_log_correlation if Datadog.configuration.tracing.log_injection
+            inject_log_correlation
           end
 
           def inject_log_correlation

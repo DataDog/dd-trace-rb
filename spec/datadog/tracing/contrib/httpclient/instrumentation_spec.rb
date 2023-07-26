@@ -16,6 +16,7 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 require 'datadog/tracing/contrib/http_examples'
+require 'datadog/tracing/contrib/support/http'
 require 'spec/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
@@ -147,6 +148,24 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           it_behaves_like 'analytics for integration' do
             let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Httpclient::Ext::ENV_ANALYTICS_ENABLED }
             let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Httpclient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          end
+
+          context 'when configured with global tag headers' do
+            let(:headers) { { 'Request-Id' => 'test-request', 'Response-Id' => 'test-response' } }
+
+            include_examples 'with request tracer header tags' do
+              let(:request_header_tag) { 'request-id' }
+              let(:request_header_tag_value) { 'test-request' }
+
+              before { response }
+            end
+
+            include_examples 'with response tracer header tags' do
+              let(:response_header_tag) { 'response-id' }
+              let(:response_header_tag_value) { 'test-response' }
+
+              before { response }
+            end
           end
         end
 

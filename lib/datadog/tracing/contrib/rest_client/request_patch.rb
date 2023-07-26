@@ -55,7 +55,12 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, method.to_s.upcase)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
-
+              span.set_tags(
+                Datadog.configuration.tracing.header_tags.request_tags(
+                  Core::Utils::Hash::CaseInsensitiveWrapper.new(processed_headers)
+                )
+              )
+              
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
@@ -75,6 +80,12 @@ module Datadog
                 # If so, add additional tags.
                 if response.is_a?(::RestClient::Response)
                   span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.code)
+
+                  span.set_tags(
+                    Datadog.configuration.tracing.header_tags.response_tags(
+                      Core::Utils::Hash::CaseInsensitiveWrapper.new(response.net_http_res.to_hash)
+                    )
+                  )
                 end
               end
             rescue ::RestClient::ExceptionWithResponse => e

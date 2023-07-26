@@ -4,6 +4,7 @@ require 'securerandom'
 require 'rack'
 require 'ddtrace'
 require 'datadog/tracing/contrib/rack/middlewares'
+require_relative '../support/http'
 
 RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
@@ -896,7 +897,7 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      context 'when configured to tag headers' do
+      context 'when configured with integration-level tag headers' do
         before do
           Datadog.configure do |c|
             c.tracing.instrument :rack,
@@ -1007,7 +1008,45 @@ RSpec.describe 'Rack integration tests' do
               # Make sure non-whitelisted headers don't become tags.
               expect(span.get_tag('http.request.headers.x-fake-response')).to be nil
             end
+
+            context 'and configured with global tag headers' do
+              include_context 'with trace header tags'
+
+              let(:trace_header_tags_config) { 'x_request_id:x_request_id' }
+
+              it 'does not override integration-level configuration for request headers' do
+                response
+                expect(span.get_tag('x_request_id')).to be_nil
+                expect(span.get_tag('http.request.headers.cache-control')).to eq('no-cache')
+              end
+
+              it 'does not override integration-level configuration for response headers' do
+                response
+                expect(span.get_tag('x_request_id')).to be_nil
+                expect(span.get_tag('http.response.headers.etag')).to eq('"737060cd8c284d8af7ad3082f209582d"')
+              end
+            end
           end
+        end
+      end
+
+      context 'when configured with global tag headers' do
+        subject(:response) { get '/headers/', {}, headers }
+
+        let(:headers) { { 'HTTP_REQUEST_ID' => 'test-id' } }
+
+        include_examples 'with request tracer header tags' do
+          let(:request_header_tag) { 'request-id' }
+          let(:request_header_tag_value) { 'test-id' }
+
+          before { response }
+        end
+
+        include_examples 'with response tracer header tags' do
+          let(:response_header_tag) { 'etag' }
+          let(:response_header_tag_value) { '"737060cd8c284d8af7ad3082f209582d"' }
+
+          before { response }
         end
       end
     end

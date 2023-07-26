@@ -61,6 +61,7 @@ Within the container, run `bin/run <process>` where `<process>` is one of the fo
  - `puma`: Puma web server
  - `unicorn`: Unicorn web server
  - `webrick`: WEBrick web server
+ - `passenger`: Passenger web server
  - `irb`: IRB session
 
  Alternatively, set `DD_DEMO_ENV_PROCESS` to run a particular process by default when `bin/run` is run.

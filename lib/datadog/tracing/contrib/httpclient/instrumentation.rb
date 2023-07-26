@@ -74,6 +74,10 @@ module Datadog
 
               set_analytics_sample_rate(span, req_options)
 
+              span.set_tags(
+                Datadog.configuration.tracing.header_tags.request_tags(req.http_header)
+              )
+
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
@@ -85,6 +89,10 @@ module Datadog
               if request_options[:error_status_codes].include? response.code.to_i
                 span.set_error(["Error #{response.status}", response.body])
               end
+
+              span.set_tags(
+                Datadog.configuration.tracing.header_tags.response_tags(response.header)
+              )
             end
 
             def annotate_span_with_error!(span, error)

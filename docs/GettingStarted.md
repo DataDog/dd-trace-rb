@@ -1612,7 +1612,7 @@ run app
 | --- | ----------- | ------- |
 | `application` | Your Rack application. Required for `middleware_names`. | `nil` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
-| `headers` | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
+| `headers` | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. This option overrides the global `DD_TRACE_HEADER_TAGS`, see [Applying header tags to root spans][header tags] for more information. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `middleware_names` | Enable this if you want to use the last executed middleware class as the resource name for the `rack` span. If enabled alongside the `rails` instrumention, `rails` takes precedence by setting the `rack` resource name to the active `rails` controller when applicable. Requires `application` option to use. | `false` |
 | `quantize` | Hash containing options for quantization. May include `:query` or `:fragment`. | `{}` |
 | `quantize.base` | Defines behavior for URL base (scheme, host, port). May be `:show` to keep URL base in `http.url` tag and not set `http.base_url` tag, or `nil` to remove URL base from `http.url` tag by default, leaving a path and setting `http.base_url`. Option must be nested inside the `quantize` option. | `nil` |
@@ -2130,7 +2130,7 @@ end
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
-| `headers` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
+| `headers` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. This option overrides the global `DD_TRACE_HEADER_TAGS`, see [Applying header tags to root spans][header tags] for more information. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `resource_script_names` | Prepend resource names with script name | `false` |
 
 ### Sneakers
@@ -2233,6 +2233,7 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.distributed_tracing.propagation_inject_style`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`  | `['Datadog']`                                                     | Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                              |
 | `tracing.distributed_tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE` | `nil` | Distributed tracing propagation formats to extract and inject. See [Distributed Tracing](#distributed-tracing) for more details. |
 | `tracing.enabled`                                       | `DD_TRACE_ENABLED`             | `true`                                                            | Enables or disables tracing. If set to `false` instrumentation will still run, but no traces are sent to the trace agent.                                                                                                                 |
+| `tracing.header_tags`                                   | `DD_TRACE_HEADER_TAGS`         | `nil`                                                             | Record HTTP headers as span tags. See [Applying header tags to root spans][header tags] for more information.                                          |
 | `tracing.instrument(<integration-name>, <options...>)`  |                                |                                                                   | Activates instrumentation for a specific library. See [Integration instrumentation](#integration-instrumentation) for more details.                                                                                                       |
 | `tracing.log_injection`                                 | `DD_LOGS_INJECTION`            | `true`                                                            | Injects [Trace Correlation](#trace-correlation) information into Rails logs if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`.                                                   |
 | `tracing.partial_flush.enabled`                         |                                | `false`                                                           | Enables or disables partial flushing. Partial flushing submits completed portions of a trace to the agent. Used when tracing instruments long running tasks (e.g. jobs) with many spans.                                                  |
@@ -2940,3 +2941,5 @@ As the implementation of `alias_method` exists within those libraries, Datadog g
 For libraries without a known workaround, consider removing the library using `alias` or `Module#alias_method` or separating libraries into different environments for testing.
 
 For any further questions or to report an occurence of this issue, please [reach out to Datadog support](https://docs.datadoghq.com/help)
+
+[header tags]: https://docs.datadoghq.com/tracing/configure_data_security/#applying-header-tags-to-root-spans

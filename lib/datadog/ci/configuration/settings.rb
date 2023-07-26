@@ -16,7 +16,9 @@ module Datadog
           base.class_eval do
             settings :ci do
               option :enabled do |o|
-                o.default { env_to_bool(CI::Ext::Settings::ENV_MODE_ENABLED, false) }
+                o.type :bool
+                o.env CI::Ext::Settings::ENV_MODE_ENABLED
+                o.default false
               end
 
               # DEV: Alias to Datadog::Tracing::Contrib::Extensions::Configuration::Settings#instrument.
@@ -34,12 +36,11 @@ module Datadog
               # TODO: Deprecate in the next major version, as `instrument` better describes this method's purpose
               alias_method :use, :instrument
 
-              option :trace_flush do |o|
-                o.default { nil }
-              end
+              option :trace_flush
 
               option :writer_options do |o|
-                o.default { {} }
+                o.type :hash
+                o.default({})
               end
             end
           end

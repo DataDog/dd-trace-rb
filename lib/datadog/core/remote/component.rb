@@ -62,13 +62,9 @@ module Datadog
           end
         end
 
-        def barrier(kind)
+        def barrier(_kind)
           @worker.start
-
-          case kind
-          when :once
-            @barrier.wait_once
-          end
+          @barrier.wait_once
         end
 
         def shutdown!
@@ -103,18 +99,6 @@ module Datadog
             ensure
               @mutex.unlock
             end
-          end
-
-          # Wait for next lift to happen
-          def wait_next(timeout = nil)
-            @mutex.lock
-
-            timeout ||= @timeout
-
-            # rbs/core has a bug, timeout type is incorrectly ?Integer
-            @condition.wait(@mutex, _ = timeout)
-          ensure
-            @mutex.unlock
           end
 
           # Release all current waiters

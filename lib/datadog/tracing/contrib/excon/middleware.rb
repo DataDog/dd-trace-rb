@@ -135,7 +135,12 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, datum[:method].to_s.upcase)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, datum[:host])
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, datum[:port])
-
+            span.set_tags(
+              Datadog.configuration.tracing.header_tags.request_tags(
+                Core::Utils::Hash::CaseInsensitiveWrapper.new(datum[:headers])
+              )
+            )
+            
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
           end
 
@@ -148,6 +153,12 @@ module Datadog
                   response = datum[:response]
                   span.set_error(["Error #{response[:status]}", response[:body]]) if error_handler.call(response)
                   span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response[:status])
+
+                  span.set_tags(
+                    Datadog.configuration.tracing.header_tags.response_tags(
+                      Core::Utils::Hash::CaseInsensitiveWrapper.new(response[:headers])
+                    )
+                  )
                 end
                 span.set_error(datum[:error]) if datum.key?(:error)
                 span.finish

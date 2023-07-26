@@ -12,15 +12,20 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             option :enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ENABLED, true) }
+              o.type :bool
+              o.env Ext::ENV_ENABLED
+              o.default true
             end
 
             option :analytics_enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) }
+              o.type :bool, nilable: true
+              o.env Ext::ENV_ANALYTICS_ENABLED
             end
 
             option :analytics_sample_rate do |o|
-              o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
+              o.type :float
+              o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
+              o.default 1.0
             end
 
             # DEV-2.0: Breaking changes for removal.
