@@ -145,6 +145,7 @@ module Datadog
             # @return [Boolean, nil]
             option :enabled do |o|
               o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_STARTUP_LOGS_ENABLED
+              # Defaults to nil as we want to know when the default value is being used
               o.type :bool, nilable: true
             end
           end
