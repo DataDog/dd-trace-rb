@@ -38,8 +38,8 @@ module Datadog
             Datadog.logger.info("DATADOG CONFIGURATION - #{line}")
           end
 
-          def log_error!(type, error)
-            Datadog.logger.warn("DATADOG DIAGNOSTIC - #{type}: #{error}")
+          def log_error!(type, message)
+            Datadog.logger.warn("DATADOG DIAGNOSTIC - #{type}: #{message}")
           end
 
           # Are we logging the environment data?
@@ -193,3 +193,9 @@ module Datadog
     end
   end
 end
+
+
+
+
+# have base environment logger
+#   exposes log that takes arbitrary data
