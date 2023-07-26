@@ -90,10 +90,10 @@ class RubyOverheadExperiment
 
     File.write("ruby-overhead-experiment-#{threads}-#{depth}-#{seconds}-timeline-#{timeline_enabled}.pprof", pprof)
 
-    run_analysis(pprof)
+    # run_analysis(pprof)
 
     pprof = nil
-    # 10.times { @recorder.serialize }
+    10.times { @recorder.serialize }
 
     @recorder = nil
     @collector = nil
@@ -102,7 +102,7 @@ class RubyOverheadExperiment
 
     puts "After shrinking, process rss usage is #{current_rss}k"
 
-    sleep
+    # sleep
   end
 
   def current_rss
@@ -116,4 +116,4 @@ class RubyOverheadExperiment
   end
 end
 
-RubyOverheadExperiment.new.simulate(threads: 16, depth: 50, seconds: 60, timeline_enabled: ENV['TIMELINE'] == 'true')
+RubyOverheadExperiment.new.simulate(threads: 16, depth: 50, seconds: 60*10, timeline_enabled: ENV['TIMELINE'] == 'true')
