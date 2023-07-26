@@ -18,7 +18,7 @@ class ProfilerSampleLoopBenchmark
   def create_profiler
     @recorder = Datadog::Profiling::StackRecorder.new(cpu_time_enabled: true, alloc_samples_enabled: true)
     @collector = Datadog::Profiling::Collectors::ThreadContext.new(
-      recorder: @recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: false, timeline_enabled: false
+      recorder: @recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: false, timeline_enabled: ENV['CONFIG'] == 'true'
     )
   end
 
@@ -39,7 +39,7 @@ class ProfilerSampleLoopBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_sample_loop_v2'))
 
-      x.report("stack collector #{ENV['CONFIG']}") do
+      x.report("stack collector timeline_enabled=#{ENV['CONFIG']}") do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
       end
 
@@ -47,7 +47,14 @@ class ProfilerSampleLoopBenchmark
       x.compare!
     end
 
-    @recorder.serialize
+    puts "Press enter to serialize profile"
+    require 'io/console'
+    STDIN.getch
+
+    start, _, pprof = @recorder.serialize
+    File.write("tmp-latest-profile-#{start.iso8601(0)}.pprof", pprof)
+    puts "Sleeping forever, press ctrl+c to exit"
+    sleep
   end
 
   def run_forever
