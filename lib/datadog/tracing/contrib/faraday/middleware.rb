@@ -66,7 +66,7 @@ module Datadog
             span.set_tags(
               Datadog.configuration.tracing.header_tags.request_tags(env[:request_headers])
             )
-            
+
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
           end
 

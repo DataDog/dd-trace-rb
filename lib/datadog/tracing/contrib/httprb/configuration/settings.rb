@@ -59,7 +59,7 @@ module Datadog
                 values
               end
             end
-          
+
             option :peer_service do |o|
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
