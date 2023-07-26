@@ -251,7 +251,7 @@ module Datadog
 
           version, trace_id, parent_id, trace_flags, extra = traceparent.strip.split('-')
 
-          return if version[0] < '0' || version[0] > 'f' || version[1] < '0' || version[1] > 'f'
+          return if version.size != 2 || version[0] < '0' || version[0] > 'f' || version[1] < '0' || version[1] > 'f'
 
           return if version == INVALID_VERSION
 
@@ -259,7 +259,7 @@ module Datadog
           return if version == SPEC_VERSION && extra
 
           # Invalid field sizes
-          return if version.size != 2 || trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
+          return if trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
 
           [Integer(trace_id, 16), Integer(parent_id, 16), Integer(trace_flags, 16)]
         rescue ArgumentError # Conversion to integer failed
