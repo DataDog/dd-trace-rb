@@ -242,40 +242,13 @@ end
 
 RSpec.describe Datadog::Core::Remote::Component::Barrier do
   let(:delay) { 0.5 }
+  let(:record) { [] }
   let(:timeout) { nil }
   let(:instance_timeout) { nil }
 
   subject(:barrier) { described_class.new(instance_timeout) }
 
-  shared_context('recorder') do
-    let(:record) { [] }
-  end
-
-  shared_context('waiter thread') do
-    include_context 'recorder'
-
-    let(:thr) do
-      Thread.new do
-        loop do
-          record << :wait
-          barrier.wait_next
-        end
-      end
-    end
-
-    before do
-      thr.run
-    end
-
-    after do
-      thr.kill
-      thr.join
-    end
-  end
-
   shared_context('lifter thread') do
-    include_context 'recorder'
-
     let(:thr) do
       Thread.new do
         loop do
@@ -309,8 +282,6 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
   describe '#lift' do
     context 'without waiters' do
-      include_context 'recorder'
-
       it 'does not block' do
         record << :one
         barrier.lift
@@ -321,21 +292,22 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
     end
 
     context 'with waiters' do
-      include_context 'waiter thread'
-
       it 'unblocks waiters' do
-        sleep delay
+        waiter_thread_queue = Queue.new
+        waiter_thread = Thread.new(record) do |record|
+          waiter_thread_queue << :ready
+          record << :wait
+          barrier.wait_once
+          record << :woke_up
+        end
+
+        waiter_thread_queue.pop # Wait for ready
+
         record << :one
         barrier.lift
+        waiter_thread.join
 
-        sleep delay
-        record << :two
-        barrier.lift
-
-        # there may be an additional :wait if waiter thread gets switched to
-        recorded = record[0, 4]
-
-        expect(recorded).to eq [:wait, :one, :wait, :two]
+        expect(record).to eq [:wait, :one, :woke_up]
       end
     end
   end
@@ -417,85 +389,6 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
         record << :three
 
         expect(record).to eq [:one, :two, :three]
-      end
-    end
-  end
-
-  describe '#wait_next' do
-    include_context 'lifter thread'
-
-    it 'blocks once' do
-      record << :one
-      barrier.wait_next
-      record << :two
-
-      expect(record).to eq [:one, :lift, :two]
-    end
-
-    it 'blocks each time' do
-      record << :one
-      barrier.wait_next
-      record << :two
-      barrier.wait_next
-      record << :three
-
-      expect(record).to eq [:one, :lift, :two, :lift, :three]
-    end
-
-    context('with a local timeout') do
-      let(:timeout) { delay / 100 }
-
-      context('shorter than lift') do
-        it 'unblocks on timeout' do
-          record << :one
-          barrier.wait_next(timeout)
-          record << :two
-          barrier.wait_next(timeout)
-
-          expect(record).to eq [:one, :two]
-        end
-      end
-
-      context('longer than lift') do
-        let(:delay) { 0.2 }
-        let(:timeout) { delay * 2 }
-
-        it 'unblocks before timeout' do
-          record << :one
-          barrier.wait_next(timeout)
-          record << :two
-          barrier.wait_next(timeout)
-          record << :three
-
-          expect(record).to eq [:one, :lift, :two, :lift, :three]
-        end
-      end
-
-      context('and an instance timeout') do
-        let(:instance_timeout) { delay * 2 }
-
-        it 'prefers the local timeout' do
-          record << :one
-          barrier.wait_next(timeout)
-          record << :two
-          barrier.wait_next(timeout)
-          record << :three
-
-          expect(record).to eq [:one, :two, :three]
-        end
-      end
-    end
-
-    context('with an instance timeout') do
-      let(:instance_timeout) { delay / 100 }
-
-      it 'unblocks on timeout' do
-        record << :one
-        barrier.wait_next
-        record << :two
-        barrier.wait_next
-
-        expect(record).to eq [:one, :two]
       end
     end
   end
