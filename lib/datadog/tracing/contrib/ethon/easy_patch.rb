@@ -1,5 +1,6 @@
 require 'uri'
 
+require_relative '../../../core/utils/hash'
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
 require_relative 'ext'
@@ -58,6 +59,12 @@ module Datadog
                     set_span_error_message("Request has failed with HTTP error: #{response_code}")
                   end
                 end
+
+                @datadog_span.set_tags(
+                  Datadog.configuration.tracing.header_tags.response_tags(
+                    Core::Utils::Hash::CaseInsensitiveWrapper.new(parse_response_headers)
+                  )
+                )
               ensure
                 @datadog_span.finish
                 @datadog_span = nil
@@ -146,6 +153,14 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, uri.host)
 
+              if @datadog_original_headers
+                span.set_tags(
+                  Datadog.configuration.tracing.header_tags.request_tags(
+                    Core::Utils::Hash::CaseInsensitiveWrapper.new(@datadog_original_headers)
+                  )
+                )
+              end
+              
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
@@ -172,6 +187,26 @@ module Datadog
 
             def analytics_sample_rate
               datadog_configuration[:analytics_sample_rate]
+            end
+
+            # `#response_headers` returns a "\n" concatenated String containing:
+            # * The HTTP Status-Line.
+            # * The response headers.
+            # * A trailing "\n".
+            #
+            # This method extracts only the headers from it.
+            def parse_response_headers
+              return {} if response_headers.empty?
+
+              lines = response_headers.split("\n")
+
+              lines = lines[1..(lines.size - 1)] # Remove Status-Line and trailing whitespace.
+
+              # Find only well-behaved HTTP headers.
+              lines.map do |line|
+                header = line.split(':', 2)
+                header.size != 2 ? nil : header
+              end.compact.to_h
             end
           end
         end

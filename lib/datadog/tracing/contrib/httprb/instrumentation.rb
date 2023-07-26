@@ -82,6 +82,10 @@ module Datadog
 
               set_analytics_sample_rate(span, req_options)
 
+              span.set_tags(
+                Datadog.configuration.tracing.header_tags.request_tags(req.headers)
+              )
+              
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
@@ -95,6 +99,10 @@ module Datadog
                 # parsing the response body message will alter downstream application behavior
                 span.set_error(["Error #{response.code}", 'Error'])
               end
+
+              span.set_tags(
+                Datadog.configuration.tracing.header_tags.response_tags(response.headers)
+              )
             end
 
             def annotate_span_with_error!(span, error)

@@ -207,7 +207,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           context 'is not defined' do
             let(:var_value) { nil }
 
-            it { is_expected.to be_nil }
+            it { is_expected.to eq [] }
 
             it 'does not change propagation_extract_style' do
               expect { propagation_style }.to_not change { propagation_extract_style }
@@ -275,6 +275,48 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           .to change { settings.tracing.enabled }
           .from(true)
           .to(false)
+      end
+    end
+
+    describe '#header_tags' do
+      subject(:header_tags) { settings.tracing.header_tags }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_HEADER_TAGS}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_HEADER_TAGS => tags) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:tags) { nil }
+
+          it { is_expected.to be_a(Datadog::Tracing::Configuration::HTTP::HeaderTags) }
+          it { expect(header_tags.to_s).to eq('') }
+        end
+
+        context 'is set to content-type' do
+          let(:tags) { 'content-type' }
+
+          it { is_expected.to be_a(Datadog::Tracing::Configuration::HTTP::HeaderTags) }
+          it { expect(header_tags.to_s).to eq('content-type') }
+        end
+
+        context 'is set to content-type,cookie' do
+          let(:tags) { 'content-type,cookie' }
+
+          it { is_expected.to be_a(Datadog::Tracing::Configuration::HTTP::HeaderTags) }
+          it { expect(header_tags.to_s).to eq('content-type,cookie') }
+        end
+      end
+    end
+
+    describe '#header_tags=' do
+      it 'updates the #header_tags setting' do
+        expect { settings.tracing.header_tags = ['content-type'] }
+          .to change { settings.tracing.header_tags }
+          .from(->(actual) { expect(actual.to_s).to be_empty })
+          .to(->(actual) { expect(actual.to_s).to eq('content-type') })
       end
     end
 

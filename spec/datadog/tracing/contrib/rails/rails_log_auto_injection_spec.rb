@@ -462,6 +462,26 @@ RSpec.describe 'Rails Log Auto Injection' do
           expect(my_entry).to include '[some_other_info]'
         end
       end
+
+      context 'then enabled at runtime' do
+        context 'with Tagged logging setup and no tags' do
+          before do
+            app # Initialize app before enabling log injection
+            Datadog.configure { |c| c.tracing.log_injection = true }
+          end
+
+          it 'injects trace_id into logs' do
+            is_expected.to be_ok
+
+            expect(logs).to_not be_empty
+            expect(log_entries).to have(2).items
+
+            rack_rails_logger_entry, my_entry = log_entries
+            expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+            expect(my_entry).to include "dd.trace_id=#{trace.id}"
+          end
+        end
+      end
     end
 
     if Rails.version >= '4'

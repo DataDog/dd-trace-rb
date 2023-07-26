@@ -44,7 +44,7 @@ echo ""
 APP_IMAGE=$APP_IMAGE docker-compose $APP_COMPOSE_FILES build
 
 # Run the test suite with the different web servers
-for DD_DEMO_ENV_PROCESS in puma unicorn webrick
+for DD_DEMO_ENV_PROCESS in puma unicorn webrick passenger
 do
   echo -e "\n== Running with $DD_DEMO_ENV_PROCESS ================================================\n"
 

@@ -12,6 +12,8 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'rspec/expectations'
 
+require_relative '../support/http'
+
 RSpec.describe 'Sinatra instrumentation' do
   include Rack::Test::Methods
 
@@ -366,6 +368,27 @@ RSpec.describe 'Sinatra instrumentation' do
         let(:header_value) { SecureRandom.uuid }
 
         it { expect(span.get_tag('http.request.headers.x-request-header')).to eq(header_value) }
+
+        context 'and configured with global tag headers' do
+          include_context 'with trace header tags'
+
+          let(:headers) { super().merge('HTTP_X_REQUEST_ID' => 'test-id') }
+          let(:response_headers) { ['content-length'] }
+
+          let(:trace_header_tags_config) { 'x_request_id:x_request_id,content_type:content_type' }
+
+          it 'does not override integration-level configuration for request headers' do
+            response
+            expect(span.get_tag('x_request_id')).to be_nil
+            expect(span.get_tag('http.request.headers.x-request-header')).to eq(header_value)
+          end
+
+          it 'does not override integration-level configuration for response headers' do
+            response
+            expect(span.get_tag('content-type')).to be_nil
+            expect(span.get_tag('http.response.headers.content-length')).to_not be_nil
+          end
+        end
       end
 
       context 'with a header that should not be tagged' do
@@ -373,6 +396,28 @@ RSpec.describe 'Sinatra instrumentation' do
         let(:header_value) { SecureRandom.uuid }
 
         it { expect(span.get_tag('http.request.headers.x-request-header')).to be nil }
+      end
+
+      context 'when configured with global tag headers' do
+        subject(:response) { get '/', {}, headers }
+
+        let(:configuration_options) { {} }
+        let(:headers) { { 'HTTP_REQUEST_ID' => 'test-id' } }
+        let(:response_headers) { ['etag'] }
+
+        include_examples 'with request tracer header tags' do
+          let(:request_header_tag) { 'request-id' }
+          let(:request_header_tag_value) { 'test-id' }
+
+          before { response }
+        end
+
+        include_examples 'with response tracer header tags' do
+          let(:response_header_tag) { 'content-type' }
+          let(:response_header_tag_value) { include('text/html') }
+
+          before { response }
+        end
       end
     end
   end
