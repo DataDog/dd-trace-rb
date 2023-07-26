@@ -11,6 +11,7 @@ jobs:
       SKIP_SIMPLECOV: 1
       JRUBY_OPTS: --dev
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+      DD_REMOTE_CONFIGURATION_ENABLED: false
     steps:
       - uses: actions/checkout@v3
       # bundler appears to match both prerelease and release rubies when we
