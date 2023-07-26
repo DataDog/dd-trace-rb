@@ -140,7 +140,7 @@ module Datadog
                 Core::Utils::Hash::CaseInsensitiveWrapper.new(datum[:headers])
               )
             )
-            
+
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
           end
 

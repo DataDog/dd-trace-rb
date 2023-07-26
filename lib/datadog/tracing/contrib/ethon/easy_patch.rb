@@ -160,7 +160,7 @@ module Datadog
                   )
                 )
               end
-              
+
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 

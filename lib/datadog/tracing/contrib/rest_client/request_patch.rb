@@ -60,7 +60,7 @@ module Datadog
                   Core::Utils::Hash::CaseInsensitiveWrapper.new(processed_headers)
                 )
               )
-              
+
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
