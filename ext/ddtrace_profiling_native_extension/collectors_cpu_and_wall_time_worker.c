@@ -186,6 +186,7 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
+static void check_signal_handler(bool sending_signal);
 
 // Note on sampler global state safety:
 //
@@ -491,6 +492,9 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       // Thus, we instead pretty please ask Ruby to let us run. This means profiling data can be biased by when the Ruby
       // scheduler chooses to schedule us.
       state->stats.trigger_simulated_signal_delivery_attempts++;
+
+      check_signal_handler(false);
+
       grab_gvl_and_sample(); // Note: Can raise exceptions
     } else {
       current_gvl_owner owner = gvl_owner();
@@ -498,6 +502,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
         // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
         // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
         // includes a check to see if it got called in the right thread
+        check_signal_handler(true);
         pthread_kill(owner.owner, SIGPROF);
       } else {
         // If no thread owns the Global VM Lock, the application is probably idle at the moment. We still want to sample
@@ -508,6 +513,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
         // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
         // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
         state->stats.trigger_simulated_signal_delivery_attempts++;
+        check_signal_handler(false);
         idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
       }
     }
@@ -927,5 +933,26 @@ static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
     rb_jump_tag(exception_state);
   } else {
     return result;
+  }
+}
+
+static void check_signal_handler(bool sending_signal) {
+  static int called_times = 0;
+  int debug_log_every = 1000; // ~10 seconds usually
+
+  struct sigaction existing_signal_handler_config = {.sa_sigaction = NULL};
+
+  int error;
+  if ((error = sigaction(SIGPROF, NULL, &existing_signal_handler_config)) != 0) {
+    fprintf(stderr, "[ddtrace] Failed to probe existing handler (error %d)\n", error);
+    return;
+  }
+
+  if (existing_signal_handler_config.sa_sigaction == handle_sampling_signal) {
+    if (called_times++ % debug_log_every == 0) {
+      fprintf(stderr, "[ddtrace] %s, Signal handler is OK in pid=%d!\n", sending_signal ? "Sending signal" : "Skipping send signal", getpid());
+    }
+  } else {
+    rb_bug("[ddtrace] Signal handler missing in pid=%d, handler=%p\n", getpid(), existing_signal_handler_config.sa_sigaction);
   }
 }
