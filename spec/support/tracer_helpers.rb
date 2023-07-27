@@ -65,6 +65,10 @@ module TracerHelpers
     @spans ||= writer.spans
   end
 
+  def fetch_spans
+    writer.spans(:keep)
+  end
+
   # Returns the only trace in the current tracer writer.
   #
   # This method will not allow for ambiguous use,

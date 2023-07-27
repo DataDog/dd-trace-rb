@@ -5,7 +5,7 @@ module Datadog
 
       def logger: () -> Datadog::Core::Logger
 
-      def configuration: () -> Datadog::Core::Configuration::Settings
+      def configuration: () -> untyped # The DSL methods have to be explicitly declared for this to be typed
     end
   end
 end

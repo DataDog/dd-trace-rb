@@ -327,6 +327,8 @@ module Datadog
             sampling_priority: digest.trace_sampling_priority,
             # Distributed tags are just regular trace tags with special meaning to Datadog
             tags: digest.trace_distributed_tags,
+            trace_state: digest.trace_state,
+            trace_state_unknown_fields: digest.trace_state_unknown_fields,
           )
         else
           TraceOperation.new(

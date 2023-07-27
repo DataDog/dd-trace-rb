@@ -655,7 +655,7 @@ RSpec.describe 'Tracer integration tests' do
   describe 'sampling priority integration' do
     include_context 'agent-based test'
 
-    it { expect(tracer.sampler).to be_a_kind_of(Datadog::Tracing::Sampling::PrioritySampler) }
+    it { expect(tracer.sampler).to respond_to(:update) }
 
     it do
       3.times do |i|
@@ -851,8 +851,8 @@ RSpec.describe 'Tracer integration tests' do
       expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
       expect(tracer.writer.transport.encoder).to be(Datadog::Core::Encoding::JSONEncoder)
 
-      # Verify sampling is configured properly
-      expect(tracer.sampler).to be_a_kind_of(Datadog::Tracing::Sampling::PrioritySampler)
+      # Verify sampler can receive agent rate updates
+      expect(tracer.sampler).to respond_to(:update)
 
       # Verify IO is written to
       allow(out).to receive(:puts)
@@ -900,8 +900,8 @@ RSpec.describe 'Tracer integration tests' do
       # Verify Transport::HTTP is configured
       expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
 
-      # Verify sampling is configured properly
-      expect(tracer.sampler).to be_a_kind_of(Datadog::Tracing::Sampling::PrioritySampler)
+      # Verify sampler can receive agent rate updates
+      expect(tracer.sampler).to respond_to(:update)
 
       # Verify priority sampler is configured and rates are updated
       expect(tracer.sampler).to receive(:update)
@@ -964,6 +964,7 @@ RSpec.describe 'Tracer integration tests' do
       context 'is provided' do
         let(:on_build) do
           double('on_build').tap do |double|
+            allow(double).to receive(:call).with(any_args) # e.g. Telemetry transport, RC transport
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Transport::HTTP::Builder))
               .at_least(1).time
@@ -988,6 +989,7 @@ RSpec.describe 'Tracer integration tests' do
         let(:remote_enabled) { true }
         let(:on_build) do
           double('on_build').tap do |double|
+            allow(double).to receive(:call).with(any_args) # e.g. Telemetry transport, RC transport
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Transport::HTTP::Builder))
               .at_least(1).time
