@@ -1,96 +1,53 @@
 require 'datadog/tracing/contrib/span_attribute_schema'
 
 RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
-  describe '#default_span_attribute_schema?' do
-    context 'when default schema is set' do
-      it 'returns true' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-          expect(described_class.default_span_attribute_schema?).to eq(true)
-        end
-      end
-    end
-
-    context 'when default schema is changed' do
-      it 'returns false' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
-          expect(described_class.default_span_attribute_schema?).to eq(false)
-        end
-      end
-    end
-
-    context 'when default schema is not set' do
-      it 'returns true' do
-        expect(described_class.default_span_attribute_schema?).to eq(true)
-      end
-    end
-  end
-
-  describe '#active_version' do
-    context 'when v0 set' do
-      it 'equals v0' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-          expect(described_class.send(:active_version)).to eq(described_class::V0)
-        end
-      end
-    end
-
-    context 'when v1 is set' do
-      it 'equals v1' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
-          expect(described_class.send(:active_version)).to eq(described_class::V1)
-        end
-      end
-    end
-
-    context 'when no schema is set' do
-      it 'equals v0' do
-        expect(described_class.send(:active_version)).to eq(described_class::V0)
-      end
-    end
-  end
-
   describe '#fetch_service_name' do
-    subject(:fetch_service_name) { described_class.fetch_service_name(env, default) }
-    let(:env) { instance_double(String) }
-    let(:default) { instance_double(String) }
-    let(:active_version) { double('active_version') }
-    let(:return_value) { instance_double(String) }
-
-    before do
-      allow(described_class).to receive(:active_version).and_return(active_version)
-      expect(active_version).to receive(:fetch_service_name).with(env, default).and_return(return_value)
+    context 'when integration service is set' do
+      it 'returns the integration specific service name' do
+        with_modified_env DD_INTEGRATION_SERVICE: 'integration-service-name' do
+          expect(
+            described_class
+              .fetch_service_name('DD_INTEGRATION_SERVICE',
+                'default-integration-service-name')
+          ).to eq('integration-service-name')
+        end
+      end
     end
 
-    it do
-      is_expected.to eq(return_value)
-    end
-  end
-
-  describe '#set_peer_service!' do
-    subject(:set_peer_service!) { described_class.set_peer_service!(span, sources) }
-    let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
-    let(:sources) { instance_double(Array) }
-    let(:active_version) { double('active_version') }
-    let(:return_value) { double('return_value') }
-
-    before do
-      allow(described_class).to receive(:active_version).and_return(active_version)
-      expect(active_version).to receive(:set_peer_service!).with(span, sources).and_return(return_value)
+    context 'when DD_SERVICE is set' do
+      it 'returns default integration service name' do
+        with_modified_env DD_SERVICE: 'service' do
+          expect(
+            described_class
+              .fetch_service_name('DD_INTEGRATION_SERVICE',
+                'default-integration-service-name')
+          ).to eq('default-integration-service-name')
+        end
+      end
     end
 
-    it do
-      is_expected.to eq(return_value)
+    context 'when DD_SERVICE is not set' do
+      it 'returns default integration service name' do
+        expect(
+          described_class
+            .fetch_service_name('DD_INTEGRATION_SERVICE',
+              'default-integration-service-name')
+        ).to eq('default-integration-service-name')
+      end
     end
-  end
 
-  def with_modified_env(options = {}, &block)
-    ClimateControl.modify(options, &block)
-  end
-end
-
-RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
-  subject(:schema) do
-    Module.new { extend Datadog::Tracing::Contrib::SpanAttributeSchema::Base }
+    context 'when DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
+      it 'returns DD_SERVICE' do
+        with_modified_env DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
+          DD_SERVICE: 'service' do
+            expect(
+              described_class
+                .fetch_service_name('DD_INTEGRATION_SERVICE',
+                  'default-integration-service-name')
+            ).to eq('service')
+          end
+      end
+    end
   end
 
   describe '#set_peer_service!' do
@@ -112,7 +69,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
           precursors.each do |precursor|
             span.set_tag(precursor, 'test-' << precursor)
 
-            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(described_class.set_peer_service!(span, precursors)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
@@ -132,7 +89,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
           precursors.each do |precursor|
             span.set_tag(precursor, 'test-' << precursor)
 
-            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(described_class.set_peer_service!(span, precursors)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
@@ -152,7 +109,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
           precursors.each do |precursor|
             span.set_tag(precursor, 'test-' << precursor)
 
-            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(described_class.set_peer_service!(span, precursors)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
@@ -172,7 +129,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
           precursors.each do |precursor|
             span.set_tag(precursor, 'test-' << precursor)
 
-            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(described_class.set_peer_service!(span, precursors)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
@@ -194,7 +151,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
           precursors.each do |precursor|
             span.set_tag(precursor, 'test-' << precursor)
 
-            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(described_class.set_peer_service!(span, precursors)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
@@ -213,7 +170,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
           precursors.each do |precursor|
             span.set_tag(precursor, 'test-' << precursor)
 
-            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(described_class.set_peer_service!(span, precursors)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
@@ -232,7 +189,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
           precursors.each do |precursor|
             span.set_tag(precursor, 'test-' << precursor)
 
-            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(described_class.set_peer_service!(span, precursors)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
@@ -251,7 +208,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
           precursors.each do |precursor|
             span.set_tag(precursor, 'test-' << precursor)
 
-            expect(schema.set_peer_service!(span, precursors)).to be true
+            expect(described_class.set_peer_service!(span, precursors)).to be true
             expect(span.get_tag('peer.service')).to eq('test-' << precursor)
             expect(span.get_tag('_dd.peer.service.source')).to eq(precursor)
             expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
@@ -269,7 +226,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
       it 'returns false to show no source or value found' do
         span.set_tag('db.system', 'test-db')
         span.set_tag('span.kind', 'client')
-        expect(schema.set_peer_service!(span, precursors)).to be false
+        expect(described_class.set_peer_service!(span, precursors)).to be false
         expect(span.get_tag('peer.service')).to be_nil
         expect(span.get_tag('_dd.peer.service.source')).to be_nil
         expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
@@ -282,7 +239,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
         span.set_tag('db.system', 'test-db')
         span.set_tag('span.kind', 'client')
         span.set_tag('peer.service', 'peer-service-value')
-        expect(schema.set_peer_service!(span, precursors)).to be true
+        expect(described_class.set_peer_service!(span, precursors)).to be true
         expect(span.get_tag('peer.service')).to eq('peer-service-value')
         expect(span.get_tag('_dd.peer.service.source')).to eq('peer.service')
         expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
@@ -294,7 +251,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
         span.set_tag('peer.service', 'peer-service-value')
 
         with_modified_env DD_TRACE_PEER_SERVICE_MAPPING: 'peer-service-value:test-remap' do
-          expect(schema.set_peer_service!(span, precursors)).to be true
+          expect(described_class.set_peer_service!(span, precursors)).to be true
           expect(span.get_tag('peer.service')).to eq('test-remap')
           expect(span.get_tag('_dd.peer.service.source')).to eq('peer.service')
           expect(span.get_tag('_dd.peer.service.remapped_from')).to eq('peer-service-value')
@@ -311,118 +268,10 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::Base do
         span.set_tag('precursor-tag', 'test-precursor')
 
         with_modified_env DD_TRACE_PEER_SERVICE_MAPPING: 'test-precursor:test-remap' do
-          expect(schema.set_peer_service!(span, precursor)).to be true
+          expect(described_class.set_peer_service!(span, precursor)).to be true
           expect(span.get_tag('peer.service')).to eq('test-remap')
           expect(span.get_tag('_dd.peer.service.source')).to eq('precursor-tag')
           expect(span.get_tag('_dd.peer.service.remapped_from')).to eq('test-precursor')
-        end
-      end
-    end
-  end
-
-  def with_modified_env(options = {}, &block)
-    ClimateControl.modify(options, &block)
-  end
-end
-
-RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V0 do
-  it do
-    expect(described_class).to be_a_kind_of(Datadog::Tracing::Contrib::SpanAttributeSchema::Base)
-  end
-
-  describe '#fetch_service_name' do
-    context 'when integration service is set' do
-      it 'returns the integration specific service name' do
-        with_modified_env DD_INTEGRATION_SERVICE: 'integration-service-name' do
-          expect(
-            described_class
-              .fetch_service_name('DD_INTEGRATION_SERVICE',
-                'default-integration-service-name')
-          ).to eq('integration-service-name')
-        end
-      end
-    end
-
-    context 'when DD_SERVICE is set' do
-      it 'returns default integration service name' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0', DD_SERVICE: 'service' do
-          expect(
-            described_class
-              .fetch_service_name('DD_INTEGRATION_SERVICE',
-                'default-integration-service-name')
-          ).to eq('default-integration-service-name')
-        end
-      end
-    end
-
-    context 'when DD_SERVICE is not set' do
-      it 'returns default integration service name' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0' do
-          expect(
-            described_class
-              .fetch_service_name('DD_INTEGRATION_SERVICE',
-                'default-integration-service-name')
-          ).to eq('default-integration-service-name')
-        end
-      end
-    end
-
-    context 'when DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
-      it 'returns DD_SERVICE' do
-        with_modified_env DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v0',
-          DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
-          DD_SERVICE: 'service' do
-            expect(
-              described_class
-                .fetch_service_name('DD_INTEGRATION_SERVICE',
-                  'default-integration-service-name')
-            ).to eq('service')
-          end
-      end
-    end
-  end
-
-  def with_modified_env(options = {}, &block)
-    ClimateControl.modify(options, &block)
-  end
-end
-
-RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema::V1 do
-  it do
-    expect(described_class).to be_a_kind_of(Datadog::Tracing::Contrib::SpanAttributeSchema::Base)
-  end
-
-  describe '#fetch_service_name' do
-    context 'when integration service is set' do
-      it 'returns the integration specific service name' do
-        with_modified_env DD_INTEGRATION_SERVICE: 'integration-service-name' do
-          expect(
-            described_class
-              .fetch_service_name('DD_INTEGRATION_SERVICE',
-                'default-integration-service-name')
-          ).to eq('integration-service-name')
-        end
-      end
-
-      context 'when DD_SERVICE is set' do
-        it 'returns default integration service name' do
-          with_modified_env DD_SERVICE: 'service' do
-            expect(
-              described_class
-                .fetch_service_name('DD_INTEGRATION_SERVICE',
-                  'default-integration-service-name')
-            ).to eq('service')
-          end
-        end
-      end
-
-      context 'when DD_SERVICE is not set' do
-        it 'returns default integration service name' do
-          expect(
-            described_class
-              .fetch_service_name('DD_INTEGRATION_SERVICE',
-                'default-integration-service-name')
-          ).to eq('rspec')
         end
       end
     end

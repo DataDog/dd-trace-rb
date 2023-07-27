@@ -58,7 +58,7 @@ module NetworkHelpers
   # @return [Hash] trace headers
   def parse_tracer_config_and_add_to_headers(trace_headers)
     dd_service = Datadog.configuration.service
-    dd_span_attribute_schema = Datadog.configuration.tracing.span_attribute_schema
+    dd_span_attribute_schema = 'v0'
     trace_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }.map { |key, value| "#{key}=#{value}" }.join(',')
     if trace_variables.empty?
       trace_variables = "DD_SERVICE=#{dd_service},DD_SPAN_ATTRIBUTE_SCHEMA=#{dd_span_attribute_schema}"

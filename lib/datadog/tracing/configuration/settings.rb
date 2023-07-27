@@ -465,42 +465,6 @@ module Datadog
                 o.env Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
               end
-
-              # Schema version for span attributes that enables various features
-              #
-              # @default `DD_TRACE_SPAN_ATTRIBUTE_SCHEMA` environment variable, otherwise default `v0` currently
-              # @return [String]
-              option :span_attribute_schema do |o|
-                o.type :string
-                o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA
-                o.default Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
-              end
-
-              # Key-value map for explicitly re-mapping peer.service values
-              #
-              # @default `DD_TRACE_PEER_SERVICE_MAPPING` environment variable converted to hash
-              # @return [Hash]
-              option :peer_service_mapping do |o|
-                o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_PEER_SERVICE_MAPPING
-                o.type :hash
-                o.default({})
-              end
-
-              # Global service name behavior
-              settings :global_default_service_name do
-                # Overrides default service name to global service name
-                #
-                # Allows for usage of v1 service name changes without
-                # being forced to update schema versions
-                #
-                # @default `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED` environment variable, otherwise `false`
-                # @return [Boolean]
-                option :enabled do |o|
-                  o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED
-                  o.type :bool
-                  o.default false
-                end
-              end
             end
           end
         end

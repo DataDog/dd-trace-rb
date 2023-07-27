@@ -246,19 +246,12 @@ module Datadog
           end
 
           def trace_http_server(span_name, start_time:)
-            span = Tracing.trace(
+            Tracing.trace(
               span_name,
               span_type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
               start_time: start_time,
               service: configuration[:web_service_name]
             )
-
-            # Set peer service (so its not believed to belong to this app)
-            if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
-            end
-
-            span
           end
 
           def parse_url(env, original_env)
