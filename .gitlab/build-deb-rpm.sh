@@ -4,6 +4,8 @@ if [ -n "$CI_COMMIT_TAG" ] && [ -z "$RUBY_PACKAGE_VERSION" ]; then
   RUBY_PACKAGE_VERSION=${CI_COMMIT_TAG##v}
 fi
 
+echo -n "$RUBY_PACKAGE_VERSION" > auto_inject-ruby.version
+
 source common_build_functions.sh
 
 chmod a+r -R ../pkg/*
