@@ -41,6 +41,7 @@ module Datadog
         :id,
         :max_length,
         :parent_span_id,
+        :trace_state,
         :trace_state_unknown_fields
 
       attr_writer \
