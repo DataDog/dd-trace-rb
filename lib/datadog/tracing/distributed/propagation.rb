@@ -18,6 +18,12 @@ module Datadog
         # @param propagation_styles [Hash<String,Object>]
         def initialize(propagation_styles:)
           @propagation_styles = propagation_styles
+          # We need to make sure propagation_style option is evaluated.
+          # Our options are lazy evaluated and it happens that propagation_style has the on_set callback
+          # that affect Datadog.configuration.tracing.distributed_tracing.propagation_inject_style and
+          # Datadog.configuration.tracing.distributed_tracing.propagation_extract_style
+          # By calling it here, we make sure if the customers has set any value either via code or ENV variable is applied.
+          Datadog.configuration.tracing.distributed_tracing.propagation_style
         end
 
         # inject! populates the env with span ID, trace ID and sampling priority
