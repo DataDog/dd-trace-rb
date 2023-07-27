@@ -109,7 +109,7 @@ package:
 .release-package:
   stage: deploy
   variables:
-    PRODUCT_NAME: auto_inject-rb
+    PRODUCT_NAME: auto_inject-ruby
 
 deploy_to_reliability_env:
   stage: deploy
