@@ -10,6 +10,7 @@ module Datadog
     module Remote
       # Client communicates with the agent and sync remote configuration
       class Client
+        class TransportError < StandardError; end
         class SyncError < StandardError; end
 
         attr_reader :transport, :repository, :id, :dispatcher
@@ -107,6 +108,8 @@ module Datadog
             else
               dispatcher.dispatch(changes, repository)
             end
+          elsif response.internal_error?
+            raise TransportError, response.to_s
           end
         end
         # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity

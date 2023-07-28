@@ -45,6 +45,9 @@ module Datadog
                 "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
               end
             rescue StandardError => e
+              # reset negotiation to log errors again
+              negotiation = Negotiation.new(settings, agent_settings)
+
               Datadog.logger.error do
                 "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. "\
                 'reseting client state'

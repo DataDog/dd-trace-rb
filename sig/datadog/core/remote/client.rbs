@@ -2,6 +2,9 @@ module Datadog
   module Core
     module Remote
       class Client
+        class TransportError < StandardError
+        end
+
         class SyncError < StandardError
         end
 
