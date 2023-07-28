@@ -5,6 +5,7 @@ module Datadog
         module Ext
           ENV_ENABLED: "DD_TRACE_HTTPRB_ENABLED"
 
+          ENV_PEER_SERVICE: "DD_TRACE_HTTPRB_PEER_SERVICE"
           ENV_SERVICE_NAME: "DD_TRACE_HTTPRB_SERVICE_NAME"
 
           ENV_ANALYTICS_ENABLED: "DD_TRACE_HTTPRB_ANALYTICS_ENABLED"
@@ -15,6 +16,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "httprb"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_REQUEST: "httprb.request"
 
           TAG_COMPONENT: "httprb"

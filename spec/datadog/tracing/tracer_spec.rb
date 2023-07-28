@@ -866,6 +866,8 @@ RSpec.describe Datadog::Tracing::Tracer do
           trace_id: Datadog::Tracing::Utils.next_id,
           trace_origin: 'synthetics',
           trace_sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
+          trace_state: 'my-state',
+          trace_state_unknown_fields: 'any;field',
         )
       end
 
@@ -876,6 +878,8 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(trace).to have_attributes(
             origin: digest.trace_origin,
             sampling_priority: digest.trace_sampling_priority,
+            trace_state: 'my-state',
+            trace_state_unknown_fields: 'any;field',
           )
 
           expect(trace.send(:distributed_tags)).to eq('_dd.p.test' => 'value')

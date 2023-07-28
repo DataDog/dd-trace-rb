@@ -21,15 +21,15 @@ RSpec.shared_examples 'B3 Multi distributed format' do
     context 'with trace_id and span_id' do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
-          span_id: 20000,
-          trace_id: 10000
+          span_id: 0xabc,
+          trace_id: 0xdef
         )
       end
 
       it do
         expect(data).to eq(
-          'x-b3-traceid' => 10000.to_s(16),
-          'x-b3-spanid' => 20000.to_s(16)
+          'x-b3-spanid' => '0000000000000abc',
+          'x-b3-traceid' => '00000000000000000000000000000def',
         )
       end
 
@@ -42,16 +42,16 @@ RSpec.shared_examples 'B3 Multi distributed format' do
         context "with sampling priority #{value}" do
           let(:digest) do
             Datadog::Tracing::TraceDigest.new(
-              span_id: 60000,
-              trace_id: 50000,
+              span_id: 0xabc,
+              trace_id: 0xdef,
               trace_sampling_priority: value
             )
           end
 
           it do
             expect(data).to eq(
-              'x-b3-traceid' => 50000.to_s(16),
-              'x-b3-spanid' => 60000.to_s(16),
+              'x-b3-spanid' => '0000000000000abc',
+              'x-b3-traceid' => '00000000000000000000000000000def',
               'x-b3-sampled' => expected.to_s
             )
           end
@@ -61,16 +61,16 @@ RSpec.shared_examples 'B3 Multi distributed format' do
       context 'with origin' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            span_id: 100000,
-            trace_id: 90000,
+            span_id: 0xabc,
+            trace_id: 0xdef,
             trace_origin: 'synthetics'
           )
         end
 
-        it do
+        it 'cannot propagate origin' do
           expect(data).to eq(
-            'x-b3-traceid' => 90000.to_s(16),
-            'x-b3-spanid' => 100000.to_s(16)
+            'x-b3-spanid' => '0000000000000abc',
+            'x-b3-traceid' => '00000000000000000000000000000def',
           )
         end
       end

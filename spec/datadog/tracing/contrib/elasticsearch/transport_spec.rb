@@ -2,6 +2,8 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
+
 require 'time'
 require 'elasticsearch'
 require 'faraday'
@@ -23,7 +25,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     WebMock.disable!
   end
 
-  let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
+  let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze }
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '1234').to_i }
   let(:server) { "http://#{host}:#{port}" }
 
@@ -104,9 +106,13 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
           expect(span.get_tag('out.port')).to eq(port)
         end
 
-        it_behaves_like 'a peer service span'
-        it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
         it_behaves_like 'schema version span'
+        it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
+        it_behaves_like 'configured peer service span', 'DD_TRACE_ELASTICSEARCH_PEER_SERVICE'
+        it_behaves_like 'a peer service span' do
+          let(:peer_service_val) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
+          let(:peer_service_source) { 'peer.hostname' }
+        end
       end
 
       context 'PUT request' do
@@ -137,9 +143,13 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
             expect(span.get_tag('out.port')).to eq(port)
           end
 
-          it_behaves_like 'a peer service span'
-          it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
           it_behaves_like 'schema version span'
+          it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
+          it_behaves_like 'configured peer service span', 'DD_TRACE_ELASTICSEARCH_PEER_SERVICE'
+          it_behaves_like 'a peer service span' do
+            let(:peer_service_val) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
+            let(:peer_service_source) { 'peer.hostname' }
+          end
         end
 
         context 'with Hash params' do

@@ -465,16 +465,6 @@ module Datadog
                 o.env Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH
                 o.default 512
               end
-
-              # Schema version for span attributes that enables various features
-              #
-              # @default `DD_TRACE_SPAN_ATTRIBUTE_SCHEMA` environment variable, otherwise default `v0` currently
-              # @return [String]
-              option :span_attribute_schema do |o|
-                o.type :string
-                o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_SPAN_ATTRIBUTE_SCHEMA
-                o.default Tracing::Configuration::Ext::SpanAttributeSchema::DEFAULT_VERSION
-              end
             end
           end
         end

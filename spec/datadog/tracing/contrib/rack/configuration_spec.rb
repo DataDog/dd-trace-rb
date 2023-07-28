@@ -86,7 +86,6 @@ RSpec.describe 'Rack integration configuration' do
         expect(server_queue_span.service).to eq(web_service_name)
         expect(server_queue_span.start_time.to_i).to eq(queue_time)
         expect(server_queue_span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)).to be_nil
-        expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(web_service_name)
         expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
         expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('queue')
 
@@ -125,7 +124,6 @@ RSpec.describe 'Rack integration configuration' do
         expect(server_request_span.service).to eq(web_service_name)
         expect(server_request_span.start_time.to_i).to eq(queue_time)
         expect(server_request_span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)).to be_nil
-        expect(server_request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(web_service_name)
         expect(server_request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('http_proxy')
         expect(server_request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
 
@@ -134,7 +132,6 @@ RSpec.describe 'Rack integration configuration' do
         expect(server_queue_span.service).to eq(web_service_name)
         expect(server_queue_span.start_time.to_i).to eq(queue_time)
         expect(server_queue_span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)).to be_nil
-        expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(web_service_name)
         expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('http_proxy')
         expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('queue')
         expect(server_queue_span.parent_id).to eq(server_request_span.span_id)

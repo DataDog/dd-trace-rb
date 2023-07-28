@@ -326,7 +326,6 @@ RSpec.describe 'Rack integration tests' do
           expect(server_queue_span.resource).to eq('http_server.queue')
           expect(server_queue_span.get_tag('component')).to eq('rack')
           expect(server_queue_span.get_tag('operation')).to eq('queue')
-          expect(server_queue_span.get_tag('peer.service')).to eq('web-server')
           expect(server_queue_span.status).to eq(0)
           expect(server_queue_span.get_tag('span.kind')).to eq('server')
 
@@ -366,7 +365,6 @@ RSpec.describe 'Rack integration tests' do
           expect(server_request_span.resource).to eq('http.proxy.request')
           expect(server_request_span.get_tag('component')).to eq('http_proxy')
           expect(server_request_span.get_tag('operation')).to eq('request')
-          expect(server_request_span.get_tag('peer.service')).to eq('web-server')
           expect(server_request_span.status).to eq(0)
           expect(server_request_span.get_tag('span.kind')).to eq('proxy')
 
@@ -376,7 +374,6 @@ RSpec.describe 'Rack integration tests' do
           expect(server_queue_span.resource).to eq('http.proxy.queue')
           expect(server_queue_span.get_tag('component')).to eq('http_proxy')
           expect(server_queue_span.get_tag('operation')).to eq('queue')
-          expect(server_queue_span.get_tag('peer.service')).to eq('web-server')
           expect(server_queue_span.status).to eq(0)
           expect(server_queue_span.get_tag('span.kind')).to eq('proxy')
           expect(server_queue_span).to be_measured
@@ -651,7 +648,6 @@ RSpec.describe 'Rack integration tests' do
           expect(server_queue_span.resource).to eq('http_server.queue')
           expect(server_queue_span.get_tag('component')).to eq('rack')
           expect(server_queue_span.get_tag('operation')).to eq('queue')
-          expect(server_queue_span.get_tag('peer.service')).to eq('web-server')
           expect(server_queue_span.status).to eq(0)
           expect(server_queue_span.get_tag('span.kind')).to eq('server')
 
@@ -710,7 +706,6 @@ RSpec.describe 'Rack integration tests' do
           expect(server_request_span.resource).to eq('http.proxy.request')
           expect(server_request_span.get_tag('component')).to eq('http_proxy')
           expect(server_request_span.get_tag('operation')).to eq('request')
-          expect(server_request_span.get_tag('peer.service')).to eq('web-server')
           expect(server_request_span.status).to eq(0)
           expect(server_request_span.get_tag('span.kind')).to eq('proxy')
 
@@ -720,7 +715,6 @@ RSpec.describe 'Rack integration tests' do
           expect(server_queue_span.resource).to eq('http.proxy.queue')
           expect(server_queue_span.get_tag('component')).to eq('http_proxy')
           expect(server_queue_span.get_tag('operation')).to eq('queue')
-          expect(server_queue_span.get_tag('peer.service')).to eq('web-server')
           expect(server_queue_span.status).to eq(0)
           expect(server_queue_span.get_tag('span.kind')).to eq('proxy')
           expect(server_queue_span).to be_measured

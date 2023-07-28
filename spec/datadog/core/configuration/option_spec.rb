@@ -606,6 +606,26 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
     shared_examples_for 'env coercion' do
       context 'when type is defined' do
+        context ':hash' do
+          let(:type) { :hash }
+
+          context 'value with commas' do
+            let(:env_value) { 'key1:value1,key2:value2' }
+
+            it 'coerce value' do
+              expect(option.get).to eq({ 'key1' => 'value1', 'key2' => 'value2' })
+            end
+
+            context 'remove empty values' do
+              let(:env_value) { 'key1:value1,key2:value2,,,key3:value3,' }
+
+              it 'coerce value' do
+                expect(option.get).to eq({ 'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3' })
+              end
+            end
+          end
+        end
+
         context ':int' do
           let(:type) { :int }
           let(:env_value) { '1234' }

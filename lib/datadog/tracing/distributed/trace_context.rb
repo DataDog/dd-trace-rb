@@ -44,7 +44,15 @@ module Datadog
 
           tracestate, sampling_priority, origin, tags, unknown_fields = extract_tracestate(fetcher[@tracestate_key])
 
-          sampling_priority = parse_priority_sampling(sampled, sampling_priority)
+          sampling_priority = parse_priority_sampling(sampled, sampling_priority) do |decision|
+            case decision
+            when String
+              tags ||= {}
+              tags[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = decision
+            when :drop
+              tags.delete(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER) if tags
+            end
+          end
 
           TraceDigest.new(
             span_id: parent_id,
@@ -160,8 +168,10 @@ module Datadog
             tracestate.chop! # Removes trailing `;` from Datadog trace state string.
 
             if digest.trace_state
+              trace_state = digest.trace_state.strip
+
               # Delete existing `dd=` tracestate fields, if present.
-              vendors = split_tracestate(digest.trace_state)
+              vendors = split_tracestate(trace_state)
               vendors.reject! { |v| v.start_with?('dd=') }
             end
 
@@ -179,13 +189,21 @@ module Datadog
         end
 
         # If any characters in <origin_value> are invalid, replace each invalid character with 0x5F (underscore).
-        # Invalid characters are: characters outside the ASCII range 0x20 to 0x7E, 0x2C (comma), and 0x3D (equals).
+        # Invalid characters are: characters outside the ASCII range 0x20 to 0x7E,
+        # 0x2C (comma), 0x3B (semi-colon), and 0x7E (tilde).
+        # Then, remap 0x3D (equals) to 0x7E (tilde)
         def serialize_origin(value)
           # DEV: It's unlikely that characters will be out of range, as they mostly
           # DEV: come from Datadog-controlled sources.
           # DEV: Trying to `match?` is measurably faster than a `gsub` that does not match.
-          if INVALID_ORIGIN_CHARS.match?(value)
-            value.gsub(INVALID_ORIGIN_CHARS, '_')
+          value = if INVALID_ORIGIN_CHARS.match?(value)
+                    value.gsub(INVALID_ORIGIN_CHARS, '_')
+                  else
+                    value
+                  end
+
+          if REMAP_ORIGIN_CHARS.match?(value)
+            value.gsub(REMAP_ORIGIN_CHARS, '~')
           else
             value
           end
@@ -245,13 +263,15 @@ module Datadog
 
           version, trace_id, parent_id, trace_flags, extra = traceparent.strip.split('-')
 
+          return if version.size != 2 || version[0] < '0' || version[0] > 'f' || version[1] < '0' || version[1] > 'f'
+
           return if version == INVALID_VERSION
 
           # Extra fields are not allowed in version 00, but we have to be lenient for future versions.
           return if version == SPEC_VERSION && extra
 
           # Invalid field sizes
-          return if version.size != 2 || trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
+          return if trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
 
           [Integer(trace_id, 16), Integer(parent_id, 16), Integer(trace_flags, 16)]
         rescue ArgumentError # Conversion to integer failed
@@ -324,16 +344,27 @@ module Datadog
 
         # If `sampled` and `sampling_priority` disagree, `sampled` overrides the decision.
         # @return [Integer] one of the {Datadog::Tracing::Sampling::Ext::Priority} values
+        # @yieldparam the new decision maker (either :drop or a new decision maker String value).
         def parse_priority_sampling(sampled, sampling_priority)
-          # If both fields agree
-          if sampling_priority &&
-              (!Tracing::Sampling::PrioritySampler.sampled?(sampling_priority) && sampled == 0 || # Both drop
-                Tracing::Sampling::PrioritySampler.sampled?(sampling_priority) && sampled == 1) # Both keep
-
-            return sampling_priority # Return the richer `sampling_priority`
+          if sampled == 1
+            if sampling_priority && Tracing::Sampling::PrioritySampler.sampled?(sampling_priority)
+              # Both sampling fields agree.
+              sampling_priority
+            else
+              # Sampling fields disagree.
+              # Let's force the trace to be kept, while also updating the decision maker to ourselves.
+              yield Tracing::Sampling::Ext::Decision::DEFAULT
+              sampled
+            end
+          elsif sampling_priority && !Tracing::Sampling::PrioritySampler.sampled?(sampling_priority)
+            sampling_priority
+          # Both sampling fields agree.
+          else
+            # Sampling fields disagree.
+            # Let's drop the trace and remove the sampling decision tag, as dropped spans don't carry sampling decision.
+            yield :drop
+            sampled
           end
-
-          sampled # Sampled flag trumps `sampling_priority` on conflict
         end
 
         def split_tracestate(tracestate)
@@ -361,9 +392,13 @@ module Datadog
         private_constant :TRACESTATE_VALUE_SIZE_LIMIT
 
         # Replace all characters with `_`, except ASCII characters 0x20-0x7E.
-        # Additionally, `,`, ';', and `=` must also be replaced by `_`.
-        INVALID_ORIGIN_CHARS = /[\u0000-\u0019,;=\u007F-\u{10FFFF}]/.freeze
+        # Additionally, `,`, ';', and `~` must also be replaced by `_`.
+        INVALID_ORIGIN_CHARS = /[\u0000-\u0019,;~\u007F-\u{10FFFF}]/.freeze
         private_constant :INVALID_ORIGIN_CHARS
+
+        # Additionally, remap `=` to `~`
+        REMAP_ORIGIN_CHARS = /=/.freeze
+        private_constant :REMAP_ORIGIN_CHARS
 
         # Replace all characters with `_`, except ASCII characters 0x21-0x7E.
         # Additionally, `,` and `=` must also be replaced by `_`.

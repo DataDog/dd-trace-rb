@@ -54,7 +54,8 @@ RSpec.describe 'gRPC integration test' do
 
     it_behaves_like 'a peer service span' do
       let(:span) { parent_span }
-      let(:peer_hostname) { '0.0.0.0' }
+      let(:peer_service_val) { 'ruby.test.Testing' }
+      let(:peer_service_source) { 'rpc.service' }
     end
   end
 

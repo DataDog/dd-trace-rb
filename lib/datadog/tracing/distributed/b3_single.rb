@@ -26,7 +26,7 @@ module Datadog
           return if digest.nil?
 
           # DEV: We need these to be hex encoded
-          value = "#{digest.trace_id.to_s(16)}-#{digest.span_id.to_s(16)}"
+          value = "#{format('%032x', digest.trace_id)}-#{format('%016x', digest.span_id)}"
 
           if digest.trace_sampling_priority
             sampling_priority = Helpers.clamp_sampling_priority(

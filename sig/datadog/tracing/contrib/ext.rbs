@@ -3,6 +3,7 @@ module Datadog
     module Contrib
       module Ext
         module DB
+          PEER_SERVICE_SOURCES: Array[string]
           TAG_INSTANCE: "db.instance"
 
           TAG_USER: "db.user"
@@ -15,17 +16,26 @@ module Datadog
         end
 
         module RPC
+          PEER_SERVICE_SOURCES: Array[string]
           TAG_SYSTEM: "rpc.system"
 
           TAG_SERVICE: "rpc.service"
 
           TAG_METHOD: "rpc.method"
+          module GRPC
+            TAG_STATUS_CODE: "rpc.grpc.status_code"
+            TAG_FULL_METHOD: "rpc.grpc.full_method"
+          end
         end
 
         module Messaging
+          PEER_SERVICE_SOURCES: Array[string]
           TAG_SYSTEM: "messaging.system"
+        end
 
-          TAG_RABBITMQ_ROUTING_KEY: "messaging.rabbitmq.routing_key"
+        module Metadata
+          TAG_PEER_SERVICE_SOURCE: "_dd.peer.service.source"
+          TAG_PEER_SERVICE_REMAP: "_dd.peer.service.remapped_from"
         end
       end
     end

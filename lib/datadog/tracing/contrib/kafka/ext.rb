@@ -46,6 +46,7 @@ module Datadog
           TAG_OPERATION_PROCESS_MESSAGE = 'consumer.process_message'
           TAG_OPERATION_SEND_MESSAGES = 'producer.send_messages'
           TAG_MESSAGING_SYSTEM = 'kafka'
+          TAG_KAFKA_BOOTSTRAP_SERVERS = 'messaging.kafka.bootstrap.servers'
         end
       end
     end
