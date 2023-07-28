@@ -30,7 +30,7 @@ module Datadog
               "Internal error during #{self.class.name} request. Cause: #{e.class.name} #{e.message} " \
               "Location: #{Array(e.backtrace).first}"
 
-            Datadog.logger.error(message)
+            Datadog.logger.debug(message)
 
             Datadog::Transport::InternalErrorResponse.new(e)
           end

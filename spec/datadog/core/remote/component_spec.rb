@@ -61,7 +61,7 @@ RSpec.describe Datadog::Core::Remote::Component do
       before do
         expect(Datadog::Core::Transport::HTTP).to receive(:v7).and_return(transport_v7)
         expect(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
-        expect(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
+        allow(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
 
         expect(worker).to receive(:start).and_call_original
         expect(worker).to receive(:stop).and_call_original
@@ -117,6 +117,14 @@ RSpec.describe Datadog::Core::Remote::Component do
             component.barrier(:once)
 
             expect(component.client.object_id).to eql(second_client.object_id)
+          end
+
+          it 'resets the negotiation object' do
+            allow(Datadog::Core::Remote::Client).to receive(:new).and_return(second_client)
+
+            component.barrier(:once)
+
+            expect(Datadog::Core::Remote::Negotiation).to have_received(:new).twice
           end
         end
 
