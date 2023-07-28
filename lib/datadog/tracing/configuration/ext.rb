@@ -12,9 +12,8 @@ module Datadog
 
         # @public_api
         module SpanAttributeSchema
-          ENV_SPAN_ATTRIBUTE_SCHEMA = 'DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'
-          DEFAULT_VERSION = 'v0'
-          VERSION_ONE = 'v1'
+          ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED = 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED'
+          ENV_PEER_SERVICE_MAPPING = 'DD_TRACE_PEER_SERVICE_MAPPING'
         end
 
         # @public_api

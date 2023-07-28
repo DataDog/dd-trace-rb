@@ -51,6 +51,13 @@ module Datadog
             def annotate_span_with_request!(span, req, req_options)
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
+              if req_options[:peer_service]
+                span.set_tag(
+                  Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                  req_options[:peer_service]
+                )
+              end
+
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
@@ -73,16 +80,13 @@ module Datadog
                 logger.debug("service #{req_options[:service_name]} span #{Ext::SPAN_REQUEST} missing uri")
               end
 
-              if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                # Tag as an external peer service
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-              end
-
               set_analytics_sample_rate(span, req_options)
 
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.request_tags(req.headers)
               )
+
+              Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
             def annotate_span_with_response!(span, response, request_options)

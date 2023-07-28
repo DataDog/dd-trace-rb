@@ -26,16 +26,18 @@ module Datadog
                 span.resource = sql
                 span.span_type = Tracing::Metadata::Ext::SQL::TYPE
 
+                if datadog_configuration[:peer_service]
+                  span.set_tag(
+                    Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                    datadog_configuration[:peer_service]
+                  )
+                end
+
                 span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
-
-                if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                  # Tag as an external peer service
-                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-                end
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, query_options[:host])
 
@@ -50,6 +52,8 @@ module Datadog
 
                 Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
                 sql = Contrib::Propagation::SqlComment.prepend_comment(sql, span, trace_op, propagation_mode)
+
+                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
                 super(sql, options)
               end

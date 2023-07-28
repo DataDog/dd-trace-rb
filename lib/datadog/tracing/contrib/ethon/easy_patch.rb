@@ -129,10 +129,13 @@ module Datadog
               method = @datadog_method.to_s if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
               span.resource = method
 
-              if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                # Tag as an external peer service
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+              if datadog_configuration[:peer_service]
+                span.set_tag(
+                  Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                  datadog_configuration[:peer_service]
+                )
               end
+
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
@@ -157,6 +160,8 @@ module Datadog
                   )
                 )
               end
+
+              Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
             def set_span_error_message(message)

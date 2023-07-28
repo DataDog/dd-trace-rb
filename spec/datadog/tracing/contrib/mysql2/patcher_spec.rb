@@ -5,6 +5,7 @@ require 'datadog/tracing/contrib/propagation/sql_comment'
 require 'datadog/tracing/contrib/sql_comment_propagation_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'ddtrace'
 require 'mysql2'
@@ -72,7 +73,7 @@ RSpec.describe 'Mysql2::Client patcher' do
           expect(span.service).to eq(service_name)
           expect(span.get_tag('span.kind')).to eq('client')
           expect(span.get_tag('db.system')).to eq('mysql')
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(database)
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
@@ -100,7 +101,8 @@ RSpec.describe 'Mysql2::Client patcher' do
 
         it_behaves_like 'a peer service span' do
           before { query }
-          let(:peer_hostname) { host }
+          let(:peer_service_val) { database }
+          let(:peer_service_source) { 'mysql2.db.name' }
         end
 
         it_behaves_like 'measured span for integration', false do
@@ -113,8 +115,14 @@ RSpec.describe 'Mysql2::Client patcher' do
           let(:configuration_options) { {} }
         end
 
+        it_behaves_like 'configured peer service span', 'DD_TRACE_MYSQL2_PEER_SERVICE' do
+          let(:configuration_options) { {} }
+        end
+
         it_behaves_like 'schema version span' do
           let(:configuration_options) { {} }
+          let(:peer_service_val) { database }
+          let(:peer_service_source) { 'mysql2.db.name' }
         end
       end
 
@@ -135,6 +143,10 @@ RSpec.describe 'Mysql2::Client patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query', error: Mysql2::Error
 
         it_behaves_like 'environment service name', 'DD_TRACE_MYSQL2_SERVICE_NAME', error: Mysql2::Error do
+          let(:configuration_options) { {} }
+        end
+
+        it_behaves_like 'configured peer service span', 'DD_TRACE_MYSQL2_PEER_SERVICE', error: Mysql2::Error do
           let(:configuration_options) { {} }
         end
       end

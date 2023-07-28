@@ -40,11 +40,6 @@ module Datadog
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
-              # Tag as an external peer service
-              if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-              end
-
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
                 Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])

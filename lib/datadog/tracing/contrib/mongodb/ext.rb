@@ -9,6 +9,7 @@ module Datadog
         module Ext
           ENV_ENABLED = 'DD_TRACE_MONGO_ENABLED'
           ENV_SERVICE_NAME = 'DD_TRACE_MONGO_SERVICE_NAME'
+          ENV_PEER_SERVICE = 'DD_TRACE_MONGO_PEER_SERVICE'
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_MONGO_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_MONGO_ANALYTICS_SAMPLE_RATE'
           DEFAULT_PEER_SERVICE_NAME = 'mongodb'
@@ -22,6 +23,7 @@ module Datadog
           TAG_COMPONENT = 'mongodb'
           TAG_OPERATION_COMMAND = 'command'
           TAG_SYSTEM = 'mongodb'
+          PEER_SERVICE_SOURCES = (Array[Ext::TAG_DB] + Contrib::Ext::DB::PEER_SERVICE_SOURCES).freeze
 
           # Temporary namespace to accommodate unified tags which has naming collision, before
           # making breaking changes

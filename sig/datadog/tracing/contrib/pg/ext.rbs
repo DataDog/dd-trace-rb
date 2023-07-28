@@ -5,6 +5,7 @@ module Datadog
         module Ext
           ENV_ENABLED: "DD_TRACE_PG_ENABLED"
 
+          ENV_PEER_SERVICE: "DD_TRACE_PG_PEER_SERVICE"
           ENV_SERVICE_NAME: "DD_TRACE_PG_SERVICE_NAME"
 
           ENV_ANALYTICS_ENABLED: "DD_TRACE_PG_ANALYTICS_ENABLED"
@@ -13,6 +14,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "pg"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_EXEC: "pg.exec"
 
           SPAN_EXEC_PARAMS: "pg.exec.params"

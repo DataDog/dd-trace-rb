@@ -668,9 +668,9 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| ---| --- | --- |
-| `service_name` | Service name used for database portion of `active_record` instrumentation. | Name of database adapter (e.g. `'mysql2'`) |
+| Key            | Description                                                                                                                                                                                       | Default                                    |
+|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
+| `service_name` | Name of application running the `active_record` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | Name of database adapter (e.g. `'mysql2'`) |
 
 **Configuring trace settings per database**
 
@@ -756,9 +756,9 @@ cache.read('city')
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| ---| --- | --- |
-| `cache_service` | Service name used for caching with `active_support` instrumentation. | `active_support-cache` |
+| Key             | Description                                                                                                                                                                                        | Default                |
+|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
+| `cache_service` | Name of application running the `active_support` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `active_support-cache` |
 
 ### AWS
 
@@ -778,9 +778,12 @@ Aws::S3::Client.new.list_buckets
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `aws` instrumentation | `'aws'` |
+| Key            | Env Var                     | Description                                                                                                                                                                             | Default |
+|----------------|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `service_name` | `DD_TRACE_AWS_SERVICE_NAME` | Name of application running the `aws` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `aws`   |
+| `peer_service` | `DD_TRACE_AWS_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                    | `nil`   |
+
+
 
 ### Concurrent Ruby
 
@@ -857,9 +860,11 @@ client.set('abc', 123)
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `dalli` instrumentation | `'memcached'` |
+| Key            | Env Var                       | Description                                                                                                                                                                               | Default     |
+|----------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| `service_name` | `DD_TRACE_DALLI_SERVICE_NAME` | Name of application running the `dalli` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `memcached` |
+| `peer_service` | `DD_TRACE_DALLI_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`       |
+
 
 ### DelayedJob
 
@@ -903,10 +908,12 @@ Datadog.configure_onto(client.transport, **options)
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `quantize` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{}` |
-| `service_name` | Service name used for `elasticsearch` instrumentation | `'elasticsearch'` |
+| Key            | Env Var                               | Description                                                                                                                                                                                       | Default         |
+|----------------|---------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| `service_name` | `DD_TRACE_ELASTICSEARCH_SERVICE_NAME` | Name of application running the `elasticsearch` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `elasticsearch` |
+| `peer_service` | `DD_TRACE_ELASTICSEARCH_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                              | `nil`           |
+| `quantize`     |                                       | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely.       | `{}`            |
+
 
 ### Ethon
 
@@ -928,11 +935,14 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
-| `service_name` | Service name for `ethon` instrumentation. | `'ethon'` |
-| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+| Key                   | Env Var                       | Description                                                                                                                                                                               | Default |
+|-----------------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `service_name`        | `DD_TRACE_ETHON_SERVICE_NAME` | Name of application running the `ethon` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `ethon` |
+| `peer_service`        | `DD_TRACE_ETHON_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
+| `distributed_tracing` |                               | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
+| `split_by_domain`     |                               | Uses the request domain as the service name when set to `true`.                                                                                                                           | `false` |
+
+
 
 ### Excon
 
@@ -959,12 +969,14 @@ connection.get
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
-| `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | `nil` |
-| `service_name` | Service name for Excon instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'excon'` |
-| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+| Key                   | Env Var                       | Description                                                                                                                                                                               | Default |
+|-----------------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `service_name`        | `DD_TRACE_EXCON_SERVICE_NAME` | Name of application running the `excon` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `excon` |
+| `peer_service`        | `DD_TRACE_EXCON_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
+| `distributed_tracing` |                               | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
+| `split_by_domain`     |                               | Uses the request domain as the service name when set to `true`.                                                                                                                           | `false` |
+| `error_handler`       |                               | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors.                    | `nil`   |
+
 
 **Configuring connections to use different settings**
 
@@ -1021,12 +1033,14 @@ connection.get('/foo')
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
-| `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | `nil` |
-| `service_name` | Service name for Faraday instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'faraday'` |
-| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+| Key                   | Env Var                         | Description                                                                                                                                                                                 | Default   |
+|-----------------------|---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| `service_name`        | `DD_TRACE_FARADAY_SERVICE_NAME` | Name of application running the `faraday` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `faraday` |
+| `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                        | `nil`     |
+| `distributed_tracing` |                                 | Enables [distributed tracing](#distributed-tracing)                                                                                                                                         | `true`    |
+| `split_by_domain`     |                                 | Uses the request domain as the service name when set to `true`.                                                                                                                             | `false`   |
+| `error_handler`       |                                 | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors.                      | `nil`     |
+
 
 ### Grape
 
@@ -1054,10 +1068,11 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `enabled` | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `error_statuses`| Defines a status code or range of status codes which should be marked as errors. `'404,405,500-599'` or `[404,405,'500-599']` | `nil` |
+| Key              | Env Var                  | Description                                                                                                                   | Default |
+|------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------|
+| `enabled`        | `DD_TRACE_GRAPE_ENABLED` | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false`                           | `true`  |
+| `error_statuses` |                          | Defines a status code or range of status codes which should be marked as errors. `'404,405,500-599'` or `[404,405,'500-599']` | `nil`   |
+
 
 ### GraphQL
 
@@ -1155,11 +1170,14 @@ client.my_endpoint(DemoMessage.new(contents: 'hello!'))
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
-| `service_name` | Service name used for `grpc` instrumentation | `'grpc'` |
-| `error_handler` | Custom error handler invoked when a request is an error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| Key                   | Env Var                      | Description                                                                                                                                                                              | Default                                                            |
+|-----------------------|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| `service_name`        | `DD_TRACE_GRPC_SERVICE_NAME` | Name of application running the `grpc` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `grpc`                                                             |
+| `peer_service`        | `DD_TRACE_GRPC_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                     | `nil`                                                              |
+| `distributed_tracing` |                              | Enables [distributed tracing](#distributed-tracing)                                                                                                                                      | `true`                                                             |
+| `error_handler`       |                              | Custom error handler invoked when a request is an error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
+
+
 
 **Configuring clients to use different settings**
 
@@ -1202,6 +1220,7 @@ end
 | --- | ----------- | ------- |
 | `service_name` | Service name for `hanami` instrumentation. | `nil` |
 
+
 ### http.rb
 
 The http.rb integration will trace any HTTP call using the Http.rb gem.
@@ -1221,12 +1240,14 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
-| `service_name` | Service name for `httprb` instrumentation. | `'httprb'` |
-| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
-| `error_status_codes` | Range or Array of HTTP status codes that should be traced as errors. | `400...600` |
+| Key                   | Env Var                                  | Description                                                                                                                                                                                | Default     |
+|-----------------------|------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| `service_name`        | `DD_TRACE_HTTPRB_SERVICE_NAME`           | Name of application running the `httprb` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `httprb`    |
+| `peer_service`        | `DD_TRACE_HTTPRB_PEER_SERVICE`           | Name of external service the application connects to                                                                                                                                       | `nil`       |
+| `distributed_tracing` |                                          | Enables [distributed tracing](#distributed-tracing)                                                                                                                                        | `true`      |
+| `split_by_domain`     |                                          | Uses the request domain as the service name when set to `true`.                                                                                                                            | `false`     |
+| `error_status_codes`  | `DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                       | `400...600` |
+
 
 ### httpclient
 
@@ -1247,12 +1268,14 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
-| `service_name` | Service name for `httpclient` instrumentation. | `'httpclient'` |
-| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
-| `error_status_codes` | Range or Array of HTTP status codes that should be traced as errors. | `400...600` |
+| Key                   | Env Var                                  | Description                                                                                                                                                                                    | Default      |
+|-----------------------|------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| `service_name`        | `DD_TRACE_HTTPCLIENT_SERVICE_NAME`       | Name of application running the `httpclient` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `httpclient` |
+| `peer_service`        | `DD_TRACE_HTTPCLIENT_PEER_SERVICE`       | Name of external service the application connects to                                                                                                                                           | `nil`        |
+| `distributed_tracing` |                                          | Enables [distributed tracing](#distributed-tracing)                                                                                                                                            | `true`       |
+| `split_by_domain`     |                                          | Uses the request domain as the service name when set to `true`.                                                                                                                                | `false`      |
+| `error_status_codes`  | `DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                           | `400...600`  |
+
 
 ### httpx
 
@@ -1336,10 +1359,11 @@ Datadog.configure_onto(client, **options)
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `quantize` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{ show: [:collection, :database, :operation] }` |
-| `service_name` | Service name used for `mongo` instrumentation | `'mongodb'` |
+| Key            | Env Var                       | Description                                                                                                                                                                                 | Default                                          |
+|----------------|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------|
+| `service_name` | `DD_TRACE_MONGO_SERVICE_NAME` | Name of application running the `mongo` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)   | `mongodb`                                        |
+| `peer_service` | `DD_TRACE_MONGO_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                        | `nil`                                            |
+| `quantize`     |                               | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{ show: [:collection, :database, :operation] }` |
 
 **Configuring trace settings per connection**
 
@@ -1390,10 +1414,11 @@ client.query("SELECT * FROM users WHERE group='x'")
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `mysql2` instrumentation | `'mysql2'` |
-| `comment_propagation` | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
+| Key                   | Env Var                        | Description                                                                                                                                                                                                                                                                                                                                                             | Default      |
+|-----------------------|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| `service_name`        | `DD_TRACE_MYSQL2_SERVICE_NAME` | Name of application running the `mysql2` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)                                                                                                                                                                              | `mysql2`     |
+| `peer_service`        | `DD_TRACE_MYSQL2_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                    | `nil`        |
+| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`      | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
 
 ### Net/HTTP
 
@@ -1423,12 +1448,13 @@ content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
-| `service_name` | Service name used for `http` instrumentation | `'net/http'` |
-| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
-| `error_status_codes` | Range or Array of HTTP status codes that should be traced as errors. | `400...600` |
+| Key                   | Env Var                            | Description                                                                                                                                                                                  | Default     |
+|-----------------------|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| `service_name`        | `DD_TRACE_NET_HTTP_SERVICE_NAME`   | Name of application running the `net/http` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `net/http`  |
+| `peer_service`        | `DD_TRACE_NET_HTTP_PEER_SERVICE`   | Name of external service the application connects to                                                                                                                                         | `nil`       |
+| `distributed_tracing` |                                    | Enables [distributed tracing](#distributed-tracing)                                                                                                                                          | `true`      |
+| `split_by_domain`     |                                    | Uses the request domain as the service name when set to `true`.                                                                                                                              | `false`     |
+| `error_status_codes`  | `DD_TRACE_HTTP_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                         | `400...600` |
 
 If you wish to configure each connection object individually, you may use the `Datadog.configure_onto` as it follows:
 
@@ -1460,10 +1486,11 @@ client.cluster.health
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `quantize` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{}` |
-| `service_name` | Service name used for `opensearch` instrumentation | `'opensearch'` |
+| Key            | Env Var                            | Description                                                                                                                                                                                    | Default      |
+|----------------|------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| `service_name` | `DD_TRACE_OPENSEARCH_SERVICE_NAME` | Name of application running the `opensearch` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `opensearch` |
+| `peer_service` | `DD_TRACE_OPENSEARCH_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                           | `nil`        |
+| `quantize`     |                                    | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely.    | `{}`         |
 
 ### Postgres
 
@@ -1483,10 +1510,11 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `pg` instrumentation | `'pg'` |
-| `comment_propagation` | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
+| Key                   | Env Var                    | Description                                                                                                                                                                                                                                                                                                                                                             | Default      |
+|-----------------------|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| `service_name`        | `DD_TRACE_PG_SERVICE_NAME` | Name of application running the `pg` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)                                                                                                                                                                                  | `pg`         |
+| `peer_service`        | `DD_TRACE_PG_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                    | `nil`        |
+| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
 
 ### Presto
 
@@ -1515,9 +1543,11 @@ client.run("select * from system.nodes")
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `presto` instrumentation | `'presto'` |
+| Key                   | Env Var                        | Description                                                                                                                                                                                | Default  |
+|-----------------------|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| `service_name`        | `DD_TRACE_PRESTO_SERVICE_NAME` | Name of application running the `presto` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `presto` |
+| `peer_service`        | `DD_TRACE_PRESTO_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                       | `nil`    |
+
 
 ### Qless
 
@@ -1535,10 +1565,10 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `tag_job_data` | Enable tagging with job arguments. true for on, false for off. | `false` |
-| `tag_job_tags` | Enable tagging with job tags. true for on, false for off. | `false` |
+| Key            | Env Var                 | Description                                                    | Default |
+|----------------|-------------------------|----------------------------------------------------------------|---------|
+| `tag_job_data` | `DD_QLESS_TAG_JOB_DATA` | Enable tagging with job arguments. `true` for on, `false` for off. | `false` |
+| `tag_job_tags` | `DD_QLESS_TAG_JOB_TAGS` | Enable tagging with job tags. `true` for on, `false` for off.      | `false` |
 
 ### Que
 
@@ -1556,12 +1586,12 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `enabled` | Defines whether Que should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `tag_args` | Enable tagging of a job's args field. `true` for on, `false` for off. | `false` |
-| `tag_data` | Enable tagging of a job's data field. `true` for on, `false` for off. | `false` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| Key             | Env Var                         | Description                                                                                                                                                                 | Default                                                            |
+|-----------------|---------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| `enabled`       | `DD_TRACE_QUE_ENABLED`          | Defines whether Que should be traced. Useful for temporarily disabling tracing. `true` or `false`                                                                           | `true`                                                             |
+| `tag_args`      | `DD_TRACE_QUE_TAG_ARGS_ENABLED` | Enable tagging of a job's args field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
+| `tag_data`      | `DD_TRACE_QUE_TAG_DATA_ENABLED` | Enable tagging of a job's data field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
+| `error_handler` |                                 | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
 
 ### Racecar
 
@@ -1579,10 +1609,10 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `racecar` instrumentation | `'racecar'` |
-
+| Key                   | Env Var                         | Description                                                                                                                                                                                 | Default   |
+|-----------------------|---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| `service_name`        | `DD_TRACE_RACECAR_SERVICE_NAME` | Name of application running the `racecar` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `racecar` |
+|
 ### Rack
 
 The Rack integration provides a middleware that traces all requests before they reach the underlying framework or application. It responds to the Rack minimal interface, providing reasonable values that can be retrieved at the Rack level.
@@ -1807,10 +1837,12 @@ redis.set 'foo', 'bar'
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `redis` instrumentation | `'redis'` |
-| `command_args` | Show the command arguments (e.g. `key` in `GET key`) as resource name and tag | true |
+| Key            | Env Var                       | Description                                                                                                                                                                               | Default |
+|----------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `service_name` | `DD_TRACE_REDIS_SERVICE_NAME` | Name of application running the `redis` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `redis` |
+| `peer_service` | `DD_TRACE_REDIS_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
+| `command_args` | `DD_REDIS_COMMAND_ARGS`       | Show the command arguments (e.g. `key` in `GET key`) as resource name and tag                                                                                                             | true    |
+
 
 **Configuring trace settings per instance**
 
@@ -1925,11 +1957,12 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
-| `service_name` | Service name for `rest_client` instrumentation. | `'rest_client'` |
-| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
+| Key                   | Env Var                             | Description                                                                                                                                                                                     | Default       |
+|-----------------------|-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| `service_name`        | `DD_TRACE_REST_CLIENT_SERVICE_NAME` | Name of application running the `rest_client` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `rest_client` |
+| `peer_service`        | `DD_TRACE_REST_CLIENT_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                            | `nil`         |
+| `distributed_tracing` |                                     | Enables [distributed tracing](#distributed-tracing)                                                                                                                                             | `true`        |
+| `split_by_domain`     |                                     | Uses the request domain as the service name when set to `true`.                                                                                                                                 | `false`       |
 
 ### Roda
 
@@ -2200,7 +2233,7 @@ To change the default behavior of `ddtrace`, you can use, in order of priority, 
     Datadog.configure do |c|
       c.service = 'billing-api'
       c.env = ENV['RACK_ENV']
-    
+
       c.tracing.report_hostname = true
       c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
     end
@@ -2213,40 +2246,42 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 
 **Available configuration options:**
 
-| Setting                                                 | Env Var                        | Default                                                           | Description                                                                                                                                                                                                                               |
-|---------------------------------------------------------|--------------------------------|-------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Global**                                              |                                |                                                                   |                                                                                                                                                                                                                                           |
-| `agent.host`                                            | `DD_AGENT_HOST`                | `127.0.0.1`                                                       | Hostname of Agent to where trace data will be sent.                                                                                                                                                                                       |
-| `agent.port`                                            | `DD_TRACE_AGENT_PORT`          | `8126`                                                            | Port of Agent host to where trace data will be sent. If the [Agent configuration](#configuring-trace-data-ingestion) sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.         |
-|                                                         | `DD_TRACE_AGENT_URL`           | `nil`                                                             | Sets the URL endpoint where traces are sent. Has priority over `agent.host` and `agent.port`. If the [Agent configuration](#configuring-trace-data-ingestion) sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.                |
-| `diagnostics.debug`                                     | `DD_TRACE_DEBUG`               | `false`                                                           | Enables or disables debug mode. Prints verbose logs. **NOT recommended for production or other sensitive environments.** See [Debugging and diagnostics](#debugging-and-diagnostics) for more details.                                    |
-| `diagnostics.startup_logs.enabled`                      | `DD_TRACE_STARTUP_LOGS`        | `nil`                                                             | Prints startup configuration and diagnostics to log. For assessing state of tracing at application startup. See [Debugging and diagnostics](#debugging-and-diagnostics) for more details.                                                 |
-| `env`                                                   | `DD_ENV`                       | `nil`                                                             | Your application environment. (e.g. `production`, `staging`, etc.) This value is set as a tag on all traces.                                                                                                                              |
-| `service`                                               | `DD_SERVICE`                   | *Ruby filename*                                                   | Your application's default service name. (e.g. `billing-api`) This value is set as a tag on all traces.                                                                                                                                   |
-| `tags`                                                  | `DD_TAGS`                      | `nil`                                                             | Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`) These tags are set on all traces. See [Environment and tags](#environment-and-tags) for more details.                                                          |
-| `time_now_provider`                                     |                                | `->{ Time.now }`                                                  | Changes how time is retrieved. See [Setting the time provider](#setting-the-time-provider) for more details.                                                                                                                              |
-| `version`                                               | `DD_VERSION`                   | `nil`                                                             | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                        |
-| `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED` | `true`                                                             | Allows you to enable sending telemetry data to Datadog. Can be disabled, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                          |
-| **Tracing**                                             |                                |                                                                   |                                                                                                                                                                                                                                           |
-| `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`   | `nil`                                                             | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                          |
-| `tracing.distributed_tracing.propagation_extract_style` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT` | `['Datadog','b3multi','b3']` | Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                             |
-| `tracing.distributed_tracing.propagation_inject_style`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`  | `['Datadog']`                                                     | Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                              |
-| `tracing.distributed_tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE` | `nil` | Distributed tracing propagation formats to extract and inject. See [Distributed Tracing](#distributed-tracing) for more details. |
-| `tracing.enabled`                                       | `DD_TRACE_ENABLED`             | `true`                                                            | Enables or disables tracing. If set to `false` instrumentation will still run, but no traces are sent to the trace agent.                                                                                                                 |
-| `tracing.header_tags`                                   | `DD_TRACE_HEADER_TAGS`         | `nil`                                                             | Record HTTP headers as span tags. See [Applying header tags to root spans][header tags] for more information.                                          |
-| `tracing.instrument(<integration-name>, <options...>)`  |                                |                                                                   | Activates instrumentation for a specific library. See [Integration instrumentation](#integration-instrumentation) for more details.                                                                                                       |
-| `tracing.log_injection`                                 | `DD_LOGS_INJECTION`            | `true`                                                            | Injects [Trace Correlation](#trace-correlation) information into Rails logs if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`.                                                   |
-| `tracing.partial_flush.enabled`                         |                                | `false`                                                           | Enables or disables partial flushing. Partial flushing submits completed portions of a trace to the agent. Used when tracing instruments long running tasks (e.g. jobs) with many spans.                                                  |
-| `tracing.partial_flush.min_spans_threshold`             |                                | `500`                                                             | The number of spans that must be completed in a trace before partial flushing submits those completed spans.                                                                                                                              |
-| `tracing.sampler`                                       |                                | `nil`                                                             | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Application-side sampling](#application-side-sampling) for details. |
-| `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`         | `nil`                                                             | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%). See [Application-side sampling](#application-side-sampling) for details.                                                                                                  |
-| `tracing.sampling.rate_limit`                           | `DD_TRACE_RATE_LIMIT`          | `100` (per second)                                                | Sets a maximum number of traces per second to sample. Set a rate limit to avoid the ingestion volume overages in the case of traffic spikes.                                                                    |
-| `tracing.sampling.rules`                                | `DD_TRACE_SAMPLING_RULES`      | `nil`                                                             | Sets trace-level sampling rules, matching against the local root span. The format is a `String` with JSON, containing an Array of Objects. Each Object must have a float attribute `sample_rate` (between 0.0 and 1.0, inclusive), and optionally `name` and `service` string attributes. `name` and `service` control to which traces this sampling rule applies; if both are absent, then this rule applies to all traces. Rules are evaluted in order of declartion in the array; only the first to match is applied. If none apply, then `tracing.sampling.default_rate` is applied. |
-| `tracing.sampling.span_rules`                           | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `nil`                                    | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                              |
-| `tracing.trace_id_128_bit_generation_enabled` | `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` | `false` | `true` to generate 128 bits trace ID and `false` to generate 64 bits trace ID  |
-| `tracing.report_hostname`                               | `DD_TRACE_REPORT_HOSTNAME`     | `false`                                                           | Adds hostname tag to traces.                                                                                                                                                                                                              |
-| `tracing.test_mode.enabled`                             | `DD_TRACE_TEST_MODE_ENABLED`   | `false`                                                           | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                         |
-| `tracing.test_mode.trace_flush`                         |                                | `nil`                                                             | Object that determines trace flushing behavior.                                                                                                                                                                                           |
+| Setting                                                 | Env Var                                                 | Default                      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|---------------------------------------------------------|---------------------------------------------------------|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Global**                                              |                                                         |                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `agent.host`                                            | `DD_AGENT_HOST`                                         | `127.0.0.1`                  | Hostname of Agent to where trace data will be sent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `agent.port`                                            | `DD_TRACE_AGENT_PORT`                                   | `8126`                       | Port of Agent host to where trace data will be sent. If the [Agent configuration](#configuring-trace-data-ingestion) sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.                                                                                                                                                                                                                                                                                                        |
+|                                                         | `DD_TRACE_AGENT_URL`                                    | `nil`                        | Sets the URL endpoint where traces are sent. Has priority over `agent.host` and `agent.port`. If the [Agent configuration](#configuring-trace-data-ingestion) sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.                                                                                                                                                                                                                                                               |
+| `diagnostics.debug`                                     | `DD_TRACE_DEBUG`                                        | `false`                      | Enables or disables debug mode. Prints verbose logs. **NOT recommended for production or other sensitive environments.** See [Debugging and diagnostics](#debugging-and-diagnostics) for more details.                                                                                                                                                                                                                                                                                                                                                                                   |
+| `diagnostics.startup_logs.enabled`                      | `DD_TRACE_STARTUP_LOGS`                                 | `nil`                        | Prints startup configuration and diagnostics to log. For assessing state of tracing at application startup. See [Debugging and diagnostics](#debugging-and-diagnostics) for more details.                                                                                                                                                                                                                                                                                                                                                                                                |
+| `env`                                                   | `DD_ENV`                                                | `nil`                        | Your application environment. (e.g. `production`, `staging`, etc.) This value is set as a tag on all traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `service`                                               | `DD_SERVICE`                                            | *Ruby filename*              | Your application's default service name. (e.g. `billing-api`) This value is set as a tag on all traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `tags`                                                  | `DD_TAGS`                                               | `nil`                        | Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`) These tags are set on all traces. See [Environment and tags](#environment-and-tags) for more details.                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `time_now_provider`                                     |                                                         | `->{ Time.now }`             | Changes how time is retrieved. See [Setting the time provider](#setting-the-time-provider) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `version`                                               | `DD_VERSION`                                            | `nil`                        | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED`                  | `true`                       | Allows you to enable sending telemetry data to Datadog. Can be disabled, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Tracing**                                             |                                                         |                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`                            | `nil`                        | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `tracing.contrib.peer_service_mapping`                  | `DD_TRACE_PEER_SERVICE_MAPPING`                         | `nil`                        | Defines remapping of `peer.service` tag across all instrumentation. Provide a list of `old_value1:new_value1, old_value2:new_value2, ...`                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `tracing.contrib.global_default_service_name.enabled`   | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `false`                      | Changes the default value for `service_name` to the application service name across all instrumentation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `tracing.distributed_tracing.propagation_extract_style` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT`                    | `['Datadog','b3multi','b3']` | Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `tracing.distributed_tracing.propagation_inject_style`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`                     | `['Datadog']`                | Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `tracing.distributed_tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE`                            | `nil`                        | Distributed tracing propagation formats to extract and inject. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `tracing.enabled`                                       | `DD_TRACE_ENABLED`                                      | `true`                       | Enables or disables tracing. If set to `false` instrumentation will still run, but no traces are sent to the trace agent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `tracing.header_tags`                                   | `DD_TRACE_HEADER_TAGS`                                  | `nil`                        | Record HTTP headers as span tags. See [Applying header tags to root spans][header tags] for more information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `tracing.instrument(<integration-name>, <options...>)`  |                                                         |                              | Activates instrumentation for a specific library. See [Integration instrumentation](#integration-instrumentation) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `tracing.log_injection`                                 | `DD_LOGS_INJECTION`                                     | `true`                       | Injects [Trace Correlation](#trace-correlation) information into Rails logs if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `tracing.partial_flush.enabled`                         |                                                         | `false`                      | Enables or disables partial flushing. Partial flushing submits completed portions of a trace to the agent. Used when tracing instruments long running tasks (e.g. jobs) with many spans.                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `tracing.partial_flush.min_spans_threshold`             |                                                         | `500`                        | The number of spans that must be completed in a trace before partial flushing submits those completed spans.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `tracing.sampler`                                       |                                                         | `nil`                        | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Application-side sampling](#application-side-sampling) for details.                                                                                                                                                                                                                                                                                                                                                |
+| `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`                                  | `nil`                        | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%). See [Application-side sampling](#application-side-sampling) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `tracing.sampling.rate_limit`                           | `DD_TRACE_RATE_LIMIT`                                   | `100` (per second)           | Sets a maximum number of traces per second to sample. Set a rate limit to avoid the ingestion volume overages in the case of traffic spikes.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `tracing.sampling.rules`                                | `DD_TRACE_SAMPLING_RULES`                               | `nil`                        | Sets trace-level sampling rules, matching against the local root span. The format is a `String` with JSON, containing an Array of Objects. Each Object must have a float attribute `sample_rate` (between 0.0 and 1.0, inclusive), and optionally `name` and `service` string attributes. `name` and `service` control to which traces this sampling rule applies; if both are absent, then this rule applies to all traces. Rules are evaluted in order of declartion in the array; only the first to match is applied. If none apply, then `tracing.sampling.default_rate` is applied. |
+| `tracing.sampling.span_rules`                           | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `nil`                        | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `tracing.trace_id_128_bit_generation_enabled`           | `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED`           | `false`                      | `true` to generate 128 bits trace ID and `false` to generate 64 bits trace ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `tracing.report_hostname`                               | `DD_TRACE_REPORT_HOSTNAME`                              | `false`                      | Adds hostname tag to traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `tracing.test_mode.enabled`                             | `DD_TRACE_TEST_MODE_ENABLED`                            | `false`                      | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `tracing.test_mode.trace_flush`                         |                                                         | `nil`                        | Object that determines trace flushing behavior.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 #### Custom logging
 

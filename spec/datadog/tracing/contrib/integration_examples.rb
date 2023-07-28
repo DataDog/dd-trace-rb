@@ -1,17 +1,15 @@
 RSpec.shared_examples 'a peer service span' do
-  before { subject }
-
-  let(:peer_service) { span.service }
-
-  it 'contains peer service tag' do
-    expect(span.get_tag('peer.service')).to_not be nil
-    expect(span.get_tag('peer.service')).to eq(peer_service)
+  before do
+    subject
+    skip('No let(:peer_service_val) defined.') unless defined?(peer_service_val)
+    skip('No let(:peer_service_source) defined.') unless defined?(peer_service_source)
   end
 
-  it 'contains peer hostname tag' do
-    skip('No let(:peer_hostname) defined.') unless defined?(peer_hostname)
-
-    expect(span.get_tag('peer.hostname')).to eq(peer_hostname)
+  context 'extracted peer service' do
+    it 'contains extracted peer service tag' do
+      expect(span.get_tag('peer.service')).to eq(peer_service_val)
+      expect(span.get_tag('_dd.peer.service.source')).to eq(peer_service_source)
+    end
   end
 end
 

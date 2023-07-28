@@ -114,7 +114,7 @@ module Datadog
             def extract_grpc_service(grpc_full_method)
               parts = grpc_full_method.split('/')
               if parts.length < 3
-                VALUE_UNKNOWN
+                ''
               else
                 parts[1]
               end
