@@ -110,9 +110,6 @@ module Datadog
           else
             @logger.debug('Profiling is disabled')
           end
-
-          # Start remote configuration worker
-          @remote.start if @remote
         end
 
         # Shuts down all the components in use.
