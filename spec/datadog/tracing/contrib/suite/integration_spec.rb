@@ -39,7 +39,12 @@ RSpec.describe 'contrib integration testing' do
       Datadog.configure { |c| c.remote.poll_interval_seconds = 0.001 }
     end
 
-    after { WebMock.disable! }
+    after do
+      # Ensure RC background worker is stopped before we disable webmock
+      # to avoid failed HTTP requests, trying to make a real remote call.
+      Datadog.shutdown!
+      WebMock.disable!
+    end
 
     def new_dynamic_configuration(product = 'TEST-PRODUCT', data = '', config = 'test-config', name = 'test-name')
       Struct.new(:product, :data, :config, :name).new(product, data, config, name)
@@ -242,7 +247,10 @@ RSpec.describe 'contrib integration testing' do
           end
         end
 
-        after { SemanticLogger.remove_appender(appender) }
+        after do
+          SemanticLogger.remove_appender(appender)
+          SemanticLogger::Logger.processor.thread.kill
+        end
 
         it 'changes disables log injection' do
           # Before
