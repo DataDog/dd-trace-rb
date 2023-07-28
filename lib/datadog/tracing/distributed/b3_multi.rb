@@ -30,8 +30,8 @@ module Datadog
           return if digest.nil?
 
           # DEV: We need these to be hex encoded
-          data[@trace_id_key] = digest.trace_id.to_s(16)
-          data[@span_id_key] = digest.span_id.to_s(16)
+          data[@trace_id_key] = format('%032x', digest.trace_id)
+          data[@span_id_key] = format('%016x', digest.span_id)
 
           if digest.trace_sampling_priority
             sampling_priority = Helpers.clamp_sampling_priority(
