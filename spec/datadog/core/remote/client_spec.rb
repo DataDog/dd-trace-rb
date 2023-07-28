@@ -460,7 +460,7 @@ RSpec.describe Datadog::Core::Remote::Client do
       end
 
       context 'with a network error' do
-        it 'it raises a transport error' do
+        it 'raises a transport error' do
           expect(http_connection).to receive(:request).and_raise(IOError)
 
           expect { client.sync }.to raise_error(Datadog::Core::Remote::Client::TransportError)

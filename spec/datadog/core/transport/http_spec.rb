@@ -30,7 +30,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
       allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
     end
   end
-  
+
   let(:http_connection) { instance_double(::Net::HTTP) }
 
   describe '.root' do
@@ -202,7 +202,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
       it { is_expected.to have_attributes(:target_files => be_a(Array)) }
 
       context 'with a network error' do
-        it 'it raises a transport error' do
+        it 'raises a transport error' do
           expect(http_connection).to receive(:request).and_raise(IOError)
 
           expect(Datadog.logger).to receive(:debug).with(/IOError/)
