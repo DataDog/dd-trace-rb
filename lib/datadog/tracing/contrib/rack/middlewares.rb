@@ -71,6 +71,8 @@ module Datadog
 
             return @app.call(env) if previous_request_span
 
+            Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
+
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
             if configuration[:distributed_tracing]
