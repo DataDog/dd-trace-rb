@@ -41,7 +41,7 @@
 
 ### Fixed
 
-* Core: Tracing: Fix polynomial-time regular expressions ([#2814][])
+* Core: Fix polynomial-time regular expressions ([#2814][])
 * Core: Fix environment variable for dynamic configuration polling interval ([#2967][])
 * Core: Reduce remote configuration error logging noise ([#3011][])
 * Tracing: Fix manual log injection for 128 bit trace_id ([#2974][])
