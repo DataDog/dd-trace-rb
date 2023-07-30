@@ -45,6 +45,11 @@ module Datadog
               o.env Contrib::Propagation::SqlComment::Ext::ENV_DBM_PROPAGATION_MODE
               o.default Contrib::Propagation::SqlComment::Ext::DISABLED
             end
+
+            option :peer_service do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_PEER_SERVICE
+            end
           end
         end
       end

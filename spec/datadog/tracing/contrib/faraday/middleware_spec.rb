@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
 require 'datadog/tracing/contrib/support/http'
 
 require 'faraday'
@@ -48,6 +49,7 @@ RSpec.describe 'Faraday middleware' do
     let(:use_middleware) { false }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'configured peer service span', 'DD_TRACE_FARADAY_PEER_SERVICE'
     it_behaves_like 'schema version span'
 
     it 'uses default configuration' do
@@ -71,7 +73,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
 
     it 'executes without warnings' do
@@ -110,6 +113,7 @@ RSpec.describe 'Faraday middleware' do
       after { WebMock.disable! }
 
       it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_FARADAY_PEER_SERVICE'
       it_behaves_like 'schema version span'
 
       it 'uses default configuration' do
@@ -155,6 +159,7 @@ RSpec.describe 'Faraday middleware' do
     subject!(:response) { client.get('/success') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'configured peer service span', 'DD_TRACE_FARADAY_PEER_SERVICE'
     it_behaves_like 'schema version span'
 
     it do
@@ -168,6 +173,7 @@ RSpec.describe 'Faraday middleware' do
     subject!(:response) { client.get('/success') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'configured peer service span', 'DD_TRACE_FARADAY_PEER_SERVICE'
     it_behaves_like 'schema version span'
 
     it_behaves_like 'analytics for integration' do
@@ -196,7 +202,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -204,6 +211,7 @@ RSpec.describe 'Faraday middleware' do
     subject!(:response) { client.post('/failure') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'configured peer service span', 'DD_TRACE_FARADAY_PEER_SERVICE'
     it_behaves_like 'schema version span'
 
     it do
@@ -226,7 +234,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -234,6 +243,7 @@ RSpec.describe 'Faraday middleware' do
     subject(:response) { client.get('/error') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME', error: Faraday::ConnectionFailed
+    it_behaves_like 'configured peer service span', 'DD_TRACE_FARADAY_PEER_SERVICE', error: Faraday::ConnectionFailed
 
     it do
       expect { response }.to raise_error(Faraday::ConnectionFailed)
@@ -256,7 +266,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
 
       subject do
         begin
@@ -274,6 +285,7 @@ RSpec.describe 'Faraday middleware' do
     it { expect(span).to_not have_error }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'configured peer service span', 'DD_TRACE_FARADAY_PEER_SERVICE'
     it_behaves_like 'schema version span'
   end
 
@@ -286,6 +298,7 @@ RSpec.describe 'Faraday middleware' do
     it { expect(span).to have_error }
 
     it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
+    it_behaves_like 'configured peer service span', 'DD_TRACE_FARADAY_PEER_SERVICE'
     it_behaves_like 'schema version span'
   end
 
@@ -302,7 +315,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
 
     context 'and the host matches a specific configuration' do
@@ -380,7 +394,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -395,7 +410,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 

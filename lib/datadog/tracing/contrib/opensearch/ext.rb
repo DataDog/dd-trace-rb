@@ -9,6 +9,7 @@ module Datadog
         module Ext
           ENV_ENABLED = 'DD_TRACE_OPENSEARCH_ENABLED'
           ENV_SERVICE_NAME = 'DD_TRACE_OPENSEARCH_SERVICE_NAME'
+          ENV_PEER_SERVICE = 'DD_TRACE_OPENSEARCH_PEER_SERVICE'
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_OPENSEARCH_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_OPENSEARCH_ANALYTICS_SAMPLE_RATE'
           DEFAULT_PEER_SERVICE_NAME = 'opensearch'
@@ -25,6 +26,10 @@ module Datadog
           TAG_PORT = 'http.url_details.port'
           TAG_SCHEME = 'http.url_details.scheme'
           TAG_RESPONSE_CONTENT_LENGTH = 'http.response.content_length'
+          PEER_SERVICE_SOURCES = Array[
+            Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end
       end
     end

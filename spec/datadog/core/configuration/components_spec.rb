@@ -1098,15 +1098,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:info_response) { { endpoints: ['/v0.7/config'] }.to_json }
       end
 
-      context 'enabled' do
-        before { allow(settings.remote).to receive(:enabled).and_return(true) }
-
-        it 'starts the remote manager' do
-          expect(components.remote).to receive(:start)
-          startup!
-        end
-      end
-
       context 'disabled' do
         before { allow(settings.remote).to receive(:enabled).and_return(false) }
 

@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'grpc'
 require 'ddtrace'
@@ -33,7 +34,7 @@ RSpec.describe GRPC::InterceptionContext do
         specify { expect(span.name).to eq 'grpc.client' }
         specify { expect(span.span_type).to eq 'http' }
         specify { expect(span.service).to eq 'rspec' }
-        specify { expect(span.resource).to eq 'myservice.endpoint' }
+        specify { expect(span.resource).to eq 'ruby.test.testing.basic' }
         specify { expect(span.get_tag('error.stack')).to be_nil }
         specify { expect(span.get_tag('some')).to eq 'datum' }
 
@@ -42,10 +43,14 @@ RSpec.describe GRPC::InterceptionContext do
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_service_val) { 'ruby.test.Testing' }
+          let(:peer_service_source) { 'rpc.service' }
+        end
         it_behaves_like 'environment service name', 'DD_TRACE_GRPC_SERVICE_NAME' do
           let(:configuration_options) { {} }
         end
+        it_behaves_like 'configured peer service span', 'DD_TRACE_GRPC_PEER_SERVICE'
         it_behaves_like 'schema version span'
       end
 
@@ -54,7 +59,7 @@ RSpec.describe GRPC::InterceptionContext do
         let(:keywords) do
           { request: instance_double(Object),
             call: instance_double('GRPC::ActiveCall'),
-            method: 'MyService.Endpoint',
+            method: '/ruby.test.Testing/Basic',
             metadata: { some: 'datum' } }
         end
 
@@ -65,7 +70,7 @@ RSpec.describe GRPC::InterceptionContext do
         let(:type) { :client_streamer }
         let(:keywords) do
           { call: instance_double('GRPC::ActiveCall'),
-            method: 'MyService.Endpoint',
+            method: '/ruby.test.Testing/Basic',
             metadata: { some: 'datum' } }
         end
 
@@ -77,7 +82,7 @@ RSpec.describe GRPC::InterceptionContext do
         let(:keywords) do
           { request: instance_double(Object),
             call: instance_double('GRPC::ActiveCall'),
-            method: 'MyService.Endpoint',
+            method: '/ruby.test.Testing/Basic',
             metadata: { some: 'datum' } }
         end
 
@@ -85,12 +90,15 @@ RSpec.describe GRPC::InterceptionContext do
           expect(span.name).to eq 'grpc.client'
           expect(span.span_type).to eq 'http'
           expect(span.service).to eq 'rspec'
-          expect(span.resource).to eq 'myservice.endpoint'
+          expect(span.resource).to eq 'ruby.test.testing.basic'
           expect(span.get_tag('error.stack')).to be_nil
           expect(span.get_tag('some')).to eq 'datum'
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_service_val) { 'ruby.test.Testing' }
+          let(:peer_service_source) { 'rpc.service' }
+        end
       end
 
       context 'bidirectional streaming call type' do
@@ -98,7 +106,7 @@ RSpec.describe GRPC::InterceptionContext do
         let(:keywords) do
           { requests: instance_double(Array),
             call: instance_double('GRPC::ActiveCall'),
-            method: 'MyService.Endpoint',
+            method: '/ruby.test.Testing/Basic',
             metadata: { some: 'datum' } }
         end
 

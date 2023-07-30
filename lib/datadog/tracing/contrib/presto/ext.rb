@@ -9,6 +9,7 @@ module Datadog
         module Ext
           ENV_ENABLED = 'DD_TRACE_PRESTO_ENABLED'
           ENV_SERVICE_NAME = 'DD_TRACE_PRESTO_SERVICE_NAME'
+          ENV_PEER_SERVICE = 'DD_TRACE_PRESTO_PEER_SERVICE'
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_PRESTO_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_PRESTO_ANALYTICS_SAMPLE_RATE'
           DEFAULT_PEER_SERVICE_NAME = 'presto'
@@ -27,6 +28,8 @@ module Datadog
           TAG_OPERATION_QUERY = 'query'
           TAG_OPERATION_KILL = 'kill'
           TAG_SYSTEM = 'presto'
+          PEER_SERVICE_SOURCES = (Array[Ext::TAG_SCHEMA_NAME] +
+                                            Contrib::Ext::DB::PEER_SERVICE_SOURCES).freeze
         end
       end
     end

@@ -39,7 +39,12 @@ RSpec.describe 'contrib integration testing' do
       Datadog.configure { |c| c.remote.poll_interval_seconds = 0.001 }
     end
 
-    after { WebMock.disable! }
+    after do
+      # Ensure RC background worker is stopped before we disable webmock
+      # to avoid failed HTTP requests, trying to make a real remote call.
+      Datadog.shutdown!
+      WebMock.disable!
+    end
 
     def new_dynamic_configuration(product = 'TEST-PRODUCT', data = '', config = 'test-config', name = 'test-name')
       Struct.new(:product, :data, :config, :name).new(product, data, config, name)
@@ -99,6 +104,8 @@ RSpec.describe 'contrib integration testing' do
       let(:tracing_header_tags) { [{ 'header' => 'test-header', 'tag_name' => '' }] }
 
       it 'overrides the local values' do
+        Datadog::Core::Remote.active_remote.barrier(:once)
+
         expect(Datadog.configuration.tracing.sampling.default_rate).to be_nil
         expect(Datadog.configuration.tracing.log_injection).to eq(true)
         expect(Datadog.configuration.tracing.header_tags.to_s).to be_empty
@@ -116,6 +123,8 @@ RSpec.describe 'contrib integration testing' do
         let(:empty_data) { { 'lib_config' => {} } }
 
         it 'restore the local values' do
+          Datadog::Core::Remote.active_remote.barrier(:once)
+
           update_config
 
           wait_for { Datadog.configuration.tracing.sampling.default_rate }.to eq(0.7)
@@ -205,6 +214,7 @@ RSpec.describe 'contrib integration testing' do
 
         it 'changes default sampling rate and sampling decision' do
           # Before
+          Datadog::Core::Remote.active_remote.barrier(:once)
           tracer.trace('test') {}
 
           expect(trace.rule_sample_rate).to be_nil
@@ -225,9 +235,8 @@ RSpec.describe 'contrib integration testing' do
       context 'for log_injection_enabled' do
         let(:tracing_sampling_rate) { 0.0 }
         let(:io) { StringIO.new }
-        let(:appender) { SemanticLogger.add_appender(io: io) }
         let(:logger) do
-          appender
+          SemanticLogger.add_appender(io: io)
           SemanticLogger['TestClass']
         end
 
@@ -237,10 +246,11 @@ RSpec.describe 'contrib integration testing' do
           end
         end
 
-        after { SemanticLogger.remove_appender(appender) }
+        after { SemanticLogger.close }
 
         it 'changes disables log injection' do
           # Before
+          Datadog::Core::Remote.active_remote.barrier(:once)
           expect(Datadog.configuration.tracing.log_injection).to eq(true)
 
           tracer.trace('test') { logger.error('test-log') }

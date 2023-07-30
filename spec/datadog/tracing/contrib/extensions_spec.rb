@@ -64,6 +64,60 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
       describe '.tracing' do
         subject(:settings) { described_class.new.tracing }
 
+        describe '#settings' do
+          describe '#peer_service_mapping' do
+            subject { settings.contrib.peer_service_mapping }
+
+            context 'when given environment variable DD_TRACE_PEER_SERVICE_MAPPING' do
+              around do |example|
+                ClimateControl.modify(
+                  'DD_TRACE_PEER_SERVICE_MAPPING' => env_var
+                ) do
+                  example.run
+                end
+              end
+
+              context 'is not defined' do
+                let(:env_var) { nil }
+
+                it { is_expected.to eq({}) }
+              end
+
+              context 'is defined' do
+                let(:env_var) { 'key:value' }
+
+                it { is_expected.to eq({ 'key' => 'value' }) }
+              end
+            end
+          end
+
+          describe '#global_default_service_name_enabled' do
+            subject { settings.contrib.global_default_service_name.enabled }
+
+            context 'when given environment variable DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED' do
+              around do |example|
+                ClimateControl.modify(
+                  'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED' => env_var
+                ) do
+                  example.run
+                end
+              end
+
+              context 'is not defined' do
+                let(:env_var) { nil }
+
+                it { is_expected.to be false }
+              end
+
+              context 'is defined' do
+                let(:env_var) { 'true' }
+
+                it { is_expected.to be true }
+              end
+            end
+          end
+        end
+
         describe '#[]' do
           subject(:get) { settings[integration_name] }
           let(:default_settings) { integration.default_configuration }

@@ -37,7 +37,7 @@ module Datadog
 
               request_span.resource = @app.to_proc.binding.eval('self.class').to_s
               request_span.set_tag(Ext::TAG_JOB_ROUTING_KEY, delivery_info.routing_key)
-              request_span.set_tag(Contrib::Ext::Messaging::TAG_RABBITMQ_ROUTING_KEY, delivery_info.routing_key)
+              request_span.set_tag(Ext::TAG_RABBITMQ_ROUTING_KEY, delivery_info.routing_key)
               request_span.set_tag(Ext::TAG_JOB_QUEUE, delivery_info.consumer.queue.name)
 
               request_span.set_tag(Ext::TAG_JOB_BODY, deserialized_msg) if configuration[:tag_body]

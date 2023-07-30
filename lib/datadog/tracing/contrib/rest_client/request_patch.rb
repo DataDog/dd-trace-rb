@@ -34,15 +34,17 @@ module Datadog
             def datadog_tag_request(uri, span)
               span.resource = method.to_s.upcase
 
+              if datadog_configuration[:peer_service]
+                span.set_tag(
+                  Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                  datadog_configuration[:peer_service]
+                )
+              end
+
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
-
-              # Tag as an external peer service
-              if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-              end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, uri.host)
 
@@ -53,12 +55,13 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, method.to_s.upcase)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
-
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.request_tags(
                   Core::Utils::Hash::CaseInsensitiveWrapper.new(processed_headers)
                 )
               )
+
+              Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
             def datadog_trace_request(uri)

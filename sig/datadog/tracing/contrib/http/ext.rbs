@@ -5,6 +5,7 @@ module Datadog
         module Ext
           ENV_ENABLED: "DD_TRACE_HTTP_ENABLED"
 
+          ENV_PEER_SERVICE: "DD_TRACE_NET_HTTP_PEER_SERVICE"
           ENV_SERVICE_NAME: "DD_TRACE_NET_HTTP_SERVICE_NAME"
 
           ENV_ANALYTICS_ENABLED: "DD_TRACE_HTTP_ANALYTICS_ENABLED"
@@ -15,6 +16,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "net/http"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_REQUEST: "http.request"
 
           TAG_COMPONENT: "net/http"

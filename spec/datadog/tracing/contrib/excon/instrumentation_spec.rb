@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
 require 'datadog/tracing/contrib/support/http'
 
 require 'excon'
@@ -78,6 +79,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     it_behaves_like 'environment service name', 'DD_TRACE_EXCON_SERVICE_NAME'
+    it_behaves_like 'configured peer service span', 'DD_TRACE_EXCON_PEER_SERVICE'
     it_behaves_like 'schema version span'
   end
 
@@ -86,6 +88,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     let(:request_headers) { {} }
 
     it_behaves_like 'environment service name', 'DD_TRACE_EXCON_SERVICE_NAME'
+    it_behaves_like 'configured peer service span', 'DD_TRACE_EXCON_PEER_SERVICE'
     it_behaves_like 'schema version span'
 
     it_behaves_like 'analytics for integration' do
@@ -115,7 +118,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
 
     context 'when configured with global tag headers' do
@@ -139,6 +143,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     subject!(:response) { connection.post(path: '/failure') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_EXCON_SERVICE_NAME'
+    it_behaves_like 'configured peer service span', 'DD_TRACE_EXCON_PEER_SERVICE'
     it_behaves_like 'schema version span'
 
     it do
@@ -161,7 +166,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -169,6 +175,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     subject!(:response) { connection.get(path: '/not_found') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_EXCON_SERVICE_NAME'
+    it_behaves_like 'configured peer service span', 'DD_TRACE_EXCON_PEER_SERVICE'
     it_behaves_like 'schema version span'
 
     it { expect(request_span).to_not have_error }
@@ -178,6 +185,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     subject(:response) { connection.get(path: '/timeout') }
 
     it_behaves_like 'environment service name', 'DD_TRACE_EXCON_SERVICE_NAME', error: Excon::Error::Timeout
+    it_behaves_like 'configured peer service span', 'DD_TRACE_EXCON_PEER_SERVICE', error: Excon::Error::Timeout
 
     it do
       expect { subject }.to raise_error(Excon::Error::Timeout)
@@ -223,7 +231,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
 
     context 'and the host matches a specific configuration' do
@@ -350,8 +359,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     it_behaves_like 'a peer service span' do
-      let(:span) { request_span }
-      let(:peer_hostname) { 'example.com' }
+      let(:peer_service_val) { 'example.com' }
+      let(:peer_service_source) { 'peer.hostname' }
     end
   end
 
@@ -370,8 +379,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       it { expect(request_span.service).to eq(service_name) }
 
       it_behaves_like 'a peer service span' do
-        let(:span) { request_span }
-        let(:peer_hostname) { 'example.com' }
+        let(:peer_service_val) { 'example.com' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
 
@@ -382,8 +391,8 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       it { expect(request_span.service).to eq(service_name) }
 
       it_behaves_like 'a peer service span' do
-        let(:span) { request_span }
-        let(:peer_hostname) { 'example.com' }
+        let(:peer_service_val) { 'example.com' }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
   end

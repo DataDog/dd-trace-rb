@@ -83,6 +83,13 @@ module Datadog
 
                 span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
+                if datadog_configuration[:peer_service]
+                  span.set_tag(
+                    Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                    datadog_configuration[:peer_service]
+                  )
+                end
+
                 if (host_port = @options[:server])
                   host, port = Core::Utils.extract_host_port(host_port)
                   if host && port
@@ -104,15 +111,12 @@ module Datadog
                 set_nilable_tag!(span, :http_proxy, Ext::TAG_PROXY)
                 set_nilable_tag!(span, :model_version, Ext::TAG_MODEL_VERSION)
 
-                if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                  # Tag as an external peer service
-                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-                end
-
                 # Set analytics sample rate
                 if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
                   Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
                 end
+
+                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
               end
 
               def set_nilable_tag!(span, key, tag_name)
