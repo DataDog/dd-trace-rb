@@ -18,6 +18,10 @@ jobs:
           - unstable
     name: Test Nix (${{ matrix.os }}, ${{ matrix.nix }})
     runs-on: ${{ matrix.os }}
+    env:
+      SKIP_SIMPLECOV: 1
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+      DD_REMOTE_CONFIGURATION_ENABLED: false
     steps:
       - uses: cachix/install-nix-action@v22
         with:
@@ -30,6 +34,11 @@ jobs:
       - name: Print nixpkgs version
         run: nix-instantiate --eval -E '(import <nixpkgs> {}).lib.version'
       - uses: actions/checkout@v3
-      - run: |
+      - name: Print ruby version
+        run: |
           nix-shell --run 'which ruby'
           nix-shell --run 'ruby --version'
+      - name: Bundle install
+        run: nix-shell --run 'bundle install'
+      - name: Run spec:main
+        run: nix-shell --run 'bundle exec rake spec:main'
