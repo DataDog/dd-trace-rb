@@ -1,3 +1,5 @@
+require 'byebug'
+
 module NetworkHelpers
   TEST_AGENT_HOST = ENV['DD_TEST_AGENT_HOST'] || 'testagent'
   TEST_AGENT_PORT = ENV['DD_TEST_AGENT_PORT'] || 9126
@@ -73,9 +75,6 @@ end
 def resolve_service_names(trace_headers)
   dd_service = Datadog.configuration.service
   instrumented_integrations = Datadog.configuration.tracing.instrumented_integrations
-  s = spans[0]
-  component = s.meta['component']
-
   # Get all DD_ variables from ENV
   dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
 
@@ -89,18 +88,37 @@ def resolve_service_names(trace_headers)
     end
   end
 
-  if ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE']
-    dd_integration_service = ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE']
-    dd_env_variables["DD_#{component.upcase}_SERVICE"] = dd_integration_service
-  elsif ENV['DD_CONFIGURED_INTEGRATION_SERVICE']
-    dd_integration_service = ENV['DD_CONFIGURED_INTEGRATION_SERVICE']
-    dd_env_variables["DD_#{component.upcase}_SERVICE"] = dd_integration_service
-  end
+  s = get_span
+  if s && s.meta['component']
+    component = s.meta['component']
+    if ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE']
+      dd_integration_service = ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE']
+      dd_env_variables["DD_#{component.upcase}_SERVICE"] = dd_integration_service
+    elsif ENV['DD_CONFIGURED_INTEGRATION_SERVICE']
+      dd_integration_service = ENV['DD_CONFIGURED_INTEGRATION_SERVICE']
+      dd_env_variables["DD_#{component.upcase}_SERVICE"] = dd_integration_service
+    end
 
-  component_to_integration_name = { 'mongodb' => 'mongo', 'net/http' => 'http' }
-  if dd_service != s.service && s.service != dd_env_variables["DD_#{component.upcase}_SERVICE"]
-    dd_env_variables["DD_#{component.upcase}_SERVICE"] = Datadog.configuration.tracing[component_to_integration_name.fetch(component, component).to_sym][:service_name]
+    component_to_integration_name = { 'mongodb' => 'mongo', 'net/http' => 'http' }
+    if dd_service != s.service && s.service != dd_env_variables["DD_#{component.upcase}_SERVICE"]
+      dd_env_variables["DD_#{component.upcase}_SERVICE"] = Datadog.configuration.tracing[component_to_integration_name.fetch(component, component).to_sym][:service_name]
+    end
+    # if dd_service != s.service && s.service != dd_env_variables["DD_#{component.upcase}_SERVICE"]
+    #   byebug
+    #   puts s.service
+    # end
+    dd_env_variables['DD_SERVICE'] = dd_service
   end
-  dd_env_variables['DD_SERVICE'] = dd_service
   dd_env_variables
+end
+
+def get_span
+  s = nil
+  fetch_spans.each do |sp|
+    if sp.meta["component"]
+      s = sp
+      break
+    end
+  end
+  s
 end
