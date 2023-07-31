@@ -101,7 +101,7 @@ module Contrib
           service_name_instance_override
         end
         original_configure_onto_method = Datadog.method(:configure_onto)
-        allow(Datadog).to receive(:configure_onto) do |target, options|
+        allow(Datadog).to receive(:configure_onto) do |target, options = {}|
           if options.key? :service_name
             ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = options[:service_name]
           end
@@ -112,6 +112,14 @@ module Contrib
           service_name = service_name_method.bind(instance).call(hostname, configuration_options, pin)
           ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = service_name
           service_name
+        end
+        api_configuration_method = Datadog::Tracing::Contrib::Extensions::Configuration::Settings.instance_method(:[])
+        allow_any_instance_of(Datadog::Tracing::Contrib::Extensions::Configuration::Settings).to receive(:[]) do |instance, integration_name, key = :default|
+          configuration = api_configuration_method.bind(instance).call(integration_name, key)
+          if configuration.to_h.key?(:service_name)
+            ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = configuration[:service_name]
+          end
+          configuration
         end
       end
 
