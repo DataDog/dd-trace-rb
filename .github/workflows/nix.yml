@@ -1,0 +1,30 @@
+name: Test Nix
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-2204
+          - macos-13
+        nix:
+          - 23.05
+          - unstable
+    name: Test Nix (${{ matrix.os }}, ${{ matrix.nix }})
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: cachix/install-nix-action@v22
+        with:
+          nix_path: nixpkgs=channel:nixos-${{ matrix.nix }}
+      - name: Print nixpkgs version
+        run: nix-instantiate --eval -E '(import <nixpkgs> {}).lib.version'
+      - uses: actions/checkout@v3
+      - run: |
+          nix-shell --run 'which ruby'
+          nix-shell --run 'ruby --version'
