@@ -6,37 +6,19 @@ require_relative '../../core/diagnostics/environment_logger'
 module Datadog
   module Tracing
     module Diagnostics
-      class EnvironmentLogger
-        extend Core::Diagnostics::EnvironmentLogging
-
-        def self.prefix
-          'TRACING'
+      class EnvironmentLogger < Core::Diagnostics::EnvironmentLogging
+        def self.log!
+          if log_checks!
+            @example ||= EnvironmentLogger.new
+            @example.log!
+          end
         end
 
-        def self.log_agent_errors!(errors)
-          # Prevents logger from running multiple times
-          return if (defined?(@executed) && @executed) || !log_agent_errors?
-          @executed = true
-
-          logger.warn("DATADOG DIAGNOSTIC - #{prefix} - Agent Errors: #{errors.join(','.freeze)}")
-
-          protected
-
-          # Are we logging the agent errors?
-          def log_agent_errors?
-            startup_logs_enabled = Datadog.configuration.diagnostics.startup_logs.enabled
-            if startup_logs_enabled.nil?
-              !agent_errors_repl? # Suppress logs if we running in a REPL
-            else
-              startup_logs_enabled
-            end
-          end
-
-          REPL_PROGRAM_NAMES = %w[irb pry].freeze
-
-          def agent_errors_repl?
-            REPL_PROGRAM_NAMES.include?($PROGRAM_NAME)
-          end
+        def log!
+          data = EnvironmentCollector.collect!
+          data.reject! { |_, v| v.nil? } # Remove empty values from hash output
+          log_configuration!('TRACING'.freeze, data.to_json)
+          log_diagnostic!('TRACING'.freeze, 'Agent Error'.freeze, data[:agent_error]) if data[:agent_error]
         end
       end
 
@@ -54,10 +36,6 @@ module Datadog
               priority_sampling_enabled: priority_sampling_enabled,
               **instrumented_integrations_settings
             }
-          end
-
-          def collect_agent_errors!(responses)
-            responses.reject(&:ok?).map(&:inspect)
           end
 
           # @return [Boolean, nil]

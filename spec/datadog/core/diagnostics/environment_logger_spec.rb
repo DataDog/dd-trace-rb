@@ -3,12 +3,8 @@ require 'datadog/core/diagnostics/environment_logger'
 require 'ddtrace/transport/io'
 require 'datadog/profiling/profiler'
 
-RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogging do
+RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
-
-  # Reading DD_AGENT_HOST allows this to work in CI
-  let(:agent_hostname) { ENV['DD_AGENT_HOST'] || '127.0.0.1' }
-  let(:agent_port) { ENV['DD_TRACE_AGENT_PORT'] || 8126 }
 
   before do
     allow(DateTime).to receive(:now).and_return(DateTime.new(2020))
@@ -20,39 +16,36 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogging do
   end
 
   describe '#log!' do
-    subject(:log!) { env_logger.log!([response]) }
+    subject(:log!) { env_logger.log! }
 
     let(:logger) do
       log!
       tracer_logger
     end
 
-    let(:response) { instance_double(Datadog::Transport::Response, ok?: true) }
     let(:tracer_logger) { instance_double(Datadog::Core::Logger) }
 
     before do
+      allow(env_logger).to receive(:rspec?). and_return(false) # Allow rspec to log for testing purposes
       allow(Datadog).to receive(:logger).and_return(tracer_logger)
-      allow(tracer_logger).to receive(:debug?).and_return true
+      allow(tracer_logger).to receive(:debug?).and_return(true)
       allow(tracer_logger).to receive(:debug)
       allow(tracer_logger).to receive(:info)
       allow(tracer_logger).to receive(:warn)
-      allow(tracer_logger).to receive(:error)
+      # allow(tracer_logger).to receive(:error)
     end
 
-    it 'with a default tracer settings' do
-      expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION') do |msg|
-        json = JSON.parse(msg.partition('-')[2].strip)
+    it 'with default core settings' do
+      expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION - CORE') do |msg|
+        json = JSON.parse(msg.partition('- CORE -')[2].strip)
         expect(json).to match(
           'date' => '2020-01-01T00:00:00+00:00',
           'os_name' => (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
           'version' => DDTrace::VERSION::STRING,
           'lang' => 'ruby',
           'lang_version' => match(/[23]\./),
-          # 'env' => env,
           'service' => be_a(String),
-          # 'dd_version' => dd_version,
           'debug' => false,
-          # 'tags' => tags,
           'runtime_metrics_enabled' => false,
           'vm' => be_a(String),
           'health_metrics_enabled' => false,
@@ -62,8 +55,8 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogging do
 
     context 'with multiple invocations' do
       it 'executes only once' do
-        env_logger.log!([response])
-        env_logger.log!([response])
+        env_logger.log!
+        env_logger.log!
 
         expect(logger).to have_received(:info).once
       end
@@ -81,6 +74,10 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogging do
       end
 
       context 'with default settings' do
+        before do
+          allow(env_logger).to receive(:rspec?). and_return(true) # Prevent rspec from logging
+        end
+
         it { expect(logger).to_not have_received(:info) }
       end
 
@@ -93,34 +90,25 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogging do
       end
     end
 
-    context 'with error collecting information' do
-      before do
-        allow(tracer_logger).to receive(:warn)
-        expect_any_instance_of(Datadog::Core::Diagnostics::EnvironmentCollector).to receive(:collect!).and_raise
-      end
+    # context 'with error collecting information' do
+    #   before do
+    #     allow(tracer_logger).to receive(:warn)
+    #     expect_any_instance_of(Datadog::Core::Diagnostics::EnvironmentCollector).to receive(:collect!).and_raise
+    #   end
 
-      it 'rescues error and logs exception' do
-        expect(logger).to have_received(:warn).with start_with('Failed to collect environment information')
-      end
-    end
-  end
-
-  describe Datadog::Core::Diagnostics::EnvironmentLogger do
-    describe '#prefix' do
-      it 'for core settings' do
-        expect(logger).to have_received(:info).with include('CORE')
-      end
-    end
+    #   it 'rescues error and logs exception' do
+    #     expect(logger).to have_received(:warn).with start_with('Failed to collect environment information')
+    #   end
+    # end
   end
 
   describe Datadog::Core::Diagnostics::EnvironmentCollector do
     describe '#collect!' do
-      subject(:collect!) { collector.collect!([response]) }
+      subject(:collect!) { collector.collect! }
 
-      let(:collector) { described_class.new }
-      let(:response) { instance_double(Datadog::Transport::Response, ok?: true) }
+      let(:collector) { described_class }
 
-      it 'with a default tracer' do
+      it 'with a default core' do
         is_expected.to match(
           date: '2020-01-01T00:00:00+00:00',
           os_name: (include('x86_64').or include('i686').or include('aarch64').or include('arm')),

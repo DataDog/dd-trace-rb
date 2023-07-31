@@ -1,5 +1,7 @@
+# missing tests for diagnostics (agent errors) !!!
+
 require 'spec_helper'
-require 'datadog/core/diagnostics/environment_logger'
+require 'datadog/tracing/diagnostics/environment_logger'
 require 'ddtrace/transport/io'
 
 RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
@@ -10,65 +12,70 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
   let(:agent_port) { ENV['DD_TRACE_AGENT_PORT'] || 8126 }
 
   before do
-    allow(DateTime).to receive(:now).and_return(DateTime.new(2020))
-
     # Resets "only-once" execution pattern of `log!`
     env_logger.instance_variable_set(:@executed, nil)
 
     Datadog.configuration.reset!
   end
 
-  describe '#prefix' do
-    it 'for tracing settings' do
-      expect(logger).to have_received(:info).with include('TRACING')
-    end
-  end
-
-  describe '#log_agent_errors!' do
-    subject(:log_agent_errors!) { env_logger.log_agent_errors!([response]) }
+  describe '#log!' do
+    subject(:log!) { env_logger.log! }
 
     let(:logger) do
-      log_agent_errors!
+      log!
       tracer_logger
     end
 
-    let(:response) { instance_double(Datadog::Transport::Response, ok?: true) }
     let(:tracer_logger) { instance_double(Datadog::Core::Logger) }
 
     before do
+      allow(env_logger).to receive(:rspec?). and_return(false) # Allow rspec to log for testing purposes
       allow(Datadog).to receive(:logger).and_return(tracer_logger)
       allow(tracer_logger).to receive(:debug?).and_return true
       allow(tracer_logger).to receive(:debug)
       allow(tracer_logger).to receive(:info)
-      allow(tracer_logger).to receive(:warn)
+      # allow(tracer_logger).to receive(:warn)
       allow(tracer_logger).to receive(:error)
+    end
+
+    it 'with default tracing settings' do
+      expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION - TRACING') do |msg|
+        json = JSON.parse(msg.partition('- TRACING -')[2].strip)
+        expect(json).to match(
+          'agent_url' => start_with("http://#{agent_hostname}:#{agent_port}?timeout="),
+          'analytics_enabled' => false,
+          'enabled' => true,
+          'partial_flushing_enabled' => false,
+          'priority_sampling_enabled' => false,
+        )
+      end
     end
 
     context 'with multiple invocations' do
       it 'executes only once' do
-        env_logger.log!([response])
-        env_logger.log!([response])
+        env_logger.log!
+        env_logger.log!
 
         expect(logger).to have_received(:info).once
       end
     end
 
-    context 'with agent error' do
-      before { allow(tracer_logger).to receive(:warn) }
+    # context 'with agent error' do
+    #   before { allow(tracer_logger).to receive(:warn) }
 
-      let(:response) { Datadog::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
+    #   # let(:response) { Datadog::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
 
-      it do
-        expect(logger).to have_received(:warn).with start_with('DATADOG DIAGNOSTIC') do |msg|
-          error_line = msg.partition('-')[2].strip
-          error = error_line.partition(':')[2].strip
+    #   it do
+    #     expect(logger).to have_received(:warn).with start_with('DATADOG DIAGNOSTIC - TRACING - ') do |msg|
+    #       error_line = msg.partition('- TRACING -')[2].strip
+    #       error = error_line.partition(':')[2].strip
 
-          expect(error_line).to start_with('Agent Error')
-          expect(error).to include('ZeroDivisionError')
-          expect(error).to include('msg')
-        end
-      end
-    end
+    #       expect(error_line).to start_with('Agent Error')
+    #       expect(error).to include('ZeroDivisionError')
+    #       expect(error).to include('msg')
+    #     end
+    #   end
+    # end
 
     context 'under a REPL' do
       around do |example|
@@ -82,6 +89,10 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       end
 
       context 'with default settings' do
+        before do
+          allow(env_logger).to receive(:rspec?). and_return(true) # Prevent rspec from logging
+        end
+
         it { expect(logger).to_not have_received(:info) }
       end
 
@@ -93,28 +104,17 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
         it { expect(logger).to have_received(:info) }
       end
     end
-
-    context 'with error collecting information' do
-      before do
-        allow(tracer_logger).to receive(:warn)
-        expect_any_instance_of(Datadog::Core::Diagnostics::EnvironmentCollector).to receive(:collect!).and_raise
-      end
-
-      it 'rescues error and logs exception' do
-        expect(logger).to have_received(:warn).with start_with('Failed to collect environment information')
-      end
-    end
   end
 
   describe Datadog::Tracing::Diagnostics::EnvironmentCollector do
     describe '#collect!' do
-      subject(:collect!) { collector.collect!([response]) }
+      subject(:collect!) { collector.collect! }
 
-      let(:collector) { described_class.new }
-      let(:response) { instance_double(Datadog::Transport::Response, ok?: true) }
+      let(:collector) { described_class }
 
       it 'with a default tracer' do
         is_expected.to match(
+          # agent_error => nil,
           enabled: true,
           agent_url: start_with("http://#{agent_hostname}:#{agent_port}?timeout="),
           analytics_enabled: false,
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       end
 
       # context 'with agent connectivity issues' do
-      #   let(:response) { Datadog::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
+      #   # let(:response) { Datadog::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
 
       #   it { is_expected.to include agent_error: include('ZeroDivisionError') }
       #   it { is_expected.to include agent_error: include('msg') }

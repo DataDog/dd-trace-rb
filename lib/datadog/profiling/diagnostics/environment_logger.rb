@@ -6,11 +6,18 @@ require_relative '../../core/diagnostics/environment_logger'
 module Datadog
   module Profiling
     module Diagnostics
-      class EnvironmentLogger
-        extend Core::Diagnostics::EnvironmentLogging
+      class EnvironmentLogger < Core::Diagnostics::EnvironmentLogging
+        def self.log!
+          if log_checks!
+            @logger ||= EnvironmentLogger.new
+            @logger.log!
+          end
+        end
 
-        def self.prefix
-          'PROFILING'
+        def log!
+          data = EnvironmentCollector.collect!
+          data.reject! { |_, v| v.nil? } # Remove empty values from hash output
+          log_configuration!('PROFILING'.freeze, data.to_json)
         end
       end
 

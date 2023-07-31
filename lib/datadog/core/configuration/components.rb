@@ -111,8 +111,7 @@ module Datadog
             @logger.debug('Profiling is disabled')
           end
 
-          data = Core::Diagnostics::EnvironmentCollector.collect!
-          Core::Diagnostics::EnvironmentLogger.log!(data)
+          Core::Diagnostics::EnvironmentLogger.log!
         end
 
         # Shuts down all the components in use.
