@@ -11,8 +11,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-2204
-          - macos-13
+          - ubuntu-latest
+          - macos-latest
         nix:
           - 23.05
           - unstable
