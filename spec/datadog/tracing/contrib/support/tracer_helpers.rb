@@ -84,6 +84,22 @@ module Contrib
 
           instance
         end
+        # override service name resolution method in order to save service name for later testing
+        original_service_method = Datadog::Tracing::Contrib::SpanAttributeSchema.method(:fetch_service_name)
+        allow(Datadog::Tracing::Contrib::SpanAttributeSchema).to receive(:fetch_service_name) do |env, default|
+          service_name = original_service_method.call(env, default)
+          ENV['DD_CONFIGURED_INTEGRATION_SERVICE'] = service_name
+          service_name
+        end
+        # override integration service configuration method in order to save override service name for later testing
+        original_configuration_method = Datadog.method(:configuration_for)
+        allow(Datadog).to receive(:configuration_for) do |target, option|
+          service_name_instance_override = original_configuration_method.call(target, option)
+          if option
+            ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = service_name_instance_override
+          end
+          service_name_instance_override
+        end
       end
 
       # Execute shutdown! after the test has finished
@@ -110,6 +126,8 @@ module Contrib
             end
           end
         end
+        ENV.delete('DD_CONFIGURED_INTEGRATION_SERVICE')
+        ENV.delete('DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE')
       end
     end
 
