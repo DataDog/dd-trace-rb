@@ -4,8 +4,6 @@ require 'support/network_helpers'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 
-require 'byebug'
-
 module Contrib
   include NetworkHelpers
   # Contrib-specific tracer helpers.
