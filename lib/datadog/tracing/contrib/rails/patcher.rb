@@ -24,23 +24,24 @@ module Datadog
           end
 
           def patch
-            patch_before_intialize
-            patch_after_intialize
+            patch_before_initialize
+            patch_after_initialize
           end
 
-          def patch_before_intialize
+          def patch_before_initialize
             ::ActiveSupport.on_load(:before_initialize) do
-              Contrib::Rails::Patcher.before_intialize(self)
+              Contrib::Rails::Patcher.before_initialize(self)
             end
           end
 
-          def before_intialize(app)
+          def before_initialize(app)
             BEFORE_INITIALIZE_ONLY_ONCE_PER_APP[app].run do
               # Middleware must be added before the application is initialized.
               # Otherwise the middleware stack will be frozen.
               # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
-              add_logger(app) if Datadog.configuration.tracing.log_injection
+
+              Rails::LogInjection.configure_log_tags(app)
             end
           end
 
@@ -61,45 +62,13 @@ module Datadog
             app.middleware.insert_after(::ActionDispatch::DebugExceptions, Contrib::Rails::ExceptionMiddleware)
           end
 
-          def add_logger(app)
-            should_warn = true
-            # check if lograge key exists
-            # Note: Rails executes initializers sequentially based on alphabetical order,
-            # and lograge config could occur after datadog config.
-            # So checking for `app.config.lograge.enabled` may yield a false negative,
-            # and adding custom options naively if `config.lograge` exists from the lograge Railtie,
-            # is inconsistent since a lograge initializer would override it.
-            # Instead, we patch Lograge `custom_options` internals directly
-            # as part of Rails framework patching
-            # and just flag off the warning log here.
-            # SemanticLogger we similarly patch in the after_initiaize block, and should flag
-            # off the warning log here if we know we'll patch this gem later.
-            should_warn = false if app.config.respond_to?(:lograge) || defined?(::SemanticLogger)
-
-            # if lograge isn't set, check if tagged logged is enabled.
-            # if so, add proc that injects trace identifiers for tagged logging.
-            logger = app.config.logger || ::Rails.logger
-
-            if logger \
-                && defined?(::ActiveSupport::TaggedLogging) \
-                && logger.is_a?(::ActiveSupport::TaggedLogging)
-
-              Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
-              should_warn = false
-            end
-
-            if should_warn
-              Datadog.logger.warn("Unable to enable Datadog Trace context, Logger #{logger.class} is not supported")
-            end
-          end
-
-          def patch_after_intialize
+          def patch_after_initialize
             ::ActiveSupport.on_load(:after_initialize) do
-              Contrib::Rails::Patcher.after_intialize(self)
+              Contrib::Rails::Patcher.after_initialize(self)
             end
           end
 
-          def after_intialize(app)
+          def after_initialize(app)
             AFTER_INITIALIZE_ONLY_ONCE_PER_APP[app].run do
               # Finish configuring the tracer after the application is initialized.
               # We need to wait for some things, like application name, middleware stack, etc.

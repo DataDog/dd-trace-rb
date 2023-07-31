@@ -7,13 +7,13 @@ module Datadog
       # e.g. Env vars, default values, enums, etc...
       module Ext
         ENV_ENABLED = 'DD_TRACE_ENABLED'
+        ENV_HEADER_TAGS = 'DD_TRACE_HEADER_TAGS'
         ENV_TRACE_ID_128_BIT_GENERATION_ENABLED = 'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED'
 
         # @public_api
         module SpanAttributeSchema
-          ENV_SPAN_ATTRIBUTE_SCHEMA = 'DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'
-          DEFAULT_VERSION = 'v0'
-          VERSION_ONE = 'v1'
+          ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED = 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED'
+          ENV_PEER_SERVICE_MAPPING = 'DD_TRACE_PEER_SERVICE_MAPPING'
         end
 
         # @public_api

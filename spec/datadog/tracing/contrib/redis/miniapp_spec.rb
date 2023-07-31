@@ -91,10 +91,14 @@ RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >
 
       it_behaves_like 'a peer service span' do
         let(:span) { redis_cmd1_span }
+        let(:peer_service_val) {  ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
+        let(:peer_service_source) { 'peer.hostname' }
       end
 
       it_behaves_like 'a peer service span' do
         let(:span) { redis_cmd2_span }
+        let(:peer_service_val) {  ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
+        let(:peer_service_source) { 'peer.hostname' }
       end
     end
   end

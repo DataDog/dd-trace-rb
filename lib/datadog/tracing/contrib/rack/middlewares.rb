@@ -9,6 +9,7 @@ require_relative '../analytics'
 require_relative '../utils/quantization/http'
 require_relative 'ext'
 require_relative 'header_collection'
+require_relative 'header_tagging'
 require_relative 'request_queue'
 
 module Datadog
@@ -69,6 +70,8 @@ module Datadog
             previous_request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
 
             return @app.call(env) if previous_request_span
+
+            Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
 
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
@@ -138,8 +141,6 @@ module Datadog
           # rubocop:disable Metrics/MethodLength
           def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
             request_header_collection = Header::RequestHeaderCollection.new(env)
-            request_headers_tags = parse_request_headers(request_header_collection)
-            response_headers_tags = parse_response_headers(headers || {})
 
             # Since it could be mutated, it would be more accurate to fetch from the original env,
             # e.g. ActionDispatch::ShowExceptions middleware with Rails exceptions_app configuration
@@ -228,15 +229,8 @@ module Datadog
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent)
             end
 
-            # Request headers
-            request_headers_tags.each do |name, value|
-              request_span.set_tag(name, value) if request_span.get_tag(name).nil?
-            end
-
-            # Response headers
-            response_headers_tags.each do |name, value|
-              request_span.set_tag(name, value) if request_span.get_tag(name).nil?
-            end
+            HeaderTagging.tag_request_headers(request_span, request_header_collection, configuration)
+            HeaderTagging.tag_response_headers(request_span, headers, configuration) if headers
 
             # detect if the status code is a 5xx and flag the request span as an error
             # unless it has been already set by the underlying framework
@@ -254,19 +248,12 @@ module Datadog
           end
 
           def trace_http_server(span_name, start_time:)
-            span = Tracing.trace(
+            Tracing.trace(
               span_name,
               span_type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
               start_time: start_time,
               service: configuration[:web_service_name]
             )
-
-            # Set peer service (so its not believed to belong to this app)
-            if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
-            end
-
-            span
           end
 
           def parse_url(env, original_env)
@@ -313,35 +300,6 @@ module Datadog
 
           def parse_user_agent_header(headers)
             headers.get(Tracing::Metadata::Ext::HTTP::HEADER_USER_AGENT)
-          end
-
-          def parse_request_headers(headers)
-            whitelist = configuration[:headers][:request] || []
-            whitelist.each_with_object({}) do |header, result|
-              header_value = headers.get(header)
-              unless header_value.nil?
-                header_tag = Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)
-                result[header_tag] = header_value
-              end
-            end
-          end
-
-          def parse_response_headers(headers)
-            {}.tap do |result|
-              whitelist = configuration[:headers][:response] || []
-              whitelist.each do |header|
-                if headers.key?(header)
-                  result[Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
-                else
-                  # Try a case-insensitive lookup
-                  uppercased_header = header.to_s.upcase
-                  matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
-                  if matching_header
-                    result[Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
-                  end
-                end
-              end
-            end
           end
         end
       end

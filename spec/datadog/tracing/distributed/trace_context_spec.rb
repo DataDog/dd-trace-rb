@@ -107,13 +107,13 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         it { expect(tracestate).to eq('dd=o:synthetics') }
 
-        context 'with invalid characters' do
+        context 'with invalid characters except =' do
           [
             "\u0000", # First unicode character
             "\u0019", # Last lower invalid character
             ',',
             ';',
-            '=',
+            '~',
             "\u007F", # First upper invalid character
             "\u{10FFFF}" # Last unicode character
           ].each do |character|
@@ -121,6 +121,18 @@ RSpec.shared_examples 'Trace Context distributed format' do
               let(:origin) { character }
 
               it { expect(tracestate).to eq('dd=o:_') }
+            end
+          end
+        end
+
+        context 'with = character' do
+          [
+            '=',
+          ].each do |character|
+            context character.inspect do
+              let(:origin) { character }
+
+              it { expect(tracestate).to eq('dd=o:~') }
             end
           end
         end
@@ -286,7 +298,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
         prepare_key['tracestate'] => tracestate }
     end
     let(:traceparent) { "#{version}-#{trace_id}-#{parent_id}-#{trace_flags}" }
-    let(:version) { '00' }
+    let(:version) { '01' }
     let(:trace_id) { '00000000000000000000000000c0ffee' }
     let(:parent_id) { '0000000000000bee' }
     let(:trace_flags) { '00' }
@@ -412,7 +424,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       context 'with trace_distributed_tags' do
         subject(:trace_distributed_tags) { extract.trace_distributed_tags }
-        let(:tracestate) { "dd=#{tags}" }
+        let(:tracestate) { "dd=#{tags};s:1" }
 
         context 'nil' do
           let(:tags) { nil }
@@ -431,7 +443,16 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         context "{ '_dd.p.dm' => '-1' }" do
           let(:tags) { 't.dm:-1' }
-          it { is_expected.to eq('_dd.p.dm' => '-1') }
+
+          context 'with a dropped trace' do
+            let(:trace_flags) { '00' }
+            it { is_expected.to_not include('_dd.p.dm') }
+          end
+
+          context 'with a kept trace' do
+            let(:trace_flags) { '01' }
+            it { is_expected.to eq('_dd.p.dm' => '-1') }
+          end
         end
 
         context "{ 'key' => 'value~with~tilde' }" do
@@ -494,6 +515,11 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       context 'with an invalid version' do
         let(:version) { 'ff' }
+        it { is_expected.to be_nil }
+      end
+
+      context 'with a illegal characters' do
+        let(:version) { '.0' }
         it { is_expected.to be_nil }
       end
     end

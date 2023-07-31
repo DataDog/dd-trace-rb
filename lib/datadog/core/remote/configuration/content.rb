@@ -18,12 +18,14 @@ module Datadog
             end
           end
 
-          attr_reader :path, :data, :hashes
+          attr_reader :path, :data, :hashes, :apply_state, :apply_error
           attr_accessor :version
 
           def initialize(path:, data:)
             @path = path
             @data = data
+            @apply_state = ApplyState::UNACKNOWLEDGED
+            @apply_error = nil
             @hashes = {}
             @version = 0
           end
@@ -34,6 +36,31 @@ module Datadog
 
           def length
             @length ||= @data.size
+          end
+
+          # Sets this configuration as successfully applied.
+          def applied
+            @apply_state = ApplyState::ACKNOWLEDGED
+            @apply_error = nil
+          end
+
+          # Sets this configuration as not successfully applied, with
+          # a message describing the error.
+          def errored(error_message)
+            @apply_state = ApplyState::ERROR
+            @apply_error = error_message
+          end
+
+          module ApplyState
+            # Default state of configurations.
+            # Set until the component consuming the configuration has acknowledged it was applied.
+            UNACKNOWLEDGED = 1
+
+            # Set when the configuration has been successfully applied.
+            ACKNOWLEDGED = 2
+
+            # Set when the configuration has been unsuccessfully applied.
+            ERROR = 3
           end
 
           private

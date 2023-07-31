@@ -34,6 +34,7 @@ test_containers:
     # issue when you connect to the testing container via ssh, then try lowering this file a notch.
     GRPC_RUBY_BUILD_PROCS: 6
     DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+    DD_REMOTE_CONFIGURATION_ENABLED: false
     TEST_REDIS_OLD_HOST: redis_old
     TEST_OPENSEARCH_HOST: opensearch
     TEST_OPENSEARCH_PORT: 9200

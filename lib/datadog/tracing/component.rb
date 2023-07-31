@@ -10,6 +10,17 @@ module Datadog
   module Tracing
     # Tracing component
     module Component
+      # Methods that interact with component instance fields.
+      module InstanceMethods
+        # Hot-swaps with a new sampler.
+        # This operation acquires the Components lock to ensure
+        # there is no concurrent modification of the sampler.
+        def reconfigure_live_sampler
+          sampler = self.class.build_sampler(Datadog.configuration)
+          Datadog.send(:safely_synchronize) { tracer.sampler.sampler = sampler }
+        end
+      end
+
       def build_tracer(settings, agent_settings)
         # If a custom tracer has been provided, use it instead.
         # Ignore all other options (they should already be configured.)
@@ -27,13 +38,18 @@ module Datadog
           writer = build_writer(settings, agent_settings)
         end
 
-        subscribe_to_writer_events!(writer, sampler, settings.tracing.test_mode.enabled)
+        # The sampler instance is wrapped in a delegator,
+        # so dynamic instrumentation can hot-swap it.
+        # This prevents full tracer reinitialization on sampling changes.
+        sampler_delegator = SamplerDelegatorComponent.new(sampler)
+
+        subscribe_to_writer_events!(writer, sampler_delegator, settings.tracing.test_mode.enabled)
 
         Tracing::Tracer.new(
           default_service: settings.service,
           enabled: settings.tracing.enabled,
           trace_flush: trace_flush,
-          sampler: sampler,
+          sampler: sampler_delegator,
           span_sampler: build_span_sampler(settings),
           writer: writer,
           tags: build_tracer_tags(settings),
@@ -122,12 +138,10 @@ module Datadog
         Tracing::Writer.new(agent_settings: agent_settings, **settings.tracing.writer_options)
       end
 
-      def subscribe_to_writer_events!(writer, sampler, test_mode)
+      def subscribe_to_writer_events!(writer, sampler_delegator, test_mode)
         return unless writer.respond_to?(:events) # Check if it's a custom, external writer
 
         writer.events.after_send.subscribe(&WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
-
-        return unless sampler.is_a?(Tracing::Sampling::PrioritySampler)
 
         # DEV: We need to ignore priority sampling updates coming from the agent in test mode
         # because test mode wants to *unconditionally* sample all traces.
@@ -136,7 +150,7 @@ module Datadog
         # here to achieve 100% sampling rate.
         return if test_mode
 
-        writer.events.after_send.subscribe(&writer_update_priority_sampler_rates_callback(sampler))
+        writer.events.after_send.subscribe(&writer_update_priority_sampler_rates_callback(sampler_delegator))
       end
 
       WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK = lambda do |_, responses|
@@ -158,6 +172,27 @@ module Datadog
       def build_span_sampler(settings)
         rules = Tracing::Sampling::Span::RuleParser.parse_json(settings.tracing.sampling.span_rules)
         Tracing::Sampling::Span::Sampler.new(rules || [])
+      end
+
+      # Sampler wrapper component, to allow for hot-swapping
+      # the sampler instance used by the tracer.
+      # Swapping samplers happens during Dynamic Configuration.
+      class SamplerDelegatorComponent
+        attr_accessor :sampler
+
+        def initialize(sampler)
+          @sampler = sampler
+        end
+
+        def sample!(trace)
+          @sampler.sample!(trace)
+        end
+
+        def update(*args, **kwargs)
+          return unless @sampler.respond_to?(:update)
+
+          @sampler.update(*args, **kwargs)
+        end
       end
 
       private

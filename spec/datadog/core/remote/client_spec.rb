@@ -12,7 +12,6 @@ RSpec.describe Datadog::Core::Remote::Client do
       allow(http_request).to receive(:body=)
       allow(request_class).to receive(:new).and_return(http_request)
 
-      http_connection = instance_double(::Net::HTTP)
       allow(::Net::HTTP).to receive(:new).and_return(http_connection)
 
       allow(http_connection).to receive(:open_timeout=)
@@ -37,6 +36,7 @@ RSpec.describe Datadog::Core::Remote::Client do
     end
   end
 
+  let(:http_connection) { instance_double(::Net::HTTP) }
   let(:transport) { Datadog::Core::Transport::HTTP.v7(&proc { |_client| }) }
   let(:roots) do
     [
@@ -456,6 +456,14 @@ RSpec.describe Datadog::Core::Remote::Client do
           it 'raises SyncError' do
             expect { client.sync }.to raise_error(described_class::SyncError, /could not parse: "invalid path"/)
           end
+        end
+      end
+
+      context 'with a network error' do
+        it 'raises a transport error' do
+          expect(http_connection).to receive(:request).and_raise(IOError)
+
+          expect { client.sync }.to raise_error(Datadog::Core::Remote::Client::TransportError)
         end
       end
     end

@@ -22,16 +22,17 @@ module Datadog
                 span.service = datadog_configuration[:service_name]
                 span.span_type = Ext::SPAN_TYPE_COMMAND
 
+                if datadog_configuration[:peer_service]
+                  span.set_tag(
+                    Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                    datadog_configuration[:peer_service]
+                  )
+                end
+
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
-
-                # Tag as an external peer service
-                if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-                end
-
                 span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, hostname)
 
                 # Set analytics sample rate
@@ -47,6 +48,7 @@ module Datadog
                 cmd = Quantize.format_command(op, args)
                 span.set_tag(Ext::TAG_COMMAND, cmd)
 
+                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                 super
               end
             end

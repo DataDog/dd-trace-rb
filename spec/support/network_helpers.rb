@@ -57,8 +57,10 @@ module NetworkHelpers
   #
   # @return [Hash] trace headers
   def parse_tracer_config_and_add_to_headers(trace_headers)
-    dd_service = Datadog.configuration.service
-    dd_span_attribute_schema = Datadog.configuration.tracing.span_attribute_schema
+    dd_service = Contrib::SpanAttributeSchema.fetch_service_name(
+      Ext::ENV_SERVICE_NAME,
+      Ext::DEFAULT_PEER_SERVICE_NAME
+    )
     instrumented_integrations = Datadog.configuration.tracing.instrumented_integrations
 
     # Get all DD_ variables from ENV

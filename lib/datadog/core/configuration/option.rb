@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../utils/safe_dup'
+
 module Datadog
   module Core
     module Configuration
@@ -131,13 +133,15 @@ module Datadog
 
           # Reset back to the lowest precedence, to allow all `set`s to succeed right after a reset.
           @precedence_set = Precedence::DEFAULT
+          # Reset all stored values
+          @value_per_precedence = Hash.new(UNSET)
         end
 
         def default_value
           if definition.default.instance_of?(Proc)
             context_eval(&definition.default)
           else
-            definition.experimental_default_proc || definition.default
+            definition.experimental_default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
           end
         end
 
@@ -151,6 +155,20 @@ module Datadog
           return context_exec(value, &@definition.env_parser) if @definition.env_parser
 
           case @definition.type
+          when :hash
+            values = value.split(',') # By default we only want to support comma separated strings
+
+            values.map! do |v|
+              v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+              v.empty? ? nil : v
+            end
+
+            values.compact!
+            values.each.with_object({}) do |v, hash|
+              pair = v.split(':', 2)
+              hash[pair[0]] = pair[1]
+            end
           when :int
             # DEV-2.0: Change to a more strict coercion method. Integer(value).
             value.to_i
@@ -244,7 +262,10 @@ module Datadog
           (@value = context_exec(validate_type(value), old_value, &definition.setter)).tap do |v|
             @is_set = true
             @precedence_set = precedence
-            @value_per_precedence[precedence] = v
+            # Store original value to ensure we can always safely call `#internal_set`
+            # when restoring a value from `@value_per_precedence`, and we are only running `definition.setter`
+            # on the original value, not on a valud that has already been processed by `definition.setter`.
+            @value_per_precedence[precedence] = value
             context_exec(v, old_value, &definition.on_set) if definition.on_set
           end
         end

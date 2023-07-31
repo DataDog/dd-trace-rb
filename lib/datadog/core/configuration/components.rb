@@ -66,6 +66,8 @@ module Datadog
           end
         end
 
+        include Datadog::Tracing::Component::InstanceMethods
+
         attr_reader \
           :health_metrics,
           :logger,

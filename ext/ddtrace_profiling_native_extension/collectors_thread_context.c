@@ -183,7 +183,7 @@ static void trigger_sample_for_thread(
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state);
 static struct per_thread_context *get_context_for(VALUE thread, struct thread_context_collector_state *state);
-static void initialize_context(VALUE thread, struct per_thread_context *thread_context);
+static void initialize_context(VALUE thread, struct per_thread_context *thread_context, struct thread_context_collector_state *state);
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
 static VALUE per_thread_context_st_table_as_ruby_hash(struct thread_context_collector_state *state);
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash);
@@ -200,6 +200,7 @@ static bool is_type_web(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
 static VALUE _native_sample_allocation(VALUE self, VALUE collector_instance, VALUE sample_weight);
+static VALUE _native_new_empty_thread(VALUE self);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -228,6 +229,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_thread_list", _native_thread_list, 0);
   rb_define_singleton_method(testing_module, "_native_per_thread_context", _native_per_thread_context, 1);
   rb_define_singleton_method(testing_module, "_native_stats", _native_stats, 1);
+  rb_define_singleton_method(testing_module, "_native_new_empty_thread", _native_new_empty_thread, 0);
 
   at_active_span_id = rb_intern_const("@active_span");
   at_active_trace_id = rb_intern_const("@active_trace");
@@ -745,7 +747,7 @@ static struct per_thread_context *get_or_create_context_for(VALUE thread, struct
     thread_context = (struct per_thread_context*) value_context;
   } else {
     thread_context = ruby_xcalloc(1, sizeof(struct per_thread_context));
-    initialize_context(thread, thread_context);
+    initialize_context(thread, thread_context, state);
     st_insert(state->hash_map_per_thread_context, (st_data_t) thread, (st_data_t) thread_context);
   }
 
@@ -763,7 +765,7 @@ static struct per_thread_context *get_context_for(VALUE thread, struct thread_co
   return thread_context;
 }
 
-static void initialize_context(VALUE thread, struct per_thread_context *thread_context) {
+static void initialize_context(VALUE thread, struct per_thread_context *thread_context, struct thread_context_collector_state *state) {
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
 
@@ -777,8 +779,11 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
       StringValueCStr(invoke_file_location),
       invoke_line_location
     );
-  } else {
-    snprintf(thread_context->thread_invoke_location, THREAD_INVOKE_LOCATION_LIMIT_CHARS, "%s", "");
+  } else if (thread != state->main_thread) {
+    // If the first function of a thread is native code, there won't be an invoke location, so we use this fallback.
+    // NOTE: In the future, I wonder if we could take the pointer to the native function, and try to see if there's a native
+    // symbol attached to it.
+    snprintf(thread_context->thread_invoke_location, THREAD_INVOKE_LOCATION_LIMIT_CHARS, "%s", "(Unnamed thread from native code)");
   }
 
   thread_context->thread_invoke_location_char_slice = (ddog_CharSlice) {
@@ -1067,4 +1072,13 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight) {
   thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight));
   return Qtrue;
+}
+
+static VALUE new_empty_thread_inner(DDTRACE_UNUSED void *arg) { return Qnil; }
+
+// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+// (It creates an empty native thread, so we can test our native thread naming fallback)
+static VALUE _native_new_empty_thread(DDTRACE_UNUSED VALUE self) {
+  return rb_thread_create(new_empty_thread_inner, NULL);
 }

@@ -77,6 +77,13 @@ module Datadog
                     host = connection.host[:host] if connection
                     port = connection.host[:port] if connection
 
+                    if datadog_configuration[:peer_service]
+                      span.set_tag(
+                        Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                        datadog_configuration[:peer_service]
+                      )
+                    end
+
                     span.span_type = Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
 
                     span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -88,11 +95,6 @@ module Datadog
                     # load JSON for the following fields unless they're already strings
                     params = JSON.generate(params) if params && !params.is_a?(String)
                     body = JSON.generate(body) if body && !body.is_a?(String)
-
-                    # Tag as an external peer service
-                    if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                      span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-                    end
 
                     span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 
@@ -117,6 +119,7 @@ module Datadog
 
                     quantized_url = Datadog::Tracing::Contrib::Elasticsearch::Quantize.format_url(url)
                     span.resource = "#{method} #{quantized_url}"
+                    Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                   rescue StandardError => e
                     Datadog.logger.error(e.message)
                   ensure

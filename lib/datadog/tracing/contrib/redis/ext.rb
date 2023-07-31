@@ -9,6 +9,7 @@ module Datadog
         module Ext
           ENV_ENABLED = 'DD_TRACE_REDIS_ENABLED'
           ENV_SERVICE_NAME = 'DD_TRACE_REDIS_SERVICE_NAME'
+          ENV_PEER_SERVICE = 'DD_TRACE_REDIS_PEER_SERVICE'
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_REDIS_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_REDIS_ANALYTICS_SAMPLE_RATE'
           ENV_COMMAND_ARGS = 'DD_REDIS_COMMAND_ARGS'
@@ -22,6 +23,10 @@ module Datadog
           TAG_OPERATION_COMMAND = 'command'
           TAG_SYSTEM = 'redis'
           TAG_DATABASE_INDEX = 'db.redis.database_index'
+          PEER_SERVICE_SOURCES = Array[
+            Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end
       end
     end

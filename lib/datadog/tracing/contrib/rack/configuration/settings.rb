@@ -17,27 +17,34 @@ module Datadog
             }.freeze
 
             option :enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ENABLED, true) }
+              o.type :bool
+              o.env Ext::ENV_ENABLED
+              o.default true
             end
 
             option :analytics_enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, nil) }
+              o.type :bool, nilable: true
+              o.env Ext::ENV_ANALYTICS_ENABLED
             end
 
             option :analytics_sample_rate do |o|
-              o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
+              o.type :float
+              o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
+              o.default 1.0
             end
 
             option :application
-            option :distributed_tracing, default: true
-            option :headers, default: DEFAULT_HEADERS
-            option :middleware_names, default: false
-            option :quantize, default: {}
-            option :request_queuing, default: false
+            option :distributed_tracing, default: true, type: :bool
+            option :headers, default: DEFAULT_HEADERS, type: :hash
+            option :middleware_names, default: false, type: :bool
+            option :quantize, default: {}, type: :hash
+            option :request_queuing do |o|
+              o.default false
+            end
 
             option :service_name
 
-            option :web_service_name, default: Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME
+            option :web_service_name, default: Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME, type: :string
           end
         end
       end

@@ -45,6 +45,11 @@ module Datadog
                 "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
               end
             rescue StandardError => e
+              # In case of unexpected errors, reset the negotiation object
+              # given external conditions have changed and the negotiation
+              # negotiation object stores error logging state that should be reset.
+              negotiation = Negotiation.new(settings, agent_settings)
+
               Datadog.logger.error do
                 "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. "\
                 'reseting client state'
@@ -62,13 +67,22 @@ module Datadog
           end
         end
 
-        def barrier(kind)
+        # Starts the Remote Configuration worker without waiting for first run
+        def start
           @worker.start
+        end
 
-          case kind
-          when :once
-            @barrier.wait_once
-          end
+        # Is the Remote Configuration worker running?
+        def started?
+          @worker.started?
+        end
+
+        # If the worker is not initialized, initialize it.
+        #
+        # Then, waits for one client sync to be executed if `kind` is `:once`.
+        def barrier(_kind)
+          start
+          @barrier.wait_once
         end
 
         def shutdown!
@@ -105,18 +119,6 @@ module Datadog
             end
           end
 
-          # Wait for next lift to happen
-          def wait_next(timeout = nil)
-            @mutex.lock
-
-            timeout ||= @timeout
-
-            # rbs/core has a bug, timeout type is incorrectly ?Integer
-            @condition.wait(@mutex, _ = timeout)
-          ensure
-            @mutex.unlock
-          end
-
           # Release all current waiters
           def lift
             @mutex.lock
@@ -130,26 +132,15 @@ module Datadog
         end
 
         class << self
+          # Because the agent might not be available yet, we can't perform agent-specific checks yet, as they
+          # would prevent remote configuration from ever running.
+          #
+          # Those checks are instead performed inside the worker loop.
+          # This allows users to upgrade their agent while keeping their application running.
           def build(settings, agent_settings)
             return unless settings.remote.enabled
 
-            capabilities = Client::Capabilities.new(settings)
-
-            return if capabilities.products.empty?
-
-            negotiation = Negotiation.new(settings, agent_settings)
-
-            unless negotiation.endpoint?('/v0.7/config')
-              Datadog.logger.error do
-                'endpoint unavailable: disabling remote configuration for this process.'
-              end
-
-              return
-            end
-
-            Datadog.logger.debug { 'agent reachable and reports remote configuration endpoint' }
-
-            new(settings, capabilities, agent_settings)
+            new(settings, Client::Capabilities.new(settings), agent_settings)
           end
         end
       end

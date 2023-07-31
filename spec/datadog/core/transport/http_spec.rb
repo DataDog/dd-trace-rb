@@ -18,7 +18,6 @@ RSpec.describe Datadog::Core::Transport::HTTP do
       allow(http_request).to receive(:body=)
       allow(request_class).to receive(:new).and_return(http_request)
 
-      http_connection = instance_double(::Net::HTTP)
       allow(::Net::HTTP).to receive(:new).and_return(http_connection)
 
       allow(http_connection).to receive(:open_timeout=)
@@ -31,6 +30,8 @@ RSpec.describe Datadog::Core::Transport::HTTP do
       allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
     end
   end
+
+  let(:http_connection) { instance_double(::Net::HTTP) }
 
   describe '.root' do
     subject(:transport) { described_class.root(&client_options) }
@@ -199,6 +200,16 @@ RSpec.describe Datadog::Core::Transport::HTTP do
       it { is_expected.to have_attributes(:roots => be_a(Array)) }
       it { is_expected.to have_attributes(:targets => be_a(Hash)) }
       it { is_expected.to have_attributes(:target_files => be_a(Array)) }
+
+      context 'with a network error' do
+        it 'raises a transport error' do
+          expect(http_connection).to receive(:request).and_raise(IOError)
+
+          expect(Datadog.logger).to receive(:debug).with(/IOError/)
+
+          expect(response).to have_attributes(internal_error?: true)
+        end
+      end
     end
   end
 end

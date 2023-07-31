@@ -9,6 +9,7 @@ module Datadog
         module Ext
           ENV_ENABLED = 'DD_TRACE_HTTPRB_ENABLED'
           ENV_SERVICE_NAME = 'DD_TRACE_HTTPRB_SERVICE_NAME'
+          ENV_PEER_SERVICE = 'DD_TRACE_HTTPRB_PEER_SERVICE'
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_HTTPRB_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_EHTTPRB_ANALYTICS_SAMPLE_RATE'
           ENV_ERROR_STATUS_CODES = 'DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES'
@@ -16,6 +17,10 @@ module Datadog
           SPAN_REQUEST = 'httprb.request'
           TAG_COMPONENT = 'httprb'
           TAG_OPERATION_REQUEST = 'request'
+          PEER_SERVICE_SOURCES = Array[
+            Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
+            Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,].freeze
         end
       end
     end

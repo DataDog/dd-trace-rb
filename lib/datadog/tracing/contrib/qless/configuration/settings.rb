@@ -12,19 +12,27 @@ module Datadog
           # @public_api
           class Settings < Contrib::Configuration::Settings
             option :analytics_enabled do |o|
-              o.default { env_to_bool(Ext::ENV_ANALYTICS_ENABLED, false) }
+              o.type :bool
+              o.env Ext::ENV_ANALYTICS_ENABLED
+              o.default false
             end
 
             option :analytics_sample_rate do |o|
-              o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
+              o.type :float
+              o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
+              o.default 1.0
             end
 
             option :tag_job_data do |o|
-              o.default { env_to_bool(Ext::ENV_TAG_JOB_DATA, false) }
+              o.type :bool
+              o.env Ext::ENV_TAG_JOB_DATA
+              o.default false
             end
 
             option :tag_job_tags do |o|
-              o.default { env_to_bool(Ext::ENV_TAG_JOB_TAGS, false) }
+              o.type :bool
+              o.env Ext::ENV_TAG_JOB_TAGS
+              o.default false
             end
 
             option :service_name

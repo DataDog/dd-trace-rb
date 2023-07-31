@@ -424,5 +424,75 @@ RSpec.describe Datadog::Tracing::Correlation do
         end
       end
     end
+
+    describe '#trace_id' do
+      context 'is defined' do
+        context 'when 128 bit trace id logging is not enabled' do
+          before do
+            allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_logging_enabled).and_return(false)
+          end
+
+          context 'when given 64 bit trace id' do
+            it 'returns to lower 64 bits of trace id' do
+              trace_id = 0xaaaaaaaaaaaaaaaa
+              expected_trace_id = 0xaaaaaaaaaaaaaaaa
+
+              identifier = described_class.new(trace_id: trace_id)
+
+              expect(identifier.trace_id).to eq(expected_trace_id)
+            end
+          end
+
+          context 'when given 128 bit trace id' do
+            it 'returns to lower 64 bits of trace id' do
+              trace_id = 0xaaaaaaaaaaaaaaaaffffffffffffffff
+              expected_trace_id = 0xffffffffffffffff
+
+              identifier = described_class.new(trace_id: trace_id)
+
+              expect(identifier.trace_id).to eq(expected_trace_id)
+            end
+          end
+        end
+
+        context 'when 128 bit trace id logging is enabled' do
+          before do
+            allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_logging_enabled).and_return(true)
+          end
+
+          context 'when given 64 bit trace id' do
+            it 'returns lower 64 bits of trace id' do
+              trace_id = 0xaaaaaaaaaaaaaaaa
+              expected_trace_id = 0xaaaaaaaaaaaaaaaa
+
+              identifier = described_class.new(trace_id: trace_id)
+
+              expect(identifier.trace_id).to eq(expected_trace_id)
+            end
+          end
+
+          context 'when given > 64 bit trace id' do
+            it 'returns the entire trace id in hex encoded and zero padded format' do
+              trace_id = 0x00ffffffffffffffaaaaaaaaaaaaaaaa
+
+              identifier = described_class.new(trace_id: trace_id)
+
+              expect(identifier.trace_id).to eq('00ffffffffffffffaaaaaaaaaaaaaaaa')
+            end
+          end
+        end
+
+        context 'when given > 64 bit trace id but high order is 0' do
+          it 'returns to lower 64 bits of trace id' do
+            trace_id = 0x00000000000000000aaaaaaaaaaaaaaaa
+            expected_trace_id = 0xaaaaaaaaaaaaaaaa
+
+            identifier = described_class.new(trace_id: trace_id)
+
+            expect(identifier.trace_id).to eq(expected_trace_id)
+          end
+        end
+      end
+    end
   end
 end

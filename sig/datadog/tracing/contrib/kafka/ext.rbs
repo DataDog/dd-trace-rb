@@ -37,6 +37,7 @@ module Datadog
 
           TAG_HIGHWATER_MARK_OFFSET: "kafka.highwater_mark_offset"
 
+          TAG_KAFKA_BOOTSTRAP_SERVERS: "messaging.kafka.bootstrap.servers"
           TAG_MESSAGE_COUNT: "kafka.message_count"
 
           TAG_MESSAGE_KEY: "kafka.message_key"
