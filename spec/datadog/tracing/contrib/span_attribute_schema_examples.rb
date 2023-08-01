@@ -38,6 +38,7 @@ RSpec.shared_examples 'schema version span' do
       let(:configuration_options) { { service_name: 'configured' } }
       it do
         expect(span.service).to eq(configuration_options[:service_name])
+        expect(span.get_tag('_dd.base_service')).to eq('rspec')
       end
     end
   end

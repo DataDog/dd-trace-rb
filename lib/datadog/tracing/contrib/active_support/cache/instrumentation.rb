@@ -39,6 +39,10 @@ module Datadog
               span = Tracing.trace(Ext::SPAN_CACHE, service: service, span_type: type)
               span.resource = payload.fetch(:action)
 
+              if service != Datadog.configuration.service
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
+              end
+
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CACHE)
 

@@ -45,6 +45,9 @@ module Datadog
 
           # Value of tag from which peer.service value was remapped from
           TAG_PEER_SERVICE_REMAP = '_dd.peer.service.remapped_from'
+
+          # Set equal to the global service when contrib span.service is overriden
+          TAG_BASE_SERVICE = '_dd.base_service'
         end
       end
     end
