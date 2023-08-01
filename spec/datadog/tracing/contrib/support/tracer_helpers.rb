@@ -92,14 +92,16 @@ module Contrib
           service_name
         end
         # override integration service configuration method in order to save override service name for later testing
-        # original_configuration_for_method = Datadog.method(:configuration_for)
-        # allow(Datadog).to receive(:configuration_for) do |target, option|
-        #   service_name_instance_override = original_configuration_for_method.call(target, option)
-        #   if option
-        #     ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = service_name_instance_override
-        #   end
-        #   service_name_instance_override
-        # end
+        original_configuration_for_method = Datadog.method(:configuration_for)
+        allow(Datadog).to receive(:configuration_for) do |target, option|
+          config = original_configuration_for_method.call(target, option)
+          if option == :service_name
+            ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = config
+          elsif option.nil? && config.key?(:service_name)
+            ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = config[:service_name]
+          end
+          config
+        end
         original_configure_onto_method = Datadog.method(:configure_onto)
         allow(Datadog).to receive(:configure_onto) do |target, options = {}|
           if options.key? :service_name
