@@ -21,6 +21,9 @@ in llvm.stdenv.mkDerivation {
   buildInputs = [
     ruby
 
+    # for profiler
+    pinned.pkgconfig
+
     # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
     # - json
     # - protobuf
