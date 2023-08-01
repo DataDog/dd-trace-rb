@@ -59,11 +59,13 @@ module NetworkHelpers
   def parse_tracer_config_and_add_to_headers(trace_headers)
     dd_env_variables = resolve_service_names(trace_headers)
 
+    schema_version = Datadog.configuration.tracing.contrib.global_default_service_name.enabled ? "v1" : "v0"
+
     trace_variables = dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
     if trace_variables.empty?
-      trace_variables = "DD_TRACE_SPAN_ATTRIBUTE_SCHEMA=v1"
+      trace_variables = "DD_TRACE_SPAN_ATTRIBUTE_SCHEMA=#{schema_version}"
     else
-      trace_variables += ",DD_TRACE_SPAN_ATTRIBUTE_SCHEMA=v1"
+      trace_variables += ",DD_TRACE_SPAN_ATTRIBUTE_SCHEMA=#{schema_version}"
     end
     trace_headers['X-Datadog-Trace-Env-Variables'] = trace_variables
     trace_headers
