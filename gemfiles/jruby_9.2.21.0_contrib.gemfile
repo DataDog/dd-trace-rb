@@ -50,6 +50,7 @@ gem "httpclient"
 gem "lograge", "~> 0.11"
 gem "i18n", "1.8.7", platform: :jruby
 gem "makara"
+gem "minitest", ">= 5.0.0"
 gem "mongo", ">= 2.8.0", "< 2.15.0"
 gem "mysql2", "< 1", platform: :ruby
 gem "activerecord-jdbcmysql-adapter", ">= 60.2", platform: :jruby
