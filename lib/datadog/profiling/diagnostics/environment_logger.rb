@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'date'
 require 'json'
 require 'rbconfig'
@@ -6,23 +8,22 @@ require_relative '../../core/diagnostics/environment_logger'
 module Datadog
   module Profiling
     module Diagnostics
-      class EnvironmentLogger < Core::Diagnostics::EnvironmentLogging
-        def self.log!
-          if log_checks!
-            @logger ||= EnvironmentLogger.new
-            @logger.log!
-          end
-        end
+      # Collects and logs Profiling diagnostic information
+      module EnvironmentLogger
+        extend Core::Diagnostics::EnvironmentLogging
 
-        def log!
-          data = EnvironmentCollector.collect!
-          data.reject! { |_, v| v.nil? } # Remove empty values from hash output
-          log_configuration!('PROFILING'.freeze, data.to_json)
+        def self.collect_and_log!
+          log_once! do
+            data = EnvironmentCollector.collect_config!
+            data.reject! { |_, v| v.nil? } # Remove empty values from hash output
+            log_configuration!('PROFILING', data.to_json)
+          end
         end
       end
 
-      class EnvironmentCollector
-        def self.collect!
+      # Collects environment information for Profiling diagnostic logging
+      module EnvironmentCollector
+        def self.collect_config!(*args)
           {
             profiling_enabled: profiling_enabled
           }

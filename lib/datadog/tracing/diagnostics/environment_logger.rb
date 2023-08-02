@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'date'
 require 'json'
 require 'rbconfig'
@@ -6,25 +8,29 @@ require_relative '../../core/diagnostics/environment_logger'
 module Datadog
   module Tracing
     module Diagnostics
-      class EnvironmentLogger < Core::Diagnostics::EnvironmentLogging
-        def self.log!
-          if log_checks!
-            @example ||= EnvironmentLogger.new
-            @example.log!
-          end
-        end
+      # Collects and logs Tracing diagnostic and error information
+      module EnvironmentLogger
+        extend Core::Diagnostics::EnvironmentLogging
 
-        def log!
-          data = EnvironmentCollector.collect!
-          data.reject! { |_, v| v.nil? } # Remove empty values from hash output
-          log_configuration!('TRACING'.freeze, data.to_json)
-          log_diagnostic!('TRACING'.freeze, 'Agent Error'.freeze, data[:agent_error]) if data[:agent_error]
+        def self.collect_and_log!(responses: nil)
+          log_once! do
+            env_data = EnvironmentCollector.collect_config!
+            env_data.reject! { |_, v| v.nil? } # Remove empty values from hash output
+            log_configuration!('TRACING', env_data.to_json)
+
+            if responses
+              err_data = EnvironmentCollector.collect_errors!(responses)
+              err_data.reject! { |_, v| v.nil? } # Remove empty values from hash output
+              log_error!('TRACING', 'Agent Error', err_data.to_json) unless err_data.empty?
+            end
+          end
         end
       end
 
-      class EnvironmentCollector
+      # Collects environment information for Tracing diagnostic logging
+      module EnvironmentCollector
         class << self
-          def collect!
+          def collect_config!
             {
               enabled: enabled,
               agent_url: agent_url,
@@ -35,6 +41,12 @@ module Datadog
               partial_flushing_enabled: partial_flushing_enabled,
               priority_sampling_enabled: priority_sampling_enabled,
               **instrumented_integrations_settings
+            }
+          end
+
+          def collect_errors!(responses)
+            {
+              agent_error: agent_error(responses)
             }
           end
 
@@ -53,6 +65,16 @@ module Datadog
 
             adapter = transport.client.api.adapter
             adapter.url
+          end
+
+          # Error returned by Datadog agent during a tracer flush attempt
+          # @return [String] concatenated list of transport errors
+          def agent_error(responses)
+            error_responses = responses.reject(&:ok?)
+
+            return nil if error_responses.empty?
+
+            error_responses.map(&:inspect).join(',')
           end
 
           # @return [Boolean, nil] analytics enabled in configuration
@@ -98,7 +120,7 @@ module Datadog
             integrations = instrumented_integrations
             return if integrations.empty?
 
-            integrations.map { |name, integration| "#{name}@#{integration.class.version}" }.join(','.freeze)
+            integrations.map { |name, integration| "#{name}@#{integration.class.version}" }.join(',')
           end
 
           # @return [Boolean, nil] partial flushing enabled in configuration

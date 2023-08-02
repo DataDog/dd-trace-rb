@@ -9,33 +9,28 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   before do
     allow(DateTime).to receive(:now).and_return(DateTime.new(2020))
 
-    # Resets "only-once" execution pattern of `log!`
+    # Resets "only-once" execution pattern of `collect_and_log!`
     env_logger.instance_variable_set(:@executed, nil)
 
     Datadog.configuration.reset!
   end
 
-  describe '#log!' do
-    subject(:log!) { env_logger.log! }
+  describe '#collect_and_log!' do
+    subject(:collect_and_log!) { env_logger.collect_and_log! }
 
-    let(:logger) do
-      log!
-      tracer_logger
-    end
-
-    let(:tracer_logger) { instance_double(Datadog::Core::Logger) }
+    let(:logger) { instance_double(Datadog::Core::Logger) }
 
     before do
-      allow(env_logger).to receive(:rspec?). and_return(false) # Allow rspec to log for testing purposes
-      allow(Datadog).to receive(:logger).and_return(tracer_logger)
-      allow(tracer_logger).to receive(:debug?).and_return(true)
-      allow(tracer_logger).to receive(:debug)
-      allow(tracer_logger).to receive(:info)
-      allow(tracer_logger).to receive(:warn)
-      # allow(tracer_logger).to receive(:error)
+      allow(env_logger).to receive(:rspec?).and_return(false) # Allow rspec to log for testing purposes
+      allow(Datadog).to receive(:logger).and_return(logger)
+      allow(logger).to receive(:debug?).and_return(true)
+      allow(logger).to receive(:debug)
+      allow(logger).to receive(:info)
+      allow(logger).to receive(:warn)
     end
 
     it 'with default core settings' do
+      collect_and_log!
       expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION - CORE') do |msg|
         json = JSON.parse(msg.partition('- CORE -')[2].strip)
         expect(json).to match(
@@ -55,8 +50,8 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
     context 'with multiple invocations' do
       it 'executes only once' do
-        env_logger.log!
-        env_logger.log!
+        env_logger.collect_and_log!
+        env_logger.collect_and_log!
 
         expect(logger).to have_received(:info).once
       end
@@ -75,7 +70,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
       context 'with default settings' do
         before do
-          allow(env_logger).to receive(:rspec?). and_return(true) # Prevent rspec from logging
+          allow(env_logger).to receive(:rspec?).and_return(true) # Prevent rspec from logging
         end
 
         it { expect(logger).to_not have_received(:info) }
@@ -92,8 +87,8 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
     # context 'with error collecting information' do
     #   before do
-    #     allow(tracer_logger).to receive(:warn)
-    #     expect_any_instance_of(Datadog::Core::Diagnostics::EnvironmentCollector).to receive(:collect!).and_raise
+    #     allow(logger).to receive(:warn)
+    #     expect_any_instance_of(Datadog::Core::Diagnostics::EnvironmentCollector).to receive(:collect_config!).and_raise
     #   end
 
     #   it 'rescues error and logs exception' do
@@ -103,8 +98,8 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   end
 
   describe Datadog::Core::Diagnostics::EnvironmentCollector do
-    describe '#collect!' do
-      subject(:collect!) { collector.collect! }
+    describe '#collect_config!' do
+      subject(:collect_config!) { collector.collect_config! }
 
       let(:collector) { described_class }
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'date'
 require 'json'
 require 'rbconfig'
@@ -21,7 +23,7 @@ module Datadog
             data.reject! { |_, v| v.nil? } # Remove empty values from hash output
 
             log_environment!(data.to_json)
-            log_error!('Agent Error'.freeze, data[:agent_error]) if data[:agent_error]
+            log_error!('Agent Error', data[:agent_error]) if data[:agent_error]
           rescue => e
             Datadog.logger.warn("Failed to collect environment information: #{e} Location: #{Array(e.backtrace).first}")
           end
@@ -64,7 +66,7 @@ module Datadog
         # Best portable guess of OS information.
         # @return [String] platform string
         def os_name
-          RbConfig::CONFIG['host'.freeze]
+          RbConfig::CONFIG['host']
         end
 
         # @return [String] ddtrace version
@@ -123,7 +125,7 @@ module Datadog
 
           return nil if error_responses.empty?
 
-          error_responses.map(&:inspect).join(','.freeze)
+          error_responses.map(&:inspect).join(',')
         end
 
         # @return [Boolean, nil] debug mode enabled in configuration
@@ -187,7 +189,7 @@ module Datadog
           integrations = instrumented_integrations
           return if integrations.empty?
 
-          integrations.map { |name, integration| "#{name}@#{integration.class.version}" }.join(','.freeze)
+          integrations.map { |name, integration| "#{name}@#{integration.class.version}" }.join(',')
         end
 
         # Ruby VM name and version.
@@ -278,7 +280,7 @@ module Datadog
 
         # Outputs "k1:v1,k2:v2,..."
         def hash_serializer(h)
-          h.map { |k, v| "#{k}:#{v}" }.join(','.freeze)
+          h.map { |k, v| "#{k}:#{v}" }.join(',')
         end
       end
     end

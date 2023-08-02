@@ -6,65 +6,71 @@ module Datadog
   module Core
     module Diagnostics
       # Base class for EnvironmentLoggers - should allow for easy reporting by users to Datadog support.
-      class EnvironmentLogging
+      module EnvironmentLogging
         def log_configuration!(prefix, data)
-          Datadog.logger.info("DATADOG CONFIGURATION - #{prefix} - #{data}")
+          logger.info("DATADOG CONFIGURATION - #{prefix} - #{data}")
         end
 
-        def log_diagnostic!(prefix, type, error)
-          Datadog.logger.warn("DATADOG DIAGNOSTIC - #{prefix} - #{type}: #{error.join(','.freeze)}")
+        def log_error!(prefix, type, error)
+          logger.warn("DATADOG ERROR - #{prefix} - #{type}: #{error}")
         end
 
-        class << self
-          def log_checks!
-            # Prevents logger from running multiple times
-            return if (defined?(@executed) && @executed) || !log?
-            @executed = true
+        protected
+
+        def logger
+          Datadog.logger
+        end
+
+        # If logger should log and hasn't logged already, then output environment configuration and possible errors.
+        # if should log and hasn't logged yet************
+        def log_once!
+          # Check if already been executed
+          return false if (defined?(@executed) && @executed) || !log?
+
+          yield if block_given?
+
+          @executed = true
+        end
+
+        # Are we logging the environment data?
+        def log?
+          startup_logs_enabled = Datadog.configuration.diagnostics.startup_logs.enabled
+          if startup_logs_enabled.nil?
+            !repl? # Suppress logs if we are running in a REPL
+            !rspec? # Suppress logs if we are running in an rspec environment
+          else
+            startup_logs_enabled
           end
+        end
 
-          protected
+        REPL_PROGRAM_NAMES = %w[irb pry].freeze
 
-          # Are we logging the environment data?
-          def log?
-            startup_logs_enabled = Datadog.configuration.diagnostics.startup_logs.enabled
-            if startup_logs_enabled.nil?
-              !repl? # Suppress logs if we are running in a REPL
-              !rspec? # Suppress logs if we are running in an rspec environment
-            else
-              startup_logs_enabled
-            end
-          end
+        def repl?
+          REPL_PROGRAM_NAMES.include?($PROGRAM_NAME)
+        end
 
-          REPL_PROGRAM_NAMES = %w[irb pry].freeze
+        def rspec?
+          $PROGRAM_NAME.end_with?('rspec')
+        end
+      end
 
-          def repl?
-            REPL_PROGRAM_NAMES.include?($PROGRAM_NAME)
-          end
+      # Collects and logs Core diagnostic information
+      module EnvironmentLogger
+        extend EnvironmentLogging
 
-          def rspec?
-            $PROGRAM_NAME.end_with?("rspec")
+        def self.collect_and_log!
+          log_once! do
+            data = EnvironmentCollector.collect_config!
+            data.reject! { |_, v| v.nil? } # Remove empty values from hash output
+            log_configuration!('CORE'.freeze, data.to_json)
           end
         end
       end
 
-      class EnvironmentLogger < EnvironmentLogging
-        def self.log!
-          if log_checks!
-            @logger ||= EnvironmentLogger.new
-            @logger.log!
-          end
-        end
-
-        def log!
-          data = EnvironmentCollector.collect!
-          data.reject! { |_, v| v.nil? } # Remove empty values from hash output
-          log_configuration!('CORE'.freeze, data.to_json)
-        end
-      end
-
-      class EnvironmentCollector
+      # Collects environment information for Core diagnostic logging
+      module EnvironmentCollector
         class << self
-          def collect!
+          def collect_config!
             {
               date: date,
               os_name: os_name,
