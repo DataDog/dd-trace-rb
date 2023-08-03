@@ -21,7 +21,7 @@ module Datadog
       # represents only settings specified via environment variables + the usual defaults.
       #
       # DO NOT USE THIS IN NEW CODE, as it ignores any settings specified by users via `Datadog.configure`.
-      DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::AgentSettingsResolver.call(
+      DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::DefaultAgentSettingsResolver.call(
         Datadog::Core::Configuration::Settings.new,
         logger: nil,
       )

@@ -1,4 +1,4 @@
-require_relative 'agent_settings_resolver'
+require_relative '../configuration/default_agent_settings_resolver.rb'
 require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
 require_relative '../logger'
@@ -81,18 +81,19 @@ module Datadog
         def initialize(settings)
           @logger = self.class.build_logger(settings)
 
-          agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
+          default_agent_settings = Core::Configuration::DefaultAgentSettingsResolver.call(settings, logger: @logger)
 
-          @remote = Remote::Component.build(settings, agent_settings)
-          @tracer = self.class.build_tracer(settings, agent_settings)
+          @remote = Remote::Component.build(settings, default_agent_settings)
+          @tracer = self.class.build_tracer(settings, @logger)
+          # TODO: EK - Remove agent_settings from method sig
           @profiler = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
-            agent_settings: agent_settings,
+            agent_settings: default_agent_settings,
             optional_tracer: @tracer,
           )
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
           @health_metrics = self.class.build_health_metrics(settings)
-          @telemetry = self.class.build_telemetry(settings, agent_settings, logger)
+          @telemetry = self.class.build_telemetry(settings, default_agent_settings, logger)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
         end
 

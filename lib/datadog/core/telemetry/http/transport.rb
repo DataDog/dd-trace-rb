@@ -4,6 +4,7 @@ require_relative '../../configuration/settings'
 require_relative 'env'
 require_relative 'ext'
 require_relative 'adapters/net'
+require_relative '../../configuration/default_agent_settings_resolver.rb'
 
 module Datadog
   module Core
@@ -19,7 +20,7 @@ module Datadog
             :path
 
           def initialize
-            agent_settings = Configuration::AgentSettingsResolver.call(Datadog.configuration)
+            agent_settings = Datadog::Core::Configuration::DefaultAgentSettingsResolver.call(Datadog.configuration)
             @host = agent_settings.hostname
             @port = agent_settings.port
             @ssl = false

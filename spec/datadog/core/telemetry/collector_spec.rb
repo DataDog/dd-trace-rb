@@ -151,7 +151,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         let(:adapter_type) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
 
         before do
-          allow(Datadog::Core::Configuration::AgentSettingsResolver)
+          allow(Datadog::Core::Configuration::DefaultAgentSettingsResolver)
             .to receive(:call).and_return(double('agent settings', :adapter => adapter_type))
         end
         it { is_expected.to include(:DD_AGENT_TRANSPORT => 'UDS') }

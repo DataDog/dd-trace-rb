@@ -3,7 +3,7 @@ require 'datadog/profiling/spec_helper'
 
 require 'logger'
 
-require 'datadog/core/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/default_agent_settings_resolver'
 require 'datadog/core/configuration/components'
 require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/core/diagnostics/health'
@@ -22,6 +22,7 @@ require 'datadog/profiling/tasks/setup'
 require 'datadog/profiling/trace_identifiers/helper'
 require 'datadog/statsd'
 require 'datadog/tracing/flush'
+require 'datadog/tracing/configuration/tracing_agent_settings_resolver'
 require 'datadog/tracing/sampling/all_sampler'
 require 'datadog/tracing/sampling/priority_sampler'
 require 'datadog/tracing/sampling/rate_by_service_sampler'
@@ -35,7 +36,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   subject(:components) { described_class.new(settings) }
 
   let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+  let(:agent_settings) { Datadog::Core::Configuration::DefaultAgentSettingsResolver.call(settings, logger: nil) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
@@ -68,7 +69,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .and_return(logger)
 
       expect(described_class).to receive(:build_tracer)
-        .with(settings, instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings))
+        .with(settings, logger)
         .and_return(tracer)
 
       expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
@@ -387,7 +388,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_tracer' do
-    subject(:build_tracer) { described_class.build_tracer(settings, agent_settings) }
+    let(:logger) { instance_double(Datadog::Core::Logger) }
+    subject(:build_tracer) { described_class.build_tracer(settings, logger: logger) }
 
     context 'given an instance' do
       let(:instance) { instance_double(Datadog::Tracing::Tracer) }
