@@ -23,7 +23,7 @@ module Datadog
           # that affect Datadog.configuration.tracing.distributed_tracing.propagation_inject_style and
           # Datadog.configuration.tracing.distributed_tracing.propagation_extract_style
           # By calling it here, we make sure if the customers has set any value either via code or ENV variable is applied.
-          Datadog.configuration.tracing.distributed_tracing.propagation_style
+          ::Datadog.configuration.tracing.distributed_tracing.propagation_style
         end
 
         # inject! populates the env with span ID, trace ID and sampling priority
