@@ -116,4 +116,4 @@ class RubyOverheadExperiment
   end
 end
 
-RubyOverheadExperiment.new.simulate(threads: 16, depth: 50, seconds: 60*10, timeline_enabled: ENV['TIMELINE'] == 'true')
+RubyOverheadExperiment.new.simulate(threads: 16, depth: 50, seconds: 60, timeline_enabled: ENV['TIMELINE'] == 'true')
