@@ -55,12 +55,12 @@ RSpec.describe Datadog::Tracing::Contrib do
     'sucker_punch' => 'SuckerPunch'
   }
 
-  Dir.chdir(root) do
-    Dir.glob("*/integration.rb", base: "lib/datadog/tracing/contrib").each do |path|
-      directory = File.dirname path
-      ruby_module = mapping.fetch(directory)
+  Dir.chdir("#{root}/lib/datadog/tracing/contrib") do |pwd|
+    Dir.glob("*/integration.rb").each do |path|
+      it "ensures #{pwd}/#{path} is loaded" do
+        directory = File.dirname path
+        ruby_module = mapping.fetch(directory) # raise key error if not found
 
-      it "ensures integration `#{ruby_module}` at #{path} is registered" do
         expect { Object.const_get "::Datadog::Tracing::Contrib::#{ruby_module}" }.not_to raise_error
       end
     end
