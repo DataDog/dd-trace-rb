@@ -88,27 +88,27 @@ def resolve_service_names(trace_headers)
     end
   end
 
-  s = get_span
-  if s && s.meta['component']
-    component = s.meta['component']
-    if ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE']
-      dd_integration_service = ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE']
-      dd_env_variables["DD_#{component.upcase}_SERVICE"] = dd_integration_service
-    elsif ENV['DD_CONFIGURED_INTEGRATION_SERVICE']
-      dd_integration_service = ENV['DD_CONFIGURED_INTEGRATION_SERVICE']
-      dd_env_variables["DD_#{component.upcase}_SERVICE"] = dd_integration_service
-    end
+  # s = get_span
+  # if s && s.meta['component']
+  #   component = s.meta['component']
+  # end
+  # #   if ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE']
+  # #     dd_integration_service = ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE']
+  # #     dd_env_variables["DD_#{component.upcase}_SERVICE"] = dd_integration_service
+  # #   elsif ENV['DD_CONFIGURED_INTEGRATION_SERVICE']
+  # #     dd_integration_service = ENV['DD_CONFIGURED_INTEGRATION_SERVICE']
+  # #     dd_env_variables["DD_#{component.upcase}_SERVICE"] = dd_integration_service
+  # #   end
 
-    component_to_integration_name = { 'mongodb' => 'mongo', 'net/http' => 'http' }
-    if dd_service != s.service && s.service != dd_env_variables["DD_#{component.upcase}_SERVICE"]
-      dd_env_variables["DD_#{component.upcase}_SERVICE"] = Datadog.configuration.tracing[component_to_integration_name.fetch(component, component).to_sym][:service_name]
-    end
-    # if dd_service != s.service && s.service != dd_env_variables["DD_#{component.upcase}_SERVICE"]
-    #   byebug
-    #   puts s.service
-    # end
-    dd_env_variables['DD_SERVICE'] = dd_service
-  end
+  # #   component_to_integration_name = { 'mongodb' => 'mongo', 'net/http' => 'http' }
+  # #   if dd_service != s.service && s.service != dd_env_variables["DD_#{component.upcase}_SERVICE"]
+  # #     dd_env_variables["DD_#{component.upcase}_SERVICE"] = Datadog.configuration.tracing[component_to_integration_name.fetch(component, component).to_sym][:service_name]
+  # #   end
+  # if dd_service != s.service && s.service != dd_env_variables["DD_#{component.upcase}_SERVICE"]
+  #   byebug
+  #   puts s.service
+  # end
+  dd_env_variables['DD_SERVICE'] = dd_service
   dd_env_variables
 end
 

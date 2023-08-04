@@ -81,48 +81,47 @@ module Contrib
               end
             end
           end
-
           instance
         end
-        # override service name resolution method in order to save service name for later testing
-        original_service_method = Datadog::Tracing::Contrib::SpanAttributeSchema.method(:fetch_service_name)
-        allow(Datadog::Tracing::Contrib::SpanAttributeSchema).to receive(:fetch_service_name) do |env, default|
-          service_name = original_service_method.call(env, default)
-          ENV['DD_CONFIGURED_INTEGRATION_SERVICE'] = service_name
-          service_name
-        end
-        # override integration service configuration method in order to save override service name for later testing
-        original_configuration_for_method = Datadog.method(:configuration_for)
-        allow(Datadog).to receive(:configuration_for) do |target, option|
-          config = original_configuration_for_method.call(target, option)
-          if option == :service_name
-            ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = config
-          elsif option.nil? && config.key?(:service_name)
-            ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = config[:service_name]
-          end
-          config
-        end
-        original_configure_onto_method = Datadog.method(:configure_onto)
-        allow(Datadog).to receive(:configure_onto) do |target, options = {}|
-          if options.key? :service_name
-            ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = options[:service_name]
-          end
-          original_configure_onto_method.call(target, **options)
-        end
-        service_name_method = Datadog::Tracing::Contrib::HttpAnnotationHelper.instance_method(:service_name)
-        allow_any_instance_of(Datadog::Tracing::Contrib::HttpAnnotationHelper).to receive(:service_name) do |instance, hostname, configuration_options, pin|
-          service_name = service_name_method.bind(instance).call(hostname, configuration_options, pin)
-          ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = service_name
-          service_name
-        end
-        api_configuration_method = Datadog::Tracing::Contrib::Extensions::Configuration::Settings.instance_method(:[])
-        allow_any_instance_of(Datadog::Tracing::Contrib::Extensions::Configuration::Settings).to receive(:[]) do |instance, integration_name, key = :default|
-          configuration = api_configuration_method.bind(instance).call(integration_name, key)
-          if configuration.to_h.key?(:service_name)
-            ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = configuration[:service_name]
-          end
-          configuration
-        end
+        # # override service name resolution method in order to save service name for later testing
+        # original_service_method = Datadog::Tracing::Contrib::SpanAttributeSchema.method(:fetch_service_name)
+        # allow(Datadog::Tracing::Contrib::SpanAttributeSchema).to receive(:fetch_service_name) do |env, default|
+        #   service_name = original_service_method.call(env, default)
+        #   ENV['DD_CONFIGURED_INTEGRATION_SERVICE'] = service_name
+        #   service_name
+        # end
+        # # override integration service configuration method in order to save override service name for later testing
+        # original_configuration_for_method = Datadog.method(:configuration_for)
+        # allow(Datadog).to receive(:configuration_for) do |target, option|
+        #   config = original_configuration_for_method.call(target, option)
+        #   if option == :service_name
+        #     ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = config
+        #   elsif option.nil? && config.key?(:service_name)
+        #     ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = config[:service_name]
+        #   end
+        #   config
+        # end
+        # original_configure_onto_method = Datadog.method(:configure_onto)
+        # allow(Datadog).to receive(:configure_onto) do |target, options = {}|
+        #   if options.key? :service_name
+        #     ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = options[:service_name]
+        #   end
+        #   original_configure_onto_method.call(target, **options)
+        # end
+        # service_name_method = Datadog::Tracing::Contrib::HttpAnnotationHelper.instance_method(:service_name)
+        # allow_any_instance_of(Datadog::Tracing::Contrib::HttpAnnotationHelper).to receive(:service_name) do |instance, hostname, configuration_options, pin|
+        #   service_name = service_name_method.bind(instance).call(hostname, configuration_options, pin)
+        #   ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = service_name
+        #   service_name
+        # end
+        # api_configuration_method = Datadog::Tracing::Contrib::Extensions::Configuration::Settings.instance_method(:[])
+        # allow_any_instance_of(Datadog::Tracing::Contrib::Extensions::Configuration::Settings).to receive(:[]) do |instance, integration_name, key = :default|
+        #   configuration = api_configuration_method.bind(instance).call(integration_name, key)
+        #   if configuration.to_h.key?(:service_name)
+        #     ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = configuration[:service_name]
+        #   end
+        #   configuration
+        # end
       end
 
       # Execute shutdown! after the test has finished
@@ -149,8 +148,6 @@ module Contrib
             end
           end
         end
-        ENV.delete('DD_CONFIGURED_INTEGRATION_SERVICE')
-        ENV.delete('DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE')
       end
     end
 
