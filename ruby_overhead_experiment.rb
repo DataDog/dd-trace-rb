@@ -66,7 +66,12 @@ class RubyOverheadExperiment
   end
 
   def simulate(**config)
-    config => {threads:, depth:, seconds:, timeline_enabled:}
+    threads = config.fetch(:threads)
+    depth = config.fetch(:depth)
+    seconds = config.fetch(:seconds)
+    timeline_enabled = config.fetch(:timeline_enabled)
+
+    # config => {threads:, depth:, seconds:, timeline_enabled:}
 
     puts "config: #{config}"
     create_profiler(timeline_enabled: timeline_enabled)
