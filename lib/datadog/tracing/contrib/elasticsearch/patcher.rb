@@ -19,16 +19,6 @@ module Datadog
             Integration.version
           end
 
-          # `Elasticsearch` namespace renamed to `Elastic` in version 8.0.0 of the transport gem:
-          # @see https://github.com/elastic/elastic-transport-ruby/commit/ef804cbbd284f2a82d825221f87124f8b5ff823c
-          def transport_module
-            if Integration.version >= Gem::Version.new('8.0.0')
-              ::Elastic::Transport
-            else
-              ::Elasticsearch::Transport
-            end
-          end
-
           def patch
             require 'uri'
             require 'json'
@@ -37,9 +27,13 @@ module Datadog
             transport_module::Client.prepend(Client)
           end
 
+          SELF_DEPRECATION_ONLY_ONCE = Core::Utils::OnlyOnce.new
+
           # Patches Elasticsearch::Transport::Client module
           module Client
-            def perform_request(method, path, params = {}, body = nil)
+            # rubocop:disable Metrics/MethodLength
+            # rubocop:disable Metrics/AbcSize
+            def perform_request(*args)
               # DEV-2.0: Remove this access, as `Client#self` in this context is not exposed to the user
               # since `elasticsearch` v8.0.0. In contrast, `Client#transport` is always available across
               # all `elasticsearch` gem versions and should be used instead.
@@ -54,7 +48,7 @@ module Datadog
                   )
                 end
               end
-              
+
               # `Client#transport` is most convenient object both this integration and the library
               # user have shared access to across all `elasticsearch` versions.
               #
@@ -62,6 +56,10 @@ module Datadog
               # does not have access to since `elasticsearch` v8.0.0.
               service ||= Datadog.configuration_for(transport, :service_name) || datadog_configuration[:service_name]
 
+              method = args[0]
+              path = args[1]
+              params = args[2]
+              body = args[3]
               full_url = URI.parse(path)
               url = full_url.path
               response = nil
@@ -87,10 +85,6 @@ module Datadog
 
                   span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
-                  # load JSON for the following fields unless they're already strings
-                  params = JSON.generate(params) if params && !params.is_a?(String)
-                  body = JSON.generate(body) if body && !body.is_a?(String)
-
                   span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 
                   # Set analytics sample rate
@@ -99,16 +93,9 @@ module Datadog
                   end
 
                   span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_METHOD, method)
+                  tag_params(params, span)
+                  tag_body(body, span)
                   span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_URL, url)
-                  span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_PARAMS, params) if params
-                  if body
-                    quantize_options = datadog_configuration[:quantize]
-                    quantized_body = Datadog::Tracing::Contrib::Elasticsearch::Quantize.format_body(
-                      body,
-                      quantize_options
-                    )
-                    span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_BODY, quantized_body)
-                  end
                   span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host) if host
                   span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port) if port
 
@@ -119,18 +106,39 @@ module Datadog
                   Datadog.logger.error(e.message)
                 ensure
                   # the call is still executed
-                  response = perform_request_without_datadog(*args)
+                  response = super
                   span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
                 end
               end
               response
             end
 
+            def tag_params(params, span)
+              return unless params
+
+              params = JSON.generate(params) unless params.is_a?(String)
+              span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_PARAMS, params)
+            end
+
+            def tag_body(body, span)
+              return unless body
+
+              body = JSON.generate(body) unless body.is_a?(String)
+              quantize_options = datadog_configuration[:quantize]
+              quantized_body = Datadog::Tracing::Contrib::Elasticsearch::Quantize.format_body(
+                body,
+                quantize_options
+              )
+              span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_BODY, quantized_body)
+            end
+
             def datadog_configuration
               Datadog.configuration.tracing[:elasticsearch]
             end
           end
-          
+          # rubocop:enable Metrics/MethodLength
+          # rubocop:enable Metrics/AbcSize
+
           # `Elasticsearch` namespace renamed to `Elastic` in version 8.0.0 of the transport gem:
           # @see https://github.com/elastic/elastic-transport-ruby/commit/ef804cbbd284f2a82d825221f87124f8b5ff823c
           def transport_module
