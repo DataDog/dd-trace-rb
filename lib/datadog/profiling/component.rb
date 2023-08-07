@@ -10,6 +10,9 @@ module Datadog
       def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
         return unless settings.profiling.enabled
 
+        Datadog.logger.error("Profiling env var status: #{ENV['DD_PROFILING_ENABLED'].inspect}")
+        Datadog.logger.error("All env vars: #{ENV.to_h}")
+
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
         # dependency on individual products, in this case the Profiler.
         # (Note "currently": in the future we want to change this so core classes don't depend on specific products)
