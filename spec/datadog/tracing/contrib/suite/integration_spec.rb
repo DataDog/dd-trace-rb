@@ -255,6 +255,8 @@ RSpec.describe 'contrib integration testing' do
 
           tracer.trace('test') { logger.error('test-log') }
 
+          SemanticLogger.flush
+
           expect(io.string).to include('trace_id')
 
           io.truncate(0)
@@ -265,6 +267,8 @@ RSpec.describe 'contrib integration testing' do
           expect(Datadog.configuration.tracing.log_injection).to eq(false)
 
           tracer.trace('test') { logger.error('test-log') }
+
+          SemanticLogger.flush
 
           expect(io.string).to_not include('trace_id')
         end
