@@ -18,6 +18,8 @@ module Datadog
             data.reject! { |_, v| v.nil? } # Remove empty values from hash output
             log_configuration!('PROFILING', data.to_json)
           end
+        rescue => e
+          logger.warn("Failed to collect profiling environment information: #{e} Location: #{Array(e.backtrace).first}")
         end
       end
 

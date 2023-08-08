@@ -17,19 +17,13 @@ RSpec.describe Datadog::Profiling::Diagnostics::EnvironmentLogger do
 
     let(:logger) { instance_double(Datadog::Core::Logger) }
 
-    # let(:logger) do
-    #   collect_and_log!
-    #   logger
-    # end
-
-    # let(:logger) { instance_double(Datadog::Core::Logger) }
-
     before do
       allow(env_logger).to receive(:rspec?).and_return(false) # Allow rspec to log for testing purposes
       allow(Datadog).to receive(:logger).and_return(logger)
       allow(logger).to receive(:debug?).and_return true
       allow(logger).to receive(:debug)
       allow(logger).to receive(:info)
+      allow(logger).to receive(:warn)
     end
 
     it 'with default profiling settings' do
@@ -82,6 +76,18 @@ RSpec.describe Datadog::Profiling::Diagnostics::EnvironmentLogger do
           collect_and_log!
           expect(logger).to have_received(:info).with(/DATADOG CONFIGURATION - PROFILING -/).once
         end
+      end
+    end
+
+    context 'with error collecting information' do
+      before do
+        allow(logger).to receive(:warn)
+        expect(Datadog::Profiling::Diagnostics::EnvironmentCollector).to receive(:collect_config!).and_raise
+      end
+
+      it 'rescues error and logs exception' do
+        collect_and_log!
+        expect(logger).to have_received(:warn).with start_with('Failed to collect profiling environment information')
       end
     end
   end

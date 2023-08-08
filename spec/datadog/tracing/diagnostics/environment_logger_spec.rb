@@ -107,6 +107,18 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
         end
       end
     end
+
+    context 'with error collecting information' do
+      before do
+        allow(logger).to receive(:warn)
+        expect(Datadog::Tracing::Diagnostics::EnvironmentCollector).to receive(:collect_config!).and_raise
+      end
+
+      it 'rescues error and logs exception' do
+        collect_and_log!
+        expect(logger).to have_received(:warn).with start_with('Failed to collect tracing environment information')
+      end
+    end
   end
 
   describe Datadog::Tracing::Diagnostics::EnvironmentCollector do

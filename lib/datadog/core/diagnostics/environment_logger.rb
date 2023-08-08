@@ -22,7 +22,6 @@ module Datadog
         end
 
         # If logger should log and hasn't logged already, then output environment configuration and possible errors.
-        # if should log and hasn't logged yet************
         def log_once!
           # Check if already been executed
           return false if (defined?(@executed) && @executed) || !log?
@@ -36,8 +35,7 @@ module Datadog
         def log?
           startup_logs_enabled = Datadog.configuration.diagnostics.startup_logs.enabled
           if startup_logs_enabled.nil?
-            !repl? # Suppress logs if we are running in a REPL
-            !rspec? # Suppress logs if we are running in an rspec environment
+            !repl? && !rspec? # Suppress logs if we are running in a REPL or rspec
           else
             startup_logs_enabled
           end
@@ -64,6 +62,8 @@ module Datadog
             data.reject! { |_, v| v.nil? } # Remove empty values from hash output
             log_configuration!('CORE'.freeze, data.to_json)
           end
+        rescue => e
+          logger.warn("Failed to collect core environment information: #{e} Location: #{Array(e.backtrace).first}")
         end
       end
 

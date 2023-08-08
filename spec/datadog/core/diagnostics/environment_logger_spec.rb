@@ -85,16 +85,17 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
     end
 
-    # context 'with error collecting information' do
-    #   before do
-    #     allow(logger).to receive(:warn)
-    #     expect_any_instance_of(Datadog::Core::Diagnostics::EnvironmentCollector).to receive(:collect_config!).and_raise
-    #   end
+    context 'with error collecting information' do
+      before do
+        allow(logger).to receive(:warn)
+        expect(Datadog::Core::Diagnostics::EnvironmentCollector).to receive(:collect_config!).and_raise
+      end
 
-    #   it 'rescues error and logs exception' do
-    #     expect(logger).to have_received(:warn).with start_with('Failed to collect environment information')
-    #   end
-    # end
+      it 'rescues error and logs exception' do
+        collect_and_log!
+        expect(logger).to have_received(:warn).with start_with('Failed to collect core environment information')
+      end
+    end
   end
 
   describe Datadog::Core::Diagnostics::EnvironmentCollector do

@@ -24,6 +24,8 @@ module Datadog
               log_error!('TRACING', 'Agent Error', err_data.to_json) unless err_data.empty?
             end
           end
+        rescue => e
+          logger.warn("Failed to collect tracing environment information: #{e} Location: #{Array(e.backtrace).first}")
         end
       end
 
