@@ -56,7 +56,7 @@ RSpec.describe Datadog::Tracing::Contrib do
   }
 
   Dir.chdir("#{root}/lib/datadog/tracing/contrib") do |pwd|
-    Dir.glob("*/integration.rb").each do |path|
+    Dir.glob('*/integration.rb').each do |path|
       it "ensures #{pwd}/#{path} is loaded" do
         directory = File.dirname path
         ruby_module = mapping.fetch(directory) # raise key error if not found
