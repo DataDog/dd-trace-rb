@@ -13,13 +13,15 @@ RSpec.shared_examples 'schema version span' do
     context 'test the default' do
       it do
         expect(span.service).to eq('rspec')
+        span.meta["expectedServiceName"] = 'rspec'
       end
     end
 
     context 'service name test with integration service name' do
-      let(:configuration_options) { { service_name: 'configured' } }
+      let(:configuration_options) { { service_name: 'configured-span-attr' } }
       it do
         expect(span.service).to eq(configuration_options[:service_name])
+        span.meta["expectedServiceName"] = configuration_options[:service_name]
       end
     end
   end

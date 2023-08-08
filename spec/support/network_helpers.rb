@@ -77,16 +77,20 @@ def resolve_service_names(trace_headers)
   instrumented_integrations = Datadog.configuration.tracing.instrumented_integrations
   # Get all DD_ variables from ENV
   dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
-
-  instrumented_integrations.flat_map do |name, integration|
-    config = integration.configuration.to_h
-    if config.key? :service_name
-      service_name = config[:service_name]
-      integration_name_to_component = { :mongo => 'mongodb', :http => 'net/http' }
-      component = integration_name_to_component.fetch(name, name.to_s)
-      dd_env_variables["DD_#{component.upcase}_SERVICE"] = service_name
-    end
+  sp = get_span
+  if sp.meta["expectedServiceName"]
+    dd_env_variables['DD_SERVICE'] = sp.meta["expectedServiceName"]
   end
+
+  # instrumented_integrations.flat_map do |name, integration|
+  #   config = integration.configuration.to_h
+  #   if config.key? :service_name
+  #     service_name = config[:service_name]
+  #     integration_name_to_component = { :mongo => 'mongodb', :http => 'net/http' }
+  #     component = integration_name_to_component.fetch(name, name.to_s)
+  #     dd_env_variables["DD_#{component.upcase}_SERVICE"] = service_name
+  #   end
+  # end
 
   # s = get_span
   # if s && s.meta['component']
@@ -108,7 +112,6 @@ def resolve_service_names(trace_headers)
   #   byebug
   #   puts s.service
   # end
-  dd_env_variables['DD_SERVICE'] = dd_service
   dd_env_variables
 end
 

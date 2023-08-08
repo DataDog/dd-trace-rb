@@ -19,7 +19,7 @@ RSpec.shared_examples_for 'environment service name' do |env_service_name_key, e
     end
 
     context 'when given service_name' do
-      let(:configuration_options) { { service_name: 'configured' } }
+      let(:configuration_options) { { service_name: 'configured-env' } }
 
       it { expect(span.service).to eq(configuration_options[:service_name]) }
     end
