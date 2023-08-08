@@ -70,7 +70,7 @@ def resolve_service_names(trace_headers)
   # Get all DD_ variables from ENV
   dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
   sp = get_span
-  if sp.meta["_expected_service_name"] && sp.meta["_remove_integration_service_names_enabled"] == true
+  if sp && sp.meta && sp.meta["_expected_service_name"] && sp.meta["_remove_integration_service_names_enabled"] == "true"
     dd_env_variables['DD_SERVICE'] = sp.meta["_expected_service_name"]
     dd_env_variables['DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'] = "v1"
   end

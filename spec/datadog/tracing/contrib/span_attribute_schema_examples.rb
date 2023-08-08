@@ -14,7 +14,7 @@ RSpec.shared_examples 'schema version span' do
       it do
         expect(span.service).to eq('rspec')
         span.meta["_expected_service_name"] = 'rspec'
-        span.meta["_remove_integration_service_names_enabled"] = true
+        span.meta["_remove_integration_service_names_enabled"] = "true"
       end
     end
 
@@ -23,7 +23,7 @@ RSpec.shared_examples 'schema version span' do
       it do
         expect(span.service).to eq(configuration_options[:service_name])
         span.meta["_expected_service_name"] = configuration_options[:service_name]
-        span.meta["_remove_integration_service_names_enabled"] = true
+        span.meta["_remove_integration_service_names_enabled"] = "true"
       end
     end
   end
