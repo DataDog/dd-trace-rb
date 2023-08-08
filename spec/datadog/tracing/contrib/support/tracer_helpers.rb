@@ -5,8 +5,6 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 require 'datadog/tracing/sync_writer'
 
-require 'byebug'
-
 module Contrib
   include NetworkHelpers
   # Contrib-specific tracer helpers.
@@ -86,45 +84,6 @@ module Contrib
           end
           instance
         end
-        # # override service name resolution method in order to save service name for later testing
-        # original_service_method = Datadog::Tracing::Contrib::SpanAttributeSchema.method(:fetch_service_name)
-        # allow(Datadog::Tracing::Contrib::SpanAttributeSchema).to receive(:fetch_service_name) do |env, default|
-        #   service_name = original_service_method.call(env, default)
-        #   ENV['DD_CONFIGURED_INTEGRATION_SERVICE'] = service_name
-        #   service_name
-        # end
-        # # override integration service configuration method in order to save override service name for later testing
-        # original_configuration_for_method = Datadog.method(:configuration_for)
-        # allow(Datadog).to receive(:configuration_for) do |target, option|
-        #   config = original_configuration_for_method.call(target, option)
-        #   if option == :service_name
-        #     ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = config
-        #   elsif option.nil? && config.key?(:service_name)
-        #     ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = config[:service_name]
-        #   end
-        #   config
-        # end
-        # original_configure_onto_method = Datadog.method(:configure_onto)
-        # allow(Datadog).to receive(:configure_onto) do |target, options = {}|
-        #   if options.key? :service_name
-        #     ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = options[:service_name]
-        #   end
-        #   original_configure_onto_method.call(target, **options)
-        # end
-        # service_name_method = Datadog::Tracing::Contrib::HttpAnnotationHelper.instance_method(:service_name)
-        # allow_any_instance_of(Datadog::Tracing::Contrib::HttpAnnotationHelper).to receive(:service_name) do |instance, hostname, configuration_options, pin|
-        #   service_name = service_name_method.bind(instance).call(hostname, configuration_options, pin)
-        #   ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = service_name
-        #   service_name
-        # end
-        # api_configuration_method = Datadog::Tracing::Contrib::Extensions::Configuration::Settings.instance_method(:[])
-        # allow_any_instance_of(Datadog::Tracing::Contrib::Extensions::Configuration::Settings).to receive(:[]) do |instance, integration_name, key = :default|
-        #   configuration = api_configuration_method.bind(instance).call(integration_name, key)
-        #   if configuration.to_h.key?(:service_name)
-        #     ENV['DD_CONFIGURED_INTEGRATION_INSTANCE_SERVICE'] = configuration[:service_name]
-        #   end
-        #   configuration
-        # end
       end
 
       # Execute shutdown! after the test has finished
@@ -144,12 +103,13 @@ module Contrib
         unless traces.empty?
           if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
               tracer.writer.transport.client.api.adapter.hostname == 'testagent' && test_agent_running?
+            transport_options = { adapter: :net_http, hostname: 'testagent', port: 9126, timeout: 30 }
             traces.each do |trace|
-              transport_options = {adapter: :net_http, hostname: 'testagent', port: 9126, timeout: 30 }
               # write traces after the test to the agent in order to not mess up assertions
+              # remake syncwriter instance for each flush to prevent headers from being overrwritten
               sync_writer = Datadog::Tracing::SyncWriter.new(transport_options: transport_options)
-              dd_env_var = parse_tracer_config_and_add_to_headers(trace)
-              sync_writer.transport.client.api.headers['X-Datadog-Trace-Env-Variables'] = dd_env_var
+              dd_env = parse_tracer_config_and_add_to_headers(trace)
+              sync_writer.transport.client.api.headers['X-Datadog-Trace-Env-Variables'] = dd_env
               sync_writer.write(trace)
             end
           end
