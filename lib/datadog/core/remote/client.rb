@@ -140,6 +140,7 @@ module Datadog
             language: Core::Environment::Identity.lang,
             tracer_version: tracer_version_semver2,
             service: service_name,
+            extra_services: extra_service_names,
             env: Datadog.configuration.env,
             tags: client_tracer_tags,
           }
@@ -172,6 +173,10 @@ module Datadog
 
         def service_name
           Datadog.configuration.remote.service || Datadog.configuration.service
+        end
+
+        def extra_service_names
+          Datadog.configuration.remote.extra_services || []
         end
 
         def tracer_version_semver2

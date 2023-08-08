@@ -635,6 +635,13 @@ module Datadog
           # @default `nil`.
           # @return [String,nil]
           option :service
+
+          # Declare additional service names to bind to remote configuration. Use when
+          # integrations are configured to use names that differ from DD_SERVICE.
+          #
+          # @default `nil`.
+          # @return [Array<String>,nil]
+          option :extra_services
         end
 
         # TODO: Tracing should manage its own settings.
