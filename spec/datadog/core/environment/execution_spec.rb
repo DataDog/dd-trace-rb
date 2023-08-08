@@ -20,11 +20,13 @@ RSpec.describe Datadog::Core::Environment::Execution do
       # `Datadog::Core::Environment::Execution.rspec?` because
       # otherwise we'll have no real test for non-RSpec cases.
       around do |example|
-        original = $PROGRAM_NAME
-        $PROGRAM_NAME = 'not-rspec'
-        example.run
-      ensure
-        $PROGRAM_NAME = original
+        begin
+          original = $PROGRAM_NAME
+          $PROGRAM_NAME = 'not-rspec'
+          example.run
+        ensure
+          $PROGRAM_NAME = original
+        end
       end
 
       let(:repl_script) do
@@ -52,7 +54,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
       context 'when in a Pry session' do
         it 'returns true' do
-          Tempfile.create do |f|
+          Tempfile.create('test') do |f|
             f.write(repl_script)
             f.close
 
@@ -68,7 +70,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
             # Minitest reads CLI arguments, but the current process has RSpec
             # arguments that are not relevant (nor compatible) with Minitest.
             # This happens inside a fork, thus we don't have to reset it.
-            Kernel.const_set('ARGV', [])
+            Object.const_set('ARGV', [])
 
             require 'minitest/autorun'
 

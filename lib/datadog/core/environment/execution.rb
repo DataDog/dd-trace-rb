@@ -29,7 +29,7 @@ module Datadog
           REPL_PROGRAM_NAMES = %w[irb pry].freeze
           private_constant :REPL_PROGRAM_NAMES
 
-          # RSpec always runs using the `rspec` file https://github.com/rspec/rspec-core/blob/main/exe/rspec.
+          # RSpec always runs using the `rspec` file https://github.com/rspec/rspec-core/blob/main/exe/rspec
           def rspec?
             $PROGRAM_NAME.end_with?(RSPEC_PROGRAM_NAME)
           end
@@ -39,9 +39,14 @@ module Datadog
 
           # Check if Minitest is present and installed to run.
           def minitest?
-            defined?(::Minitest) &&
+            # Minitest >= 5
+            (defined?(::Minitest) &&
               ::Minitest.class_variable_defined?(:@@installed_at_exit) &&
-              ::Minitest.class_variable_get(:@@installed_at_exit)
+              ::Minitest.class_variable_get(:@@installed_at_exit)) ||
+              # Minitest < 5
+              (defined?(::Minitest::Unit) &&
+                ::Minitest::Unit.class_variable_defined?(:@@installed_at_exit) &&
+                ::Minitest::Unit.class_variable_get(:@@installed_at_exit))
           end
         end
       end
