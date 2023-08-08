@@ -1,3 +1,5 @@
+# require 'byebug'
+
 module NetworkHelpers
   TEST_AGENT_HOST = ENV['DD_TEST_AGENT_HOST'] || 'testagent'
   TEST_AGENT_PORT = ENV['DD_TEST_AGENT_PORT'] || 9126
@@ -56,27 +58,32 @@ module NetworkHelpers
   # a comma separated string of `k=v` pairs.
   #
   # @return [Hash] trace headers
-  def parse_tracer_config_and_add_to_headers(trace_headers, trace)
-    dd_env_variables = resolve_service_names(trace_headers, trace)
+  def parse_tracer_config_and_add_to_headers(trace)
+    dd_env_variables = resolve_service_names(trace)
     trace_variables = dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
-    trace_headers['X-Datadog-Trace-Env-Variables'] = trace_variables
-    trace_headers
+    trace_variables
   end
 end
 
-def resolve_service_names(trace_headers, trace)
+def resolve_service_names(trace)
   instrumented_integrations = Datadog.configuration.tracing.instrumented_integrations
   # Get all DD_ variables from ENV
   dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
   sp = trace.spans[0]
-  if sp && sp.meta && sp.meta["_expected_service_name"] && sp.meta["_remove_integration_service_names_enabled"] == "true"
-    dd_env_variables['DD_SERVICE'] = sp.meta["_expected_service_name"]
-    dd_env_variables['DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'] = "v1"
 
-    # if sp.meta["_expected_service_name"] != sp.service
-    #   byebug
-    #   puts s.service
-    # end
+  trace.spans.each do |sp|
+    if sp && sp.meta && sp.meta["expected_service_name"] && sp.meta["remove_integration_service_names_enabled"] == "true"
+      dd_env_variables['DD_SERVICE'] = sp.meta["expected_service_name"]
+      dd_env_variables['DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'] = "v1"
+
+      # if sp.meta["expected_service_name"] != sp.service
+      #   byebug
+      #   puts s.service
+      # end
+    else
+      dd_env_variables.delete('DD_SERVICE')
+      dd_env_variables.delete('DD_TRACE_SPAN_ATTRIBUTE_SCHEMA')
+    end
   end
   dd_env_variables
 end

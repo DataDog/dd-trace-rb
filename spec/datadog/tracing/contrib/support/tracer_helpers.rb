@@ -5,6 +5,8 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 require 'datadog/tracing/sync_writer'
 
+require 'byebug'
+
 module Contrib
   include NetworkHelpers
   # Contrib-specific tracer helpers.
@@ -143,12 +145,11 @@ module Contrib
           if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
               tracer.writer.transport.client.api.adapter.hostname == 'testagent' && test_agent_running?
             traces.each do |trace|
-              transport = tracer.writer.transport
+              transport_options = {adapter: :net_http, hostname: 'testagent', port: 9126, timeout: 30 }
               # write traces after the test to the agent in order to not mess up assertions
-              headers = transport.client.api.headers
-              headers.delete('X-Datadog-Trace-Env-Variables')
-              parse_tracer_config_and_add_to_headers(headers, trace)
-              sync_writer = Datadog::Tracing::SyncWriter.new(transport: transport)
+              sync_writer = Datadog::Tracing::SyncWriter.new(transport_options: transport_options)
+              dd_env_var = parse_tracer_config_and_add_to_headers(trace)
+              sync_writer.transport.client.api.headers['X-Datadog-Trace-Env-Variables'] = dd_env_var
               sync_writer.write(trace)
             end
           end
