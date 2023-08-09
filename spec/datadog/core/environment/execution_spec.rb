@@ -58,7 +58,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
             f.write(repl_script)
             f.close
 
-            out, = Open3.capture2e('pry', '--noprompt', f.path)
+            out, = Open3.capture2e('pry', '-f', '--noprompt', f.path)
             expect(out).to eq('true')
           end
         end
