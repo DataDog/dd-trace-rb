@@ -208,6 +208,21 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
       end
     end
 
+    context 'when query string in url' do
+      let(:path) { '/sample/path?foo=bar' }
+
+      before do
+        stub_request(:get, /example.com/).to_return(status: status, body: response)
+      end
+
+      it 'does not collect query string' do
+        request
+
+        expect(span.get_tag('http.url')).to eq('/sample/path')
+        expect(span.get_tag('out.host')).to eq('example.com')
+      end
+    end
+
     context 'that returns a custom response object' do
       subject(:request) do
         RestClient::Request.execute(method: :get, url: url) { response }

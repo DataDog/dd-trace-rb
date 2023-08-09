@@ -554,4 +554,33 @@ RSpec.describe 'net/http requests' do
       expect(span.get_tag('out.host')).to eq('example.com')
     end
   end
+
+  context 'when query string in url' do
+    before do
+      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+      stub_request(:get, /example.com/).to_return(status: 200)
+    end
+
+    after { WebMock.disable! }
+
+    it 'does not collect query string' do
+      uri = URI('http://example.com/sample/path?foo=bar')
+
+      Net::HTTP.get_response(uri)
+
+      expect(span.get_tag('http.url')).to eq('/sample/path')
+      expect(span.get_tag('out.host')).to eq('example.com')
+    end
+
+    it 'does not collect query string' do
+      uri = URI('http://example.com/sample/path')
+      params = { :foo => "bar" }
+      uri.query = URI.encode_www_form(params)
+
+      Net::HTTP.get_response(uri)
+
+      expect(span.get_tag('http.url')).to eq('/sample/path')
+      expect(span.get_tag('out.host')).to eq('example.com')
+    end
+  end
 end

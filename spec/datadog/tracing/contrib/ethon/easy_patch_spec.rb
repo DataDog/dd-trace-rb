@@ -248,4 +248,15 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
       expect(span.get_tag('out.host')).to eq('example.com')
     end
   end
+
+  context 'when query string in url' do
+    it 'does not collect string' do
+      easy = EthonSupport.ethon_easy_new(url: 'http://example.com/sample/path?foo=bar')
+
+      easy.perform
+
+      expect(span.get_tag('http.url')).to eq('/sample/path')
+      expect(span.get_tag('out.host')).to eq('example.com')
+    end
+  end
 end
