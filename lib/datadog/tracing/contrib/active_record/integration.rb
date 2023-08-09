@@ -15,8 +15,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('3.2')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :active_record, auto_patch: false
+          def self.gems
+            ['activerecord']
+          end
 
           def self.version
             Gem.loaded_specs['activerecord'] && Gem.loaded_specs['activerecord'].version
@@ -47,6 +48,9 @@ module Datadog
           def resolver
             @resolver ||= Configuration::Resolver.new
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :active_record, auto_patch: false
         end
       end
     end

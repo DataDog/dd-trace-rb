@@ -13,8 +13,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('5.0.0')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :action_mailer, auto_patch: false
+          def self.gems
+            ['actionmailer']
+          end
 
           def self.version
             Gem.loaded_specs['actionmailer'] && Gem.loaded_specs['actionmailer'].version
@@ -41,6 +42,9 @@ module Datadog
           def patcher
             ActionMailer::Patcher
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :action_mailer, auto_patch: false
         end
       end
     end

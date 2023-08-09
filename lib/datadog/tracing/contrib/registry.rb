@@ -8,7 +8,7 @@ module Datadog
       class Registry
         include Enumerable
 
-        Entry = Struct.new(:name, :klass, :auto_patch, :gems)
+        Entry = Struct.new(:name, :klass, :auto_patch)
 
         # @!visibility private
         def initialize
@@ -20,9 +20,9 @@ module Datadog
         # @param klass [Object] instrumentation implementation
         # @param auto_patch [Boolean] is the tracer allowed to automatically patch
         #   the host application with this instrumentation?
-        def add(name, klass, auto_patch = false, gems = [name])
+        def add(name, klass, auto_patch = false)
           @mutex.synchronize do
-            @data[name] = Entry.new(name, klass, auto_patch, gems).freeze
+            @data[name] = Entry.new(name, klass, auto_patch).freeze
           end
         end
 

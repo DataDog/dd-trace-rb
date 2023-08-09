@@ -12,8 +12,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('0.10.0')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :qless, auto_patch: true
+          def self.gems
+            ['qless']
+          end
 
           def self.version
             Gem.loaded_specs['qless'] && Gem.loaded_specs['qless'].version
@@ -34,6 +35,9 @@ module Datadog
           def patcher
             Patcher
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :qless, auto_patch: true
         end
       end
     end

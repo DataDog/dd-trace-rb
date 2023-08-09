@@ -12,8 +12,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('0.7.10')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :kafka, auto_patch: false
+          def self.gems
+            ['ruby-kafka']
+          end
 
           def self.version
             Gem.loaded_specs['ruby-kafka'] && Gem.loaded_specs['ruby-kafka'].version
@@ -35,6 +36,9 @@ module Datadog
           def patcher
             Patcher
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :kafka, auto_patch: false
         end
       end
     end

@@ -12,8 +12,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('4.1')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :delayed_job
+          def self.gems
+            ['delayed_job']
+          end
 
           def self.version
             Gem.loaded_specs['delayed_job'] && Gem.loaded_specs['delayed_job'].version
@@ -34,6 +35,9 @@ module Datadog
           def patcher
             Patcher
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :delayed_job
         end
       end
     end

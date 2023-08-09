@@ -15,8 +15,9 @@ module Datadog
           # it's probably reasonable to nudge users to using modern ruby libs
           MINIMUM_VERSION = Gem::Version.new('4.0.0')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :semantic_logger
+          def self.gems
+            ['semantic_logger']
+          end
 
           def self.version
             Gem.loaded_specs['semantic_logger'] && Gem.loaded_specs['semantic_logger'].version
@@ -43,6 +44,9 @@ module Datadog
           def patcher
             Patcher
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :semantic_logger
         end
       end
     end

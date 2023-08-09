@@ -13,8 +13,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('3.2')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :shoryuken
+          def self.gems
+            ['shoryuken']
+          end
 
           def self.version
             Gem.loaded_specs['shoryuken'] && Gem.loaded_specs['shoryuken'].version
@@ -35,6 +36,9 @@ module Datadog
           def patcher
             Patcher
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :shoryuken
         end
       end
     end

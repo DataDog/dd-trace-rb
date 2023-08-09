@@ -13,8 +13,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('2.1.0')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :mongo, auto_patch: true
+          def self.gems
+            ['mongo']
+          end
 
           def self.version
             Gem.loaded_specs['mongo'] && Gem.loaded_specs['mongo'].version
@@ -39,6 +40,9 @@ module Datadog
           def resolver
             @resolver ||= Contrib::Configuration::Resolvers::PatternResolver.new
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :mongo, auto_patch: true
         end
       end
     end

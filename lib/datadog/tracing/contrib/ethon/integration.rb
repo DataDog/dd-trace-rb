@@ -13,8 +13,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('0.11.0')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :ethon
+          def self.gems
+            ['ethon']
+          end
 
           def self.version
             Gem.loaded_specs['ethon'] && Gem.loaded_specs['ethon'].version
@@ -39,6 +40,9 @@ module Datadog
           def resolver
             @resolver ||= Contrib::Configuration::Resolvers::PatternResolver.new
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :ethon
         end
       end
     end

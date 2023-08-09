@@ -12,8 +12,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('2.0')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :aws, auto_patch: true
+          def self.gems
+            ['aws-sdk', 'aws-sdk-core']
+          end
 
           def self.version
             if Gem.loaded_specs['aws-sdk']
@@ -38,6 +39,9 @@ module Datadog
           def patcher
             Patcher
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :aws, auto_patch: true
         end
       end
     end

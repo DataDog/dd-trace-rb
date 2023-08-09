@@ -30,18 +30,19 @@ module Datadog
           # @param [Hash] options additional keyword options passed to the initializer of
           #   a custom {Registerable} instrumentation
           # @see Datadog::Tracing::Contrib::Integration
-          def register_as(name, registry: Contrib::REGISTRY, auto_patch: false, gems: [name], **options)
-            registry.add(name, new(name, **options), auto_patch)
+          def register_as(name, registry: Contrib::REGISTRY, auto_patch: false, **options)
+            registry.add(name, new(name, gems: self.gems, **options), auto_patch)
           end
         end
 
         # Instance methods for registerable behavior
         module InstanceMethods
           attr_reader \
-            :name
+            :name, :gems
 
-          def initialize(name, **options)
+          def initialize(name, gems: [], **options)
             @name = name
+            @gems = gems
           end
         end
       end

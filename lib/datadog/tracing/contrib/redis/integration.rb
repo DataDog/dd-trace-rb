@@ -16,8 +16,9 @@ module Datadog
           # https://github.com/redis-rb/redis-client/blob/master/CHANGELOG.md#0110
           REDISCLIENT_MINIMUM_VERSION = Gem::Version.new('0.11.0')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :redis, auto_patch: true
+          def self.gems
+            ['redis', 'redis-client']
+          end
 
           # Until Redis 4, all instrumentation happened in one gem: redis.
           # Since Redis 5, instrumentation happens in a separate gem: redis-client.
@@ -71,6 +72,9 @@ module Datadog
           def resolver
             @resolver ||= Configuration::Resolver.new
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :redis, auto_patch: true
         end
       end
     end

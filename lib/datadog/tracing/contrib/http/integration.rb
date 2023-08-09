@@ -20,8 +20,9 @@ module Datadog
 
           MINIMUM_VERSION = DDTrace::VERSION::MINIMUM_RUBY_VERSION
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :http, auto_patch: true
+          def self.gems
+            ['net/http'] # DEV does this work?
+          end
 
           def self.version
             Gem::Version.new(RUBY_VERSION)
@@ -42,6 +43,9 @@ module Datadog
           def resolver
             @resolver ||= Contrib::Configuration::Resolvers::PatternResolver.new
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :http, auto_patch: true
         end
       end
     end

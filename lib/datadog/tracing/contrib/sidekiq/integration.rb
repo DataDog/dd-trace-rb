@@ -14,8 +14,9 @@ module Datadog
           MINIMUM_SERVER_INTERNAL_TRACING_VERSION = Gem::Version.new('5.2.4')
           MINIMUM_CAPSULE_VERSION = Gem::Version.new('7.0.0')
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :sidekiq
+          def self.gems
+            ['sidekiq']
+          end
 
           def self.version
             Gem.loaded_specs['sidekiq'] && Gem.loaded_specs['sidekiq'].version
@@ -52,6 +53,9 @@ module Datadog
           def patcher
             Patcher
           end
+
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :sidekiq
         end
       end
     end
