@@ -57,14 +57,37 @@ ENV['DD_TRACE_DEBUG'] = 'true'
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Setup
 require 'ddtrace'
+require 'faraday'
 
 Datadog.configure do |c|
   c.tracing.instrument :faraday
 end
 
-require 'faraday'
-
+# User application
 Faraday.get('http://example.com')
 
-Datadog.shutdown!
+# Tear down
+Datadog.shutdown! # Ensure traces have been flushed
