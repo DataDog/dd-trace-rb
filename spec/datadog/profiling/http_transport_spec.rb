@@ -55,7 +55,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       code_provenance_file_name: code_provenance_file_name,
       code_provenance_data: code_provenance_data,
       tags_as_array: tags_as_array,
-      no_signals_workaround_enabled: true,
+      internal_metadata: { no_signals_workaround_enabled: true },
     )
   end
   let(:start_timestamp) { '2022-02-07T15:59:53.987654321Z' }

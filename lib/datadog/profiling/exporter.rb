@@ -64,7 +64,7 @@ module Datadog
           code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
           code_provenance_data: uncompressed_code_provenance,
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
-          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          internal_metadata: { no_signals_workaround_enabled: no_signals_workaround_enabled },
         )
       end
 
