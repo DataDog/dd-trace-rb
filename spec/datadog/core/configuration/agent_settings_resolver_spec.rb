@@ -227,6 +227,16 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
             it 'prioritizes the http configuration and uses the default port' do
               expect(resolver).to have_attributes(port: 8126, hostname: 'custom-hostname', adapter: :net_http)
             end
+
+            it 'logs a warning including the hostname and default port' do
+              expect(logger).to receive(:warn)
+                .with(/
+                  Configuration\ mismatch:\ values\ differ\ between\ configuration.*
+                  Using\ "hostname:\ 'custom-hostname',\ port:\ '8126'".*
+                /x)
+
+              resolver
+            end
           end
 
           context 'when there is a port specified' do
@@ -234,6 +244,16 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
             it 'prioritizes the http configuration and uses the specified port' do
               expect(resolver).to have_attributes(port: 1234, hostname: 'custom-hostname', adapter: :net_http)
+            end
+
+            it 'logs a warning including the hostname and port' do
+              expect(logger).to receive(:warn)
+                .with(/
+                  Configuration\ mismatch:\ values\ differ\ between\ configuration.*
+                  Using\ "hostname:\ 'custom-hostname',\ port:\ '1234'".*
+                /x)
+
+              resolver
             end
           end
         end
@@ -259,6 +279,16 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
             it 'prioritizes the http configuration and uses the default hostname' do
               expect(resolver).to have_attributes(port: 5678, hostname: '127.0.0.1', adapter: :net_http)
             end
+
+            it 'logs a warning including the default hostname and port' do
+              expect(logger).to receive(:warn)
+                .with(/
+                  Configuration\ mismatch:\ values\ differ\ between\ configuration.*
+                  Using\ "hostname:\ '127.0.0.1',\ port:\ '5678'".*
+                /x)
+
+              resolver
+            end
           end
 
           context 'when there is a hostname specified' do
@@ -266,6 +296,16 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
             it 'prioritizes the http configuration and uses the specified hostname' do
               expect(resolver).to have_attributes(port: 5678, hostname: 'custom-hostname', adapter: :net_http)
+            end
+
+            it 'logs a warning including the hostname and port' do
+              expect(logger).to receive(:warn)
+                .with(/
+                  Configuration\ mismatch:\ values\ differ\ between\ configuration.*
+                  Using\ "hostname:\ 'custom-hostname',\ port:\ '5678'".*
+                /x)
+
+              resolver
             end
           end
         end

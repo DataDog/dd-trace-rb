@@ -308,7 +308,7 @@ module Datadog
               [
                 DetectedConfiguration.new(
                   friendly_name: 'configuration of hostname/port for http/https use',
-                  value: "hostname: '#{configured_hostname}', port: #{configured_port.inspect}",
+                  value: "hostname: '#{hostname}', port: '#{port}'",
                 ),
                 DetectedConfiguration.new(
                   friendly_name: 'configuration for unix domain socket',
