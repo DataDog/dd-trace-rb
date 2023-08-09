@@ -92,7 +92,7 @@ RSpec.describe Datadog::Profiling::Component do
 
         it 'sets up the Exporter with no_signals_workaround_enabled: false' do
           expect(Datadog::Profiling::Exporter)
-            .to receive(:new).with(hash_including(no_signals_workaround_enabled: false))
+            .to receive(:new).with(hash_including(internal_metadata: { no_signals_workaround_enabled: false }))
 
           build_profiler_component
         end
@@ -263,7 +263,7 @@ RSpec.describe Datadog::Profiling::Component do
 
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
           expect(Datadog::Profiling::Exporter)
-            .to receive(:new).with(hash_including(no_signals_workaround_enabled: :no_signals_result))
+            .to receive(:new).with(hash_including(internal_metadata: { no_signals_workaround_enabled: :no_signals_result }))
 
           build_profiler_component
         end

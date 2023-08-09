@@ -30,7 +30,7 @@ module Datadog
       def initialize(
         pprof_recorder:,
         code_provenance_collector:,
-        no_signals_workaround_enabled:,
+        internal_metadata:,
         minimum_duration_seconds: PROFILE_DURATION_THRESHOLD_SECONDS,
         time_provider: Time
       )
@@ -40,7 +40,7 @@ module Datadog
         @time_provider = time_provider
         @last_flush_finish_at = nil
         @created_at = time_provider.now.utc
-        @internal_metadata = {no_signals_workaround_enabled: no_signals_workaround_enabled}
+        @internal_metadata = internal_metadata
       end
 
       def flush

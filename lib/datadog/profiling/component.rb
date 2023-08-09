@@ -108,7 +108,7 @@ module Datadog
         Profiling::Exporter.new(
           pprof_recorder: recorder,
           code_provenance_collector: code_provenance_collector,
-          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          internal_metadata: { no_signals_workaround_enabled: no_signals_workaround_enabled },
         )
       end
 
