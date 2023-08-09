@@ -276,7 +276,7 @@ module Datadog
             'Configuration mismatch: values differ between ' \
             "#{detected_configurations_in_priority_order
               .map { |config| "#{config.friendly_name} (#{config.value.inspect})" }.join(' and ')}" \
-            ". Using #{detected_configurations_in_priority_order.first.value.inspect}."
+            ". Using #{detected_configurations_in_priority_order.first.value.inspect} and ignoring other configuration."
           )
         end
 
