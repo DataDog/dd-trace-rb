@@ -213,8 +213,9 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
             expect(resolver).to have_attributes(hostname: 'custom-hostname', adapter: :net_http)
           end
 
-          it 'logs a warning' do
-            expect(logger).to receive(:warn).with(/Configuration mismatch.*configuration for unix domain socket/)
+          it 'logs a warning including the uds path' do
+            expect(logger).to receive(:warn)
+              .with(%r{Configuration mismatch.*configuration for unix domain socket \("unix:.*/some/path"\)})
 
             resolver
           end
@@ -265,8 +266,9 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
             expect(resolver).to have_attributes(port: 5678, adapter: :net_http)
           end
 
-          it 'logs a warning' do
-            expect(logger).to receive(:warn).with(/Configuration mismatch.*configuration for unix domain socket/)
+          it 'logs a warning including the uds path' do
+            expect(logger).to receive(:warn)
+              .with(%r{Configuration mismatch.*configuration for unix domain socket \("unix:.*/some/path"\)})
 
             resolver
           end

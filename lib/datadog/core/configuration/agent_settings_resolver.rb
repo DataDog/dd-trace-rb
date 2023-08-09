@@ -312,7 +312,7 @@ module Datadog
                 ),
                 DetectedConfiguration.new(
                   friendly_name: 'configuration for unix domain socket',
-                  value: "unix://#{uds_path}",
+                  value: parsed_url.to_s,
                 ),
               ]
             )
