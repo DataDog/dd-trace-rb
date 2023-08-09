@@ -1236,7 +1236,15 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:env_var_value) { nil }
 
-          it { is_expected.to be true }
+          context 'in a development environment' do
+            it { is_expected.to be false }
+          end
+
+          context 'not in a development environment' do
+            before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
+
+            it { is_expected.to be true }
+          end
         end
 
         [true, false].each do |value|
@@ -1305,7 +1313,15 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:environment) { nil }
 
-          it { is_expected.to be true }
+          context 'in a development environment' do
+            it { is_expected.to be false }
+          end
+
+          context 'not in a development environment' do
+            before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
+
+            it { is_expected.to be true }
+          end
         end
 
         context 'is defined' do
@@ -1317,6 +1333,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#enabled=' do
+      before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
+
       it 'updates the #enabled setting' do
         expect { settings.remote.enabled = false }
           .to change { settings.remote.enabled }
