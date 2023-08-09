@@ -95,7 +95,7 @@ module Datadog
         end
 
         def adapter
-          if should_use_uds? && !mixed_http_and_uds?
+          if should_use_uds?
             Datadog::Transport::Ext::UnixSocket::ADAPTER
           else
             Datadog::Transport::Ext::HTTP::ADAPTER
@@ -222,6 +222,10 @@ module Datadog
         end
 
         def should_use_uds?
+          can_use_uds? && !mixed_http_and_uds?
+        end
+
+        def can_use_uds?
           parsed_url && unix_scheme?(parsed_url) ||
             # If no agent settings have been provided, we try to connect using a local unix socket.
             # We only do so if the socket is present when `ddtrace` runs.
@@ -297,7 +301,7 @@ module Datadog
         def mixed_http_and_uds?
           return @mixed_http_and_uds if defined?(@mixed_http_and_uds)
 
-          @mixed_http_and_uds = (configured_hostname || configured_port) && should_use_uds?
+          @mixed_http_and_uds = (configured_hostname || configured_port) && can_use_uds?
 
           if @mixed_http_and_uds
             warn_if_configuration_mismatch(
