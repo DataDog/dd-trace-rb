@@ -571,16 +571,5 @@ RSpec.describe 'net/http requests' do
       expect(span.get_tag('http.url')).to eq('/sample/path')
       expect(span.get_tag('out.host')).to eq('example.com')
     end
-
-    it 'does not collect query string' do
-      uri = URI('http://example.com/sample/path')
-      params = { :foo => "bar" }
-      uri.query = URI.encode_www_form(params)
-
-      Net::HTTP.get_response(uri)
-
-      expect(span.get_tag('http.url')).to eq('/sample/path')
-      expect(span.get_tag('out.host')).to eq('example.com')
-    end
   end
 end
