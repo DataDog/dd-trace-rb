@@ -47,7 +47,9 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
       context 'when in an IRB session' do
         it 'returns true' do
-          _, err, = Open3.capture3('irb', '--noprompt', '--noverbose', stdin_data: repl_script)
+          _, err = Bundler.with_clean_env do # Ruby 2.6 does not have irb by default in a bundle, but has it outside of it.
+            Open3.capture3('irb', '--noprompt', '--noverbose', stdin_data: repl_script)
+          end
           expect(err).to end_with('true')
         end
       end
