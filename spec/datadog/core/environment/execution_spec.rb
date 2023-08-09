@@ -65,6 +65,8 @@ RSpec.describe Datadog::Core::Environment::Execution do
       end
 
       context 'when in a Minitest test' do
+        before { skip('Minitest not in bundle') unless Gem.loaded_specs['minitest'] }
+
         it 'returns true' do
           expect_in_fork do
             # Minitest reads CLI arguments, but the current process has RSpec
