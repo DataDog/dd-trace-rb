@@ -634,14 +634,36 @@ module Datadog
           #
           # @default `nil`.
           # @return [String,nil]
-          option :service
+          option :service do |o|
+            o.type :string, nilable: true
+          end
 
           # Declare additional service names to bind to remote configuration. Use when
           # integrations are configured to use names that differ from DD_SERVICE.
           #
           # @default `nil`.
           # @return [Array<String>,nil]
-          option :extra_services
+          option :extra_services do |o|
+            o.setter do |v|
+              if !v.is_a?(Array)
+                Datadog.logger.warn(
+                  "Unexpected remote.extra_services type #{v.class}, expected Array. " \
+                  'Using default value `[]`'
+                )
+
+                []
+              elsif (t = v.find { |e| !e.is_a?(String) })
+                Datadog.logger.warn(
+                  "Unexpected remote.extra_services element type #{t.class}, expected String. " \
+                  'Using default value `[]`'
+                )
+
+                []
+              else
+                v
+              end
+            end
+          end
         end
 
         # TODO: Tracing should manage its own settings.
