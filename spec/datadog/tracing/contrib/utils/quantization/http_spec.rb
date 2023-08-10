@@ -412,6 +412,13 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
           it { is_expected.to eq('k=<redacted>') }
         end
 
+        context 'with a freestanding value in URL-encoded JSON' do
+          let(:query) { 'json=%7B%20%22k%22%3A%20%22ssh-rsa%20AAAAB3NzaC1yc2EAAAADAQABAAABgQCxkfwLCG9IW32wN%2Bdbys1JP1qRTA9QRn8XnZdr5Irz7yGXCkPjr7e51F%2Fv73fRk4FOnaRjHartimlsb4NogaNN1clkHkvrRvjHyTzGBM%2FWgumEdco0Ay4H%2FBdyJwLNw88iUGVM3H93s%2BrP5a8u4Ptk4HZy1lSWAjg52ZhYv3V%2BcyQNjfHiOuHk2lChmtTE1FlKfc8pkxB4QnyG3EbQrEDzRkym8NTlvZIaOv01VdsmRXWurigI9AnqgoA43eD3JqWswjyCkmSnnW3h%2B9iB4bgRrSIT2QBugpIHVM4pbkT4UrlpcVEeAziYNPC4H61luX0d1%2FqOntaMFMtvJKuG%2F3Jj8t19O%2BnSTa9re%2BPzS5Qm8J%2F7xzaxxOIq94D7FnGPG5JifJ4WZRWF0PDptOXbJY72Yumb%2BxaJtr9LlqfS6fJzWkA68PT%2FZaEk5JgaPHhlvUvmx5JlmP7u2eFcbNHpHQHoIfJjXk8J3EDXjl5Rp6E9KxARD3p45Sh8b4LoVR8Z0%2Bk%3D%20dummy%22%7D' } # rubocop:disable Layout/LineLength
+          let(:options) { { obfuscate: :internal } }
+
+          it { is_expected.to eq('json=%7B%20%22k%22%3A%20%22<redacted>%22%7D') }
+        end
+
         context 'with a reduced show option overlapping with a potential obfuscation match' do
           let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
           let(:options) { { show: %w[pass key2], obfuscate: :internal } }
