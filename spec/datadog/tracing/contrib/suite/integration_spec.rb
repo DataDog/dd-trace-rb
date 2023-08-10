@@ -17,12 +17,13 @@ RSpec.describe 'contrib integration testing' do
 
   describe 'dynamic configuration' do
     subject(:update_config) do
-      stub_rc!
-
       @reconfigured = false
       allow(Datadog::Tracing::Remote).to receive(:process_config).and_wrap_original do |m, *args|
         m.call(*args).tap { @reconfigured = true }
       end
+
+      stub_rc!
+
       try_wait_until { @reconfigured }
     end
 
