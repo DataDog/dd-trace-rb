@@ -74,7 +74,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
         settings: settings,
-        agent_settings: instance_of(Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings),
         optional_tracer: tracer,
       ).and_return(profiler)
 

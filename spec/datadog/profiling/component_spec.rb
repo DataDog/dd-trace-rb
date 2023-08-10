@@ -17,7 +17,7 @@ RSpec.describe Datadog::Profiling::Component do
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
     subject(:build_profiler_component) do
-      described_class.build_profiler_component(settings: settings, agent_settings: agent_settings, optional_tracer: tracer)
+      described_class.build_profiler_component(settings: settings, optional_tracer: tracer)
     end
 
     context 'when profiling is not supported' do

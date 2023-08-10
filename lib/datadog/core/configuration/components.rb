@@ -85,10 +85,9 @@ module Datadog
 
           @remote = Remote::Component.build(settings, default_agent_settings)
           @tracer = self.class.build_tracer(settings, @logger)
-          # TODO: EK - Remove agent_settings from method sig
+
           @profiler = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
-            agent_settings: default_agent_settings,
             optional_tracer: @tracer,
           )
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
