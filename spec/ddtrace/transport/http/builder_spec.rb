@@ -16,7 +16,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
       subject(:adapter) { builder.adapter(config) }
 
       let(:config) do
-        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+        Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings.new(
           adapter: config_adapter,
           ssl: nil,
           hostname: nil,

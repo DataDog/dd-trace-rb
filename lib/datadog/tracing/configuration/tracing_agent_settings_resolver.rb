@@ -20,6 +20,8 @@ module Datadog
       class TracingAgentSettingsResolver
         include Core::Configuration::AgentSettingsResolver
 
+        AgentSettings = Class.new(BaseAgentSettings)
+
         def self.call(settings, logger: Datadog.logger)
           new(settings, logger: logger).send(:call)
         end

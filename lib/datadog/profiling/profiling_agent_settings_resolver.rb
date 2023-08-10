@@ -18,6 +18,7 @@ module Datadog
       # about it and pick a value based on the following priority: code > environment variable > defaults.
       class ProfilingAgentSettingsResolver
         include Core::Configuration::AgentSettingsResolver
+        AgentSettings = Class.new(BaseAgentSettings)
 
         def self.call(settings, logger: Datadog.logger)
           new(settings, logger: logger).send(:call)

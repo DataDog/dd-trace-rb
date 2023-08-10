@@ -74,7 +74,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
         settings: settings,
-        agent_settings: instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings),
+        agent_settings: instance_of(Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings),
         optional_tracer: tracer,
       ).and_return(profiler)
 
@@ -247,7 +247,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'and :unix agent adapter' do
           let(:expected_options) { { enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds } }
           let(:agent_settings) do
-            instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, adapter: :unix)
+            instance_double(Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings, adapter: :unix)
           end
 
           it 'does not enable telemetry for unsupported non-http transport' do
@@ -407,6 +407,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     context 'given settings' do
       shared_examples_for 'new tracer' do
+        let(:agent_settings) { Datadog::Tracing::Configuration::TracingAgentSettingsResolver.call(settings, logger: nil) }
         let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
         let(:writer) { Datadog::Tracing::Writer.new }
         let(:trace_flush) { be_a(Datadog::Tracing::Flush::Finished) }

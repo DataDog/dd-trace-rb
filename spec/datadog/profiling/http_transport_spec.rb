@@ -1,6 +1,7 @@
 require 'datadog/profiling/spec_helper'
 
 require 'datadog/profiling/http_transport'
+require 'datadog/profiling/profiling_agent_settings_resolver'
 require 'datadog/profiling'
 
 require 'json'
@@ -26,7 +27,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   end
 
   let(:agent_settings) do
-    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+    Datadog::Profiling::ProfilingAgentSettingsResolver::AgentSettings.new(
       adapter: adapter,
       uds_path: uds_path,
       ssl: ssl,

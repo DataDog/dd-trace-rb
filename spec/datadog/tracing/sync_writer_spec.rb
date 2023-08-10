@@ -22,7 +22,7 @@ RSpec.describe Datadog::Tracing::SyncWriter do
 
     context 'given :agent_settings' do
       let(:options) { { agent_settings: agent_settings } }
-      let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings) }
+      let(:agent_settings) { instance_double(Datadog::Tracing::Configuration::TracingAgentSettingsResolver::AgentSettings) }
       let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
 
       before do

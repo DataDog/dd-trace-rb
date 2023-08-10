@@ -35,7 +35,8 @@ module Datadog
 
         def adapter(config, *args, **kwargs)
           @default_adapter = case config
-                             when Core::Configuration::AgentSettingsResolver::AgentSettings
+                              # TODO: EK - ?
+                             when Core::Configuration::AgentSettingsResolver::BaseAgentSettings
                                registry_klass = REGISTRY.get(config.adapter)
                                raise UnknownAdapterError, config.adapter if registry_klass.nil?
 

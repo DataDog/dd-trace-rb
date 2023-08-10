@@ -1,8 +1,16 @@
+require 'forwardable'
+
 module Datadog
   module Core
     module Configuration
       module AgentSettingsResolver
-        AgentSettings = \
+        extend Forwardable
+
+        # Allows us to reference an instance var in the mixin consumer safely
+        # here.
+        def_delegator :logging_delegate, :logger
+
+        BaseAgentSettings = \
           Struct.new(
             :adapter,
             :ssl,
@@ -34,9 +42,15 @@ module Datadog
             end
           end
 
-        #TODO: EK - This feels dirty somehow. Get feedback.
         def log_warning(message)
-          @logger.warn(message) if @logger
+          logger.warn(message) if logger
+        end
+
+        # The mixin consumer should define a logger as a private attr. If not,
+        # we fall back to a default
+        def logging_delegate
+          return self if defined?(@logger) || self.respond_to?(:logger)
+          Datadog.logger
         end
 
         def http_scheme?(uri)

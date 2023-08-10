@@ -21,6 +21,8 @@ module Datadog
       class DefaultAgentSettingsResolver
         include AgentSettingsResolver
 
+        AgentSettings = Class.new(BaseAgentSettings)
+
         def self.call(settings, logger: Datadog.logger)
           new(settings, logger: logger).send(:call)
         end
@@ -37,7 +39,7 @@ module Datadog
         end
 
         def call
-          AgentSettingsResolver::AgentSettings.new(
+          AgentSettings.new(
             adapter: adapter,
             ssl: ssl?,
             hostname: hostname,

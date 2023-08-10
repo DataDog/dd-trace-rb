@@ -81,7 +81,7 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:deprecated_for_removal_transport_configuration_proc) { nil }
 
       let(:agent_settings) do
-        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+        Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings.new(
           adapter: adapter,
           ssl: ssl,
           hostname: hostname,
@@ -206,7 +206,7 @@ RSpec.describe Datadog::Transport::HTTP do
     before do
       stub_const(
         'Datadog::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
-        instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, hostname: 'example-hostname')
+        instance_double(Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings, hostname: 'example-hostname')
       )
     end
 
@@ -229,7 +229,7 @@ RSpec.describe Datadog::Transport::HTTP do
     before do
       stub_const(
         'Datadog::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
-        instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, port: 12345)
+        instance_double(Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings, port: 12345)
       )
     end
 
