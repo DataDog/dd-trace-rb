@@ -31,9 +31,7 @@ class FauxWriter < Datadog::Tracing::Writer
 
   def write(trace)
     @mutex.synchronize do
-      if @options[:call_original]
-        super(trace)
-      end
+      super(trace) if @options[:call_original]
       @traces << trace
     end
   end

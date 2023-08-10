@@ -103,12 +103,17 @@ module Contrib
         unless traces.empty?
           if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
               tracer.writer.transport.client.api.adapter.hostname == 'testagent' && test_agent_running?
-            transport_options = { adapter: :net_http, hostname: 'testagent', port: 9126, timeout: 30 }
+            transport_options = {
+              adapter: :net_http,
+              hostname: NetworkHelpers::TEST_AGENT_HOST,
+              port: NetworkHelpers::TEST_AGENT_PORT,
+              timeout: 30
+            }
             traces.each do |trace|
               # write traces after the test to the agent in order to not mess up assertions
               # remake syncwriter instance for each flush to prevent headers from being overrwritten
               sync_writer = Datadog::Tracing::SyncWriter.new(transport_options: transport_options)
-              dd_env = parse_tracer_config_and_add_to_headers(trace)
+              dd_env = parse_tracer_config(trace)
               sync_writer.transport.client.api.headers['X-Datadog-Trace-Env-Variables'] = dd_env
               sync_writer.write(trace)
             end

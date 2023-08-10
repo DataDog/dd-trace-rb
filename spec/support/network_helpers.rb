@@ -52,28 +52,22 @@ module NetworkHelpers
     false
   end
 
-  # Adds the DD specific tracer configuration environment to the inputted tracer headers as
-  # a comma separated string of `k=v` pairs.
+  # Gets the Datadog Trace Configuration and other relevant data and returns a comma separated string of key/value pairs.
   #
-  # @return [Hash] trace headers
-  def parse_tracer_config_and_add_to_headers(trace)
-    dd_env_variables = resolve_service_names(trace)
-    trace_variables = dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
-    trace_variables
-  end
-end
-
-def resolve_service_names(trace)
-  # Get all DD_ variables from ENV
-  dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
-  trace.spans.each do |sp|
-    if sp && sp.meta && sp.meta['_expected_service_name'] && sp.meta['_remove_integration_service_names_enabled'] == 'true'
-      dd_env_variables['DD_SERVICE'] = sp.meta['_expected_service_name']
-      dd_env_variables['DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'] = 'v1'
-    else
-      dd_env_variables.delete('DD_SERVICE')
-      dd_env_variables.delete('DD_TRACE_SPAN_ATTRIBUTE_SCHEMA')
+  # @return [String] Key/Value pairs representing relevant Tracer Configuration
+  def parse_tracer_config(trace)
+    dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
+    trace.spans.each do |s|
+      if s && s.meta && s.meta['_expected_service_name'] && s.meta['_remove_integration_service_names_enabled'] == 'true'
+        dd_env_variables['DD_SERVICE'] = s.meta['_expected_service_name']
+        dd_env_variables['DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'] = 'v1'
+        s.meta.delete('_expected_service_name')
+        s.meta.delete('_remove_integration_service_names_enabled')
+      else
+        dd_env_variables.delete('DD_SERVICE')
+        dd_env_variables.delete('DD_TRACE_SPAN_ATTRIBUTE_SCHEMA')
+      end
     end
+    dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
   end
-  dd_env_variables
 end
