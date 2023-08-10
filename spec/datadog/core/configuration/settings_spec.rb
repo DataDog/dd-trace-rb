@@ -1241,7 +1241,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
 
           context 'not in a development environment' do
-            before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
+            include_context 'non-development execution environment'
 
             it { is_expected.to be true }
           end
@@ -1318,7 +1318,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
 
           context 'not in a development environment' do
-            before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
+            include_context 'non-development execution environment'
 
             it { is_expected.to be true }
           end
@@ -1333,7 +1333,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#enabled=' do
-      before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
+      include_context 'non-development execution environment'
 
       it 'updates the #enabled setting' do
         expect { settings.remote.enabled = false }

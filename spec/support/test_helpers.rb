@@ -24,6 +24,8 @@ module TestHelpers
               skip('Integration tests can be enabled by setting the environment variable `TEST_DATADOG_INTEGRATION=1`')
             end
           end
+
+          include_context 'non-development execution environment'
         end
       end
     end
