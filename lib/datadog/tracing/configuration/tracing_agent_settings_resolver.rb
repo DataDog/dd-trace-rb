@@ -119,19 +119,6 @@ module Datadog
           )
         end
 
-        def try_parsing_as_integer(value:, friendly_name:)
-          value =
-            begin
-              Integer(value) if value
-            rescue ArgumentError, TypeError
-              log_warning("Invalid value for #{friendly_name} (#{value.inspect}). Ignoring this configuration.")
-
-              nil
-            end
-
-          DetectedConfiguration.new(friendly_name: friendly_name, value: value)
-        end
-
         def ssl?
           transport_options.ssl ||
             (!parsed_url.nil? && parsed_url.scheme == 'https')
@@ -247,17 +234,9 @@ module Datadog
           )
         end
 
-        def http_scheme?(uri)
-          ['http', 'https'].include?(uri.scheme)
-        end
-
         # Expected to return nil (not false!) when it's not http
         def parsed_http_url
           parsed_url if parsed_url && http_scheme?(parsed_url)
-        end
-
-        def unix_scheme?(uri)
-          uri.scheme == 'unix'
         end
 
         # When we have mixed settings for http/https and uds, we print a warning and ignore the uds settings
@@ -314,22 +293,6 @@ module Datadog
 
           @transport_options.freeze
         end
-
-        # Represents a given configuration value and where we got it from
-        class DetectedConfiguration
-          attr_reader :friendly_name, :value
-
-          def initialize(friendly_name:, value:)
-            @friendly_name = friendly_name
-            @value = value
-            freeze
-          end
-
-          def value?
-            !value.nil?
-          end
-        end
-        private_constant :DetectedConfiguration
 
         # Used to contain information extracted from the transport_options proc (see #transport_options above)
         TransportOptions = Struct.new(:adapter, :hostname, :port, :timeout_seconds, :ssl, :uds_path)

@@ -87,21 +87,8 @@ module Datadog
           )
         end
 
-        def try_parsing_as_integer(value:, friendly_name:)
-          value =
-            begin
-              Integer(value) if value
-            rescue ArgumentError, TypeError
-              log_warning("Invalid value for #{friendly_name} (#{value.inspect}). Ignoring this configuration.")
-
-              nil
-            end
-
-          DetectedConfiguration.new(friendly_name: friendly_name, value: value)
-        end
-
         def ssl?
-            (!parsed_url.nil? && parsed_url.scheme == 'https')
+          false
         end
 
         def hostname
@@ -116,15 +103,6 @@ module Datadog
         def uds_path
           if mixed_http_and_uds?
             nil
-          elsif parsed_url && unix_scheme?(parsed_url)
-            path = parsed_url.to_s
-            # Some versions of the built-in uri gem leave the original url untouched, and others remove the //, so this
-            # supports both
-            if path.start_with?('unix://')
-              path.sub('unix://', '')
-            else
-              path.sub('unix:', '')
-            end
           else
             uds_fallback
           end
@@ -134,7 +112,6 @@ module Datadog
         # works best in their case.
         def timeout_seconds
           nil
-          # transport_options.timeout_seconds
         end
 
         # In transport_options, we try to invoke the transport_options proc and get its configuration. In case that
@@ -151,7 +128,6 @@ module Datadog
           @uds_fallback =
             if configured_hostname.nil? &&
                 configured_port.nil? &&
-                deprecated_for_removal_transport_configuration_proc.nil? &&
                 File.exist?(Datadog::Transport::Ext::UnixSocket::DEFAULT_PATH)
 
               Datadog::Transport::Ext::UnixSocket::DEFAULT_PATH
@@ -159,15 +135,9 @@ module Datadog
         end
 
         def should_use_uds?
-          parsed_url && unix_scheme?(parsed_url) ||
             # If no agent settings have been provided, we try to connect using a local unix socket.
             # We only do so if the socket is present when `ddtrace` runs.
             !uds_fallback.nil?
-        end
-
-        # TODO: EK - Remove this
-        def parsed_url
-          nil
         end
 
         def pick_from(*configurations_in_priority_order)
@@ -193,17 +163,9 @@ module Datadog
           )
         end
 
-        def http_scheme?(uri)
-          ['http', 'https'].include?(uri.scheme)
-        end
-
         # Expected to return nil (not false!) when it's not http
         def parsed_http_url
-          parsed_url if parsed_url && http_scheme?(parsed_url)
-        end
-
-        def unix_scheme?(uri)
-          uri.scheme == 'unix'
+          nil
         end
 
         # When we have mixed settings for http/https and uds, we print a warning and ignore the uds settings
@@ -229,22 +191,6 @@ module Datadog
 
           @mixed_http_and_uds
         end
-
-        # Represents a given configuration value and where we got it from
-        class DetectedConfiguration
-          attr_reader :friendly_name, :value
-
-          def initialize(friendly_name:, value:)
-            @friendly_name = friendly_name
-            @value = value
-            freeze
-          end
-
-          def value?
-            !value.nil?
-          end
-        end
-        private_constant :DetectedConfiguration
       end
     end
   end
