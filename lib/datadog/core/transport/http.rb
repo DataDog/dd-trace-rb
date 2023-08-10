@@ -76,7 +76,7 @@ module Datadog
               transport.headers options[:headers] if options.key?(:headers)
             end
 
-            if agent_settings.deprecated_for_removal_transport_configuration_proc
+            if agent_settings.respond_to?(:deprecated_for_removal_transport_configuration_proc) && agent_settings.deprecated_for_removal_transport_configuration_proc
               agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
             end
 
@@ -105,7 +105,7 @@ module Datadog
               transport.headers options[:headers] if options.key?(:headers)
             end
 
-            if agent_settings.deprecated_for_removal_transport_configuration_proc
+            if agent_settings.respond_to?(:deprecated_for_removal_transport_configuration_proc) && agent_settings.deprecated_for_removal_transport_configuration_proc
               agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
             end
 

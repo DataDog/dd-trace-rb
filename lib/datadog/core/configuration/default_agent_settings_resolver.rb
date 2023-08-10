@@ -21,7 +21,9 @@ module Datadog
       class DefaultAgentSettingsResolver
         include AgentSettingsResolver
 
-        AgentSettings = Class.new(BaseAgentSettings)
+        AgentSettings = Class.new(BaseAgentSettings) do
+          # TODO: IMPLEMENT
+        end
 
         def self.call(settings, logger: Datadog.logger)
           new(settings, logger: logger).send(:call)
@@ -51,7 +53,7 @@ module Datadog
             # enabling test mode instead).
             # That is the main reason why it is deprecated -- it's an opaque function that may set a bunch of settings
             # that we know nothing of until we actually call it.
-            deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
+            # deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
           )
         end
 

@@ -18,7 +18,15 @@ module Datadog
       # about it and pick a value based on the following priority: code > environment variable > defaults.
       class ProfilingAgentSettingsResolver
         include Core::Configuration::AgentSettingsResolver
-        AgentSettings = Class.new(BaseAgentSettings)
+
+        AgentSettings = Class.new(BaseAgentSettings) do
+          attr_accessor :deprecated_for_removal_transport_configuration_proc
+
+          def initialize(deprecated_for_removal_transport_configuration_proc:, **args)
+            @deprecated_for_removal_transport_configuration_proc = deprecated_for_removal_transport_configuration_proc
+            super(**args)
+          end
+        end
 
         def self.call(settings, logger: Datadog.logger)
           new(settings, logger: logger).send(:call)

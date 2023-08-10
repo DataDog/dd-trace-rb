@@ -78,7 +78,6 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:port) { nil }
       let(:uds_path) { nil }
       let(:timeout_seconds) { nil }
-      let(:deprecated_for_removal_transport_configuration_proc) { nil }
 
       let(:agent_settings) do
         Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings.new(
@@ -88,7 +87,6 @@ RSpec.describe Datadog::Transport::HTTP do
           port: port,
           uds_path: uds_path,
           timeout_seconds: timeout_seconds,
-          deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
         )
       end
 
@@ -111,6 +109,26 @@ RSpec.describe Datadog::Transport::HTTP do
 
       context 'that specifies a deprecated_for_removal_transport_configuration_proc' do
         let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
+        let(:agent_settings) do
+          AgentSettings = Class.new(Datadog::Core::Configuration::AgentSettingsResolver::BaseAgentSettings) do
+            attr_accessor :deprecated_for_removal_transport_configuration_proc
+
+            def initialize(deprecated_for_removal_transport_configuration_proc:, **args)
+              @deprecated_for_removal_transport_configuration_proc = deprecated_for_removal_transport_configuration_proc
+              super(**args)
+            end
+          end
+
+          AgentSettings = AgentSettings.new(
+            adapter: adapter,
+            ssl: ssl,
+            hostname: hostname,
+            port: port,
+            uds_path: uds_path,
+            timeout_seconds: timeout_seconds,
+            deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
+          )
+        end
 
         it 'calls the deprecated_for_removal_transport_configuration_proc with the transport builder' do
           expect(deprecated_for_removal_transport_configuration_proc).to \

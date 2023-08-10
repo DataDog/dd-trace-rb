@@ -22,8 +22,7 @@ RSpec.describe Datadog::Core::Configuration::DefaultAgentSettingsResolver do
       hostname: hostname,
       port: port,
       uds_path: uds_path,
-      timeout_seconds: nil,
-      deprecated_for_removal_transport_configuration_proc: nil,
+      timeout_seconds: nil
     }
   end
 

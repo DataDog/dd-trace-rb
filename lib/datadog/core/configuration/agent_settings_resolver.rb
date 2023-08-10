@@ -18,7 +18,7 @@ module Datadog
             :port,
             :uds_path,
             :timeout_seconds,
-            :deprecated_for_removal_transport_configuration_proc,
+            # :deprecated_for_removal_transport_configuration_proc,
           ) do
             def initialize(
               adapter:,
@@ -26,8 +26,8 @@ module Datadog
               hostname:,
               port:,
               uds_path:,
-              timeout_seconds:,
-              deprecated_for_removal_transport_configuration_proc:
+              timeout_seconds:
+              # deprecated_for_removal_transport_configuration_proc:
             )
               super(
                 adapter,
@@ -35,8 +35,8 @@ module Datadog
                 hostname,
                 port,
                 uds_path,
-                timeout_seconds,
-                deprecated_for_removal_transport_configuration_proc
+                timeout_seconds
+                # deprecated_for_removal_transport_configuration_proc
               )
               freeze
             end
