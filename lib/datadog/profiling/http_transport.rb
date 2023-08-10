@@ -48,11 +48,14 @@ module Datadog
             Datadog.logger.debug('Successfully reported profiling data')
             true
           else
-            Datadog.logger.error("Failed to report profiling data: server returned unexpected HTTP #{result} status code")
+            Datadog.logger.error(
+              "Failed to report profiling data (#{config_without_api_key}): " \
+              "server returned unexpected HTTP #{result} status code"
+            )
             false
           end
         else
-          Datadog.logger.error("Failed to report profiling data: #{result}")
+          Datadog.logger.error("Failed to report profiling data (#{config_without_api_key}): #{result}")
           false
         end
       end
@@ -127,6 +130,10 @@ module Datadog
           tags_as_array,
           internal_metadata_json,
         )
+      end
+
+      def config_without_api_key
+        [@exporter_configuration[0..1]].to_h
       end
     end
   end
