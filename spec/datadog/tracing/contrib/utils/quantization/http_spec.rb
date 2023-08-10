@@ -405,6 +405,13 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
           it { is_expected.to eq('json=%7B%20<redacted>%7D') }
         end
 
+        context 'with a freestanding value match' do
+          let(:query) { 'k=ssh-rsa%20AAAAB3NzaC1yc2EAAAADAQABAAABgQCxkfwLCG9IW32wN+dbys1JP1qRTA9QRn8XnZdr5Irz7yGXCkPjr7e51F/v73fRk4FOnaRjHartimlsb4NogaNN1clkHkvrRvjHyTzGBM/WgumEdco0Ay4H/BdyJwLNw88iUGVM3H93s+rP5a8u4Ptk4HZy1lSWAjg52ZhYv3V+cyQNjfHiOuHk2lChmtTE1FlKfc8pkxB4QnyG3EbQrEDzRkym8NTlvZIaOv01VdsmRXWurigI9AnqgoA43eD3JqWswjyCkmSnnW3h+9iB4bgRrSIT2QBugpIHVM4pbkT4UrlpcVEeAziYNPC4H61luX0d1/qOntaMFMtvJKuG/3Jj8t19O+nSTa9re+PzS5Qm8J/7xzaxxOIq94D7FnGPG5JifJ4WZRWF0PDptOXbJY72Yumb+xaJtr9LlqfS6fJzWkA68PT/ZaEk5JgaPHhlvUvmx5JlmP7u2eFcbNHpHQHoIfJjXk8J3EDXjl5Rp6E9KxARD3p45Sh8b4LoVR8Z0+k=%20dummy' } # rubocop:disable Layout/LineLength
+          let(:options) { { obfuscate: :internal } }
+
+          it { is_expected.to eq('k=<redacted>') }
+        end
+
         context 'with a reduced show option overlapping with a potential obfuscation match' do
           let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
           let(:options) { { show: %w[pass key2], obfuscate: :internal } }
