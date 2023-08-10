@@ -65,9 +65,11 @@ module Datadog
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
         no_signals_workaround_enabled = false
+        timeline_enabled = false
 
         if enable_new_profiler?(settings)
           no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
+          timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
 
           recorder = Datadog::Profiling::StackRecorder.new(
             cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
@@ -81,7 +83,7 @@ module Datadog
             gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
             no_signals_workaround_enabled: no_signals_workaround_enabled,
-            timeline_enabled: settings.profiling.advanced.experimental_timeline_enabled,
+            timeline_enabled: timeline_enabled,
           )
         else
           load_pprof_support
@@ -92,6 +94,7 @@ module Datadog
 
         internal_metadata = {
           no_signals_workaround_enabled: no_signals_workaround_enabled,
+          timeline_enabled: timeline_enabled,
         }.freeze
 
         exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
