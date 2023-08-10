@@ -90,7 +90,11 @@ module Datadog
           collector = build_profiler_oldstack_collector(settings, recorder, optional_tracer)
         end
 
-        exporter = build_profiler_exporter(settings, recorder, no_signals_workaround_enabled: no_signals_workaround_enabled)
+        internal_metadata = {
+          no_signals_workaround_enabled: no_signals_workaround_enabled,
+        }.freeze
+
+        exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
 
@@ -101,14 +105,14 @@ module Datadog
         Profiling::OldRecorder.new([Profiling::Events::StackSample], settings.profiling.advanced.max_events)
       end
 
-      private_class_method def self.build_profiler_exporter(settings, recorder, no_signals_workaround_enabled:)
+      private_class_method def self.build_profiler_exporter(settings, recorder, internal_metadata:)
         code_provenance_collector =
           (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
         Profiling::Exporter.new(
           pprof_recorder: recorder,
           code_provenance_collector: code_provenance_collector,
-          internal_metadata: { no_signals_workaround_enabled: no_signals_workaround_enabled },
+          internal_metadata: internal_metadata,
         )
       end
 
