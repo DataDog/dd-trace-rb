@@ -456,6 +456,79 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
           it { is_expected.to eq('<redacted>&key2=val2&key3=val3') }
         end
 
+        context 'when keeping keys' do
+          let(:options) { { obfuscate: { keys: false } } }
+
+          context 'with a matching substring at the beginning' do
+            let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+
+            it { is_expected.to eq('pass=<redacted>&key2=val2&key3=val3') }
+          end
+
+          context 'with a matching substring in the middle' do
+            let(:query) { 'key1=val1&public_key=MDNjYjlmNjctZGJiYy00Y2I4LWI5NjYtMzI5OTUxZTEwOTM0&key3=val3' }
+
+            it { is_expected.to eq('key1=val1&public_key=<redacted>&key3=val3') }
+          end
+
+          context 'with a matching substring at the end' do
+            let(:query) { 'key1=val1&key2=val2&token=03cb9f67dbbc4cb8b966329951e10934' }
+
+            it { is_expected.to eq('key1=val1&key2=val2&token=<redacted>') }
+          end
+
+          context 'with multiple matching substrings' do
+            let(:query) { 'key1=val1&pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&token=03cb9f67dbbc4cb8b966329951e10934&public_key=MDNjYjlmNjctZGJiYy00Y2I4LWI5NjYtMzI5OTUxZTEwOTM0&key3=val3&json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' } # rubocop:disable Layout/LineLength
+
+            it { is_expected.to eq('key1=val1&pass=<redacted>&key2=val2&token=<redacted>&public_key=<redacted>&key3=val3&json=%7B%20%22sign%22%3A%20%22<redacted>%22%7D') } # rubocop:disable Layout/LineLength
+          end
+
+          context 'with a matching, URL-encoded JSON substring' do
+            let(:query) { 'json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' } # rubocop:disable Layout/LineLength
+
+            it { is_expected.to eq('json=%7B%20%22sign%22%3A%20%22<redacted>%22%7D') }
+          end
+
+          context 'with a freestanding value match' do
+            let(:query) { 'k=ssh-rsa%20AAAAB3NzaC1yc2EAAAADAQABAAABgQCxkfwLCG9IW32wN+dbys1JP1qRTA9QRn8XnZdr5Irz7yGXCkPjr7e51F/v73fRk4FOnaRjHartimlsb4NogaNN1clkHkvrRvjHyTzGBM/WgumEdco0Ay4H/BdyJwLNw88iUGVM3H93s+rP5a8u4Ptk4HZy1lSWAjg52ZhYv3V+cyQNjfHiOuHk2lChmtTE1FlKfc8pkxB4QnyG3EbQrEDzRkym8NTlvZIaOv01VdsmRXWurigI9AnqgoA43eD3JqWswjyCkmSnnW3h+9iB4bgRrSIT2QBugpIHVM4pbkT4UrlpcVEeAziYNPC4H61luX0d1/qOntaMFMtvJKuG/3Jj8t19O+nSTa9re+PzS5Qm8J/7xzaxxOIq94D7FnGPG5JifJ4WZRWF0PDptOXbJY72Yumb+xaJtr9LlqfS6fJzWkA68PT/ZaEk5JgaPHhlvUvmx5JlmP7u2eFcbNHpHQHoIfJjXk8J3EDXjl5Rp6E9KxARD3p45Sh8b4LoVR8Z0+k=%20dummy' } # rubocop:disable Layout/LineLength
+
+            it { is_expected.to eq('k=<redacted>') }
+          end
+
+          context 'with a freestanding value in URL-encoded JSON' do
+            let(:query) { 'json=%7B%20%22k%22%3A%20%22ssh-rsa%20AAAAB3NzaC1yc2EAAAADAQABAAABgQCxkfwLCG9IW32wN%2Bdbys1JP1qRTA9QRn8XnZdr5Irz7yGXCkPjr7e51F%2Fv73fRk4FOnaRjHartimlsb4NogaNN1clkHkvrRvjHyTzGBM%2FWgumEdco0Ay4H%2FBdyJwLNw88iUGVM3H93s%2BrP5a8u4Ptk4HZy1lSWAjg52ZhYv3V%2BcyQNjfHiOuHk2lChmtTE1FlKfc8pkxB4QnyG3EbQrEDzRkym8NTlvZIaOv01VdsmRXWurigI9AnqgoA43eD3JqWswjyCkmSnnW3h%2B9iB4bgRrSIT2QBugpIHVM4pbkT4UrlpcVEeAziYNPC4H61luX0d1%2FqOntaMFMtvJKuG%2F3Jj8t19O%2BnSTa9re%2BPzS5Qm8J%2F7xzaxxOIq94D7FnGPG5JifJ4WZRWF0PDptOXbJY72Yumb%2BxaJtr9LlqfS6fJzWkA68PT%2FZaEk5JgaPHhlvUvmx5JlmP7u2eFcbNHpHQHoIfJjXk8J3EDXjl5Rp6E9KxARD3p45Sh8b4LoVR8Z0%2Bk%3D%20dummy%22%7D' } # rubocop:disable Layout/LineLength
+            it { is_expected.to eq('json=%7B%20%22k%22%3A%20%22<redacted>%22%7D') }
+          end
+
+          context 'with a reduced show option overlapping with a potential obfuscation match' do
+            let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+            let(:options) { { show: %w[pass key2], obfuscate: { keys: false } } }
+
+            it { is_expected.to eq('pass=<redacted>&key2=val2&key3') }
+          end
+
+          context 'with a reduced show option distinct from a potential obfuscation match' do
+            let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+            let(:options) { { show: ['key2'], obfuscate: { keys: false } } }
+
+            it { is_expected.to eq('pass&key2=val2&key3') }
+          end
+
+          context 'with an exclude option overlapping with a potential obfuscation match' do
+            let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+            let(:options) { { exclude: ['key2'], obfuscate: { keys: false } } }
+
+            it { is_expected.to eq('pass=<redacted>&key3=val3') }
+          end
+
+          context 'with an exclude option distinct from a potential obfuscation match' do
+            let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+            let(:options) { { exclude: ['pass'], obfuscate: { keys: false } } }
+
+            it { is_expected.to eq('key2=val2&key3=val3') }
+          end
+        end
+
         context 'with a custom regex' do
           let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
           let(:options) { { obfuscate: { regex: /key2=[^&]+/ } } }

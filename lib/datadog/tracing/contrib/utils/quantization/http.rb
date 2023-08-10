@@ -120,8 +120,25 @@ module Datadog
               options[:regex] = nil if options[:regex] == :internal
               re = options[:regex] || OBFUSCATOR_REGEX
               with = options[:with] || OBFUSCATOR_WITH
+              keys = options.fetch(:keys, true)
 
-              query.gsub(re, with)
+              if keys
+                query.gsub(re, with)
+              else
+                query.gsub(re) do |str|
+                  m = Regexp.last_match
+
+                  if m[:key_value]
+                    str.gsub(m[:key_value], with)
+                  elsif m[:json_value]
+                    str.gsub(m[:json_value], with)
+                  elsif m[:free_value]
+                    str.gsub(m[:free_value], with)
+                  else
+                    with
+                  end
+                end
+              end
             end
 
             private_class_method :obfuscate_query
@@ -133,7 +150,7 @@ module Datadog
               (?: # JSON-ish leading quote
                  (?:"|%22)?
               )
-              (?: # common keys
+              (?<key> # common keys
                  (?:old[-_]?|new_?)?p(?:ass)?w(?:or)?d(?:1|2)? # pw, password variants
                 |pass(?:[-_]?phrase)?  # pass, passphrase variants
                 |secret
@@ -151,15 +168,15 @@ module Datadog
               )
               (?:
                  # '=' query string separator, plus value til next '&' separator
-                 (?:\s|%20)*(?:=|%3D)[^&]+
+                 (?:\s|%20)*(?:=|%3D)(?<key_value>[^&]+)
                  # JSON-ish '": "somevalue"', key being handled with case above, without the opening '"'
                 |(?:"|%22)                                     # closing '"' at end of key
                  (?:\s|%20)*(?::|%3A)(?:\s|%20)*               # ':' key-value spearator, with surrounding spaces
                  (?:"|%22)                                     # opening '"' at start of value
-                 (?:%2[^2]|%[^2]|[^"%])+                       # value
+                 (?<json_value>(?:%2[^2]|%[^2]|[^"%])+)        # value
                  (?:"|%22)                                     # closing '"' at end of value
               )
-             |(?: # other common secret values
+             |(?<free_value> # other common secret values, in any place
                  bearer(?:\s|%20)+[a-z0-9._\-]+
                 |token(?::|%3A)[a-z0-9]{13}
                 |gh[opsu]_[0-9a-zA-Z]{36}
