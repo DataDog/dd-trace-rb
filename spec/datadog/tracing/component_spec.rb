@@ -2,6 +2,21 @@
 
 require 'rspec'
 
+RSpec.describe Datadog::Tracing::Component do
+  describe 'writer event callbacks' do
+    describe Datadog::Tracing::Component::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
+      subject(:call) { described_class.call(writer, responses) }
+      let(:writer) { double('writer') }
+      let(:responses) { [double('response')] }
+
+      it 'invokes the environment logger with responses' do
+        expect(Datadog::Tracing::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!).with(responses: responses)
+        call
+      end
+    end
+  end
+end
+
 RSpec.describe Datadog::Tracing::Component::SamplerDelegatorComponent do
   let(:delegator) { described_class.new(old_sampler) }
   let(:old_sampler) { double('initial') }
