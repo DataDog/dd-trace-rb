@@ -412,7 +412,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
           it { is_expected.to eq('<redacted>&key2=val2&key3') }
         end
 
-        context 'with a reduced show option distinct from a potentail obfuscation match' do
+        context 'with a reduced show option distinct from a potential obfuscation match' do
           let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
           let(:options) { { show: ['key2'], obfuscate: :internal } }
 
