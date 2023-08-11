@@ -27,15 +27,20 @@ module Datadog
         # Captures changes to span error state.
         def status=(s)
           super
+
+          return unless status # Return if status are currently disabled by OpenTelemetry.
+          return unless (span = datadog_span)
+
           # Status code can only change into an error state.
           # Other change operations should be ignored.
-          datadog_span.set_error(status.description) if status && status.code == ::OpenTelemetry::Trace::Status::ERROR
+          span.set_error(status.description) if status && status.code == ::OpenTelemetry::Trace::Status::ERROR
         end
 
         private
 
         def datadog_set_attribute(key)
-          span = datadog_span
+          return unless @attributes # Return if attributes are currently disabled by OpenTelemetry.
+          return unless (span = datadog_span)
 
           # DEV: Accesses `@attributes` directly, since using `#attributes`
           # DEV: clones the hash, causing unnecessary overhead.
