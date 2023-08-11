@@ -14,4 +14,7 @@
 short setup_linux_tid_from_pthread_offset(void);
 
 // Returns the tid for the given thread. If something went wrong/info is not available, -1 is returned.
+//
+// This is expected to be accurate almost always, but can theoretically be wrong (see implementation for details).
+// Thus, assume this is OK to report, but do consider this rare-but-not-theoretically-impossible fact when using this for other use cases.
 pid_t linux_tid_from(pthread_t thread, short offset);
