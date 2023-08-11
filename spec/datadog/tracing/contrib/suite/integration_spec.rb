@@ -10,7 +10,7 @@ require 'rack'
 require 'rackup' if Rack::VERSION[0] >= 3
 require 'webrick'
 
-RSpec.describe 'contrib integration testing' do
+RSpec.describe 'contrib integration testing', :integration do
   around do |example|
     ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
   end
