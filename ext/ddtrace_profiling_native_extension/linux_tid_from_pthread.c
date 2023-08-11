@@ -175,7 +175,9 @@
   static pid_t get_tid_from_buffer(void *struct_pthread_buffer, short offset) {
     if (offset < 0 || offset >= STRUCT_PTHREAD_READ_SIZE / sizeof(pid_t)) return -1;
 
-    return *((pid_t *) struct_pthread_buffer + offset);
+    pid_t result = *((pid_t *) struct_pthread_buffer + offset);
+
+    return result > 0 ? result : -1; // Normalize failures to -1
   }
 
 #else // Fallback for when not on Linux
