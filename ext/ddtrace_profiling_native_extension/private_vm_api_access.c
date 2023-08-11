@@ -186,9 +186,9 @@ uint64_t native_thread_id_for(VALUE thread) {
       if (error) rb_syserr_fail(error, "Unexpected failure in pthread_threadid_np");
       return result;
     #else
-      // Fallback, when we have nothing better (e.g. on Ruby < 3.1 on Linux)
-      // @ivoanjo: In the future we may want to explore some potential hacks to get the actual tid on linux
-      // (e.g. https://stackoverflow.com/questions/558469/how-do-i-get-a-thread-id-from-an-arbitrary-pthread-t )
+      // Fallback, when we have nothing better (e.g. on Ruby < 3.1 on Linux, or something other than Linux/macOS)
+      // @ivoanjo: Note that we have a `linux_tid_fallback` that is still able to provide this for Linux, but needs
+      // to be called separately from this function.
       return (uint64_t) pthread_id;
     #endif
   #endif

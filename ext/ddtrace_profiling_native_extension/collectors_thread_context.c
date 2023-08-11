@@ -8,6 +8,7 @@
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
 #include "time_helpers.h"
+#include "linux_tid_fallback.h"
 
 // Used to trigger sampling of threads, based on external "events", such as:
 // * periodic timer for cpu-time and wall-time
@@ -105,6 +106,8 @@ struct thread_context_collector_state {
   monotonic_to_system_epoch_state time_converter_state;
   // Used to identify the main thread, to give it a fallback name
   VALUE main_thread;
+  // Used to obtain the thread id on Linux for legacy Rubies
+  VALUE linux_tid_fallback;
 
   struct stats {
     // Track how many garbage collection samples we've taken.
@@ -157,7 +160,8 @@ static VALUE _native_initialize(
   VALUE max_frames,
   VALUE tracer_context_key,
   VALUE endpoint_collection_enabled,
-  VALUE timeline_enabled
+  VALUE timeline_enabled,
+  VALUE linux_tid_fallback
 );
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
@@ -218,7 +222,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 6);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 7);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
@@ -262,6 +266,7 @@ static void thread_context_collector_typed_data_mark(void *state_ptr) {
   st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_mark, 0 /* unused */);
   rb_gc_mark(state->thread_list_buffer);
   rb_gc_mark(state->main_thread);
+  rb_gc_mark(state->linux_tid_fallback);
 }
 
 static void thread_context_collector_typed_data_free(void *state_ptr) {
@@ -310,6 +315,7 @@ static VALUE _native_new(VALUE klass) {
   state->timeline_enabled = true;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   state->main_thread = rb_thread_main();
+  state->linux_tid_fallback = Qnil;
 
   return TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
 }
@@ -321,7 +327,8 @@ static VALUE _native_initialize(
   VALUE max_frames,
   VALUE tracer_context_key,
   VALUE endpoint_collection_enabled,
-  VALUE timeline_enabled
+  VALUE timeline_enabled,
+  VALUE linux_tid_fallback
 ) {
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
   ENFORCE_BOOLEAN(timeline_enabled);
@@ -338,6 +345,7 @@ static VALUE _native_initialize(
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->timeline_enabled = (timeline_enabled == Qtrue);
+  state->linux_tid_fallback = linux_tid_fallback;
 
   if (RTEST(tracer_context_key)) {
     ENFORCE_TYPE(tracer_context_key, T_SYMBOL);
@@ -766,9 +774,16 @@ static struct per_thread_context *get_context_for(VALUE thread, struct thread_co
 }
 
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context, struct thread_context_collector_state *state) {
+  uint64_t native_thread_id = native_thread_id_for(thread);
+
+  if (state->linux_tid_fallback != Qnil) { // Only available when needed
+    pid_t maybe_tid = linux_tid_fallback_for(state->linux_tid_fallback, pthread_id_for(thread));
+    if (maybe_tid > 0) native_thread_id = maybe_tid;
+  }
+
   // Why does the thread id actually contain two ids?
   //
-  // The `native_thread_id_for` is the OS-level thread id, and can be used to match up a thread reported by the profiler
+  // The `native_thread_id` is the OS-level thread id, and can be used to match up a thread reported by the profiler
   // to system-level tools, such as the task manager or even the Datadog native profiler.
   // (It's usually the same as `Thread#native_thread_id` on modern Ruby versions.)
   //
@@ -777,7 +792,7 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   // `Thread#object_id` for the thread object to provide disambiguation. The `object_id` can also come in handy when
   // matching up profiler results to the Ruby threads in our own tests, since not all Ruby versions we test on
   // expose `Thread#native_thread_id`.
-  snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
+  snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id, (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
 
   int invoke_line_location;
@@ -836,6 +851,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
     state->time_converter_state.delta_to_epoch_ns
   ));
   rb_str_concat(result, rb_sprintf(" main_thread=%"PRIsVALUE, state->main_thread));
+  rb_str_concat(result, rb_sprintf(" linux_tid_fallback=%"PRIsVALUE, state->linux_tid_fallback));
 
   return result;
 }

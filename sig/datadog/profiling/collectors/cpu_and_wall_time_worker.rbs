@@ -13,6 +13,7 @@ module Datadog
           allocation_counting_enabled: bool,
           no_signals_workaround_enabled: bool,
           timeline_enabled: bool,
+          linux_tid_fallback: Datadog::Profiling::LinuxTidFallback?,
           ?thread_context_collector: Datadog::Profiling::Collectors::ThreadContext,
           ?idle_sampling_helper: Datadog::Profiling::Collectors::IdleSamplingHelper,
           ?dynamic_sampling_rate_enabled: bool,

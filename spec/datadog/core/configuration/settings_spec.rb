@@ -698,6 +698,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(true)
         end
       end
+
+      describe '#linux_tid_fallback_enabled' do
+        subject(:linux_tid_fallback_enabled) { settings.profiling.advanced.linux_tid_fallback_enabled }
+
+        context 'when DD_PROFILING_LINUX_TID_FALLBACK_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_LINUX_TID_FALLBACK_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be true }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#linux_tid_fallback_enabled=' do
+        it 'updates the #linux_tid_fallback_enabled setting' do
+          expect { settings.profiling.advanced.linux_tid_fallback_enabled = false }
+            .to change { settings.profiling.advanced.linux_tid_fallback_enabled }
+            .from(true)
+            .to(false)
+        end
+      end
     end
 
     describe '#upload' do

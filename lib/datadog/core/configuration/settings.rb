@@ -389,6 +389,17 @@ module Datadog
                 end
               end
             end
+
+            # Can be used to disable the LinuxTidFallback functionality.
+            #
+            # Do not use unless instructed to by support.
+            #
+            # @default `DD_PROFILING_LINUX_TID_FALLBACK_ENABLED` environment variable, otherwise `true`
+            option :linux_tid_fallback_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_LINUX_TID_FALLBACK_ENABLED'
+              o.default true
+            end
           end
 
           # @public_api

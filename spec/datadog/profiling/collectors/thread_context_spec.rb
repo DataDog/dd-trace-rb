@@ -39,6 +39,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:tracer) { nil }
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
+  let(:linux_tid_fallback) { Datadog::Profiling::LinuxTidFallback.new_if_needed_and_working }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -47,6 +48,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
+      linux_tid_fallback: linux_tid_fallback,
     )
   end
 
@@ -1027,9 +1029,28 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         context 'on Ruby < 3.1' do
           before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3.1.' }
 
-          it 'contains a fallback native thread id' do
-            per_thread_context.each do |_thread, context|
-              expect(Integer(context.fetch(:thread_id).split.first)).to be > 0
+          context 'when the linux_tid_fallback is available' do
+            before do
+              skip 'The linux_tid_fallback only applies on Linux' unless PlatformHelpers.linux?
+
+              expect(linux_tid_fallback).to_not be nil
+            end
+
+            let(:linux_tid_fallback) { Datadog::Profiling::LinuxTidFallback.new_if_needed_and_working }
+
+            it 'is uses the real native thread id' do
+              expect(per_thread_context.fetch(Thread.current).fetch(:thread_id).split.first)
+                .to eq(Datadog::Profiling::LinuxTidFallback::Testing._native_gettid.to_s)
+            end
+          end
+
+          context 'when the linux_tid_fallback is not available' do
+            let(:linux_tid_fallback) { nil }
+
+            it 'contains a fallback native thread id' do
+              per_thread_context.each do |_thread, context|
+                expect(Integer(context.fetch(:thread_id).split.first)).to be > 0
+              end
             end
           end
         end

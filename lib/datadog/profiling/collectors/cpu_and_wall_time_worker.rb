@@ -22,12 +22,14 @@ module Datadog
           allocation_counting_enabled:,
           no_signals_workaround_enabled:,
           timeline_enabled:,
+          linux_tid_fallback:,
           thread_context_collector: ThreadContext.new(
             recorder: recorder,
             max_frames: max_frames,
             tracer: tracer,
             endpoint_collection_enabled: endpoint_collection_enabled,
             timeline_enabled: timeline_enabled,
+            linux_tid_fallback: linux_tid_fallback,
           ),
           idle_sampling_helper: IdleSamplingHelper.new,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
