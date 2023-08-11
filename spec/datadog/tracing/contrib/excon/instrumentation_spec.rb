@@ -412,4 +412,19 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       expect(span.get_tag('out.host')).to eq('example.com')
     end
   end
+
+  context 'when query string in url' do
+    before do
+      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+      stub_request(:get, /example.com/).to_return(status: 200)
+    end
+
+    after { WebMock.disable! }
+
+    it 'does not query string' do
+      Excon.get('http://example.com/sample/path?foo=bar')
+
+      expect(span.get_tag('http.url')).to eq('/sample/path')
+    end
+  end
 end
