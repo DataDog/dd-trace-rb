@@ -766,6 +766,17 @@ static struct per_thread_context *get_context_for(VALUE thread, struct thread_co
 }
 
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context, struct thread_context_collector_state *state) {
+  // Why does the thread id actually contain two ids?
+  //
+  // The `native_thread_id_for` is the OS-level thread id, and can be used to match up a thread reported by the profiler
+  // to system-level tools, such as the task manager or even the Datadog native profiler.
+  // (It's usually the same as `Thread#native_thread_id` on modern Ruby versions.)
+  //
+  // BUT! Ruby actually reuses native threads (https://ivoanjo.me/blog/2022/11/26/ruby-reuses-native-threads/) and thus
+  // the native thread id is not enough (and could cause confusion). Thus, we also include the result of
+  // `Thread#object_id` for the thread object to provide disambiguation. The `object_id` can also come in handy when
+  // matching up profiler results to the Ruby threads in our own tests, since not all Ruby versions we test on
+  // expose `Thread#native_thread_id`.
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
 
