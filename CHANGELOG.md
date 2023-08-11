@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [1.13.1] - 2023-08-14
+
+### Fixed
+
+* Tracing: `net/http` instrumentation excludes query string for `http.url` tag ([#3045][])
+* Tracing: Remove `log_tags` warning when given hash for log injection ([#3022][])
+* Tracing: Fix OpenSearch integration loading ([#3019][])
+* Core: Fix default hostname/port when mixing http and uds configuration ([#3037][])
+* Core: Disable Telemetry and Remote Configuration in development environments ([#3039][])
+* Profiling: Improve `Datadog::Profiling::HttpTransport` error logging ([#3038][])
+* Docs: Document known issues with hanging Resque workers ([#3033][])
+
 ## [1.13.0] - 2023-07-31
 
 ### Added
@@ -2503,7 +2515,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.13.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.13.1...master
+[1.13.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.13.0...1.13.1
 [1.13.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.12.1...v1.13.0
 [1.12.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.12.0...v1.12.1
 [1.12.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.11.1...v1.12.0
@@ -3638,6 +3651,13 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3005]: https://github.com/DataDog/dd-trace-rb/issues/3005
 [#3007]: https://github.com/DataDog/dd-trace-rb/issues/3007
 [#3011]: https://github.com/DataDog/dd-trace-rb/issues/3011
+[#3019]: https://github.com/DataDog/dd-trace-rb/issues/3019
+[#3022]: https://github.com/DataDog/dd-trace-rb/issues/3022
+[#3033]: https://github.com/DataDog/dd-trace-rb/issues/3033
+[#3037]: https://github.com/DataDog/dd-trace-rb/issues/3037
+[#3038]: https://github.com/DataDog/dd-trace-rb/issues/3038
+[#3039]: https://github.com/DataDog/dd-trace-rb/issues/3039
+[#3045]: https://github.com/DataDog/dd-trace-rb/issues/3045
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
