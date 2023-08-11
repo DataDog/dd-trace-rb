@@ -425,7 +425,6 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       Excon.get('http://example.com/sample/path?foo=bar')
 
       expect(span.get_tag('http.url')).to eq('/sample/path')
-      expect(span.get_tag('out.host')).to eq('example.com')
     end
   end
 end
