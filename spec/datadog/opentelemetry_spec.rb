@@ -42,13 +42,50 @@ RSpec.describe Datadog::OpenTelemetry do
 
     describe '#in_span' do
       context 'without an active span' do
-        subject!(:in_span) { otel_tracer.in_span('test') {} }
+        subject!(:in_span) { otel_tracer.in_span('test', **options) {} }
+        let(:options) { {} }
 
         it 'records a finished span' do
           expect(span).to be_root_span
           expect(span.name).to eq('test')
           expect(span.resource).to eq('test')
           expect(span.service).to eq(tracer.default_service)
+        end
+
+        context 'with attributes' do
+          let(:options) { { attributes: attributes } }
+
+          [
+            [false, 'false'],
+            ['str', 'str'],
+            [[false], '[false]'],
+            [['str'], '["str"]'],
+            [[1], '[1]'],
+          ].each do |input, expected|
+            context "with attribute value #{input}" do
+              let(:attributes) { { 'tag' => input } }
+
+              it "sets tag #{expected}" do
+                expect(span.get_tag('tag')).to eq(expected)
+              end
+            end
+          end
+
+          context 'with a numeric attribute' do
+            let(:attributes) { { 'tag' => 1 } }
+
+            it 'sets it as a metric' do
+              expect(span.get_metric('tag')).to eq(1)
+            end
+          end
+        end
+
+        context 'with start_timestamp' do
+          let(:options) { { start_timestamp: start_timestamp } }
+          let(:start_timestamp) { Time.utc(2023) }
+          it do
+            expect(span.start_time).to eq(start_timestamp)
+          end
         end
       end
 
@@ -64,6 +101,8 @@ RSpec.describe Datadog::OpenTelemetry do
         it 'sets parent to active span' do
           expect(parent.name).to eq('otel-parent')
           expect(child.name).to eq('otel-child')
+
+          expect(spans).to have(2).items
         end
       end
 
@@ -99,7 +138,8 @@ RSpec.describe Datadog::OpenTelemetry do
     end
 
     describe '#start_span' do
-      subject(:start_span) { otel_tracer.start_span('start-span') }
+      subject(:start_span) { otel_tracer.start_span('start-span', **options) }
+      let(:options) { {} }
 
       it 'creates an unfinished span' do
         expect(start_span.parent_span_id).to eq(otel_root_parent)
@@ -116,16 +156,42 @@ RSpec.describe Datadog::OpenTelemetry do
       context 'with existing active span' do
         let!(:existing_span) { otel_tracer.start_span('existing-active-span') }
 
-        include_context 'parent and child spans' do
+        context 'with parent and child spans' do
+          include_context 'parent and child spans'
+
           before do
             start_span.finish
             existing_span.finish
           end
+
+          it 'sets parent to active span' do
+            expect(parent.name).to eq('existing-active-span')
+            expect(child.name).to eq('start-span')
+          end
         end
 
-        it 'sets parent to active span' do
-          expect(parent.name).to eq('existing-active-span')
-          expect(child.name).to eq('start-span')
+        context 'that has alrady finished' do
+          let(:options) { { with_parent: ::OpenTelemetry::Trace.context_with_span(existing_span) } }
+          let(:parent) { spans.find { |s| s.parent_id == 0 } }
+          let(:child) { spans.find { |s| s != parent } }
+
+          it 'correctly parents and flushed the child span' do
+            existing_span.finish
+            start_span.finish
+
+            expect(parent).to be_root_span
+            expect(child.parent_id).to eq(parent.id)
+          end
+        end
+      end
+
+      context 'and #finish with a timestamp' do
+        let(:timestamp) { Time.utc(2023) }
+
+        it 'sets the matching timestamp' do
+          start_span.finish(end_timestamp: timestamp)
+
+          expect(span.end_time).to eq(timestamp)
         end
       end
     end
@@ -145,6 +211,120 @@ RSpec.describe Datadog::OpenTelemetry do
       it 'records span independently from other existing spans' do
         start_root_span.finish
         expect(span.name).to eq('start-root-span')
+      end
+    end
+
+    shared_context 'Span#set_attribute' do
+      subject(:set_attribute) { start_span.public_send(setter, 'key', 'value') }
+      let(:start_span) { otel_tracer.start_span('start-span') }
+      let(:active_span) { Datadog::Tracing.active_span }
+
+      it 'sets Datadog tag' do
+        start_span
+
+        expect { set_attribute }.to change { active_span.get_tag('key') }.from(nil).to('value')
+
+        start_span.finish
+
+        expect(span.get_tag('key')).to eq('value')
+      end
+    end
+
+    describe '#set_attribute' do
+      include_context 'Span#set_attribute'
+      let(:setter) { :set_attribute }
+    end
+
+    describe '#[]=' do
+      include_context 'Span#set_attribute'
+      let(:setter) { :[]= }
+    end
+
+    describe '#add_attributes' do
+      subject(:add_attributes) { start_span.add_attributes({ 'k1' => 'v1', 'k2' => 'v2' }) }
+      let(:start_span) { otel_tracer.start_span('start-span') }
+      let(:active_span) { Datadog::Tracing.active_span }
+
+      it 'sets Datadog tag' do
+        start_span
+
+        expect { add_attributes }.to change { active_span.get_tag('k1') }.from(nil).to('v1')
+
+        start_span.finish
+
+        expect(span.get_tag('k1')).to eq('v1')
+        expect(span.get_tag('k2')).to eq('v2')
+      end
+    end
+
+    describe '#status=' do
+      subject! do
+        start_span
+        set_status
+        start_span.finish
+      end
+
+      let(:set_status) { start_span.status = status }
+      let(:start_span) { otel_tracer.start_span('start-span') }
+      let(:active_span) { Datadog::Tracing.active_span }
+
+      context 'with ok' do
+        let(:status) { OpenTelemetry::Trace::Status.ok }
+
+        it 'does not change status' do
+          expect(span).to_not have_error
+        end
+      end
+
+      context 'with error' do
+        let(:status) { OpenTelemetry::Trace::Status.error('my-error') }
+
+        it 'changes to error with a message' do
+          expect(span).to have_error
+          expect(span).to have_error_message('my-error')
+          expect(span).to have_error_message(start_span.status.description)
+        end
+
+        context 'then ok' do
+          subject! do
+            start_span
+
+            set_status # Sets to error
+            start_span.status = OpenTelemetry::Trace::Status.ok
+
+            start_span.finish
+          end
+
+          it 'cannot revert back from an error' do
+            expect(span).to have_error
+            expect(span).to have_error_message('my-error')
+          end
+        end
+
+        context 'and another error' do
+          subject! do
+            start_span
+
+            set_status # Sets to error
+            start_span.status = OpenTelemetry::Trace::Status.error('another-error')
+
+            start_span.finish
+          end
+
+          it 'overrides the error message' do
+            expect(span).to have_error
+            expect(span).to have_error_message('another-error')
+            expect(span).to have_error_message(start_span.status.description)
+          end
+        end
+      end
+
+      context 'with unset' do
+        let(:status) { OpenTelemetry::Trace::Status.unset }
+
+        it 'does not change status' do
+          expect(span).to_not have_error
+        end
       end
     end
 
@@ -257,6 +437,29 @@ RSpec.describe Datadog::OpenTelemetry do
             expect(span.trace_id).to eq(456)
             expect(span['_dd.p.dm']).to eq('-0'), Datadog::Tracing.active_trace.inspect
             expect(span['_sampling_priority_v1']).to eq(1)
+          end
+        end
+
+        context 'with TraceContext headers' do
+          let(:carrier) do
+            {
+              'traceparent' => '00-00000000000000001111111111111111-2222222222222222-01'
+            }
+          end
+
+          before do
+            Datadog.configure do |c|
+              c.tracing.distributed_tracing.propagation_extract_style = ['Datadog', 'tracecontext']
+            end
+          end
+
+          it 'extracts into the active context' do
+            OpenTelemetry::Context.with_current(extract) do
+              otel_tracer.in_span('otel') {}
+            end
+
+            expect(span.trace_id).to eq(0x00000000000000001111111111111111)
+            expect(span.parent_id).to eq(0x2222222222222222)
           end
         end
       end

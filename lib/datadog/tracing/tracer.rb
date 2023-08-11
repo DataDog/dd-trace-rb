@@ -353,6 +353,8 @@ module Datadog
         end
       end
 
+      # Creates a new TraceOperation, with events bounds to this Tracer instance.
+      # @return [TraceOperation]
       def start_trace(continue_from: nil)
         # Build a new trace using digest if provided.
         trace = build_trace(continue_from)

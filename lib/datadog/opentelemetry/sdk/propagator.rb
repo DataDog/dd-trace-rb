@@ -81,8 +81,9 @@ module Datadog
         private
 
         # Converts the {Numeric} Datadog id object to OpenTelemetry's byte array format.
+        # This method currently converts an unsigned 64-bit Integer to a binary String.
         def to_otel_id(dd_id)
-          Array(dd_id).pack('S')
+          Array(dd_id).pack('Q')
         end
       end
     end

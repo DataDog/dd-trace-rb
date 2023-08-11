@@ -23,7 +23,7 @@ If you are interested in using this feature experimentally, please contact the d
 1. To your OpenTelemetry configuration file, add the following:
 
     ```ruby
-    require 'opentelemetry'
+    require 'opentelemetry/sdk'
     require 'datadog/opentelemetry'
     ```
 
