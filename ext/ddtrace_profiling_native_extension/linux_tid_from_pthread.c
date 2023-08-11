@@ -1,6 +1,3 @@
-#include "linux_tid_from_pthread.h"
-#include "helpers.h"
-
 // Implements a way of mapping a `pthread_t` in Linux to that thread's id -- tid, what you'd get from calling `gettid()`.
 //
 // This is not needed when a thread can get its own tid (by calling `gettid()`) -- our setup is only useful
@@ -71,6 +68,14 @@
 // ---
 
 #ifdef __linux__
+
+  #define _GNU_SOURCE
+  #include <pthread.h>
+  #include <stdbool.h>
+  #include <stdio.h>
+  #include <sys/uio.h>
+  #include <unistd.h>
+  #include "linux_tid_from_pthread.h"
 
   // This value seems enough for both glibc and musl (and it's safe to read with `process_vm_readv`)
   // Must be a multiple of sizeof(pid_t)
@@ -173,7 +178,7 @@
   }
 
   static pid_t get_tid_from_buffer(void *struct_pthread_buffer, short offset) {
-    if (offset < 0 || offset >= STRUCT_PTHREAD_READ_SIZE / sizeof(pid_t)) return -1;
+    if (offset < 0 || ((size_t) offset) >= STRUCT_PTHREAD_READ_SIZE / sizeof(pid_t)) return -1;
 
     pid_t result = *((pid_t *) struct_pthread_buffer + offset);
 
@@ -181,6 +186,9 @@
   }
 
 #else // Fallback for when not on Linux
+
+  #include "linux_tid_from_pthread.h"
+  #include "helpers.h"
 
   short setup_linux_tid_from_pthread_offset(void) { return -1; }
   pid_t linux_tid_from(DDTRACE_UNUSED pthread_t thread, DDTRACE_UNUSED short offset) { return -1; }

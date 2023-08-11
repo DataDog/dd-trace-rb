@@ -1,0 +1,8 @@
+module Datadog
+  module Profiling
+    class LinuxTidFallback
+      def self.new_if_needed_and_working: () -> LinuxTidFallback?
+      def self._native_working?: (LinuxTidFallback) -> bool
+    end
+  end
+end
