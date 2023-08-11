@@ -67,7 +67,7 @@ module Datadog
         # @param [Object] value Object to be stored under key
         # @return [Context]
         def set_values(values)
-          if (current_span = values[CURRENT_SPAN_KEY])
+          if (current_span = values[CURRENT_SPAN_KEY]) && current_span.datadog_trace
             # Because `#set_value` returns new context, we have to create
             # a new copy of the active trace to ensure there's no conflict with
             # other users of the active trace.
@@ -75,7 +75,7 @@ module Datadog
             trace = Datadog::OpenTelemetry::Trace.start_trace_copy(
               current_span.datadog_trace,
               parent_span: current_span.datadog_span
-            ) if current_span.datadog_trace
+            )
           end
 
           existing_values = @trace && @trace.otel_values || {}
