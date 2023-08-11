@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'datadog/profiling/diagnostics/environment_logger'
 require 'ddtrace/transport/io'

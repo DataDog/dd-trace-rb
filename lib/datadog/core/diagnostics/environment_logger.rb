@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'date'
 require 'json'
 require 'rbconfig'
@@ -60,7 +62,7 @@ module Datadog
           log_once! do
             data = EnvironmentCollector.collect_config!
             data.reject! { |_, v| v.nil? } # Remove empty values from hash output
-            log_configuration!('CORE'.freeze, data.to_json)
+            log_configuration!('CORE', data.to_json)
           end
         rescue => e
           logger.warn("Failed to collect core environment information: #{e} Location: #{Array(e.backtrace).first}")
@@ -96,7 +98,7 @@ module Datadog
           # Best portable guess of OS information.
           # @return [String] platform string
           def os_name
-            RbConfig::CONFIG['host'.freeze]
+            RbConfig::CONFIG['host']
           end
 
           # @return [String] ddtrace version
@@ -172,7 +174,7 @@ module Datadog
 
           # Outputs "k1:v1,k2:v2,..."
           def hash_serializer(h)
-            h.map { |k, v| "#{k}:#{v}" }.join(','.freeze)
+            h.map { |k, v| "#{k}:#{v}" }.join(',')
           end
         end
       end
