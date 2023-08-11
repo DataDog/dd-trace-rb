@@ -88,10 +88,9 @@ module Datadog
               friendly_name: '"c.agent.port"',
               value: settings.agent.port,
             ),
-            # TODO: EK - TEMP
             try_parsing_as_integer(
-              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
-              value: ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT],
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
+              value: ENV[Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_PORT],
             )
           )
         end

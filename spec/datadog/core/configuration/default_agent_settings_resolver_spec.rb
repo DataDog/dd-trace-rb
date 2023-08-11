@@ -194,6 +194,32 @@ RSpec.describe Datadog::Core::Configuration::DefaultAgentSettingsResolver do
       end
     end
 
+    context 'when a custom port is specified via the DD_TRACE_AGENT_PORT environment variable' do
+      let(:environment) { { 'DD_TRACE_AGENT_PORT' => '1234' } }
+
+      it 'contacts the agent using the http adapter, using the custom port' do
+        expect(resolver).to have_attributes(**settings, port: 1234)
+      end
+
+      context 'when the custom port is invalid' do
+        let(:environment) { { 'DD_TRACE_AGENT_PORT' => 'this-is-an-invalid-port' } }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+    end
+
     context 'when a custom port is specified via code using "agent.port = "' do
       before do
         ddtrace_settings.agent.port = 1234
@@ -206,6 +232,54 @@ RSpec.describe Datadog::Core::Configuration::DefaultAgentSettingsResolver do
       it_behaves_like "parsing of port when it's not an integer" do
         before do
           ddtrace_settings.agent.port = port_value_to_parse
+        end
+      end
+    end
+
+    describe 'priority' do
+      let(:with_agent_port) { nil }
+      let(:with_trace_agent_port) { nil }
+      let(:environment) do
+        environment = {}
+
+        (environment['DD_TRACE_AGENT_PORT'] = with_trace_agent_port.to_s) if with_trace_agent_port
+
+        environment
+      end
+
+      before do
+        allow(logger).to receive(:warn)
+        (ddtrace_settings.agent.port = with_agent_port) if with_agent_port
+      end
+
+      context 'when agent.port, DD_TRACE_AGENT_PORT are provided' do
+        let(:with_agent_port) { 2 }
+        let(:with_trace_agent_port) { 4 }
+
+        it 'prioritizes the agent.port' do
+          expect(resolver).to have_attributes(port: 2)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      # This somewhat duplicates some of the testing above, but it's still helpful to validate that the test is correct
+      # (otherwise it may pass due to bugs, not due to right priority being used)
+      context 'when only DD_TRACE_AGENT_PORT is provided' do
+        let(:with_trace_agent_port) { 4 }
+
+        it 'uses the DD_TRACE_AGENT_PORT' do
+          expect(resolver).to have_attributes(port: 4)
+        end
+
+        it 'does not log any warning' do
+          expect(logger).to_not receive(:warn).with(/Configuration mismatch/)
+
+          resolver
         end
       end
     end
