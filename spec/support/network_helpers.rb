@@ -64,6 +64,7 @@ module NetworkHelpers
           expected_service_name = s.meta['_expected_service_name']
           dd_env_variables['DD_SERVICE'] = s.meta['_expected_service_name']
           dd_env_variables['DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'] = 'v1'
+        end
         s.meta.delete('_expected_service_name')
         s.meta.delete('_remove_integration_service_names_enabled')
       end
