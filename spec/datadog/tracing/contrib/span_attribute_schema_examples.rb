@@ -22,6 +22,9 @@ RSpec.shared_examples 'schema version span' do
       let(:configuration_options) { { service_name: 'configured' } }
       it do
         expect(span.service).to eq(configuration_options[:service_name])
+
+        # set the expected service name and remove integration service names tag on span
+        # for later use when sending traces to APM Test Agent for service name consistency testing
         span.set_tag('_expected_service_name', configuration_options[:service_name])
         span.set_tag('_remove_integration_service_names_enabled', 'true')
       end

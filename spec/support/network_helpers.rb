@@ -57,15 +57,15 @@ module NetworkHelpers
   # @return [String] Key/Value pairs representing relevant Tracer Configuration
   def parse_tracer_config(trace)
     dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
+    expected_service_name = nil
     trace.spans.each do |s|
       if s && s.meta && s.meta['_expected_service_name'] && s.meta['_remove_integration_service_names_enabled'] == 'true'
-        dd_env_variables['DD_SERVICE'] = s.meta['_expected_service_name']
-        dd_env_variables['DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'] = 'v1'
+        if !expected_service_name
+          expected_service_name = s.meta['_expected_service_name']
+          dd_env_variables['DD_SERVICE'] = s.meta['_expected_service_name']
+          dd_env_variables['DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'] = 'v1'
         s.meta.delete('_expected_service_name')
         s.meta.delete('_remove_integration_service_names_enabled')
-      else
-        dd_env_variables.delete('DD_SERVICE')
-        dd_env_variables.delete('DD_TRACE_SPAN_ATTRIBUTE_SCHEMA')
       end
     end
     dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
