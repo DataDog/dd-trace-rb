@@ -57,18 +57,21 @@ module NetworkHelpers
   # @return [String] Key/Value pairs representing relevant Tracer Configuration
   def parse_tracer_config(trace)
     dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
-    expected_service_name = nil
-    trace.spans.each do |s|
-      if s && s.meta && s.meta['_expected_service_name'] && s.meta['_remove_integration_service_names_enabled'] == 'true'
-        if !expected_service_name
-          expected_service_name = s.meta['_expected_service_name']
-          dd_env_variables['DD_SERVICE'] = s.meta['_expected_service_name']
-          dd_env_variables['DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'] = 'v1'
-        end
-        s.meta.delete('_expected_service_name')
-        s.meta.delete('_remove_integration_service_names_enabled')
-      end
-    end
+    # s = trace.spans[0]
+    # trace.spans.each do |s|
+    #   if s.meta && s.meta['_expected_service_name'] && s.meta['_remove_integration_service_names_enabled'] == 'true'
+    #     unless expected_service_name
+    #       expected_service_name = s.meta['_expected_service_name']
+    #       dd_env_variables['DD_SERVICE'] = s.meta['_expected_service_name']
+    #       dd_env_variables['DD_TRACE_SPAN_ATTRIBUTE_SCHEMA'] = 'v1'
+    #     end
+    #     s.meta.delete('_expected_service_name')
+    #     s.meta.delete('_remove_integration_service_names_enabled')
+    #   end
+    # end
+    # expected_service_name = [span.trace_id]
+    # dd_env_variables['DD_SERVICE'] = expected_service_name
+
     dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
   end
 end
