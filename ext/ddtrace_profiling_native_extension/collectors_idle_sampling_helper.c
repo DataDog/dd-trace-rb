@@ -68,7 +68,7 @@ static const rb_data_type_t idle_sampling_helper_typed_data = {
   .wrap_struct_name = "Datadog::Profiling::Collectors::IdleSamplingHelper",
   .function = {
     .dmark = NULL, // We don't store references to Ruby objects so we don't need to mark any of them
-    .dfree = RUBY_DEFAULT_FREE,
+    .dfree = RUBY_DEFAULT_FREE, // We don't store references to malloc'd memory so we don't need a custom free
     .dsize = NULL, // We don't track memory usage (although it'd be cool if we did!)
     //.dcompact = NULL, // Not needed -- we don't store references to Ruby objects
   },
