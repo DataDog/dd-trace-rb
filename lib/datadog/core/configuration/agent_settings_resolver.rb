@@ -3,6 +3,7 @@ require 'forwardable'
 module Datadog
   module Core
     module Configuration
+      # Mixin with common functionality for AgentSettingsResolver classes.
       module AgentSettingsResolver
         extend Forwardable
 
@@ -46,7 +47,8 @@ module Datadog
         # The mixin consumer should define a logger as a private attr. If not,
         # we fall back to a default
         def logging_delegate
-          return self if defined?(@logger) || self.respond_to?(:logger)
+          return self if defined?(@logger) || respond_to?(:logger)
+
           Datadog.logger
         end
 

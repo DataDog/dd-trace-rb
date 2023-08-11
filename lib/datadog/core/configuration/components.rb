@@ -1,4 +1,4 @@
-require_relative '../configuration/default_agent_settings_resolver.rb'
+require_relative '../configuration/default_agent_settings_resolver'
 require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
 require_relative '../logger'

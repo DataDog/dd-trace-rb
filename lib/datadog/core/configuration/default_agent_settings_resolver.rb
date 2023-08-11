@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'uri'
 
 require_relative 'settings'
@@ -143,9 +145,9 @@ module Datadog
         end
 
         def should_use_uds?
-            # If no agent settings have been provided, we try to connect using a local unix socket.
-            # We only do so if the socket is present when `ddtrace` runs.
-            !uds_fallback.nil?
+          # If no agent settings have been provided, we try to connect using a local unix socket.
+          # We only do so if the socket is present when `ddtrace` runs.
+          !uds_fallback.nil?
         end
 
         def pick_from(*configurations_in_priority_order)

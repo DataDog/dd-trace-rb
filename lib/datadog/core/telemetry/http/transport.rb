@@ -4,7 +4,7 @@ require_relative '../../configuration/settings'
 require_relative 'env'
 require_relative 'ext'
 require_relative 'adapters/net'
-require_relative '../../configuration/default_agent_settings_resolver.rb'
+require_relative '../../configuration/default_agent_settings_resolver'
 
 module Datadog
   module Core

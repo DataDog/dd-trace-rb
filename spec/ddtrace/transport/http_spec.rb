@@ -3,6 +3,18 @@ require 'spec_helper'
 require 'ddtrace/transport/http'
 require 'uri'
 
+# Implementation of AgentSettings to be used when transport receives AgentSettings
+# from the non-core AgentSettingsResolver (i.e. tracing, profiling) which implement Test-Header
+# deprecated_for_removal_transport_configuration_proc.
+AgentSettings = Class.new(Datadog::Core::Configuration::AgentSettingsResolver::BaseAgentSettings) do
+  attr_accessor :deprecated_for_removal_transport_configuration_proc
+
+  def initialize(deprecated_for_removal_transport_configuration_proc:, **args)
+    @deprecated_for_removal_transport_configuration_proc = deprecated_for_removal_transport_configuration_proc
+    super(**args)
+  end
+end
+
 RSpec.describe Datadog::Transport::HTTP do
   describe '.new' do
     context 'given a block' do
@@ -110,16 +122,7 @@ RSpec.describe Datadog::Transport::HTTP do
       context 'that specifies a deprecated_for_removal_transport_configuration_proc' do
         let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
         let(:agent_settings) do
-          AgentSettings = Class.new(Datadog::Core::Configuration::AgentSettingsResolver::BaseAgentSettings) do
-            attr_accessor :deprecated_for_removal_transport_configuration_proc
-
-            def initialize(deprecated_for_removal_transport_configuration_proc:, **args)
-              @deprecated_for_removal_transport_configuration_proc = deprecated_for_removal_transport_configuration_proc
-              super(**args)
-            end
-          end
-
-          AgentSettings = AgentSettings.new(
+          AgentSettings.new(
             adapter: adapter,
             ssl: ssl,
             hostname: hostname,
@@ -224,7 +227,10 @@ RSpec.describe Datadog::Transport::HTTP do
     before do
       stub_const(
         'Datadog::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
-        instance_double(Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings, hostname: 'example-hostname')
+        instance_double(
+          Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings,
+          hostname: 'example-hostname'
+        )
       )
     end
 
