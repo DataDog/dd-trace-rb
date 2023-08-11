@@ -75,7 +75,7 @@ module Datadog
             trace = Datadog::OpenTelemetry::Trace.start_trace_copy(
               current_span.datadog_trace,
               parent_span: current_span.datadog_span
-            )
+            ) if current_span.datadog_trace
           end
 
           existing_values = @trace && @trace.otel_values || {}
