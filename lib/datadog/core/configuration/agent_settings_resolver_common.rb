@@ -73,12 +73,12 @@ module Datadog
             'Configuration mismatch: values differ between ' \
             "#{detected_configurations_in_priority_order
               .map { |config| "#{config.friendly_name} (#{config.value.inspect})" }.join(' and ')}" \
-            ". Using #{detected_configurations_in_priority_order.first.value.inspect}."
+            ". Using #{detected_configurations_in_priority_order.first.value.inspect} and ignoring other configuration."
           )
         end
 
         def adapter
-          if should_use_uds? && !mixed_http_and_uds?
+          if should_use_uds?
             Datadog::Transport::Ext::UnixSocket::ADAPTER
           else
             Datadog::Transport::Ext::HTTP::ADAPTER
@@ -89,18 +89,18 @@ module Datadog
         def mixed_http_and_uds?
           return @mixed_http_and_uds if defined?(@mixed_http_and_uds)
 
-          @mixed_http_and_uds = (configured_hostname || configured_port) && should_use_uds?
+          @mixed_http_and_uds = (configured_hostname || configured_port) && can_use_uds?
 
           if @mixed_http_and_uds
             warn_if_configuration_mismatch(
               [
                 DetectedConfiguration.new(
                   friendly_name: 'configuration of hostname/port for http/https use',
-                  value: "hostname: '#{configured_hostname}', port: #{configured_port.inspect}",
+                  value: "hostname: '#{hostname}', port: '#{port}'",
                 ),
                 DetectedConfiguration.new(
                   friendly_name: 'configuration for unix domain socket',
-                  value: "unix://#{uds_path}",
+                  value: parsed_url.to_s,
                 ),
               ]
             )
@@ -128,6 +128,10 @@ module Datadog
         end
 
         def should_use_uds?
+          can_use_uds? && !mixed_http_and_uds?
+        end
+
+        def can_use_uds?
           parsed_url && unix_scheme?(parsed_url) ||
             # If no agent settings have been provided, we try to connect using a local unix socket.
             # We only do so if the socket is present when `ddtrace` runs.

@@ -97,6 +97,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       let(:with_agent_host) { nil }
       let(:with_environment_agent_host) { nil }
       let(:with_trace_agent_url) { nil }
+      let(:with_agent_port) { nil }
 
       let(:environment) do
         environment = {}

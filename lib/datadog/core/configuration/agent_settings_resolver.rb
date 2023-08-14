@@ -93,7 +93,7 @@ module Datadog
         end
 
         def ssl?
-            !parsed_url.nil? && parsed_url.scheme == 'https'
+          !parsed_url.nil? && parsed_url.scheme == 'https'
         end
 
         def hostname
@@ -123,7 +123,6 @@ module Datadog
               Datadog::Transport::Ext::UnixSocket::DEFAULT_PATH
             end
         end
-
 
         def parsed_url
           return @parsed_url if defined?(@parsed_url)
