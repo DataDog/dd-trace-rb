@@ -54,7 +54,7 @@ module Datadog
 
           # @return [Boolean, nil]
           def enabled
-            Datadog.configuration.tracing.enabled
+            !!Datadog.configuration.tracing.enabled
           end
 
           # @return [String, nil] target agent URL for trace flushing

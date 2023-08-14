@@ -71,7 +71,7 @@ RSpec.describe Datadog::Profiling::Diagnostics::EnvironmentLogger do
 
       context 'with explicit setting' do
         before do
-          Datadog.configure { |c| c.diagnostics.startup_logs.enabled = true }
+          allow(Datadog.configuration.diagnostics.startup_logs).to receive(:enabled).and_return(true)
         end
 
         it do
@@ -109,7 +109,7 @@ RSpec.describe Datadog::Profiling::Diagnostics::EnvironmentLogger do
       context 'with profiling enabled' do
         before do
           # allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start) if PlatformHelpers.mri?
-          Datadog.configure { |c| c.profiling.enabled = true }
+          expect(Datadog.configuration.profiling).to receive(:enabled).and_return(true)
         end
 
         it { is_expected.to include profiling_enabled: true }

@@ -80,10 +80,13 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
       context 'with explicit setting' do
         before do
-          Datadog.configure { |c| c.diagnostics.startup_logs.enabled = true }
+          allow(Datadog.configuration.diagnostics.startup_logs).to receive(:enabled).and_return(true)
         end
 
-        it { expect(logger).to have_received(:info) }
+        it do
+          collect_and_log!
+          expect(logger).to have_received(:info).with(/DATADOG CONFIGURATION - CORE -/).once
+        end
       end
     end
 
@@ -125,44 +128,46 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with version configured' do
-        before { Datadog.configure { |c| c.version = '1.2' } }
+        let(:version) { double('version') }
 
-        it { is_expected.to include dd_version: '1.2' }
+        before { allow(Datadog.configuration).to receive(:version).and_return(version) }
+
+        it { is_expected.to include dd_version: version }
       end
 
       context 'with env configured' do
-        before { Datadog.configure { |c| c.env = 'env' } }
+        let(:env) { double('env') }
 
-        it { is_expected.to include env: 'env' }
+        before { allow(Datadog.configuration).to receive(:env).and_return(env) }
+
+        it { is_expected.to include env: env }
       end
 
       context 'with service configured' do
-        before { Datadog.configure { |c| c.service = 'svc' } }
+        let(:service) { double('service') }
 
-        it { is_expected.to include service: 'svc' }
+        before { allow(Datadog.configuration).to receive(:service).and_return(service) }
+
+        it { is_expected.to include service: service }
       end
 
       context 'with debug enabled' do
         before do
-          Datadog.configure do |c|
-            c.diagnostics.debug = true
-            c.logger.instance = Datadog::Core::Logger.new(StringIO.new)
-          end
+          expect(Datadog.configuration.diagnostics).to receive(:debug).and_return(true)
+          allow(Datadog.configuration.logger).to receive(:instance).and_return(Datadog::Core::Logger.new(StringIO.new))
         end
 
         it { is_expected.to include debug: true }
       end
 
       context 'with tags configured' do
-        before { Datadog.configure { |c| c.tags = { 'k1' => 'v1', 'k2' => 'v2' } } }
+        before { expect(Datadog.configuration).to receive(:tags).and_return({ 'k1' => 'v1', 'k2' => 'v2' }) }
 
         it { is_expected.to include tags: 'k1:v1,k2:v2' }
       end
 
       context 'with runtime metrics enabled' do
-        before { Datadog.configure { |c| c.runtime_metrics.enabled = true } }
-
-        after { Datadog.configuration.runtime_metrics.reset! }
+        before { expect(Datadog.configuration.runtime_metrics).to receive(:enabled).and_return(true) }
 
         it { is_expected.to include runtime_metrics_enabled: true }
       end
@@ -186,7 +191,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with health metrics enabled' do
-        before { Datadog.configure { |c| c.diagnostics.health_metrics.enabled = true } }
+        before { expect(Datadog.configuration.diagnostics.health_metrics).to receive(:enabled).and_return(true) }
 
         it { is_expected.to include health_metrics_enabled: true }
       end

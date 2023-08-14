@@ -100,7 +100,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
 
       context 'with explicit setting' do
         before do
-          Datadog.configure { |c| c.diagnostics.startup_logs.enabled = true }
+          allow(Datadog.configuration.diagnostics.startup_logs).to receive(:enabled).and_return(true)
         end
 
         it do
@@ -112,7 +112,6 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
 
     context 'with error collecting information' do
       before do
-        allow(logger).to receive(:warn)
         expect(Datadog::Tracing::Diagnostics::EnvironmentCollector).to receive(:collect_config!).and_raise
       end
 
@@ -143,42 +142,38 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       end
 
       context 'with tracer disabled' do
-        before { Datadog.configure { |c| c.tracing.enabled = false } }
-
-        after { Datadog.configure { |c| c.tracing.enabled = true } }
+        before { allow(Datadog.configuration.tracing).to receive(:enabled).and_return(false) }
 
         it { is_expected.to include enabled: false }
       end
 
       context 'with IO transport' do
         before do
-          Datadog.configure do |c|
-            c.tracing.writer = Datadog::Tracing::SyncWriter.new(
+          expect(Datadog.configuration.tracing).to receive(:writer).and_return(
+            Datadog::Tracing::SyncWriter.new(
               transport: Datadog::Transport::IO.default
             )
-          end
+          )
         end
-
-        after { Datadog.configure { |c| c.tracing.writer = nil } }
 
         it { is_expected.to include agent_url: nil }
       end
 
       context 'with unix socket transport' do
         before do
-          Datadog.configure do |c|
-            c.tracing.transport_options = ->(t) { t.adapter :unix, '/tmp/trace.sock' }
-          end
+          allow(Datadog.configuration.tracing).to receive(:transport_options).and_return(
+            lambda { |t|
+              t.adapter :unix, '/tmp/trace.sock'
+            }
+          )
         end
-
-        after { Datadog.configure { |c| c.tracing.transport_options = nil } }
 
         it { is_expected.to include agent_url: include('unix') }
         it { is_expected.to include agent_url: include('/tmp/trace.sock') }
       end
 
       context 'with analytics enabled' do
-        before { Datadog.configure { |c| c.tracing.analytics.enabled = true } }
+        before { expect(Datadog.configuration.tracing.analytics).to receive(:enabled).and_return(true) }
 
         it { is_expected.to include analytics_enabled: true }
       end
@@ -214,13 +209,13 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
         end
 
         context 'with partial flushing enabled' do
-          before { Datadog.configure { |c| c.tracing.partial_flush.enabled = true } }
+          before { expect(Datadog.configuration.tracing.partial_flush).to receive(:enabled).and_return(true) }
 
           it { is_expected.to include partial_flushing_enabled: true }
         end
 
         context 'with priority sampling enabled' do
-          before { Datadog.configure { |c| c.tracing.priority_sampling = true } }
+          before { expect(Datadog.configuration.tracing).to receive(:priority_sampling).and_return(true) }
 
           it { is_expected.to include priority_sampling_enabled: true }
         end
