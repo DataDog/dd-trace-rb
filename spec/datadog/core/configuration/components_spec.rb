@@ -42,6 +42,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Client) }
 
+  include_context 'non-development execution environment'
+
   before do
     # Ensure the real task never gets run (so it doesn't apply our thread patches and other extensions to our test env)
     if Datadog::Profiling.supported?

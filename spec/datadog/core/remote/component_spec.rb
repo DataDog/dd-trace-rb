@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'datadog/core/remote/component'
 require 'datadog/core/configuration/agent_settings_resolver'
 
-RSpec.describe Datadog::Core::Remote::Component do
+RSpec.describe Datadog::Core::Remote::Component, :integration do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
   let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings) }
