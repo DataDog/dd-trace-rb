@@ -1,0 +1,43 @@
+module Datadog
+  module Profiling
+    class AgentSettingsResolver
+      include Core::Configuration::AgentSettingsResolverCommon
+
+      AgentSettings: untyped
+
+      def self.call: (untyped settings, ?logger: untyped) -> untyped
+
+      private
+
+      attr_reader logger: untyped
+
+      attr_reader settings: untyped
+
+      def initialize: (untyped settings, ?logger: untyped) -> void
+
+      def call: () -> untyped
+
+      def configured_hostname: () -> untyped
+
+      def configured_port: () -> untyped
+
+      def ssl?: () -> untyped
+
+      def hostname: () -> untyped
+
+      def port: () -> untyped
+      def timeout_seconds: () -> untyped
+      def deprecated_for_removal_transport_configuration_proc: () -> (untyped | nil)
+      def uds_fallback: () -> untyped
+
+      def parsed_url: () -> untyped
+      def transport_options: () -> untyped
+      TransportOptions: untyped
+      class TransportOptionsResolver
+        def initialize: (untyped transport_options) -> void
+
+        def adapter: (untyped kind_or_custom_adapter, *untyped args, **untyped kwargs) -> nil
+      end
+    end
+  end
+end

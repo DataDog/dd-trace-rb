@@ -1,0 +1,42 @@
+module Datadog
+  module Core
+    module Configuration
+      module AgentSettingsResolverCommon
+        extend Forwardable
+
+        BaseAgentSettings: untyped
+
+        def log_warning: (untyped message) -> (untyped | nil)
+        def logging_delegate: () -> (self | untyped)
+
+        def pick_from: (*untyped configurations_in_priority_order) -> untyped
+
+        def warn_if_configuration_mismatch: (untyped detected_configurations_in_priority_order) -> (nil | untyped)
+
+        def adapter: () -> untyped
+        def mixed_http_and_uds?: () -> untyped
+        def uds_path: () -> (nil | untyped)
+
+        def should_use_uds?: () -> untyped
+
+        def can_use_uds?: () -> untyped
+        def parsed_http_url: () -> (untyped | nil)
+
+        def http_scheme?: (untyped uri) -> untyped
+
+        def unix_scheme?: (untyped uri) -> untyped
+
+        def try_parsing_as_integer: (value: untyped, friendly_name: untyped) -> untyped
+        class DetectedConfiguration
+          attr_reader friendly_name: untyped
+
+          attr_reader value: untyped
+
+          def initialize: (friendly_name: untyped, value: untyped) -> void
+
+          def value?: () -> untyped
+        end
+      end
+    end
+  end
+end
