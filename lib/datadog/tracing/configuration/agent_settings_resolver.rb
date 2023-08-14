@@ -19,6 +19,11 @@ module Datadog
       #
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
+      #
+      # WARN: If you add any functionality here you may also need to add it to the Core and Profiling implementations
+      # of AgentSettingsResolver.
+      # TODO: When deprecated_for_removal_transport_configuration_proc is finally removed the multiple implementations
+      # of AgentSettingsResolvers may be able to be consolidated in to a single one in Core.
       class AgentSettingsResolver
         include Core::Configuration::AgentSettingsResolverCommon
 

@@ -9,9 +9,12 @@ require_relative 'agent_settings_resolver_common'
 module Datadog
   module Core
     module Configuration
-      # TODO: EK - UPDATE COMMENT
-
-      # This class unifies all the different ways that users can configure how we talk to the agent.
+      # This class unifies different ways that users can configure how we talk to the agent that are not specific to
+      # individual components. Components like Tracing and Profiling have their own resolvers that implement
+      # component specific functionality. This resolver should not depend on any components outside of core.
+      #
+      # WARN: If you change any functionality here you may have to also change component specific resolvers until
+      # they are deprecated and removed.
       #
       # It has quite a lot of complexity, but this complexity just reflects the actual complexity we have around our
       # configuration today. E.g., this is just all of the complexity regarding agent settings gathered together in a
@@ -48,12 +51,6 @@ module Datadog
             port: port,
             uds_path: uds_path,
             timeout_seconds: timeout_seconds,
-            # NOTE: When provided, the deprecated_for_removal_transport_configuration_proc can override all
-            # values above (ssl, hostname, port, timeout), or even make them irrelevant (by using an unix socket or
-            # enabling test mode instead).
-            # That is the main reason why it is deprecated -- it's an opaque function that may set a bunch of settings
-            # that we know nothing of until we actually call it.
-            # deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
           )
         end
 

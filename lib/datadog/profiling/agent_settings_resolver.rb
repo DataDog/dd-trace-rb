@@ -18,6 +18,11 @@ module Datadog
     #
     # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
     # about it and pick a value based on the following priority: code > environment variable > defaults.
+    #
+    # TODO: Decouple Tracing. Profiling relies on the deprecated_for_removal_transport_configuration_proc, which in turn
+    # relies on code and constants in the Tracing namespace. This class is an exact copy of
+    # Datadog::Tracing::Configuration::AgentSettingsResolver. When the proc is removed, this resolver may be replaced
+    # with the implementation in Core.
     class AgentSettingsResolver
       include Core::Configuration::AgentSettingsResolverCommon
 
