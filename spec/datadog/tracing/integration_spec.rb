@@ -1010,18 +1010,14 @@ RSpec.describe 'Tracer integration tests' do
         end
       end
 
-      # TODO: EK - Temp skipping of test.
-      xcontext 'is provided and remote configuration, and appsec is enabled' do
+      context 'is provided and remote configuration, and appsec is enabled' do
         let(:remote_enabled) { true }
         let(:appsec_enabled) { true }
+
         let(:on_build) do
           double('on_build').tap do |double|
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Transport::HTTP::Builder))
-              .at_least(1).time
-            # For the remote component.
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Core::Transport::HTTP::Builder))
               .at_least(1).time
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
