@@ -918,7 +918,7 @@ elsif ruby_version?('2.5')
     gem 'actionpack'
     gem 'actionview'
     gem 'active_model_serializers', '>= 0.10.0'
-    gem 'activerecord'
+    gem 'activerecord', "~> 5"
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
@@ -1179,7 +1179,7 @@ elsif ruby_version?('2.6')
       gem 'actionpack'
       gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
-      gem 'activerecord'
+      gem 'activerecord', "~> 6.0.0"
       gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
@@ -1418,7 +1418,7 @@ elsif ruby_version?('2.7')
       gem 'actionpack'
       gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
-      gem 'activerecord'
+      gem 'activerecord', "~> 6.1.0"
       gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
