@@ -1,12 +1,12 @@
 require 'spec_helper'
 
-require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/tracing/pipeline'
 require 'datadog/tracing/pipeline/span_filter'
 require 'datadog/tracing/span'
 require 'datadog/tracing/sync_writer'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/tracer'
+require 'datadog/tracing/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/http/traces'
 require 'ddtrace/transport/traces'

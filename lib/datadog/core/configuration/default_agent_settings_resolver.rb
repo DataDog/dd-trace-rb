@@ -4,7 +4,7 @@ require 'uri'
 
 require_relative 'settings'
 require_relative '../../../ddtrace/transport/ext'
-require_relative 'agent_settings_resolver'
+require_relative 'agent_settings_resolver_common'
 
 module Datadog
   module Core
@@ -21,11 +21,9 @@ module Datadog
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
       class DefaultAgentSettingsResolver
-        include AgentSettingsResolver
+        include AgentSettingsResolverCommon
 
-        AgentSettings = Class.new(BaseAgentSettings) do
-          # TODO: IMPLEMENT
-        end
+        AgentSettings = Class.new(BaseAgentSettings)
 
         def self.call(settings, logger: Datadog.logger)
           new(settings, logger: logger).send(:call)

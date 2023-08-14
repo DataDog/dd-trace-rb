@@ -6,7 +6,7 @@ require 'uri'
 # Implementation of AgentSettings to be used when transport receives AgentSettings
 # from the non-core AgentSettingsResolver (i.e. tracing, profiling) which implement Test-Header
 # deprecated_for_removal_transport_configuration_proc.
-AgentSettings = Class.new(Datadog::Core::Configuration::AgentSettingsResolver::BaseAgentSettings) do
+AgentSettings = Class.new(Datadog::Core::Configuration::AgentSettingsResolverCommon::BaseAgentSettings) do
   attr_accessor :deprecated_for_removal_transport_configuration_proc
 
   def initialize(deprecated_for_removal_transport_configuration_proc:, **args)

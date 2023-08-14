@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/core/configuration'
-require 'datadog/core/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/default_agent_settings_resolver'
 require 'datadog/core/environment/ext'
 require 'datadog/core/telemetry/collector'
 require 'datadog/core/telemetry/v1/application'

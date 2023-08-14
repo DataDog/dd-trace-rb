@@ -4,7 +4,7 @@ module Datadog
   module Core
     module Configuration
       # Mixin with common functionality for AgentSettingsResolver classes.
-      module AgentSettingsResolver
+      module AgentSettingsResolverCommon
         extend Forwardable
 
         # Allows us to reference an instance var in the mixin consumer safely

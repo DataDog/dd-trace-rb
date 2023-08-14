@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/agent_settings_resolver'
+require_relative '../../configuration/agent_settings_resolver_common'
 require_relative '../../../../ddtrace/transport/http/adapters/registry'
 require_relative '../../../../ddtrace/transport/http/api/map'
 
@@ -70,8 +70,7 @@ module Datadog
 
           def adapter(config, *args, **kwargs)
             @default_adapter = case config
-                                 # TODO: EK - ?
-                               when Core::Configuration::AgentSettingsResolver::BaseAgentSettings
+                               when Core::Configuration::AgentSettingsResolverCommon::BaseAgentSettings
                                  registry_klass = REGISTRY.get(config.adapter)
                                  raise UnknownAdapterError, config.adapter if registry_klass.nil?
 

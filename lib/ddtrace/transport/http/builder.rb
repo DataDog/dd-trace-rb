@@ -37,7 +37,7 @@ module Datadog
           @default_adapter = case config
                              # We check for the base as each resolver must implement their own AgentSettings
                              # which may have extra attributes.
-                             when Core::Configuration::AgentSettingsResolver::BaseAgentSettings
+                             when Core::Configuration::AgentSettingsResolverCommon::BaseAgentSettings
                                registry_klass = REGISTRY.get(config.adapter)
                                raise UnknownAdapterError, config.adapter if registry_klass.nil?
 

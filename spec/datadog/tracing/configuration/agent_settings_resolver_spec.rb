@@ -1,4 +1,4 @@
-require 'datadog/core/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings_resolver_common'
 require 'datadog/core/configuration/settings'
 
 RSpec.describe Datadog::Tracing::Configuration::AgentSettingsResolver do

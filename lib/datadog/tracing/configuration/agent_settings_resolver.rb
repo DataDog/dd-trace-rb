@@ -3,7 +3,7 @@
 require 'uri'
 
 require_relative 'settings'
-require_relative '../../core/configuration/agent_settings_resolver'
+require_relative '../../core/configuration/agent_settings_resolver_common'
 require_relative '../../tracing/configuration/ext'
 require_relative '../../../ddtrace/transport/ext'
 
@@ -20,7 +20,7 @@ module Datadog
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
       class AgentSettingsResolver
-        include Core::Configuration::AgentSettingsResolver
+        include Core::Configuration::AgentSettingsResolverCommon
 
         AgentSettings = Class.new(BaseAgentSettings) do
           attr_accessor :deprecated_for_removal_transport_configuration_proc
