@@ -23,6 +23,7 @@ module Datadog
           # It is the same as Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT
           # but is also here as we do not want Core to have a dependency on Tracing.
           ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'
+          ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'
         end
       end
     end
