@@ -3,7 +3,7 @@
 require_relative 'tracer'
 require_relative 'flush'
 require_relative 'sync_writer'
-require_relative 'configuration/tracing_agent_settings_resolver'
+require_relative 'configuration/agent_settings_resolver'
 require_relative 'sampling/span/rule_parser'
 require_relative 'sampling/span/sampler'
 
