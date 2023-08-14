@@ -1,9 +1,9 @@
 require 'datadog/profiling/spec_helper'
-require 'datadog/profiling/profiling_agent_settings_resolver'
+require 'datadog/profiling/agent_settings_resolver'
 
 RSpec.describe Datadog::Profiling::Component do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:agent_settings) { Datadog::Profiling::ProfilingAgentSettingsResolver.call(settings, logger: nil) }
+  let(:agent_settings) { Datadog::Profiling::AgentSettingsResolver.call(settings, logger: nil) }
   let(:profiler_setup_task) { instance_double(Datadog::Profiling::Tasks::Setup) if Datadog::Profiling.supported? }
 
   before do

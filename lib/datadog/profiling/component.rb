@@ -28,7 +28,7 @@ module Datadog
         # done, then profiling may not be loaded, and thus to avoid this issue we do a require here (which is a
         # no-op if profiling is already loaded).
         require_relative '../profiling'
-        require_relative '../profiling/profiling_agent_settings_resolver'
+        require_relative '../profiling/agent_settings_resolver'
         return unless Profiling.supported?
 
         unless defined?(Profiling::Tasks::Setup)
@@ -91,8 +91,7 @@ module Datadog
           collector = build_profiler_oldstack_collector(settings, recorder, optional_tracer)
         end
 
-        # #TODO: EK - Verify it is ok to pass in the Datadog.logger like this.
-        agent_settings = ProfilingAgentSettingsResolver.call(settings, logger: Datadog.logger)
+        agent_settings = AgentSettingsResolver.call(settings, logger: Datadog.logger)
 
         exporter = build_profiler_exporter(settings, recorder, no_signals_workaround_enabled: no_signals_workaround_enabled)
         transport = build_profiler_transport(settings, agent_settings)

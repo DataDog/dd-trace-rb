@@ -18,7 +18,7 @@ module Datadog
     #
     # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
     # about it and pick a value based on the following priority: code > environment variable > defaults.
-    class ProfilingAgentSettingsResolver
+    class AgentSettingsResolver
       include Core::Configuration::AgentSettingsResolver
 
       AgentSettings = Class.new(BaseAgentSettings) do
