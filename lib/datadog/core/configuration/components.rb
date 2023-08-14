@@ -1,4 +1,4 @@
-require_relative '../configuration/default_agent_settings_resolver'
+require_relative '../configuration/agent_settings_resolver'
 require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
 require_relative '../logger'
@@ -81,7 +81,7 @@ module Datadog
         def initialize(settings)
           @logger = self.class.build_logger(settings)
 
-          default_agent_settings = Core::Configuration::DefaultAgentSettingsResolver.call(settings, logger: @logger)
+          default_agent_settings = Core::Configuration::AgentSettingsResolver.call(settings, logger: @logger)
 
           @remote = Remote::Component.build(settings, default_agent_settings)
           @tracer = self.class.build_tracer(settings, @logger)

@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'ddtrace/transport/http/builder'
+require 'datadog/core/configuration/agent_settings_resolver'
 
 RSpec.describe Datadog::Transport::HTTP::Builder do
   subject(:builder) { described_class.new }
@@ -16,7 +17,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
       subject(:adapter) { builder.adapter(config) }
 
       let(:config) do
-        Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings.new(
+        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
           adapter: config_adapter,
           ssl: nil,
           hostname: nil,

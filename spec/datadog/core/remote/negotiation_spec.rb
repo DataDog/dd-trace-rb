@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 require 'datadog/core/remote/component'
+require 'datadog/core/configuration/agent_settings_resolver'
 
 RSpec.describe Datadog::Core::Remote::Negotiation do
   shared_context 'HTTP connection stub' do
@@ -29,7 +30,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
   end
 
   let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:agent_settings) { Datadog::Core::Configuration::DefaultAgentSettingsResolver.call(settings, logger: nil) }
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 
   describe '#endpoint?' do
     include_context 'HTTP connection stub'

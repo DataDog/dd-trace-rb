@@ -20,7 +20,7 @@ module Datadog
       #
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
-      class DefaultAgentSettingsResolver
+      class AgentSettingsResolver
         include AgentSettingsResolverCommon
 
         AgentSettings = Class.new(BaseAgentSettings)

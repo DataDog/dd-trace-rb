@@ -4,6 +4,7 @@ require 'uri'
 
 require_relative '../../datadog/core/environment/container'
 require_relative '../../datadog/core/environment/ext'
+require_relative '../../datadog/core/configuration/agent_settings_resolver'
 require_relative 'ext'
 require_relative 'http/adapters/net'
 require_relative 'http/adapters/test'
@@ -21,7 +22,7 @@ module Datadog
       # represents only settings specified via environment variables + the usual defaults.
       #
       # DO NOT USE THIS IN NEW CODE, as it ignores any settings specified by users via `Datadog.configure`.
-      DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::DefaultAgentSettingsResolver.call(
+      DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::AgentSettingsResolver.call(
         Datadog::Core::Configuration::Settings.new,
         logger: nil,
       )

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/core/configuration'
-require 'datadog/core/configuration/default_agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/environment/ext'
 require 'datadog/core/telemetry/collector'
 require 'datadog/core/telemetry/v1/application'
@@ -151,7 +151,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         let(:adapter_type) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
 
         before do
-          allow(Datadog::Core::Configuration::DefaultAgentSettingsResolver)
+          allow(Datadog::Core::Configuration::AgentSettingsResolver)
             .to receive(:call).and_return(double('agent settings', :adapter => adapter_type))
         end
         it { is_expected.to include(:DD_AGENT_TRANSPORT => 'UDS') }

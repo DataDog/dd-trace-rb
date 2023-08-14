@@ -2,7 +2,7 @@
 
 require 'etc'
 
-require_relative '../configuration/default_agent_settings_resolver'
+require_relative '../configuration/agent_settings_resolver'
 require_relative '../environment/ext'
 require_relative '../environment/platform'
 require_relative '../utils/hash'
@@ -181,7 +181,7 @@ module Datadog
         end
 
         def agent_transport
-          adapter = Core::Configuration::DefaultAgentSettingsResolver.call(Datadog.configuration).adapter
+          adapter = Core::Configuration::AgentSettingsResolver.call(Datadog.configuration).adapter
           if adapter == Datadog::Transport::Ext::UnixSocket::ADAPTER
             'UDS'
           else

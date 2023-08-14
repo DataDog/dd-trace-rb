@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'ddtrace/transport/http'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'uri'
 
 # Implementation of AgentSettings to be used when transport receives AgentSettings
@@ -92,7 +93,7 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:timeout_seconds) { nil }
 
       let(:agent_settings) do
-        Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings.new(
+        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
           adapter: adapter,
           ssl: ssl,
           hostname: hostname,
@@ -228,7 +229,7 @@ RSpec.describe Datadog::Transport::HTTP do
       stub_const(
         'Datadog::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
         instance_double(
-          Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings,
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
           hostname: 'example-hostname'
         )
       )
@@ -253,7 +254,7 @@ RSpec.describe Datadog::Transport::HTTP do
     before do
       stub_const(
         'Datadog::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
-        instance_double(Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings, port: 12345)
+        instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, port: 12345)
       )
     end
 

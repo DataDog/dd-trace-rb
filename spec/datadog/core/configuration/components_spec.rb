@@ -3,7 +3,7 @@ require 'datadog/profiling/spec_helper'
 
 require 'logger'
 
-require 'datadog/core/configuration/default_agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/configuration/components'
 require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/core/diagnostics/health'
@@ -36,7 +36,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   subject(:components) { described_class.new(settings) }
 
   let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:agent_settings) { Datadog::Core::Configuration::DefaultAgentSettingsResolver.call(settings, logger: nil) }
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
@@ -246,7 +246,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'and :unix agent adapter' do
           let(:expected_options) { { enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds } }
           let(:agent_settings) do
-            instance_double(Datadog::Core::Configuration::DefaultAgentSettingsResolver::AgentSettings, adapter: :unix)
+            instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, adapter: :unix)
           end
 
           it 'does not enable telemetry for unsupported non-http transport' do
