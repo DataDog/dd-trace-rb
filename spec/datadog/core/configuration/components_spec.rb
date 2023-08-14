@@ -406,7 +406,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     context 'given settings' do
       shared_examples_for 'new tracer' do
-        let(:agent_settings) { Datadog::Tracing::Configuration::TracingAgentSettingsResolver.call(settings, logger: nil) }
+        let(:agent_settings) { Datadog::Tracing::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
         let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
         let(:writer) { Datadog::Tracing::Writer.new }
         let(:trace_flush) { be_a(Datadog::Tracing::Flush::Finished) }

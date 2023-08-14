@@ -28,7 +28,7 @@ module Datadog
         tracer = settings.tracing.instance
         return tracer unless tracer.nil?
 
-        agent_settings = Configuration::TracingAgentSettingsResolver.call(settings, logger: logger)
+        agent_settings = Configuration::AgentSettingsResolver.call(settings, logger: logger)
 
         # Apply test mode settings if test mode is activated
         if settings.tracing.test_mode.enabled

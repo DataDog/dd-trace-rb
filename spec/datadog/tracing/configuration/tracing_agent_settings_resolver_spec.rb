@@ -1,7 +1,7 @@
 require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/configuration/settings'
 
-RSpec.describe Datadog::Tracing::Configuration::TracingAgentSettingsResolver do
+RSpec.describe Datadog::Tracing::Configuration::AgentSettingsResolver do
   around { |example| ClimateControl.modify(default_environment.merge(environment)) { example.run } }
 
   let(:default_environment) do
