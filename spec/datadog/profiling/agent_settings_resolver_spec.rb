@@ -316,7 +316,6 @@ RSpec.describe Datadog::Profiling::AgentSettingsResolver do
     end
   end
 
-
   describe 'http adapter port' do
     shared_examples_for "parsing of port when it's not an integer" do
       context 'when the port is specified as a string instead of a number' do
