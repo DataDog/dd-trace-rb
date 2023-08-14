@@ -47,6 +47,8 @@ module Datadog
             DD_AGENT_HOST: Datadog.configuration.agent.host,
             DD_AGENT_TRANSPORT: agent_transport,
             DD_TRACE_SAMPLE_RATE: format_configuration_value(Datadog.configuration.tracing.sampling.default_rate),
+            DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: Datadog.configuration.tracing.contrib.global_default_service_name.enabled,
+            DD_TRACE_PEER_SERVICE_MAPPING: format_configuration_value(Datadog.configuration.tracing.contrib.peer_service_mapping)
           }
           hash.compact!
           hash
