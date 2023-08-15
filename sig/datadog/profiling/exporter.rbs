@@ -11,14 +11,14 @@ module Datadog
       attr_reader time_provider: untyped
       attr_reader last_flush_finish_at: ::Time?
       attr_reader created_at: ::Time
-      attr_reader no_signals_workaround_enabled: bool
+      attr_reader internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric]
 
       public
 
       def initialize: (
         pprof_recorder: (Datadog::Profiling::StackRecorder | Datadog::Profiling::OldRecorder),
         code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?,
-        no_signals_workaround_enabled: bool,
+        internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
         ?minimum_duration_seconds: ::Integer,
         ?time_provider: untyped
       ) -> void

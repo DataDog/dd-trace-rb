@@ -90,7 +90,9 @@ RSpec.describe 'profiling integration test' do
     end
     let(:exporter) do
       Datadog::Profiling::Exporter.new(
-        pprof_recorder: old_recorder, code_provenance_collector: nil, no_signals_workaround_enabled: false
+        pprof_recorder: old_recorder,
+        code_provenance_collector: nil,
+        internal_metadata: { no_signals_workaround_enabled: false },
       )
     end
     let(:collector) do

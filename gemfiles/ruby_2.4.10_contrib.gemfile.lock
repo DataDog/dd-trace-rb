@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.13.0)
+    ddtrace (1.13.1)
       debase-ruby_core_source (= 3.2.1)
-      libdatadog (~> 2.0.0.1.0)
+      libdatadog (~> 3.0.0.1.0)
       libddwaf (~> 1.9.0.0.0)
       msgpack
 
@@ -1575,8 +1575,8 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (2.0.0.1.0-aarch64-linux)
-    libdatadog (2.0.0.1.0-x86_64-linux)
+    libdatadog (3.0.0.1.0-aarch64-linux)
+    libdatadog (3.0.0.1.0-x86_64-linux)
     libddwaf (1.9.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.9.0.0.0-x86_64-linux)
@@ -1614,6 +1614,14 @@ GEM
     netrc (0.11.0)
     nokogiri (1.10.10)
       mini_portile2 (~> 2.4.0)
+    opensearch-api (2.2.0)
+      multi_json
+    opensearch-ruby (2.1.0)
+      opensearch-api (~> 2.1)
+      opensearch-transport (~> 2.0)
+    opensearch-transport (2.1.0)
+      faraday (>= 1.0, < 3)
+      multi_json
     opentracing (0.5.0)
     os (1.1.4)
     pg (1.2.3)
@@ -1801,8 +1809,10 @@ DEPENDENCIES
   lograge (~> 0.11)
   makara
   memory_profiler (~> 0.9)
+  minitest (>= 5.0.0)
   mongo (>= 2.8.0, < 2.15.0)
   mysql2 (< 0.5)
+  opensearch-ruby
   opentracing (>= 0.4.1)
   os (~> 1.1)
   pg (>= 0.18.4)

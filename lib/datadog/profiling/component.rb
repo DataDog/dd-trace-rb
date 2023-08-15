@@ -65,9 +65,11 @@ module Datadog
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
         no_signals_workaround_enabled = false
+        timeline_enabled = false
 
         if enable_new_profiler?(settings)
           no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
+          timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
 
           recorder = Datadog::Profiling::StackRecorder.new(
             cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
@@ -81,7 +83,7 @@ module Datadog
             gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
             no_signals_workaround_enabled: no_signals_workaround_enabled,
-            timeline_enabled: settings.profiling.advanced.experimental_timeline_enabled,
+            timeline_enabled: timeline_enabled,
           )
         else
           load_pprof_support
@@ -90,7 +92,12 @@ module Datadog
           collector = build_profiler_oldstack_collector(settings, recorder, optional_tracer)
         end
 
-        exporter = build_profiler_exporter(settings, recorder, no_signals_workaround_enabled: no_signals_workaround_enabled)
+        internal_metadata = {
+          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          timeline_enabled: timeline_enabled,
+        }.freeze
+
+        exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
 
@@ -101,14 +108,14 @@ module Datadog
         Profiling::OldRecorder.new([Profiling::Events::StackSample], settings.profiling.advanced.max_events)
       end
 
-      private_class_method def self.build_profiler_exporter(settings, recorder, no_signals_workaround_enabled:)
+      private_class_method def self.build_profiler_exporter(settings, recorder, internal_metadata:)
         code_provenance_collector =
           (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
         Profiling::Exporter.new(
           pprof_recorder: recorder,
           code_provenance_collector: code_provenance_collector,
-          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          internal_metadata: internal_metadata,
         )
       end
 

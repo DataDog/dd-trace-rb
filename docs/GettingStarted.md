@@ -109,6 +109,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
  - [Known issues and suggested configurations](#known-issues-and-suggested-configurations)
     - [Payload too large](#payload-too-large)
     - [Stack level too deep](#stack-level-too-deep)
+    - [Resque workers hang on exit](#resque-workers-hang-on-exit)
 
 ## Compatibility
 
@@ -2975,6 +2976,16 @@ As the implementation of `alias_method` exists within those libraries, Datadog g
 
 For libraries without a known workaround, consider removing the library using `alias` or `Module#alias_method` or separating libraries into different environments for testing.
 
-For any further questions or to report an occurence of this issue, please [reach out to Datadog support](https://docs.datadoghq.com/help)
+For any further questions or to report an occurrence of this issue, please [reach out to Datadog support](https://docs.datadoghq.com/help)
+
+### Resque workers hang on exit
+
+Resque's default of forking a process per job can, in rare situations, result in resque processes hanging on exit when instrumented with ddtrace.
+
+As a workaround, we recommend setting the `FORK_PER_JOB` environment variable to `false` to disable this behavior.
+
+See [this issue](https://github.com/DataDog/dd-trace-rb/issues/3015) for a discussion of the problem.
+
+<!---->
 
 [header tags]: https://docs.datadoghq.com/tracing/configure_data_security/#applying-header-tags-to-root-spans

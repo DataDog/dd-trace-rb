@@ -10,19 +10,20 @@ require 'rack'
 require 'rackup' if Rack::VERSION[0] >= 3
 require 'webrick'
 
-RSpec.describe 'contrib integration testing' do
+RSpec.describe 'contrib integration testing', :integration do
   around do |example|
     ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
   end
 
   describe 'dynamic configuration' do
     subject(:update_config) do
-      stub_rc!
-
       @reconfigured = false
       allow(Datadog::Tracing::Remote).to receive(:process_config).and_wrap_original do |m, *args|
         m.call(*args).tap { @reconfigured = true }
       end
+
+      stub_rc!
+
       try_wait_until { @reconfigured }
     end
 
@@ -255,6 +256,8 @@ RSpec.describe 'contrib integration testing' do
 
           tracer.trace('test') { logger.error('test-log') }
 
+          SemanticLogger.flush
+
           expect(io.string).to include('trace_id')
 
           io.truncate(0)
@@ -265,6 +268,8 @@ RSpec.describe 'contrib integration testing' do
           expect(Datadog.configuration.tracing.log_injection).to eq(false)
 
           tracer.trace('test') { logger.error('test-log') }
+
+          SemanticLogger.flush
 
           expect(io.string).to_not include('trace_id')
         end

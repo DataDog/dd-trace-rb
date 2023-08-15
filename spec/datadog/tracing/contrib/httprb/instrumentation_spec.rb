@@ -337,5 +337,15 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
         expect(span.get_tag('out.host')).to eq('localhost')
       end
     end
+
+    context 'when query string in url' do
+      let(:path) { '/sample/path?foo=bar' }
+
+      it 'does not collect auth info' do
+        response
+
+        expect(span.get_tag('http.url')).to eq('/sample/path')
+      end
+    end
   end
 end

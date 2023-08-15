@@ -2,6 +2,7 @@ require 'logger'
 
 require_relative 'base'
 require_relative 'ext'
+require_relative '../environment/execution'
 require_relative '../environment/ext'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
@@ -559,10 +560,21 @@ module Datadog
           #
           # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `true`.
           #   Can be disabled as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
+          #   By default, telemetry is disabled in development environments.
           # @return [Boolean]
           option :enabled do |o|
             o.env Core::Telemetry::Ext::ENV_ENABLED
-            o.default true
+            o.default do
+              if Datadog::Core::Environment::Execution.development?
+                Datadog.logger.debug do
+                  'Development environment detected, disabling Telemetry. ' \
+                    'You can enable it with DD_INSTRUMENTATION_TELEMETRY_ENABLED=true.'
+                end
+                false
+              else
+                true
+              end
+            end
             o.type :bool
           end
 
@@ -586,10 +598,21 @@ module Datadog
           # Enable remote configuration. This allows fetching of remote configuration for live updates.
           #
           # @default `DD_REMOTE_CONFIGURATION_ENABLED` environment variable, otherwise `true`.
+          #   By default, remote configuration is disabled in development environments.
           # @return [Boolean]
           option :enabled do |o|
             o.env Core::Remote::Ext::ENV_ENABLED
-            o.default true
+            o.default do
+              if Datadog::Core::Environment::Execution.development?
+                Datadog.logger.debug do
+                  'Development environment detected, disabling Remote Configuration. ' \
+                    'You can enable it with DD_REMOTE_CONFIGURATION_ENABLED=true.'
+                end
+                false
+              else
+                true
+              end
+            end
             o.type :bool
           end
 

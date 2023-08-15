@@ -658,6 +658,7 @@ target :ddtrace do
   library 'sinatra'
   library 'google-protobuf'
   library 'protobuf-cucumber'
+  library 'minitest'
   library 'mysql2'
   library 'mysql2-aurora'
   library 'opentracing'

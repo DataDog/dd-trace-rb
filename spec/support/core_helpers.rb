@@ -1,4 +1,8 @@
 module CoreHelpers
+  RSpec.shared_context 'non-development execution environment' do
+    before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
+  end
+
   # Asserts that a deprecated action is recorded by the `subject` execution.
   RSpec.shared_examples 'records deprecated action' do |matcher = nil|
     it 'records deprecated action in the deprecation log' do

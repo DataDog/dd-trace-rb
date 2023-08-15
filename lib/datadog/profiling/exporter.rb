@@ -23,14 +23,14 @@ module Datadog
         :time_provider,
         :last_flush_finish_at,
         :created_at,
-        :no_signals_workaround_enabled
+        :internal_metadata
 
       public
 
       def initialize(
         pprof_recorder:,
         code_provenance_collector:,
-        no_signals_workaround_enabled:,
+        internal_metadata:,
         minimum_duration_seconds: PROFILE_DURATION_THRESHOLD_SECONDS,
         time_provider: Time
       )
@@ -40,7 +40,7 @@ module Datadog
         @time_provider = time_provider
         @last_flush_finish_at = nil
         @created_at = time_provider.now.utc
-        @no_signals_workaround_enabled = no_signals_workaround_enabled
+        @internal_metadata = internal_metadata
       end
 
       def flush
@@ -64,7 +64,7 @@ module Datadog
           code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
           code_provenance_data: uncompressed_code_provenance,
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
-          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          internal_metadata: internal_metadata,
         )
       end
 

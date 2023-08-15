@@ -152,6 +152,20 @@ RSpec.describe 'Faraday middleware' do
           expect { response }.to_not output(/WARNING/).to_stderr
         end
       end
+
+      context 'with query sting in url' do
+        subject(:response) { client.get('http://example.com/success?foo=bar') }
+
+        it 'does not collect query string' do
+          expect(response.status).to eq(200)
+
+          expect(span.get_tag('http.url')).to eq('/success')
+        end
+
+        it 'executes without warnings' do
+          expect { response }.to_not output(/WARNING/).to_stderr
+        end
+      end
     end
   end
 

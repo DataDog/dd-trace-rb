@@ -41,7 +41,7 @@ module Datadog
               # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
 
-              Rails::LogInjection.configure_log_tags(app)
+              Rails::LogInjection.configure_log_tags(app.config)
             end
           end
 
