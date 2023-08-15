@@ -50,7 +50,7 @@ class ProfilerHttpTransportBenchmark
       code_provenance_file_name: 'example_code_provenance_file_name.json',
       code_provenance_data: '', # Random.new(1).bytes(4_000),
       tags_as_array: [],
-      no_signals_workaround_enabled: false,
+      internal_metadata: {no_signals_workaround_enabled: false},
     )
   end
 
