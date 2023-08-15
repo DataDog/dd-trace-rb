@@ -101,6 +101,8 @@ module Datadog
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
 
+        Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
+
         Profiling::Profiler.new([collector], scheduler)
       end
 
