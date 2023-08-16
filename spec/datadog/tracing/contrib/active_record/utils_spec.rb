@@ -20,7 +20,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Utils do
     end
   end
 
-  xdescribe 'regression: retrieving database without an active connection does not raise an error' do
+  describe 'regression: retrieving database without an active connection does not raise an error' do
     before do
       root_pw = ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')
       host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
