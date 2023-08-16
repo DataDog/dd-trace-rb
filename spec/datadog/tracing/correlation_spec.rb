@@ -238,7 +238,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           expect(identifier.to_h).to eq(
             {
               dd: {
-                env: 'default_env',
+                env: 'default-env',
                 service: 'default-service',
                 version: 'default-version',
                 trace_id: '0',
