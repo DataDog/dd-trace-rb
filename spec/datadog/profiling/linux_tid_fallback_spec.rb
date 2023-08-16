@@ -1,4 +1,8 @@
+require 'datadog/profiling/spec_helper'
+
 RSpec.describe Datadog::Profiling::LinuxTidFallback do
+  before { skip_if_profiling_not_supported(self) }
+
   subject(:linux_tid_fallback) { described_class.new }
 
   describe '#linux_tid_fallback_for' do
