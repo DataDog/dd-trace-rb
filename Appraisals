@@ -948,10 +948,10 @@ elsif ruby_version?('2.5')
     gem 'minitest', '>= 5.0.0'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 1', platform: :ruby
-    gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
+    gem 'activerecord-jdbcmysql-adapter', '>= 52', platform: :jruby
     gem 'opensearch-ruby'
     gem 'pg', '>= 0.18.4', platform: :ruby
-    gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
+    gem 'activerecord-jdbcpostgresql-adapter', '>= 52', platform: :jruby
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-contrib'
@@ -970,7 +970,8 @@ elsif ruby_version?('2.5')
     gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
     gem 'stripe', '~> 7.0'
-    gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
+    gem 'activerecord-jdbcsqlite3-adapter', '>= 52', platform: :jruby
+    # gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0', '< 2.0.0'
