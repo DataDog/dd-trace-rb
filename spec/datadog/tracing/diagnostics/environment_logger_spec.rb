@@ -38,9 +38,12 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION - TRACING') do |msg|
         json = JSON.parse(msg.partition('- TRACING -')[2].strip)
         expect(json).to match(
+          'enabled' => true,
           'agent_url' => start_with("http://#{agent_hostname}:#{agent_port}?timeout="),
           'analytics_enabled' => false,
-          'enabled' => true,
+          'sample_rate' => nil,
+          'sampling_rules' => nil,
+          'integrations_loaded' => nil,
           'partial_flushing_enabled' => false,
           'priority_sampling_enabled' => false,
         )
