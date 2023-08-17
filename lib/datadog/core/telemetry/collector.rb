@@ -43,11 +43,19 @@ module Datadog
 
         # Forms a hash of standard key value pairs to be sent in the app-started event configuration
         def configurations
+          config = Datadog.configuration
           hash = {
-            DD_AGENT_HOST: Datadog.configuration.agent.host,
+            DD_AGENT_HOST: config.agent.host,
             DD_AGENT_TRANSPORT: agent_transport,
-            DD_TRACE_SAMPLE_RATE: format_configuration_value(Datadog.configuration.tracing.sampling.default_rate),
+            DD_TRACE_SAMPLE_RATE: format_configuration_value(config.tracing.sampling.default_rate),
+            DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: config.tracing.contrib.global_default_service_name.enabled
           }
+          peer_service_mapping_str = ''
+          unless config.tracing.contrib.peer_service_mapping.empty?
+            peer_service_mapping = config.tracing.contrib.peer_service_mapping
+            peer_service_mapping_str = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
+          end
+          hash[:DD_TRACE_PEER_SERVICE_MAPPING] = peer_service_mapping_str
           hash.compact!
           hash
         end
