@@ -17,11 +17,11 @@ RSpec.describe 'Basic scenarios' do
     let(:expected_profiler_available) { RUBY_VERSION >= '2.3' && !RUBY_VERSION.start_with?('3.3.') }
 
     let(:expected_profiler_threads) do
-      contain_exactly(
+      expected_profiler_available ? contain_exactly(
         'Datadog::Profiling::Collectors::IdleSamplingHelper',
         'Datadog::Profiling::Collectors::CpuAndWallTimeWorker',
         'Datadog::Profiling::Scheduler',
-      ) if expected_profiler_available
+      ) : eq(nil).or(eq([]))
     end
 
     it { is_expected.to be_a_kind_of(Net::HTTPOK) }
