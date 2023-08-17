@@ -51,11 +51,12 @@ module Datadog
             DD_TRACE_SAMPLE_RATE: format_configuration_value(Datadog.configuration.tracing.sampling.default_rate),
             DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: peer_service_enabled
           }
+          peer_service_mapping_str = ''
           unless Datadog.configuration.tracing.contrib.peer_service_mapping.empty?
             peer_service_mapping = Datadog.configuration.tracing.contrib.peer_service_mapping
-            hash[:DD_TRACE_PEER_SERVICE_MAPPING] = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
+            peer_service_mapping_str = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
           end
-
+          hash[:DD_TRACE_PEER_SERVICE_MAPPING] = peer_service_mapping_str
           hash.compact!
           hash
         end

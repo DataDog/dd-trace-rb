@@ -186,7 +186,6 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         end
       end
 
-      let(:dd_trace_remove_integration_service_names_enabled) { nil }
       context 'when set to true' do
         let(:dd_trace_remove_integration_service_names_enabled) { 'true' }
         it { is_expected.to include(:DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED => true) }
@@ -207,15 +206,14 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         end
       end
 
-      let(:dd_trace_peer_service_mapping) { nil }
       context 'when set' do
         let(:dd_trace_peer_service_mapping) { 'key:value' }
         it { is_expected.to include(:DD_TRACE_PEER_SERVICE_MAPPING => 'key:value') }
       end
 
-      context 'when nil is not included' do
+      context 'when nil is blank' do
         let(:dd_trace_peer_service_mapping) { nil }
-        it { is_expected.to_not include(:DD_TRACE_PEER_SERVICE_MAPPING) }
+        it { is_expected.to include(:DD_TRACE_PEER_SERVICE_MAPPING => '') }
       end
     end
   end
