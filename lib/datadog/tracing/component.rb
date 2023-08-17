@@ -5,6 +5,7 @@ require_relative 'flush'
 require_relative 'sync_writer'
 require_relative 'sampling/span/rule_parser'
 require_relative 'sampling/span/sampler'
+require_relative 'diagnostics/environment_logger'
 
 module Datadog
   module Tracing
@@ -154,7 +155,7 @@ module Datadog
       end
 
       WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK = lambda do |_, responses|
-        Core::Diagnostics::EnvironmentLogger.log!(responses)
+        Tracing::Diagnostics::EnvironmentLogger.collect_and_log!(responses: responses)
       end
 
       # Create new lambda for writer callback,

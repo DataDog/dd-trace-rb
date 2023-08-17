@@ -31,6 +31,8 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
 require 'ddtrace/transport/http/adapters/net'
 
+# TODO: Components contains behavior for all of the different products.
+#       Test behavior needs to be extracted to complimentary component files for every product.
 RSpec.describe Datadog::Core::Configuration::Components do
   subject(:components) { described_class.new(settings) }
 
@@ -40,6 +42,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Client) }
+
+  include_context 'non-development execution environment'
 
   before do
     # Ensure the real task never gets run (so it doesn't apply our thread patches and other extensions to our test env)
@@ -943,17 +947,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe 'writer event callbacks' do
-    describe Datadog::Core::Configuration::Components.singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
-      subject(:call) { described_class.call(writer, responses) }
-      let(:writer) { double('writer') }
-      let(:responses) { [double('response')] }
-
-      it 'invokes the environment logger with responses' do
-        expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:log!).with(responses)
-        call
-      end
-    end
-
     describe '.writer_update_priority_sampler_rates_callback' do
       subject(:call) do
         described_class.writer_update_priority_sampler_rates_callback(sampler).call(writer, responses)

@@ -35,16 +35,26 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
     end
 
-    shared_context 'perform loop in thread' do
-      before do
-        # Start the loop in a thread, give it time to warm up.
-        @thread = Thread.new { worker.perform }
-        sleep(0.1)
+    shared_context 'perform loop in fiber' do
+      let(:fiber) do
+        Fiber.new do
+          worker.perform
+        end
       end
 
-      after do
-        @thread.kill
-        @thread.join
+      let(:task) do
+        proc do |*args|
+          worker_spy.perform(*args)
+          Fiber.yield
+        end
+      end
+
+      before do
+        # Start the loop in a fiber.
+        fiber.resume
+
+        # Verify we hit the breakpoint
+        expect(worker_spy).to have_received(:perform)
       end
     end
 
@@ -103,7 +113,7 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
 
       context 'when the worker is running' do
-        include_context 'perform loop in thread'
+        include_context 'perform loop in fiber'
 
         it { is_expected.to be true }
 
@@ -129,7 +139,7 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
 
       context 'when the worker is running' do
-        include_context 'perform loop in thread'
+        include_context 'perform loop in fiber'
         it { is_expected.to be true }
       end
     end
@@ -142,7 +152,7 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       end
 
       context 'when worker is running' do
-        include_context 'perform loop in thread'
+        include_context 'perform loop in fiber'
         it { is_expected.to be true }
       end
     end

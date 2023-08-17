@@ -1,0 +1,30 @@
+module Datadog
+  module Tracing
+    module Diagnostics
+      module EnvironmentLogger
+        extend Core::Diagnostics::EnvironmentLogging
+
+        def self.collect_and_log!: (?responses: untyped?) -> untyped
+      end
+      module EnvironmentCollector
+        def self.collect_config!: () -> ::Hash[:enabled | :agent_url | :analytics_enabled | :sample_rate | :sampling_rules | :integrations_loaded | :partial_flushing_enabled | :priority_sampling_enabled | untyped, untyped]
+
+        def self.collect_errors!: (untyped responses) -> { agent_error: untyped }
+        def self.enabled: () -> untyped
+        def self.agent_url: () -> (nil | untyped)
+        def self.agent_error: (untyped responses) -> (nil | untyped)
+        def self.analytics_enabled: () -> untyped
+        def self.sample_rate: () -> (nil | untyped)
+        def self.sampling_rules: () -> (nil | untyped)
+        def self.integrations_loaded: () -> (nil | untyped)
+        def self.partial_flushing_enabled: () -> untyped
+        def self.priority_sampling_enabled: () -> untyped
+
+        private
+
+        def self.instrumented_integrations: () -> untyped
+        def self.instrumented_integrations_settings: () -> untyped
+      end
+    end
+  end
+end
