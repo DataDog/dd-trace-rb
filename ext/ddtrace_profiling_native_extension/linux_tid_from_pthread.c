@@ -100,6 +100,7 @@
 
     // We use the current thread as the first reference thread
     collect_tid_probe_info(&reference_threads_probe_info[0]);
+    if (!reference_threads_probe_info[0].buffer_read_success) return -1;
 
     // ...and then we create a few more to act as extra references
     for (int i = 1; i < REFERENCE_THREADS_COUNT; i++) {
