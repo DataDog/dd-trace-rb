@@ -52,9 +52,8 @@ module Datadog
             DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: peer_service_enabled
           }
           unless Datadog.configuration.tracing.contrib.peer_service_mapping.empty?
-            hash[:DD_TRACE_PEER_SERVICE_MAPPING] = format_configuration_value(
-              Datadog.configuration.tracing.contrib.peer_service_mapping
-            )
+            peer_service_mapping = Datadog.configuration.tracing.contrib.peer_service_mapping
+            hash[:DD_TRACE_PEER_SERVICE_MAPPING] = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
           end
 
           hash.compact!
