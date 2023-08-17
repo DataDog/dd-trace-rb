@@ -196,5 +196,6 @@
 
   short setup_linux_tid_from_pthread_offset(void) { return -1; }
   pid_t linux_tid_from(DDTRACE_UNUSED pthread_t thread, DDTRACE_UNUSED short offset) { return -1; }
+  bool read_safely(void *read_from_ptr, void *read_into_buffer, short buffer_size) { return false; }
 
 #endif // __linux__
