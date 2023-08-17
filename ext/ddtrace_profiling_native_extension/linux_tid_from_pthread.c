@@ -155,7 +155,7 @@
     int unused_flags = 0;
     int number_of_iovecs = 1;
 
-    short num_read = process_vm_readv(getpid(), &read_into, number_of_iovecs, &read_from, number_of_iovecs, unused_flags);
+    short num_read = process_vm_readv(gettid(), &read_into, number_of_iovecs, &read_from, number_of_iovecs, unused_flags);
 
     return num_read == buffer_size;
   }
