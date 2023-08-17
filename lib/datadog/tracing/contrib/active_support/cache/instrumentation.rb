@@ -109,6 +109,16 @@ module Datadog
                   action: Ext::RESOURCE_CACHE_GET,
                   key: args[0],
                   tracing_context: {},
+                  # The name of the store is never saved anywhere.
+                  # ActiveSupport looks up stores by converting a symbol into a 'require' path:
+                  # https://github.com/rails/rails/blob/261975dbef77731d2c76f907f1076c5132ebc0e4/activesupport/lib/active_support/cache.rb#L139-L149
+                  #
+                  # Given we are inside the store object itself, we can reverse engineer
+                  # the `require` path by converting the class name to snake case:
+                  # e.g. ActiveSupport::Cache::RedisStore -> active_support/cache/redis_store
+                  #
+                  # We only care about the last part of the path, but it's easier to convert
+                  # the whole class name then extract the last part.
                   store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
                 }
 
