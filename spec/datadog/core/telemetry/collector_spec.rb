@@ -188,7 +188,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       let(:dd_trace_remove_integration_service_names_enabled) { nil }
       context 'when set to true' do
-        let(:dd_trace_remove_integration_service_names_enabled) { true }
+        let(:dd_trace_remove_integration_service_names_enabled) { 'true' }
         it { is_expected.to include(:DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED => true) }
       end
 
