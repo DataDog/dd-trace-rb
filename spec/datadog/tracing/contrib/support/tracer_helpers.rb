@@ -29,7 +29,7 @@ module Contrib
     # Retrieves all traces in the current tracer instance.
     # This method does not cache its results.
     def fetch_traces(tracer = self.tracer)
-      tracer.instance_variable_get(:@traces) || []
+      (tracer.instance_variable_defined?(:@traces) && tracer.instance_variable_get(:@traces)) || []
     end
 
     # Retrieves and sorts all spans in the current tracer instance.
