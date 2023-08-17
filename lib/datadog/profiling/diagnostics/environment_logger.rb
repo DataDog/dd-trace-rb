@@ -15,7 +15,6 @@ module Datadog
         def self.collect_and_log!
           log_once! do
             data = EnvironmentCollector.collect_config!
-            data.reject! { |_, v| v.nil? } # Remove empty values from hash output
             log_configuration!('PROFILING', data.to_json)
           end
         rescue => e

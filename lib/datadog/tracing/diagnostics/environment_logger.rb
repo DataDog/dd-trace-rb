@@ -15,7 +15,6 @@ module Datadog
         def self.collect_and_log!(responses: nil)
           log_once! do
             env_data = EnvironmentCollector.collect_config!
-            env_data.reject! { |_, v| v.nil? } # Remove empty values from hash output
             log_configuration!('TRACING', env_data.to_json)
 
             if responses

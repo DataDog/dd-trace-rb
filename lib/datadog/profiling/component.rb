@@ -8,6 +8,9 @@ module Datadog
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
       def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
+        require_relative '../profiling/diagnostics/environment_logger'
+        Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
+
         return unless settings.profiling.enabled
 
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
@@ -100,8 +103,6 @@ module Datadog
         exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
-
-        Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
 
         Profiling::Profiler.new([collector], scheduler)
       end
