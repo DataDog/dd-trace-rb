@@ -50,6 +50,9 @@
 // Thus, we can safely read the opaque block of memory that we suspect exists at that memory location, and search it for
 // the info we want.
 //
+// Note: As documented in the man page, `process_vm_readv` needs special permissions and may not work on every Linux
+// setup. This is handled below as any other error, and just makes this approach not usable in those machines.
+//
 // #### How to make this accurate
 //
 // After reading memory safely, you may wonder -- what if the tid is really low, like 1 or 2 (e.g. in a docker container)
@@ -148,7 +151,7 @@
     return NULL;
   }
 
-  static bool read_safely(void *read_from_ptr, void *read_into_buffer, short buffer_size) {
+  bool read_safely(void *read_from_ptr, void *read_into_buffer, short buffer_size) {
     struct iovec read_into = {.iov_base = read_into_buffer, .iov_len = buffer_size};
     struct iovec read_from = {.iov_base = read_from_ptr, .iov_len = buffer_size};
 

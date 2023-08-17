@@ -24,6 +24,7 @@ RSpec.describe Datadog::Profiling::LinuxTidFallback do
     context 'when on Linux' do
       before do
         skip 'Test only runs on Linux' unless PlatformHelpers.linux?
+        check_for_process_vm_readv
       end
 
       context 'on Ruby >= 3.1' do
@@ -57,6 +58,7 @@ RSpec.describe Datadog::Profiling::LinuxTidFallback do
     context 'when on Linux' do
       before do
         skip 'Test only runs on Linux' unless PlatformHelpers.linux?
+        check_for_process_vm_readv
       end
 
       context 'on Ruby >= 3.1' do
@@ -70,6 +72,33 @@ RSpec.describe Datadog::Profiling::LinuxTidFallback do
 
         it { is_expected.to be_an_instance_of described_class }
       end
+    end
+  end
+
+  # Why is this here? The LinuxTidFallback relies on the process_vm_readv Linux API, which needs special permissions
+  # and may be disabled. This is the case with CircleCI, where we usually run our tests.
+  #
+  # But it's dangerous to skip running specs in CI, since it may mean that we miss breakages. So, this check
+  # tries to be very precise: it only skips the specs IF indeed the API is not available + we're on CircleCI.
+  # (In case in the future our setup changes and the specs can run again.)
+  #
+  # It also breaks the specs with a clear error message when the API is not available; as otherwise the failures
+  # would be a bit cryptic.
+  #
+  # Finally, it adds a DD_PROFILING_SKIP_LINUX_TID_FALLBACK_TESTING that folks can use for local testing, in case
+  # their setup doesn't provide this API either.
+  def check_for_process_vm_readv
+    return if Datadog::Profiling::LinuxTidFallback::Testing._native_can_use_process_vm_readv?
+
+    if ENV['CIRCLECI'] == 'true'
+      skip "Skipping LinuxTidFallback specs because process_vm_readv doesn't work on CircleCI"
+    elsif ENV['DD_PROFILING_SKIP_LINUX_TID_FALLBACK_TESTING'] == 'true'
+      skip 'Skipping LinuxTidFallback specs because DD_PROFILING_SKIP_LINUX_TID_FALLBACK_TESTING is set to true'
+    else
+      raise(
+        'Unexpected: Running in system where process_vm_readv seems to be blocked. ' \
+        'To skip running these tests set DD_PROFILING_SKIP_LINUX_TID_FALLBACK_TESTING to true.'
+      )
     end
   end
 end

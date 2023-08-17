@@ -16,6 +16,7 @@ static VALUE _native_new(VALUE klass);
 static VALUE _native_working(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static VALUE _native_linux_tid_fallback_for(DDTRACE_UNUSED VALUE self, VALUE self_instance, VALUE thread);
 static VALUE _native_gettid(DDTRACE_UNUSED VALUE self);
+static VALUE _native_can_use_process_vm_readv(DDTRACE_UNUSED VALUE self);
 
 void linux_tid_fallback_init(VALUE profiling_module) {
   VALUE linux_tid_fallback_class = rb_define_class_under(profiling_module, "LinuxTidFallback", rb_cObject);
@@ -35,6 +36,7 @@ void linux_tid_fallback_init(VALUE profiling_module) {
   rb_define_singleton_method(linux_tid_fallback_class, "_native_working?", _native_working, 1);
   rb_define_singleton_method(testing_module, "_native_linux_tid_fallback_for", _native_linux_tid_fallback_for, 2);
   rb_define_singleton_method(testing_module, "_native_gettid", _native_gettid, 0);
+  rb_define_singleton_method(testing_module, "_native_can_use_process_vm_readv?", _native_can_use_process_vm_readv, 0);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct linux_tid_fallback_state
@@ -81,4 +83,18 @@ static VALUE _native_linux_tid_fallback_for(DDTRACE_UNUSED VALUE self, VALUE sel
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_gettid(DDTRACE_UNUSED VALUE self) {
   return LONG2NUM(gettid());
+}
+
+static VALUE _native_can_use_process_vm_readv(DDTRACE_UNUSED VALUE self) {
+  #ifdef __linux__
+    int buffer_size = 20;
+    char source_buffer[buffer_size], target_buffer[buffer_size];
+    strncpy(source_buffer, "test-string", buffer_size);
+
+    bool success = read_safely(source_buffer, target_buffer, buffer_size);
+
+    return success && strncmp(source_buffer, target_buffer, buffer_size) == 0 ? Qtrue : Qfalse;
+  #else
+    return Qfalse;
+  #endif
 }

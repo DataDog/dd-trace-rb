@@ -1032,6 +1032,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           context 'when the linux_tid_fallback is available' do
             before do
               skip 'The linux_tid_fallback only applies on Linux' unless PlatformHelpers.linux?
+              unless Datadog::Profiling::LinuxTidFallback::Testing._native_can_use_process_vm_readv?
+                skip "The linux_tid_fallback does not work on this system (see that class's specs for details)"
+              end
 
               expect(linux_tid_fallback).to_not be nil
             end
