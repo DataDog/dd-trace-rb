@@ -22,3 +22,6 @@ pid_t linux_tid_from(pthread_t thread, short offset);
 
 // Only used for testing, offers direct access to the `process_vm_readv` call
 bool read_safely(void *read_from_ptr, void *read_into_buffer, short buffer_size);
+
+// gettid() is not available on all systems, so this allows us to have a workaround in a single place only
+pid_t ddtrace_gettid(void);

@@ -70,7 +70,7 @@ pid_t linux_tid_fallback_for(VALUE linux_tid_fallback, pthread_t thread) {
 }
 
 static VALUE _native_working(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
-  return linux_tid_fallback_for(self_instance, pthread_self()) == gettid() ? Qtrue : Qfalse;
+  return linux_tid_fallback_for(self_instance, pthread_self()) == ddtrace_gettid() ? Qtrue : Qfalse;
 }
 
 // This method exists only to enable testing Datadog::Profiling::LinuxTidFallback behavior using RSpec.
@@ -82,7 +82,7 @@ static VALUE _native_linux_tid_fallback_for(DDTRACE_UNUSED VALUE self, VALUE sel
 // This method exists only to enable testing Datadog::Profiling::LinuxTidFallback behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_gettid(DDTRACE_UNUSED VALUE self) {
-  return LONG2NUM(gettid());
+  return LONG2NUM(ddtrace_gettid());
 }
 
 static VALUE _native_can_use_process_vm_readv(DDTRACE_UNUSED VALUE self) {

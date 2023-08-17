@@ -76,6 +76,7 @@
   #include <pthread.h>
   #include <stdbool.h>
   #include <stdio.h>
+  #include <sys/syscall.h>
   #include <sys/uio.h>
   #include <unistd.h>
   #include "linux_tid_from_pthread.h"
@@ -145,7 +146,7 @@
   static void *collect_tid_probe_info(void *tid_probe_info) {
     struct tid_probe_info *result = (struct tid_probe_info *) tid_probe_info;
 
-    result->tid = gettid();
+    result->tid = ddtrace_gettid();
     result->buffer_read_success = read_struct_pthread(pthread_self(), result->buffer);
 
     return NULL;
@@ -158,7 +159,7 @@
     int unused_flags = 0;
     int number_of_iovecs = 1;
 
-    short num_read = process_vm_readv(gettid(), &read_into, number_of_iovecs, &read_from, number_of_iovecs, unused_flags);
+    short num_read = process_vm_readv(ddtrace_gettid(), &read_into, number_of_iovecs, &read_from, number_of_iovecs, unused_flags);
 
     return num_read == buffer_size;
   }
@@ -189,6 +190,12 @@
     return result > 0 ? result : -1; // Normalize failures to -1
   }
 
+  pid_t ddtrace_gettid(void) {
+    // Note: This is the same as gettid() but older libc versions didn't have the nice helper so we have our own
+    // so we can support them.
+    return syscall(SYS_gettid);
+  }
+
 #else // Fallback for when not on Linux
 
   #include "linux_tid_from_pthread.h"
@@ -197,5 +204,6 @@
   short setup_linux_tid_from_pthread_offset(void) { return -1; }
   pid_t linux_tid_from(DDTRACE_UNUSED pthread_t thread, DDTRACE_UNUSED short offset) { return -1; }
   bool read_safely(void *read_from_ptr, void *read_into_buffer, short buffer_size) { return false; }
+  pid_t ddtrace_gettid(void) { return -1; }
 
 #endif // __linux__
