@@ -56,11 +56,7 @@ module Datadog
               return unless span && !span.finished?
 
               begin
-                # discard parameters from the cache_store configuration
-                if defined?(::Rails)
-                  store, = *Array.wrap(::Rails.configuration.cache_store).flatten
-                  span.set_tag(Ext::TAG_CACHE_BACKEND, store)
-                end
+                span.set_tag(Ext::TAG_CACHE_BACKEND, payload[:store]) if payload[:store]
 
                 normalized_key = ::ActiveSupport::Cache.expand_cache_key(payload.fetch(:key))
                 cache_key = Core::Utils.truncate(normalized_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
@@ -112,7 +108,8 @@ module Datadog
                 payload = {
                   action: Ext::RESOURCE_CACHE_GET,
                   key: args[0],
-                  tracing_context: {}
+                  tracing_context: {},
+                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
                 }
 
                 begin
@@ -135,7 +132,8 @@ module Datadog
                 payload = {
                   action: Ext::RESOURCE_CACHE_MGET,
                   keys: keys,
-                  tracing_context: {}
+                  tracing_context: {},
+                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
                 }
 
                 begin
@@ -158,7 +156,8 @@ module Datadog
                 payload = {
                   action: Ext::RESOURCE_CACHE_GET,
                   key: args[0],
-                  tracing_context: {}
+                  tracing_context: {},
+                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
                 }
 
                 begin
@@ -183,7 +182,8 @@ module Datadog
                 payload = {
                   action: Ext::RESOURCE_CACHE_MGET,
                   keys: keys,
-                  tracing_context: {}
+                  tracing_context: {},
+                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
                 }
 
                 begin
@@ -206,7 +206,8 @@ module Datadog
                 payload = {
                   action: Ext::RESOURCE_CACHE_SET,
                   key: args[0],
-                  tracing_context: {}
+                  tracing_context: {},
+                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
                 }
 
                 begin
@@ -229,7 +230,8 @@ module Datadog
                 payload = {
                   action: Ext::RESOURCE_CACHE_MSET,
                   keys: hash.keys,
-                  tracing_context: {}
+                  tracing_context: {},
+                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
                 }
 
                 begin
@@ -252,7 +254,8 @@ module Datadog
                 payload = {
                   action: Ext::RESOURCE_CACHE_DELETE,
                   key: args[0],
-                  tracing_context: {}
+                  tracing_context: {},
+                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
                 }
 
                 begin
