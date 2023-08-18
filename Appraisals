@@ -987,7 +987,6 @@ elsif ruby_version?('2.5')
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
     gem 'stripe', '~> 7.0'
     gem 'activerecord-jdbcsqlite3-adapter', '>= 52', platform: :jruby
-    # gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0', '< 2.0.0'

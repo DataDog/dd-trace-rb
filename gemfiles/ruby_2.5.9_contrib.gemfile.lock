@@ -1799,8 +1799,9 @@ DEPENDENCIES
   actionview
   active_model_serializers (>= 0.10.0)
   activerecord (~> 5)
-  activerecord-jdbcmysql-adapter (>= 60.2)
-  activerecord-jdbcpostgresql-adapter (>= 60.2)
+  activerecord-jdbcmysql-adapter (>= 52)
+  activerecord-jdbcpostgresql-adapter (>= 52)
+  activerecord-jdbcsqlite3-adapter (>= 52)
   addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   aws-sdk
@@ -1828,7 +1829,6 @@ DEPENDENCIES
   http
   httpclient
   i18n (= 1.8.7)
-  jdbc-sqlite3 (>= 3.28)
   json-schema (< 3)
   lograge (~> 0.11)
   makara
