@@ -587,6 +587,15 @@ elsif ruby_version?('2.3')
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
+
+  # Somehow, I failed to install this appraisal group with Ruby 2.4
+  appraise 'activerecord-3' do
+    gem 'activerecord', '~> 3'
+    gem 'mysql2', '~> 0.3.0'
+    gem 'activerecord-mysql-adapter'
+    gem 'sqlite3', '~> 1.3.0'
+    gem 'makara', '~> 0.3.0'
+  end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.4')
   appraise 'hanami-1' do
@@ -701,6 +710,13 @@ elsif ruby_version?('2.4')
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0', '< 2.0.0'
+  end
+
+  appraise 'activerecord-4' do
+    gem 'activerecord', '~> 4'
+    gem 'mysql2'
+    gem 'sqlite3', '~> 1.3.0'
+    gem 'makara', '~> 0.3.0'
   end
 
   appraise 'sinatra' do
