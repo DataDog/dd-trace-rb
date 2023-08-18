@@ -7,4 +7,6 @@ end
 module Rails
   class Railtie
   end
+
+  def self.env: -> String
 end

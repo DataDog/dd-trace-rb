@@ -113,6 +113,101 @@ RSpec.describe Datadog::Core::Environment::Execution do
           expect(err).to end_with('true')
         end
       end
+
+      context 'for Rails' do
+        before do
+          unless PlatformHelpers.ci? || Gem.loaded_specs['rails']
+            skip('rails gem not present. In CI, this test is never skipped.')
+          end
+        end
+
+        shared_examples 'rails test' do
+          it 'returns true' do
+            expect_in_fork(timeout_seconds: 30) do
+              Tempfile.open('template.rb') do |template|
+                template.write(script)
+                template.flush
+
+                require 'bundler/inline'
+
+                gemfile(true) do
+                  source 'https://rubygems.org'
+                  gem 'rails'
+                end
+
+                out, err, status = nil
+                Dir.mktmpdir do |dir|
+                  Dir.chdir(dir) do
+                    out, err, status = Bundler.with_clean_env do
+                      Open3.capture3('rails', 'new', 'test123', '--minimal', '-m', template.path)
+                    end
+                  end
+                end
+
+                expect(status).to be_success,
+                  "Process exited with status #{status.exitstatus}.\n" \
+                  "STDOUT (#{out.size} characters):\n#{out}\nSTDERR (#{err.size} characters):\n#{err}"
+              end
+            end
+          end
+        end
+
+        let(:load_ddtrace) do
+          lib = File.join(Dir.pwd, 'lib')
+          <<-RUBY
+# Load the working directory version of `ddtrace`
+lib = '#{lib}'
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require 'datadog/core/environment/execution'
+          RUBY
+        end
+
+        context 'development' do
+          let(:script) do
+            <<-RUBY
+generate(:task, 'namespace', 'task_name')
+
+insert_into_file "lib/tasks/namespace.rake", "
+
+#{load_ddtrace}
+
+raise unless Datadog::Core::Environment::Execution.development?
+
+", after: "task_name: :environment do\n"
+
+raise 'Not detected as development!' unless rake("namespace:task_name")
+            RUBY
+          end
+
+          include_examples 'rails test'
+        end
+
+        context 'testing' do
+          let(:script) do
+            <<-RUBY
+# Create any Rails entity: this will provide us with a test file to execute.
+generate(:controller, 'test')
+
+# Add a simple test case that checks if `#development?` returns as expected.
+insert_into_file "test/controllers/test_controller_test.rb", "
+
+#{load_ddtrace}
+
+test 'generated test' do
+  assert Datadog::Core::Environment::Execution.development?
+end
+", after: "IntegrationTest\n"
+
+# Execute the Rails app test suite. This will fail if the test we introduced above fails.
+after_bundle do
+  rails_command("test")
+end
+            RUBY
+          end
+
+          include_examples 'rails test'
+        end
+      end
     end
   end
 end

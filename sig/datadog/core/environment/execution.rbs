@@ -15,6 +15,10 @@ module Datadog
         def self.minitest?: () -> bool
 
         def self.rails_development?: -> bool
+
+        RAILS_ENV_DEVELOPMENT: Set[String]
+
+        def self.rails_env_development?: -> untyped
       end
     end
   end
