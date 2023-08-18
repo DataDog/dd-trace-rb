@@ -13,6 +13,8 @@ module Datadog
 
         RSPEC_PROGRAM_NAME: ::String
         def self.minitest?: () -> bool
+
+        def self.rails_development?: -> bool
       end
     end
   end

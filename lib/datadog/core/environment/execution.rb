@@ -10,7 +10,7 @@ module Datadog
           # This can be used to make decisions about when to enable
           # background systems like worker threads or telemetry.
           def development?
-            !!(repl? || test?)
+            !!(repl? || test? || rails_development?)
           end
 
           private
@@ -47,6 +47,16 @@ module Datadog
               (defined?(::Minitest::Unit) &&
                 ::Minitest::Unit.class_variable_defined?(:@@installed_at_exit) &&
                 ::Minitest::Unit.class_variable_get(:@@installed_at_exit))
+          end
+
+          # A Rails Spring Ruby process is a bit peculiar: the process is agnostic
+          # whether the application is running as a console or server.
+          # Luckily, the Spring gem *must not* be installed in a production environment so
+          # detecting its presence is enough to deduct if this is a development environment.
+          #
+          # @see https://github.com/rails/spring/blob/48b299348ace2188444489a0c216a6f3e9687281/README.md?plain=1#L204-L207
+          def rails_development?
+            defined?(::Spring)
           end
         end
       end
