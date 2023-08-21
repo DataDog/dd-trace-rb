@@ -1,8 +1,10 @@
 require 'datadog/profiling/spec_helper'
+require 'datadog/profiling/agent_settings_resolver'
 
 RSpec.describe Datadog::Profiling::Component do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+  let(:logger) { nil }
+  let(:agent_settings) { Datadog::Profiling::AgentSettingsResolver.call(settings, logger: logger) }
   let(:profiler_setup_task) { instance_double(Datadog::Profiling::Tasks::Setup) if Datadog::Profiling.supported? }
 
   before do
@@ -16,7 +18,7 @@ RSpec.describe Datadog::Profiling::Component do
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
     subject(:build_profiler_component) do
-      described_class.build_profiler_component(settings: settings, agent_settings: agent_settings, optional_tracer: tracer)
+      described_class.build_profiler_component(settings: settings, logger: logger, optional_tracer: tracer)
     end
 
     context 'when profiling is not supported' do
