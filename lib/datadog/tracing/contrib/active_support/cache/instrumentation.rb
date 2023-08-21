@@ -113,6 +113,7 @@ module Datadog
                   # ActiveSupport looks up stores by converting a symbol into a 'require' path:
                   # ```
                   # require "active_support/cache/#{store}"
+                  # ActiveSupport::Cache.const_get(store.to_s.camelize)
                   # ```
                   # @see https://github.com/rails/rails/blob/261975dbef77731d2c76f907f1076c5132ebc0e4/activesupport/lib/active_support/cache.rb#L139-L149
                   #
