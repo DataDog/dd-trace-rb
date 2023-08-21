@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/active_record/configuration/resolver'
 
 RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver do
   # rubocop: disable RSpec/MultipleSubjects
-  if ::ActiveRecord.version >= '6.0'
+  if ::ActiveRecord.respond_to?(:version) && ::ActiveRecord.version >= '6.0'
     require 'active_record/database_configurations'
     subject(:resolver) { described_class.new(::ActiveRecord::DatabaseConfigurations.new(configuration)) }
   else
