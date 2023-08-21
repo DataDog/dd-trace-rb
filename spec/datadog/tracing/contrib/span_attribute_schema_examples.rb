@@ -25,20 +25,13 @@ RSpec.shared_examples 'schema version span' do
       it do
         expect(span.service).to eq('rspec')
       end
-    end
 
-    context 'service name test with integration service name' do
-      # setting DD_SERVICE for APM Test Agent service naming assertions
-      around do |example|
-        ClimateControl.modify(DD_SERVICE: 'configured') do
-          example.run
+      context 'service name test with integration service name' do
+        let(:configuration_options) { { service_name: 'configured' } }
+        it do
+          expect(span.service).to eq(configuration_options[:service_name])
+          expect(span.get_tag('_dd.base_service')).to eq('rspec')
         end
-      end
-
-      let(:configuration_options) { { service_name: 'configured' } }
-      it do
-        expect(span.service).to eq(configuration_options[:service_name])
-        expect(span.get_tag('_dd.base_service')).to eq('rspec')
       end
     end
   end
