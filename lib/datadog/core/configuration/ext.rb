@@ -19,6 +19,11 @@ module Datadog
 
         module Transport
           ENV_DEFAULT_HOST = 'DD_AGENT_HOST'
+          # DD_TRACE_AGENT_PORT is the only env var available for setting the agent port.
+          # It is the same as Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT
+          # but is also here as we do not want Core to have a dependency on Tracing.
+          ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'
+          ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'
         end
       end
     end

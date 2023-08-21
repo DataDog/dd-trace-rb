@@ -1,7 +1,7 @@
 require 'uri'
 
 require_relative 'settings'
-require_relative '../../tracing/configuration/ext'
+require_relative 'ext'
 require_relative '../../../ddtrace/transport/ext'
 
 module Datadog
@@ -115,7 +115,7 @@ module Datadog
               value: settings.agent.host
             ),
             DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
               value: parsed_http_url && parsed_http_url.hostname
             ),
             DetectedConfiguration.new(
@@ -138,12 +138,12 @@ module Datadog
               value: settings.agent.port,
             ),
             DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
               value: parsed_http_url && parsed_http_url.port,
             ),
             try_parsing_as_integer(
-              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
-              value: ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT],
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
+              value: ENV[Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_PORT],
             )
           )
         end
@@ -235,7 +235,7 @@ module Datadog
         def parsed_url
           return @parsed_url if defined?(@parsed_url)
 
-          unparsed_url_from_env = ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL]
+          unparsed_url_from_env = ENV[Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_URL]
 
           @parsed_url =
             if unparsed_url_from_env
@@ -246,9 +246,9 @@ module Datadog
               else
                 # rubocop:disable Layout/LineLength
                 log_warning(
-                  "Invalid URI scheme '#{parsed.scheme}' for #{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} " \
+                  "Invalid URI scheme '#{parsed.scheme}' for #{Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_URL} " \
                   "environment variable ('#{unparsed_url_from_env}'). " \
-                  "Ignoring the contents of #{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL}."
+                  "Ignoring the contents of #{Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_URL}."
                 )
                 # rubocop:enable Layout/LineLength
 
