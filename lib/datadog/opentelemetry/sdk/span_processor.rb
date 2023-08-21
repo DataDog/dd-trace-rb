@@ -97,12 +97,6 @@ module Datadog
         def ns_to_time(timestamp_ns)
           Time.at(timestamp_ns / 1000000000.0)
         end
-
-        # Converts the OpenTelemetry's byte array format to a {Numeric} Datadog id.
-        # This method currently converts a binary String to an unsigned 64-bit Integer.
-        def to_datadog_id(id)
-          id.unpack1('Q')
-        end
       end
     end
   end
