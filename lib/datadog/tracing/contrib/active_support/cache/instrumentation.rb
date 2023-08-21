@@ -110,7 +110,8 @@ module Datadog
                   key: args[0],
                   tracing_context: {},
                   # The name of the store is never saved anywhere.
-                  # ActiveSupport looks up stores by converting a symbol into a 'require' path:
+                  # ActiveSupport looks up stores by converting a symbol into a 'require' path,
+                  # then "camelizing" it for a `const_get` call:
                   # ```
                   # require "active_support/cache/#{store}"
                   # ActiveSupport::Cache.const_get(store.to_s.camelize)
