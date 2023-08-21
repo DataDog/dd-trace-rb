@@ -1412,7 +1412,7 @@ elsif ruby_version?('2.7')
       gem 'resque', '>= 2.0'
     end
 
-    (3..5).each { |v| gem_cucumber(v) }
+    (3..8).each { |v| gem_cucumber(v) }
 
     appraise 'contrib' do
       gem 'actionpack'
@@ -1549,7 +1549,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2') || ru
     gem 'resque', '>= 2.0'
   end
 
-  (3..5).each { |v| gem_cucumber(v) }
+  (3..8).each { |v| gem_cucumber(v) }
 
   appraise 'contrib' do
     gem 'actionpack', '~> 7'
