@@ -93,6 +93,10 @@ module Datadog
             def connection_resolver
               @resolver ||= if defined?(::ActiveRecord::Base.configurations.resolve)
                               ::ActiveRecord::DatabaseConfigurations.new(active_record_configuration)
+                            elsif defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
+                              ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(
+                                active_record_configuration
+                              )
                             else
                               Contrib::ActiveRecord::Vendor::ConnectionAdapters::ConnectionSpecification::Resolver.new(
                                 active_record_configuration

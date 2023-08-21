@@ -4,9 +4,16 @@ require 'active_record'
 require 'datadog/tracing/contrib/active_record/configuration/resolver'
 
 RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver do
-  subject(:resolver) { described_class.new(configuration) }
+  # rubocop: disable RSpec/MultipleSubjects
+  if ::ActiveRecord.version >= '6.0'
+    require 'active_record/database_configurations'
+    subject(:resolver) { described_class.new(::ActiveRecord::DatabaseConfigurations.new(configuration)) }
+  else
+    subject(:resolver) { described_class.new(configuration) }
+  end
+  # rubocop: enable RSpec/MultipleSubjects
 
-  let(:configuration) { nil }
+  let(:configuration) { ::ActiveRecord::Base.configurations }
 
   describe '#add' do
     subject(:add) { resolver.add(matcher, config) }
