@@ -206,7 +206,11 @@ module Datadog
         end
 
         def transport_options_settings
-          @transport_options_settings ||= settings.tracing&.transport_options
+          @transport_options_settings ||= begin
+            if settings.respond_to?(:tracing) && settings.tracing
+              settings.tracing.transport_options
+            end
+          end
         end
 
         # We only use the default unix socket if it is already present.
