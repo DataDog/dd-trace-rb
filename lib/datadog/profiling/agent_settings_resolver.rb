@@ -1,4 +1,6 @@
-require_relative '../core/configuration/agent_settings_resolver.rb'
+# frozen_string_literal: true
+
+require_relative '../core/configuration/agent_settings_resolver'
 
 module Datadog
   module Profiling

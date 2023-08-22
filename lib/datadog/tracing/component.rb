@@ -24,7 +24,6 @@ module Datadog
       end
 
       def build_tracer(settings, logger:)
-
         # If a custom tracer has been provided, use it instead.
         # Ignore all other options (they should already be configured.)
         tracer = settings.tracing.instance
