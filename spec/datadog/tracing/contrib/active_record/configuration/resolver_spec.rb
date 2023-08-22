@@ -4,16 +4,15 @@ require 'active_record'
 require 'datadog/tracing/contrib/active_record/configuration/resolver'
 
 RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver do
-  # rubocop: disable RSpec/MultipleSubjects
-  # `::ActiveRecord.version` does not exist before 4.x
-  if ::ActiveRecord.respond_to?(:version) && ::ActiveRecord.version >= Gem::Version.new('6')
-    # ::ActiveRecord::DatabaseConfigurations` was introduced from 6+
-    require 'active_record/database_configurations'
-    subject(:resolver) { described_class.new(::ActiveRecord::DatabaseConfigurations.new(configuration)) }
-  else
-    subject(:resolver) { described_class.new(configuration) }
+  subject(:resolver) do
+    if ::ActiveRecord.respond_to?(:version) && ::ActiveRecord.version >= Gem::Version.new('6')
+      # ::ActiveRecord::DatabaseConfigurations` was introduced from 6+
+      require 'active_record/database_configurations'
+      described_class.new(::ActiveRecord::DatabaseConfigurations.new(configuration))
+    else
+      described_class.new(configuration)
+    end
   end
-  # rubocop: enable RSpec/MultipleSubjects
 
   let(:configuration) { ::ActiveRecord::Base.configurations }
 
