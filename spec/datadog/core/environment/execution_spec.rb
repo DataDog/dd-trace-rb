@@ -174,5 +174,37 @@ RSpec.describe Datadog::Core::Environment::Execution do
         expect(described_class).to be_webmock_enabled
       end
     end
+
+    [1, 2, 3].each do |version|
+      context "when given WebMock version #{version}.x" do
+        it do
+          out, _err = Bundler.with_clean_env do
+            Open3.capture3('ruby', stdin_data: <<-RUBY
+              require 'bundler/inline'
+
+              gemfile(true, quiet: true) do
+                source 'https://rubygems.org'
+                gem 'webmock', "~> #{version}"
+              end
+
+              require 'webmock'
+              WebMock.enable!
+
+              lib = File.expand_path('lib', __dir__)
+              $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+              require 'datadog/core/environment/execution'
+
+              STDOUT.print "WebMock::VERSION:"
+              STDOUT.print WebMock::VERSION
+              STDOUT.print "=>"
+              STDOUT.print Datadog::Core::Environment::Execution.webmock_enabled?
+            RUBY
+            )
+          end
+
+          expect(out).to end_with('true')
+        end
+      end
+    end
   end
 end
