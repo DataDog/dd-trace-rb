@@ -128,6 +128,7 @@
         if (thread_offset != candidate_tid_offset) {
           all_offsets_match = false;
           candidate_tid_offset = thread_offset;
+          break;
         }
       }
 

@@ -1041,7 +1041,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             let(:linux_tid_fallback) { Datadog::Profiling::LinuxTidFallback.new_if_needed_and_working }
 
-            it 'is uses the real native thread id' do
+            it 'uses the real native thread id' do
               expect(per_thread_context.fetch(Thread.current).fetch(:thread_id).split.first)
                 .to eq(Datadog::Profiling::LinuxTidFallback::Testing._native_gettid.to_s)
             end
