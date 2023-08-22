@@ -76,7 +76,7 @@ module Datadog
 
           recorder = Datadog::Profiling::StackRecorder.new(
             cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
-            alloc_samples_enabled: false, # Always disabled for now -- work in progress
+            alloc_samples_enabled: settings.profiling.advanced.allocation_counting_enabled && (settings.profiling.advanced.experimental_allocation_sample_every > 0),
           )
           collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
             recorder: recorder,
@@ -87,6 +87,7 @@ module Datadog
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
             no_signals_workaround_enabled: no_signals_workaround_enabled,
             timeline_enabled: timeline_enabled,
+            allocation_sample_every: settings.profiling.advanced.experimental_allocation_sample_every,
           )
         else
           load_pprof_support

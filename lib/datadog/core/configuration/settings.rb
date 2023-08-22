@@ -389,6 +389,14 @@ module Datadog
                 end
               end
             end
+
+            # Requires allocation count enabled to work;
+            # 0 -> disabled, 1 -> every object, 2 -> every other object, ...
+            option :experimental_allocation_sample_every do |o|
+              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_EVERY'
+              o.type :int
+              o.default 0
+            end
           end
 
           # @public_api

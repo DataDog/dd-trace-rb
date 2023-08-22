@@ -22,6 +22,7 @@ module Datadog
           allocation_counting_enabled:,
           no_signals_workaround_enabled:,
           timeline_enabled:,
+          allocation_sample_every: 0,
           thread_context_collector: ThreadContext.new(
             recorder: recorder,
             max_frames: max_frames,
@@ -40,6 +41,11 @@ module Datadog
             )
           end
 
+          Datadog.logger.warn(
+            "Enabled experimental profiler allocation features: " \
+            "#{{allocation_counting_enabled: true, allocation_sample_every: allocation_sample_every}.to_s}"
+          ) if allocation_counting_enabled || allocation_sample_every > 0
+
           self.class._native_initialize(
             self,
             thread_context_collector,
@@ -48,6 +54,7 @@ module Datadog
             allocation_counting_enabled,
             no_signals_workaround_enabled,
             dynamic_sampling_rate_enabled,
+            allocation_sample_every,
           )
           @worker_thread = nil
           @failure_exception = nil

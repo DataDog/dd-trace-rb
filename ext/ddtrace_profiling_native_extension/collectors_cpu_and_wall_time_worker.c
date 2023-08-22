@@ -90,6 +90,7 @@ struct cpu_and_wall_time_worker_state {
   dynamic_sampling_rate_state dynamic_sampling_rate;
   VALUE gc_tracepoint; // Used to get gc start/finish information
   VALUE object_allocation_tracepoint; // Used to get allocation counts and allocation profiling
+  unsigned int allocation_sample_every;
 
   // These are mutable and used to signal things between the worker thread and other threads
 
@@ -150,7 +151,8 @@ static VALUE _native_initialize(
   VALUE idle_sampling_helper_instance,
   VALUE allocation_counting_enabled,
   VALUE no_signals_workaround_enabled,
-  VALUE dynamic_sampling_rate_enabled
+  VALUE dynamic_sampling_rate_enabled,
+  VALUE allocation_sample_every
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
@@ -186,6 +188,7 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
+static VALUE trigger_allocation_sample(VALUE self_instance);
 
 // Note on sampler global state safety:
 //
@@ -223,7 +226,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 7);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 8);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -267,6 +270,7 @@ static VALUE _native_new(VALUE klass) {
   dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
+  state->allocation_sample_every = 0;
 
   atomic_init(&state->should_run, false);
   state->failure_exception = Qnil;
@@ -287,12 +291,14 @@ static VALUE _native_initialize(
   VALUE idle_sampling_helper_instance,
   VALUE allocation_counting_enabled,
   VALUE no_signals_workaround_enabled,
-  VALUE dynamic_sampling_rate_enabled
+  VALUE dynamic_sampling_rate_enabled,
+  VALUE allocation_sample_every
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
   ENFORCE_BOOLEAN(allocation_counting_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
+  ENFORCE_TYPE(allocation_sample_every, T_FIXNUM);
 
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
@@ -305,6 +311,10 @@ static VALUE _native_initialize(
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
   state->object_allocation_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_NEWOBJ, on_newobj_event, NULL /* unused */);
+
+  int sample_every = NUM2INT(allocation_sample_every);
+  if (sample_every < 0) rb_raise(rb_eArgError, "Unexpected value for allocation_sample_every: %d. This value must be >= 0.", sample_every);
+  state->allocation_sample_every = sample_every;
 
   return Qtrue;
 }
@@ -907,7 +917,11 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED
   // defined as not being able to allocate) sets this.
   state->during_sample = true;
 
-  // TODO: Sampling goes here (calling into `thread_context_collector_sample_allocation`)
+  // FIXME
+  if (state->allocation_sample_every > 0 && ((allocation_count % state->allocation_sample_every) == 0)) {
+    // Rescue against any exceptions that happen during sampling
+    safely_call(trigger_allocation_sample, state->self_instance, state->self_instance);
+  }
 
   state->during_sample = false;
 }
@@ -928,4 +942,14 @@ static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
   } else {
     return result;
   }
+}
+
+static VALUE trigger_allocation_sample(VALUE self_instance) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  thread_context_collector_sample_allocation(state->thread_context_collector_instance, state->allocation_sample_every);
+
+  // Return a dummy VALUE because we're called from rb_rescue2 which requires it
+  return Qnil;
 }
