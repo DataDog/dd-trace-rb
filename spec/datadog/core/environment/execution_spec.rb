@@ -5,8 +5,12 @@ require 'spec_helper'
 require 'datadog/core/environment/execution'
 
 RSpec.describe Datadog::Core::Environment::Execution do
-  describe '#development?' do
+  describe '.development?' do
     subject(:development?) { described_class.development? }
+
+    before do
+      WebMock.disable!
+    end
 
     context 'when in an RSpec test' do
       it { is_expected.to eq(true) }
@@ -112,6 +116,62 @@ RSpec.describe Datadog::Core::Environment::Execution do
           _, err, = Open3.capture3('ruby', stdin_data: script)
           expect(err).to end_with('true')
         end
+      end
+    end
+
+    context 'when webmock has enabled net-http adapter' do
+      before do
+        allow(described_class).to receive(:repl?).and_return(false)
+        allow(described_class).to receive(:test?).and_return(false)
+        allow(described_class).to receive(:rails_development?).and_return(false)
+
+        WebMock.enable!
+      end
+
+      it { is_expected.to eq(true) }
+    end
+  end
+
+  describe '.webmock_enabled?' do
+    context 'when missing constant `WebMock`' do
+      it do
+        hide_const('::WebMock')
+        expect(described_class).not_to be_webmock_enabled
+      end
+    end
+
+    context 'when missing constant `Net::HTTP`' do
+      it do
+        hide_const('::Net::HTTP')
+        expect(described_class).not_to be_webmock_enabled
+      end
+    end
+
+    context 'when `WebMock` and `Net::HTTP` constants both exist' do
+      before do
+        WebMock.enable!
+      end
+
+      it do
+        expect(described_class).to be_webmock_enabled
+      end
+
+      it do
+        WebMock.enable!(except: [:net_http])
+
+        expect(described_class).not_to be_webmock_enabled
+      end
+
+      it do
+        WebMock.disable!
+
+        expect(described_class).not_to be_webmock_enabled
+      end
+
+      it do
+        WebMock.disable!(except: [:net_http])
+
+        expect(described_class).to be_webmock_enabled
       end
     end
   end
