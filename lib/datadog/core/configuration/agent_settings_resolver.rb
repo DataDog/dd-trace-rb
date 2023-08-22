@@ -2,7 +2,6 @@ require 'uri'
 
 require_relative 'settings'
 require_relative 'ext'
-require_relative '../../../ddtrace/transport/ext'
 
 module Datadog
   module Core
@@ -167,11 +166,11 @@ module Datadog
         end
 
         def hostname
-          configured_hostname || (should_use_uds? ? nil : Datadog::Transport::Ext::HTTP::DEFAULT_HOST)
+          configured_hostname || (should_use_uds? ? nil : Datadog::Core::Configuration::Ext::Transport::HTTP::DEFAULT_HOST)
         end
 
         def port
-          configured_port || (should_use_uds? ? nil : Datadog::Transport::Ext::HTTP::DEFAULT_PORT)
+          configured_port || (should_use_uds? ? nil : Datadog::Core::Configuration::Ext::Transport::HTTP::DEFAULT_PORT)
         end
 
         # Unix socket path in the file system
@@ -201,9 +200,13 @@ module Datadog
         # In transport_options, we try to invoke the transport_options proc and get its configuration. In case that
         # doesn't work, we include the proc directly in the agent settings result.
         def deprecated_for_removal_transport_configuration_proc
-          if settings.tracing.transport_options.is_a?(Proc) && transport_options.adapter.nil?
-            settings.tracing.transport_options
+          if transport_options_settings.is_a?(Proc) && transport_options.adapter.nil?
+            transport_options_settings
           end
+        end
+
+        def transport_options_settings
+          @transport_options_settings ||= settings.tracing&.transport_options
         end
 
         # We only use the default unix socket if it is already present.
@@ -215,9 +218,9 @@ module Datadog
             if configured_hostname.nil? &&
                 configured_port.nil? &&
                 deprecated_for_removal_transport_configuration_proc.nil? &&
-                File.exist?(Datadog::Transport::Ext::UnixSocket::DEFAULT_PATH)
+                File.exist?(Datadog::Core::Configuration::Ext::Transport::UnixSocket::DEFAULT_PATH)
 
-              Datadog::Transport::Ext::UnixSocket::DEFAULT_PATH
+              Datadog::Core::Configuration::Ext::Transport::UnixSocket::DEFAULT_PATH
             end
         end
 
@@ -328,7 +331,7 @@ module Datadog
         def transport_options
           return @transport_options if defined?(@transport_options)
 
-          transport_options_proc = settings.tracing.transport_options
+          transport_options_proc = transport_options_settings
 
           @transport_options = TransportOptions.new
 
@@ -380,14 +383,14 @@ module Datadog
 
           def adapter(kind_or_custom_adapter, *args, **kwargs)
             case kind_or_custom_adapter
-            when Datadog::Transport::Ext::HTTP::ADAPTER
-              @transport_options.adapter = Datadog::Transport::Ext::HTTP::ADAPTER
+            when Datadog::Core::Configuration::Ext::Transport::HTTP::ADAPTER
+              @transport_options.adapter = Datadog::Core::Configuration::Ext::Transport::HTTP::ADAPTER
               @transport_options.hostname = args[0] || kwargs[:hostname]
               @transport_options.port = args[1] || kwargs[:port]
               @transport_options.timeout_seconds = kwargs[:timeout]
               @transport_options.ssl = kwargs[:ssl]
-            when Datadog::Transport::Ext::UnixSocket::ADAPTER
-              @transport_options.adapter = Datadog::Transport::Ext::UnixSocket::ADAPTER
+            when Datadog::Core::Configuration::Ext::Transport::UnixSocket::ADAPTER
+              @transport_options.adapter = Datadog::Core::Configuration::Ext::Transport::UnixSocket::ADAPTER
               @transport_options.uds_path = args[0] || kwargs[:uds_path]
             end
 

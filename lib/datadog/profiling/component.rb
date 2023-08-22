@@ -9,7 +9,7 @@ module Datadog
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
       def self.build_profiler_component(settings:, logger:, optional_tracer:) # rubocop:disable Metrics/MethodLength
         require_relative '../profiling/diagnostics/environment_logger'
-        require_relative '../profiling/agent_settings_resolver.rb'
+        require_relative '../profiling/agent_settings_resolver'
 
         Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
 

@@ -19,11 +19,22 @@ module Datadog
 
         module Transport
           ENV_DEFAULT_HOST = 'DD_AGENT_HOST'
-          # DD_TRACE_AGENT_PORT is the only env var available for setting the agent port.
-          # It is the same as Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT
-          # but is also here as we do not want Core to have a dependency on Tracing.
+          # env var has "trace" in it, but it really applies to all products
           ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'
           ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'
+
+          module HTTP
+            ADAPTER = :net_http # DEV: Rename to simply `:http`, as Net::HTTP is an implementation detail.
+            DEFAULT_HOST = '127.0.0.1'
+            DEFAULT_PORT = 8126
+          end
+
+          # @public_api
+          module UnixSocket
+            ADAPTER = :unix
+            DEFAULT_PATH = '/var/run/datadog/apm.socket'
+            DEFAULT_TIMEOUT_SECONDS = 1
+          end
         end
       end
     end
