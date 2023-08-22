@@ -176,9 +176,9 @@ RSpec.describe Datadog::Core::Environment::Execution do
     end
 
     [1, 2, 3].each do |version|
-      context "when given WebMock version #{version}.x" do
+      context "when given WebMock version #{version}.x", skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new('2') do
         it do
-          out, _err = Bundler.with_clean_env do
+          out, err = Bundler.with_clean_env do
             Open3.capture3('ruby', stdin_data: <<-RUBY
               require 'bundler/inline'
 
@@ -202,6 +202,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
             )
           end
 
+          expect(err).to be_empty
           expect(out).to end_with('true')
         end
       end
