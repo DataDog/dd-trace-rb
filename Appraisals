@@ -670,7 +670,6 @@ elsif ruby_version?('2.4')
     gem 'activerecord', '< 5.1.5'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'cucumber'
     gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
     gem 'delayed_job_active_record'
@@ -937,7 +936,6 @@ elsif ruby_version?('2.5')
     gem 'activerecord', "~> 5"
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'cucumber'
     gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
@@ -1198,7 +1196,6 @@ elsif ruby_version?('2.6')
       gem 'activerecord', "~> 6.0.0"
       gem 'aws-sdk'
       gem 'concurrent-ruby'
-      gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
       gem 'dalli', '>= 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
@@ -1437,7 +1434,6 @@ elsif ruby_version?('2.7')
       gem 'activerecord', "~> 6.1.0"
       gem 'aws-sdk'
       gem 'concurrent-ruby'
-      gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
       gem 'dalli', '>= 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
@@ -1574,7 +1570,6 @@ elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2') || ru
     gem 'activerecord', '~> 7'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
     gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
