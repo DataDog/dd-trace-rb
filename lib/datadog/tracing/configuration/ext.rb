@@ -90,8 +90,8 @@ module Datadog
 
         # @public_api
         module Transport
-          ENV_DEFAULT_PORT = Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_PORT
-          ENV_DEFAULT_URL = Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_URL
+          ENV_DEFAULT_PORT = Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT
+          ENV_DEFAULT_URL = Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL
         end
 
         # @public_api
