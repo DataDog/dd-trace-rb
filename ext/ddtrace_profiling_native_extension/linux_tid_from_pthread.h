@@ -20,8 +20,8 @@ short setup_linux_tid_from_pthread_offset(void);
 // Thus, assume this is OK to report, but do consider this rare-but-not-theoretically-impossible fact when using this for other use cases.
 pid_t linux_tid_from(pthread_t thread, short offset);
 
-// Only used for testing, offers direct access to the `process_vm_readv` call
-bool read_safely(void *read_from_ptr, void *read_into_buffer, short buffer_size);
-
 // gettid() is not available on all systems, so this allows us to have a workaround in a single place only
 pid_t ddtrace_gettid(void);
+
+// Used to probe if process_vm_readv is usable (useful for tests and for knowing more specifically why getting the offset failed)
+bool can_use_process_vm_readv(void);

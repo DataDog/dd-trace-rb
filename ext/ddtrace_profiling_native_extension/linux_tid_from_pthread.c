@@ -76,6 +76,7 @@
   #include <pthread.h>
   #include <stdbool.h>
   #include <stdio.h>
+  #include <string.h>
   #include <sys/syscall.h>
   #include <sys/uio.h>
   #include <unistd.h>
@@ -153,7 +154,7 @@
     return NULL;
   }
 
-  bool read_safely(void *read_from_ptr, void *read_into_buffer, short buffer_size) {
+  static bool read_safely(void *read_from_ptr, void *read_into_buffer, short buffer_size) {
     struct iovec read_into = {.iov_base = read_into_buffer, .iov_len = buffer_size};
     struct iovec read_from = {.iov_base = read_from_ptr, .iov_len = buffer_size};
 
@@ -197,6 +198,16 @@
     return syscall(SYS_gettid);
   }
 
+  bool can_use_process_vm_readv(void) {
+    int buffer_size = 20;
+    char source_buffer[buffer_size], target_buffer[buffer_size];
+    strncpy(source_buffer, "test-string", buffer_size);
+
+    bool success = read_safely(source_buffer, target_buffer, buffer_size);
+
+    return success && strncmp(source_buffer, target_buffer, buffer_size) == 0;
+  }
+
 #else // Fallback for when not on Linux
 
   #include "linux_tid_from_pthread.h"
@@ -204,7 +215,7 @@
 
   short setup_linux_tid_from_pthread_offset(void) { return -1; }
   pid_t linux_tid_from(DDTRACE_UNUSED pthread_t thread, DDTRACE_UNUSED short offset) { return -1; }
-  bool read_safely(void *read_from_ptr, void *read_into_buffer, short buffer_size) { return false; }
   pid_t ddtrace_gettid(void) { return -1; }
+  bool can_use_process_vm_readv(void) { return false; }
 
 #endif // __linux__

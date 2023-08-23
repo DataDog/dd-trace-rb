@@ -86,15 +86,5 @@ static VALUE _native_gettid(DDTRACE_UNUSED VALUE self) {
 }
 
 static VALUE _native_can_use_process_vm_readv(DDTRACE_UNUSED VALUE self) {
-  #ifdef __linux__
-    int buffer_size = 20;
-    char source_buffer[buffer_size], target_buffer[buffer_size];
-    strncpy(source_buffer, "test-string", buffer_size);
-
-    bool success = read_safely(source_buffer, target_buffer, buffer_size);
-
-    return success && strncmp(source_buffer, target_buffer, buffer_size) == 0 ? Qtrue : Qfalse;
-  #else
-    return Qfalse;
-  #endif
+  return can_use_process_vm_readv() ? Qtrue : Qfalse;
 }
