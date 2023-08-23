@@ -200,16 +200,12 @@ module Datadog
         # In transport_options, we try to invoke the transport_options proc and get its configuration. In case that
         # doesn't work, we include the proc directly in the agent settings result.
         def deprecated_for_removal_transport_configuration_proc
-          if transport_options_settings.is_a?(Proc) && transport_options.adapter.nil?
-            transport_options_settings
-          end
+          transport_options_settings if transport_options_settings.is_a?(Proc) && transport_options.adapter.nil?
         end
 
         def transport_options_settings
           @transport_options_settings ||= begin
-            if settings.respond_to?(:tracing) && settings.tracing
-              settings.tracing.transport_options
-            end
+            settings.tracing.transport_options if settings.respond_to?(:tracing) && settings.tracing
           end
         end
 
