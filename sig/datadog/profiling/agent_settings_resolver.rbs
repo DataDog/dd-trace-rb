@@ -1,0 +1,6 @@
+module Datadog
+  module Profiling
+    class AgentSettingsResolver < Datadog::Core::Configuration::AgentSettingsResolver
+    end
+  end
+end
