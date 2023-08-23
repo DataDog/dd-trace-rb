@@ -5,7 +5,7 @@ require_relative '../../core/configuration/agent_settings_resolver'
 module Datadog
   module Tracing
     module Configuration
-      # Any tracing specific agent settings should be added here rather than in the core resolver
+      # This class encapsulates any tracing specific agent settings
       class AgentSettingsResolver < Datadog::Core::Configuration::AgentSettingsResolver
       end
     end

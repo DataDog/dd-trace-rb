@@ -4,7 +4,7 @@ require_relative '../core/configuration/agent_settings_resolver'
 
 module Datadog
   module Profiling
-    # Any profiling specific agent settings should be added here rather than in the core resolver
+    # This class encapsulates any profiling specific agent settings
     class AgentSettingsResolver < Datadog::Core::Configuration::AgentSettingsResolver
     end
   end

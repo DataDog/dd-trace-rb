@@ -15,6 +15,7 @@ module Datadog
       #
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
+      # DEV-2.0: The deprecated_for_removal_transport_configuration_proc should be removed.
       class AgentSettingsResolver
         AgentSettings = \
           Struct.new(
