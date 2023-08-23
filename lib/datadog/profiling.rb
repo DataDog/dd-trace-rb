@@ -202,7 +202,7 @@ module Datadog
       require_relative 'profiling/stack_recorder'
       require_relative 'profiling/old_recorder'
       require_relative 'profiling/exporter'
-      require_relative 'profiling/linux_tid_fallback'
+      require_relative 'profiling/linux_tid_override'
       require_relative 'profiling/scheduler'
       require_relative 'profiling/tasks/setup'
       require_relative 'profiling/profiler'

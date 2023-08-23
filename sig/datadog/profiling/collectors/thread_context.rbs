@@ -8,7 +8,7 @@ module Datadog
           tracer: Datadog::Tracing::Tracer?,
           endpoint_collection_enabled: bool,
           timeline_enabled: bool,
-          linux_tid_fallback: Datadog::Profiling::LinuxTidFallback?,
+          linux_tid_override: Datadog::Profiling::LinuxTidOverride?,
         ) -> void
 
         def self._native_initialize: (
@@ -18,7 +18,7 @@ module Datadog
           ::Symbol? tracer_context_key,
           bool endpoint_collection_enabled,
           bool timeline_enabled,
-          Datadog::Profiling::LinuxTidFallback? linux_tid_fallback,
+          Datadog::Profiling::LinuxTidOverride? linux_tid_override,
         ) -> void
 
         def inspect: () -> ::String

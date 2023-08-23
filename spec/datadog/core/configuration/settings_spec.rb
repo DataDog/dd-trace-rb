@@ -699,12 +699,12 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#linux_tid_fallback_enabled' do
-        subject(:linux_tid_fallback_enabled) { settings.profiling.advanced.linux_tid_fallback_enabled }
+      describe '#linux_tid_override_enabled' do
+        subject(:linux_tid_override_enabled) { settings.profiling.advanced.linux_tid_override_enabled }
 
-        context 'when DD_PROFILING_LINUX_TID_FALLBACK_ENABLED' do
+        context 'when DD_PROFILING_LINUX_TID_OVERRIDE_ENABLED' do
           around do |example|
-            ClimateControl.modify('DD_PROFILING_LINUX_TID_FALLBACK_ENABLED' => environment) do
+            ClimateControl.modify('DD_PROFILING_LINUX_TID_OVERRIDE_ENABLED' => environment) do
               example.run
             end
           end
@@ -725,10 +725,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#linux_tid_fallback_enabled=' do
-        it 'updates the #linux_tid_fallback_enabled setting' do
-          expect { settings.profiling.advanced.linux_tid_fallback_enabled = false }
-            .to change { settings.profiling.advanced.linux_tid_fallback_enabled }
+      describe '#linux_tid_override_enabled=' do
+        it 'updates the #linux_tid_override_enabled setting' do
+          expect { settings.profiling.advanced.linux_tid_override_enabled = false }
+            .to change { settings.profiling.advanced.linux_tid_override_enabled }
             .from(true)
             .to(false)
         end

@@ -39,7 +39,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:tracer) { nil }
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
-  let(:linux_tid_fallback) { Datadog::Profiling::LinuxTidFallback.new_if_needed_and_working }
+  let(:linux_tid_override) { Datadog::Profiling::LinuxTidOverride.new_if_needed_and_working }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
-      linux_tid_fallback: linux_tid_fallback,
+      linux_tid_override: linux_tid_override,
     )
   end
 
@@ -1029,26 +1029,26 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         context 'on Ruby < 3.1' do
           before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3.1.' }
 
-          context 'when the linux_tid_fallback is available' do
+          context 'when the linux_tid_override is available' do
             before do
-              skip 'The linux_tid_fallback only applies on Linux' unless PlatformHelpers.linux?
-              unless Datadog::Profiling::LinuxTidFallback::Testing._native_can_use_process_vm_readv?
-                skip "The linux_tid_fallback does not work on this system (see that class's specs for details)"
+              skip 'The linux_tid_override only applies on Linux' unless PlatformHelpers.linux?
+              unless Datadog::Profiling::LinuxTidOverride::Testing._native_can_use_process_vm_readv?
+                skip "The linux_tid_override does not work on this system (see that class's specs for details)"
               end
 
-              expect(linux_tid_fallback).to_not be nil
+              expect(linux_tid_override).to_not be nil
             end
 
-            let(:linux_tid_fallback) { Datadog::Profiling::LinuxTidFallback.new_if_needed_and_working }
+            let(:linux_tid_override) { Datadog::Profiling::LinuxTidOverride.new_if_needed_and_working }
 
             it 'uses the real native thread id' do
               expect(per_thread_context.fetch(Thread.current).fetch(:thread_id).split.first)
-                .to eq(Datadog::Profiling::LinuxTidFallback::Testing._native_gettid.to_s)
+                .to eq(Datadog::Profiling::LinuxTidOverride::Testing._native_gettid.to_s)
             end
           end
 
-          context 'when the linux_tid_fallback is not available' do
-            let(:linux_tid_fallback) { nil }
+          context 'when the linux_tid_override is not available' do
+            let(:linux_tid_override) { nil }
 
             it 'contains a fallback native thread id' do
               per_thread_context.each do |_thread, context|

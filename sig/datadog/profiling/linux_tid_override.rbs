@@ -1,0 +1,8 @@
+module Datadog
+  module Profiling
+    class LinuxTidOverride
+      def self.new_if_needed_and_working: () -> LinuxTidOverride?
+      def self._native_working?: (LinuxTidOverride) -> bool
+    end
+  end
+end

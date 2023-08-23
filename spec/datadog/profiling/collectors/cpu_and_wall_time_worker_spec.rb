@@ -10,7 +10,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:allocation_counting_enabled) { true }
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }
-  let(:linux_tid_fallback) { Datadog::Profiling::LinuxTidFallback.new_if_needed_and_working }
+  let(:linux_tid_override) { Datadog::Profiling::LinuxTidOverride.new_if_needed_and_working }
   let(:options) { {} }
 
   subject(:cpu_and_wall_time_worker) do
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
       timeline_enabled: timeline_enabled,
-      linux_tid_fallback: linux_tid_fallback,
+      linux_tid_override: linux_tid_override,
       **options
     )
   end
@@ -565,7 +565,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         tracer: nil,
         endpoint_collection_enabled: endpoint_collection_enabled,
         timeline_enabled: timeline_enabled,
-        linux_tid_fallback: linux_tid_fallback,
+        linux_tid_override: linux_tid_override,
       )
     end
     let(:options) { { thread_context_collector: thread_context_collector } }
@@ -713,7 +713,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
       timeline_enabled: timeline_enabled,
-      linux_tid_fallback: linux_tid_fallback,
+      linux_tid_override: linux_tid_override,
     )
   end
 end

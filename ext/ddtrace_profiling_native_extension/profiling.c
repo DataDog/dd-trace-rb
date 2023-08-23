@@ -16,7 +16,7 @@ void collectors_idle_sampling_helper_init(VALUE profiling_module);
 void collectors_stack_init(VALUE profiling_module);
 void collectors_thread_context_init(VALUE profiling_module);
 void http_transport_init(VALUE profiling_module);
-void linux_tid_fallback_init(VALUE profiling_module);
+void linux_tid_override_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
 
 static VALUE native_working_p(VALUE self);
@@ -51,7 +51,7 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
   collectors_thread_context_init(profiling_module);
   http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);
-  linux_tid_fallback_init(profiling_module);
+  linux_tid_override_init(profiling_module);
 
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(native_extension_module, "Testing");

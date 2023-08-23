@@ -84,9 +84,9 @@ module Datadog
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
             no_signals_workaround_enabled: no_signals_workaround_enabled,
             timeline_enabled: timeline_enabled,
-            linux_tid_fallback:
-              if settings.profiling.advanced.linux_tid_fallback_enabled
-                Datadog::Profiling::LinuxTidFallback.new_if_needed_and_working
+            linux_tid_override:
+              if settings.profiling.advanced.linux_tid_override_enabled
+                Datadog::Profiling::LinuxTidOverride.new_if_needed_and_working
               end,
           )
         else

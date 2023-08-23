@@ -187,7 +187,7 @@ uint64_t native_thread_id_for(VALUE thread) {
       return result;
     #else
       // Fallback, when we have nothing better (e.g. on Ruby < 3.1 on Linux, or something other than Linux/macOS)
-      // @ivoanjo: Note that we have a `linux_tid_fallback` that is still able to provide this for Linux, but needs
+      // @ivoanjo: Note that we have a `linux_tid_override` that is still able to provide this for Linux, but needs
       // to be called separately from this function.
       return (uint64_t) pthread_id;
     #endif

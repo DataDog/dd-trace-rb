@@ -20,7 +20,7 @@ module Datadog
           tracer:,
           endpoint_collection_enabled:,
           timeline_enabled:,
-          linux_tid_fallback:
+          linux_tid_override:
         )
           tracer_context_key = safely_extract_context_key_from(tracer)
           self.class._native_initialize(
@@ -30,7 +30,7 @@ module Datadog
             tracer_context_key,
             endpoint_collection_enabled,
             timeline_enabled,
-            linux_tid_fallback,
+            linux_tid_override,
           )
         end
 
