@@ -15,6 +15,10 @@ module Datadog
           'safe',
           'extended'
         ].freeze
+        APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES = [
+          '1',
+          'true'
+        ].concat(APPSEC_VALID_TRACK_USER_EVENTS_MODE).freeze
 
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)
@@ -100,7 +104,7 @@ module Datadog
                     if env_value == 'disabled'
                       false
                     else
-                      ['1', 'true'].include?(env_value.strip.downcase)
+                      APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES.include?(env_value.strip.downcase)
                     end
                   end
                 end
@@ -112,6 +116,8 @@ module Datadog
                   o.setter do |v|
                     if APPSEC_VALID_TRACK_USER_EVENTS_MODE.include?(v)
                       v
+                    elsif v == 'disabled'
+                      'safe'
                     else
                       Datadog.logger.warn(
                         'The appsec.track_user_events.mode value provided is not supported.' \
