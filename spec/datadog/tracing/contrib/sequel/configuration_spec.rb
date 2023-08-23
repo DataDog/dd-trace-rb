@@ -47,8 +47,6 @@ RSpec.describe 'Sequel configuration' do
         it do
           expect(span.service).to eq('sqlite')
         end
-
-        it_behaves_like 'a peer service span'
       end
 
       context 'with options set via #use' do
@@ -62,8 +60,6 @@ RSpec.describe 'Sequel configuration' do
         it do
           expect(span.service).to eq(service_name)
         end
-
-        it_behaves_like 'a peer service span'
       end
 
       context 'with options set on Sequel::Database' do
@@ -79,8 +75,6 @@ RSpec.describe 'Sequel configuration' do
         it do
           expect(span.service).to eq(service_name)
         end
-
-        it_behaves_like 'a peer service span'
       end
 
       context 'after the database has been initialized' do
@@ -96,8 +90,6 @@ RSpec.describe 'Sequel configuration' do
         it do
           expect(span.service).to eq('sqlite')
         end
-
-        it_behaves_like 'a peer service span'
       end
     end
   end

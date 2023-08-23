@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.12.1)
+    ddtrace (1.13.1)
       debase-ruby_core_source (= 3.2.1)
-      libdatadog (~> 2.0.0.1.0)
+      libdatadog (~> 3.0.0.1.0)
       libddwaf (~> 1.9.0.0.0)
       msgpack
 
@@ -1263,8 +1263,8 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (2.0.0.1.0)
-    libddwaf (1.9.0.0.0)
+    libdatadog (3.0.0.1.0)
+    libddwaf (1.9.0.0.1)
       ffi (~> 1.0)
     lograge (0.11.2)
       actionpack (>= 4)
@@ -1476,6 +1476,7 @@ DEPENDENCIES
   lograge (~> 0.11)
   makara (< 0.5.0)
   memory_profiler (= 0.9.12)
+  minitest (>= 5.0.0)
   mongo (>= 2.8.0)
   msgpack (~> 1.3.3)
   multipart-post (~> 2.1.1)

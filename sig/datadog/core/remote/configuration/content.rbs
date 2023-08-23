@@ -13,13 +13,27 @@ module Datadog
 
           attr_accessor version: Integer
 
+          attr_reader apply_state: Integer
+
+          attr_reader apply_error: String?
+
           @length: Integer
 
           def initialize: (path: Configuration::Path, data: StringIO) -> void
 
+          def applied: -> void
+
+          def errored: (String error_message) -> void
+
           def hexdigest: (Symbol type) -> String
 
           def length: () -> Integer
+
+          module ApplyState
+            ACKNOWLEDGED: Integer
+            ERROR: Integer
+            UNACKNOWLEDGED: Integer
+          end
 
           private
 

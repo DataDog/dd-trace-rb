@@ -25,14 +25,27 @@ module SynchronizationHelpers
       # Enforce timeout to ensure test fork doesn't hang the test suite.
       _, status = try_wait_until(seconds: timeout_seconds) { Process.wait2(pid, Process::WNOHANG) }
 
+      stdout = File.read(fork_stdout.path)
+      stderr = File.read(fork_stderr.path)
+
       # Capture forked execution information
-      result = { status: status, stdout: File.read(fork_stdout.path), stderr: File.read(fork_stderr.path) }
+      result = { status: status, stdout: stdout, stderr: stderr }
 
       # Expect fork and assertions to have completed successfully.
       fork_expectations.call(**result)
 
       result
+    rescue => e
+      stdout ||= File.read(fork_stdout.path)
+      stderr ||= File.read(fork_stderr.path)
+
+      puts stdout
+      warn stderr
+
+      raise e
     ensure
+      Process.kill('KILL', pid) rescue nil # Prevent zombie processes on failure
+
       fork_stdout.unlink
       fork_stderr.unlink
     end

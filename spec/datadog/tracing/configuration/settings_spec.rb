@@ -207,7 +207,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           context 'is not defined' do
             let(:var_value) { nil }
 
-            it { is_expected.to be_nil }
+            it { is_expected.to eq [] }
 
             it 'does not change propagation_extract_style' do
               expect { propagation_style }.to_not change { propagation_extract_style }
@@ -275,6 +275,48 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           .to change { settings.tracing.enabled }
           .from(true)
           .to(false)
+      end
+    end
+
+    describe '#header_tags' do
+      subject(:header_tags) { settings.tracing.header_tags }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_HEADER_TAGS}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_HEADER_TAGS => tags) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:tags) { nil }
+
+          it { is_expected.to be_a(Datadog::Tracing::Configuration::HTTP::HeaderTags) }
+          it { expect(header_tags.to_s).to eq('') }
+        end
+
+        context 'is set to content-type' do
+          let(:tags) { 'content-type' }
+
+          it { is_expected.to be_a(Datadog::Tracing::Configuration::HTTP::HeaderTags) }
+          it { expect(header_tags.to_s).to eq('content-type') }
+        end
+
+        context 'is set to content-type,cookie' do
+          let(:tags) { 'content-type,cookie' }
+
+          it { is_expected.to be_a(Datadog::Tracing::Configuration::HTTP::HeaderTags) }
+          it { expect(header_tags.to_s).to eq('content-type,cookie') }
+        end
+      end
+    end
+
+    describe '#header_tags=' do
+      it 'updates the #header_tags setting' do
+        expect { settings.tracing.header_tags = ['content-type'] }
+          .to change { settings.tracing.header_tags }
+          .from(->(actual) { expect(actual.to_s).to be_empty })
+          .to(->(actual) { expect(actual.to_s).to eq('content-type') })
       end
     end
 
@@ -454,6 +496,24 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           end
 
           it { is_expected.to eq(0.5) }
+        end
+      end
+
+      describe '#rules' do
+        subject(:rules) { settings.tracing.sampling.rules }
+
+        context 'default' do
+          it { is_expected.to be_nil }
+        end
+
+        context 'when ENV is provided' do
+          around do |example|
+            ClimateControl.modify('DD_TRACE_SAMPLING_RULES' => '[{"sample_rate":0.2}]') do
+              example.run
+            end
+          end
+
+          it { is_expected.to eq('[{"sample_rate":0.2}]') }
         end
       end
 
@@ -772,32 +832,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end.to change { settings.tracing.trace_id_128_bit_logging_enabled }
           .from(false)
           .to(true)
-      end
-    end
-
-    describe '#span_attributes_schema' do
-      subject { settings.tracing.span_attribute_schema }
-
-      context 'when given environment variable DD_TRACE_SPAN_ATTRIBUTE_SCHEMA' do
-        around do |example|
-          ClimateControl.modify(
-            'DD_TRACE_SPAN_ATTRIBUTE_SCHEMA' => env_var
-          ) do
-            example.run
-          end
-        end
-
-        context 'is not defined' do
-          let(:env_var) { nil }
-
-          it { is_expected.to eq('v0') }
-        end
-
-        context 'is defined' do
-          let(:env_var) { 'v1' }
-
-          it { is_expected.to eq('v1') }
-        end
       end
     end
   end

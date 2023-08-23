@@ -1,3 +1,4 @@
+require 'spec_helper'
 require 'json'
 
 RSpec.describe 'Basic scenarios' do
@@ -13,16 +14,22 @@ RSpec.describe 'Basic scenarios' do
 
     let(:json_result) { JSON.parse(subject.body, symbolize_names: true) }
 
+    let(:expected_profiler_available) { RUBY_VERSION >= '2.3' && !RUBY_VERSION.start_with?('3.3.') }
+
+    let(:expected_profiler_threads) do
+      expected_profiler_available ? contain_exactly(
+        'Datadog::Profiling::Collectors::IdleSamplingHelper',
+        'Datadog::Profiling::Collectors::CpuAndWallTimeWorker',
+        'Datadog::Profiling::Scheduler',
+      ) : eq(nil).or(eq([]))
+    end
+
     it { is_expected.to be_a_kind_of(Net::HTTPOK) }
 
     it 'should be profiling' do
       expect(json_result).to include(
-        profiler_available: true,
-        profiler_threads: contain_exactly(
-          'Datadog::Profiling::Collectors::IdleSamplingHelper',
-          'Datadog::Profiling::Collectors::CpuAndWallTimeWorker',
-          'Datadog::Profiling::Scheduler',
-        ),
+        profiler_available: expected_profiler_available,
+        profiler_threads: expected_profiler_threads,
       )
     end
 

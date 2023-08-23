@@ -77,7 +77,7 @@ RSpec.describe Datadog::Tracing::Writer do
 
           allow(transport).to receive(:stats).and_return(transport_stats)
 
-          allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:log!)
+          allow(Datadog::Tracing::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
         end
 
         shared_examples 'after_send events' do

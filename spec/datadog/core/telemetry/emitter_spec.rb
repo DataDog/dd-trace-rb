@@ -10,6 +10,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
   before do
     allow(http_transport).to receive(:request).and_return(response)
+    emitter.class.sequence.reset!
   end
 
   after do
@@ -72,6 +73,19 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
             expect(emitter.class.sequence.instance_variable_get(:@current)).to be(original_seq_id + 1)
           end
         end
+      end
+    end
+
+    context 'with data' do
+      subject(:request) { emitter.request(request_type, data: data) }
+      let(:data) { { changes: ['test-data'] } }
+      let(:request_type) { 'app-client-configuration-change' }
+      let(:event) { double('event') }
+
+      it 'creates a telemetry event with data' do
+        expect(Datadog::Core::Telemetry::Event).to receive(:new).and_return(event)
+        expect(event).to receive(:telemetry_request).with(request_type: request_type, seq_id: be_a(Integer), data: data)
+        request
       end
     end
   end

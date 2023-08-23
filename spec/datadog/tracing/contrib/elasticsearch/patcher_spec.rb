@@ -3,6 +3,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'ddtrace'
 
@@ -63,8 +64,11 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       before { request }
 
       it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-      it_behaves_like 'schema version span'
-
+      it_behaves_like 'configured peer service span', 'DD_TRACE_ELASTICSEARCH_PEER_SERVICE'
+      it_behaves_like 'a peer service span' do
+        let(:peer_service_val) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
+        let(:peer_service_source) { 'peer.hostname' }
+      end
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
       it { expect(span.resource).to eq('GET _cluster/health') }
@@ -89,9 +93,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
           .to eq('query')
       }
 
-      it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
-      end
+      it_behaves_like 'schema version span'
     end
   end
 
@@ -129,8 +131,11 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it_behaves_like 'measured span for integration', false
 
       it_behaves_like 'environment service name', 'DD_TRACE_ELASTICSEARCH_SERVICE_NAME'
-      it_behaves_like 'schema version span'
-
+      it_behaves_like 'configured peer service span', 'DD_TRACE_ELASTICSEARCH_PEER_SERVICE'
+      it_behaves_like 'a peer service span' do
+        let(:peer_service_val) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
+        let(:peer_service_source) { 'peer.hostname' }
+      end
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
       it { expect(span.span_type).to eq('elasticsearch') }
@@ -161,9 +166,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
           .to eq('{"field":"?","nested_object":{"value":"?"},"nested_array":["?"],"nested_object_array":[{"a":"?"},"?"]}')
       end
 
-      it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
-      end
+      it_behaves_like 'schema version span'
     end
   end
 end

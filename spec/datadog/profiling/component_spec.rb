@@ -90,9 +90,16 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        it 'sets up the Exporter with no_signals_workaround_enabled: false' do
+        it 'sets up the Exporter internal_metadata with no_signals_workaround_enabled: false, timeline_enabled: false' do
           expect(Datadog::Profiling::Exporter)
-            .to receive(:new).with(hash_including(no_signals_workaround_enabled: false))
+            .to receive(:new).with(
+              hash_including(
+                internal_metadata: {
+                  no_signals_workaround_enabled: false,
+                  timeline_enabled: false,
+                }
+              )
+            )
 
           build_profiler_component
         end
@@ -258,12 +265,19 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        it 'sets up the Exporter with no_signals_workaround_enabled setting' do
+        it 'sets up the Exporter internal_metadata with no_signals_workaround_enabled and timeline_enabled settings' do
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
 
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
-          expect(Datadog::Profiling::Exporter)
-            .to receive(:new).with(hash_including(no_signals_workaround_enabled: :no_signals_result))
+          expect(settings.profiling.advanced).to receive(:experimental_timeline_enabled).and_return(:timeline_result)
+          expect(Datadog::Profiling::Exporter).to receive(:new).with(
+            hash_including(
+              internal_metadata: {
+                no_signals_workaround_enabled: :no_signals_result,
+                timeline_enabled: :timeline_result,
+              }
+            )
+          )
 
           build_profiler_component
         end
@@ -594,7 +608,22 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context 'when mysql2 / rugged gem are not available' do
+        context 'when running inside the passenger web server' do
+          before do
+            stub_const('::PhusionPassenger', Module.new)
+            allow(Datadog.logger).to receive(:warn)
+          end
+
+          it { is_expected.to be true }
+
+          it 'logs a warning message mentioning that the no signals workaround is going to be used' do
+            expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+
+            no_signals_workaround_enabled?
+          end
+        end
+
+        context 'when mysql2 / rugged gems + passenger are not available' do
           include_context('loaded gems', mysql2: nil, rugged: nil)
 
           it { is_expected.to be false }

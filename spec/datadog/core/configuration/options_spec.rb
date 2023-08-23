@@ -10,6 +10,15 @@ RSpec.describe Datadog::Core::Configuration::Options do
       end
     end
 
+    # When setting the setting value, we make sure to duplicate it to avoid unwanted modifications
+    # to make sure specs pass when comparing result ex. expect(result).to be value
+    # we ensure that frozen_or_dup returns the same instance
+    before do
+      allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |args, _block|
+        args
+      end
+    end
+
     describe 'class behavior' do
       describe '#options' do
         subject(:options) { options_class.options }
@@ -138,6 +147,64 @@ RSpec.describe Datadog::Core::Configuration::Options do
         end
       end
 
+      describe '#unset_option' do
+        subject(:unset_option) { options_object.unset_option(name) }
+
+        let(:name) { :foo }
+
+        context 'when the option is defined' do
+          before { options_class.send(:option, name) { |o| o.default :test_default } }
+
+          context 'and value is not set' do
+            it 'does not change default value' do
+              expect { unset_option }.to_not change { options_object.send(name) }.from(:test_default)
+            end
+          end
+
+          context 'and value is set' do
+            before do
+              options_object.set_option(
+                name,
+                :new_value,
+                precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+              )
+            end
+
+            it 'defaults to PROGRAMMATIC precedence' do
+              unset_option
+              expect(options_object.get_option(name)).to eq(:test_default)
+            end
+
+            context 'with precedence' do
+              subject(:unset_option) { options_object.unset_option(name, precedence: precedence) }
+              let(:precedence) { Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION }
+
+              it 'removes the option with matching precedence' do
+                options_object.set_option(
+                  name,
+                  :should_stay,
+                  precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+                )
+
+                options_object.set_option(
+                  name,
+                  :go_away,
+                  precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+                )
+
+                unset_option
+
+                expect(options_object.get_option(name)).to eq(:should_stay)
+              end
+            end
+          end
+        end
+
+        context 'when the option is not defined' do
+          it { expect { unset_option }.to raise_error(described_class::InvalidOptionError) }
+        end
+      end
+
       describe '#get_option' do
         subject(:get_option) { options_object.get_option(name) }
 
@@ -194,6 +261,68 @@ RSpec.describe Datadog::Core::Configuration::Options do
 
         context 'when the option is not defined' do
           it { expect { reset_option }.to raise_error(described_class::InvalidOptionError) }
+        end
+      end
+
+      describe '#using_default?' do
+        subject(:using_default?) { options_object.using_default?(name) }
+
+        let(:name) { :foo }
+
+        context 'when the option is defined' do
+          before { options_class.send(:option, name, meta) }
+
+          let(:meta) { {} }
+
+          context 'and a value is set' do
+            before { options_object.set_option(name, 'something') }
+
+            it { is_expected.to be(false) }
+          end
+
+          context 'and a value is not set' do
+            context 'and no default value is configured' do
+              it { is_expected.to be(true) }
+            end
+
+            context 'and a default value is configured' do
+              let(:meta) { { default: 'anything' } }
+
+              it { is_expected.to be(true) }
+
+              context 'and an environment variable is configured' do
+                let(:meta) { { default: 'anything', env: 'TEST_ENV_VAR' } }
+
+                context 'and an environmet variable is set' do
+                  around do |example|
+                    ClimateControl.modify('TEST_ENV_VAR' => 'anything') { example.run }
+                  end
+
+                  it { is_expected.to be(false) }
+                end
+
+                context 'and an environment variable is not set' do
+                  it { is_expected.to be(true) }
+                end
+              end
+            end
+
+            context 'an environment variable is configured' do
+              let(:meta) { { env: 'TEST_ENV_VAR' } }
+
+              context 'and an environmet variable is set' do
+                around do |example|
+                  ClimateControl.modify('TEST_ENV_VAR' => 'anything') { example.run }
+                end
+
+                it { is_expected.to be(false) }
+              end
+
+              context 'and an environment variable is not set' do
+                it { is_expected.to be(true) }
+              end
+            end
+          end
         end
       end
 

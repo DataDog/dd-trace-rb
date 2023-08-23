@@ -3,29 +3,41 @@ RSpec.shared_examples 'schema version span' do
     subject
   end
 
-  context 'v1 testing' do
+  context 'service name env var testing' do
+    # setting DD_TRACE_SPAN_ATTRIBUTE_SCHEMA as the APM Test Agent relies on this ENV to run service naming assertions
     around do |example|
-      ClimateControl.modify DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1' do
+      ClimateControl.modify(
+        DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
+        DD_TRACE_SPAN_ATTRIBUTE_SCHEMA: 'v1'
+      ) do
         example.run
       end
     end
 
-    context 'test the v1 default' do
+    context 'test the default' do
+      # setting DD_SERVICE for APM Test Agent service naming assertions
+      around do |example|
+        ClimateControl.modify(DD_SERVICE: 'rspec') do
+          example.run
+        end
+      end
+
       it do
         expect(span.service).to eq('rspec')
-
-        # TODO: change when new peer.service tag is added for v1
-        expect(span.get_tag('peer.service')).to be nil
       end
     end
 
-    context 'v1 service name test with integration service name' do
+    context 'service name test with integration service name' do
+      # setting DD_SERVICE for APM Test Agent service naming assertions
+      around do |example|
+        ClimateControl.modify(DD_SERVICE: 'configured') do
+          example.run
+        end
+      end
+
       let(:configuration_options) { { service_name: 'configured' } }
       it do
         expect(span.service).to eq(configuration_options[:service_name])
-
-        # TODO: change when new peer.service tag is added for v1
-        expect(span.get_tag('peer.service')).to be nil
       end
     end
   end

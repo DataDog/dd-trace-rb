@@ -8,6 +8,12 @@ module Datadog
 
         attr_reader experimental_default_proc: untyped
 
+        attr_reader env: untyped
+
+        attr_reader deprecated_env: untyped
+
+        attr_reader env_parser: untyped
+
         attr_reader delegate_to: untyped
 
         attr_reader depends_on: untyped
@@ -31,19 +37,27 @@ module Datadog
 
           def depends_on: (*untyped values) -> untyped
 
-          def default: (?untyped? value) { () -> untyped } -> untyped
+          def default: (?untyped? value) ?{ () -> untyped } -> untyped
 
           def experimental_default_proc: () { () -> untyped } -> untyped
 
           def delegate_to: () { () -> untyped } -> untyped
 
+          def env: (untyped value) -> untyped
+
+          def deprecated_env: (untyped value) -> untyped
+
+          def env_parser: () { (String env_value) -> untyped } -> untyped
+
+          def type: (Symbol value, ?::Hash[untyped, untyped] type_options) -> untyped
+
           def helper: (untyped name, *untyped _args) { () -> untyped } -> untyped
 
-          def on_set: () { () -> untyped } -> untyped
+          def on_set: () { (untyped value) -> untyped } -> untyped
 
-          def resetter: () { () -> untyped } -> untyped
+          def resetter: () { (untyped value) -> untyped } -> untyped
 
-          def setter: () { () -> untyped } -> untyped
+          def setter: () { (untyped value) -> untyped } -> untyped
 
           def apply_options!: (?::Hash[untyped, untyped] options) -> (nil | untyped)
 

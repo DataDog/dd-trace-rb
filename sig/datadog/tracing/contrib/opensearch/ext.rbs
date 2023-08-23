@@ -5,6 +5,7 @@ module Datadog
         module Ext
           ENV_ENABLED: "DD_TRACE_OPENSEARCH_ENABLED"
 
+          ENV_PEER_SERVICE: "DD_TRACE_OPENSEARCH_PEER_SERVICE"
           ENV_SERVICE_NAME: "DD_TRACE_OPENSEARCH_SERVICE_NAME"
 
           ENV_ANALYTICS_ENABLED: "DD_TRACE_OPENSEARCH_ANALYTICS_ENABLED"
@@ -13,12 +14,14 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "opensearch"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_QUERY: "opensearch.query"
 
           SPAN_TYPE_QUERY: "opensearch"
 
           TAG_COMPONENT: "opensearch"
 
+          TAG_RESPONSE_CONTENT_LENGTH: "http.response.content_length"
           TAG_SYSTEM: "opensearch"
 
           TAG_METHOD: "http.method"

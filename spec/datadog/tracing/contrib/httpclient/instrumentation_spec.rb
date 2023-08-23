@@ -14,7 +14,9 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
 require 'datadog/tracing/contrib/http_examples'
+require 'datadog/tracing/contrib/support/http'
 require 'spec/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
@@ -135,15 +137,35 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           end
 
           it_behaves_like 'a peer service span' do
-            let(:peer_hostname) { host }
+            let(:peer_service_val) { 'localhost' }
+            let(:peer_service_source) { 'peer.hostname' }
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPCLIENT_SERVICE_NAME'
+          it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPCLIENT_PEER_SERVICE'
           it_behaves_like 'schema version span'
 
           it_behaves_like 'analytics for integration' do
             let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Httpclient::Ext::ENV_ANALYTICS_ENABLED }
             let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Httpclient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          end
+
+          context 'when configured with global tag headers' do
+            let(:headers) { { 'Request-Id' => 'test-request', 'Response-Id' => 'test-response' } }
+
+            include_examples 'with request tracer header tags' do
+              let(:request_header_tag) { 'request-id' }
+              let(:request_header_tag_value) { 'test-request' }
+
+              before { response }
+            end
+
+            include_examples 'with response tracer header tags' do
+              let(:response_header_tag) { 'response-id' }
+              let(:response_header_tag_value) { 'test-response' }
+
+              before { response }
+            end
           end
         end
 
@@ -170,6 +192,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPCLIENT_SERVICE_NAME'
+          it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPCLIENT_PEER_SERVICE'
           it_behaves_like 'schema version span'
         end
 
@@ -196,6 +219,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPCLIENT_SERVICE_NAME'
+          it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPCLIENT_PEER_SERVICE'
           it_behaves_like 'schema version span'
         end
 
@@ -308,6 +332,16 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
 
         expect(span.get_tag('http.url')).to eq('/sample/path')
         expect(span.get_tag('out.host')).to eq('localhost')
+      end
+    end
+
+    context 'when query string in url' do
+      let(:path) { '/sample/path?foo=bar' }
+
+      it 'does not collect query string' do
+        response
+
+        expect(span.get_tag('http.url')).to eq('/sample/path')
       end
     end
   end

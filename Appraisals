@@ -587,6 +587,15 @@ elsif ruby_version?('2.3')
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
+
+  # Somehow, I failed to install this appraisal group with Ruby 2.4
+  appraise 'activerecord-3' do
+    gem 'activerecord', '~> 3'
+    gem 'mysql2', '~> 0.3.0'
+    gem 'activerecord-mysql-adapter'
+    gem 'sqlite3', '~> 1.3.0'
+    gem 'makara', '~> 0.3.0'
+  end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.4')
   appraise 'hanami-1' do
@@ -701,6 +710,13 @@ elsif ruby_version?('2.4')
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0', '< 2.0.0'
+  end
+
+  appraise 'activerecord-4' do
+    gem 'activerecord', '~> 4'
+    gem 'mysql2'
+    gem 'sqlite3', '~> 1.3.0'
+    gem 'makara', '~> 0.3.0'
   end
 
   appraise 'sinatra' do
@@ -918,7 +934,7 @@ elsif ruby_version?('2.5')
     gem 'actionpack'
     gem 'actionview'
     gem 'active_model_serializers', '>= 0.10.0'
-    gem 'activerecord'
+    gem 'activerecord', "~> 5"
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
@@ -948,10 +964,10 @@ elsif ruby_version?('2.5')
     gem 'minitest', '>= 5.0.0'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 1', platform: :ruby
-    gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
+    gem 'activerecord-jdbcmysql-adapter', '>= 52', platform: :jruby
     gem 'opensearch-ruby'
     gem 'pg', '>= 0.18.4', platform: :ruby
-    gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
+    gem 'activerecord-jdbcpostgresql-adapter', '>= 52', platform: :jruby
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-contrib'
@@ -970,7 +986,7 @@ elsif ruby_version?('2.5')
     gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
     gem 'stripe', '~> 7.0'
-    gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
+    gem 'activerecord-jdbcsqlite3-adapter', '>= 52', platform: :jruby
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0', '< 2.0.0'
@@ -1179,7 +1195,7 @@ elsif ruby_version?('2.6')
       gem 'actionpack'
       gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
-      gem 'activerecord'
+      gem 'activerecord', "~> 6.0.0"
       gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
@@ -1412,13 +1428,13 @@ elsif ruby_version?('2.7')
       gem 'resque', '>= 2.0'
     end
 
-    (3..5).each { |v| gem_cucumber(v) }
+    (3..8).each { |v| gem_cucumber(v) }
 
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
-      gem 'activerecord'
+      gem 'activerecord', "~> 6.1.0"
       gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber', '~> 7' # TODO: Support cucumber 8.x
@@ -1549,7 +1565,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1') || ruby_version?('3.2') || ru
     gem 'resque', '>= 2.0'
   end
 
-  (3..5).each { |v| gem_cucumber(v) }
+  (3..8).each { |v| gem_cucumber(v) }
 
   appraise 'contrib' do
     gem 'actionpack', '~> 7'

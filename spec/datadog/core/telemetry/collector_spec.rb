@@ -10,6 +10,7 @@ require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/product'
 require 'ddtrace/transport/ext'
+require 'datadog/profiling/profiler'
 
 require 'ddtrace'
 require 'ddtrace/version'
@@ -173,6 +174,46 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       context 'when nil' do
         let(:dd_trace_sample_rate) { nil }
         it { is_expected.to_not include(:DD_TRACE_SAMPLE_RATE) }
+      end
+    end
+
+    context 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED' do
+      around do |example|
+        ClimateControl.modify(
+          DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: dd_trace_remove_integration_service_names_enabled
+        ) do
+          example.run
+        end
+      end
+
+      context 'when set to true' do
+        let(:dd_trace_remove_integration_service_names_enabled) { 'true' }
+        it { is_expected.to include(:DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED => true) }
+      end
+
+      context 'when nil defaults to false' do
+        let(:dd_trace_remove_integration_service_names_enabled) { nil }
+        it { is_expected.to include(:DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED => false) }
+      end
+    end
+
+    context 'DD_TRACE_PEER_SERVICE_MAPPING' do
+      around do |example|
+        ClimateControl.modify(
+          DD_TRACE_PEER_SERVICE_MAPPING: dd_trace_peer_service_mapping
+        ) do
+          example.run
+        end
+      end
+
+      context 'when set' do
+        let(:dd_trace_peer_service_mapping) { 'key:value' }
+        it { is_expected.to include(:DD_TRACE_PEER_SERVICE_MAPPING => 'key:value') }
+      end
+
+      context 'when nil is blank' do
+        let(:dd_trace_peer_service_mapping) { nil }
+        it { is_expected.to include(:DD_TRACE_PEER_SERVICE_MAPPING => '') }
       end
     end
   end

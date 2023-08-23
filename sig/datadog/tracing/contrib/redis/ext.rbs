@@ -5,6 +5,7 @@ module Datadog
         module Ext
           ENV_ENABLED: "DD_TRACE_REDIS_ENABLED"
 
+          ENV_PEER_SERVICE: "DD_TRACE_REDIS_PEER_SERVICE"
           ENV_SERVICE_NAME: "DD_TRACE_REDIS_SERVICE_NAME"
 
           ENV_ANALYTICS_ENABLED: "DD_TRACE_REDIS_ANALYTICS_ENABLED"
@@ -17,6 +18,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "redis"
 
+          PEER_SERVICE_SOURCES: Array[String]
           SPAN_COMMAND: "redis.command"
 
           TAG_DB: "out.redis_db"

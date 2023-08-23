@@ -1,6 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/environment_service_name_examples'
-require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'ethon'
 require 'datadog/tracing/contrib/ethon/easy_patch'
@@ -114,10 +113,6 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
     end
 
     it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME' do
-      let(:span) { span_op }
-    end
-
-    it_behaves_like 'schema version span' do
       let(:span) { span_op }
     end
   end
@@ -251,6 +246,16 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
 
       expect(span.get_tag('http.url')).to eq('/sample/path')
       expect(span.get_tag('out.host')).to eq('example.com')
+    end
+  end
+
+  context 'when query string in url' do
+    it 'does not collect query string' do
+      easy = EthonSupport.ethon_easy_new(url: 'http://example.com/sample/path?foo=bar')
+
+      easy.perform
+
+      expect(span.get_tag('http.url')).to eq('/sample/path')
     end
   end
 end

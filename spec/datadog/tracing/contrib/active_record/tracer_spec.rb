@@ -40,8 +40,6 @@ RSpec.describe 'ActiveRecord instrumentation' do
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
-    it_behaves_like 'a peer service span'
-
     it_behaves_like 'measured span for integration', false
 
     it 'calls the instrumentation when is used standalone' do
@@ -58,10 +56,6 @@ RSpec.describe 'ActiveRecord instrumentation' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('active_record')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('sql')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
-        .to eq('mysql2')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
-        .to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
     end
 
     context 'and service_name' do

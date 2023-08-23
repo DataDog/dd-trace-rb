@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.12.1)
+    ddtrace (1.13.1)
       debase-ruby_core_source (= 3.2.1)
-      libdatadog (~> 2.0.0.1.0)
+      libdatadog (~> 3.0.0.1.0)
       libddwaf (~> 1.9.0.0.0)
       msgpack
 
@@ -124,8 +124,8 @@ GEM
     json (1.8.6)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (2.0.0.1.0)
-    libddwaf (1.9.0.0.0)
+    libdatadog (3.0.0.1.0)
+    libddwaf (1.9.0.0.1)
       ffi (~> 1.0)
     makara (0.4.1)
       activerecord (>= 3.0.0)
@@ -134,6 +134,7 @@ GEM
     mime-types (3.4.1)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2023.0218.1)
+    minitest (5.12.0)
     mongo (2.4.3)
       bson (>= 4.2.1, < 5.0.0)
     mono_logger (1.1.1)
@@ -285,6 +286,7 @@ DEPENDENCIES
   json-schema (< 3)
   makara (< 0.5.0)
   memory_profiler (= 0.9.12)
+  minitest (>= 5.0.0)
   mongo (< 2.5)
   msgpack (~> 1.3.3)
   multipart-post (~> 2.1.1)

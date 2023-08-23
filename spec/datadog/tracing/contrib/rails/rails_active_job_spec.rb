@@ -32,7 +32,7 @@ RSpec.describe 'ActiveJob' do
         'ExampleJob',
         Class.new(ActiveJob::Base) do
           def perform(test_retry: false, test_discard: false)
-            ActiveJob::Base.logger.info 'MINASWAN'
+            ActiveJob::Base.logger.info 'my-log'
             JOB_EXECUTIONS.increment
             raise JobRetryError if test_retry
             raise JobDiscardError if test_discard
@@ -196,14 +196,30 @@ RSpec.describe 'ActiveJob' do
       end
     end
 
-    it 'injects active correlation into logs' do
-      job_class.set(queue: :elephants, priority: -10).perform_later
+    context 'log correlation' do
+      subject(:perform_later) { job_class.set(queue: :elephants, priority: -10).perform_later }
+      let(:span) { spans.find { |s| s.name == 'active_job.perform' } }
+      let(:output) { log_output.string }
 
-      logs = log_output.string
-      span = spans.find { |s| s.name == 'active_job.perform' }
+      context 'with log correlation enabled' do
+        before { Datadog.configure { |c| c.tracing.log_injection = true } }
 
-      expect(logs).to include(span.trace_id.to_s)
-      expect(logs).to include('MINASWAN')
+        it 'injects trace correlation' do
+          perform_later
+          expect(output).to include('my-log')
+          expect(output).to include(span.trace_id.to_s)
+        end
+      end
+
+      context 'with log correlation disabled' do
+        before { Datadog.configure { |c| c.tracing.log_injection = false } }
+
+        it 'does not inject trace correlation' do
+          perform_later
+          expect(output).to include('my-log')
+          expect(output).to_not include(span.trace_id.to_s)
+        end
+      end
     end
   end
 

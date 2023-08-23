@@ -23,12 +23,12 @@ RSpec.shared_examples 'B3 Single distributed format' do
     context 'with trace_id and span_id' do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
-          span_id: 20000,
-          trace_id: 10000
+          span_id: 0xabc,
+          trace_id: 0xdef
         )
       end
 
-      it { expect(data).to eq(b3_single_header => '2710-4e20') }
+      it { expect(data).to eq(b3_single_header => '00000000000000000000000000000def-0000000000000abc') }
 
       [
         [-1, 0],
@@ -39,13 +39,13 @@ RSpec.shared_examples 'B3 Single distributed format' do
         context "with sampling priority #{value}" do
           let(:digest) do
             Datadog::Tracing::TraceDigest.new(
-              span_id: 60000,
-              trace_id: 50000,
+              span_id: 0xabc,
+              trace_id: 0xdef,
               trace_sampling_priority: value
             )
           end
 
-          it { expect(data).to eq(b3_single_header => "c350-ea60-#{expected}") }
+          it { expect(data).to eq(b3_single_header => "00000000000000000000000000000def-0000000000000abc-#{expected}") }
         end
       end
 
@@ -58,7 +58,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
           )
         end
 
-        it { expect(data).to eq(b3_single_header => 'abcdef-fedcba') }
+        it { expect(data).to eq(b3_single_header => '00000000000000000000000000abcdef-0000000000fedcba') }
       end
     end
 

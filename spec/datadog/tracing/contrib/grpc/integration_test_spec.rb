@@ -54,7 +54,8 @@ RSpec.describe 'gRPC integration test' do
 
     it_behaves_like 'a peer service span' do
       let(:span) { parent_span }
-      let(:peer_hostname) { '0.0.0.0' }
+      let(:peer_service_val) { 'ruby.test.Testing' }
+      let(:peer_service_source) { 'rpc.service' }
     end
   end
 
@@ -83,9 +84,9 @@ RSpec.describe 'gRPC integration test' do
       expect(client_span.get_tag('rpc.system')).to eq('grpc')
       expect(client_span.get_tag('rpc.grpc.status_code')).to eq(0)
       expect(client_span.get_tag('rpc.grpc.full_method')).to eq('/ruby.test.Testing/Basic')
+      expect(client_span.get_tag('rpc.service')).to eq('ruby.test.Testing')
 
       # the following tags should be set by backend
-      expect(client_span.get_tag('rpc.service')).to eq(nil)
       expect(client_span.get_tag('rpc.method')).to eq(nil)
       expect(client_span.get_tag('rpc.grpc.package')).to eq(nil)
     end
@@ -118,9 +119,9 @@ RSpec.describe 'gRPC integration test' do
       expect(client_span.get_tag('rpc.system')).to eq('grpc')
       expect(client_span.get_tag('rpc.grpc.status_code')).to eq(3)
       expect(client_span.get_tag('rpc.grpc.full_method')).to eq('/ruby.test.Testing/Error')
+      expect(client_span.get_tag('rpc.service')).to eq('ruby.test.Testing')
 
       # the following tags should be set by backend
-      expect(client_span.get_tag('rpc.service')).to eq(nil)
       expect(client_span.get_tag('rpc.method')).to eq(nil)
       expect(client_span.get_tag('rpc.grpc.package')).to eq(nil)
     end

@@ -5,6 +5,7 @@ module Datadog
         module Ext
           ENV_ENABLED: "DD_TRACE_AWS_ENABLED"
 
+          ENV_PEER_SERVICE: "DD_TRACE_AWS_PEER_SERVICE"
           ENV_SERVICE_NAME: "DD_TRACE_AWS_SERVICE_NAME"
 
           ENV_ANALYTICS_ENABLED: "DD_TRACE_AWS_ANALYTICS_ENABLED"
@@ -12,6 +13,8 @@ module Datadog
           ENV_ANALYTICS_SAMPLE_RATE: "DD_TRACE_AWS_ANALYTICS_SAMPLE_RATE"
 
           DEFAULT_PEER_SERVICE_NAME: "aws"
+
+          PEER_SERVICE_SOURCES: Array[String]
 
           SPAN_COMMAND: "aws.command"
 
@@ -50,6 +53,8 @@ module Datadog
           TAG_STATE_MACHINE_NAME: "statemachinename"
 
           TAG_BUCKET_NAME: "bucketname"
+
+          PEER_SERVICE_SOURCE_AWS: Array[string]
         end
       end
     end

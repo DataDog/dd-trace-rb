@@ -51,6 +51,13 @@ module Datadog
             def annotate_span_with_request!(span, req, req_options)
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
+              if req_options[:peer_service]
+                span.set_tag(
+                  Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                  req_options[:peer_service]
+                )
+              end
+
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
@@ -63,14 +70,15 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
 
-              if Contrib::SpanAttributeSchema.default_span_attribute_schema?
-                # Tag as an external peer service
-                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
-              end
-
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, uri.host)
 
               set_analytics_sample_rate(span, req_options)
+
+              span.set_tags(
+                Datadog.configuration.tracing.header_tags.request_tags(req.http_header)
+              )
+
+              Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
 
             def annotate_span_with_response!(span, response, request_options)
@@ -81,6 +89,10 @@ module Datadog
               if request_options[:error_status_codes].include? response.code.to_i
                 span.set_error(["Error #{response.status}", response.body])
               end
+
+              span.set_tags(
+                Datadog.configuration.tracing.header_tags.response_tags(response.header)
+              )
             end
 
             def annotate_span_with_error!(span, error)

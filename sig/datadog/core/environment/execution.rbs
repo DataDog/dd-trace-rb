@@ -1,0 +1,21 @@
+module Datadog
+  module Core
+    module Environment
+      module Execution
+        def self.development?: () -> bool
+
+        private
+        def self.test?: () -> bool
+        def self.repl?: () -> bool
+
+        REPL_PROGRAM_NAMES: ::Array[::String]
+        def self.rspec?: () -> bool
+
+        RSPEC_PROGRAM_NAME: ::String
+        def self.minitest?: () -> bool
+
+        def self.rails_development?: -> bool
+      end
+    end
+  end
+end

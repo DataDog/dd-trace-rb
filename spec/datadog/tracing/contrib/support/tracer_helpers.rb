@@ -3,6 +3,7 @@ require 'support/network_helpers'
 
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
+require 'datadog/tracing/sync_writer'
 
 module Contrib
   include NetworkHelpers
@@ -28,7 +29,7 @@ module Contrib
     # Retrieves all traces in the current tracer instance.
     # This method does not cache its results.
     def fetch_traces(tracer = self.tracer)
-      tracer.instance_variable_get(:@traces) || []
+      (tracer.instance_variable_defined?(:@traces) && tracer.instance_variable_get(:@traces)) || []
     end
 
     # Retrieves and sorts all spans in the current tracer instance.
@@ -81,7 +82,6 @@ module Contrib
               end
             end
           end
-
           instance
         end
       end
@@ -103,10 +103,18 @@ module Contrib
         unless traces.empty?
           if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
               tracer.writer.transport.client.api.adapter.hostname == 'testagent' && test_agent_running?
+            transport_options = {
+              adapter: :net_http,
+              hostname: NetworkHelpers::TEST_AGENT_HOST,
+              port: NetworkHelpers::TEST_AGENT_PORT,
+              timeout: 30
+            }
             traces.each do |trace|
               # write traces after the test to the agent in order to not mess up assertions
-              parse_tracer_config_and_add_to_headers tracer.writer.transport.client.api.headers
-              tracer.writer.write(trace)
+              # remake syncwriter instance for each flush to prevent headers from being overrwritten
+              sync_writer = Datadog::Tracing::SyncWriter.new(transport_options: transport_options)
+              sync_writer.transport.client.api.headers['X-Datadog-Trace-Env-Variables'] = parse_tracer_config
+              sync_writer.write(trace)
             end
           end
         end

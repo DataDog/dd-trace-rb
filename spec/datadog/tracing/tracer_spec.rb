@@ -815,6 +815,49 @@ RSpec.describe Datadog::Tracing::Tracer do
       end
     end
 
+    context 'given empty TraceDigest' do
+      let(:digest) { Datadog::Tracing::TraceDigest.new }
+
+      before { continue_trace! }
+
+      it 'starts a new trace' do
+        tracer.trace('operation') do |span, trace|
+          expect(trace).to have_attributes(
+            origin: nil,
+            sampling_priority: 1
+          )
+
+          expect(span).to have_attributes(
+            parent_id: 0,
+            span_id: a_kind_of(Integer),
+            trace_id: a_kind_of(Integer)
+          )
+        end
+
+        expect(tracer.active_trace).to be nil
+      end
+
+      context 'and a block' do
+        it do
+          expect { |b| tracer.continue_trace!(digest, &b) }
+            .to yield_control
+        end
+
+        it 'restores the original active trace afterwards' do
+          tracer.continue_trace!(digest)
+          original_trace = tracer.active_trace
+          expect(original_trace).to be_a_kind_of(Datadog::Tracing::TraceOperation)
+
+          tracer.continue_trace!(digest) do
+            expect(tracer.active_trace).to be_a_kind_of(Datadog::Tracing::TraceOperation)
+            expect(tracer.active_trace).to_not be original_trace
+          end
+
+          expect(tracer.active_trace).to be original_trace
+        end
+      end
+    end
+
     context 'given a TraceDigest' do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
@@ -823,6 +866,8 @@ RSpec.describe Datadog::Tracing::Tracer do
           trace_id: Datadog::Tracing::Utils.next_id,
           trace_origin: 'synthetics',
           trace_sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
+          trace_state: 'my-state',
+          trace_state_unknown_fields: 'any;field',
         )
       end
 
@@ -833,6 +878,8 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(trace).to have_attributes(
             origin: digest.trace_origin,
             sampling_priority: digest.trace_sampling_priority,
+            trace_state: 'my-state',
+            trace_state_unknown_fields: 'any;field',
           )
 
           expect(trace.send(:distributed_tags)).to eq('_dd.p.test' => 'value')
