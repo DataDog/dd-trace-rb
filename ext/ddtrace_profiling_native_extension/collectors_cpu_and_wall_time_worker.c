@@ -890,7 +890,7 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
 
 // Implements memory-related profiling events. This function is called by Ruby via the `object_allocation_tracepoint`
 // when the RUBY_INTERNAL_EVENT_NEWOBJ event is triggered.
-static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
+static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   // Update thread-local allocation count
   if (RB_UNLIKELY(allocation_count == UINT64_MAX)) {
     allocation_count = 0;
@@ -916,6 +916,15 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE tracepoint_data, DDTRACE_UNUSED
   // to keep this here for consistency -- every call to the thread context (other than the special gc calls which are
   // defined as not being able to allocate) sets this.
   state->during_sample = true;
+
+  rb_trace_arg_t *data = rb_tracearg_from_tracepoint(tracepoint_data);
+  VALUE allocated_object = rb_tracearg_object(data);
+
+  // A few objects are treated specially by the VM, such as classes, arrays, etc (see ruby.h header)
+  ruby_value_type type = RB_BUILTIN_TYPE(allocated_object);
+
+  // TODO: Not sure it's safe to get the class of non-objects; to research later
+  VALUE klass = (type == T_OBJECT) ? rb_class_of(allocated_object) : Qnil;
 
   // FIXME
   if (state->allocation_sample_every > 0 && ((allocation_count % state->allocation_sample_every) == 0)) {
