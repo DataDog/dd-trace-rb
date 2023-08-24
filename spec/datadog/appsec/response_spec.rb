@@ -10,7 +10,7 @@ RSpec.describe Datadog::AppSec::Response do
     end
 
     describe '.status' do
-      subject(:content_type) { described_class.negotiate(env).status }
+      subject(:status) { described_class.negotiate(env).status }
 
       it { is_expected.to eq 403 }
     end
@@ -23,22 +23,48 @@ RSpec.describe Datadog::AppSec::Response do
         expect(env).to receive(:[]).with('HTTP_ACCEPT').and_return(accept)
       end
 
+      shared_examples_for 'with custom response body' do |type|
+        before do
+          File.write("test.#{type}", 'testing')
+          Datadog.configuration.appsec.block.templates.send("#{type}=", "test.#{type}")
+        end
+
+        after do
+          File.delete("test.#{type}")
+          Datadog.configuration.appsec.reset!
+        end
+
+        it { is_expected.to eq ['testing'] }
+      end
+
+      context 'with unsupported Accept headers' do
+        let(:accept) { 'application/xml' }
+
+        it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :json)] }
+      end
+
       context('with Accept: text/html') do
         let(:accept) { 'text/html' }
 
         it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :html)] }
+
+        it_behaves_like 'with custom response body', :html
       end
 
       context('with Accept: application/json') do
         let(:accept) { 'application/json' }
 
         it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :json)] }
+
+        it_behaves_like 'with custom response body', :json
       end
 
       context('with Accept: text/plain') do
         let(:accept) { 'text/plain' }
 
         it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :text)] }
+
+        it_behaves_like 'with custom response body', :text
       end
     end
 

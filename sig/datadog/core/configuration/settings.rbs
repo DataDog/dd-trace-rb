@@ -43,24 +43,25 @@ module Datadog
 
           def ruleset=: (String | Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
 
-          def using_default?: (Symbol option) -> bool
-
           def block: () -> _AppSecBlock
-
         end
 
         interface _AppSecBlock
-          def templates=: (::Hash[::String, ::Symbol | ::String | ::Pathname]) -> void
+          def templates: () -> _TemplatesBlock
+        end
 
-          def templates: () -> ::Hash[::String, ::Symbol | ::String | ::Pathname]
+        interface _TemplatesBlock
+          def html=: (::String) -> void
 
-          def status=: (::Integer) -> void
+          def html: () -> ::String
 
-          def status: () -> ::Integer
+          def json=: (::String) -> void
 
-          def location=: (::URI | ::String | nil) -> void
+          def json: () -> ::String
 
-          def location: () -> ::URI?
+          def text=: (::String) -> void
+
+          def text: () -> ::String
         end
 
         def initialize: (*untyped _) -> untyped

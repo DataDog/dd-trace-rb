@@ -25,7 +25,7 @@ module Datadog
           add_settings!(base)
         end
 
-        # rubocop:disable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength
+        # rubocop:disable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def self.add_settings!(base)
           base.class_eval do
             settings :appsec do
@@ -96,55 +96,39 @@ module Datadog
               end
 
               settings :block do
-                # HTTP status code to block with
-                option :status do |o|
-                  o.default { 403 }
-                end
+                settings :templates do
+                  option :html do |o|
+                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML'
+                    o.type :string, nilable: true
+                    o.setter do |value|
+                      if value
+                        raise(ArgumentError, "appsec.templates.html: file not found: #{value}") unless File.exist?(value)
 
-                # only applies to redirect status codes
-                option :location do |o|
-                  o.setter { |v| URI(v) unless v.nil? }
-                end
-
-                # only applies to non-redirect status codes with bodies
-                option :templates do |o|
-                  o.default do
-                    json = ENV.fetch(
-                      'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON',
-                      :json
-                    )
-
-                    html = ENV.fetch(
-                      'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML',
-                      :html
-                    )
-
-                    text = ENV.fetch(
-                      'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT',
-                      :text
-                    )
-
-                    {
-                      'application/json' => json,
-                      'text/html' => html,
-                      'text/plain' => text,
-                    }
+                        File.open(value, 'rb', &:read) || ''
+                      end
+                    end
                   end
-                  o.setter do |v|
-                    next if v.nil?
 
-                    # TODO: should merge with o.default to allow overriding only one mime type
+                  option :json do |o|
+                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON'
+                    o.type :string, nilable: true
+                    o.setter do |value|
+                      if value
+                        raise(ArgumentError, "appsec.templates.json: file not found: #{value}") unless File.exist?(value)
 
-                    v.each do |k, w|
-                      case w
-                      when :json, :html, :text
-                        next
-                      when String, Pathname
-                        next if File.exist?(w.to_s)
+                        File.open(value, 'rb', &:read) || ''
+                      end
+                    end
+                  end
 
-                        raise(ArgumentError, "appsec.templates.#{k}: file not found: #{w}")
-                      else
-                        raise ArgumentError, "appsec.templates.#{k}: unexpected value: #{w.inspect}"
+                  option :text do |o|
+                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT'
+                    o.type :string, nilable: true
+                    o.setter do |value|
+                      if value
+                        raise(ArgumentError, "appsec.templates.text: file not found: #{value}") unless File.exist?(value)
+
+                        File.open(value, 'rb', &:read) || ''
                       end
                     end
                   end
@@ -188,7 +172,7 @@ module Datadog
             end
           end
         end
-        # rubocop:enable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength
+        # rubocop:enable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
       end
     end
   end

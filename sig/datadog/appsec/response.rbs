@@ -17,16 +17,9 @@ module Datadog
 
       CONTENT_TYPE_TO_FORMAT: ::Hash[::String, ::Symbol]
       DEFAULT_CONTENT_TYPE: ::String
-      REDIRECT_STATUS: ::Array[::Integer]
 
       def self.content_type: (::Hash[untyped, untyped] env) -> ::String
       def self.content: (::String) -> ::String
-      def self.status: () -> ::Integer
-      def self.location: () -> ::URI?
-      def self.redirect?: () -> bool
-
-      self.@cache: ::Hash[::String, ::String]
-      def self.cache: () -> ::Hash[::String, ::String]
     end
   end
 end
