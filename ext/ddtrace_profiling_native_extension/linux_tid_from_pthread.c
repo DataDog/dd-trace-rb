@@ -91,6 +91,7 @@
   //
   // * On Ubuntu 22.04's x86-64 glibc 2.35:
   //  ```
+  //  gdb /lib/libc.musl-x86_64.so.1
   //  (gdb) print sizeof(struct pthread)
   //  $1 = 2496
   //  (gdb) ptype /o struct pthread
@@ -99,6 +100,7 @@
   //  ```
   // * On alpine 3.18.3's x86-64 musl 1.2.4:
   //   ```
+  //   gdb /lib/libc.musl-x86_64.so.1
   //  (gdb) print sizeof(struct __pthread)
   //  $1 = 200
   //  (gdb) ptype /o struct __pthread
