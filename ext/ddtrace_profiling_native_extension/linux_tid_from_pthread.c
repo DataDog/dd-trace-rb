@@ -84,6 +84,30 @@
 
   // This value seems enough for both glibc and musl (and it's safe to read with `process_vm_readv`)
   // Must be a multiple of sizeof(pid_t)
+  //
+  // In particular, I've picked 2048 after examining the layouts of the structures using gdb. This value is a bit more
+  // than double the needed for glibc, and is way higher than needed for alpine, so we have some leeway for the field
+  // moving around in different libc versions and architectures.
+  //
+  // * On Ubuntu 22.04's x86-64 glibc 2.35:
+  //  ```
+  //  (gdb) print sizeof(struct pthread)
+  //  $1 = 2496
+  //  (gdb) ptype /o struct pthread
+  //  /* offset      |    size */  type = struct pthread {
+  //  /*    720      |       4 */    pid_t tid;
+  //  ```
+  // * On alpine 3.18.3's x86-64 musl 1.2.4:
+  //   ```
+  //  (gdb) print sizeof(struct __pthread)
+  //  $1 = 200
+  //  (gdb) ptype /o struct __pthread
+  //  /* offset      |    size */  type = struct __pthread {
+  //  /*     48      |       4 */    int tid;
+  //  ```
+  //
+  // In the future, we may want to tune this down if we see that process_vm_readv fails because it can't read the whole
+  // 2048 bytes (e.g. on musl?), but it's a trade-off between overfitting and overreading :)
   #define STRUCT_PTHREAD_READ_SIZE 2048
 
   #define REFERENCE_THREADS_COUNT 3
