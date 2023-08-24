@@ -1,6 +1,8 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require_relative '../support/helper'
 
+require 'sidekiq/fetch'
+
 RSpec.describe 'Server internal tracer' do
   include SidekiqServerExpectations
 
@@ -10,12 +12,17 @@ RSpec.describe 'Server internal tracer' do
     end
 
     skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
+
+    # Fetches block for 2 seconds when there is nothing in the queue:
+    # https://github.com/mperham/sidekiq/blob/v6.2.2/lib/sidekiq/fetch.rb#L7-L9
+    # https://redis.io/commands/blpop#blocking-behavior
+    #
+    # We change the constant here to ensure test runs as fast possible.
+    # Timeouts lower then 0.0011 get rounded down to zero.
+    stub_const('Sidekiq::BasicFetch::TIMEOUT', { timeout: 0.0011 })
   end
 
   it 'traces the looping job fetching' do
-    # fetches block for 2 seconds when there is nothing in the queue
-    # https://github.com/mperham/sidekiq/blob/v6.2.2/lib/sidekiq/fetch.rb#L7-L9
-    # https://redis.io/commands/blpop#blocking-behavior
     expect_in_sidekiq_server(wait_until: -> { fetch_spans.any? { |s| s.name == 'sidekiq.job_fetch' } }) do
       span = spans.find { |s| s.name == 'sidekiq.job_fetch' }
 
