@@ -44,6 +44,8 @@ module SynchronizationHelpers
 
       raise e
     ensure
+      Process.kill('KILL', pid) rescue nil # Prevent zombie processes on failure
+
       fork_stdout.unlink
       fork_stderr.unlink
     end

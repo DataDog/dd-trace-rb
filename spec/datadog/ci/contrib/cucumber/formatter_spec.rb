@@ -1,4 +1,5 @@
 require 'datadog/ci/contrib/support/spec_helper'
+require 'datadog/ci/contrib/cucumber/integration'
 
 require 'stringio'
 require 'cucumber'
@@ -20,7 +21,15 @@ RSpec.describe 'Cucumber formatter' do
   let(:stdout) { StringIO.new }
   let(:stderr) { StringIO.new }
   let(:kernel) { double(:kernel) }
-  let(:cli)    { Cucumber::Cli::Main.new(args, stdin, stdout, stderr, kernel) }
+  let(:cli) do
+    cucumber_8 = Gem::Version.new('8.0.0')
+
+    if Datadog::CI::Contrib::Cucumber::Integration.version < cucumber_8
+      Cucumber::Cli::Main.new(args, stdin, stdout, stderr, kernel)
+    else
+      Cucumber::Cli::Main.new(args, stdout, stderr, kernel)
+    end
+  end
 
   before do
     Datadog.configure do |c|

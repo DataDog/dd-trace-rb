@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.13.1)
+    ddtrace (1.14.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 3.0.0.1.0)
       libddwaf (~> 1.9.0.0.0)
@@ -1438,37 +1438,6 @@ GEM
       rexml
     crass (1.0.6)
     cri (2.15.10)
-    cucumber (4.1.0)
-      builder (~> 3.2, >= 3.2.3)
-      cucumber-core (~> 7.1, >= 7.1.0)
-      cucumber-create-meta (~> 1.0.0, >= 1.0.0)
-      cucumber-cucumber-expressions (~> 10.1, >= 10.1.0)
-      cucumber-gherkin (~> 14.0, >= 14.0.1)
-      cucumber-html-formatter (~> 7.0, >= 7.0.0)
-      cucumber-messages (~> 12.2, >= 12.2.0)
-      cucumber-wire (~> 3.1, >= 3.1.0)
-      diff-lcs (~> 1.3, >= 1.3, < 1.4)
-      multi_test (~> 0.1, >= 0.1.2)
-      sys-uname (~> 1.0, >= 1.0.2)
-    cucumber-core (7.1.0)
-      cucumber-gherkin (~> 14.0, >= 14.0.1)
-      cucumber-messages (~> 12.2, >= 12.2.0)
-      cucumber-tag-expressions (~> 2.0, >= 2.0.4)
-    cucumber-create-meta (1.0.0)
-      cucumber-messages (~> 12.2, >= 12.2.0)
-      sys-uname (~> 1.2, >= 1.2.1)
-    cucumber-cucumber-expressions (10.3.0)
-    cucumber-gherkin (14.2.0)
-      cucumber-messages (~> 12.4, >= 12.4.0)
-    cucumber-html-formatter (7.2.0)
-      cucumber-messages (~> 12.4, >= 12.4.0)
-    cucumber-messages (12.4.0)
-      protobuf-cucumber (~> 3.10, >= 3.10.8)
-    cucumber-tag-expressions (2.0.4)
-    cucumber-wire (3.1.0)
-      cucumber-core (~> 7.1, >= 7.1.0)
-      cucumber-cucumber-expressions (~> 10.1, >= 10.1.0)
-      cucumber-messages (~> 12.2, >= 12.2.0)
     dalli (2.7.11)
     debase-ruby_core_source (3.2.1)
     delayed_job (4.1.11)
@@ -1593,7 +1562,6 @@ GEM
       activerecord (>= 3.0.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
-    middleware (0.1.0)
     mime-types (3.4.1)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2023.0218.1)
@@ -1604,7 +1572,6 @@ GEM
     mono_logger (1.1.1)
     msgpack (1.6.1)
     multi_json (1.15.0)
-    multi_test (0.1.2)
     multipart-post (2.3.0)
     mustermann (2.0.2)
       ruby2_keywords (~> 0.0.1)
@@ -1626,11 +1593,6 @@ GEM
     os (1.1.4)
     pg (1.2.3)
     pimpmychangelog (0.1.3)
-    protobuf-cucumber (3.10.8)
-      activesupport (>= 3.2)
-      middleware
-      thor
-      thread_safe
     pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
@@ -1751,8 +1713,6 @@ GEM
     stripe (6.5.0)
     sucker_punch (3.1.0)
       concurrent-ruby (~> 1.0)
-    sys-uname (1.2.2)
-      ffi (~> 1.1)
     thor (1.2.1)
     thread_safe (0.3.6)
     tilt (2.1.0)
@@ -1788,7 +1748,6 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
-  cucumber
   dalli (< 3.0.0)
   ddtrace!
   delayed_job

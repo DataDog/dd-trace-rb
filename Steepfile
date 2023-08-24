@@ -657,6 +657,7 @@ target :ddtrace do
   library 'jruby'
   library 'gem'
   library 'rails'
+  library 'spring'
   library 'sinatra'
   library 'google-protobuf'
   library 'protobuf-cucumber'

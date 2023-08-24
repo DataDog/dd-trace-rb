@@ -4,9 +4,17 @@ require 'active_record'
 require 'datadog/tracing/contrib/active_record/configuration/resolver'
 
 RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver do
-  subject(:resolver) { described_class.new(configuration) }
+  subject(:resolver) do
+    if ::ActiveRecord.respond_to?(:version) && ::ActiveRecord.version >= Gem::Version.new('6')
+      # ::ActiveRecord::DatabaseConfigurations` was introduced from 6+
+      require 'active_record/database_configurations'
+      described_class.new(::ActiveRecord::DatabaseConfigurations.new(configuration))
+    else
+      described_class.new(configuration)
+    end
+  end
 
-  let(:configuration) { nil }
+  let(:configuration) { ::ActiveRecord::Base.configurations }
 
   describe '#add' do
     subject(:add) { resolver.add(matcher, config) }

@@ -82,6 +82,37 @@ RSpec.describe Datadog::Core::Environment::Execution do
           end
         end
       end
+
+      context 'when in a Rails Spring process' do
+        before do
+          unless PlatformHelpers.ci? || Gem.loaded_specs['spring']
+            skip('spring gem not present. In CI, this test is never skipped.')
+          end
+        end
+
+        let(:script) do
+          <<-RUBY
+            require 'bundler/inline'
+
+            gemfile(true) do
+              source 'https://rubygems.org'
+              gem 'spring', '>= 2.0.2'
+            end
+
+            # Load the `bin/spring` file, just like a real Spring application would.
+            # https://github.com/rails/spring/blob/0a80019e1abdedb3291afb13e8cfb72f3992da90/bin/spring
+            ARGV = ['help'] # Let's ask for a simple Spring command, so that it returns quickly.
+            load Gem.bin_path('spring', 'spring')
+
+            #{repl_script}
+          RUBY
+        end
+
+        it 'returns true' do
+          _, err, = Open3.capture3('ruby', stdin_data: script)
+          expect(err).to end_with('true')
+        end
+      end
     end
   end
 end

@@ -90,18 +90,25 @@ module Datadog
               )
             end
 
+            #
+            # `::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver` exists from 4+ til from 6.0.x
+            #
+            # `::ActiveRecord::DatabaseConfigurations` was introduced from 6+,
+            # but from 6.1.x, it was refactored to encapsulates the resolving logic, hence removing the resolver
+            #
             def connection_resolver
-              @resolver ||= if defined?(::ActiveRecord::Base.configurations.resolve)
-                              ::ActiveRecord::DatabaseConfigurations.new(active_record_configuration)
-                            elsif defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
-                              ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(
-                                active_record_configuration
-                              )
-                            else
-                              Contrib::ActiveRecord::Vendor::ConnectionAdapters::ConnectionSpecification::Resolver.new(
-                                active_record_configuration
-                              )
-                            end
+              @resolver ||=
+                # From 6.1+
+                if defined?(::ActiveRecord::Base.configurations.resolve)
+                  ::ActiveRecord::DatabaseConfigurations.new(active_record_configuration)
+                # From 4+ to 6.0.x
+                elsif defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
+                  ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(active_record_configuration)
+                else
+                  Contrib::ActiveRecord::Vendor::ConnectionAdapters::ConnectionSpecification::Resolver.new(
+                    active_record_configuration
+                  )
+                end
             end
 
             def resolve_connection_key(key)

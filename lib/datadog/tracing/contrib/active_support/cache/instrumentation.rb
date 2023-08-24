@@ -10,92 +10,63 @@ module Datadog
       module ActiveSupport
         module Cache
           # Defines instrumentation for ActiveSupport caching
-          # rubocop:disable Lint/RescueException
           module Instrumentation
             module_function
 
-            def start_trace_cache(payload)
-              return unless enabled?
-
-              # In most of the cases Rails ``fetch()`` and ``read()`` calls are nested.
-              # This check ensures that two reads are not nested since they don't provide
-              # interesting details.
-              # NOTE: the ``finish_trace_cache()`` is fired but it already has a safe-guard
-              # to avoid any kind of issue.
-              current_span = Tracing.active_span
-              return if current_span.try(:name) == Ext::SPAN_CACHE &&
-                (
-                  payload[:action] == Ext::RESOURCE_CACHE_GET &&
-                  current_span.try(:resource) == Ext::RESOURCE_CACHE_GET ||
-                  payload[:action] == Ext::RESOURCE_CACHE_MGET &&
-                  current_span.try(:resource) == Ext::RESOURCE_CACHE_MGET
-                )
-
-              tracing_context = payload.fetch(:tracing_context)
+            # @param action [String] type of cache operation. Will be set as the span resource.
+            # @param key [Object] redis cache key. Used for actions with a single key locator.
+            # @param multi_key [Array<Object>] list of redis cache keys. Used for actions with a multiple key locators.
+            def trace(action, key: nil, multi_key: nil)
+              return yield unless enabled?
 
               # create a new ``Span`` and add it to the tracing context
-              service = Datadog.configuration.tracing[:active_support][:cache_service]
-              type = Ext::SPAN_TYPE_CACHE
-              span = Tracing.trace(Ext::SPAN_CACHE, service: service, span_type: type)
-              span.resource = payload.fetch(:action)
+              Tracing.trace(
+                Ext::SPAN_CACHE,
+                span_type: Ext::SPAN_TYPE_CACHE,
+                service: Datadog.configuration.tracing[:active_support][:cache_service],
+                resource: action
+              ) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CACHE)
 
-              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CACHE)
+                set_backend(span)
+                set_cache_key(span, key, multi_key)
 
-              tracing_context[:dd_cache_span] = span
-            rescue StandardError => e
-              Datadog.logger.debug(e.message)
+                yield
+              end
             end
 
-            def finish_trace_cache(payload)
-              return unless enabled?
+            # In most of the cases, `#fetch()` and `#read()` calls are nested.
+            # Instrument both does not add any value.
+            # This method checks if these two operations are nested.
+            def nested_read?
+              current_span = Tracing.active_span
+              current_span && current_span.name == Ext::SPAN_CACHE && current_span.resource == Ext::RESOURCE_CACHE_GET
+            end
 
-              # retrieve the tracing context and continue the trace
-              tracing_context = payload.fetch(:tracing_context)
-              span = tracing_context[:dd_cache_span]
-              return unless span && !span.finished?
+            # (see #nested_read?)
+            def nested_multiread?
+              current_span = Tracing.active_span
+              current_span && current_span.name == Ext::SPAN_CACHE && current_span.resource == Ext::RESOURCE_CACHE_MGET
+            end
 
-              begin
-                span.set_tag(Ext::TAG_CACHE_BACKEND, payload[:store]) if payload[:store]
+            def set_backend(span)
+              if defined?(::Rails)
+                store, = *Array.wrap(::Rails.configuration.cache_store).flatten
+                span.set_tag(Ext::TAG_CACHE_BACKEND, store)
+              end
+            end
 
-                normalized_key = ::ActiveSupport::Cache.expand_cache_key(payload.fetch(:key))
-                cache_key = Core::Utils.truncate(normalized_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
+            def set_cache_key(span, single_key, multi_key)
+              if multi_key
+                resolved_key = multi_key.map { |key| ::ActiveSupport::Cache.expand_cache_key(key) }
+                cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
+                span.set_tag(Ext::TAG_CACHE_KEY_MULTI, cache_key)
+              else
+                resolved_key = ::ActiveSupport::Cache.expand_cache_key(single_key)
+                cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
                 span.set_tag(Ext::TAG_CACHE_KEY, cache_key)
-
-                span.set_error(payload[:exception]) if payload[:exception]
-              ensure
-                span.finish
               end
-            rescue StandardError => e
-              Datadog.logger.debug(e.message)
-            end
-
-            def finish_trace_cache_multi(payload)
-              return unless enabled?
-
-              # retrieve the tracing context and continue the trace
-              tracing_context = payload.fetch(:tracing_context)
-              span = tracing_context[:dd_cache_span]
-              return unless span && !span.finished?
-
-              begin
-                # discard parameters from the cache_store configuration
-                if defined?(::Rails)
-                  store, = *Array.wrap(::Rails.configuration.cache_store).flatten
-                  span.set_tag(Ext::TAG_CACHE_BACKEND, store)
-                end
-                normalized_keys = payload.fetch(:keys, []).map do |key|
-                  ::ActiveSupport::Cache.expand_cache_key(key)
-                end
-                cache_keys = Core::Utils.truncate(normalized_keys, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
-                span.set_tag(Ext::TAG_CACHE_KEY_MULTI, cache_keys)
-
-                span.set_error(payload[:exception]) if payload[:exception]
-              ensure
-                span.finish
-              end
-            rescue StandardError => e
-              Datadog.logger.debug(e.message)
             end
 
             def enabled?
@@ -105,192 +76,61 @@ module Datadog
             # Defines instrumentation for ActiveSupport cache reading
             module Read
               def read(*args, &block)
-                payload = {
-                  action: Ext::RESOURCE_CACHE_GET,
-                  key: args[0],
-                  tracing_context: {},
-                  # The name of the store is never saved anywhere.
-                  # ActiveSupport looks up stores by converting a symbol into a 'require' path,
-                  # then "camelizing" it for a `const_get` call:
-                  # ```
-                  # require "active_support/cache/#{store}"
-                  # ActiveSupport::Cache.const_get(store.to_s.camelize)
-                  # ```
-                  # @see https://github.com/rails/rails/blob/261975dbef77731d2c76f907f1076c5132ebc0e4/activesupport/lib/active_support/cache.rb#L139-L149
-                  #
-                  # As `self` is the store object, we can reverse engineer
-                  # the original symbol by converting the class name to snake case:
-                  # e.g. ActiveSupport::Cache::RedisStore -> active_support/cache/redis_store
-                  # In this case `redis_store` is the store name.
-                  #
-                  # Because there's no API retrieve only the class name
-                  # (only `RedisStore`, and not `ActiveSupport::Cache::RedisStore`)
-                  # the easiest way to retrieve the store symbol is to convert the fully qualified
-                  # name using Rails-provided methods, then extracting the last part.
-                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
-                }
+                return super if Instrumentation.nested_read?
 
-                begin
-                  # process and catch cache exceptions
-                  Instrumentation.start_trace_cache(payload)
-                  super
-                rescue Exception => e
-                  payload[:exception] = [e.class.name, e.message]
-                  payload[:exception_object] = e
-                  raise e
-                end
-              ensure
-                Instrumentation.finish_trace_cache(payload)
+                Instrumentation.trace(Ext::RESOURCE_CACHE_GET, key: args[0]) { super }
               end
             end
 
             # Defines instrumentation for ActiveSupport cache reading of multiple keys
             module ReadMulti
               def read_multi(*keys, &block)
-                payload = {
-                  action: Ext::RESOURCE_CACHE_MGET,
-                  keys: keys,
-                  tracing_context: {},
-                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
-                }
+                return super if Instrumentation.nested_multiread?
 
-                begin
-                  # process and catch cache exceptions
-                  Instrumentation.start_trace_cache(payload)
-                  super
-                rescue Exception => e
-                  payload[:exception] = [e.class.name, e.message]
-                  payload[:exception_object] = e
-                  raise e
-                end
-              ensure
-                Instrumentation.finish_trace_cache_multi(payload)
+                Instrumentation.trace(Ext::RESOURCE_CACHE_MGET, multi_key: keys) { super }
               end
             end
 
             # Defines instrumentation for ActiveSupport cache fetching
             module Fetch
               def fetch(*args, &block)
-                payload = {
-                  action: Ext::RESOURCE_CACHE_GET,
-                  key: args[0],
-                  tracing_context: {},
-                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
-                }
+                return super if Instrumentation.nested_read?
 
-                begin
-                  # process and catch cache exceptions
-                  Instrumentation.start_trace_cache(payload)
-                  super
-                rescue Exception => e
-                  payload[:exception] = [e.class.name, e.message]
-                  payload[:exception_object] = e
-                  raise e
-                end
-              ensure
-                Instrumentation.finish_trace_cache(payload)
+                Instrumentation.trace(Ext::RESOURCE_CACHE_GET, key: args[0]) { super }
               end
             end
 
             # Defines instrumentation for ActiveSupport cache fetching of multiple keys
             module FetchMulti
               def fetch_multi(*args, &block)
-                # extract options hash
-                keys = args[-1].instance_of?(Hash) ? args[0..-2] : args
-                payload = {
-                  action: Ext::RESOURCE_CACHE_MGET,
-                  keys: keys,
-                  tracing_context: {},
-                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
-                }
+                return super if Instrumentation.nested_multiread?
 
-                begin
-                  # process and catch cache exceptions
-                  Instrumentation.start_trace_cache(payload)
-                  super
-                rescue Exception => e
-                  payload[:exception] = [e.class.name, e.message]
-                  payload[:exception_object] = e
-                  raise e
-                end
-              ensure
-                Instrumentation.finish_trace_cache_multi(payload)
+                keys = args[-1].instance_of?(Hash) ? args[0..-2] : args
+                Instrumentation.trace(Ext::RESOURCE_CACHE_MGET, multi_key: keys) { super }
               end
             end
 
             # Defines instrumentation for ActiveSupport cache writing
             module Write
               def write(*args, &block)
-                payload = {
-                  action: Ext::RESOURCE_CACHE_SET,
-                  key: args[0],
-                  tracing_context: {},
-                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
-                }
-
-                begin
-                  # process and catch cache exceptions
-                  Instrumentation.start_trace_cache(payload)
-                  super
-                rescue Exception => e
-                  payload[:exception] = [e.class.name, e.message]
-                  payload[:exception_object] = e
-                  raise e
-                end
-              ensure
-                Instrumentation.finish_trace_cache(payload)
+                Instrumentation.trace(Ext::RESOURCE_CACHE_SET, key: args[0]) { super }
               end
             end
 
             # Defines instrumentation for ActiveSupport cache writing of multiple keys
             module WriteMulti
               def write_multi(hash, options = nil)
-                payload = {
-                  action: Ext::RESOURCE_CACHE_MSET,
-                  keys: hash.keys,
-                  tracing_context: {},
-                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
-                }
-
-                begin
-                  # process and catch cache exceptions
-                  Instrumentation.start_trace_cache(payload)
-                  super
-                rescue Exception => e
-                  payload[:exception] = [e.class.name, e.message]
-                  payload[:exception_object] = e
-                  raise e
-                end
-              ensure
-                Instrumentation.finish_trace_cache_multi(payload)
+                Instrumentation.trace(Ext::RESOURCE_CACHE_MSET, multi_key: hash.keys) { super }
               end
             end
 
             # Defines instrumentation for ActiveSupport cache deleting
             module Delete
               def delete(*args, &block)
-                payload = {
-                  action: Ext::RESOURCE_CACHE_DELETE,
-                  key: args[0],
-                  tracing_context: {},
-                  store: self.class.name.underscore.match(/active_support\/cache\/(.*)/)[1]
-                }
-
-                begin
-                  # process and catch cache exceptions
-                  Instrumentation.start_trace_cache(payload)
-                  super
-                rescue Exception => e
-                  payload[:exception] = [e.class.name, e.message]
-                  payload[:exception_object] = e
-                  raise e
-                end
-              ensure
-                Instrumentation.finish_trace_cache(payload)
+                Instrumentation.trace(Ext::RESOURCE_CACHE_DELETE, key: args[0]) { super }
               end
             end
           end
-          # rubocop:enable Lint/RescueException
         end
       end
     end

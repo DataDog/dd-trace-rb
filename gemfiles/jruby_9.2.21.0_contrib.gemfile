@@ -32,9 +32,8 @@ gem "opentracing", ">= 0.4.1"
 gem "actionpack"
 gem "actionview"
 gem "active_model_serializers", ">= 0.10.0"
-gem "activerecord"
+gem "activerecord", "~> 5"
 gem "aws-sdk"
-gem "cucumber"
 gem "dalli", ">= 3.0.0"
 gem "delayed_job"
 gem "delayed_job_active_record"
@@ -53,10 +52,10 @@ gem "makara"
 gem "minitest", ">= 5.0.0"
 gem "mongo", ">= 2.8.0", "< 2.15.0"
 gem "mysql2", "< 1", platform: :ruby
-gem "activerecord-jdbcmysql-adapter", ">= 60.2", platform: :jruby
+gem "activerecord-jdbcmysql-adapter", ">= 52", platform: :jruby
 gem "opensearch-ruby"
 gem "pg", ">= 0.18.4", platform: :ruby
-gem "activerecord-jdbcpostgresql-adapter", ">= 60.2", platform: :jruby
+gem "activerecord-jdbcpostgresql-adapter", ">= 52", platform: :jruby
 gem "racecar", ">= 0.3.5"
 gem "rack"
 gem "rack-contrib"
@@ -73,7 +72,7 @@ gem "sneakers", ">= 2.12.0"
 gem "bunny", "~> 2.19.0"
 gem "sqlite3", "~> 1.4.1", platform: :ruby
 gem "stripe", "~> 7.0"
-gem "jdbc-sqlite3", ">= 3.28", platform: :jruby
+gem "activerecord-jdbcsqlite3-adapter", ">= 52", platform: :jruby
 gem "sucker_punch"
 gem "typhoeus"
 gem "que", ">= 1.0.0", "< 2.0.0"

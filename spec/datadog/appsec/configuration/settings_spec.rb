@@ -475,6 +475,14 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
               it { is_expected.to eq(false) }
             end
+
+            context 'using the mode values: extended | safe' do
+              ['extended', 'safe'].each do |value|
+                let(:track_user_events_enabled) { value }
+
+                it { is_expected.to eq(true) }
+              end
+            end
           end
         end
       end
