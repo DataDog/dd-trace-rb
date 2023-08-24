@@ -91,7 +91,7 @@
   //
   // * On Ubuntu 22.04's x86-64 glibc 2.35:
   //  ```
-  //  gdb /lib/libc.musl-x86_64.so.1
+  //  gdb /lib/x86_64-linux-gnu/libc.so.6
   //  (gdb) print sizeof(struct pthread)
   //  $1 = 2496
   //  (gdb) ptype /o struct pthread
