@@ -37,6 +37,6 @@ ddog_CharSlice ruby_value_type_to_char_slice(enum ruby_value_type type) {
     #ifdef RUBY_T_MOVED // Introduced in Ruby 2.7
     case(RUBY_T_MOVED   ): return DDOG_CHARSLICE_C("T_MOVED");
     #endif
-                  default: return DDOG_CHARSLICE_C("T_UNKNOWN_OR_MISSING_RUBY_VALUE_TYPE_ENTRY");
+                  default: return DDOG_CHARSLICE_C("BUG: Unknown value for ruby_value_type");
   }
 }
