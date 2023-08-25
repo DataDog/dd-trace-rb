@@ -178,7 +178,8 @@ static void trigger_sample_for_thread(
   struct per_thread_context *thread_context,
   sample_values values,
   sample_type type,
-  long current_monotonic_wall_time_ns
+  long current_monotonic_wall_time_ns,
+  ddog_CharSlice *ruby_vm_type
 );
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state);
@@ -199,7 +200,7 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
 static bool is_type_web(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
-static VALUE _native_sample_allocation(VALUE self, VALUE collector_instance, VALUE sample_weight);
+static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object);
 static VALUE _native_new_empty_thread(VALUE self);
 
 void collectors_thread_context_init(VALUE profiling_module) {
@@ -222,7 +223,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
-  rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 2);
+  rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 3);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_sample_after_gc", _native_sample_after_gc, 1);
@@ -463,7 +464,8 @@ void update_metrics_and_sample(
     thread_context,
     (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
     SAMPLE_REGULAR,
-    current_monotonic_wall_time_ns
+    current_monotonic_wall_time_ns,
+    NULL
   );
 }
 
@@ -606,7 +608,8 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
       thread_context,
       (sample_values) {.cpu_time_ns = gc_cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = gc_wall_time_elapsed_ns},
       SAMPLE_IN_GC,
-      INVALID_TIME // For now we're not collecting timestamps for these events
+      INVALID_TIME, // For now we're not collecting timestamps for these events
+      NULL
     );
 
     // Mark thread as no longer in GC
@@ -637,13 +640,15 @@ static void trigger_sample_for_thread(
   struct per_thread_context *thread_context,
   sample_values values,
   sample_type type,
-  long current_monotonic_wall_time_ns
+  long current_monotonic_wall_time_ns,
+  ddog_CharSlice *ruby_vm_type // Only used for allocation profiling, NULL for others; @ivoanjo: may want to refactor this at some point?
 ) {
   int max_label_count =
     1 + // thread id
     1 + // thread name
     1 + // profiler overhead
     1 + // end_timestamp_ns
+    1 + // ruby vm type
     2;  // local root span id and span id
   ddog_prof_Label labels[max_label_count];
   int label_pos = 0;
@@ -710,6 +715,13 @@ static void trigger_sample_for_thread(
     labels[label_pos++] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("end_timestamp_ns"),
       .num = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns)
+    };
+  }
+
+  if (ruby_vm_type != NULL) {
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("ruby vm type"),
+      .str = *ruby_vm_type
     };
   }
 
@@ -1050,11 +1062,14 @@ static VALUE thread_list(struct thread_context_collector_state *state) {
   return result;
 }
 
-void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight) {
+void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object) {
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE current_thread = rb_thread_current();
+
+  // Tag samples with the VM internal types
+  ddog_CharSlice ruby_vm_type = ruby_value_type_to_char_slice(rb_type(new_object));
 
   trigger_sample_for_thread(
     state,
@@ -1063,14 +1078,15 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     get_or_create_context_for(current_thread, state),
     (sample_values) {.alloc_samples = sample_weight},
     SAMPLE_REGULAR,
-    INVALID_TIME // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
+    INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
+    &ruby_vm_type
   );
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight) {
-  thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight));
+static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object) {
+  thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight), new_object);
   return Qtrue;
 }
 

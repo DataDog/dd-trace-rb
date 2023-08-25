@@ -155,6 +155,9 @@ $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
 # On older Rubies, there are no Ractors
 $defs << '-DNO_RACTORS' if RUBY_VERSION < '3'
 
+# On older Rubies, objects would not move
+$defs << '-DNO_T_MOVED' if RUBY_VERSION < '2.7'
+
 # On older Rubies, rb_global_vm_lock_struct did not include the owner field
 $defs << '-DNO_GVL_OWNER' if RUBY_VERSION < '2.6'
 
