@@ -1,8 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require_relative '../support/helper'
 
-require 'sidekiq/fetch'
-
 RSpec.describe 'Server internal tracer' do
   include SidekiqServerExpectations
 
@@ -19,6 +17,7 @@ RSpec.describe 'Server internal tracer' do
     #
     # We change the constant here to ensure test runs as fast possible.
     # Timeouts lower then 0.0011 get rounded down to zero.
+    require 'sidekiq/fetch' # Require late, as this is not available if `compatible_with_server_internal_tracing?` is false
     stub_const('Sidekiq::BasicFetch::TIMEOUT', { timeout: 0.0011 })
   end
 
