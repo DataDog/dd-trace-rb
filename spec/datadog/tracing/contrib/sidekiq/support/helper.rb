@@ -63,7 +63,19 @@ module SidekiqServerExpectations
 
       t = Thread.new do
         cli = Sidekiq::CLI.instance
-        cli.parse(['--require', app_tempfile.path]) # boot the "app"
+        cli.parse(['--require', app_tempfile.path, '--concurrency', '1']) # boot the "app"
+
+        # Sidekiq waits between 5-15 seconds, and we cannot reduce it to less
+        # than 5 seconds through configuration alone.
+        # @see https://github.com/sidekiq/sidekiq/blob/fcc9406c02b809d18af419e164a8840630d60d23/lib/sidekiq/scheduled.rb#L219-L224
+        #
+        # Instead, we override the `#initial_wait` method to ensure it does not wait 5+ seconds.
+        #
+        # This is an `expect` instead of an `allow` because if Sidekiq's `#initial_wait`
+        # logic moves somewhere else, the failure will be an obscure timeout error without
+        # this assertion.
+        expect_any_instance_of(Sidekiq::Scheduled::Poller).to receive(:initial_wait)
+
         cli.run
       end
 
