@@ -28,8 +28,6 @@ module Datadog
 
       def self.enable_gc_profiling?: (untyped settings) -> bool
 
-      def self.print_new_profiler_warnings: () -> void
-
       def self.enable_new_profiler?: (untyped settings) -> bool
 
       def self.no_signals_workaround_enabled?: (untyped settings) -> bool
