@@ -1,23 +1,40 @@
 module Datadog
   module Profiling
     module Component
-      def self.build_profiler_component: (settings: untyped, logger: untyped, optional_tracer: untyped) -> (nil | untyped)
+      def self.build_profiler_component: (
+        settings: untyped,
+        logger: untyped,
+        optional_tracer: Datadog::Tracing::Tracer?,
+      ) -> Datadog::Profiling::Profiler?
 
-      def self.build_profiler_old_recorder: (untyped settings) -> untyped
+      def self.build_profiler_old_recorder: (untyped settings) -> Datadog::Profiling::OldRecorder
 
-      def self.build_profiler_exporter: (untyped settings, untyped recorder, internal_metadata: untyped) -> untyped
+      def self.build_profiler_exporter: (
+        untyped settings,
+        (Datadog::Profiling::StackRecorder | Datadog::Profiling::OldRecorder) recorder,
+        internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
+      ) -> Datadog::Profiling::Exporter
 
-      def self.build_profiler_oldstack_collector: (untyped settings, untyped old_recorder, untyped tracer) -> untyped
+      def self.build_profiler_oldstack_collector: (
+        untyped settings,
+        Datadog::Profiling::OldRecorder old_recorder,
+        Datadog::Tracing::Tracer? tracer,
+      ) -> Datadog::Profiling::Collectors::OldStack
 
-      def self.build_profiler_transport: (untyped settings, untyped agent_settings) -> untyped
+      def self.build_profiler_transport: (
+        untyped settings,
+        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings
+      ) -> untyped
 
-      def self.enable_gc_profiling?: (untyped settings) -> (true | false)
+      def self.enable_gc_profiling?: (untyped settings) -> bool
 
-      def self.enable_new_profiler?: (untyped settings) -> (false | true)
+      def self.enable_new_profiler?: (untyped settings) -> bool
 
-      def self.no_signals_workaround_enabled?: (untyped settings) -> (false | true)
-      def self.incompatible_libmysqlclient_version?: (untyped settings) -> (true | untyped)
-      def self.load_pprof_support: () -> untyped
+      def self.no_signals_workaround_enabled?: (untyped settings) -> bool
+
+      def self.incompatible_libmysqlclient_version?: (untyped settings) -> bool
+
+      def self.load_pprof_support: () -> void
     end
   end
 end

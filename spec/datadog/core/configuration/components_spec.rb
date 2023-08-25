@@ -457,6 +457,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
           allow(Datadog::Tracing::Writer).to receive(:new)
             .with(agent_settings: agent_settings, **writer_options)
             .and_return(writer)
+
+          expect(Datadog::Tracing::Configuration::AgentSettingsResolver).to receive(:call)
+            .with(settings, logger: logger)
+            .and_return(agent_settings)
         end
 
         after do

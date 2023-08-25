@@ -49,6 +49,10 @@ RSpec.describe Datadog::Profiling::Component do
 
         settings.profiling.enabled = true
         allow(profiler_setup_task).to receive(:run)
+
+        expect(Datadog::Profiling::AgentSettingsResolver).to receive(:call)
+          .with(settings, logger: logger)
+          .and_return(agent_settings)
       end
 
       context 'when using the legacy profiler' do
