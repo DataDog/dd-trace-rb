@@ -46,7 +46,8 @@ module Datadog
         REPL_PROGRAM_NAMES = %w[irb pry].freeze
 
         def repl?
-          REPL_PROGRAM_NAMES.include?($PROGRAM_NAME)
+          REPL_PROGRAM_NAMES.include?($PROGRAM_NAME) ||
+            defined?(Rails::Console)
         end
 
         def rspec?
