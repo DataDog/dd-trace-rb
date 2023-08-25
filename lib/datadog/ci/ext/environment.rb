@@ -163,18 +163,23 @@ module Datadog
         end
 
         def extract_bitbucket(env)
-          url = "https://bitbucket.org/#{env['BITBUCKET_REPO_FULL_NAME']}/addon/pipelines/home#" \
+          pipeline_url = "https://bitbucket.org/#{env['BITBUCKET_REPO_FULL_NAME']}/addon/pipelines/home#" \
             "!/results/#{env['BITBUCKET_BUILD_NUMBER']}"
+
+          repository_url = filter_sensitive_info(
+            env['BITBUCKET_GIT_SSH_ORIGIN'] || env['BITBUCKET_GIT_HTTP_ORIGIN']
+          )
+
           {
             Core::Git::Ext::TAG_BRANCH => env['BITBUCKET_BRANCH'],
             Core::Git::Ext::TAG_COMMIT_SHA => env['BITBUCKET_COMMIT'],
-            Core::Git::Ext::TAG_REPOSITORY_URL => env['BITBUCKET_GIT_SSH_ORIGIN'],
+            Core::Git::Ext::TAG_REPOSITORY_URL => repository_url,
             Core::Git::Ext::TAG_TAG => env['BITBUCKET_TAG'],
-            TAG_JOB_URL => url,
+            TAG_JOB_URL => pipeline_url,
             TAG_PIPELINE_ID => env['BITBUCKET_PIPELINE_UUID'] ? env['BITBUCKET_PIPELINE_UUID'].tr('{}', '') : nil,
             TAG_PIPELINE_NAME => env['BITBUCKET_REPO_FULL_NAME'],
             TAG_PIPELINE_NUMBER => env['BITBUCKET_BUILD_NUMBER'],
-            TAG_PIPELINE_URL => url,
+            TAG_PIPELINE_URL => pipeline_url,
             TAG_PROVIDER_NAME => 'bitbucket',
             TAG_WORKSPACE_PATH => env['BITBUCKET_CLONE_DIR'],
           }
