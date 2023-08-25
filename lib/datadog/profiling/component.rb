@@ -7,9 +7,8 @@ module Datadog
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
-      def self.build_profiler_component(settings:, logger:, optional_tracer:) # rubocop:disable Metrics/MethodLength
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
         require_relative '../profiling/diagnostics/environment_logger'
-        require_relative '../profiling/agent_settings_resolver'
 
         Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
 
@@ -101,8 +100,6 @@ module Datadog
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           timeline_enabled: timeline_enabled,
         }.freeze
-
-        agent_settings = Datadog::Profiling::AgentSettingsResolver.call(settings, logger: logger)
 
         exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)

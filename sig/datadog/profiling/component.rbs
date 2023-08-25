@@ -3,7 +3,7 @@ module Datadog
     module Component
       def self.build_profiler_component: (
         settings: untyped,
-        logger: untyped,
+        agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings
         optional_tracer: Datadog::Tracing::Tracer?,
       ) -> Datadog::Profiling::Profiler?
 
