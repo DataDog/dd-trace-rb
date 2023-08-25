@@ -168,6 +168,9 @@ jobs:
             app: rack
             scenario: APPSEC_RATE_LIMITER
           - library: ruby
+            app: rails70
+            scenario: APPSEC_AUTO_EVENTS_EXTENDED
+          - library: ruby
             app: rack
             scenario: SAMPLING
           - library: ruby
