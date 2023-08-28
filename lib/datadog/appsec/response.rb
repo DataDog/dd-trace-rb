@@ -33,10 +33,13 @@ module Datadog
 
           Datadog.logger.debug { "negotiated response content type: #{content_type}" }
 
+          body = []
+          body << content(content_type)
+
           Response.new(
             status: 403,
             headers: { 'Content-Type' => content_type },
-            body: [Datadog::AppSec::Assets.blocked(format: CONTENT_TYPE_TO_FORMAT[content_type])]
+            body: body,
           )
         end
 
@@ -66,6 +69,18 @@ module Datadog
           DEFAULT_CONTENT_TYPE
         rescue Datadog::AppSec::Utils::HTTP::MediaRange::ParseError
           DEFAULT_CONTENT_TYPE
+        end
+
+        def content(content_type)
+          content_format = CONTENT_TYPE_TO_FORMAT[content_type]
+
+          using_default = Datadog.configuration.appsec.block.templates.using_default?(content_format)
+
+          if using_default
+            Datadog::AppSec::Assets.blocked(format: content_format)
+          else
+            Datadog.configuration.appsec.block.templates.send(content_format)
+          end
         end
       end
     end
