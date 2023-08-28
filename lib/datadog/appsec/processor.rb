@@ -43,10 +43,10 @@ module Datadog
         end
       end
 
-      attr_reader :ruleset_info, :addresses
+      attr_reader :diagnostics, :addresses
 
       def initialize(ruleset:)
-        @ruleset_info = nil
+        @diagnostics = nil
         @addresses = []
         settings = Datadog.configuration.appsec
 
@@ -83,7 +83,7 @@ module Datadog
         }
 
         @handle = Datadog::AppSec::WAF::Handle.new(ruleset, obfuscator: obfuscator_config)
-        @ruleset_info = @handle.ruleset_info
+        @diagnostics = @handle.diagnostics
         @addresses = @handle.required_addresses
 
         true
@@ -92,7 +92,7 @@ module Datadog
           "libddwaf failed to initialize, error: #{e.inspect}"
         end
 
-        @ruleset_info = e.ruleset_info if e.ruleset_info
+        @diagnostics = e.diagnostics if e.diagnostics
 
         false
       rescue StandardError => e
