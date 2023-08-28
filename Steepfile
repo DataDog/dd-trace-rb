@@ -646,7 +646,6 @@ target :ddtrace do
   library 'pathname'
   library 'cgi'
   library 'logger', 'monitor'
-  library 'tsort'
   library 'json'
   library 'ipaddr'
   library 'net-http'
