@@ -128,18 +128,19 @@ RSpec.describe Datadog::Core::Environment::Execution do
                 template.write(script)
                 template.flush
 
-                require 'bundler/inline'
-
-                gemfile(true) do
-                  source 'https://rubygems.org'
-                  gem 'rails'
-                end
-
                 out, err, status = nil
+
                 Dir.mktmpdir do |dir|
                   Dir.chdir(dir) do
-                    out, err, status = Bundler.with_clean_env do
-                      Open3.capture3('rails', 'new', 'test123', '--minimal', '-m', template.path)
+                    Bundler.with_clean_env do
+                      require 'bundler/inline'
+
+                      gemfile(true) do
+                        source 'https://rubygems.org'
+                        gem 'rails', '< 7'
+                      end
+
+                      out, err, status = Open3.capture3('rails', 'new', 'test123', '--minimal', '-m', template.path)
                     end
                   end
                 end
