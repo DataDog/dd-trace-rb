@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
         subject(:options) { options_class.options }
 
         context 'for a class directly implementing Options' do
-          it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinitionSet) }
+          it { is_expected.to be_a(Hash) }
         end
 
         context 'on class inheriting from a class implementing Options' do
@@ -38,7 +38,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
           context 'which defines some options' do
             before { parent_class.send(:option, :foo) }
 
-            it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinitionSet) }
+            it { is_expected.to be_a(Hash) }
             it { is_expected.to_not be(parent_class.options) }
             it { is_expected.to include(:foo) }
           end
@@ -110,7 +110,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
       describe '#options' do
         subject(:options) { options_object.options }
 
-        it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionSet) }
+        it { is_expected.to be_a(Hash) }
       end
 
       describe '#set_option' do

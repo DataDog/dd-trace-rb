@@ -20,7 +20,6 @@ module Datadog
           :deprecated_env,
           :env_parser,
           :delegate_to,
-          :depends_on,
           :name,
           :on_set,
           :resetter,
@@ -35,7 +34,6 @@ module Datadog
           @deprecated_env = meta[:deprecated_env]
           @env_parser = meta[:env_parser]
           @delegate_to = meta[:delegate_to]
-          @depends_on = meta[:depends_on] || []
           @name = name.to_sym
           @on_set = meta[:on_set]
           @resetter = meta[:resetter]
@@ -64,7 +62,6 @@ module Datadog
             @default = nil
             @experimental_default_proc = nil
             @delegate_to = nil
-            @depends_on = []
             @helpers = {}
             @name = name.to_sym
             @on_set = nil
@@ -79,10 +76,6 @@ module Datadog
             yield(self) if block_given?
 
             validate_options!
-          end
-
-          def depends_on(*values)
-            @depends_on = values.flatten
           end
 
           def env(value)
@@ -143,7 +136,6 @@ module Datadog
           end
 
           # For applying options for OptionDefinition
-          # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
           def apply_options!(options = {})
             return if options.nil? || options.empty?
 
@@ -153,14 +145,12 @@ module Datadog
             deprecated_env(options[:deprecated_env]) if options.key?(:deprecated_env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
             delegate_to(&options[:delegate_to]) if options.key?(:delegate_to)
-            depends_on(*options[:depends_on]) if options.key?(:depends_on)
             lazy(options[:lazy]) if options.key?(:lazy)
             on_set(&options[:on_set]) if options.key?(:on_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
             setter(&options[:setter]) if options.key?(:setter)
             type(options[:type], **(options[:type_options] || {})) if options.key?(:type)
           end
-          # rubocop:enable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 
           def to_definition
             OptionDefinition.new(@name, meta)
@@ -174,7 +164,6 @@ module Datadog
               deprecated_env: @deprecated_env,
               env_parser: @env_parser,
               delegate_to: @delegate_to,
-              depends_on: @depends_on,
               on_set: @on_set,
               resetter: @resetter,
               setter: @setter,

@@ -26,7 +26,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   end
 
   let(:agent_settings) do
-    Datadog::Profiling::AgentSettingsResolver::AgentSettings.new(
+    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
       adapter: adapter,
       uds_path: uds_path,
       ssl: ssl,
