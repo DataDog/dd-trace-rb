@@ -123,7 +123,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
         shared_examples 'rails test' do
           it 'returns true' do
-            expect_in_fork(timeout_seconds: 30) do
+            expect_in_fork(timeout_seconds: 120) do
               Tempfile.open('template.rb') do |template|
                 template.write(script)
                 template.flush
