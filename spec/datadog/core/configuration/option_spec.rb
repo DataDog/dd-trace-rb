@@ -14,7 +14,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
       env: env,
       deprecated_env: deprecated_env,
       env_parser: env_parser,
-      delegate_to: delegate,
       on_set: nil,
       resetter: nil,
       setter: setter,
@@ -24,7 +23,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
   end
   let(:default) { double('default') }
   let(:experimental_default_proc) { nil }
-  let(:delegate) { nil }
   let(:env) { nil }
   let(:env_parser) { nil }
   let(:type) { nil }
