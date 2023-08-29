@@ -128,20 +128,58 @@ RSpec.describe 'tracing on the client connection' do
 
     let(:original_metadata) { { some: 'datum' } }
 
-    let(:request_response) do
-      subject.request_response(**keywords) { :returned_object }
+    context 'without an error' do
+      let(:request_response) do
+        subject.request_response(**keywords) { :returned_object }
+      end
+
+      before { request_response }
+
+      it_behaves_like 'span data contents'
+
+      it_behaves_like 'inject distributed tracing metadata'
+
+      it 'actually returns the client response' do
+        expect(request_response).to be(:returned_object)
+      end
     end
 
-    before do
-      request_response
-    end
+    context 'with an error' do
+      let(:request_response) do
+        subject.request_response(**keywords) { raise error_class, 'test error' }
+      end
 
-    it_behaves_like 'span data contents'
+      let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
 
-    it_behaves_like 'inject distributed tracing metadata'
+      context 'without an error handler' do
+        it do
+          expect { request_response }.to raise_error('test error')
 
-    it 'actually returns the client response' do
-      expect(request_response).to be(:returned_object)
+          expect(span).to have_error
+          expect(span).to have_error_message('test error')
+          expect(span).to have_error_type('TestError')
+          expect(span).to have_error_stack(include('client_spec.rb'))
+          expect(span.get_tag('rpc.system')).to eq('grpc')
+          expect(span.get_tag('span.kind')).to eq('client')
+        end
+      end
+
+      context 'with an error handler' do
+        let(:configuration_options) { { service_name: 'rspec', error_handler: error_handler } }
+
+        let(:error_handler) do
+          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it") }
+        end
+
+        it do
+          expect { request_response }.to raise_error('test error')
+
+          expect(span).not_to have_error
+          expect(span.get_tag('custom.handler')).to eq('Got error test error, but ignored it')
+          expect(span.get_tag('rpc.system')).to eq('grpc')
+          expect(span.get_tag('span.kind')).to eq('client')
+        end
+      end
     end
   end
 

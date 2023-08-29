@@ -22,7 +22,8 @@ module Datadog
               options = {
                 span_type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
                 service: service_name, # Maintain client-side service name configuration
-                resource: formatter.resource_name
+                resource: formatter.resource_name,
+                on_error: error_handler
               }
 
               Tracing.trace(Ext::SPAN_CLIENT, **options) do |span, trace|

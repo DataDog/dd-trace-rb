@@ -59,7 +59,7 @@ module Datadog
             end
 
             def error_handler
-              datadog_configuration[:error_handler]
+              Datadog.configuration_for(self, :error_handler) || datadog_configuration[:error_handler]
             end
 
             # Allows interceptors to define settings using methods instead of `[]`
