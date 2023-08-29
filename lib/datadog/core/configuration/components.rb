@@ -92,7 +92,7 @@ module Datadog
 
           @profiler = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
-            logger: @logger,
+            agent_settings: agent_settings,
             optional_tracer: @tracer,
           )
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
