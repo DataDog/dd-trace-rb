@@ -18,7 +18,7 @@ module Datadog
           option :service_name
 
           def configure(options = {})
-            self.class.options.dependency_order.each do |name|
+            self.class.options.each do |name, _value|
               self[name] = options[name] if options.key?(name)
             end
 

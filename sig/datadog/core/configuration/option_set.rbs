@@ -1,8 +1,0 @@
-module Datadog
-  module Core
-    module Configuration
-      class OptionSet < Hash[untyped, untyped]
-      end
-    end
-  end
-end

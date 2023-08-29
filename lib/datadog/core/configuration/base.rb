@@ -57,14 +57,7 @@ module Datadog
           end
 
           def configure(opts = {})
-            # Sort the options in preference of dependency order first
-            ordering = self.class.options.dependency_order
-            sorted_opts = opts.sort_by do |name, _value|
-              ordering.index(name) || (ordering.length + 1)
-            end.to_h
-
-            # Apply options in sort order
-            sorted_opts.each do |name, value|
+            opts.each do |name, value|
               if respond_to?("#{name}=")
                 send("#{name}=", value)
               elsif option_defined?(name)
