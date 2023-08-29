@@ -73,8 +73,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_sample_after_gc(cpu_and_wall_time_collector)
   end
 
-  def sample_allocation(weight:)
-    described_class::Testing._native_sample_allocation(cpu_and_wall_time_collector, weight)
+  def sample_allocation(weight:, new_object: Object.new)
+    described_class::Testing._native_sample_allocation(cpu_and_wall_time_collector, weight, new_object)
   end
 
   def thread_list
@@ -978,6 +978,46 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         sample_allocation(weight: 123)
 
         expect(single_sample.labels.keys).to_not include(:end_timestamp_ns)
+      end
+    end
+
+    {
+      T_OBJECT: Object.new,
+      T_CLASS: Object,
+      T_MODULE: Kernel,
+      T_FLOAT: 1.0,
+      T_STRING: 'Hello!',
+      T_REGEXP: /Hello/,
+      T_ARRAY: [],
+      T_HASH: {},
+      T_STRUCT: Struct.new(:a).new,
+      T_BIGNUM: 2**256,
+      T_DATA: described_class.allocate, # ThreadContext is a T_DATA; we create here a dummy instance just as an example
+      T_MATCH: 'a'.match(Regexp.new('a')),
+      T_COMPLEX: Complex(1),
+      T_RATIONAL: 1/2r,
+      T_NIL: nil,
+      T_TRUE: true,
+      T_FALSE: false,
+      T_SYMBOL: :hello,
+      T_FIXNUM: 1,
+    }.each do |expected_type, object|
+      context "when sampling a #{expected_type}" do
+        it 'includes the correct ruby vm type for the passed object' do
+          sample_allocation(weight: 123, new_object: object)
+
+          expect(single_sample.labels.fetch(:'ruby vm type')).to eq expected_type.to_s
+        end
+      end
+    end
+
+    context 'when sampling a T_FILE' do
+      it 'includes the correct ruby vm type for the passed object' do
+        File.open(__FILE__) do |file|
+          sample_allocation(weight: 123, new_object: file)
+        end
+
+        expect(single_sample.labels.fetch(:'ruby vm type')).to eq 'T_FILE'
       end
     end
   end

@@ -28,6 +28,9 @@ module Datadog
               patch_cache_store_delete
             end
 
+            # This method is overwritten by
+            # `datadog/tracing/contrib/active_support/cache/redis.rb`
+            # with more complex behavior.
             def cache_store_class(meth)
               ::ActiveSupport::Cache::Store
             end

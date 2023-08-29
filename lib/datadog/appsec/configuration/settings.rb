@@ -25,7 +25,7 @@ module Datadog
           add_settings!(base)
         end
 
-        # rubocop:disable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength
+        # rubocop:disable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def self.add_settings!(base)
           base.class_eval do
             settings :appsec do
@@ -95,6 +95,46 @@ module Datadog
                 o.default DEFAULT_OBFUSCATOR_VALUE_REGEX
               end
 
+              settings :block do
+                settings :templates do
+                  option :html do |o|
+                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML'
+                    o.type :string, nilable: true
+                    o.setter do |value|
+                      if value
+                        raise(ArgumentError, "appsec.templates.html: file not found: #{value}") unless File.exist?(value)
+
+                        File.open(value, 'rb', &:read) || ''
+                      end
+                    end
+                  end
+
+                  option :json do |o|
+                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON'
+                    o.type :string, nilable: true
+                    o.setter do |value|
+                      if value
+                        raise(ArgumentError, "appsec.templates.json: file not found: #{value}") unless File.exist?(value)
+
+                        File.open(value, 'rb', &:read) || ''
+                      end
+                    end
+                  end
+
+                  option :text do |o|
+                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT'
+                    o.type :string, nilable: true
+                    o.setter do |value|
+                      if value
+                        raise(ArgumentError, "appsec.templates.text: file not found: #{value}") unless File.exist?(value)
+
+                        File.open(value, 'rb', &:read) || ''
+                      end
+                    end
+                  end
+                end
+              end
+
               settings :track_user_events do
                 option :enabled do |o|
                   o.default true
@@ -132,7 +172,7 @@ module Datadog
             end
           end
         end
-        # rubocop:enable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength
+        # rubocop:enable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
       end
     end
   end

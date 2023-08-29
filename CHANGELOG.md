@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [1.14.0] - 2023-08-24
+
+### Added
+
+* Cucumber 8.0.0 support, test CI visibility with cucumber versions 6-8 ([#3061][])
+* Tracing: Add `ddsource` to #to_log_format ([#3025][])
+* Core: include peer service configurations in telemetry payload ([#3056][])
+* Tracing: Improve quantization ([#3041][])
+
+### Changed
+
+* Profiling: Disable profiler on Ruby 3.3 due to incompatibility ([#3054][])
+* Core: EnvironmentLogger adjustments ([#3020][], [#3057][])
+
+### Fixed
+
+* Appsec: Fix ASM setting for automated user events. ([#3070][])
+* Tracing: Fix ActiveRecord adapter name for Rails 7 ([#3051][])
+
 ## [1.13.1] - 2023-08-14
 
 ### Fixed
@@ -2515,7 +2534,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.13.1...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.14.0...master
+[1.14.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.13.1...1.14.0
 [1.13.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.13.0...1.13.1
 [1.13.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.12.1...v1.13.0
 [1.12.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.12.0...v1.12.1
@@ -3652,12 +3672,21 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3007]: https://github.com/DataDog/dd-trace-rb/issues/3007
 [#3011]: https://github.com/DataDog/dd-trace-rb/issues/3011
 [#3019]: https://github.com/DataDog/dd-trace-rb/issues/3019
+[#3020]: https://github.com/DataDog/dd-trace-rb/issues/3020
 [#3022]: https://github.com/DataDog/dd-trace-rb/issues/3022
+[#3025]: https://github.com/DataDog/dd-trace-rb/issues/3025
 [#3033]: https://github.com/DataDog/dd-trace-rb/issues/3033
 [#3037]: https://github.com/DataDog/dd-trace-rb/issues/3037
 [#3038]: https://github.com/DataDog/dd-trace-rb/issues/3038
 [#3039]: https://github.com/DataDog/dd-trace-rb/issues/3039
+[#3041]: https://github.com/DataDog/dd-trace-rb/issues/3041
 [#3045]: https://github.com/DataDog/dd-trace-rb/issues/3045
+[#3051]: https://github.com/DataDog/dd-trace-rb/issues/3051
+[#3054]: https://github.com/DataDog/dd-trace-rb/issues/3054
+[#3056]: https://github.com/DataDog/dd-trace-rb/issues/3056
+[#3057]: https://github.com/DataDog/dd-trace-rb/issues/3057
+[#3061]: https://github.com/DataDog/dd-trace-rb/issues/3061
+[#3070]: https://github.com/DataDog/dd-trace-rb/issues/3070
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

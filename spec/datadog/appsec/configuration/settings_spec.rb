@@ -559,5 +559,79 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
       end
     end
+
+    describe 'block' do
+      describe 'templates' do
+        [
+          { method_name: :html, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML' },
+          { method_name: :json, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON' },
+          { method_name: :text, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT' }
+        ].each do |test_info|
+          describe "##{test_info[:method_name]}" do
+            context "when #{test_info[:env_var]}" do
+              subject(:template) { settings.appsec.block.templates.send(test_info[:method_name]) }
+
+              around do |example|
+                ClimateControl.modify(test_info[:env_var] => template_path) do
+                  example.run
+                end
+              end
+
+              context 'is defined and the file exists' do
+                before do
+                  File.write(template_path, 'testing')
+                end
+
+                after do
+                  File.delete(template_path)
+                end
+
+                let(:template_path) do
+                  "hello.#{test_info[:method_name]}"
+                end
+
+                it { is_expected.to eq 'testing' }
+              end
+
+              context 'is defined and the file do not exists' do
+                let(:template_path) do
+                  "hello.#{test_info[:method_name]}"
+                end
+
+                it { expect { is_expected }.to raise_error(ArgumentError) }
+              end
+            end
+          end
+
+          describe "##{test_info[:method_name]}=" do
+            subject(:template) { settings.appsec.block.templates.send("#{test_info[:method_name]}=", template_path) }
+
+            context 'is defined and the file exists' do
+              before do
+                File.write(template_path, 'testing')
+              end
+
+              after do
+                File.delete(template_path)
+              end
+
+              let(:template_path) do
+                "hello.#{test_info[:method_name]}"
+              end
+
+              it { is_expected.to eq 'testing' }
+            end
+
+            context 'is defined and the file do not exists' do
+              let(:template_path) do
+                "hello.#{test_info[:method_name]}"
+              end
+
+              it { expect { is_expected }.to raise_error(ArgumentError) }
+            end
+          end
+        end
+      end
+    end
   end
 end

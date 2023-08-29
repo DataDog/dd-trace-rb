@@ -39,21 +39,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
   end
 
-  describe '#depends_on' do
-    subject(:default) { definition.depends_on }
-
-    context 'when not initialized with a value' do
-      it { is_expected.to eq([]) }
-    end
-
-    context 'when initialized with a value' do
-      let(:meta) { { depends_on: depends_on_value } }
-      let(:depends_on_value) { double('depends_on') }
-
-      it { is_expected.to be depends_on_value }
-    end
-  end
-
   describe '#name' do
     subject(:result) { definition.name }
 
@@ -178,7 +163,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               default: nil,
               experimental_default_proc: nil,
               delegate_to: nil,
-              depends_on: [],
               name: name,
               on_set: nil,
               resetter: nil,
@@ -230,22 +214,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
           end.to raise_error(described_class::InvalidOptionError)
         end
       end
-    end
-  end
-
-  describe '#depends_on' do
-    subject(:depends_on) { builder.depends_on(*values) }
-
-    context 'given a list of arguments' do
-      let(:values) { [:foo, :bar] }
-
-      it { is_expected.to eq(values) }
-    end
-
-    context 'given an nested Array' do
-      let(:values) { [[:foo], [:bar]] }
-
-      it { is_expected.to eq([:foo, :bar]) }
     end
   end
 
@@ -430,16 +398,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given :depends_on' do
-      let(:options) { { depends_on: value } }
-      let(:value) { [double('value'), double('value')] }
-
-      it do
-        expect(builder).to receive(:depends_on).with(*value)
-        apply_options!
-      end
-    end
-
     context 'given :on_set' do
       let(:options) { { on_set: value } }
       let(:value) { proc {} }
@@ -504,7 +462,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         :default,
         :experimental_default_proc,
         :delegate_to,
-        :depends_on,
         :on_set,
         :resetter,
         :setter,
