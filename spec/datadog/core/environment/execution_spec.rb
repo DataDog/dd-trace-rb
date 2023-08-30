@@ -135,10 +135,10 @@ RSpec.describe Datadog::Core::Environment::Execution do
                     Bundler.with_clean_env do
                       require 'bundler/inline'
 
-                      gemfile(true) do
-                        source 'https://rubygems.org'
-                        gem 'rails', '< 7'
-                      end
+                      # gemfile(true) do
+                      #   source 'https://rubygems.org'
+                      #   gem 'rails', '< 7'
+                      # end
 
                       out, err, status = Open3.capture3('rails', 'new', 'test123', '--minimal', '-m', template.path)
                     end
