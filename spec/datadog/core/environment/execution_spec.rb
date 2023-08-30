@@ -140,6 +140,8 @@ RSpec.describe Datadog::Core::Environment::Execution do
                       #   gem 'rails', '< 7'
                       # end
 
+                      system('gem install rails')
+
                       out, err, status = Open3.capture3('rails', 'new', 'test123', '--minimal', '-m', template.path)
                     end
                   end
