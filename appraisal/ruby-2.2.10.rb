@@ -124,12 +124,16 @@ appraise 'rails5-semantic-logger' do
   gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
 end
 
+appraise 'aws' do
+  gem 'aws-sdk'
+  gem 'shoryuken'
+end
+
 appraise 'contrib' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
   gem 'activerecord', '< 5.1.5'
-  gem 'aws-sdk'
   gem 'concurrent-ruby'
   gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
   gem 'delayed_job'
@@ -164,7 +168,6 @@ appraise 'contrib' do
   gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
-  gem 'shoryuken'
   gem 'sidekiq'
   gem 'sneakers', '>= 2.12.0'
   gem 'sqlite3', '~> 1.3.6'
