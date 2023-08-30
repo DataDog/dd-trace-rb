@@ -65,7 +65,6 @@ end
 
 appraise 'aws' do
   gem 'aws-sdk', '~> 2.0'
-  gem 'shoryuken'
 end
 
 appraise 'contrib' do

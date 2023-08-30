@@ -85,10 +85,6 @@ GEM
       rspec (>= 3, < 4)
     rspec_junit_formatter (0.4.1)
       rspec-core (>= 2, < 4, != 2.12.0)
-    shoryuken (6.0.0)
-      aws-sdk-core (>= 2)
-      concurrent-ruby
-      thor
     simplecov (0.17.1)
       docile (~> 1.1)
       json (>= 1.8, < 3)
@@ -138,7 +134,6 @@ DEPENDENCIES
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (<= 0.4.1)
-  shoryuken
   simplecov (~> 0.17)
   simplecov-html (~> 0.10.2)
   webmock (>= 3.10.0)
