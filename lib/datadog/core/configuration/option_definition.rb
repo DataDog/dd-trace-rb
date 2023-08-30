@@ -11,11 +11,7 @@ module Datadog
 
         attr_reader \
           :default,
-          # experimental_default_proc is used when we want to store a block as part of the option value.
-          # Since this new option is experimental and we might not need it in the near future, I gave it a name that is
-          # clear to the reader that they should not rely on it and that is subject to change.
-          # Currently is only use internally.
-          :experimental_default_proc,
+          :default_proc,
           :env,
           :deprecated_env,
           :env_parser,
@@ -28,7 +24,7 @@ module Datadog
 
         def initialize(name, meta = {}, &block)
           @default = meta[:default]
-          @experimental_default_proc = meta[:experimental_default_proc]
+          @default_proc = meta[:default_proc]
           @env = meta[:env]
           @deprecated_env = meta[:deprecated_env]
           @env_parser = meta[:env_parser]
@@ -58,7 +54,7 @@ module Datadog
             @deprecated_env = nil
             @env_parser = nil
             @default = nil
-            @experimental_default_proc = nil
+            @default_proc = nil
             @helpers = {}
             @name = name.to_sym
             @on_set = nil
@@ -91,8 +87,8 @@ module Datadog
             @default = block || value
           end
 
-          def experimental_default_proc(&block)
-            @experimental_default_proc = block
+          def default_proc(&block)
+            @default_proc = block
           end
 
           def helper(name, *_args, &block)
@@ -133,7 +129,7 @@ module Datadog
             return if options.nil? || options.empty?
 
             default(options[:default]) if options.key?(:default)
-            experimental_default_proc(&options[:experimental_default_proc]) if options.key?(:experimental_default_proc)
+            default_proc(&options[:default_proc]) if options.key?(:default_proc)
             env(options[:env]) if options.key?(:env)
             deprecated_env(options[:deprecated_env]) if options.key?(:deprecated_env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
@@ -151,7 +147,7 @@ module Datadog
           def meta
             {
               default: @default,
-              experimental_default_proc: @experimental_default_proc,
+              default_proc: @default_proc,
               env: @env,
               deprecated_env: @deprecated_env,
               env_parser: @env_parser,
@@ -166,10 +162,10 @@ module Datadog
           private
 
           def validate_options!
-            if !@default.nil? && @experimental_default_proc
+            if !@default.nil? && @default_proc
               raise InvalidOptionError,
-                'Using `default` and `experimental_default_proc` is not allowed. Please use one or the other.' \
-                                'If you want to store a block as the default value use `experimental_default_proc`'\
+                'Using `default` and `default_proc` is not allowed. Please use one or the other.' \
+                                'If you want to store a block as the default value use `default_proc`'\
                                 ' otherwise use `default`'
             end
           end

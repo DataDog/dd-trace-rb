@@ -6,7 +6,7 @@ module Datadog
 
         attr_reader default: untyped
 
-        attr_reader experimental_default_proc: untyped
+        attr_reader default_proc: untyped
 
         attr_reader env: untyped
 
@@ -37,7 +37,7 @@ module Datadog
 
           def default: (?untyped? value) ?{ () -> untyped } -> untyped
 
-          def experimental_default_proc: () { () -> untyped } -> untyped
+          def default_proc: () { () -> untyped } -> untyped
 
           def env: (untyped value) -> untyped
 

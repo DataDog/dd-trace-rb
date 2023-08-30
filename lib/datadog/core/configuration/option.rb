@@ -139,7 +139,7 @@ module Datadog
           if definition.default.instance_of?(Proc)
             context_eval(&definition.default)
           else
-            definition.experimental_default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
+            definition.default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
           end
         end
 
