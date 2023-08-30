@@ -32,7 +32,7 @@ module Datadog
           idle_sampling_helper: IdleSamplingHelper.new,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
-          dynamic_sampling_rate_enabled: true
+          dynamic_sampling_rate_enabled: false
         )
           unless dynamic_sampling_rate_enabled
             Datadog.logger.warn(
