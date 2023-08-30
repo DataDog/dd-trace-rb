@@ -24,21 +24,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
   end
 
-  describe '#delegate_to' do
-    subject(:delegate_to) { definition.delegate_to }
-
-    context 'when given a value' do
-      let(:meta) { { delegate_to: delegate_to_value } }
-      let(:delegate_to_value) { double('delegate_to') }
-
-      it { is_expected.to be delegate_to_value }
-    end
-
-    context 'when not initialized' do
-      it { is_expected.to be nil }
-    end
-  end
-
   describe '#name' do
     subject(:result) { definition.name }
 
@@ -162,7 +147,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
             is_expected.to have_attributes(
               default: nil,
               experimental_default_proc: nil,
-              delegate_to: nil,
               name: name,
               on_set: nil,
               resetter: nil,
@@ -251,14 +235,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
       it { is_expected.to be block }
     end
-  end
-
-  describe '#delegate_to' do
-    subject(:delegate_to) { builder.delegate_to(&block) }
-
-    let(:block) { proc {} }
-
-    it { is_expected.to be block }
   end
 
   describe '#helper' do
@@ -385,19 +361,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given :delegate_to' do
-      let(:options) { { delegate_to: value } }
-      let(:value) { proc {} }
-
-      it do
-        expect(builder).to receive(:delegate_to) do |&block|
-          expect(block).to be value
-        end
-
-        apply_options!
-      end
-    end
-
     context 'given :on_set' do
       let(:options) { { on_set: value } }
       let(:value) { proc {} }
@@ -461,7 +424,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       expect(meta.keys).to include(
         :default,
         :experimental_default_proc,
-        :delegate_to,
         :on_set,
         :resetter,
         :setter,

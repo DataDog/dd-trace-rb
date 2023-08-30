@@ -14,8 +14,6 @@ module Datadog
 
         attr_reader env_parser: untyped
 
-        attr_reader delegate_to: untyped
-
         attr_reader depends_on: untyped
 
         attr_reader name: untyped
@@ -41,8 +39,6 @@ module Datadog
 
           def experimental_default_proc: () { () -> untyped } -> untyped
 
-          def delegate_to: () { () -> untyped } -> untyped
-
           def env: (untyped value) -> untyped
 
           def deprecated_env: (untyped value) -> untyped
@@ -63,7 +59,7 @@ module Datadog
 
           def to_definition: () -> untyped
 
-          def meta: () -> { default: untyped, delegate_to: untyped, depends_on: untyped, on_set: untyped, resetter: untyped, setter: untyped }
+          def meta: () -> { default: untyped, on_set: untyped, resetter: untyped, setter: untyped }
         end
       end
     end

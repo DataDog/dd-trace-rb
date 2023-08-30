@@ -19,7 +19,6 @@ module Datadog
           :env,
           :deprecated_env,
           :env_parser,
-          :delegate_to,
           :name,
           :on_set,
           :resetter,
@@ -33,7 +32,6 @@ module Datadog
           @env = meta[:env]
           @deprecated_env = meta[:deprecated_env]
           @env_parser = meta[:env_parser]
-          @delegate_to = meta[:delegate_to]
           @name = name.to_sym
           @on_set = meta[:on_set]
           @resetter = meta[:resetter]
@@ -61,7 +59,6 @@ module Datadog
             @env_parser = nil
             @default = nil
             @experimental_default_proc = nil
-            @delegate_to = nil
             @helpers = {}
             @name = name.to_sym
             @on_set = nil
@@ -96,10 +93,6 @@ module Datadog
 
           def experimental_default_proc(&block)
             @experimental_default_proc = block
-          end
-
-          def delegate_to(&block)
-            @delegate_to = block
           end
 
           def helper(name, *_args, &block)
@@ -144,7 +137,6 @@ module Datadog
             env(options[:env]) if options.key?(:env)
             deprecated_env(options[:deprecated_env]) if options.key?(:deprecated_env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
-            delegate_to(&options[:delegate_to]) if options.key?(:delegate_to)
             lazy(options[:lazy]) if options.key?(:lazy)
             on_set(&options[:on_set]) if options.key?(:on_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
@@ -163,7 +155,6 @@ module Datadog
               env: @env,
               deprecated_env: @deprecated_env,
               env_parser: @env_parser,
-              delegate_to: @delegate_to,
               on_set: @on_set,
               resetter: @resetter,
               setter: @setter,

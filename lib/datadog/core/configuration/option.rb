@@ -113,8 +113,6 @@ module Datadog
         def get
           if @is_set
             @value
-          elsif definition.delegate_to
-            context_eval(&definition.delegate_to)
           else
             set_value_from_env_or_default
           end
