@@ -14,7 +14,7 @@ PATH
     ddtrace (1.14.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 3.0.0.1.0)
-      libddwaf (~> 1.9.0.0.0)
+      libddwaf (~> 1.11.0.0.0)
       msgpack
 
 GEM
@@ -1610,7 +1610,7 @@ GEM
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
     libdatadog (3.0.0.1.0)
-    libddwaf (1.9.0.0.1-java)
+    libddwaf (1.11.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.13.0)
       actionpack (>= 4)
