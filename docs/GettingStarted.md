@@ -2396,7 +2396,7 @@ It's safe to use `Datadog::Tracing.reject!` and `Datadog::Tracing.keep!` when no
 You can also reject a specific trace instance:
 
 ```ruby
-# First, grab the active span
+# First, grab the active trace
 trace = Datadog::Tracing.active_trace
 
 # Rejects the trace
