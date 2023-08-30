@@ -1,3 +1,5 @@
+# TODO: Actually test JRuby 9.4
+
 appraise 'rails61-mysql2' do
   gem 'rails', '~> 6.1.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
