@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../traces'
+require_relative '../../../datadog/tracing/transport/traces'
 
 require_relative 'response'
 require_relative 'client'

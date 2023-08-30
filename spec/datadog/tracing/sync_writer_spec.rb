@@ -9,7 +9,7 @@ require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/tracer'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/http/traces'
-require 'ddtrace/transport/traces'
+require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Tracing::SyncWriter do
   subject(:sync_writer) { described_class.new(transport: transport) }

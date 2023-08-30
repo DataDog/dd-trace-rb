@@ -11,7 +11,7 @@ require 'ddtrace/transport/http'
 require 'ddtrace/transport/http/traces'
 require 'ddtrace/transport/response'
 require 'ddtrace/transport/statistics'
-require 'ddtrace/transport/traces'
+require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Tracing::Writer do
   include HttpHelpers

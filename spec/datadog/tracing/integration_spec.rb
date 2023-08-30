@@ -16,7 +16,7 @@ require 'ddtrace/transport/http/api'
 require 'ddtrace/transport/http/builder'
 require 'ddtrace/transport/io'
 require 'ddtrace/transport/io/client'
-require 'ddtrace/transport/traces'
+require 'datadog/tracing/transport/traces'
 
 RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do

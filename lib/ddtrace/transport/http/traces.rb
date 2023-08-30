@@ -1,6 +1,6 @@
 require 'json'
 
-require_relative '../traces'
+require_relative '../../../datadog/tracing/transport/traces'
 require_relative 'client'
 require_relative 'response'
 require_relative 'api/endpoint'

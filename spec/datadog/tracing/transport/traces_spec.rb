@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace/transport/traces'
+require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Transport::Traces::EncodedParcel do
   subject(:parcel) { described_class.new(data, trace_count) }

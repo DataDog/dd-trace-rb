@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'datadog/tracing/writer'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/http/traces'
-require 'ddtrace/transport/traces'
+require 'datadog/tracing/transport/traces'
 
 RSpec.describe 'Datadog::Transport::HTTP integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
