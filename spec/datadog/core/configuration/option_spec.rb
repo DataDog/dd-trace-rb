@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
       Datadog::Core::Configuration::OptionDefinition,
       name: :test_name,
       default: default,
-      experimental_default_proc: experimental_default_proc,
+      default_proc: default_proc,
       env: env,
       deprecated_env: deprecated_env,
       env_parser: env_parser,
@@ -22,7 +22,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
     )
   end
   let(:default) { double('default') }
-  let(:experimental_default_proc) { nil }
+  let(:default_proc) { nil }
   let(:env) { nil }
   let(:env_parser) { nil }
   let(:type) { nil }
@@ -1015,10 +1015,10 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
     end
 
-    context 'when experimental_default_proc is defined' do
-      let(:experimental_default_proc) { proc { 'experimental_default_proc' } }
+    context 'when default_proc is defined' do
+      let(:default_proc) { proc { 'default_proc' } }
 
-      it { is_expected.to be experimental_default_proc }
+      it { is_expected.to be default_proc }
     end
   end
 end
