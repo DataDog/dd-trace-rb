@@ -169,7 +169,7 @@ end
 
 (3..5).each { |v| gem_cucumber(v) }
 
-appraise 'contrib' do
+appraise 'aws' do
   gem 'aws-sdk'
   gem 'shoryuken'
 end
