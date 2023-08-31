@@ -992,7 +992,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       { expected_type: :T_REGEXP, object: /Hello/, klass: 'Regexp' },
       { expected_type: :T_ARRAY, object: [], klass: 'Array' },
       { expected_type: :T_HASH, object: {}, klass: 'Hash' },
-      { expected_type: :T_BIGNUM, object: 2**256, klass: 'Integer' },
+      { expected_type: :T_BIGNUM, object: 2**256, klass: RUBY_VERSION < '2.4' ? 'Bignum' : 'Integer' },
       # ThreadContext is a T_DATA; we create here a dummy instance just as an example
       { expected_type: :T_DATA, object: described_class.allocate, klass: 'Datadog::Profiling::Collectors::ThreadContext' },
       { expected_type: :T_MATCH, object: 'a'.match(Regexp.new('a')), klass: 'MatchData' },
