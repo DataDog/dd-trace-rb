@@ -998,7 +998,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       { expected_type: :T_MATCH, object: 'a'.match(Regexp.new('a')), klass: 'MatchData' },
       { expected_type: :T_COMPLEX, object: Complex(1), klass: 'Complex' },
       { expected_type: :T_RATIONAL, object: 1/2r, klass: 'Rational' },
+      { expected_type: :T_NIL, object: nil, klass: 'NilClass' },
+      { expected_type: :T_TRUE, object: true, klass: 'TrueClass' },
+      { expected_type: :T_FALSE, object: false, klass: 'FalseClass' },
       { expected_type: :T_SYMBOL, object: :hello, klass: 'Symbol' },
+      { expected_type: :T_FIXNUM, object: 1, klass: 'Integer' },
     ].each do |type|
       expected_type = type.fetch(:expected_type)
       object = type.fetch(:object)
@@ -1015,43 +1019,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           sample_allocation(weight: 123, new_object: object)
 
           expect(single_sample.labels.fetch(:'allocation class')).to eq klass
-        end
-
-        context 'when allocation_type_enabled is false' do
-          let(:allocation_type_enabled) { false }
-
-          it 'does not record the correct class for the passed object' do
-            sample_allocation(weight: 123, new_object: object)
-
-            expect(single_sample.labels).to_not include(:'allocation class' => anything)
-          end
-        end
-      end
-    end
-
-    [
-      # Instances of nil, true, false and fixnums are always immediates. They are not actually allocated and thus we don't
-      # care about making them pretty
-      # @ivoanjo: Symbols are sometimes immediates, so they get the regular treatment
-      { expected_type: :T_NIL, object: nil },
-      { expected_type: :T_TRUE, object: true },
-      { expected_type: :T_FALSE, object: false },
-      { expected_type: :T_FIXNUM, object: 1 },
-    ].each do |type|
-      expected_type = type.fetch(:expected_type)
-      object = type.fetch(:object)
-
-      context "when sampling a #{expected_type}" do
-        it 'includes the correct ruby vm type for the passed object' do
-          sample_allocation(weight: 123, new_object: object)
-
-          expect(single_sample.labels.fetch(:'ruby vm type')).to eq expected_type.to_s
-        end
-
-        it 'includes the correct class for the passed object' do
-          sample_allocation(weight: 123, new_object: object)
-
-          expect(single_sample.labels.fetch(:'allocation class')).to eq expected_type.to_s
         end
 
         context 'when allocation_type_enabled is false' do
