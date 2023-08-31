@@ -999,7 +999,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       { expected_type: :T_COMPLEX, object: Complex(1), klass: 'Complex' },
       { expected_type: :T_RATIONAL, object: 1/2r, klass: 'Rational' },
       { expected_type: :T_SYMBOL, object: :hello, klass: 'Symbol' },
-    ].each do |expected_type:, object:, klass:|
+    ].each do |type|
+      expected_type = type.fetch(:expected_type)
+      object = type.fetch(:object)
+      klass = type.fetch(:klass)
+
       context "when sampling a #{expected_type}" do
         it 'includes the correct ruby vm type for the passed object' do
           sample_allocation(weight: 123, new_object: object)
@@ -1033,7 +1037,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       { expected_type: :T_TRUE, object: true },
       { expected_type: :T_FALSE, object: false },
       { expected_type: :T_FIXNUM, object: 1 },
-    ].each do |expected_type:, object:|
+    ].each do |type|
+      expected_type = type.fetch(:expected_type)
+      object = type.fetch(:object)
+
       context "when sampling a #{expected_type}" do
         it 'includes the correct ruby vm type for the passed object' do
           sample_allocation(weight: 123, new_object: object)
