@@ -77,7 +77,7 @@ module Datadog
         # Can be removed once we remove OldStack.
         def enabled=(_); end
 
-        def stop(*_)
+        def stop(*_unused)
           @start_stop_mutex.synchronize do
             Datadog.logger.debug('Requesting CpuAndWallTimeWorker thread shut down')
 
