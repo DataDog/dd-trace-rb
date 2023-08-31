@@ -389,6 +389,17 @@ module Datadog
                 end
               end
             end
+
+            # Can be used to disable the LinuxTidOverride functionality.
+            #
+            # Do not use unless instructed to by support.
+            #
+            # @default `DD_PROFILING_LINUX_TID_OVERRIDE_ENABLED` environment variable, otherwise `true`
+            option :linux_tid_override_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_LINUX_TID_OVERRIDE_ENABLED'
+              o.default true
+            end
           end
 
           # @public_api

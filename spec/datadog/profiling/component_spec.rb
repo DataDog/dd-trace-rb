@@ -154,6 +154,7 @@ RSpec.describe Datadog::Profiling::Component do
             allocation_counting_enabled: anything,
             no_signals_workaround_enabled: :no_signals_result,
             timeline_enabled: :experimental_timeline_enabled_config,
+            linux_tid_override: anything,
           )
 
           build_profiler_component
@@ -223,6 +224,46 @@ RSpec.describe Datadog::Profiling::Component do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
               allocation_counting_enabled: false,
             )
+
+            build_profiler_component
+          end
+        end
+
+        context 'when linux_tid_override_enabled is enabled' do
+          before do
+            settings.profiling.advanced.linux_tid_override_enabled = true
+          end
+
+          it 'initializes a CpuAndWallTimeWorker collector with LinuxTidOverride.new_if_needed_and_working' do
+            expect(Datadog::Profiling::LinuxTidOverride)
+              .to receive(:new_if_needed_and_working).and_return(:linux_tid_override_new_if_needed_and_working_result)
+
+            # Because the #new_if_needed_and_working result can be nil when not needed or not working, it's easier
+            # for us to check that the CpuAndWallTimeWorker gets whatever that method returns, rather than asserting
+            # on having an actual LinuxTidOverride instance
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+              linux_tid_override: :linux_tid_override_new_if_needed_and_working_result,
+            )
+
+            build_profiler_component
+          end
+        end
+
+        context 'when linux_tid_override_enabled is disabled' do
+          before do
+            settings.profiling.advanced.linux_tid_override_enabled = false
+          end
+
+          it 'initializes a CpuAndWallTimeWorker collector with a nil linux_tid_override' do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+              linux_tid_override: nil,
+            )
+
+            build_profiler_component
+          end
+
+          it 'does not try to initialize a LinuxTidOverride instance' do
+            expect(Datadog::Profiling::LinuxTidOverride).to_not receive(:new_if_needed_and_working)
 
             build_profiler_component
           end
