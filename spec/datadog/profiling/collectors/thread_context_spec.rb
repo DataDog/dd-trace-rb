@@ -39,6 +39,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:tracer) { nil }
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
+  let(:allocation_type_enabled) { true }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -47,6 +48,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
+      allocation_type_enabled: allocation_type_enabled,
     )
   end
 
@@ -1010,6 +1012,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(single_sample.labels.fetch(:'allocation class')).to eq klass
         end
+
+        context 'when allocation_type_enabled is false' do
+          let(:allocation_type_enabled) { false }
+
+          it 'does not record the correct class for the passed object' do
+            sample_allocation(weight: 123, new_object: object)
+
+            expect(single_sample.labels).to_not include(:'allocation class' => anything)
+          end
+        end
       end
     end
 
@@ -1034,6 +1046,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(single_sample.labels.fetch(:'allocation class')).to eq expected_type.to_s
         end
+
+        context 'when allocation_type_enabled is false' do
+          let(:allocation_type_enabled) { false }
+
+          it 'does not record the correct class for the passed object' do
+            sample_allocation(weight: 123, new_object: object)
+
+            expect(single_sample.labels).to_not include(:'allocation class' => anything)
+          end
+        end
       end
     end
 
@@ -1053,6 +1075,18 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         expect(single_sample.labels.fetch(:'allocation class')).to eq 'File'
       end
+
+      context 'when allocation_type_enabled is false' do
+        let(:allocation_type_enabled) { false }
+
+        it 'does not record the correct class for the passed object' do
+          File.open(__FILE__) do |file|
+            sample_allocation(weight: 123, new_object: file)
+          end
+
+          expect(single_sample.labels).to_not include(:'allocation class' => anything)
+        end
+      end
     end
 
     context 'when sampling a Struct' do
@@ -1070,6 +1104,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
 
         expect(single_sample.labels.fetch(:'allocation class')).to eq 'ThreadContextSpec::TestStruct'
+      end
+
+      context 'when allocation_type_enabled is false' do
+        let(:allocation_type_enabled) { false }
+
+        it 'does not record the correct class for the passed object' do
+          sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
+
+          expect(single_sample.labels).to_not include(:'allocation class' => anything)
+        end
       end
     end
   end

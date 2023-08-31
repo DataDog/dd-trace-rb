@@ -1093,39 +1093,46 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
   // Tag samples with the VM internal types
   ddog_CharSlice ruby_vm_type = ruby_value_type_to_char_slice(type);
 
+  // Since this is stack allocated, be careful about moving it
   ddog_CharSlice class_name;
-  if (
-    type == RUBY_T_OBJECT  ||
-    type == RUBY_T_CLASS   ||
-    type == RUBY_T_MODULE  ||
-    type == RUBY_T_FLOAT   ||
-    type == RUBY_T_STRING  ||
-    type == RUBY_T_REGEXP  ||
-    type == RUBY_T_ARRAY   ||
-    type == RUBY_T_HASH    ||
-    type == RUBY_T_STRUCT  ||
-    type == RUBY_T_BIGNUM  ||
-    type == RUBY_T_FILE    ||
-    type == RUBY_T_DATA    ||
-    type == RUBY_T_MATCH   ||
-    type == RUBY_T_COMPLEX ||
-    type == RUBY_T_RATIONAL
-  ) {
-    const char *name = rb_obj_classname(new_object);
-    size_t name_length = name != NULL ? strlen(name) : 0;
+  ddog_CharSlice *optional_class_name = NULL;
 
-    if (name_length > 0) {
-      class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
+  if (state->allocation_type_enabled) {
+    optional_class_name = &class_name;
+
+    if (
+      type == RUBY_T_OBJECT  ||
+      type == RUBY_T_CLASS   ||
+      type == RUBY_T_MODULE  ||
+      type == RUBY_T_FLOAT   ||
+      type == RUBY_T_STRING  ||
+      type == RUBY_T_REGEXP  ||
+      type == RUBY_T_ARRAY   ||
+      type == RUBY_T_HASH    ||
+      type == RUBY_T_STRUCT  ||
+      type == RUBY_T_BIGNUM  ||
+      type == RUBY_T_FILE    ||
+      type == RUBY_T_DATA    ||
+      type == RUBY_T_MATCH   ||
+      type == RUBY_T_COMPLEX ||
+      type == RUBY_T_RATIONAL
+    ) {
+      const char *name = rb_obj_classname(new_object);
+      size_t name_length = name != NULL ? strlen(name) : 0;
+
+      if (name_length > 0) {
+        class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
+      } else {
+        class_name = DDOG_CHARSLICE_C("(Anonymous)");
+      }
+    } else if (type == RUBY_T_SYMBOL) {
+      class_name = DDOG_CHARSLICE_C("Symbol");
     } else {
-      class_name = DDOG_CHARSLICE_C("(Anonymous)");
+      class_name = ruby_vm_type; // For internal things and, we just use the VM type
+                                 // TODO: Maybe prefix them with a nice note? E.g. (VM Internal, T_IMEMO)
+                                 // We also do the same for immediates: nil, true, false, etc are not actually allocated
+                                 // so they don't show up on this method outside of our tests
     }
-  } else if (type == RUBY_T_SYMBOL) {
-    class_name = DDOG_CHARSLICE_C("Symbol");
-  } else {
-    class_name = ruby_vm_type; // For internal things and, we just use the VM type
-                               // TODO: Maybe prefix them with a nice note? E.g. (VM Internal, T_IMEMO)
-                               // We also do the same for immediates: nil, true, false, etc are not actually allocated
-                               // so they don't show up on this method outside of our tests
   }
 
   trigger_sample_for_thread(
@@ -1137,7 +1144,7 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     SAMPLE_REGULAR,
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,
-    &class_name
+    optional_class_name
   );
 }
 
