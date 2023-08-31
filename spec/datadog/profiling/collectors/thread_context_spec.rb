@@ -981,32 +981,58 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
     end
 
-    {
-      T_OBJECT: Object.new,
-      T_CLASS: Object,
-      T_MODULE: Kernel,
-      T_FLOAT: 1.0,
-      T_STRING: 'Hello!',
-      T_REGEXP: /Hello/,
-      T_ARRAY: [],
-      T_HASH: {},
-      T_STRUCT: Struct.new(:a).new,
-      T_BIGNUM: 2**256,
-      T_DATA: described_class.allocate, # ThreadContext is a T_DATA; we create here a dummy instance just as an example
-      T_MATCH: 'a'.match(Regexp.new('a')),
-      T_COMPLEX: Complex(1),
-      T_RATIONAL: 1/2r,
-      T_NIL: nil,
-      T_TRUE: true,
-      T_FALSE: false,
-      T_SYMBOL: :hello,
-      T_FIXNUM: 1,
-    }.each do |expected_type, object|
+    [
+      { expected_type: :T_OBJECT, object: Object.new, klass: 'Object' },
+      { expected_type: :T_CLASS, object: Object, klass: 'Class' },
+      { expected_type: :T_MODULE, object: Kernel, klass: 'Module' },
+      { expected_type: :T_FLOAT, object: 1.0, klass: 'Float' },
+      { expected_type: :T_STRING, object: 'Hello!', klass: 'String' },
+      { expected_type: :T_REGEXP, object: /Hello/, klass: 'Regexp' },
+      { expected_type: :T_ARRAY, object: [], klass: 'Array' },
+      { expected_type: :T_HASH, object: {}, klass: 'Hash' },
+      { expected_type: :T_BIGNUM, object: 2**256, klass: 'Integer' },
+      # ThreadContext is a T_DATA; we create here a dummy instance just as an example
+      { expected_type: :T_DATA, object: described_class.allocate, klass: 'Datadog::Profiling::Collectors::ThreadContext' },
+      { expected_type: :T_MATCH, object: 'a'.match(Regexp.new('a')), klass: 'MatchData' },
+      { expected_type: :T_COMPLEX, object: Complex(1), klass: 'Complex' },
+      { expected_type: :T_RATIONAL, object: 1/2r, klass: 'Rational' },
+      { expected_type: :T_SYMBOL, object: :hello, klass: 'Symbol' },
+    ].each do |expected_type:, object:, klass:|
       context "when sampling a #{expected_type}" do
         it 'includes the correct ruby vm type for the passed object' do
           sample_allocation(weight: 123, new_object: object)
 
           expect(single_sample.labels.fetch(:'ruby vm type')).to eq expected_type.to_s
+        end
+
+        it 'includes the correct class for the passed object' do
+          sample_allocation(weight: 123, new_object: object)
+
+          expect(single_sample.labels.fetch(:'allocation class')).to eq klass
+        end
+      end
+    end
+
+    [
+      # Instances of nil, true, false and fixnums are always immediates. They are not actually allocated and thus we don't
+      # care about making them pretty
+      # @ivoanjo: Symbols are sometimes immediates, so they get the regular treatment
+      { expected_type: :T_NIL, object: nil },
+      { expected_type: :T_TRUE, object: true },
+      { expected_type: :T_FALSE, object: false },
+      { expected_type: :T_FIXNUM, object: 1 },
+    ].each do |expected_type:, object:|
+      context "when sampling a #{expected_type}" do
+        it 'includes the correct ruby vm type for the passed object' do
+          sample_allocation(weight: 123, new_object: object)
+
+          expect(single_sample.labels.fetch(:'ruby vm type')).to eq expected_type.to_s
+        end
+
+        it 'includes the correct class for the passed object' do
+          sample_allocation(weight: 123, new_object: object)
+
+          expect(single_sample.labels.fetch(:'allocation class')).to eq expected_type.to_s
         end
       end
     end
@@ -1018,6 +1044,32 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         expect(single_sample.labels.fetch(:'ruby vm type')).to eq 'T_FILE'
+      end
+
+      it 'includes the correct class for the passed object' do
+        File.open(__FILE__) do |file|
+          sample_allocation(weight: 123, new_object: file)
+        end
+
+        expect(single_sample.labels.fetch(:'allocation class')).to eq 'File'
+      end
+    end
+
+    context 'when sampling a Struct' do
+      before do
+        stub_const('ThreadContextSpec::TestStruct', Struct.new(:a))
+      end
+
+      it 'includes the correct ruby vm type for the passed object' do
+        sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
+
+        expect(single_sample.labels.fetch(:'ruby vm type')).to eq 'T_STRUCT'
+      end
+
+      it 'includes the correct class for the passed object' do
+        sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
+
+        expect(single_sample.labels.fetch(:'allocation class')).to eq 'ThreadContextSpec::TestStruct'
       end
     end
   end
