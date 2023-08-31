@@ -1002,7 +1002,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       { expected_type: :T_TRUE, object: true, klass: 'TrueClass' },
       { expected_type: :T_FALSE, object: false, klass: 'FalseClass' },
       { expected_type: :T_SYMBOL, object: :hello, klass: 'Symbol' },
-      { expected_type: :T_FIXNUM, object: 1, klass: 'Integer' },
+      { expected_type: :T_FIXNUM, object: 1, klass: RUBY_VERSION < '2.4' ? 'Fixnum' : 'Integer' },
     ].each do |type|
       expected_type = type.fetch(:expected_type)
       object = type.fetch(:object)
