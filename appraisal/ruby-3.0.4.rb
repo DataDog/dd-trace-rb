@@ -1,7 +1,6 @@
 appraise 'rails61-mysql2' do
   gem 'rails', '~> 6.1.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
-  gem 'activerecord-jdbcmysql-adapter', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
   gem 'net-smtp'
@@ -10,7 +9,6 @@ end
 appraise 'rails61-postgres' do
   gem 'rails', '~> 6.1.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
   gem 'net-smtp'
@@ -19,7 +17,6 @@ end
 appraise 'rails61-postgres-redis' do
   gem 'rails', '~> 6.1.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'redis', '~> 4' # TODO: Support redis 5.x
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
@@ -29,7 +26,6 @@ end
 appraise 'rails61-postgres-sidekiq' do
   gem 'rails', '~> 6.1.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'sidekiq', '>= 6.1.2'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
@@ -40,7 +36,6 @@ end
 appraise 'rails61-semantic-logger' do
   gem 'rails', '~> 6.1.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'rails_semantic_logger', '~> 4.0'
   gem 'net-smtp'
@@ -81,10 +76,8 @@ appraise 'contrib' do
   gem 'minitest', '>= 5.0.0'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'mysql2', '>= 0.5.3', platform: :ruby
-  gem 'activerecord-jdbcmysql-adapter', platform: :jruby
   gem 'opensearch-ruby'
   gem 'pg', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'racecar', '>= 0.3.5'
   gem 'rack'
   gem 'rack-contrib'
@@ -102,7 +95,6 @@ appraise 'contrib' do
   gem 'sneakers', '>= 2.12.0'
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
   gem 'stripe'
-  gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
   gem 'sucker_punch'
   gem 'typhoeus'
   gem 'que', '>= 1.0.0'
