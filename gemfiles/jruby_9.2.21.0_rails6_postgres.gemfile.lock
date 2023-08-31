@@ -273,7 +273,6 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   opentracing (>= 0.4.1)
   os (~> 1.1)
-  pg (< 1.0)
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby

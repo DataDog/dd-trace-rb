@@ -295,7 +295,6 @@ DEPENDENCIES
   json-schema (< 3)
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
-  mysql2 (~> 0.5)
   net-smtp
   opentracing (>= 0.4.1)
   os (~> 1.1)
