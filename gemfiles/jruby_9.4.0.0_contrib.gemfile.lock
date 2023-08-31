@@ -1765,7 +1765,6 @@ DEPENDENCIES
   excon
   grape
   graphql (>= 2.0)
-  grpc (>= 1.38.0)
   http
   httpclient
   jdbc-sqlite3 (>= 3.28)
@@ -1775,12 +1774,10 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   minitest (>= 5.0.0)
   mongo (>= 2.8.0, < 2.15.0)
-  mysql2 (>= 0.5.3)
   net-smtp
   opensearch-ruby
   opentracing (>= 0.4.1)
   os (~> 1.1)
-  pg
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby
@@ -1811,7 +1808,6 @@ DEPENDENCIES
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   sneakers (>= 2.12.0)
-  sqlite3 (>= 1.4.2)
   stripe
   sucker_punch
   typhoeus

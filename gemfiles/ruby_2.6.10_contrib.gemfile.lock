@@ -1775,8 +1775,6 @@ DEPENDENCIES
   actionview
   active_model_serializers (>= 0.10.0)
   activerecord (~> 6.0.0)
-  activerecord-jdbcmysql-adapter
-  activerecord-jdbcpostgresql-adapter
   addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   aws-sdk
@@ -1801,7 +1799,6 @@ DEPENDENCIES
   grpc
   http
   httpclient
-  jdbc-sqlite3 (>= 3.28)
   json-schema (< 3)
   lograge (~> 0.11)
   makara

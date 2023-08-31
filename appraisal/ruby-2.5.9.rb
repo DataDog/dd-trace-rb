@@ -7,171 +7,137 @@ end
 appraise 'rails5-mysql2' do
   gem 'rails', '~> 5.2.1'
   gem 'mysql2', '< 1', platform: :ruby
-  gem 'activerecord-jdbcmysql-adapter', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
 end
 
 appraise 'rails5-postgres' do
   gem 'rails', '~> 5.2.1'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails5-semantic-logger' do
   gem 'rails', '~> 5.2.1'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'rails_semantic_logger', '~> 4.0'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails5-postgres-redis' do
   gem 'rails', '~> 5.2.1'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'redis', '>= 4.0.1'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails5-postgres-redis-activesupport' do
   gem 'rails', '~> 5.2.1'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'redis', '~> 4'
   gem 'redis-store', '~> 1.9'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   gem 'redis-rails'
 end
 
 appraise 'rails5-postgres-sidekiq' do
   gem 'rails', '~> 5.2.1'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'sidekiq'
   gem 'activejob'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails6-mysql2' do
   gem 'rails', '~> 6.0.0'
   gem 'mysql2', '< 1', platform: :ruby
-  gem 'activerecord-jdbcmysql-adapter', '>= 60', platform: :jruby # try remove >= 60
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
 end
 
 appraise 'rails6-postgres' do
   gem 'rails', '~> 6.0.0'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails6-semantic-logger' do
   gem 'rails', '~> 6.0.0'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'rails_semantic_logger', '~> 4.0'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails6-postgres-redis' do
   gem 'rails', '~> 6.0.0'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
   gem 'redis', '>= 4.0.1'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails6-postgres-redis-activesupport' do
   gem 'rails', '~> 6.0.0'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
   gem 'redis', '~> 4'
   gem 'redis-store', '~> 1.9'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   gem 'redis-rails'
 end
 
 appraise 'rails6-postgres-sidekiq' do
   gem 'rails', '~> 6.0.0'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
   gem 'sidekiq'
   gem 'activejob'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails61-mysql2' do
   gem 'rails', '~> 6.1.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
-  gem 'activerecord-jdbcmysql-adapter', '>= 61', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   gem 'mail', '~> 2.7.1' # Somehow 2.8.x breaks ActionMailer test in jruby
 end
 
 appraise 'rails61-postgres' do
   gem 'rails', '~> 6.1.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails61-postgres-redis' do
   gem 'rails', '~> 6.1.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
   gem 'redis', '>= 4.2.5'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails61-postgres-sidekiq' do
   gem 'rails', '~> 6.1.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
   gem 'sidekiq', '>= 6.1.2'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'rails61-semantic-logger' do
   gem 'rails', '~> 6.1.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'rails_semantic_logger', '~> 4.0'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
 end
 
 appraise 'resque2-redis3' do
@@ -214,15 +180,12 @@ appraise 'contrib' do
   gem 'http'
   gem 'httpclient'
   gem 'lograge', '~> 0.11'
-  gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   gem 'makara'
   gem 'minitest', '>= 5.0.0'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'mysql2', '< 1', platform: :ruby
-  gem 'activerecord-jdbcmysql-adapter', '>= 52', platform: :jruby
   gem 'opensearch-ruby'
   gem 'pg', '>= 0.18.4', platform: :ruby
-  gem 'activerecord-jdbcpostgresql-adapter', '>= 52', platform: :jruby
   gem 'racecar', '>= 0.3.5'
   gem 'rack'
   gem 'rack-contrib'
@@ -241,7 +204,6 @@ appraise 'contrib' do
   gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
   gem 'sqlite3', '~> 1.4.1', platform: :ruby
   gem 'stripe', '~> 7.0'
-  gem 'activerecord-jdbcsqlite3-adapter', '>= 52', platform: :jruby
   gem 'sucker_punch'
   gem 'typhoeus'
   gem 'que', '>= 1.0.0', '< 2.0.0'

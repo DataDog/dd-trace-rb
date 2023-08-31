@@ -82,6 +82,23 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
     end
   end
 
+  desc 'Generate Appraisal gemfile.lock. Takes a version list as argument, defaults to all'
+  task :lock do |_task, args|
+    ruby_versions(args.to_a).each do |ruby_version|
+      cmd = []
+      cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
+      cmd << [*bundle(ruby_version), 'config', 'without', 'check']
+      cmd << [*bundle(ruby_version), 'install']
+      cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'bundle lock']
+
+      cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
+
+      p cmd
+      p docker(ruby_version, cmd)
+      sh docker(ruby_version, cmd).join(' ')
+    end
+  end
+
   desc 'Install Appraisal gemfiles. Takes a version list as argument, defaults to all'
   task :install do |_task, args|
     ENV['APPRAISAL_SKIP_BUNDLE_CHECK'] = 'y'
