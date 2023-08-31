@@ -1,5 +1,5 @@
 require 'datadog/core/encoding'
-require 'ddtrace/transport/http'
+require 'datadog/tracing/transport/http'
 
 shared_context 'Datadog::Transport::HTTP::Client spy' do
   let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }

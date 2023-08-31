@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 require_relative '../../configuration/agent_settings_resolver'
-require_relative '../../../../ddtrace/transport/http/adapters/registry'
-require_relative '../../../../ddtrace/transport/http/api/map'
+# TODO: EK - FIX THIS
+require_relative '../../../tracing/transport/http/adapters/registry'
+require_relative '../../../tracing/transport/http/api/map'
 
 # TODO: Decouple standard transport/http/api/instance
 #

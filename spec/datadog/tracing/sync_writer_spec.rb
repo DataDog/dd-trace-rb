@@ -7,8 +7,8 @@ require 'datadog/tracing/span'
 require 'datadog/tracing/sync_writer'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/tracer'
-require 'ddtrace/transport/http'
-require 'ddtrace/transport/http/traces'
+require 'datadog/tracing/transport/http'
+require 'datadog/tracing/transport/http/traces'
 require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Tracing::SyncWriter do

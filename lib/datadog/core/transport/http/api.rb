@@ -2,7 +2,8 @@
 
 require_relative '../../encoding'
 
-require_relative '../../../../ddtrace/transport/http/api/map'
+# TODO: EK - FIX THIS
+require_relative '../../../tracing/transport/http/api/map'
 
 # TODO: Decouple standard transport/http/api/instance
 #

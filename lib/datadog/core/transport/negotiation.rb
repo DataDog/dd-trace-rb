@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../../ddtrace/transport/request'
+# TODO: EK - FIX THIS
+require_relative '../../tracing/transport/request'
 
 # TODO: Resolve conceptual conundrum
 #

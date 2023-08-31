@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../../../ddtrace/transport/http/env'
+# TODO: EK - FIX THIS
+require_relative '../../../tracing/transport/http/env'
 
 # TODO: Decouple transport/http/client
 #

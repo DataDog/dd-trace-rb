@@ -1,4 +1,4 @@
-require 'ddtrace/transport/http'
+require 'datadog/tracing/transport/http'
 
 # FauxTransport is a dummy Datadog::Transport that doesn't send data to an agent.
 class FauxTransport < Datadog::Transport::HTTP::Client

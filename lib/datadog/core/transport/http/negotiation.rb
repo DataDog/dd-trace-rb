@@ -4,8 +4,9 @@ require 'json'
 
 require_relative '../negotiation'
 require_relative 'client'
-require_relative '../../../../ddtrace/transport/http/response'
-require_relative '../../../../ddtrace/transport/http/api/endpoint'
+# TODO: EK - FIX THIS
+require_relative '../../../tracing/transport/http/response'
+require_relative '../../../tracing/transport/http/api/endpoint'
 
 # TODO: Decouple standard transport/http/api/instance
 #

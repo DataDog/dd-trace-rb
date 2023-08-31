@@ -5,14 +5,15 @@ require 'uri'
 require_relative '../environment/container'
 require_relative '../environment/ext'
 require_relative '../../../ddtrace/transport/ext'
-require_relative '../../../ddtrace/transport/http/adapters/net'
-require_relative '../../../ddtrace/transport/http/adapters/test'
-require_relative '../../../ddtrace/transport/http/adapters/unix_socket'
+# TODO: EK - LOOK INTO THIS
+require_relative '../../tracing/transport/http/adapters/net'
+require_relative '../../tracing/transport/http/adapters/test'
+require_relative '../../tracing/transport/http/adapters/unix_socket'
 
 # TODO: Improve negotiation to allow per endpoint selection
 #
 # Since endpoint negotiation happens at the `API::Spec` level there can not be
-# a mix of enpoints at various versions or versionless without describing all
+# a mix of endpoints at various versions or versionless without describing all
 # the possible combinations as specs. See http/api.
 #
 # Below should be:

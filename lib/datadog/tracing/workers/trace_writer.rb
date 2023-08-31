@@ -7,7 +7,7 @@ require_relative '../buffer'
 require_relative '../pipeline'
 require_relative '../event'
 
-require_relative '../../../ddtrace/transport/http'
+require_relative '../transport/http'
 
 module Datadog
   module Tracing

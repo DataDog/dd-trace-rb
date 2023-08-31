@@ -1,9 +1,8 @@
-# TODO: EK - CHECK
-#require_relative '../../core/rb'
-require_relative '../../../ddtrace/transport/parcel'
-require_relative '../../../ddtrace/transport/request'
-require_relative '../../../ddtrace/transport/serializable_trace'
-require_relative '../../../ddtrace/transport/trace_formatter'
+require_relative '../../core/chunker'
+require_relative 'parcel'
+require_relative 'request'
+require_relative 'serializable_trace'
+require_relative 'trace_formatter'
 
 module Datadog
   module Transport

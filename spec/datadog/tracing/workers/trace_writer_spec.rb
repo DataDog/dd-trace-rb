@@ -6,10 +6,10 @@ require 'datadog/core/workers/queue'
 require 'datadog/tracing/buffer'
 require 'datadog/tracing/pipeline'
 require 'datadog/tracing/workers/trace_writer'
-require 'ddtrace/transport/http'
-require 'ddtrace/transport/http/client'
-require 'ddtrace/transport/http/response'
-require 'ddtrace/transport/response'
+require 'datadog/tracing/transport/http'
+require 'datadog/tracing/transport/http/client'
+require 'datadog/tracing/transport/http/response'
+require 'datadog/tracing/transport/response'
 
 RSpec.describe Datadog::Tracing::Workers::TraceWriter do
   subject(:writer) { described_class.new(options) }

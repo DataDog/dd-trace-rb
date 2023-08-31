@@ -4,7 +4,7 @@ require_relative 'pipeline'
 require_relative 'runtime/metrics'
 require_relative 'writer'
 
-require_relative '../../ddtrace/transport/http'
+require_relative 'transport/http'
 
 module Datadog
   module Tracing

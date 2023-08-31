@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../../ddtrace/transport/request'
-require_relative '../../../ddtrace/transport/parcel'
+# TODO: EK - FIX THIS
+require_relative '../../tracing/transport/request'
+require_relative '../../tracing/transport/parcel'
 
 module Datadog
   module Core
