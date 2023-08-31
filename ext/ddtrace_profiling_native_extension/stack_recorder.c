@@ -165,10 +165,10 @@ static const uint8_t all_value_types_positions[] = {CPU_TIME_VALUE_ID, CPU_SAMPL
 // Contains native state for each instance
 struct stack_recorder_state {
   pthread_mutex_t slot_one_mutex;
-  ddog_prof_Profile *slot_one_profile;
+  ddog_prof_Profile slot_one_profile;
 
   pthread_mutex_t slot_two_mutex;
-  ddog_prof_Profile *slot_two_profile;
+  ddog_prof_Profile slot_two_profile;
 
   short active_slot; // MUST NEVER BE ACCESSED FROM record_sample; this is NOT for the sampler thread to use.
 
@@ -179,7 +179,7 @@ struct stack_recorder_state {
 // Used to return a pair of values from sampler_lock_active_profile()
 struct active_slot_pair {
   pthread_mutex_t *mutex;
-  ddog_prof_Profile *profile;
+  ddog_prof_Profile profile;
 };
 
 struct call_serialize_without_gvl_arguments {
@@ -188,7 +188,7 @@ struct call_serialize_without_gvl_arguments {
   ddog_Timespec finish_timestamp;
 
   // Set by callee
-  ddog_prof_Profile *profile;
+  ddog_prof_Profile profile;
   ddog_prof_Profile_SerializeResult result;
 
   // Set by both
@@ -204,7 +204,7 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time);
 static void *call_serialize_without_gvl(void *call_args);
 static struct active_slot_pair sampler_lock_active_profile();
 static void sampler_unlock_active_profile(struct active_slot_pair active_slot);
-static ddog_prof_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state);
+static ddog_prof_Profile serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state);
 static VALUE _native_active_slot(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
@@ -284,10 +284,10 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   struct stack_recorder_state *state = (struct stack_recorder_state *) state_ptr;
 
   pthread_mutex_destroy(&state->slot_one_mutex);
-  ddog_prof_Profile_drop(state->slot_one_profile);
+  ddog_prof_Profile_drop(&state->slot_one_profile);
 
   pthread_mutex_destroy(&state->slot_two_mutex);
-  ddog_prof_Profile_drop(state->slot_two_profile);
+  ddog_prof_Profile_drop(&state->slot_two_profile);
 
   ruby_xfree(state);
 }
@@ -335,8 +335,8 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_insta
 
   ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
 
-  ddog_prof_Profile_drop(state->slot_one_profile);
-  ddog_prof_Profile_drop(state->slot_two_profile);
+  ddog_prof_Profile_drop(&state->slot_one_profile);
+  ddog_prof_Profile_drop(&state->slot_two_profile);
 
   state->slot_one_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
   state->slot_two_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
@@ -386,9 +386,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
 
-  if (!ddog_prof_Profile_reset(args.profile, NULL /* start_time is optional */ )) {
-    return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
-  }
+  ddog_prof_Profile_reset(&args.profile, NULL /* start_time is optional */ ); // FIXME: Handle error
 
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
 }
@@ -417,8 +415,8 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   metric_values[position_for[WALL_TIME_VALUE_ID]]     = values.wall_time_ns;
   metric_values[position_for[ALLOC_SAMPLES_VALUE_ID]] = values.alloc_samples;
 
-  ddog_prof_Profile_AddResult result = ddog_prof_Profile_add(
-    active_slot.profile,
+  ddog_prof_Profile_Result result = ddog_prof_Profile_add(
+    &active_slot.profile,
     (ddog_prof_Sample) {
       .locations = locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
@@ -428,7 +426,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
 
   sampler_unlock_active_profile(active_slot);
 
-  if (result.tag == DDOG_PROF_PROFILE_ADD_RESULT_ERR) {
+  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
     rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 }
@@ -439,7 +437,7 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
 
   struct active_slot_pair active_slot = sampler_lock_active_profile(state);
 
-  ddog_prof_Profile_set_endpoint(active_slot.profile, local_root_span_id, endpoint);
+  ddog_prof_Profile_set_endpoint(&active_slot.profile, local_root_span_id, endpoint);
 
   sampler_unlock_active_profile(active_slot);
 }
@@ -448,7 +446,7 @@ static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
   args->profile = serializer_flip_active_and_inactive_slots(args->state);
-  args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */);
+  args->result = ddog_prof_Profile_serialize(&args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */);
   args->serialize_ran = true;
 
   return NULL; // Unused
@@ -486,7 +484,7 @@ static void sampler_unlock_active_profile(struct active_slot_pair active_slot) {
   ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(active_slot.mutex));
 }
 
-static ddog_prof_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state) {
+static ddog_prof_Profile serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state) {
   int previously_active_slot = state->active_slot;
 
   if (previously_active_slot != 1 && previously_active_slot != 2) {
@@ -565,8 +563,8 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
   // resulting state is inconsistent, we make sure to reset it back to the initial state.
   initialize_slot_concurrency_control(state);
 
-  ddog_prof_Profile_reset(state->slot_one_profile, /* start_time: */ NULL);
-  ddog_prof_Profile_reset(state->slot_two_profile, /* start_time: */ NULL);
+  ddog_prof_Profile_reset(&state->slot_one_profile, /* start_time: */ NULL);
+  ddog_prof_Profile_reset(&state->slot_two_profile, /* start_time: */ NULL);
 
   return Qtrue;
 }
@@ -575,9 +573,11 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
 // not be interrupted part-way through by a VM fork.
 static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec timestamp) {
   // Before making this profile active, we reset it so that it uses the correct timestamp for its start
-  ddog_prof_Profile *next_profile = (state->active_slot == 1) ? state->slot_two_profile : state->slot_one_profile;
+  ddog_prof_Profile next_profile = (state->active_slot == 1) ? state->slot_two_profile : state->slot_one_profile;
 
-  if (!ddog_prof_Profile_reset(next_profile, &timestamp)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
+  // FIXME: Handle error result
+  ddog_prof_Profile_reset(&next_profile, &timestamp);
+  // ) rb_raise(rb_eRuntimeError, "Failed to reset profile");
 }
 
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint) {
