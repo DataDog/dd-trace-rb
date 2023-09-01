@@ -10,7 +10,7 @@ module Datadog
           # This can be used to make decisions about when to enable
           # background systems like worker threads or telemetry.
           def development?
-            !!(repl? || test? || rails_development? || webmock_enabled?)
+            !!(webmock_enabled? || repl? || test? || rails_development?)
           end
 
           # WebMock stores the reference to `Net::HTTP` with constant `OriginalNetHTTP`, and when WebMock enables,
