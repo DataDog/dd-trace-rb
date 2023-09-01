@@ -14,21 +14,10 @@ module Datadog
         public
 
         def initialize(
-          recorder:,
-          max_frames:,
-          tracer:,
-          endpoint_collection_enabled:,
           gc_profiling_enabled:,
           allocation_counting_enabled:,
           no_signals_workaround_enabled:,
-          timeline_enabled:,
-          thread_context_collector: ThreadContext.new(
-            recorder: recorder,
-            max_frames: max_frames,
-            tracer: tracer,
-            endpoint_collection_enabled: endpoint_collection_enabled,
-            timeline_enabled: timeline_enabled,
-          ),
+          thread_context_collector:,
           idle_sampling_helper: IdleSamplingHelper.new,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!

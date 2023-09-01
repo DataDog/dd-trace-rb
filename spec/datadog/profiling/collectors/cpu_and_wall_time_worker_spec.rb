@@ -14,14 +14,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   subject(:cpu_and_wall_time_worker) do
     described_class.new(
-      recorder: recorder,
-      max_frames: 400,
-      tracer: nil,
-      endpoint_collection_enabled: endpoint_collection_enabled,
       gc_profiling_enabled: gc_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
-      timeline_enabled: timeline_enabled,
+      thread_context_collector: build_thread_context_collector(recorder),
       **options
     )
   end
@@ -702,13 +698,19 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   def build_another_instance
     described_class.new(
-      recorder: build_stack_recorder,
-      max_frames: 400,
-      tracer: nil,
-      endpoint_collection_enabled: endpoint_collection_enabled,
       gc_profiling_enabled: gc_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
+      thread_context_collector: build_thread_context_collector(build_stack_recorder)
+    )
+  end
+
+  def build_thread_context_collector(recorder)
+    Datadog::Profiling::Collectors::ThreadContext.new(
+      recorder: recorder,
+      max_frames: 400,
+      tracer: nil,
+      endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
     )
   end
