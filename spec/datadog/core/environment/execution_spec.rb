@@ -5,6 +5,12 @@ require 'spec_helper'
 require 'datadog/core/environment/execution'
 
 RSpec.describe Datadog::Core::Environment::Execution do
+  around do |example|
+    WebMock.enable!
+    example.run
+    WebMock.disable!
+  end
+
   describe '.development?' do
     subject(:development?) { described_class.development? }
 
@@ -148,11 +154,9 @@ RSpec.describe Datadog::Core::Environment::Execution do
     end
 
     context 'when `WebMock::HttpLibAdapters::NetHttpAdapter` and `Net::HTTP` constants both exist' do
-      before do
-        WebMock.enable!
-      end
-
       it do
+        WebMock.enable!
+
         expect(described_class).to be_webmock_enabled
       end
 
