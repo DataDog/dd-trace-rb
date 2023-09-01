@@ -514,6 +514,9 @@ task :test, [:rake_task] do |_, args|
 
   next unless spec_metadata
 
+  total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
+  current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
+
   spec_metadata.each do |specs|
     next if RUBY_PLATFORM == 'java' && !specs[:❌].include?('jruby')
 
@@ -533,7 +536,13 @@ task :test, [:rake_task] do |_, args|
                 "bundle exec rake #{spec_task}"
               end
 
-    sh(command)
+    if total_executors && current_executor && total_executors > 1
+      @execution_count ||= 0
+      @execution_count += 1
+      sh(command) if @execution_count % total_executors == current_executor
+    else
+      sh(command)
+    end
   end
 end
 
