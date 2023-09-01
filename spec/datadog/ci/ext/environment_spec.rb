@@ -130,7 +130,7 @@ RSpec.describe Datadog::CI::Ext::Environment do
           let(:env) do
             {
               'DD_GIT_REPOSITORY_URL' => 'https://datadoghq.com/git/user-provided.git',
-              'DD_GIT_COMMIT_SHA' => '9322ca1d57975b49b8c00b449d21b06660ce8b5c',
+              'DD_GIT_COMMIT_SHA' => '9322CA1d57975b49b8c00b449d21b06660ce8b5c',
               'DD_GIT_BRANCH' => 'my-branch',
               'DD_GIT_TAG' => 'my-tag',
               'DD_GIT_COMMIT_MESSAGE' => 'provided message',
@@ -163,22 +163,92 @@ RSpec.describe Datadog::CI::Ext::Environment do
           end
         end
 
-        context 'when DD_GIT_REPOSITORY_URL is missing' do
+        context 'with no git information extracted' do
           include_context 'without git installed'
-          let(:env) do
-            {
-              'DD_GIT_COMMIT_SHA' => '9322ca1d57975b49b8c00b449d21b06660ce8b5c',
-            }
+
+          context 'when DD_GIT_REPOSITORY_URL is missing' do
+            let(:env) do
+              {
+                'DD_GIT_COMMIT_SHA' => '9322ca1d57975b49b8c00b449d21b06660ce8b5c',
+              }
+            end
+
+            it 'logs an error' do
+              is_expected.to eq(
+                {
+                  'git.commit.sha' => env['DD_GIT_COMMIT_SHA'],
+                }
+              )
+
+              expect(logger).to have_received(:error).with(
+                'DD_GIT_REPOSITORY_URL is not set or empty; no repo URL was automatically extracted'
+              )
+            end
           end
 
-          it 'returns user provided metadata' do
-            is_expected.to eq(
+          context 'when DD_GIT_COMMIT_SHA is missing' do
+            let(:env) do
               {
-                'git.commit.sha' => env['DD_GIT_COMMIT_SHA'],
+                'DD_GIT_REPOSITORY_URL' => 'https://datadoghq.com/git/user-provided.git',
               }
-            )
+            end
 
-            expect(logger).to have_received(:error).with(/DD_GIT_REPOSITORY_URL is not set or empty/)
+            it 'logs an error' do
+              is_expected.to eq(
+                {
+                  'git.repository_url' => env['DD_GIT_REPOSITORY_URL']
+                }
+              )
+
+              expect(logger).to have_received(:error).with(
+                'DD_GIT_COMMIT_SHA must be a full-length git SHA. No value was set and no SHA was automatically extracted.'
+              )
+            end
+          end
+
+          context 'when DD_GIT_COMMIT_SHA has invalid length' do
+            let(:env) do
+              {
+                'DD_GIT_COMMIT_SHA' => '9322ca1d57975b49b8c00b449d21b06660ce8b5',
+                'DD_GIT_REPOSITORY_URL' => 'https://datadoghq.com/git/user-provided.git',
+              }
+            end
+
+            it 'logs an error' do
+              is_expected.to eq(
+                {
+                  'git.commit.sha' => env['DD_GIT_COMMIT_SHA'],
+                  'git.repository_url' => env['DD_GIT_REPOSITORY_URL']
+                }
+              )
+
+              expect(logger).to have_received(:error).with(
+                'DD_GIT_COMMIT_SHA must be a full-length git SHA. Expected SHA length 40, was 39.'
+              )
+            end
+          end
+
+          context 'when DD_GIT_COMMIT_SHA is not a valid hex number' do
+            let(:env) do
+              {
+                'DD_GIT_COMMIT_SHA' => '9322ca1d57975by9b8c00b449d21b06660ce8b5c',
+                'DD_GIT_REPOSITORY_URL' => 'https://datadoghq.com/git/user-provided.git',
+              }
+            end
+
+            it 'logs an error' do
+              is_expected.to eq(
+                {
+                  'git.commit.sha' => env['DD_GIT_COMMIT_SHA'],
+                  'git.repository_url' => env['DD_GIT_REPOSITORY_URL']
+                }
+              )
+
+              expect(logger).to have_received(:error).with(
+                'DD_GIT_COMMIT_SHA must be a full-length git SHA. ' \
+                'Expected SHA to be a valid HEX number, got 9322ca1d57975by9b8c00b449d21b06660ce8b5c.'
+              )
+            end
           end
         end
       end
