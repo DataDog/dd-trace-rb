@@ -71,7 +71,11 @@ module Datadog
             tags[key] ||= value
           end
 
-          tags.reject { |_, v| v.nil? }
+          output = tags.reject { |_, v| v.nil? }
+
+          ensure_post_conditions(output)
+
+          output
         end
 
         def normalize_ref(name)
@@ -166,9 +170,7 @@ module Datadog
           pipeline_url = "https://bitbucket.org/#{env['BITBUCKET_REPO_FULL_NAME']}/addon/pipelines/home#" \
             "!/results/#{env['BITBUCKET_BUILD_NUMBER']}"
 
-          repository_url = filter_sensitive_info(
-            env['BITBUCKET_GIT_SSH_ORIGIN'] || env['BITBUCKET_GIT_HTTP_ORIGIN']
-          )
+          repository_url = env['BITBUCKET_GIT_SSH_ORIGIN'] || env['BITBUCKET_GIT_HTTP_ORIGIN']
 
           {
             Core::Git::Ext::TAG_BRANCH => env['BITBUCKET_BRANCH'],
@@ -573,6 +575,16 @@ module Datadog
           end
 
           [nil, name_and_email]
+        end
+
+        def ensure_post_conditions(tags)
+          validate_repository_url_present(tags)
+        end
+
+        def validate_repository_url_present(tags)
+          return if !tags[Core::Git::Ext::TAG_REPOSITORY_URL].nil? && !tags[Core::Git::Ext::TAG_REPOSITORY_URL].empty?
+
+          Datadog.logger.error('DD_GIT_REPOSITORY_URL is not set or empty; no repo URL was automatically extracted')
         end
       end
     end
