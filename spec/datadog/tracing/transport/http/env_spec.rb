@@ -2,10 +2,10 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/http/env'
 
-RSpec.describe Datadog::Transport::HTTP::Env do
+RSpec.describe Datadog::Tracing::Transport::HTTP::Env do
   subject(:env) { described_class.new(request, options) }
 
-  let(:request) { instance_double(Datadog::Transport::Request) }
+  let(:request) { instance_double(Datadog::Tracing::Transport::Request) }
   let(:options) { {} }
 
   it { is_expected.to be_a_kind_of(Hash) }

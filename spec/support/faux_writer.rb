@@ -3,11 +3,22 @@ require 'net/http'
 require 'datadog/tracing/writer'
 
 require 'support/faux_transport'
+require 'support/network_helpers'
 
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Tracing::Writer
+  include NetworkHelpers
+
   def initialize(options = {})
-    options[:transport] ||= FauxTransport.new
+    if ENV['DD_AGENT_HOST'] == 'testagent' && !options[:disable_test_agent] && test_agent_running?
+      options[:transport] ||= Datadog::Transport::HTTP.default do |t|
+        t.adapter :net_http, 'testagent', 9126, timeout: 30
+      end
+      options[:real_tracer] = true
+    else
+      options[:transport] ||= FauxTransport.new
+      options[:real_tracer] = false
+    end
     options[:call_original] ||= true
     @options = options
 

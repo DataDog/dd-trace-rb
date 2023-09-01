@@ -14,7 +14,7 @@ require 'datadog/tracing/transport/traces'
 RSpec.describe Datadog::Tracing::SyncWriter do
   subject(:sync_writer) { described_class.new(transport: transport) }
 
-  let(:transport) { Datadog::Transport::HTTP.default { |t| t.adapter :test, buffer } }
+  let(:transport) { Datadog::Tracing::Transport::HTTP.default { |t| t.adapter :test, buffer } }
   let(:buffer) { [] }
 
   describe '::new' do
@@ -23,10 +23,10 @@ RSpec.describe Datadog::Tracing::SyncWriter do
     context 'given :agent_settings' do
       let(:options) { { agent_settings: agent_settings } }
       let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings) }
-      let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
+      let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
 
       before do
-        expect(Datadog::Transport::HTTP)
+        expect(Datadog::Tracing::Transport::HTTP)
           .to receive(:default)
           .with(options)
           .and_return(transport)
@@ -76,7 +76,7 @@ RSpec.describe Datadog::Tracing::SyncWriter do
     it 'publishes after_send event' do
       expect(sync_writer.events.after_send)
         .to receive(:publish)
-        .with(sync_writer, match_array(be_a(Datadog::Transport::HTTP::Traces::Response)))
+        .with(sync_writer, match_array(be_a(Datadog::Tracing::Transport::HTTP::Traces::Response)))
       write
     end
   end

@@ -32,7 +32,7 @@ module Datadog
         module Negotiation
           # Response from HTTP transport for agent feature negotiation
           class Response
-            include Datadog::Transport::HTTP::Response
+            include Datadog::Tracing::Transport::HTTP::Response
             include Core::Transport::Negotiation::Response
 
             def initialize(http_response, options = {})
@@ -113,7 +113,7 @@ module Datadog
             end
 
             # Endpoint for negotiation
-            class Endpoint < Datadog::Transport::HTTP::API::Endpoint
+            class Endpoint < Datadog::Tracing::Transport::HTTP::API::Endpoint
               def initialize(path)
                 super(:get, path)
               end

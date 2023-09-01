@@ -10,7 +10,7 @@ module Datadog
       module Config
         # Data transfer object for encoded traces
         class EncodedParcel
-          include Datadog::Transport::Parcel
+          include Datadog::Tracing::Transport::Parcel
 
           def count
             data.length
@@ -18,7 +18,7 @@ module Datadog
         end
 
         # Config request
-        class Request < Datadog::Transport::Request
+        class Request < Datadog::Tracing::Transport::Request
         end
 
         # Config response

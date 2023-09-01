@@ -45,7 +45,7 @@ module Datadog
       module HTTP
         # Builds new instances of Transport::HTTP::Client
         class Builder
-          REGISTRY = Datadog::Transport::HTTP::Adapters::Registry.new
+          REGISTRY = Datadog::Tracing::Transport::HTTP::Adapters::Registry.new
 
           attr_reader \
             :apis,
@@ -60,7 +60,7 @@ module Datadog
             @default_headers = {}
 
             # Client settings
-            @apis = Datadog::Transport::HTTP::API::Map.new
+            @apis = Datadog::Tracing::Transport::HTTP::API::Map.new
             @default_api = nil
 
             # API settings
@@ -124,7 +124,7 @@ module Datadog
           def to_api_instances
             raise NoApisError if @apis.empty?
 
-            @apis.inject(Datadog::Transport::HTTP::API::Map.new) do |instances, (key, spec)|
+            @apis.inject(Datadog::Tracing::Transport::HTTP::API::Map.new) do |instances, (key, spec)|
               instances.tap do
                 api_options = @api_options[key].dup
 

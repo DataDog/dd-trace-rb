@@ -3,18 +3,18 @@ require 'spec_helper'
 require 'datadog/tracing/transport/http'
 require 'uri'
 
-RSpec.describe Datadog::Transport::HTTP do
+RSpec.describe Datadog::Tracing::Transport::HTTP do
   describe '.new' do
     context 'given a block' do
       subject(:new_http) { described_class.new(&block) }
 
       let(:block) { proc {} }
 
-      let(:builder) { instance_double(Datadog::Transport::HTTP::Builder) }
-      let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
+      let(:builder) { instance_double(Datadog::Tracing::Transport::HTTP::Builder) }
+      let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
 
       before do
-        expect(Datadog::Transport::HTTP::Builder).to receive(:new) do |&blk|
+        expect(Datadog::Tracing::Transport::HTTP::Builder).to receive(:new) do |&blk|
           expect(blk).to be block
           builder
         end
@@ -38,28 +38,28 @@ RSpec.describe Datadog::Transport::HTTP do
     # TODO: we should deprecate the use of DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS
     # and thus remove this test scenario.
     it 'returns a transport with default configuration' do
-      is_expected.to be_a_kind_of(Datadog::Transport::Traces::Transport)
-      expect(default.current_api_id).to eq(Datadog::Transport::HTTP::API::V4)
+      is_expected.to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
+      expect(default.current_api_id).to eq(Datadog::Tracing::Transport::HTTP::API::V4)
 
       expect(default.apis.keys).to eq(
         [
-          Datadog::Transport::HTTP::API::V4,
-          Datadog::Transport::HTTP::API::V3,
+          Datadog::Tracing::Transport::HTTP::API::V4,
+          Datadog::Tracing::Transport::HTTP::API::V3,
         ]
       )
 
       default.apis.each_value do |api|
-        expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
+        expect(api).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::API::Instance)
         expect(api.headers).to include(described_class.default_headers)
 
         case env_agent_settings.adapter
         when :net_http
-          expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
+          expect(api.adapter).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Adapters::Net)
           expect(api.adapter.hostname).to eq(env_agent_settings.hostname)
           expect(api.adapter.port).to eq(env_agent_settings.port)
           expect(api.adapter.ssl).to be(env_agent_settings.ssl)
         when :unix
-          expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::UnixSocket)
+          expect(api.adapter).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Adapters::UnixSocket)
           expect(api.adapter.filepath).to eq(env_agent_settings.uds_path)
         else
           raise("Unknown default adapter: #{env_agent_settings.adapter}")
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Transport::HTTP do
 
         it 'returns a transport with provided options' do
           default.apis.each_value do |api|
-            expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
+            expect(api.adapter).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(hostname)
             expect(api.adapter.port).to eq(port)
             expect(api.adapter.timeout).to be(timeout_seconds)
@@ -114,7 +114,7 @@ RSpec.describe Datadog::Transport::HTTP do
 
         it 'calls the deprecated_for_removal_transport_configuration_proc with the transport builder' do
           expect(deprecated_for_removal_transport_configuration_proc).to \
-            receive(:call).with(an_instance_of(Datadog::Transport::HTTP::Builder))
+            receive(:call).with(an_instance_of(Datadog::Tracing::Transport::HTTP::Builder))
 
           default
         end
@@ -128,7 +128,7 @@ RSpec.describe Datadog::Transport::HTTP do
         let(:options) { { api_version: api_version } }
 
         context 'that is defined' do
-          let(:api_version) { Datadog::Transport::HTTP::API::V4 }
+          let(:api_version) { Datadog::Tracing::Transport::HTTP::API::V4 }
 
           it { expect(default.current_api_id).to eq(api_version) }
         end
@@ -136,7 +136,7 @@ RSpec.describe Datadog::Transport::HTTP do
         context 'that is not defined' do
           let(:api_version) { double('non-existent API') }
 
-          it { expect { default }.to raise_error(Datadog::Transport::HTTP::Builder::UnknownApiError) }
+          it { expect { default }.to raise_error(Datadog::Tracing::Transport::HTTP::Builder::UnknownApiError) }
         end
       end
 
@@ -156,7 +156,7 @@ RSpec.describe Datadog::Transport::HTTP do
     context 'when given a block' do
       it do
         expect { |b| described_class.default(&b) }.to yield_with_args(
-          kind_of(Datadog::Transport::HTTP::Builder)
+          kind_of(Datadog::Tracing::Transport::HTTP::Builder)
         )
       end
     end
@@ -205,7 +205,7 @@ RSpec.describe Datadog::Transport::HTTP do
 
     before do
       stub_const(
-        'Datadog::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
+        'Datadog::Tracing::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
         instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, hostname: 'example-hostname')
       )
     end
@@ -228,7 +228,7 @@ RSpec.describe Datadog::Transport::HTTP do
 
     before do
       stub_const(
-        'Datadog::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
+        'Datadog::Tracing::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
         instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, port: 12345)
       )
     end

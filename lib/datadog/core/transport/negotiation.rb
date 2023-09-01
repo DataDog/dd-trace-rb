@@ -27,7 +27,7 @@ module Datadog
     module Transport
       module Negotiation
         # Negotiation request
-        class Request < Datadog::Transport::Request
+        class Request < Datadog::Tracing::Transport::Request
         end
 
         # Negotiation response

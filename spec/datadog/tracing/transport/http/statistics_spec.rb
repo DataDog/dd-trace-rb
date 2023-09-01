@@ -2,18 +2,18 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/http/statistics'
 
-RSpec.describe Datadog::Transport::HTTP::Statistics do
+RSpec.describe Datadog::Tracing::Transport::HTTP::Statistics do
   context 'when implemented by a class' do
     subject(:object) { stats_class.new }
 
     let(:stats_class) do
-      stub_const('TestObject', Class.new { include Datadog::Transport::HTTP::Statistics })
+      stub_const('TestObject', Class.new { include Datadog::Tracing::Transport::HTTP::Statistics })
     end
 
     describe '#metrics_for_response' do
       subject(:metrics_for_response) { object.metrics_for_response(response) }
 
-      let(:response) { instance_double(Datadog::Transport::HTTP::Response, code: status_code) }
+      let(:response) { instance_double(Datadog::Tracing::Transport::HTTP::Response, code: status_code) }
       let(:status_code) { double('status code') }
 
       context 'when the response' do

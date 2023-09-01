@@ -9,7 +9,7 @@ require 'datadog/tracing/transport/http/adapters/unix_socket'
 RSpec.describe 'Adapters::UnixSocket integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  subject(:adapter) { Datadog::Transport::HTTP::Adapters::UnixSocket.new(**options) }
+  subject(:adapter) { Datadog::Tracing::Transport::HTTP::Adapters::UnixSocket.new(**options) }
 
   let(:uds_path) { '/tmp/ddtrace_unix_test.sock' }
   let(:options) { { uds_path: uds_path, timeout: timeout } }
@@ -79,7 +79,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
     include_context 'Unix socket server'
 
     let(:client) do
-      Datadog::Transport::HTTP.default do |t|
+      Datadog::Tracing::Transport::HTTP.default do |t|
         t.adapter adapter
       end
     end

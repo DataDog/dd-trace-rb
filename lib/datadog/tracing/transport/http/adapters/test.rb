@@ -1,81 +1,83 @@
 require_relative '../../response'
 
 module Datadog
-  module Transport
-    module HTTP
-      module Adapters
-        # Adapter for testing
-        class Test
-          attr_reader \
-            :buffer,
-            :status
-
-          # @param buffer [Array] an optional array that will capture all spans sent to this adapter, defaults to +nil+
-          # @deprecated Positional parameters are deprecated. Use named parameters instead.
-          def initialize(buffer = nil, **options)
-            @buffer = buffer || options[:buffer]
-            @mutex = Mutex.new
-            @status = 200
-          end
-
-          def call(env)
-            add_request(env)
-            Response.new(status)
-          end
-
-          def buffer?
-            !@buffer.nil?
-          end
-
-          def add_request(env)
-            @mutex.synchronize { buffer << env } if buffer?
-          end
-
-          def set_status!(status)
-            @status = status
-          end
-
-          def url; end
-
-          # Response for test adapter
-          class Response
-            include Datadog::Transport::Response
-
+  module Tracing
+    module Transport
+      module HTTP
+        module Adapters
+          # Adapter for testing
+          class Test
             attr_reader \
-              :body,
-              :code
+              :buffer,
+              :status
 
-            def initialize(code, body = nil)
-              @code = code
-              @body = body
+            # @param buffer [Array] an optional array that will capture all spans sent to this adapter, defaults to +nil+
+            # @deprecated Positional parameters are deprecated. Use named parameters instead.
+            def initialize(buffer = nil, **options)
+              @buffer = buffer || options[:buffer]
+              @mutex = Mutex.new
+              @status = 200
             end
 
-            def payload
-              @body
+            def call(env)
+              add_request(env)
+              Response.new(status)
             end
 
-            def ok?
-              code.between?(200, 299)
+            def buffer?
+              !@buffer.nil?
             end
 
-            def unsupported?
-              code == 415
+            def add_request(env)
+              @mutex.synchronize { buffer << env } if buffer?
             end
 
-            def not_found?
-              code == 404
+            def set_status!(status)
+              @status = status
             end
 
-            def client_error?
-              code.between?(400, 499)
-            end
+            def url; end
 
-            def server_error?
-              code.between?(500, 599)
-            end
+            # Response for test adapter
+            class Response
+              include Datadog::Tracing::Transport::Response
 
-            def inspect
-              "#{super}, code:#{code}"
+              attr_reader \
+                :body,
+                :code
+
+              def initialize(code, body = nil)
+                @code = code
+                @body = body
+              end
+
+              def payload
+                @body
+              end
+
+              def ok?
+                code.between?(200, 299)
+              end
+
+              def unsupported?
+                code == 415
+              end
+
+              def not_found?
+                code == 404
+              end
+
+              def client_error?
+                code.between?(400, 499)
+              end
+
+              def server_error?
+                code.between?(500, 599)
+              end
+
+              def inspect
+                "#{super}, code:#{code}"
+              end
             end
           end
         end

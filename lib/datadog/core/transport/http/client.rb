@@ -33,11 +33,11 @@ module Datadog
 
             Datadog.logger.debug(message)
 
-            Datadog::Transport::InternalErrorResponse.new(e)
+            Datadog::Tracing::Transport::InternalErrorResponse.new(e)
           end
 
           def build_env(request)
-            Datadog::Transport::HTTP::Env.new(request)
+            Datadog::Tracing::Transport::HTTP::Env.new(request)
           end
         end
       end

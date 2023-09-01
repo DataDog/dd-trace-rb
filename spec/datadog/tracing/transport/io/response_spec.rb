@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/io/response'
 
-RSpec.describe Datadog::Transport::IO::Response do
+RSpec.describe Datadog::Tracing::Transport::IO::Response do
   context 'when implemented by a class' do
     subject(:response) { described_class.new(result) }
 

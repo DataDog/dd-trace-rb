@@ -10,7 +10,7 @@ require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/utils'
 require 'datadog/tracing/transport/trace_formatter'
 
-RSpec.describe Datadog::Transport::TraceFormatter do
+RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
   subject(:trace_formatter) { described_class.new(trace) }
   let(:trace_options) { { id: trace_id } }
   let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }

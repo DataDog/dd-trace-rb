@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'datadog/core/encoding'
 require 'datadog/tracing/transport/io/traces'
 
-RSpec.describe Datadog::Transport::IO::Traces::Response do
+RSpec.describe Datadog::Tracing::Transport::IO::Traces::Response do
   context 'when implemented by a class' do
     subject(:response) { described_class.new(result, trace_count) }
 
@@ -30,7 +30,7 @@ RSpec.describe Datadog::Transport::IO::Traces::Response do
   end
 end
 
-RSpec.describe Datadog::Transport::IO::Client do
+RSpec.describe Datadog::Tracing::Transport::IO::Client do
   subject(:client) { described_class.new(out, encoder) }
 
   let(:out) { instance_double(IO) }
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Transport::IO::Client do
       let(:result) { double('IO result') }
 
       before do
-        expect_any_instance_of(Datadog::Transport::IO::Traces::Parcel).to receive(:encode_with)
+        expect_any_instance_of(Datadog::Tracing::Transport::IO::Traces::Parcel).to receive(:encode_with)
           .with(encoder)
           .and_return(encoded_traces)
 
@@ -54,11 +54,11 @@ RSpec.describe Datadog::Transport::IO::Client do
           .and_return(result)
 
         expect(client).to receive(:update_stats_from_response!)
-          .with(kind_of(Datadog::Transport::IO::Traces::Response))
+          .with(kind_of(Datadog::Tracing::Transport::IO::Traces::Response))
       end
 
       it do
-        is_expected.to all(be_a(Datadog::Transport::IO::Traces::Response))
+        is_expected.to all(be_a(Datadog::Tracing::Transport::IO::Traces::Response))
         expect(send_traces.first.result).to eq(result)
       end
     end
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Transport::IO::Client do
       let(:target) { double('target') }
 
       before do
-        expect_any_instance_of(Datadog::Transport::IO::Traces::Parcel).to receive(:encode_traces)
+        expect_any_instance_of(Datadog::Tracing::Transport::IO::Traces::Parcel).to receive(:encode_traces)
           .with(encoder, traces)
           .and_return(encoded_traces)
 
@@ -81,24 +81,24 @@ RSpec.describe Datadog::Transport::IO::Client do
           .and_return(result)
 
         expect(client).to receive(:update_stats_from_response!)
-          .with(kind_of(Datadog::Transport::IO::Traces::Response))
+          .with(kind_of(Datadog::Tracing::Transport::IO::Traces::Response))
       end
 
       it do
-        is_expected.to all(be_a(Datadog::Transport::IO::Traces::Response))
+        is_expected.to all(be_a(Datadog::Tracing::Transport::IO::Traces::Response))
         expect(send_traces.first.result).to eq(result)
       end
     end
   end
 end
 
-RSpec.describe Datadog::Transport::IO::Traces::Encoder do
+RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
   describe '#encode_data' do
     def compare_arrays(left = [], right = [])
       left.zip(right).each { |tuple| yield(*tuple) }
     end
 
-    let(:trace_encoder) { Class.new { include Datadog::Transport::IO::Traces::Encoder }.new }
+    let(:trace_encoder) { Class.new { include Datadog::Tracing::Transport::IO::Traces::Encoder }.new }
     let(:encoder) { Datadog::Core::Encoding::JSONEncoder }
 
     describe '.encode_traces' do

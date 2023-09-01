@@ -2,14 +2,14 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/io/client'
 
-RSpec.describe Datadog::Transport::IO::Client do
+RSpec.describe Datadog::Tracing::Transport::IO::Client do
   subject(:client) { described_class.new(out, encoder) }
 
   let(:out) { instance_double(IO) }
   let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
 
   describe '#initialize' do
-    it { is_expected.to be_a_kind_of Datadog::Transport::Statistics }
+    it { is_expected.to be_a_kind_of Datadog::Tracing::Transport::Statistics }
 
     it 'has the correct default properties' do
       is_expected.to have_attributes(
@@ -23,8 +23,8 @@ RSpec.describe Datadog::Transport::IO::Client do
     context 'given a request' do
       subject(:send_request) { client.send_request(request) }
 
-      let(:request) { instance_double(Datadog::Transport::Request, parcel: parcel) }
-      let(:parcel) { instance_double(Datadog::Transport::IO::Traces::Parcel, data: data) }
+      let(:request) { instance_double(Datadog::Tracing::Transport::Request, parcel: parcel) }
+      let(:parcel) { instance_double(Datadog::Tracing::Transport::IO::Traces::Parcel, data: data) }
       let(:data) { 'Hello, world!' }
       let(:encoded_data) { double('encoded data') }
       let(:result) { double('IO result') }
@@ -39,13 +39,13 @@ RSpec.describe Datadog::Transport::IO::Client do
           .and_return(result)
 
         expect(client).to receive(:update_stats_from_response!)
-          .with(kind_of(Datadog::Transport::IO::Response))
+          .with(kind_of(Datadog::Tracing::Transport::IO::Response))
 
         send_request
       end
 
       it do
-        is_expected.to be_a_kind_of(Datadog::Transport::IO::Response)
+        is_expected.to be_a_kind_of(Datadog::Tracing::Transport::IO::Response)
         expect(send_request.result).to eq(result)
       end
     end
@@ -59,8 +59,8 @@ RSpec.describe Datadog::Transport::IO::Client do
         end
       end
 
-      let(:request) { instance_double(Datadog::Transport::Request) }
-      let(:response) { instance_double(Datadog::Transport::IO::Response) }
+      let(:request) { instance_double(Datadog::Tracing::Transport::Request) }
+      let(:response) { instance_double(Datadog::Tracing::Transport::IO::Response) }
 
       before do
         expect(client).to receive(:update_stats_from_response!)
@@ -78,8 +78,8 @@ RSpec.describe Datadog::Transport::IO::Client do
   describe '#encode_data' do
     subject(:encode_data) { client.encode_data(encoder, request) }
 
-    let(:request) { instance_double(Datadog::Transport::Request, parcel: parcel) }
-    let(:parcel) { instance_double(Datadog::Transport::Parcel) }
+    let(:request) { instance_double(Datadog::Tracing::Transport::Request, parcel: parcel) }
+    let(:parcel) { instance_double(Datadog::Tracing::Transport::Parcel) }
     let(:data) { double('data') }
 
     before do
@@ -111,13 +111,13 @@ RSpec.describe Datadog::Transport::IO::Client do
   describe '#build_response' do
     subject(:build_response) { client.build_response(request, data, result) }
 
-    let(:request) { instance_double(Datadog::Transport::Request) }
+    let(:request) { instance_double(Datadog::Tracing::Transport::Request) }
     let(:data) { double('data') }
     let(:result) { double('result') }
-    let(:response) { instance_double(Datadog::Transport::IO::Response) }
+    let(:response) { instance_double(Datadog::Tracing::Transport::IO::Response) }
 
     before do
-      expect(Datadog::Transport::IO::Response)
+      expect(Datadog::Tracing::Transport::IO::Response)
         .to receive(:new)
         .with(result)
         .and_return(response)

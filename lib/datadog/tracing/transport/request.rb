@@ -1,14 +1,16 @@
 # frozen_string_literal: true
 
 module Datadog
-  module Transport
-    # Defines request for transport operations
-    class Request
-      attr_reader \
-        :parcel
+  module Tracing
+    module Transport
+      # Defines request for transport operations
+      class Request
+        attr_reader \
+          :parcel
 
-      def initialize(parcel = nil)
-        @parcel = parcel
+        def initialize(parcel = nil)
+          @parcel = parcel
+        end
       end
     end
   end

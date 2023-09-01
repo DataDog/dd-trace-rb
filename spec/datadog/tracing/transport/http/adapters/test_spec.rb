@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/http/adapters/test'
 
-RSpec.describe Datadog::Transport::HTTP::Adapters::Test do
+RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::Test do
   subject(:adapter) { described_class.new(buffer) }
 
   let(:buffer) { nil }
@@ -33,7 +33,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test do
   describe '#call' do
     subject(:call) { adapter.call(env) }
 
-    let(:env) { instance_double(Datadog::Transport::HTTP::Env) }
+    let(:env) { instance_double(Datadog::Tracing::Transport::HTTP::Env) }
 
     it 'returns a response with correct attributes' do
       is_expected.to be_a_kind_of(described_class::Response)
@@ -85,7 +85,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test do
   describe '#add_request' do
     subject(:call) { adapter.add_request(env) }
 
-    let(:env) { instance_double(Datadog::Transport::HTTP::Env) }
+    let(:env) { instance_double(Datadog::Tracing::Transport::HTTP::Env) }
 
     context 'when buffer' do
       context 'is not active' do
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Test do
   end
 end
 
-RSpec.describe Datadog::Transport::HTTP::Adapters::Test::Response do
+RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::Test::Response do
   subject(:response) { described_class.new(code, body) }
 
   let(:code) { double('code') }

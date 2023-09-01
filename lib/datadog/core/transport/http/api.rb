@@ -37,7 +37,7 @@ module Datadog
           module_function
 
           def defaults
-            Datadog::Transport::HTTP::API::Map[
+            Datadog::Tracing::Transport::HTTP::API::Map[
               ROOT => Spec.new do |s|
                 s.info = Negotiation::API::Endpoint.new(
                   '/info',

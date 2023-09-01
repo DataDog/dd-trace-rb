@@ -2,10 +2,10 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/http/api/instance'
 
-RSpec.describe Datadog::Transport::HTTP::API::Instance do
+RSpec.describe Datadog::Tracing::Transport::HTTP::API::Instance do
   subject(:instance) { described_class.new(spec, adapter, options) }
 
-  let(:spec) { double(Datadog::Transport::HTTP::API::Spec, encoder: encoder) }
+  let(:spec) { double(Datadog::Tracing::Transport::HTTP::API::Spec, encoder: encoder) }
   let(:encoder) { double }
   let(:adapter) { spy('adapter') }
   let(:options) { {} }
@@ -28,7 +28,7 @@ RSpec.describe Datadog::Transport::HTTP::API::Instance do
   end
 
   describe '#call' do
-    let(:env) { instance_double(Datadog::Transport::HTTP::Env, headers: env_headers) }
+    let(:env) { instance_double(Datadog::Tracing::Transport::HTTP::Env, headers: env_headers) }
     let(:env_headers) { {} }
 
     before { instance.call(env) }

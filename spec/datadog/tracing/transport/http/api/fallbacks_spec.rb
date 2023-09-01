@@ -2,11 +2,11 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/http/api/fallbacks'
 
-RSpec.describe Datadog::Transport::HTTP::API::Fallbacks do
+RSpec.describe Datadog::Tracing::Transport::HTTP::API::Fallbacks do
   context 'when implemented' do
     subject(:test_object) { test_class.new }
 
-    let(:test_class) { Class.new { include Datadog::Transport::HTTP::API::Fallbacks } }
+    let(:test_class) { Class.new { include Datadog::Tracing::Transport::HTTP::API::Fallbacks } }
 
     describe '#fallbacks' do
       subject(:fallbacks) { test_object.fallbacks }

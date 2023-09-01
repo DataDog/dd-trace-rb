@@ -2,12 +2,12 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/parcel'
 
-RSpec.describe Datadog::Transport::Parcel do
+RSpec.describe Datadog::Tracing::Transport::Parcel do
   context 'when implemented by a class' do
     subject(:parcel) { parcel_class.new(data) }
 
     let(:parcel_class) do
-      stub_const('TestParcel', Class.new { include Datadog::Transport::Parcel })
+      stub_const('TestParcel', Class.new { include Datadog::Tracing::Transport::Parcel })
     end
     let(:data) { double('data') }
 

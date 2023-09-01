@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/http/builder'
 
-RSpec.describe Datadog::Transport::HTTP::Builder do
+RSpec.describe Datadog::Tracing::Transport::HTTP::Builder do
   subject(:builder) { described_class.new }
 
   describe '#initialize' do
@@ -116,7 +116,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
     subject(:api) { builder.api(key, spec, options) }
 
     let(:key) { :v2 }
-    let(:spec) { instance_double(Datadog::Transport::HTTP::API::Spec) }
+    let(:spec) { instance_double(Datadog::Tracing::Transport::HTTP::API::Spec) }
     let(:options) { {} }
 
     context 'when no APIs have been configured' do
@@ -127,7 +127,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
     end
 
     context 'when an API has already been configured' do
-      before { builder.api(:v1, instance_double(Datadog::Transport::HTTP::API::Spec)) }
+      before { builder.api(:v1, instance_double(Datadog::Tracing::Transport::HTTP::API::Spec)) }
 
       it 'adds the API but does not set it as the default' do
         expect { api }.to_not(change { builder.default_api })
@@ -177,10 +177,10 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
     let(:key) { double('API key') }
 
-    before { builder.api :original, instance_double(Datadog::Transport::HTTP::API::Spec), default: true }
+    before { builder.api :original, instance_double(Datadog::Tracing::Transport::HTTP::API::Spec), default: true }
 
     context 'which matches an already defined API' do
-      before { builder.api key, instance_double(Datadog::Transport::HTTP::API::Spec) }
+      before { builder.api key, instance_double(Datadog::Tracing::Transport::HTTP::API::Spec) }
 
       it { expect { default_api }.to change { builder.default_api }.from(:original).to(key) }
     end
@@ -207,7 +207,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
       before { builder.api(key, spec, options) }
 
       let(:key) { :v2 }
-      let(:spec) { instance_double(Datadog::Transport::HTTP::API::Spec) }
+      let(:spec) { instance_double(Datadog::Tracing::Transport::HTTP::API::Spec) }
       let(:options) { {} }
 
       context 'but no adapter is defined anywhere' do
@@ -256,7 +256,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
         let(:options) { { fallback: fallback_key } }
         let(:fallback_key) { :v1 }
-        let(:fallback_spec) { instance_double(Datadog::Transport::HTTP::API::Spec) }
+        let(:fallback_spec) { instance_double(Datadog::Tracing::Transport::HTTP::API::Spec) }
 
         before { builder.api(fallback_key, fallback_spec) }
 
@@ -309,7 +309,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
     end
 
     context 'when APIs and an adapter are defined' do
-      let(:spec) { instance_double(Datadog::Transport::HTTP::API::Spec) }
+      let(:spec) { instance_double(Datadog::Tracing::Transport::HTTP::API::Spec) }
 
       before do
         builder.adapter(double('adapter'))
@@ -317,9 +317,9 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
       end
 
       it 'returns an HTTP::Transport' do
-        expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
+        expect(transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
         expect(transport.current_api.spec).to eq(spec)
-        expect(transport.apis).to include(v2: kind_of(Datadog::Transport::HTTP::API::Instance))
+        expect(transport.apis).to include(v2: kind_of(Datadog::Tracing::Transport::HTTP::API::Instance))
       end
     end
   end
@@ -327,6 +327,6 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
   describe '#api_instance_class' do
     subject(:api_instance_class) { builder.api_instance_class }
 
-    it { is_expected.to be(Datadog::Transport::HTTP::API::Instance) }
+    it { is_expected.to be(Datadog::Tracing::Transport::HTTP::API::Instance) }
   end
 end

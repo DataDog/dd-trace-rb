@@ -2,49 +2,51 @@ require_relative 'statistics'
 require_relative 'env'
 
 module Datadog
-  module Transport
-    module HTTP
-      # Routes, encodes, and sends tracer data to the trace agent via HTTP.
-      class Client
-        include Transport::HTTP::Statistics
+  module Tracing
+    module Transport
+      module HTTP
+        # Routes, encodes, and sends tracer data to the trace agent via HTTP.
+        class Client
+          include Datadog::Tracing::Transport::HTTP::Statistics
 
-        attr_reader :api
+          attr_reader :api
 
-        def initialize(api)
-          @api = api
-        end
-
-        def send_request(request, &block)
-          # Build request into env
-          env = build_env(request)
-
-          # Get responses from API
-          response = yield(api, env)
-
-          # Update statistics
-          update_stats_from_response!(response)
-
-          response
-        rescue StandardError => e
-          message =
-            "Internal error during #{self.class.name} request. Cause: #{e.class.name} #{e.message} " \
-            "Location: #{Array(e.backtrace).first}"
-
-          # Log error
-          if stats.consecutive_errors > 0
-            Datadog.logger.debug(message)
-          else
-            Datadog.logger.error(message)
+          def initialize(api)
+            @api = api
           end
 
-          # Update statistics
-          update_stats_from_exception!(e)
+          def send_request(request, &block)
+            # Build request into env
+            env = build_env(request)
 
-          InternalErrorResponse.new(e)
-        end
+            # Get responses from API
+            response = yield(api, env)
 
-        def build_env(request)
-          Env.new(request)
+            # Update statistics
+            update_stats_from_response!(response)
+
+            response
+          rescue StandardError => e
+            message =
+              "Internal error during #{self.class.name} request. Cause: #{e.class.name} #{e.message} " \
+                "Location: #{Array(e.backtrace).first}"
+
+            # Log error
+            if stats.consecutive_errors > 0
+              Datadog.logger.debug(message)
+            else
+              Datadog.logger.error(message)
+            end
+
+            # Update statistics
+            update_stats_from_exception!(e)
+
+            InternalErrorResponse.new(e)
+          end
+
+          def build_env(request)
+            Env.new(request)
+          end
         end
       end
     end

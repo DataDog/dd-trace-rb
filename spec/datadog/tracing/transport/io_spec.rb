@@ -2,16 +2,16 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/io'
 
-RSpec.describe Datadog::Transport::IO do
+RSpec.describe Datadog::Tracing::Transport::IO do
   describe '.new' do
     subject(:new_io) { described_class.new(out, encoder) }
 
     let(:out) { instance_double(IO) }
     let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
-    let(:client) { instance_double(Datadog::Transport::IO::Client) }
+    let(:client) { instance_double(Datadog::Tracing::Transport::IO::Client) }
 
     before do
-      expect(Datadog::Transport::IO::Client).to receive(:new)
+      expect(Datadog::Tracing::Transport::IO::Client).to receive(:new)
         .with(out, encoder)
         .and_return(client)
     end
@@ -20,13 +20,13 @@ RSpec.describe Datadog::Transport::IO do
   end
 
   describe '.default' do
-    let(:client) { instance_double(Datadog::Transport::IO::Client) }
+    let(:client) { instance_double(Datadog::Tracing::Transport::IO::Client) }
 
     context 'given no options' do
       subject(:default) { described_class.default }
 
       before do
-        expect(Datadog::Transport::IO::Client).to receive(:new)
+        expect(Datadog::Tracing::Transport::IO::Client).to receive(:new)
           .with($stdout, Datadog::Core::Encoding::JSONEncoder)
           .and_return(client)
       end
@@ -42,7 +42,7 @@ RSpec.describe Datadog::Transport::IO do
       let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
 
       before do
-        expect(Datadog::Transport::IO::Client).to receive(:new)
+        expect(Datadog::Tracing::Transport::IO::Client).to receive(:new)
           .with(out, encoder)
           .and_return(client)
       end

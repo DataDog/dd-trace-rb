@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'datadog/tracing/transport/http/env'
 require 'datadog/tracing/transport/http/api/endpoint'
 
-RSpec.describe Datadog::Transport::HTTP::API::Endpoint do
+RSpec.describe Datadog::Tracing::Transport::HTTP::API::Endpoint do
   subject(:endpoint) { described_class.new(verb, path) }
 
   let(:verb) { double('verb') }
@@ -19,7 +19,7 @@ RSpec.describe Datadog::Transport::HTTP::API::Endpoint do
   end
 
   describe '#call' do
-    let(:env) { instance_double(Datadog::Transport::HTTP::Env) }
+    let(:env) { instance_double(Datadog::Tracing::Transport::HTTP::Env) }
 
     before do
       expect(env).to receive(:verb=).with(verb)

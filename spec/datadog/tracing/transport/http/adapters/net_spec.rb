@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/http/adapters/net'
 
-RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
+RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::Net do
   subject(:adapter) { described_class.new(hostname, port, **options) }
 
   let(:hostname) { double('hostname') }
@@ -33,7 +33,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
   shared_context 'HTTP Env' do
     let(:env) do
       instance_double(
-        Datadog::Transport::HTTP::Env,
+        Datadog::Tracing::Transport::HTTP::Env,
         path: path,
         body: body,
         headers: headers,
@@ -55,7 +55,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
         is_expected.to have_attributes(
           hostname: hostname,
           port: port,
-          timeout: Datadog::Transport::HTTP::Adapters::Net::DEFAULT_TIMEOUT,
+          timeout: Datadog::Tracing::Transport::HTTP::Adapters::Net::DEFAULT_TIMEOUT,
           ssl: false
         )
       end
@@ -229,7 +229,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
   end
 end
 
-RSpec.describe Datadog::Transport::HTTP::Adapters::Net::Response do
+RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::Net::Response do
   subject(:response) { described_class.new(http_response) }
 
   let(:http_response) { instance_double(::Net::HTTPResponse) }

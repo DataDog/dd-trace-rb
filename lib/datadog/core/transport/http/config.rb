@@ -33,7 +33,7 @@ module Datadog
         module Config
           # Response from HTTP transport for remote configuration
           class Response
-            include Datadog::Transport::HTTP::Response
+            include Datadog::Tracing::Transport::HTTP::Response
             include Core::Transport::Config::Response
 
             def initialize(http_response, options = {}) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
@@ -241,7 +241,7 @@ module Datadog
             end
 
             # Endpoint for remote configuration
-            class Endpoint < Datadog::Transport::HTTP::API::Endpoint
+            class Endpoint < Datadog::Tracing::Transport::HTTP::API::Endpoint
               HEADER_CONTENT_TYPE = 'Content-Type'
 
               attr_reader :encoder

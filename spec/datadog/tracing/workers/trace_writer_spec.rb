@@ -17,7 +17,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
   let(:options) { {} }
 
   describe '#initialize' do
-    let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+    let(:transport) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
 
     context 'given :transport' do
       let(:options) { { transport: transport } }
@@ -31,7 +31,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
       let(:transport_options) { { example_transport_option: true } }
 
       before do
-        expect(Datadog::Transport::HTTP).to receive(:default)
+        expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
           .with(transport_options)
           .and_return(transport)
       end
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
       let(:agent_settings) { double('AgentSettings') }
 
       it 'configures a transport with the agent_settings' do
-        expect(Datadog::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings).and_return(transport)
+        expect(Datadog::Tracing::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings).and_return(transport)
 
         expect(writer.transport).to be transport
       end
@@ -55,7 +55,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
         let(:transport_options) { { example_transport_option: true } }
 
         before do
-          expect(Datadog::Transport::HTTP).to receive(:default)
+          expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
             .with(agent_settings: agent_settings, example_transport_option: true)
             .and_return(transport)
         end
@@ -69,7 +69,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     subject(:write) { writer.write(trace) }
 
     let(:trace) { double('trace') }
-    let(:response) { instance_double(Datadog::Transport::Response) }
+    let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
 
     before do
       expect(writer).to receive(:write_traces)
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     subject(:perform) { writer.perform(traces) }
 
     let(:traces) { double('traces') }
-    let(:response) { instance_double(Datadog::Transport::Response) }
+    let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
 
     before do
       expect(writer).to receive(:write_traces)
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 
     let(:traces) { double('traces') }
     let(:processed_traces) { double('processed traces') }
-    let(:response) { instance_double(Datadog::Transport::Response) }
+    let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
 
     before do
       expect(writer).to receive(:process_traces)
@@ -134,7 +134,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     subject(:flush_traces) { writer.flush_traces(traces) }
 
     let(:traces) { double('traces') }
-    let(:response) { instance_double(Datadog::Transport::Response) }
+    let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
 
     before do
       expect(writer.transport).to receive(:send_traces)
@@ -541,7 +541,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
 
   describe 'integration tests' do
     let(:options) { { transport: transport, fork_policy: fork_policy } }
-    let(:transport) { Datadog::Transport::HTTP.default { |t| t.adapter :test, output } }
+    let(:transport) { Datadog::Tracing::Transport::HTTP.default { |t| t.adapter :test, output } }
     let(:output) { [] }
 
     describe 'forking' do
@@ -568,7 +568,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
 
             expect_in_fork do
               traces.each do |trace|
-                expect(writer.write(trace)).to all(be_a(Datadog::Transport::HTTP::Response))
+                expect(writer.write(trace)).to all(be_a(Datadog::Tracing::Transport::HTTP::Response))
               end
 
               expect(writer).to have_received(:after_fork).once

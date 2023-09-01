@@ -2,13 +2,13 @@ require 'spec_helper'
 
 require 'datadog/tracing/transport/traces'
 
-RSpec.describe Datadog::Transport::Traces::EncodedParcel do
+RSpec.describe Datadog::Tracing::Transport::Traces::EncodedParcel do
   subject(:parcel) { described_class.new(data, trace_count) }
 
   let(:data) { instance_double(Array) }
   let(:trace_count) { 123 }
 
-  it { is_expected.to be_a_kind_of(Datadog::Transport::Parcel) }
+  it { is_expected.to be_a_kind_of(Datadog::Tracing::Transport::Parcel) }
 
   describe '#initialize' do
     it { is_expected.to have_attributes(data: data) }
@@ -31,12 +31,12 @@ RSpec.describe Datadog::Transport::Traces::EncodedParcel do
   end
 end
 
-RSpec.describe Datadog::Transport::Traces::Request do
+RSpec.describe Datadog::Tracing::Transport::Traces::Request do
   subject(:request) { described_class.new(parcel) }
 
   let(:parcel) { double }
 
-  it { is_expected.to be_a_kind_of(Datadog::Transport::Request) }
+  it { is_expected.to be_a_kind_of(Datadog::Tracing::Transport::Request) }
 
   describe '#initialize' do
     it do
@@ -45,12 +45,12 @@ RSpec.describe Datadog::Transport::Traces::Request do
   end
 end
 
-RSpec.describe Datadog::Transport::Traces::Response do
+RSpec.describe Datadog::Tracing::Transport::Traces::Response do
   context 'when implemented by a class' do
     subject(:response) { response_class.new }
 
     let(:response_class) do
-      stub_const('TestResponse', Class.new { include Datadog::Transport::Traces::Response })
+      stub_const('TestResponse', Class.new { include Datadog::Tracing::Transport::Traces::Response })
     end
 
     describe '#service_rates' do
@@ -59,10 +59,10 @@ RSpec.describe Datadog::Transport::Traces::Response do
   end
 end
 
-RSpec.describe Datadog::Transport::Traces::Chunker do
+RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
   let(:chunker) { described_class.new(encoder, max_size: max_size) }
   let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
-  let(:trace_encoder) { Datadog::Transport::Traces::Encoder }
+  let(:trace_encoder) { Datadog::Tracing::Transport::Traces::Encoder }
   let(:max_size) { 10 }
 
   describe '#encode_in_chunks' do
@@ -124,20 +124,20 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
   end
 end
 
-RSpec.describe Datadog::Transport::Traces::Transport do
+RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
   subject(:transport) { described_class.new(apis, current_api_id) }
 
   shared_context 'APIs with fallbacks' do
     let(:current_api_id) { :v2 }
     let(:apis) do
-      Datadog::Transport::HTTP::API::Map[
+      Datadog::Tracing::Transport::HTTP::API::Map[
         v2: api_v2,
         v1: api_v1
       ].with_fallbacks(v2: :v1)
     end
 
-    let(:api_v1) { instance_double(Datadog::Transport::HTTP::API::Instance, 'v1', encoder: encoder_v1) }
-    let(:api_v2) { instance_double(Datadog::Transport::HTTP::API::Instance, 'v2', encoder: encoder_v2) }
+    let(:api_v1) { instance_double(Datadog::Tracing::Transport::HTTP::API::Instance, 'v1', encoder: encoder_v1) }
+    let(:api_v2) { instance_double(Datadog::Tracing::Transport::HTTP::API::Instance, 'v2', encoder: encoder_v2) }
     let(:encoder_v1) { instance_double(Datadog::Core::Encoding::Encoder, content_type: 'text/plain') }
     let(:encoder_v2) { instance_double(Datadog::Core::Encoding::Encoder, content_type: 'text/csv') }
   end
@@ -145,7 +145,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
   describe '#initialize' do
     include_context 'APIs with fallbacks'
 
-    it { expect(subject.stats).to be_a(Datadog::Transport::Statistics::Counts) }
+    it { expect(subject.stats).to be_a(Datadog::Tracing::Transport::Statistics::Counts) }
 
     it { is_expected.to have_attributes(apis: apis, current_api_id: current_api_id) }
   end
@@ -157,7 +157,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
     subject(:send_traces) { transport.send_traces(traces) }
 
     let(:traces) { [] }
-    let(:response) { Class.new { include Datadog::Transport::Response }.new }
+    let(:response) { Class.new { include Datadog::Tracing::Transport::Response }.new }
     let(:responses) { [response] }
 
     let(:encoded_traces) { double }
@@ -165,24 +165,24 @@ RSpec.describe Datadog::Transport::Traces::Transport do
     let(:chunks) { [[encoded_traces, trace_count]] }
     let(:lazy_chunks) { chunks.lazy }
 
-    let(:request) { instance_double(Datadog::Transport::Traces::Request) }
-    let(:client_v2) { instance_double(Datadog::Transport::HTTP::Client) }
-    let(:client_v1) { instance_double(Datadog::Transport::HTTP::Client) }
+    let(:request) { instance_double(Datadog::Tracing::Transport::Traces::Request) }
+    let(:client_v2) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
+    let(:client_v1) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
 
-    let(:chunker) { instance_double(Datadog::Transport::Traces::Chunker, max_size: 1) }
+    let(:chunker) { instance_double(Datadog::Tracing::Transport::Traces::Chunker, max_size: 1) }
 
     before do
-      allow(Datadog::Transport::Traces::Chunker).to receive(:new).with(encoder_v1).and_return(chunker)
-      allow(Datadog::Transport::Traces::Chunker).to receive(:new).with(encoder_v2).and_return(chunker)
+      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(encoder_v1).and_return(chunker)
+      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(encoder_v2).and_return(chunker)
 
       allow(chunker).to receive(:encode_in_chunks).and_return(lazy_chunks)
 
-      allow(Datadog::Transport::HTTP::Client).to receive(:new).with(api_v1).and_return(client_v1)
-      allow(Datadog::Transport::HTTP::Client).to receive(:new).with(api_v2).and_return(client_v2)
+      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v1).and_return(client_v1)
+      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v2).and_return(client_v2)
       allow(client_v1).to receive(:send_traces_payload).with(request).and_return(response)
       allow(client_v2).to receive(:send_traces_payload).with(request).and_return(response)
 
-      allow(Datadog::Transport::Traces::Request).to receive(:new).and_return(request)
+      allow(Datadog::Tracing::Transport::Traces::Request).to receive(:new).and_return(request)
     end
 
     context 'which returns an OK response' do
@@ -261,7 +261,7 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
     subject(:downgrade?) { transport.send(:downgrade?, response) }
 
-    let(:response) { instance_double(Datadog::Transport::Response) }
+    let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
 
     context 'when there is no fallback' do
       let(:current_api_id) { :v1 }

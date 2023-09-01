@@ -3,24 +3,26 @@
 require 'json'
 
 module Datadog
-  module Transport
-    module HTTP
-      module API
-        # Endpoint
-        class Endpoint
-          attr_reader \
-            :verb,
-            :path
+  module Tracing
+    module Transport
+      module HTTP
+        module API
+          # Endpoint
+          class Endpoint
+            attr_reader \
+              :verb,
+              :path
 
-          def initialize(verb, path)
-            @verb = verb
-            @path = path
-          end
+            def initialize(verb, path)
+              @verb = verb
+              @path = path
+            end
 
-          def call(env)
-            env.verb = verb
-            env.path = path
-            yield(env)
+            def call(env)
+              env.verb = verb
+              env.path = path
+              yield(env)
+            end
           end
         end
       end

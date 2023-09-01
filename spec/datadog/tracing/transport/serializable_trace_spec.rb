@@ -6,7 +6,7 @@ require 'datadog/tracing/span'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/transport/serializable_trace'
 
-RSpec.describe Datadog::Transport::SerializableTrace do
+RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
   subject(:serializable_trace) { described_class.new(trace) }
 
   let(:trace) { Datadog::Tracing::TraceSegment.new(spans) }

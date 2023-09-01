@@ -62,7 +62,7 @@ module Datadog
           agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
           **options
         )
-          new(Transport::Negotiation::Transport) do |transport|
+          new(Core::Transport::Negotiation::Transport) do |transport|
             transport.adapter(agent_settings)
             transport.headers(default_headers)
 
@@ -91,7 +91,7 @@ module Datadog
           agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
           **options
         )
-          new(Transport::Config::Transport) do |transport|
+          new(Core::Transport::Config::Transport) do |transport|
             transport.adapter(agent_settings)
             transport.headers default_headers
 
@@ -161,9 +161,9 @@ module Datadog
         end
 
         # Add adapters to registry
-        Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Net, Datadog::Transport::Ext::HTTP::ADAPTER)
-        Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Test, Datadog::Transport::Ext::Test::ADAPTER)
-        Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::UnixSocket, Datadog::Transport::Ext::UnixSocket::ADAPTER)
+        Builder::REGISTRY.set(Datadog::Tracing::Transport::HTTP::Adapters::Net, Datadog::Transport::Ext::HTTP::ADAPTER)
+        Builder::REGISTRY.set(Datadog::Tracing::Transport::HTTP::Adapters::Test, Datadog::Transport::Ext::Test::ADAPTER)
+        Builder::REGISTRY.set(Datadog::Tracing::Transport::HTTP::Adapters::UnixSocket, Datadog::Transport::Ext::UnixSocket::ADAPTER)
       end
     end
   end

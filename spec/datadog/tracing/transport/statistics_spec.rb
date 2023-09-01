@@ -3,22 +3,22 @@ require 'spec_helper'
 require 'ddtrace'
 require 'datadog/tracing/transport/statistics'
 
-RSpec.describe Datadog::Transport::Statistics do
+RSpec.describe Datadog::Tracing::Transport::Statistics do
   context 'when implemented by a class' do
     subject(:object) { stats_class.new }
 
     let(:stats_class) do
-      stub_const('TestObject', Class.new { include Datadog::Transport::Statistics })
+      stub_const('TestObject', Class.new { include Datadog::Tracing::Transport::Statistics })
     end
 
     describe '#initialize' do
-      it { is_expected.to have_attributes(stats: kind_of(Datadog::Transport::Statistics::Counts)) }
+      it { is_expected.to have_attributes(stats: kind_of(Datadog::Tracing::Transport::Statistics::Counts)) }
     end
 
     describe '#update_stats_from_response!' do
       subject(:update) { object.update_stats_from_response!(response) }
 
-      let(:response) { instance_double(Datadog::Transport::Response) }
+      let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
 
       before { allow(Datadog.health_metrics).to receive(:send_metrics) }
 
@@ -142,7 +142,7 @@ RSpec.describe Datadog::Transport::Statistics do
     describe '#metrics_for_response' do
       subject(:metrics_for_response) { object.metrics_for_response(response) }
 
-      let(:response) { instance_double(Datadog::Transport::Response) }
+      let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
 
       context 'when the response' do
         context 'is OK' do
@@ -272,7 +272,7 @@ RSpec.describe Datadog::Transport::Statistics do
   end
 end
 
-RSpec.describe Datadog::Transport::Statistics::Counts do
+RSpec.describe Datadog::Tracing::Transport::Statistics::Counts do
   subject(:counts) { described_class.new }
 
   describe '#initialize' do
