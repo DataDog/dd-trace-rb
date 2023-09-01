@@ -443,6 +443,21 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(allocation_sample.values).to include(:'alloc-samples' => 123)
         expect(allocation_sample.locations.first.lineno).to eq allocation_line
       end
+
+      context 'when sampling optimized Ruby strings' do
+        # Regression test: Some internal Ruby classes use a `rb_str_tmp_frozen_acquire` function which allocates a
+        # weird "intermediate" string object that has its class pointer set to 0.
+        #
+        # When such an object gets sampled, we need to take care not to try to resolve its class name.
+        #
+        # In practice, this test is actually validating behavior of the `ThreadContext` collector, but we can only
+        # really trigger this situation when using the allocation tracepoint, which lives in the `CpuAndWallTimeWorker`.
+        it 'does not crash' do
+          start
+
+          expect(Time.new.strftime(String.new('Potato'))).to_not be nil
+        end
+      end
     end
 
     context 'when allocation sampling is disabled' do

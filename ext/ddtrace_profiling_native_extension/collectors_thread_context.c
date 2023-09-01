@@ -206,6 +206,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector
 static VALUE thread_list(struct thread_context_collector_state *state);
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object);
 static VALUE _native_new_empty_thread(VALUE self);
+ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -1122,13 +1123,25 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
       type == RUBY_T_SYMBOL   ||
       type == RUBY_T_FIXNUM
     ) {
-      const char *name = rb_obj_classname(new_object);
-      size_t name_length = name != NULL ? strlen(name) : 0;
+      VALUE klass = rb_class_of(new_object);
 
-      if (name_length > 0) {
-        class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
+      // Ruby sometimes plays a bit fast and loose with some of its internal objects, e.g.
+      // `rb_str_tmp_frozen_acquire` allocates a string with no class (klass=0).
+      // Thus, we need to make sure there's actually a class before getting its name.
+
+      if (klass != 0) {
+        const char *name = rb_obj_classname(new_object);
+        size_t name_length = name != NULL ? strlen(name) : 0;
+
+        if (name_length > 0) {
+          class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
+        } else {
+          // @ivoanjo: I'm not sure this can ever happen, but just-in-case
+          class_name = ruby_value_type_to_class_name(type);
+        }
       } else {
-        class_name = DDOG_CHARSLICE_C("(Anonymous)");
+        // Fallback for objects with no class
+        class_name = ruby_value_type_to_class_name(type);
       }
     } else {
       class_name = ruby_vm_type; // For internal things and, we just use the VM type
@@ -1163,4 +1176,30 @@ static VALUE new_empty_thread_inner(DDTRACE_UNUSED void *arg) { return Qnil; }
 // (It creates an empty native thread, so we can test our native thread naming fallback)
 static VALUE _native_new_empty_thread(DDTRACE_UNUSED VALUE self) {
   return rb_thread_create(new_empty_thread_inner, NULL);
+}
+
+ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type) {
+  switch (type) {
+    case(RUBY_T_OBJECT  ): return DDOG_CHARSLICE_C("Object");
+    case(RUBY_T_CLASS   ): return DDOG_CHARSLICE_C("Class");
+    case(RUBY_T_MODULE  ): return DDOG_CHARSLICE_C("Module");
+    case(RUBY_T_FLOAT   ): return DDOG_CHARSLICE_C("Float");
+    case(RUBY_T_STRING  ): return DDOG_CHARSLICE_C("String");
+    case(RUBY_T_REGEXP  ): return DDOG_CHARSLICE_C("Regexp");
+    case(RUBY_T_ARRAY   ): return DDOG_CHARSLICE_C("Array");
+    case(RUBY_T_HASH    ): return DDOG_CHARSLICE_C("Hash");
+    case(RUBY_T_STRUCT  ): return DDOG_CHARSLICE_C("Struct");
+    case(RUBY_T_BIGNUM  ): return DDOG_CHARSLICE_C("Integer");
+    case(RUBY_T_FILE    ): return DDOG_CHARSLICE_C("File");
+    case(RUBY_T_DATA    ): return DDOG_CHARSLICE_C("(VM Internal, T_DATA)");
+    case(RUBY_T_MATCH   ): return DDOG_CHARSLICE_C("MatchData");
+    case(RUBY_T_COMPLEX ): return DDOG_CHARSLICE_C("Complex");
+    case(RUBY_T_RATIONAL): return DDOG_CHARSLICE_C("Rational");
+    case(RUBY_T_NIL     ): return DDOG_CHARSLICE_C("NilClass");
+    case(RUBY_T_TRUE    ): return DDOG_CHARSLICE_C("TrueClass");
+    case(RUBY_T_FALSE   ): return DDOG_CHARSLICE_C("FalseClass");
+    case(RUBY_T_SYMBOL  ): return DDOG_CHARSLICE_C("Symbol");
+    case(RUBY_T_FIXNUM  ): return DDOG_CHARSLICE_C("Integer");
+                  default: return DDOG_CHARSLICE_C("(VM Internal, Missing class)");
+  }
 }
