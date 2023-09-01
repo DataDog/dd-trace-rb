@@ -23,7 +23,7 @@ module Datadog
           #   2. Checking if `Net::HTTP` is referring to the original one
           #   => ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter::OriginalNetHTTP)
           def webmock_enabled?
-            defined?(::WebMock) &&
+            defined?(::WebMock::HttpLibAdapters::NetHttpAdapter) &&
               defined?(::Net::HTTP) &&
               ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter.instance_variable_get(:@webMockNetHTTP))
           end

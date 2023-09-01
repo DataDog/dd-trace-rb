@@ -133,9 +133,9 @@ RSpec.describe Datadog::Core::Environment::Execution do
   end
 
   describe '.webmock_enabled?' do
-    context 'when missing constant `WebMock`' do
+    context 'when missing constant `WebMock::HttpLibAdapters::NetHttpAdapter`' do
       it do
-        hide_const('::WebMock')
+        hide_const('::WebMock::HttpLibAdapters::NetHttpAdapter')
         expect(described_class).not_to be_webmock_enabled
       end
     end
@@ -147,7 +147,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
       end
     end
 
-    context 'when `WebMock` and `Net::HTTP` constants both exist' do
+    context 'when `WebMock::HttpLibAdapters::NetHttpAdapter` and `Net::HTTP` constants both exist' do
       before do
         WebMock.enable!
       end
