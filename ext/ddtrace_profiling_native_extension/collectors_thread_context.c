@@ -1143,9 +1143,10 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
         // Fallback for objects with no class
         class_name = ruby_value_type_to_class_name(type);
       }
+    } else if (type == RUBY_T_IMEMO) {
+      class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
     } else {
-      class_name = ruby_vm_type; // For internal things and, we just use the VM type
-                                 // TODO: Maybe prefix them with a nice note? E.g. (VM Internal, T_IMEMO)
+      class_name = ruby_vm_type; // For other weird internal things we just use the VM type
     }
   }
 
