@@ -72,11 +72,7 @@ $ bundle exec rake spec:main
 
 Integrations which interact with dependencies not listed in the `ddtrace` gemspec will need to load these dependencies to run their tests.
 
-To do so, load the dependencies using [Appraisal](https://github.com/thoughtbot/appraisal). You can see a list of available appraisals with `bundle exec appraisal list`, or examine the `Appraisals` file.
-
-Then to run tests, prefix the test commain with the appraisal.
-
-`bundle exec appraisal <appraisal_name> rake <test_comand>`
+`bundle exec rake 'test[<spec_name>]'`
 
 
 For example:
@@ -146,8 +142,8 @@ Depending on the situation, the thread in question might need to be forced to te
 **The APM Test Agent**
 
 The APM test agent emulates the APM endpoints of the Datadog Agent. The Test Agent container
-runs alongside the Ruby tracer locally and in CI, handles all traces during test runs and performs a number 
-of 'Trace Checks'. For more information on these checks, see: 
+runs alongside the Ruby tracer locally and in CI, handles all traces during test runs and performs a number
+of 'Trace Checks'. For more information on these checks, see:
 https://github.com/DataDog/dd-apm-test-agent#trace-invariant-checks
 
 The APM Test Agent also emits helpful logging, which can be viewed in local testing or in CircleCI as a job step for tracer and contrib
