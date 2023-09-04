@@ -53,7 +53,7 @@ All changes should be covered by a corresponding RSpec tests. Unit tests are pre
 
 All tests should run in CI. When adding new `spec.rb` files, you may need to add a test task to ensure your test file is run in CI.
 
- - Ensure that there is a corresponding Rake task defined in `Rakefile` under the the `spec` namespace, whose pattern matches your test file.
+ - Ensure that there is a corresponding Rake task defined in `Rakefile` under the `spec` namespace, whose pattern matches your test file.
  - Verify the Rake task is configured to run for the appropriate Ruby runtimes in the `ci` Rake task.
 
 ### Running tests
@@ -72,7 +72,7 @@ $ bundle exec rake spec:main
 
 Integrations which interact with dependencies not listed in the `ddtrace` gemspec will need to load these dependencies to run their tests.
 
-To get a list of the different specs we have run `bundle exec rake -T 'spec:'`
+To get a list of the spec tasks run `bundle exec rake -T 'spec:'`
 
 To run any of the specs above just run `bundle exec rake 'test[<spec_name>]'`. Ex: `bundle exec rake test'[spec:redis]'`
 
