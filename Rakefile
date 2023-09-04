@@ -268,8 +268,9 @@ TEST_METADATA = {
   }
 }.freeze
 
-task :test, [:rake_task] do |_, args|
+task :test, [:rake_task, :task_args] do |_, args|
   spec_task = args.rake_task
+  spec_arguments = args.task_args
   spec_metadata = TEST_METADATA[spec_task]
 
   next unless spec_metadata
@@ -295,6 +296,7 @@ task :test, [:rake_task] do |_, args|
               else
                 "bundle exec appraisal #{ruby_runtime}-#{appraisal_group} rake #{spec_task}"
               end
+    command = "#{command}'[#{spec_arguments}]'" if spec_arguments
 
     if total_executors && current_executor && total_executors > 1
       @execution_count ||= 0
