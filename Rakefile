@@ -156,11 +156,10 @@ task :test, [:rake_task, :task_args] do |_, args|
   current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
 
   spec_metadata.each do |appraisal_group, rubies|
-    next if RUBY_PLATFORM == 'java' && !rubies.include?('jruby')
-
     ruby_version = RUBY_VERSION[0..2]
 
     next unless rubies.include?("✅ #{ruby_version}")
+    next if RUBY_PLATFORM == 'java' && rubies.include?('❌ jruby')
 
     ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
                      "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
