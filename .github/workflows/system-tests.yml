@@ -172,6 +172,9 @@ jobs:
             scenario: APPSEC_AUTO_EVENTS_EXTENDED
           - library: ruby
             app: rack
+            scenario: APPSEC_RULES_MONITORING_WITH_ERRORS
+          - library: ruby
+            app: rack
             scenario: SAMPLING
           - library: ruby
             app: rack
