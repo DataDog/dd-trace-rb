@@ -31,6 +31,7 @@ module Datadog
           CAP_ASM_RESPONSE_BLOCKING,
           CAP_ASM_DD_RULES,
           CAP_ASM_CUSTOM_RULES,
+          CAP_ASM_CUSTOM_BLOCKING_RESPONSE,
         ].freeze
 
         ASM_PRODUCTS = [
@@ -63,6 +64,7 @@ module Datadog
             data = []
             overrides = []
             exclusions = []
+            actions = []
 
             repository.contents.each do |content|
               parsed_content = parse_content(content)
@@ -76,6 +78,7 @@ module Datadog
                 overrides << parsed_content['rules_override'] if parsed_content['rules_override']
                 exclusions << parsed_content['exclusions'] if parsed_content['exclusions']
                 custom_rules << parsed_content['custom_rules'] if parsed_content['custom_rules']
+                actions.concat(parsed_content['actions']) if parsed_content['actions']
               end
             end
 
@@ -95,7 +98,7 @@ module Datadog
               custom_rules: custom_rules,
             )
 
-            Datadog::AppSec.reconfigure(ruleset: ruleset)
+            Datadog::AppSec.reconfigure(ruleset: ruleset, actions: actions)
           end
 
           [receiver]
