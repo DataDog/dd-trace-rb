@@ -71,11 +71,10 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
       it 'yields result and no blocking action' do
         expect(operation).to receive(:subscribe).and_call_original
 
-        waf_result = double(:waf_result, status: :match, timeout: false, actions: [''])
+        waf_result = double(:waf_result, status: :match, timeout: false, actions: [])
         expect(processor_context).to receive(:run).and_return(waf_result)
-        described_class.subscribe(operation, processor_context) do |result, block|
+        described_class.subscribe(operation, processor_context) do |result|
           expect(result).to eq(waf_result)
-          expect(block).to eq(false)
         end
         result = described_class.publish(operation, response)
         expect(result).to be_nil
@@ -86,13 +85,11 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
 
         waf_result = double(:waf_result, status: :match, timeout: false, actions: ['block'])
         expect(processor_context).to receive(:run).and_return(waf_result)
-        described_class.subscribe(operation, processor_context) do |result, block|
+        described_class.subscribe(operation, processor_context) do |result|
           expect(result).to eq(waf_result)
-          expect(block).to eq(true)
         end
-        publish_result, publish_block = described_class.publish(operation, response)
-        expect(publish_result).to eq(waf_result)
-        expect(publish_block).to eq(true)
+        block = described_class.publish(operation, response)
+        expect(block).to eq(true)
       end
     end
 

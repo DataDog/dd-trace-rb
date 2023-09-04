@@ -38,11 +38,8 @@ module Datadog
               when :match
                 Datadog.logger.debug { "WAF: #{result.inspect}" }
 
-                block = result.actions.include?('block')
-
-                yield [result, block]
-
-                throw(:block, [result, true]) if block
+                yield result
+                throw(:block, true) unless result.actions.empty?
               when :ok
                 Datadog.logger.debug { "WAF OK: #{result.inspect}" }
               when :invalid_call
