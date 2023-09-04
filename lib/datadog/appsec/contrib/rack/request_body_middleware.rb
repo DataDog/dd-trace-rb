@@ -30,8 +30,9 @@ module Datadog
               @app.call(env)
             end
 
-            if request_response && request_response.any? { |action, _event| action == :block }
-              request_return = AppSec::Response.negotiate(env).to_rack
+            if request_response
+              blocked_event = request_response.find { |action, _event| action == :block }
+              request_return = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_rack if blocked_event
             end
 
             request_return
