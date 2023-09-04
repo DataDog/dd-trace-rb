@@ -651,7 +651,7 @@ task :test, [:rake_task] do |_, args|
 
     ruby_version = RUBY_VERSION[0..2]
 
-    next unless specs[:matrix].include?(ruby_version)
+    next unless specs[:matrix].include?("✅ #{ruby_version}")
 
     ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
                      "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
