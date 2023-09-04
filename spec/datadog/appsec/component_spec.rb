@@ -107,6 +107,8 @@ RSpec.describe Datadog::AppSec::Component do
       }
     end
 
+    let(:actions) { [] }
+
     context 'lock' do
       it 'makes sure to synchronize' do
         mutex = Mutex.new
@@ -114,7 +116,18 @@ RSpec.describe Datadog::AppSec::Component do
         component = described_class.new(processor: processor)
         component.instance_variable_set(:@mutex, mutex)
         expect(mutex).to receive(:synchronize)
-        component.reconfigure(ruleset: {})
+        component.reconfigure(ruleset: {}, actions: actions)
+      end
+    end
+
+    context 'actions' do
+      it 'merges the actions' do
+        processor = instance_double(Datadog::AppSec::Processor)
+        expect(processor).to receive(:finalize)
+        component = described_class.new(processor: processor)
+
+        expect(Datadog::AppSec::Processor::Actions).to receive(:merge).with(actions)
+        component.reconfigure(ruleset: ruleset, actions: actions)
       end
     end
 
@@ -126,7 +139,7 @@ RSpec.describe Datadog::AppSec::Component do
         old_processor = component.processor
 
         expect(old_processor).to receive(:finalize)
-        component.reconfigure(ruleset: ruleset)
+        component.reconfigure(ruleset: ruleset, actions: actions)
         new_processor = component.processor
         expect(new_processor).to_not eq(old_processor)
         new_processor.finalize
@@ -141,7 +154,7 @@ RSpec.describe Datadog::AppSec::Component do
         old_processor = component.processor
 
         expect(old_processor).to_not receive(:finalize)
-        component.reconfigure(ruleset: ruleset)
+        component.reconfigure(ruleset: ruleset, actions: actions)
         new_processor = component.processor
         expect(new_processor).to_not eq(old_processor)
         new_processor.finalize
@@ -158,7 +171,7 @@ RSpec.describe Datadog::AppSec::Component do
         ruleset = { 'invalid_one' => true }
 
         expect(old_processor).to_not receive(:finalize)
-        component.reconfigure(ruleset: ruleset)
+        component.reconfigure(ruleset: ruleset, actions: actions)
         expect(component.processor).to eq(old_processor)
       end
     end

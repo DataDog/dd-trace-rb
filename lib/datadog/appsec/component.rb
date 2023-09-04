@@ -3,6 +3,7 @@
 require_relative 'processor'
 require_relative 'processor/rule_merger'
 require_relative 'processor/rule_loader'
+require_relative 'processor/actions'
 
 module Datadog
   module AppSec
@@ -55,8 +56,10 @@ module Datadog
         @mutex = Mutex.new
       end
 
-      def reconfigure(ruleset:)
+      def reconfigure(ruleset:, actions:)
         @mutex.synchronize do
+          AppSec::Processor::Actions.merge(actions)
+
           new = Processor.new(ruleset: ruleset)
 
           if new && new.ready?
