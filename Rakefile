@@ -270,6 +270,7 @@ TEST_METADATA = {
 }.freeze
 # rubocop:enable Layout/HashAlignment
 
+desc 'Run test with its coresponding dependencies, example: `bundle exec rake test[spec:redis]`'
 task :test, [:rake_task, :task_args] do |_, args|
   spec_task = args.rake_task
   spec_arguments = args.task_args
