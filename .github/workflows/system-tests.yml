@@ -1,4 +1,4 @@
-name: System Tests
+name: "SystemTests"
 
 on:
   push:
