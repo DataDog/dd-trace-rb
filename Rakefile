@@ -271,6 +271,9 @@ TEST_METADATA = {
 # rubocop:enable Layout/HashAlignment
 
 namespace :test do
+  desc 'Run all tests'
+  task all: TEST_METADATA.map { |k, _| "test:#{k}" }
+
   ruby_version = RUBY_VERSION[0..2]
 
   ruby_runtime =
@@ -281,8 +284,6 @@ namespace :test do
     end
 
   TEST_METADATA.each do |spec_task, spec_metadata|
-    next unless spec_metadata.values.any? { |rubies| rubies.include?("✅ #{ruby_version}") }
-
     desc "Run #{spec_task} tests"
     task spec_task, [:task_args] do |_, args|
       spec_arguments = args.task_args
@@ -566,11 +567,7 @@ end
 
 # Jobs are parallelized if running in CI.
 desc 'CI task; it runs all tests for current version of Ruby'
-task :ci do
-  TEST_METADATA.each_key do |key|
-    Rake::Task["test:#{key}"].execute
-  end
-end
+task ci: 'test:all'
 
 namespace :coverage do
   # Generates one global report for all tracer tests
