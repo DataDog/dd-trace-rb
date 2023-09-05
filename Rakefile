@@ -322,6 +322,7 @@ namespace :spec do
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument]
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,auto_instrument,opentelemetry}/**/*_spec.rb,'\
@@ -340,16 +341,19 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:opentracer) do |t, args|
     t.pattern = 'spec/datadog/opentracer/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:opentelemetry) do |t, args|
     t.pattern = 'spec/datadog/opentelemetry/**/*_spec.rb,spec/datadog/opentelemetry_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*_spec.rb'
     t.exclude_pattern = 'spec/datadog/tracing/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,'\
@@ -357,11 +361,13 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsredis) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*redis*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsredis_activesupport) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*redis*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
@@ -370,26 +376,31 @@ namespace :spec do
     ENV['EXPECT_RAILS_ACTIVESUPPORT'] = 'true'
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsactivejob) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*active_job*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsdisableenv) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*disable_env*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsautoinstrument) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*auto_instrument*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:hanami) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:hanami_autoinstrument) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
@@ -397,6 +408,7 @@ namespace :spec do
     ENV['TEST_AUTO_INSTRUMENT'] = 'true'
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:autoinstrument) do |t, args|
     t.pattern = 'spec/ddtrace/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
@@ -410,11 +422,13 @@ namespace :spec do
   # rails_semantic_logger is the dog at the dog park that doesnt play nicely with other
   # logging gems, aka it tries to bite/monkeypatch them, so we have to put it in its own appraisal and rake task
   # in order to isolate its effects for rails logs auto injection
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railssemanticlogger) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*rails_semantic_logger*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:contrib) do |t, args|
     contrib_paths = [
       'analytics',
@@ -484,6 +498,7 @@ namespace :spec do
     :sucker_punch,
     :suite
   ].each do |contrib|
+    desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/datadog/tracing/contrib/#{contrib}/**/*_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
@@ -496,6 +511,7 @@ namespace :spec do
     :rspec,
     :minitest
   ].each do |contrib|
+    desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/datadog/ci/contrib/#{contrib}/**/*_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
@@ -506,6 +522,7 @@ namespace :spec do
     task all: [:main, :rack, :rails, :sinatra, :devise]
 
     # Datadog AppSec main specs
+    desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:main) do |t, args|
       t.pattern = 'spec/datadog/appsec/**/*_spec.rb'
       t.exclude_pattern = 'spec/datadog/appsec/**/{contrib,auto_instrument}/**/*_spec.rb,'\
@@ -520,6 +537,7 @@ namespace :spec do
       :rails,
       :devise,
     ].each do |contrib|
+      desc '' # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|
         t.pattern = "spec/datadog/appsec/contrib/#{contrib}/**/*_spec.rb"
         t.rspec_opts = args.to_a.join(' ')
