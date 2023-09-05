@@ -283,9 +283,11 @@ namespace :test do
       "#{RUBY_ENGINE}-#{RUBY_VERSION}" # For Ruby < 2.3
     end
 
-  TEST_METADATA.each do |spec_task, spec_metadata|
+  TEST_METADATA.each do |key, spec_metadata|
+    spec_task = "spec:#{key}"
+
     desc "Run #{spec_task} tests"
-    task spec_task, [:task_args] do |_, args|
+    task key, [:task_args] do |_, args|
       spec_arguments = args.task_args
 
       candidates = spec_metadata.select do |_, rubies|
@@ -296,7 +298,7 @@ namespace :test do
         command = if appraisal_group.empty?
                     "bundle exec rake #{spec_task}"
                   else
-                    "bundle exec appraisal #{ruby_runtime}-#{appraisal_group} rake spec:#{spec_task}"
+                    "bundle exec appraisal #{ruby_runtime}-#{appraisal_group} rake #{spec_task}"
                   end
 
         command += "'[#{spec_arguments}]'" if spec_arguments
