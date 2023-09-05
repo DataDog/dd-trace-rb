@@ -1,4 +1,4 @@
-name: "SystemTests"
+name: System Tests
 
 on:
   push:
@@ -111,6 +111,7 @@ jobs:
           docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:latest
 
   test:
+    name: System Tests
     strategy:
       fail-fast: false
       matrix:
@@ -195,7 +196,6 @@ jobs:
     needs:
       - build-harness
       - build-apps
-    name: Test (${{ matrix.app }}, ${{ matrix.scenario }})
     steps:
       - name: Setup python 3.9
         uses: actions/setup-python@v4
@@ -216,7 +216,7 @@ jobs:
       - name: List images
         run: |
           docker image list
-      - name: Run scenario
+      - name: Run scenario ${{ matrix.scenario }}
         run: ./build.sh --images runner && ./run.sh ${{ matrix.scenario }}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
