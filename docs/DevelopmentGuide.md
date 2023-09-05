@@ -72,9 +72,9 @@ $ bundle exec rake spec:main
 
 Integrations which interact with dependencies not listed in the `ddtrace` gemspec will need to load these dependencies to run their tests.
 
-To get a list of the spec tasks run `bundle exec rake -T 'spec:'`
+To get a list of the spec tasks run `bundle exec rake -T test:`
 
-To run any of the specs above just run `bundle exec rake 'test[<spec_name>]'`. Ex: `bundle exec rake test'[spec:redis]'`
+To run any of the specs above just run `bundle exec rake test:<spec_name>`. Ex: `bundle exec rake test:redis`
 
 
 **Passing arguments to tests**
@@ -83,7 +83,7 @@ When running tests, you may pass additional args as parameters to the Rake task.
 
 ```
 # Runs Redis tests with seed 1234
-$ bundle exec rake test'[spec:redis, --seed 1234]'
+$ bundle exec rake test:redis'[--seed 1234]'
 ```
 
 This can be useful for replicating conditions from CI or isolating certain tests.
@@ -93,7 +93,7 @@ This can be useful for replicating conditions from CI or isolating certain tests
 You can check test code coverage by creating a report _after_ running a test suite:
 ```
 # Run the desired test suite
-$ bundle exec rake test'[spec:redis]'
+$ bundle exec rake test:redis
 # Generate report for the suite executed
 $ bundle exec rake coverage:report
 ```
@@ -162,7 +162,7 @@ $ bundle exec rake rubocop
 If your changes can have a measurable performance impact, we recommend running our benchmark suite:
 
 ```
-$ bundle exec rake test'[spec:benchmark]'
+$ bundle exec rake spec:benchmark
 ```
 
 Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
