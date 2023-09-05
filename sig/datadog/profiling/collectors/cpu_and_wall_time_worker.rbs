@@ -14,6 +14,7 @@ module Datadog
           thread_context_collector: Datadog::Profiling::Collectors::ThreadContext,
           ?idle_sampling_helper: Datadog::Profiling::Collectors::IdleSamplingHelper,
           ?dynamic_sampling_rate_enabled: bool,
+          ?allocation_sample_every: Integer,
         ) -> void
 
         def self._native_initialize: (
@@ -24,6 +25,7 @@ module Datadog
           bool allocation_counting_enabled,
           bool no_signals_workaround_enabled,
           bool dynamic_sampling_rate_enabled,
+          ::Integer allocation_sample_every,
         ) -> true
 
         def start: () -> bool?
