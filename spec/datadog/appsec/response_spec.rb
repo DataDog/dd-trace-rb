@@ -21,6 +21,7 @@ RSpec.describe Datadog::AppSec::Response do
           [
             {
               'id' => 'block',
+              'type' => 'block_request',
               'parameters' => {
                 'type' => type,
                 'status_code' => status_code,
@@ -106,6 +107,7 @@ RSpec.describe Datadog::AppSec::Response do
           [
             {
               'id' => 'redirect_request',
+              'type' => 'redirect_request',
               'parameters' => {
                 'location' => location,
                 'status_code' => status_code,

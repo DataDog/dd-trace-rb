@@ -39,8 +39,8 @@ module Datadog
             action_configuration = AppSec::Processor::Actions.fecth_configuration(action)
             next unless action_configuration
 
-            configured_response = case action
-                                  when 'block'
+            configured_response = case action_configuration['type']
+                                  when 'block_request'
                                     block_response(env, action_configuration['parameters'])
                                   when 'redirect_request'
                                     redirect_response(env, action_configuration['parameters'])
