@@ -201,7 +201,7 @@ static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
 static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
-static bool is_type_web(VALUE root_span_type);
+static bool should_collect_resource(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object);
@@ -1041,7 +1041,7 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
   if (!state->endpoint_collection_enabled) return;
 
   VALUE root_span_type = rb_ivar_get(root_span, at_type_id /* @type */);
-  if (root_span_type == Qnil || !is_type_web(root_span_type)) return;
+  if (root_span_type == Qnil || !should_collect_resource(root_span_type)) return;
 
   VALUE trace_resource = rb_ivar_get(active_trace, at_resource_id /* @resource */);
   if (RB_TYPE_P(trace_resource, T_STRING)) {
@@ -1052,11 +1052,21 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
   }
 }
 
-static bool is_type_web(VALUE root_span_type) {
+// We only collect the resource for spans of types:
+// * 'web', for web requests
+// * proxy', used by the rack integration with request_queuing: true (e.g. also represents a web request)
+//
+// NOTE: Currently we're only interested in HTTP service endpoints. Over time, this list may be expanded.
+// Resources MUST NOT include personal identifiable information (PII); this should not be the case with
+// ddtrace integrations, but worth mentioning just in case :)
+static bool should_collect_resource(VALUE root_span_type) {
   ENFORCE_TYPE(root_span_type, T_STRING);
 
-  return RSTRING_LEN(root_span_type) == strlen("web") &&
-    (memcmp("web", StringValuePtr(root_span_type), strlen("web")) == 0);
+  int root_span_type_length = RSTRING_LEN(root_span_type);
+  const char *root_span_type_value = StringValuePtr(root_span_type);
+
+  return (root_span_type_length == strlen("web") && (memcmp("web", root_span_type_value, strlen("web")) == 0)) ||
+    (root_span_type_length == strlen("proxy") && (memcmp("proxy", root_span_type_value, strlen("proxy")) == 0));
 }
 
 // After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
