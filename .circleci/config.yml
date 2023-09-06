@@ -33,7 +33,7 @@ test_containers:
     # If you see gem installation failing with "Killed" on CircleCI and `gem install --platform ruby grpc` reproduces the
     # issue when you connect to the testing container via ssh, then try lowering this file a notch.
     GRPC_RUBY_BUILD_PROCS: 6
-    DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+    DD_INSTRUMENTATION_TELEMETRY_ENABLED: true
     DD_REMOTE_CONFIGURATION_ENABLED: false
     TEST_REDIS_OLD_HOST: redis_old
     TEST_OPENSEARCH_HOST: opensearch
@@ -109,7 +109,7 @@ test_containers:
     image: memcached:1.5-alpine
   - &memcached_port 11211
   - &container_testagent
-    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.12.0
+    image: docker.io/williamconti549/dd-apm-test-agent:aws-version-table
     name: testagent
     environment:
       - LOG_LEVEL=DEBUG
@@ -118,6 +118,9 @@ test_containers:
       - DD_POOL_TRACE_CHECK_FAILURES=true
       - DD_DISABLE_ERROR_RESPONSES=true
       - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+      - AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
   - &testagent_port 9126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
