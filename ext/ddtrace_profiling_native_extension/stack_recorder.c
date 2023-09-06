@@ -387,10 +387,8 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
 
-  ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(args.profile, NULL /* start_time is optional */ );
-  if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    return rb_ary_new_from_args(2, error_symbol, rb_sprintf("Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err)));
-  }
+  // This will raise on error
+  reset_profile(args.profile, /* start_time: */ NULL);
 
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
 }
