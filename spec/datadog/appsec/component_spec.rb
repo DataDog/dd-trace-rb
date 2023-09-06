@@ -44,6 +44,86 @@ RSpec.describe Datadog::AppSec::Component do
           expect(component.processor).to be_nil
         end
       end
+
+      context 'when static rules have actions defined' do
+        it 'calls Datadog::AppSec::Processor::Actions.merge' do
+          actions = [
+            {
+              'id' => 'block',
+              'type' => 'block_request',
+              'parameters' => {
+                'type' => 'auto',
+                'status_code' => 403,
+
+              }
+            }
+          ]
+          ruleset =
+            {
+              'version' => '2.2',
+              'rules' => [{
+                'conditions' => [{
+                  'operator' => 'ip_match',
+                  'parameters' => {
+                    'data' => 'blocked_ips',
+                    'inputs' => [{
+                      'address' => 'http.client_ip'
+                    }]
+                  }
+                }],
+                'id' => 'blk-001-001',
+                'name' => 'Block IP Addresses',
+                'on_match' => ['block'],
+                'tags' => {
+                  'category' => 'security_response', 'type' => 'block_ip'
+                },
+                'transformers' => []
+              }],
+              'actions' => actions
+            }
+
+          expect(Datadog::AppSec::Processor::Actions).to receive(:merge).with(actions)
+          expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).and_return(ruleset)
+
+          component = described_class.build_appsec_component(settings)
+
+          expect(component.processor).to be_a(Datadog::AppSec::Processor)
+        end
+      end
+
+      context 'when static rules do not  have actions defined' do
+        it 'calls Datadog::AppSec::Processor::Actions.merge' do
+          ruleset =
+            {
+              'version' => '2.2',
+              'rules' => [{
+                'conditions' => [{
+                  'operator' => 'ip_match',
+                  'parameters' => {
+                    'data' => 'blocked_ips',
+                    'inputs' => [{
+                      'address' => 'http.client_ip'
+                    }]
+                  }
+                }],
+                'id' => 'blk-001-001',
+                'name' => 'Block IP Addresses',
+                'on_match' => ['block'],
+                'tags' => {
+                  'category' => 'security_response', 'type' => 'block_ip'
+                },
+                'transformers' => []
+              }],
+            }
+
+          expect(Datadog::AppSec::Processor::Actions).to_not receive(:merge)
+          expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).and_return(ruleset)
+
+          component = described_class.build_appsec_component(settings)
+
+          expect(component.processor).to be_a(Datadog::AppSec::Processor)
+        end
+      end
     end
 
     context 'when appsec is not enabled' do
