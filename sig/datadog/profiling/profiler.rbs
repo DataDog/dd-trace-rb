@@ -3,13 +3,16 @@ module Datadog
     class Profiler
       include Datadog::Core::Utils::Forking
 
-      attr_reader collectors: Array[untyped]
+      private
 
+      attr_reader worker: untyped # TODO: Change this to CpuAndWallTimeWorker once legacy profiler is retired
       attr_reader scheduler: Datadog::Profiling::Scheduler
 
+      public
+
       def initialize: (
-        [Datadog::Profiling::Collectors::OldStack | Datadog::Profiling::Collectors::CpuAndWallTimeWorker] collectors,
-        Datadog::Profiling::Scheduler scheduler,
+        worker: Datadog::Profiling::Collectors::OldStack | Datadog::Profiling::Collectors::CpuAndWallTimeWorker,
+        scheduler: Datadog::Profiling::Scheduler,
       ) -> void
 
       def start: () -> void

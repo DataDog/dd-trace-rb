@@ -1,35 +1,35 @@
 module Datadog
   module Profiling
-    # Profiling entry point, which coordinates collectors and a scheduler
+    # Profiling entry point, which coordinates the worker and scheduler threads
     class Profiler
       include Datadog::Core::Utils::Forking
 
-      attr_reader \
-        :collectors,
-        :scheduler
+      private
 
-      def initialize(collectors, scheduler)
-        @collectors = collectors
+      attr_reader :worker, :scheduler
+
+      public
+
+      def initialize(worker:, scheduler:)
+        @worker = worker
         @scheduler = scheduler
       end
 
       def start
         after_fork! do
-          collectors.each(&:reset_after_fork)
+          worker.reset_after_fork
           scheduler.reset_after_fork
         end
 
-        collectors.each(&:start)
+        worker.start
         scheduler.start
       end
 
       def shutdown!
         Datadog.logger.debug('Shutting down profiler')
 
-        collectors.each do |collector|
-          collector.enabled = false
-          collector.stop(true)
-        end
+        worker.enabled = false
+        worker.stop(true)
 
         scheduler.enabled = false
         scheduler.stop(true)
