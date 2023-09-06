@@ -120,7 +120,7 @@ test_containers:
       - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
       - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-      - AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+      - AWS_DEFAULT_REGION=us-east-1
   - &testagent_port 9126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
