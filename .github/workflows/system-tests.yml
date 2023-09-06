@@ -1,4 +1,4 @@
-name: "SystemTests"
+name: System Tests
 
 on:
   push:
@@ -232,6 +232,15 @@ jobs:
         with:
           name: system-tests-${{ matrix.library }}-${{ matrix.app }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
           path: logs*
+
+  all_test_successful:
+    name: System tests successful
+    runs-on: ubuntu-latest
+    needs:
+      - test
+    steps:
+      - name: System tests successful
+        run: echo "Done"
 
   aggregate:
     strategy:
