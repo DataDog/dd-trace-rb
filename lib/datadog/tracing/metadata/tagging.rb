@@ -59,8 +59,8 @@ module Datadog
         # A valid example is:
         #
         #   span.set_tags({ "http.method" => "GET", "user.id" => "234" })
-        def set_tags(tags)
-          tags.each { |k, v| set_tag(k, v) }
+        def set_tags(hash)
+          hash.each { |k, v| set_tag(k, v) }
         end
 
         # Returns true if the provided `tag` was set to a non-nil value.
@@ -111,7 +111,7 @@ module Datadog
         # Returns a copy of all metadata.
         # Keys for `@meta` and `@metrics` don't collide, by construction.
         def tags
-          @meta.merge(@metrics)
+          meta.merge(metrics)
         end
 
         protected

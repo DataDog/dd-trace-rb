@@ -64,7 +64,7 @@ module Datadog
                       Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
                     ]
                   )
-                  o.on_set do |styles|
+                  o.after_set do |styles|
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
                     styles.map! do |style|
@@ -93,7 +93,7 @@ module Datadog
                   o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT
                   # DEV-2.0: Change default value to `tracecontext, Datadog`.
                   o.default [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG]
-                  o.on_set do |styles|
+                  o.after_set do |styles|
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
                     styles.map! do |style|
@@ -121,7 +121,7 @@ module Datadog
                   o.type :array
                   o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
                   o.default []
-                  o.on_set do |styles|
+                  o.after_set do |styles|
                     next if styles.empty?
 
                     # Modernize B3 options

@@ -14,14 +14,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   subject(:cpu_and_wall_time_worker) do
     described_class.new(
-      recorder: recorder,
-      max_frames: 400,
-      tracer: nil,
-      endpoint_collection_enabled: endpoint_collection_enabled,
       gc_profiling_enabled: gc_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
-      timeline_enabled: timeline_enabled,
+      thread_context_collector: build_thread_context_collector(recorder),
       **options
     )
   end
@@ -416,6 +412,69 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:postponed_job_success))
       end
     end
+
+    context 'when allocation sampling is enabled' do
+      let(:options) { { allocation_sample_every: 1 } }
+
+      before do
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      it 'logs a warning message mentioning this is experimental' do
+        expect(Datadog.logger).to receive(:warn).with(/Enabled experimental allocation profiling/)
+
+        start
+      end
+
+      it 'records allocated objects' do
+        stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
+
+        start
+
+        123.times { CpuAndWallTimeWorkerSpec::TestStruct.new }
+        allocation_line = __LINE__ - 1
+
+        cpu_and_wall_time_worker.stop
+
+        allocation_sample =
+          samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
+            .find { |s| s.labels[:'allocation class'] == 'CpuAndWallTimeWorkerSpec::TestStruct' }
+
+        expect(allocation_sample.values).to include(:'alloc-samples' => 123)
+        expect(allocation_sample.locations.first.lineno).to eq allocation_line
+      end
+
+      context 'when sampling optimized Ruby strings' do
+        # Regression test: Some internal Ruby classes use a `rb_str_tmp_frozen_acquire` function which allocates a
+        # weird "intermediate" string object that has its class pointer set to 0.
+        #
+        # When such an object gets sampled, we need to take care not to try to resolve its class name.
+        #
+        # In practice, this test is actually validating behavior of the `ThreadContext` collector, but we can only
+        # really trigger this situation when using the allocation tracepoint, which lives in the `CpuAndWallTimeWorker`.
+        it 'does not crash' do
+          start
+
+          expect(Time.new.strftime(String.new('Potato'))).to_not be nil
+        end
+      end
+    end
+
+    context 'when allocation sampling is disabled' do
+      let(:options) { { allocation_sample_every: 0 } }
+
+      it 'does not record allocations' do
+        stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
+
+        start
+
+        123.times { CpuAndWallTimeWorkerSpec::TestStruct.new }
+
+        cpu_and_wall_time_worker.stop
+
+        expect(samples_from_pprof(recorder.serialize!).map(&:values)).to all(include(:'alloc-samples' => 0))
+      end
+    end
   end
 
   describe 'Ractor safety' do
@@ -702,13 +761,19 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   def build_another_instance
     described_class.new(
-      recorder: build_stack_recorder,
-      max_frames: 400,
-      tracer: nil,
-      endpoint_collection_enabled: endpoint_collection_enabled,
       gc_profiling_enabled: gc_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
+      thread_context_collector: build_thread_context_collector(build_stack_recorder)
+    )
+  end
+
+  def build_thread_context_collector(recorder)
+    Datadog::Profiling::Collectors::ThreadContext.new(
+      recorder: recorder,
+      max_frames: 400,
+      tracer: nil,
+      endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
     )
   end

@@ -5,6 +5,8 @@ module Datadog
     module Git
       # Defines constants for Git tags
       module Ext
+        GIT_SHA_LENGTH = 40
+
         TAG_BRANCH = 'git.branch'
         TAG_REPOSITORY_URL = 'git.repository_url'
         TAG_TAG = 'git.tag'

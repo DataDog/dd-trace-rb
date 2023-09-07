@@ -40,14 +40,14 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
   end
 
-  describe '#on_set' do
-    subject(:on_set) { definition.on_set }
+  describe '#after_set' do
+    subject(:after_set) { definition.after_set }
 
     context 'when given a value' do
-      let(:meta) { { on_set: on_set_value } }
-      let(:on_set_value) { double('on_set') }
+      let(:meta) { { after_set: after_set_value } }
+      let(:after_set_value) { double('after_set') }
 
-      it { is_expected.to be on_set_value }
+      it { is_expected.to be after_set_value }
     end
 
     context 'when not initialized' do
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               default: nil,
               default_proc: nil,
               name: name,
-              on_set: nil,
+              after_set: nil,
               resetter: nil,
               setter: Datadog::Core::Configuration::OptionDefinition::IDENTITY,
               type: nil,
@@ -270,8 +270,8 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
-  describe '#on_set' do
-    subject(:on_set) { builder.on_set(&block) }
+  describe '#after_set' do
+    subject(:after_set) { builder.after_set(&block) }
 
     let(:block) { proc {} }
 
@@ -361,12 +361,12 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given :on_set' do
-      let(:options) { { on_set: value } }
+    context 'given :after_set' do
+      let(:options) { { after_set: value } }
       let(:value) { proc {} }
 
       it do
-        expect(builder).to receive(:on_set) do |&block|
+        expect(builder).to receive(:after_set) do |&block|
           expect(block).to be value
         end
 
@@ -424,7 +424,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       expect(meta.keys).to include(
         :default,
         :default_proc,
-        :on_set,
+        :after_set,
         :resetter,
         :setter,
         :type,

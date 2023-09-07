@@ -39,6 +39,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:tracer) { nil }
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
+  let(:allocation_type_enabled) { true }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -47,6 +48,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
+      allocation_type_enabled: allocation_type_enabled,
     )
   end
 
@@ -409,9 +411,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             expect(t1_sample.labels).to_not include(:'trace endpoint' => anything)
           end
 
-          context 'when local root span type is web' do
-            let(:root_span_type) { 'web' }
-
+          shared_examples_for 'samples with code hotspots information' do
             it 'includes the "trace endpoint" label in the samples' do
               sample
 
@@ -520,6 +520,19 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 end
               end
             end
+          end
+
+          context 'when local root span type is web' do
+            let(:root_span_type) { 'web' }
+
+            it_behaves_like 'samples with code hotspots information'
+          end
+
+          # Used by the rack integration with request_queuing: true
+          context 'when local root span type is proxy' do
+            let(:root_span_type) { 'proxy' }
+
+            it_behaves_like 'samples with code hotspots information'
           end
         end
       end
@@ -981,32 +994,52 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
     end
 
-    {
-      T_OBJECT: Object.new,
-      T_CLASS: Object,
-      T_MODULE: Kernel,
-      T_FLOAT: 1.0,
-      T_STRING: 'Hello!',
-      T_REGEXP: /Hello/,
-      T_ARRAY: [],
-      T_HASH: {},
-      T_STRUCT: Struct.new(:a).new,
-      T_BIGNUM: 2**256,
-      T_DATA: described_class.allocate, # ThreadContext is a T_DATA; we create here a dummy instance just as an example
-      T_MATCH: 'a'.match(Regexp.new('a')),
-      T_COMPLEX: Complex(1),
-      T_RATIONAL: 1/2r,
-      T_NIL: nil,
-      T_TRUE: true,
-      T_FALSE: false,
-      T_SYMBOL: :hello,
-      T_FIXNUM: 1,
-    }.each do |expected_type, object|
+    [
+      { expected_type: :T_OBJECT, object: Object.new, klass: 'Object' },
+      { expected_type: :T_CLASS, object: Object, klass: 'Class' },
+      { expected_type: :T_MODULE, object: Kernel, klass: 'Module' },
+      { expected_type: :T_FLOAT, object: 1.0, klass: 'Float' },
+      { expected_type: :T_STRING, object: 'Hello!', klass: 'String' },
+      { expected_type: :T_REGEXP, object: /Hello/, klass: 'Regexp' },
+      { expected_type: :T_ARRAY, object: [], klass: 'Array' },
+      { expected_type: :T_HASH, object: {}, klass: 'Hash' },
+      { expected_type: :T_BIGNUM, object: 2**256, klass: RUBY_VERSION < '2.4' ? 'Bignum' : 'Integer' },
+      # ThreadContext is a T_DATA; we create here a dummy instance just as an example
+      { expected_type: :T_DATA, object: described_class.allocate, klass: 'Datadog::Profiling::Collectors::ThreadContext' },
+      { expected_type: :T_MATCH, object: 'a'.match(Regexp.new('a')), klass: 'MatchData' },
+      { expected_type: :T_COMPLEX, object: Complex(1), klass: 'Complex' },
+      { expected_type: :T_RATIONAL, object: 1/2r, klass: 'Rational' },
+      { expected_type: :T_NIL, object: nil, klass: 'NilClass' },
+      { expected_type: :T_TRUE, object: true, klass: 'TrueClass' },
+      { expected_type: :T_FALSE, object: false, klass: 'FalseClass' },
+      { expected_type: :T_SYMBOL, object: :hello, klass: 'Symbol' },
+      { expected_type: :T_FIXNUM, object: 1, klass: RUBY_VERSION < '2.4' ? 'Fixnum' : 'Integer' },
+    ].each do |type|
+      expected_type = type.fetch(:expected_type)
+      object = type.fetch(:object)
+      klass = type.fetch(:klass)
+
       context "when sampling a #{expected_type}" do
         it 'includes the correct ruby vm type for the passed object' do
           sample_allocation(weight: 123, new_object: object)
 
           expect(single_sample.labels.fetch(:'ruby vm type')).to eq expected_type.to_s
+        end
+
+        it 'includes the correct class for the passed object' do
+          sample_allocation(weight: 123, new_object: object)
+
+          expect(single_sample.labels.fetch(:'allocation class')).to eq klass
+        end
+
+        context 'when allocation_type_enabled is false' do
+          let(:allocation_type_enabled) { false }
+
+          it 'does not record the correct class for the passed object' do
+            sample_allocation(weight: 123, new_object: object)
+
+            expect(single_sample.labels).to_not include(:'allocation class' => anything)
+          end
         end
       end
     end
@@ -1018,6 +1051,54 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         expect(single_sample.labels.fetch(:'ruby vm type')).to eq 'T_FILE'
+      end
+
+      it 'includes the correct class for the passed object' do
+        File.open(__FILE__) do |file|
+          sample_allocation(weight: 123, new_object: file)
+        end
+
+        expect(single_sample.labels.fetch(:'allocation class')).to eq 'File'
+      end
+
+      context 'when allocation_type_enabled is false' do
+        let(:allocation_type_enabled) { false }
+
+        it 'does not record the correct class for the passed object' do
+          File.open(__FILE__) do |file|
+            sample_allocation(weight: 123, new_object: file)
+          end
+
+          expect(single_sample.labels).to_not include(:'allocation class' => anything)
+        end
+      end
+    end
+
+    context 'when sampling a Struct' do
+      before do
+        stub_const('ThreadContextSpec::TestStruct', Struct.new(:a))
+      end
+
+      it 'includes the correct ruby vm type for the passed object' do
+        sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
+
+        expect(single_sample.labels.fetch(:'ruby vm type')).to eq 'T_STRUCT'
+      end
+
+      it 'includes the correct class for the passed object' do
+        sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
+
+        expect(single_sample.labels.fetch(:'allocation class')).to eq 'ThreadContextSpec::TestStruct'
+      end
+
+      context 'when allocation_type_enabled is false' do
+        let(:allocation_type_enabled) { false }
+
+        it 'does not record the correct class for the passed object' do
+          sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
+
+          expect(single_sample.labels).to_not include(:'allocation class' => anything)
+        end
       end
     end
   end

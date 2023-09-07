@@ -148,7 +148,7 @@ module Datadog
                 @oneshot_tags_sent = true
 
                 span.set_tag('_dd.appsec.event_rules.loaded', diagnostics['rules']['loaded'].size.to_f)
-                span.set_tag('_dd.appsec.event_rules.error_count', diagnostics['rules']['loaded'].size.to_f)
+                span.set_tag('_dd.appsec.event_rules.error_count', diagnostics['rules']['failed'].size.to_f)
                 span.set_tag('_dd.appsec.event_rules.errors', JSON.dump(diagnostics['rules']['errors']))
                 span.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(processor.addresses))
 

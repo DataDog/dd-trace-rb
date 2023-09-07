@@ -18,6 +18,12 @@ module Datadog
         # @param propagation_styles [Hash<String,Object>]
         def initialize(propagation_styles:)
           @propagation_styles = propagation_styles
+          # We need to make sure propagation_style option is evaluated.
+          # Our options are lazy evaluated and it happens that propagation_style has the after_set callback
+          # that affect Datadog.configuration.tracing.distributed_tracing.propagation_inject_style and
+          # Datadog.configuration.tracing.distributed_tracing.propagation_extract_style
+          # By calling it here, we make sure if the customers has set any value either via code or ENV variable is applied.
+          ::Datadog.configuration.tracing.distributed_tracing.propagation_style
         end
 
         # inject! populates the env with span ID, trace ID and sampling priority
@@ -72,8 +78,10 @@ module Datadog
         #
         # @param data [Hash]
         def extract(data)
-          trace_digest = nil
-          dd_trace_digest = nil
+          return unless data
+          return if data.empty?
+
+          extracted_trace_digest = nil
 
           ::Datadog.configuration.tracing.distributed_tracing.propagation_extract_style.each do |style|
             propagator = @propagation_styles[style]
@@ -83,42 +91,14 @@ module Datadog
               extracted_trace_digest = propagator.extract(data)
             rescue => e
               ::Datadog.logger.error(
-                'Error extracting distributed trace data. ' \
-              "Cause: #{e} Location: #{Array(e.backtrace).first}"
+                "Error extracting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
               )
             end
 
-            # Skip if no valid data was found
-            next if extracted_trace_digest.nil?
-
-            # Keep track of the Datadog extracted digest, we want to return it if we have it.
-            if extracted_trace_digest && style == Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG
-              dd_trace_digest = extracted_trace_digest
-            end
-
-            # No previously extracted trace data, use the one we just extracted
-            if trace_digest.nil?
-              trace_digest = extracted_trace_digest
-            else
-              unless trace_digest.trace_id == extracted_trace_digest.trace_id \
-                    && trace_digest.span_id == extracted_trace_digest.span_id
-                # We have two mismatched propagation contexts
-                ::Datadog.logger.debug do
-                  'Cannot extract distributed trace data: extracted styles differ, ' \
-                  "#{trace_digest.trace_id} != #{extracted_trace_digest.trace_id} && " \
-                  "#{trace_digest.span_id} != #{extracted_trace_digest.span_id}"
-                end
-
-                # It's safer to create a new context than to attach ourselves to the wrong context
-                return TraceDigest.new # Early return from the whole method
-              end
-            end
+            break if extracted_trace_digest
           end
 
-          # Return the extracted trace digest if we found one or else a new empty digest.
-          # Always return the Datadog trace digest if one exists since it has more
-          # information than the B3 digest, e.g. origin, priority sampling values.
-          dd_trace_digest || trace_digest || nil
+          extracted_trace_digest
         end
       end
     end

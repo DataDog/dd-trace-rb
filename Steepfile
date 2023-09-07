@@ -168,7 +168,6 @@ target :ddtrace do
   ignore 'lib/datadog/profiling/backtrace_location.rb'
   ignore 'lib/datadog/profiling/buffer.rb'
   ignore 'lib/datadog/profiling/collectors/code_provenance.rb'
-  ignore 'lib/datadog/profiling/collectors/cpu_and_wall_time_worker.rb'
   ignore 'lib/datadog/profiling/collectors/old_stack.rb'
   ignore 'lib/datadog/profiling/collectors/stack.rb'
   ignore 'lib/datadog/profiling/diagnostics/environment_logger.rb'
@@ -673,6 +672,7 @@ target :ddtrace do
   library 'delayed_job'
   library 'opentelemetry-api'
   library 'passenger'
+  library 'webmock'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'

@@ -79,15 +79,19 @@ module Datadog
             cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
             alloc_samples_enabled: false, # Always disabled for now -- work in progress
           )
-          collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
+          thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.new(
             recorder: recorder,
             max_frames: settings.profiling.advanced.max_frames,
             tracer: optional_tracer,
             endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
+            timeline_enabled: timeline_enabled,
+          )
+          collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
             gc_profiling_enabled: enable_gc_profiling?(settings),
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
             no_signals_workaround_enabled: no_signals_workaround_enabled,
-            timeline_enabled: timeline_enabled,
+            thread_context_collector: thread_context_collector,
+            allocation_sample_every: 0,
           )
         else
           load_pprof_support
