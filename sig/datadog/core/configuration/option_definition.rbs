@@ -18,7 +18,7 @@ module Datadog
 
         attr_reader name: untyped
 
-        attr_reader on_set: untyped
+        attr_reader after_set: untyped
 
         attr_reader resetter: untyped
 
@@ -49,7 +49,7 @@ module Datadog
 
           def helper: (untyped name, *untyped _args) { () -> untyped } -> untyped
 
-          def on_set: () { (untyped value) -> untyped } -> untyped
+          def after_set: () { (untyped value) -> untyped } -> untyped
 
           def resetter: () { (untyped value) -> untyped } -> untyped
 
@@ -59,7 +59,7 @@ module Datadog
 
           def to_definition: () -> untyped
 
-          def meta: () -> { default: untyped, on_set: untyped, resetter: untyped, setter: untyped }
+          def meta: () -> { default: untyped, after_set: untyped, resetter: untyped, setter: untyped }
         end
       end
     end

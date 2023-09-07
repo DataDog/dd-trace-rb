@@ -91,6 +91,7 @@ module Datadog
             allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
             no_signals_workaround_enabled: no_signals_workaround_enabled,
             thread_context_collector: thread_context_collector,
+            allocation_sample_every: 0,
           )
         else
           load_pprof_support

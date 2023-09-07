@@ -16,7 +16,7 @@ module Datadog
           :deprecated_env,
           :env_parser,
           :name,
-          :on_set,
+          :after_set,
           :resetter,
           :setter,
           :type,
@@ -29,7 +29,7 @@ module Datadog
           @deprecated_env = meta[:deprecated_env]
           @env_parser = meta[:env_parser]
           @name = name.to_sym
-          @on_set = meta[:on_set]
+          @after_set = meta[:after_set]
           @resetter = meta[:resetter]
           @setter = meta[:setter] || block || IDENTITY
           @type = meta[:type]
@@ -57,7 +57,7 @@ module Datadog
             @default_proc = nil
             @helpers = {}
             @name = name.to_sym
-            @on_set = nil
+            @after_set = nil
             @resetter = nil
             @setter = OptionDefinition::IDENTITY
             @type = nil
@@ -105,8 +105,8 @@ module Datadog
             end
           end
 
-          def on_set(&block)
-            @on_set = block
+          def after_set(&block)
+            @after_set = block
           end
 
           def resetter(&block)
@@ -134,7 +134,7 @@ module Datadog
             deprecated_env(options[:deprecated_env]) if options.key?(:deprecated_env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
             lazy(options[:lazy]) if options.key?(:lazy)
-            on_set(&options[:on_set]) if options.key?(:on_set)
+            after_set(&options[:after_set]) if options.key?(:after_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
             setter(&options[:setter]) if options.key?(:setter)
             type(options[:type], **(options[:type_options] || {})) if options.key?(:type)
@@ -151,7 +151,7 @@ module Datadog
               env: @env,
               deprecated_env: @deprecated_env,
               env_parser: @env_parser,
-              on_set: @on_set,
+              after_set: @after_set,
               resetter: @resetter,
               setter: @setter,
               type: @type,

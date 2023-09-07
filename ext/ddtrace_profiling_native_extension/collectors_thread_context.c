@@ -201,11 +201,12 @@ static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
 static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
-static bool is_type_web(VALUE root_span_type);
+static bool should_collect_resource(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object);
 static VALUE _native_new_empty_thread(VALUE self);
+ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -1040,7 +1041,7 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
   if (!state->endpoint_collection_enabled) return;
 
   VALUE root_span_type = rb_ivar_get(root_span, at_type_id /* @type */);
-  if (root_span_type == Qnil || !is_type_web(root_span_type)) return;
+  if (root_span_type == Qnil || !should_collect_resource(root_span_type)) return;
 
   VALUE trace_resource = rb_ivar_get(active_trace, at_resource_id /* @resource */);
   if (RB_TYPE_P(trace_resource, T_STRING)) {
@@ -1051,11 +1052,21 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
   }
 }
 
-static bool is_type_web(VALUE root_span_type) {
+// We only collect the resource for spans of types:
+// * 'web', for web requests
+// * proxy', used by the rack integration with request_queuing: true (e.g. also represents a web request)
+//
+// NOTE: Currently we're only interested in HTTP service endpoints. Over time, this list may be expanded.
+// Resources MUST NOT include personal identifiable information (PII); this should not be the case with
+// ddtrace integrations, but worth mentioning just in case :)
+static bool should_collect_resource(VALUE root_span_type) {
   ENFORCE_TYPE(root_span_type, T_STRING);
 
-  return RSTRING_LEN(root_span_type) == strlen("web") &&
-    (memcmp("web", StringValuePtr(root_span_type), strlen("web")) == 0);
+  int root_span_type_length = RSTRING_LEN(root_span_type);
+  const char *root_span_type_value = StringValuePtr(root_span_type);
+
+  return (root_span_type_length == strlen("web") && (memcmp("web", root_span_type_value, strlen("web")) == 0)) ||
+    (root_span_type_length == strlen("proxy") && (memcmp("proxy", root_span_type_value, strlen("proxy")) == 0));
 }
 
 // After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
@@ -1122,17 +1133,30 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
       type == RUBY_T_SYMBOL   ||
       type == RUBY_T_FIXNUM
     ) {
-      const char *name = rb_obj_classname(new_object);
-      size_t name_length = name != NULL ? strlen(name) : 0;
+      VALUE klass = rb_class_of(new_object);
 
-      if (name_length > 0) {
-        class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
+      // Ruby sometimes plays a bit fast and loose with some of its internal objects, e.g.
+      // `rb_str_tmp_frozen_acquire` allocates a string with no class (klass=0).
+      // Thus, we need to make sure there's actually a class before getting its name.
+
+      if (klass != 0) {
+        const char *name = rb_obj_classname(new_object);
+        size_t name_length = name != NULL ? strlen(name) : 0;
+
+        if (name_length > 0) {
+          class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
+        } else {
+          // @ivoanjo: I'm not sure this can ever happen, but just-in-case
+          class_name = ruby_value_type_to_class_name(type);
+        }
       } else {
-        class_name = DDOG_CHARSLICE_C("(Anonymous)");
+        // Fallback for objects with no class
+        class_name = ruby_value_type_to_class_name(type);
       }
+    } else if (type == RUBY_T_IMEMO) {
+      class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
     } else {
-      class_name = ruby_vm_type; // For internal things and, we just use the VM type
-                                 // TODO: Maybe prefix them with a nice note? E.g. (VM Internal, T_IMEMO)
+      class_name = ruby_vm_type; // For other weird internal things we just use the VM type
     }
   }
 
@@ -1163,4 +1187,30 @@ static VALUE new_empty_thread_inner(DDTRACE_UNUSED void *arg) { return Qnil; }
 // (It creates an empty native thread, so we can test our native thread naming fallback)
 static VALUE _native_new_empty_thread(DDTRACE_UNUSED VALUE self) {
   return rb_thread_create(new_empty_thread_inner, NULL);
+}
+
+ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type) {
+  switch (type) {
+    case(RUBY_T_OBJECT  ): return DDOG_CHARSLICE_C("Object");
+    case(RUBY_T_CLASS   ): return DDOG_CHARSLICE_C("Class");
+    case(RUBY_T_MODULE  ): return DDOG_CHARSLICE_C("Module");
+    case(RUBY_T_FLOAT   ): return DDOG_CHARSLICE_C("Float");
+    case(RUBY_T_STRING  ): return DDOG_CHARSLICE_C("String");
+    case(RUBY_T_REGEXP  ): return DDOG_CHARSLICE_C("Regexp");
+    case(RUBY_T_ARRAY   ): return DDOG_CHARSLICE_C("Array");
+    case(RUBY_T_HASH    ): return DDOG_CHARSLICE_C("Hash");
+    case(RUBY_T_STRUCT  ): return DDOG_CHARSLICE_C("Struct");
+    case(RUBY_T_BIGNUM  ): return DDOG_CHARSLICE_C("Integer");
+    case(RUBY_T_FILE    ): return DDOG_CHARSLICE_C("File");
+    case(RUBY_T_DATA    ): return DDOG_CHARSLICE_C("(VM Internal, T_DATA)");
+    case(RUBY_T_MATCH   ): return DDOG_CHARSLICE_C("MatchData");
+    case(RUBY_T_COMPLEX ): return DDOG_CHARSLICE_C("Complex");
+    case(RUBY_T_RATIONAL): return DDOG_CHARSLICE_C("Rational");
+    case(RUBY_T_NIL     ): return DDOG_CHARSLICE_C("NilClass");
+    case(RUBY_T_TRUE    ): return DDOG_CHARSLICE_C("TrueClass");
+    case(RUBY_T_FALSE   ): return DDOG_CHARSLICE_C("FalseClass");
+    case(RUBY_T_SYMBOL  ): return DDOG_CHARSLICE_C("Symbol");
+    case(RUBY_T_FIXNUM  ): return DDOG_CHARSLICE_C("Integer");
+                  default: return DDOG_CHARSLICE_C("(VM Internal, Missing class)");
+  }
 }

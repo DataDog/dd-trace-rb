@@ -411,9 +411,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             expect(t1_sample.labels).to_not include(:'trace endpoint' => anything)
           end
 
-          context 'when local root span type is web' do
-            let(:root_span_type) { 'web' }
-
+          shared_examples_for 'samples with code hotspots information' do
             it 'includes the "trace endpoint" label in the samples' do
               sample
 
@@ -522,6 +520,19 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 end
               end
             end
+          end
+
+          context 'when local root span type is web' do
+            let(:root_span_type) { 'web' }
+
+            it_behaves_like 'samples with code hotspots information'
+          end
+
+          # Used by the rack integration with request_queuing: true
+          context 'when local root span type is proxy' do
+            let(:root_span_type) { 'proxy' }
+
+            it_behaves_like 'samples with code hotspots information'
           end
         end
       end

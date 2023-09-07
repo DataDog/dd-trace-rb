@@ -167,6 +167,7 @@ RSpec.describe Datadog::Profiling::Component do
             allocation_counting_enabled: anything,
             no_signals_workaround_enabled: :no_signals_result,
             thread_context_collector: instance_of(Datadog::Profiling::Collectors::ThreadContext),
+            allocation_sample_every: 0,
           )
 
           build_profiler_component
