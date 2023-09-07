@@ -53,12 +53,16 @@ end
 
 (3..8).each { |v| gem_cucumber(v) }
 
+appraise 'aws' do
+  gem 'aws-sdk'
+  gem 'shoryuken'
+end
+
 appraise 'contrib' do
   gem 'actionpack', '~> 7'
   gem 'actionview', '~> 7'
   gem 'active_model_serializers', '>= 0.10.0'
   gem 'activerecord', '~> 7'
-  gem 'aws-sdk'
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
   gem 'delayed_job'
@@ -90,7 +94,6 @@ appraise 'contrib' do
   gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
-  gem 'shoryuken'
   gem 'sidekiq', '~> 7'
   gem 'sneakers', '>= 2.12.0'
   gem 'sqlite3', '>= 1.4.2', platform: :ruby

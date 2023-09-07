@@ -152,12 +152,16 @@ end
 
 (3..5).each { |v| gem_cucumber(v) }
 
+appraise 'aws' do
+  gem 'aws-sdk'
+  gem 'shoryuken'
+end
+
 appraise 'contrib' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
   gem 'activerecord', '~> 5'
-  gem 'aws-sdk'
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
   gem 'delayed_job'
@@ -198,7 +202,6 @@ appraise 'contrib' do
   gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
-  gem 'shoryuken'
   gem 'sidekiq'
   gem 'sneakers', '>= 2.12.0'
   gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645

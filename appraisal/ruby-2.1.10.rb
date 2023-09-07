@@ -63,11 +63,14 @@ appraise 'rails4-postgres-redis' do
   gem 'lograge', '~> 0.11'
 end
 
+appraise 'aws' do
+  gem 'aws-sdk', '~> 2.0'
+end
+
 appraise 'contrib' do
   gem 'active_model_serializers', '~> 0.9.0'
   gem 'activerecord', '3.2.22.5'
   gem 'activerecord-mysql-adapter'
-  gem 'aws-sdk', '~> 2.0'
   gem 'concurrent-ruby'
   gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
   gem 'delayed_job'
@@ -96,7 +99,6 @@ appraise 'contrib' do
   gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sequel', '~> 4.0', '< 4.37'
-  gem 'shoryuken'
   gem 'sidekiq', '~> 3.5.4'
   gem 'sqlite3', '~> 1.3.6'
   gem 'sucker_punch'
