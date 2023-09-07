@@ -205,10 +205,6 @@ appraise 'sinatra' do
   gem 'rack-test'
 end
 
-appraise 'opentelemetry' do
-  gem 'opentelemetry-sdk', '~> 1.1'
-end
-
 [3, 4, 5].each do |n|
   appraise "redis-#{n}" do
     gem 'redis', "~> #{n}"
