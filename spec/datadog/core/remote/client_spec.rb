@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/core/transport/http'
+require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/client'
 
 RSpec.describe Datadog::Core::Remote::Client do
@@ -37,7 +37,7 @@ RSpec.describe Datadog::Core::Remote::Client do
   end
 
   let(:http_connection) { instance_double(::Net::HTTP) }
-  let(:transport) { Datadog::Core::Transport::HTTP.v7(&proc { |_client| }) }
+  let(:transport) { Datadog::Core::Remote::Transport::HTTP.v7(&proc { |_client| }) }
   let(:roots) do
     [
       {
@@ -305,7 +305,7 @@ RSpec.describe Datadog::Core::Remote::Client do
           # We have to modify the response to trick the client into think on the second sync
           # the content for datadog/603646/ASM_DATA/blocked_ips/config have change
           new_blocked_ips = '{"rules_data":[{"data":["fake new data"]}]}'
-          expect_any_instance_of(Datadog::Core::Transport::HTTP::Config::Response).to receive(:target_files).and_return(
+          expect_any_instance_of(Datadog::Core::Remote::Transport::HTTP::Config::Response).to receive(:target_files).and_return(
             [
               {
                 :path => 'datadog/603646/ASM_DATA/blocked_ips/config',
@@ -363,7 +363,7 @@ RSpec.describe Datadog::Core::Remote::Client do
               'version' => 469154399387498379
             }
           }
-          expect_any_instance_of(Datadog::Core::Transport::HTTP::Config::Response).to receive(:targets).and_return(
+          expect_any_instance_of(Datadog::Core::Remote::Transport::HTTP::Config::Response).to receive(:targets).and_return(
             updated_targets
           )
 

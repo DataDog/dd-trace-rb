@@ -2,11 +2,11 @@
 
 require 'spec_helper'
 
-require 'datadog/core/transport/http'
-require 'datadog/core/transport/http/negotiation'
-require 'datadog/core/transport/negotiation'
+require 'datadog/core/remote/transport/http'
+require 'datadog/core/remote/transport/http/negotiation'
+require 'datadog/core/remote/transport/negotiation'
 
-RSpec.describe Datadog::Core::Transport::HTTP do
+RSpec.describe Datadog::Core::Remote::Transport::HTTP do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   describe '.root' do
@@ -14,12 +14,12 @@ RSpec.describe Datadog::Core::Transport::HTTP do
 
     let(:client_options) { proc { |_client| } }
 
-    it { is_expected.to be_a(Datadog::Core::Transport::Negotiation::Transport) }
+    it { is_expected.to be_a(Datadog::Core::Remote::Transport::Negotiation::Transport) }
 
     describe '#send_info' do
       subject(:response) { transport.send_info }
 
-      it { is_expected.to be_a(Datadog::Core::Transport::HTTP::Negotiation::Response) }
+      it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response) }
 
       it { is_expected.to be_ok }
       it { is_expected.to_not have_attributes(:version => be_nil) }
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
 
     let(:client_options) { proc { |_client| } }
 
-    it { is_expected.to be_a(Datadog::Core::Transport::Config::Transport) }
+    it { is_expected.to be_a(Datadog::Core::Remote::Transport::Config::Transport) }
 
     describe '#send_config' do
       let(:state) do
@@ -97,7 +97,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
 
       subject(:response) { transport.send_config(payload) }
 
-      it { is_expected.to be_a(Datadog::Core::Transport::HTTP::Config::Response) }
+      it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Config::Response) }
 
       it { is_expected.to be_ok }
       it { is_expected.to_not have_attributes(:roots => be_nil) }

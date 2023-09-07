@@ -1020,7 +1020,7 @@ RSpec.describe 'Tracer integration tests' do
               .at_least(1).time
             # For the remote component.
             expect(double).to receive(:call)
-              .with(kind_of(Datadog::Core::Transport::HTTP::Builder))
+              .with(kind_of(Datadog::Core::Remote::Transport::HTTP::Builder))
               .at_least(1).time
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))

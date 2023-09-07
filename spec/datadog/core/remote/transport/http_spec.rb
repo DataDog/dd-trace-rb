@@ -2,11 +2,11 @@
 
 require 'spec_helper'
 
-require 'datadog/core/transport/http'
-require 'datadog/core/transport/http/negotiation'
-require 'datadog/core/transport/negotiation'
+require 'datadog/core/remote/transport/http'
+require 'datadog/core/remote/transport/http/negotiation'
+require 'datadog/core/remote/transport/negotiation'
 
-RSpec.describe Datadog::Core::Transport::HTTP do
+RSpec.describe Datadog::Core::Remote::Transport::HTTP do
   shared_context 'HTTP connection stub' do
     before do
       request_class = case request_verb
@@ -38,7 +38,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
 
     let(:client_options) { proc { |_client| } }
 
-    it { is_expected.to be_a(Datadog::Core::Transport::Negotiation::Transport) }
+    it { is_expected.to be_a(Datadog::Core::Remote::Transport::Negotiation::Transport) }
 
     describe '#send_info' do
       include_context 'HTTP connection stub'
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
         )
       end
 
-      it { is_expected.to be_a(Datadog::Core::Transport::HTTP::Negotiation::Response) }
+      it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response) }
 
       it { is_expected.to be_ok }
       it { is_expected.to have_attributes(:version => '42') }
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
 
     let(:client_options) { proc { |_client| } }
 
-    it { is_expected.to be_a(Datadog::Core::Transport::Config::Transport) }
+    it { is_expected.to be_a(Datadog::Core::Remote::Transport::Config::Transport) }
 
     describe '#send_config' do
       include_context 'HTTP connection stub'
@@ -194,7 +194,7 @@ RSpec.describe Datadog::Core::Transport::HTTP do
 
       subject(:response) { transport.send_config(payload) }
 
-      it { is_expected.to be_a(Datadog::Core::Transport::HTTP::Config::Response) }
+      it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Config::Response) }
 
       it { is_expected.to be_ok }
       it { is_expected.to have_attributes(:roots => be_a(Array)) }

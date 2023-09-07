@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # TODO: EK - FIX THIS
-require_relative '../../tracing/transport/request'
+require_relative '../../../tracing/transport/request'
 
 # TODO: Resolve conceptual conundrum
 #
@@ -24,35 +24,37 @@ require_relative '../../tracing/transport/request'
 
 module Datadog
   module Core
-    module Transport
-      module Negotiation
-        # Negotiation request
-        class Request < Datadog::Tracing::Transport::Request
-        end
-
-        # Negotiation response
-        module Response
-          attr_reader :version, :endpoints, :config
-        end
-
-        # Negotiation transport
-        class Transport
-          attr_reader :client, :apis, :default_api, :current_api_id
-
-          def initialize(apis, default_api)
-            @apis = apis
-
-            @client = HTTP::Client.new(current_api)
+    module Remote
+      module Transport
+        module Negotiation
+          # Negotiation request
+          class Request < Datadog::Tracing::Transport::Request
           end
 
-          def send_info
-            request = Request.new
-
-            @client.send_info_payload(request)
+          # Negotiation response
+          module Response
+            attr_reader :version, :endpoints, :config
           end
 
-          def current_api
-            @apis[HTTP::API::ROOT]
+          # Negotiation transport
+          class Transport
+            attr_reader :client, :apis, :default_api, :current_api_id
+
+            def initialize(apis, default_api)
+              @apis = apis
+
+              @client = HTTP::Client.new(current_api)
+            end
+
+            def send_info
+              request = Request.new
+
+              @client.send_info_payload(request)
+            end
+
+            def current_api
+              @apis[HTTP::API::ROOT]
+            end
           end
         end
       end
