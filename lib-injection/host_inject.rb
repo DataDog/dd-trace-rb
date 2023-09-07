@@ -23,30 +23,26 @@ begin
   require "shellwords"
   require "fileutils"
 
-  failure_prefix = "Datadog lib injection failed:"
   support_message = "For help solving this issue, please contact Datadog support at https://docs.datadoghq.com/help/."
 
   unless Bundler::SharedHelpers.in_bundle?
-    debug_log "[ddtrace] Not in bundle... skipping host injection"
-    return
-  end
-
-  unless Bundler::CLI.commands["add"] && Bundler::CLI.commands["add"].options.key?("require")
-    debug_log "[ddtrace] You are currently using Bundler version #{Bundler::VERSION} which is not supported by host injection. Please upgrade >= 2.3."
-    return
-  end
-
-  if Bundler.frozen_bundle?
-    warn "[ddtrace] #{failure_prefix} Cannot inject with frozen Gemfile, "\
-      "run `bundle config unset deployment` or add `gem 'ddtrace', require: 'ddtrace/auto_instrument'` to your `Gemfile`. "\
-      "To learn more about bundler deployment, check https://bundler.io/guides/deploying.html#deploying-your-application. #{support_message}"
+    debug_log "[ddtrace] Not in bundle... skipping injection"
     return
   end
 
   _, status = Open3.capture2e({"DD_TRACE_SKIP_LIB_INJECTION" => "true"}, "bundle show ddtrace")
-
   if status.success?
-    debug_log "[ddtrace] ddtrace already installed... skipping host injection"
+    debug_log "[ddtrace] ddtrace already installed... skipping injection"
+    return
+  end
+
+  if Bundler.frozen_bundle?
+    STDERR.puts "[ddtrace] Injection failed: Frozen `Gemfile` because Bundler is configured with `deployment`."
+    return
+  end
+
+  unless Bundler::CLI.commands["add"] && Bundler::CLI.commands["add"].options.key?("require")
+    STDERR.puts "[ddtrace] Injection failed: Bundler version #{Bundler::VERSION} is not supported. Please upgrade >= 2.3."
     return
   end
 
@@ -77,7 +73,7 @@ begin
         bundle_add_cmd << "--require ddtrace/auto_instrument"
       end
 
-      debug_log "[ddtrace] Performing lib injection with `#{bundle_add_cmd}`"
+      debug_log "[ddtrace] Injection with `#{bundle_add_cmd}`"
 
       gemfile = Bundler::SharedHelpers.default_gemfile
       lockfile = Bundler::SharedHelpers.default_lockfile
@@ -96,21 +92,20 @@ begin
         )
 
         if status.success?
-          STDOUT.puts "[ddtrace] Datadog lib injection successfully added #{gem} to the application."
+          STDOUT.puts "[ddtrace] Injection adds #{gem} to the application successfully."
 
           ::FileUtils.cp datadog_gemfile, gemfile
           ::FileUtils.cp datadog_lockfile, lockfile
         else
-          warn "[ddtrace] #{failure_prefix} Unable to add ddtrace. Error output:\n#{output.split("\n").map { |l| "[ddtrace] #{l}" }.join("\n")}\n#{support_message}"
+          STDERR.puts "[ddtrace] Injection failed: Unable to add ddtrace. Error output:\n#{output.split("\n").map { |l| "[ddtrace] #{l}" }.join("\n")}\n#{support_message}"
         end
       ensure
         # Remove the copies
         ::FileUtils.rm datadog_gemfile
         ::FileUtils.rm datadog_lockfile
       end
-
     end
   end
 rescue Exception => e
-  warn "[ddtrace] #{failure_prefix} #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
+  STDERR.puts "[ddtrace] #{failure_prefix} #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
 end
