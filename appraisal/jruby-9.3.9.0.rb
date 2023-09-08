@@ -154,6 +154,19 @@ appraise 'aws' do
   gem 'shoryuken'
 end
 
+appraise 'http' do
+  gem 'elasticsearch'
+  gem 'ethon'
+  gem 'excon'
+  gem 'faraday'
+  gem 'http'
+  gem 'httpclient'
+  gem 'opensearch-ruby'
+  gem 'rest-client'
+  gem 'stripe', '~> 8.0'
+  gem 'typhoeus'
+end
+
 appraise 'contrib' do
   gem 'actionpack'
   gem 'actionview'
@@ -163,20 +176,13 @@ appraise 'contrib' do
   gem 'dalli', '>= 3.0.0'
   gem 'delayed_job'
   gem 'delayed_job_active_record'
-  gem 'elasticsearch', '>= 8.0.0'
-  gem 'ethon'
-  gem 'excon'
-  gem 'faraday', '>= 1.0'
   gem 'grape'
   gem 'graphql', '>= 2.0'
-  gem 'http'
-  gem 'httpclient'
   gem 'lograge', '~> 0.11'
   gem 'makara'
   gem 'minitest', '>= 5.0.0'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'activerecord-jdbcmysql-adapter', platform: :jruby
-  gem 'opensearch-ruby'
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
   gem 'racecar', '>= 0.3.5'
   gem 'rack'
@@ -184,7 +190,6 @@ appraise 'contrib' do
   gem 'rack-test'
   gem 'rake', '>= 12.3'
   gem 'redis', '~> 4' # TODO: Support redis 5.x
-  gem 'rest-client'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
@@ -193,10 +198,8 @@ appraise 'contrib' do
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
   gem 'sidekiq', '~> 6.5'
   gem 'sneakers', '>= 2.12.0'
-  gem 'stripe', '~> 8.0'
   gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
   gem 'sucker_punch'
-  gem 'typhoeus'
   gem 'que', '>= 1.0.0', '< 2.0.0'
 end
 

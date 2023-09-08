@@ -1,0 +1,239 @@
+GIT
+  remote: https://github.com/DataDog/simplecov
+  revision: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
+  ref: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
+  specs:
+    simplecov (0.21.2)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
+
+PATH
+  remote: ..
+  specs:
+    ddtrace (1.14.0)
+      debase-ruby_core_source (= 3.2.1)
+      libdatadog (~> 4.0.0.1.0)
+      libddwaf (~> 1.11.0.0.0)
+      msgpack
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    addressable (2.4.0)
+    appraisal (2.4.1)
+      bundler
+      rake
+      thor (>= 0.14.0)
+    ast (2.4.2)
+    benchmark-ips (2.12.0)
+    benchmark-memory (0.1.2)
+      memory_profiler (~> 0.9)
+    builder (3.2.4)
+    climate_control (0.2.0)
+    coderay (1.1.3)
+    colorize (0.8.1)
+    concurrent-ruby (1.2.2)
+    crack (0.4.5)
+      rexml
+    cri (2.15.11)
+    debase-ruby_core_source (3.2.1)
+    diff-lcs (1.5.0)
+    docile (1.4.0)
+    dogstatsd-ruby (5.6.1)
+    domain_name (0.5.20190701)
+      unf (>= 0.0.5, < 1.0.0)
+    elastic-transport (8.2.3)
+      faraday (< 3)
+      multi_json
+    elasticsearch (8.9.0)
+      elastic-transport (~> 8)
+      elasticsearch-api (= 8.9.0)
+    elasticsearch-api (8.9.0)
+      multi_json
+    ethon (0.16.0)
+      ffi (>= 1.15.0)
+    excon (0.102.0)
+    faraday (2.7.10)
+      faraday-net_http (>= 2.0, < 3.1)
+      ruby2_keywords (>= 0.0.4)
+    faraday-net_http (3.0.2)
+    ffi (1.15.5-java)
+    ffi-compiler (1.0.1)
+      ffi (>= 1.0.0)
+      rake
+    hashdiff (1.0.1)
+    http (5.0.1)
+      addressable (~> 2.3)
+      http-cookie (~> 1.0)
+      http-form_data (~> 2.2)
+      llhttp-ffi (~> 0.3.0)
+    http-accept (1.7.0)
+    http-cookie (1.0.5)
+      domain_name (~> 0.5)
+    http-form_data (2.3.0)
+    httpclient (2.8.3)
+    json (2.6.3-java)
+    json-schema (2.8.1)
+      addressable (>= 2.4)
+    libdatadog (4.0.0.1.0)
+    libddwaf (1.11.0.0.0-java)
+      ffi (~> 1.0)
+    llhttp-ffi (0.3.1)
+      ffi-compiler (~> 1.0)
+      rake (~> 13.0)
+    memory_profiler (0.9.14)
+    method_source (1.0.0)
+    mime-types (3.5.1)
+      mime-types-data (~> 3.2015)
+    mime-types-data (3.2023.0808)
+    msgpack (1.7.2-java)
+    multi_json (1.15.0)
+    netrc (0.11.0)
+    opensearch-api (2.2.0)
+      multi_json
+    opensearch-ruby (2.1.0)
+      opensearch-api (~> 2.1)
+      opensearch-transport (~> 2.0)
+    opensearch-transport (2.1.0)
+      faraday (>= 1.0, < 3)
+      multi_json
+    opentracing (0.5.0)
+    os (1.1.4)
+    parallel (1.23.0)
+    parser (3.2.2.3)
+      ast (~> 2.4.1)
+      racc
+    pimpmychangelog (0.1.3)
+    pry (0.14.2-java)
+      coderay (~> 1.1)
+      method_source (~> 1.0)
+      spoon (~> 0.0)
+    pry-debugger-jruby (2.1.1-java)
+      pry (>= 0.13, < 0.15)
+      ruby-debug-base (>= 0.10.4, < 0.12)
+    racc (1.7.1-java)
+    rainbow (3.1.1)
+    rake (13.0.6)
+    rake-compiler (1.2.5)
+      rake
+    regexp_parser (2.8.1)
+    rest-client (2.1.0)
+      http-accept (>= 1.7.0, < 2.0)
+      http-cookie (>= 1.0.2, < 2.0)
+      mime-types (>= 1.16, < 4.0)
+      netrc (~> 0.8)
+    rexml (3.2.6)
+    rspec (3.12.0)
+      rspec-core (~> 3.12.0)
+      rspec-expectations (~> 3.12.0)
+      rspec-mocks (~> 3.12.0)
+    rspec-collection_matchers (1.2.0)
+      rspec-expectations (>= 2.99.0.beta1)
+    rspec-core (3.12.2)
+      rspec-support (~> 3.12.0)
+    rspec-expectations (3.12.3)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.12.0)
+    rspec-mocks (3.12.6)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.12.0)
+    rspec-support (3.12.1)
+    rspec-wait (0.0.9)
+      rspec (>= 3, < 4)
+    rspec_junit_formatter (0.6.0)
+      rspec-core (>= 2, < 4, != 2.12.0)
+    rspec_n (1.4.0)
+      colorize (~> 0.8.0)
+      cri (~> 2.15.3)
+    rubocop (1.34.1)
+      json (~> 2.3)
+      parallel (~> 1.10)
+      parser (>= 3.1.2.1)
+      rainbow (>= 2.2.2, < 4.0)
+      regexp_parser (>= 1.8, < 3.0)
+      rexml (>= 3.2.5, < 4.0)
+      rubocop-ast (>= 1.20.0, < 2.0)
+      ruby-progressbar (~> 1.7)
+      unicode-display_width (>= 1.4.0, < 3.0)
+    rubocop-ast (1.29.0)
+      parser (>= 3.2.1.0)
+    rubocop-packaging (0.5.2)
+      rubocop (>= 1.33, < 2.0)
+    rubocop-performance (1.17.1)
+      rubocop (>= 1.7.0, < 2.0)
+      rubocop-ast (>= 0.4.0)
+    rubocop-rspec (2.17.1)
+      rubocop (~> 1.33)
+    ruby-debug-base (0.11.0-java)
+    ruby-progressbar (1.13.0)
+    ruby2_keywords (0.0.5)
+    simplecov-cobertura (2.1.0)
+      rexml
+      simplecov (~> 0.19)
+    simplecov-html (0.12.3)
+    simplecov_json_formatter (0.1.4)
+    spoon (0.0.6)
+      ffi
+    stripe (8.7.0)
+    thor (1.2.2)
+    typhoeus (1.4.0)
+      ethon (>= 0.9.0)
+    unf (0.1.4-java)
+    unicode-display_width (2.4.2)
+    warning (1.3.0)
+    webmock (3.13.0)
+      addressable (>= 2.3.6)
+      crack (>= 0.3.2)
+      hashdiff (>= 0.4.0, < 2.0.0)
+    yard (0.9.34)
+
+PLATFORMS
+  universal-java-11
+
+DEPENDENCIES
+  addressable (~> 2.4.0)
+  appraisal (~> 2.4.0)
+  benchmark-ips (~> 2.8)
+  benchmark-memory (< 0.2)
+  builder
+  climate_control (~> 0.2.0)
+  concurrent-ruby
+  ddtrace!
+  dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
+  elasticsearch
+  ethon
+  excon
+  faraday
+  http
+  httpclient
+  json-schema (< 3)
+  memory_profiler (~> 0.9)
+  opensearch-ruby
+  opentracing (>= 0.4.1)
+  os (~> 1.1)
+  pimpmychangelog (>= 0.1.2)
+  pry
+  pry-debugger-jruby
+  rake (>= 10.5)
+  rake-compiler (~> 1.1, >= 1.1.1)
+  rest-client
+  rspec (~> 3.12)
+  rspec-collection_matchers (~> 1.1)
+  rspec-wait (~> 0)
+  rspec_junit_formatter (>= 0.5.1)
+  rspec_n (~> 1.3)
+  rubocop (~> 1.34.0)
+  rubocop-packaging (~> 0.5.2)
+  rubocop-performance (~> 1.9)
+  rubocop-rspec (~> 2.2)
+  simplecov!
+  simplecov-cobertura (~> 2.1.0)
+  stripe (~> 8.0)
+  typhoeus
+  warning (~> 1)
+  webmock (>= 3.10.0)
+  yard (~> 0.9)
+
+BUNDLED WITH
+   2.3.26
