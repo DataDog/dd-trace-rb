@@ -1,6 +1,6 @@
 require_relative '../../../core/encoding'
 
-require_relative 'api/map'
+require_relative '../../../core/transport/http/api/map'
 require_relative 'api/spec'
 
 require_relative 'traces'
@@ -18,7 +18,7 @@ module Datadog
           module_function
 
           def defaults
-            Map[
+            Datadog::Core::Transport::HTTP::API::Map[
               V4 => Spec.new do |s|
                 s.traces = Traces::API::Endpoint.new(
                   '/v0.4/traces'.freeze,

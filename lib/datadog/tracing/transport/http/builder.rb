@@ -1,6 +1,6 @@
 require_relative '../../../core/configuration/agent_settings_resolver'
 require_relative 'adapters/registry'
-require_relative 'api/map'
+require_relative '../../../core/transport/http/api/map'
 require_relative 'api/instance'
 require_relative 'client'
 
@@ -25,7 +25,7 @@ module Datadog
             @default_headers = {}
 
             # Client settings
-            @apis = API::Map.new
+            @apis = Datadog::Core::Transport::HTTP::API::Map.new
             @default_api = nil
 
             # API settings
@@ -90,7 +90,7 @@ module Datadog
           def to_api_instances
             raise NoApisError if @apis.empty?
 
-            @apis.inject(API::Map.new) do |instances, (key, spec)|
+            @apis.inject(Datadog::Core::Transport::HTTP::API::Map.new) do |instances, (key, spec)|
               instances.tap do
                 api_options = @api_options[key].dup
 

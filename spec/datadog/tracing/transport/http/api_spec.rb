@@ -6,7 +6,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API do
   describe '.defaults' do
     subject(:defaults) { described_class.defaults }
 
-    it { is_expected.to be_a_kind_of(Datadog::Tracing::Transport::HTTP::API::Map) }
+    it { is_expected.to be_a_kind_of(Datadog::Core::Transport::HTTP::API::Map) }
 
     it do
       is_expected.to include(

@@ -130,7 +130,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
   shared_context 'APIs with fallbacks' do
     let(:current_api_id) { :v2 }
     let(:apis) do
-      Datadog::Tracing::Transport::HTTP::API::Map[
+      Datadog::Core::Transport::HTTP::API::Map[
         v2: api_v2,
         v1: api_v1
       ].with_fallbacks(v2: :v1)

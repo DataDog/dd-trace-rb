@@ -3,7 +3,7 @@
 require_relative '../../../encoding'
 
 # TODO: EK - FIX THIS
-require_relative '../../../../tracing/transport/http/api/map'
+require_relative '../../../transport/http/api/map'
 
 # TODO: Decouple standard transport/http/api/instance
 #
@@ -38,7 +38,7 @@ module Datadog
             module_function
 
             def defaults
-              Datadog::Tracing::Transport::HTTP::API::Map[
+              Datadog::Core::Transport::HTTP::API::Map[
                 ROOT => Spec.new do |s|
                   s.info = Negotiation::API::Endpoint.new(
                     '/info',

@@ -3,7 +3,7 @@
 require_relative 'fallbacks'
 
 module Datadog
-  module Tracing
+  module Core
     module Transport
       module HTTP
         module API
