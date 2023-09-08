@@ -203,7 +203,6 @@ appraise 'contrib' do
   gem 'sneakers', '>= 2.12.0'
   gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
   gem 'sqlite3', '~> 1.4.1', platform: :ruby
-  gem 'stripe', '~> 7.0'
   gem 'sucker_punch'
   gem 'typhoeus'
   gem 'que', '>= 1.0.0', '< 2.0.0'

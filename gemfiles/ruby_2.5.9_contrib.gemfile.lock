@@ -290,7 +290,6 @@ GEM
       rbtree
       set (~> 1.0)
     sqlite3 (1.4.4)
-    stripe (7.1.0)
     sucker_punch (3.1.0)
       concurrent-ruby (~> 1.0)
     thor (1.2.1)
@@ -374,7 +373,6 @@ DEPENDENCIES
   simplecov-cobertura (~> 2.1.0)
   sneakers (>= 2.12.0)
   sqlite3 (~> 1.4.1)
-  stripe (~> 7.0)
   sucker_punch
   typhoeus
   warning (~> 1)
