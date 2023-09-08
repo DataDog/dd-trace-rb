@@ -69,6 +69,8 @@ appraise 'aws' do
 end
 
 appraise 'http' do
+  gem 'ethon'
+  gem 'excon'
   gem 'faraday'
   gem 'http'
   gem 'httpclient'
