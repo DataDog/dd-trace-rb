@@ -6,7 +6,6 @@ require 'support/faux_transport'
 
 # FauxWriter is a dummy writer that buffers spans locally.
 class FauxWriter < Datadog::Tracing::Writer
-  include NetworkHelpers
 
   def initialize(options = {})
     if !options[:disable_test_agent]
