@@ -3,9 +3,9 @@ module Datadog
     module WAF
       module LibDDWAF
         class Error < StandardError
-          attr_reader ruleset_info: Hash[Symbol, untyped] | nil
+          attr_reader diagnostics: ::Datadog::AppSec::WAF::data
 
-          def initialize: (::String msg, ?ruleset_info: Hash[Symbol, untyped]?) -> void
+          def initialize: (::String msg, ?diagnostics: ::Datadog::AppSec::WAF::data?) -> void
         end
 
         extend ::FFI::Library

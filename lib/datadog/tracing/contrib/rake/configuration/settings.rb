@@ -41,7 +41,7 @@ module Datadog
             option :tasks do |o|
               o.type :array
               o.default []
-              o.on_set do |value|
+              o.after_set do |value|
                 # DEV: It should be possible to modify the value after it's set. E.g. for normalization.
                 options[:tasks].instance_variable_set(:@value, value.map(&:to_s).to_set)
               end

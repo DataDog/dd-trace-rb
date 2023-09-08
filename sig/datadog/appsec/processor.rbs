@@ -23,7 +23,7 @@ module Datadog
 
       private
 
-      attr_reader ruleset_info: untyped
+      attr_reader diagnostics: untyped
       attr_reader addresses: untyped
 
       @handle: WAF::Handle

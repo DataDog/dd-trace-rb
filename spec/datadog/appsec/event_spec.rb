@@ -40,7 +40,7 @@ RSpec.describe Datadog::AppSec::Event do
       let(:waf_result) do
         dbl = double
 
-        allow(dbl).to receive(:data).and_return([])
+        allow(dbl).to receive(:events).and_return([])
 
         dbl
       end

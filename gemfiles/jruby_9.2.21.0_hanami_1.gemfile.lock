@@ -13,8 +13,8 @@ PATH
   specs:
     ddtrace (1.14.0)
       debase-ruby_core_source (= 3.2.1)
-      libdatadog (~> 3.0.0.1.0)
-      libddwaf (~> 1.9.0.0.0)
+      libdatadog (~> 4.0.0.1.0)
+      libddwaf (~> 1.11.0.0.0)
       msgpack
 
 GEM
@@ -120,8 +120,8 @@ GEM
     io-wait (0.3.0-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (3.0.0.1.0)
-    libddwaf (1.9.0.0.0-java)
+    libdatadog (4.0.0.1.0)
+    libddwaf (1.11.0.0.0-java)
       ffi (~> 1.0)
     mail (2.8.0.1)
       mini_mime (>= 0.1.1)

@@ -105,7 +105,7 @@ module Datadog
 
           # accumulate triggers
           tags['_dd.appsec.triggers'] ||= []
-          tags['_dd.appsec.triggers'] += event[:waf_result].data
+          tags['_dd.appsec.triggers'] += event[:waf_result].events
         end
       end
     end

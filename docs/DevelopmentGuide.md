@@ -53,7 +53,7 @@ All changes should be covered by a corresponding RSpec tests. Unit tests are pre
 
 All tests should run in CI. When adding new `spec.rb` files, you may need to add a test task to ensure your test file is run in CI.
 
- - Ensure that there is a corresponding Rake task defined in `Rakefile` under the the `spec` namespace, whose pattern matches your test file.
+ - Ensure that there is a corresponding Rake task defined in `Rakefile` under the `spec` namespace, whose pattern matches your test file.
  - Verify the Rake task is configured to run for the appropriate Ruby runtimes in the `ci` Rake task.
 
 ### Running tests
@@ -72,29 +72,18 @@ $ bundle exec rake spec:main
 
 Integrations which interact with dependencies not listed in the `ddtrace` gemspec will need to load these dependencies to run their tests.
 
-To do so, load the dependencies using [Appraisal](https://github.com/thoughtbot/appraisal). You can see a list of available appraisals with `bundle exec appraisal list`, or examine the `Appraisals` file.
+To get a list of the spec tasks run `bundle exec rake -T test:`
 
-Then to run tests, prefix the test commain with the appraisal.
+To run any of the specs above just run `bundle exec rake test:<spec_name>`. Ex: `bundle exec rake test:redis`
 
-`bundle exec appraisal <appraisal_name> rake <test_comand>`
-
-
-For example:
-
-```
-# Runs tests for Rails 6.1 + Postgres
-$ bundle exec appraisal ruby-3.0.4-rails61-postgres rake spec:rails
-# Runs tests for Redis
-$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis
-```
 
 **Passing arguments to tests**
 
-When running RSpec tests, you may pass additional args as parameters to the Rake task. For example:
+When running tests, you may pass additional args as parameters to the Rake task. For example:
 
 ```
 # Runs Redis tests with seed 1234
-$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis'[--seed,1234]'
+$ bundle exec rake test:redis'[--seed 1234]'
 ```
 
 This can be useful for replicating conditions from CI or isolating certain tests.
@@ -104,7 +93,7 @@ This can be useful for replicating conditions from CI or isolating certain tests
 You can check test code coverage by creating a report _after_ running a test suite:
 ```
 # Run the desired test suite
-$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis
+$ bundle exec rake test:redis
 # Generate report for the suite executed
 $ bundle exec rake coverage:report
 ```
@@ -146,8 +135,8 @@ Depending on the situation, the thread in question might need to be forced to te
 **The APM Test Agent**
 
 The APM test agent emulates the APM endpoints of the Datadog Agent. The Test Agent container
-runs alongside the Ruby tracer locally and in CI, handles all traces during test runs and performs a number 
-of 'Trace Checks'. For more information on these checks, see: 
+runs alongside the Ruby tracer locally and in CI, handles all traces during test runs and performs a number
+of 'Trace Checks'. For more information on these checks, see:
 https://github.com/DataDog/dd-apm-test-agent#trace-invariant-checks
 
 The APM Test Agent also emits helpful logging, which can be viewed in local testing or in CircleCI as a job step for tracer and contrib
@@ -173,7 +162,7 @@ $ bundle exec rake rubocop
 If your changes can have a measurable performance impact, we recommend running our benchmark suite:
 
 ```
-$ bundle exec appraisal ruby-3.0.4-contrib rake spec:benchmark
+$ bundle exec rake spec:benchmark
 ```
 
 Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.

@@ -11,17 +11,12 @@ module Datadog
 
         attr_reader \
           :default,
-          # experimental_default_proc is used when we want to store a block as part of the option value.
-          # Since this new option is experimental and we might not need it in the near future, I gave it a name that is
-          # clear to the reader that they should not rely on it and that is subject to change.
-          # Currently is only use internally.
-          :experimental_default_proc,
+          :default_proc,
           :env,
           :deprecated_env,
           :env_parser,
-          :delegate_to,
           :name,
-          :on_set,
+          :after_set,
           :resetter,
           :setter,
           :type,
@@ -29,13 +24,12 @@ module Datadog
 
         def initialize(name, meta = {}, &block)
           @default = meta[:default]
-          @experimental_default_proc = meta[:experimental_default_proc]
+          @default_proc = meta[:default_proc]
           @env = meta[:env]
           @deprecated_env = meta[:deprecated_env]
           @env_parser = meta[:env_parser]
-          @delegate_to = meta[:delegate_to]
           @name = name.to_sym
-          @on_set = meta[:on_set]
+          @after_set = meta[:after_set]
           @resetter = meta[:resetter]
           @setter = meta[:setter] || block || IDENTITY
           @type = meta[:type]
@@ -60,11 +54,10 @@ module Datadog
             @deprecated_env = nil
             @env_parser = nil
             @default = nil
-            @experimental_default_proc = nil
-            @delegate_to = nil
+            @default_proc = nil
             @helpers = {}
             @name = name.to_sym
-            @on_set = nil
+            @after_set = nil
             @resetter = nil
             @setter = OptionDefinition::IDENTITY
             @type = nil
@@ -94,12 +87,8 @@ module Datadog
             @default = block || value
           end
 
-          def experimental_default_proc(&block)
-            @experimental_default_proc = block
-          end
-
-          def delegate_to(&block)
-            @delegate_to = block
+          def default_proc(&block)
+            @default_proc = block
           end
 
           def helper(name, *_args, &block)
@@ -116,8 +105,8 @@ module Datadog
             end
           end
 
-          def on_set(&block)
-            @on_set = block
+          def after_set(&block)
+            @after_set = block
           end
 
           def resetter(&block)
@@ -140,13 +129,12 @@ module Datadog
             return if options.nil? || options.empty?
 
             default(options[:default]) if options.key?(:default)
-            experimental_default_proc(&options[:experimental_default_proc]) if options.key?(:experimental_default_proc)
+            default_proc(&options[:default_proc]) if options.key?(:default_proc)
             env(options[:env]) if options.key?(:env)
             deprecated_env(options[:deprecated_env]) if options.key?(:deprecated_env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
-            delegate_to(&options[:delegate_to]) if options.key?(:delegate_to)
             lazy(options[:lazy]) if options.key?(:lazy)
-            on_set(&options[:on_set]) if options.key?(:on_set)
+            after_set(&options[:after_set]) if options.key?(:after_set)
             resetter(&options[:resetter]) if options.key?(:resetter)
             setter(&options[:setter]) if options.key?(:setter)
             type(options[:type], **(options[:type_options] || {})) if options.key?(:type)
@@ -159,12 +147,11 @@ module Datadog
           def meta
             {
               default: @default,
-              experimental_default_proc: @experimental_default_proc,
+              default_proc: @default_proc,
               env: @env,
               deprecated_env: @deprecated_env,
               env_parser: @env_parser,
-              delegate_to: @delegate_to,
-              on_set: @on_set,
+              after_set: @after_set,
               resetter: @resetter,
               setter: @setter,
               type: @type,
@@ -175,10 +162,10 @@ module Datadog
           private
 
           def validate_options!
-            if !@default.nil? && @experimental_default_proc
+            if !@default.nil? && @default_proc
               raise InvalidOptionError,
-                'Using `default` and `experimental_default_proc` is not allowed. Please use one or the other.' \
-                                'If you want to store a block as the default value use `experimental_default_proc`'\
+                'Using `default` and `default_proc` is not allowed. Please use one or the other.' \
+                                'If you want to store a block as the default value use `default_proc`'\
                                 ' otherwise use `default`'
             end
           end

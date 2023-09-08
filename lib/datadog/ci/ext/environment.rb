@@ -10,6 +10,8 @@ module Datadog
     module Ext
       # Defines constants for CI tags
       module Environment
+        HEX_NUMBER_REGEXP = /[0-9a-f]{40}/i.freeze
+
         TAG_JOB_NAME = 'ci.job.name'
         TAG_JOB_URL = 'ci.job.url'
         TAG_PIPELINE_ID = 'ci.pipeline.id'
@@ -71,7 +73,11 @@ module Datadog
             tags[key] ||= value
           end
 
-          tags.reject { |_, v| v.nil? }
+          output = tags.reject { |_, v| v.nil? }
+
+          ensure_post_conditions(output)
+
+          output
         end
 
         def normalize_ref(name)
@@ -166,9 +172,7 @@ module Datadog
           pipeline_url = "https://bitbucket.org/#{env['BITBUCKET_REPO_FULL_NAME']}/addon/pipelines/home#" \
             "!/results/#{env['BITBUCKET_BUILD_NUMBER']}"
 
-          repository_url = filter_sensitive_info(
-            env['BITBUCKET_GIT_SSH_ORIGIN'] || env['BITBUCKET_GIT_HTTP_ORIGIN']
-          )
+          repository_url = env['BITBUCKET_GIT_SSH_ORIGIN'] || env['BITBUCKET_GIT_HTTP_ORIGIN']
 
           {
             Core::Git::Ext::TAG_BRANCH => env['BITBUCKET_BRANCH'],
@@ -573,6 +577,38 @@ module Datadog
           end
 
           [nil, name_and_email]
+        end
+
+        def ensure_post_conditions(tags)
+          validate_repository_url(tags[Core::Git::Ext::TAG_REPOSITORY_URL])
+          validate_git_sha(tags[Core::Git::Ext::TAG_COMMIT_SHA])
+        end
+
+        def validate_repository_url(repo_url)
+          return if !repo_url.nil? && !repo_url.empty?
+
+          Datadog.logger.error('DD_GIT_REPOSITORY_URL is not set or empty; no repo URL was automatically extracted')
+        end
+
+        def validate_git_sha(git_sha)
+          message = 'DD_GIT_COMMIT_SHA must be a full-length git SHA.'
+
+          if git_sha.nil? || git_sha.empty?
+            message += ' No value was set and no SHA was automatically extracted.'
+            Datadog.logger.error(message)
+            return
+          end
+
+          if git_sha.length < Core::Git::Ext::GIT_SHA_LENGTH
+            message += " Expected SHA length #{Core::Git::Ext::GIT_SHA_LENGTH}, was #{git_sha.length}."
+            Datadog.logger.error(message)
+            return
+          end
+
+          unless HEX_NUMBER_REGEXP =~ git_sha
+            message += " Expected SHA to be a valid HEX number, got #{git_sha}."
+            Datadog.logger.error(message)
+          end
         end
       end
     end

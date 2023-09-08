@@ -32,7 +32,7 @@ module Datadog
             option :analytics_enabled do |o|
               o.type :bool, nilable: true
               o.env Ext::ENV_ANALYTICS_ENABLED
-              o.on_set do |value|
+              o.after_set do |value|
                 # Update ActionPack analytics too
                 Datadog.configuration.tracing[:action_pack][:analytics_enabled] = value
               end
@@ -42,7 +42,7 @@ module Datadog
               o.type :float
               o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
               o.default 1.0
-              o.on_set do |value|
+              o.after_set do |value|
                 # Update ActionPack analytics too
                 Datadog.configuration.tracing[:action_pack][:analytics_sample_rate] = value
               end
@@ -55,7 +55,7 @@ module Datadog
             end
             # DEV-2.0: Breaking changes for removal.
             option :exception_controller do |o|
-              o.on_set do |value|
+              o.after_set do |value|
                 if value
                   Datadog::Core.log_deprecation do
                     'The error controller is now automatically detected. '\
@@ -70,7 +70,7 @@ module Datadog
             option :template_base_path do |o|
               o.type :string
               o.default 'views/'
-              o.on_set do |value|
+              o.after_set do |value|
                 # Update ActionView template base path too
                 Datadog.configuration.tracing[:action_view][:template_base_path] = value
               end

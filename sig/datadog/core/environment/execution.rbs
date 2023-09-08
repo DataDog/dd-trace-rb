@@ -3,6 +3,7 @@ module Datadog
     module Environment
       module Execution
         def self.development?: () -> bool
+        def self.webmock_enabled?: () -> bool
 
         private
         def self.test?: () -> bool
