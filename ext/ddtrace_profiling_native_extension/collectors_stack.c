@@ -42,7 +42,8 @@ static void record_placeholder_stack_in_native_code(
   sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
+  int extra_frames_in_record_buffer,
+  int64_t timestamp
 );
 static void sample_thread_internal(
   VALUE thread,
@@ -51,7 +52,8 @@ static void sample_thread_internal(
   sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
+  int extra_frames_in_record_buffer,
+  int64_t timestamp
 );
 
 void collectors_stack_init(VALUE profiling_module) {
@@ -115,13 +117,17 @@ static VALUE _native_sample(
 
   sampling_buffer *buffer = sampling_buffer_new(max_frames_requested);
 
+  // FIXME
+  int64_t timestamp = 0;
+
   sample_thread(
     thread,
     buffer,
     recorder_instance,
     values,
     (ddog_prof_Slice_Label) {.ptr = labels, .len = labels_count},
-    RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
+    RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR,
+    timestamp
   );
 
   sampling_buffer_free(buffer);
@@ -135,13 +141,14 @@ void sample_thread(
   VALUE recorder_instance,
   sample_values values,
   ddog_prof_Slice_Label labels,
-  sample_type type
+  sample_type type,
+  int64_t timestamp
 ) {
   // Samples thread into recorder
   if (type == SAMPLE_REGULAR) {
     sampling_buffer *record_buffer = buffer;
     int extra_frames_in_record_buffer = 0;
-    sample_thread_internal(thread, buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
+    sample_thread_internal(thread, buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer, timestamp);
     return;
   }
 
@@ -164,7 +171,7 @@ void sample_thread(
     };
     sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
     int extra_frames_in_record_buffer = 1;
-    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
+    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer, timestamp);
     return;
   }
 
@@ -197,7 +204,8 @@ static void sample_thread_internal(
   sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
+  int extra_frames_in_record_buffer,
+  int64_t timestamp
 ) {
   int captured_frames = ddtrace_rb_profile_frames(
     thread,
@@ -215,7 +223,8 @@ static void sample_thread_internal(
       values,
       labels,
       record_buffer,
-      extra_frames_in_record_buffer
+      extra_frames_in_record_buffer,
+      timestamp
     );
     return;
   }
@@ -271,7 +280,8 @@ static void sample_thread_internal(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = captured_frames + extra_frames_in_record_buffer},
     values,
-    labels
+    labels,
+    timestamp
   );
 }
 
@@ -322,7 +332,8 @@ static void record_placeholder_stack_in_native_code(
   sample_values values,
   ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
+  int extra_frames_in_record_buffer,
+  int64_t timestamp
 ) {
   ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
   ddog_CharSlice function_filename = DDOG_CHARSLICE_C("In native code");
@@ -335,7 +346,8 @@ static void record_placeholder_stack_in_native_code(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = 1 + extra_frames_in_record_buffer},
     values,
-    labels
+    labels,
+    timestamp
   );
 }
 

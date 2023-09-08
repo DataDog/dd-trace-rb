@@ -399,7 +399,7 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   return rb_time_timespec_new(&time, utc);
 }
 
-void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, ddog_prof_Slice_Label labels) {
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, ddog_prof_Slice_Label labels, int64_t timestamp) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -424,7 +424,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
       .labels = labels
     },
-    0
+    timestamp
   );
 
   sampler_unlock_active_profile(active_slot);

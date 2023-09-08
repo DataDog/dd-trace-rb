@@ -14,7 +14,8 @@ void sample_thread(
   VALUE recorder_instance,
   sample_values values,
   ddog_prof_Slice_Label labels,
-  sample_type type
+  sample_type type,
+  int64_t timestamp
 );
 sampling_buffer *sampling_buffer_new(unsigned int max_frames);
 void sampling_buffer_free(sampling_buffer *buffer);

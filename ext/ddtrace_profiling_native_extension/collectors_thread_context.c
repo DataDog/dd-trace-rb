@@ -724,11 +724,13 @@ static void trigger_sample_for_thread(
     };
   }
 
+  int64_t timestamp = 0;
   if (state->timeline_enabled && current_monotonic_wall_time_ns != INVALID_TIME) {
-    labels[label_pos++] = (ddog_prof_Label) {
-      .key = DDOG_CHARSLICE_C("end_timestamp_ns"),
-      .num = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns)
-    };
+    timestamp = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns);
+    // labels[label_pos++] = (ddog_prof_Label) {
+    //   .key = DDOG_CHARSLICE_C("end_timestamp_ns"),
+    //   .num = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns)
+    // };
   }
 
   if (ruby_vm_type != NULL) {
@@ -759,7 +761,8 @@ static void trigger_sample_for_thread(
     state->recorder_instance,
     values,
     (ddog_prof_Slice_Label) {.ptr = labels, .len = label_pos},
-    type
+    type,
+    timestamp
   );
 }
 
