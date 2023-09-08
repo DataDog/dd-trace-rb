@@ -158,6 +158,7 @@ appraise 'http' do
   gem 'elasticsearch'
   gem 'ethon'
   gem 'excon'
+  gem 'faraday'
   gem 'http'
   gem 'httpclient'
   gem 'opensearch-ruby'
@@ -175,7 +176,6 @@ appraise 'contrib' do
   gem 'dalli', '>= 3.0.0'
   gem 'delayed_job'
   gem 'delayed_job_active_record'
-  gem 'faraday', '>= 1.0'
   gem 'grape'
   gem 'graphql', '>= 2.0'
   gem 'grpc', platform: :ruby

@@ -41,6 +41,7 @@ gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
 gem "elasticsearch"
 gem "ethon"
 gem "excon"
+gem "faraday"
 gem "http"
 gem "httpclient"
 gem "opensearch-ruby"

@@ -62,6 +62,7 @@ appraise 'http' do
   gem 'elasticsearch'
   gem 'ethon'
   gem 'excon'
+  gem 'faraday'
   gem 'http'
   gem 'httpclient'
   gem 'opensearch-ruby'

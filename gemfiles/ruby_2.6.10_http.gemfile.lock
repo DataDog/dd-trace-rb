@@ -214,6 +214,7 @@ DEPENDENCIES
   ethon
   excon
   extlz4 (~> 0.3, >= 0.3.3)
+  faraday
   google-protobuf (~> 3.0, < 3.19.2, != 3.7.1, != 3.7.0)
   http
   httpclient

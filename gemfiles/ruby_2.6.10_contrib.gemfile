@@ -45,7 +45,6 @@ gem "activerecord", "~> 6.0.0"
 gem "dalli", ">= 3.0.0"
 gem "delayed_job"
 gem "delayed_job_active_record"
-gem "faraday", ">= 1.0"
 gem "grape"
 gem "graphql", ">= 2.0"
 gem "grpc", platform: :ruby
