@@ -102,7 +102,7 @@ module Contrib
         traces = fetch_traces(tracer)
         unless traces.empty?
           if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
-              tracer.writer.transport.client.api.adapter.hostname == 'testagent' && test_agent_running?
+              tracer.writer.transport.client.api.adapter.hostname == NetworkHelpers::TEST_AGENT_HOST
             transport_options = {
               adapter: :net_http,
               hostname: NetworkHelpers::TEST_AGENT_HOST,
