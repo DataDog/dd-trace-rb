@@ -129,6 +129,18 @@ appraise 'aws' do
   gem 'shoryuken'
 end
 
+appraise 'http' do
+  gem 'elasticsearch'
+  gem 'ethon'
+  gem 'excon'
+  gem 'faraday'
+  gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
+  gem 'http'
+  gem 'httpclient'
+  gem 'rest-client'
+  gem 'typhoeus'
+end
+
 appraise 'contrib' do
   gem 'actionpack'
   gem 'actionview'
@@ -138,16 +150,9 @@ appraise 'contrib' do
   gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
   gem 'delayed_job'
   gem 'delayed_job_active_record'
-  gem 'elasticsearch'
-  gem 'ethon'
-  gem 'excon'
-  gem 'faraday'
-  gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
   gem 'grape'
   gem 'graphql'
   gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
-  gem 'http'
-  gem 'httpclient'
   gem 'lograge', '~> 0.11'
   gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
   gem 'mongo', '>= 2.8.0'
@@ -160,7 +165,6 @@ appraise 'contrib' do
   gem 'rack-contrib'
   gem 'rack-test'
   gem 'rake', '>= 12.3'
-  gem 'rest-client'
   gem 'redis', '~> 3'
   gem 'resque', '< 2.0'
   gem 'roda', '>= 2.0.0'
@@ -172,7 +176,6 @@ appraise 'contrib' do
   gem 'sneakers', '>= 2.12.0'
   gem 'sqlite3', '~> 1.3.6'
   gem 'sucker_punch'
-  gem 'typhoeus'
   gem 'que', '>= 1.0.0', '< 2.0.0'
 end
 
