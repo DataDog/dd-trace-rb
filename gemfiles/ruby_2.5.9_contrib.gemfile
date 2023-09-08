@@ -64,7 +64,6 @@ gem "sneakers", ">= 2.12.0"
 gem "bunny", "~> 2.19.0"
 gem "sqlite3", "~> 1.4.1", platform: :ruby
 gem "sucker_punch"
-gem "typhoeus"
 gem "que", ">= 1.0.0", "< 2.0.0"
 
 group :check do

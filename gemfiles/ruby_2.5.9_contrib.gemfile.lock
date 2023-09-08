@@ -109,8 +109,6 @@ GEM
       dry-inflector (~> 0.1, >= 0.1.2)
       dry-logic (~> 1.0, >= 1.0.2)
     erubi (1.12.0)
-    ethon (0.16.0)
-      ffi (>= 1.15.0)
     extlz4 (0.3.3)
     ffi (1.15.5)
     google-protobuf (3.19.1)
@@ -295,8 +293,6 @@ GEM
     thor (1.2.1)
     thread_safe (0.3.6)
     tilt (2.1.0)
-    typhoeus (1.4.0)
-      ethon (>= 0.9.0)
     tzinfo (1.2.11)
       thread_safe (~> 0.1)
     warning (1.3.0)
@@ -374,7 +370,6 @@ DEPENDENCIES
   sneakers (>= 2.12.0)
   sqlite3 (~> 1.4.1)
   sucker_punch
-  typhoeus
   warning (~> 1)
   webmock (>= 3.10.0)
   yard (~> 0.9)
