@@ -91,7 +91,7 @@ class RubyOverheadExperiment
 
     puts "After serialization, process rss usage is #{current_rss}k"
 
-    puts "Size of uncompressed serialized pprof: #{pprof.size / 1024}k"
+    puts "Size of compressed serialized pprof: #{pprof.size / 1024}k"
 
     File.write("ruby-overhead-experiment-#{threads}-#{depth}-#{seconds}-timeline-#{timeline_enabled}.pprof", pprof)
 
