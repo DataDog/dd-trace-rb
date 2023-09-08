@@ -159,7 +159,7 @@ appraise 'http' do
   gem 'ethon'
   gem 'excon'
   gem 'faraday'
-  gem 'http'
+  gem 'http', '~> 4' # TODO: Fix test breakage and flakiness for 5+
   gem 'httpclient'
   gem 'opensearch-ruby'
   gem 'rest-client'

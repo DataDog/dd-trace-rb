@@ -63,15 +63,17 @@ GEM
       ffi (>= 1.0.0)
       rake
     hashdiff (1.0.1)
-    http (5.0.1)
+    http (4.4.1)
       addressable (~> 2.3)
       http-cookie (~> 1.0)
       http-form_data (~> 2.2)
-      llhttp-ffi (~> 0.3.0)
+      http-parser (~> 1.2.0)
     http-accept (1.7.0)
     http-cookie (1.0.5)
       domain_name (~> 0.5)
     http-form_data (2.3.0)
+    http-parser (1.2.3)
+      ffi-compiler (>= 1.0, < 2.0)
     httpclient (2.8.3)
     json (2.6.3-java)
     json-schema (2.8.1)
@@ -79,9 +81,6 @@ GEM
     libdatadog (4.0.0.1.0)
     libddwaf (1.11.0.0.0-java)
       ffi (~> 1.0)
-    llhttp-ffi (0.3.1)
-      ffi-compiler (~> 1.0)
-      rake (~> 13.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     mime-types (3.5.1)
@@ -206,7 +205,7 @@ DEPENDENCIES
   ethon
   excon
   faraday
-  http
+  http (~> 4)
   httpclient
   json-schema (< 3)
   memory_profiler (~> 0.9)

@@ -65,7 +65,7 @@ appraise 'http' do
   gem 'ethon'
   gem 'excon'
   gem 'faraday'
-  gem 'http'
+  gem 'http', '~> 4' # TODO: Completely broken with this JRuby version, this has not be validate on CI
   gem 'httpclient'
   gem 'opensearch-ruby'
   gem 'rest-client'

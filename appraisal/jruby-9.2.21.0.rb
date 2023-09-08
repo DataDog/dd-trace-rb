@@ -187,7 +187,7 @@ appraise 'http' do
   gem 'ethon', (RUBY_PLATFORM == 'java' ? '< 0.15.0' : '>= 0')
   gem 'excon'
   gem 'faraday'
-  gem 'http'
+  gem 'http', '~> 4' # TODO: Fix test breakage and flakiness for 5+
   gem 'httpclient'
   gem 'opensearch-ruby'
   gem 'rest-client'
