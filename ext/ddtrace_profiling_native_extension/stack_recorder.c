@@ -423,7 +423,8 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
       .locations = locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
       .labels = labels
-    }
+    },
+    0
   );
 
   sampler_unlock_active_profile(active_slot);
@@ -452,7 +453,7 @@ static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
   args->profile = serializer_flip_active_and_inactive_slots(args->state);
-  args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */);
+  args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start-time for next profile*/);
   args->serialize_ran = true;
 
   return NULL; // Unused
