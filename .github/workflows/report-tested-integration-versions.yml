@@ -1,0 +1,20 @@
+
+name: "Report dd-trace-rb tested integration versions to telemetry"
+on:
+  push:
+    # tags:
+    #   - 'v*.*.*'
+    branches:
+      - "**"
+
+jobs:
+  report-integration-telemetry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+      - name: Report Ruby Tested Integration Versions to APM Analytics
+        run: ruby .github/scripts/report-tested-integration-versions.rb
+      
