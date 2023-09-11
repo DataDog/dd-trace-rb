@@ -157,6 +157,19 @@ appraise 'aws' do
   gem 'shoryuken'
 end
 
+appraise 'http' do
+  gem 'elasticsearch'
+  gem 'ethon'
+  gem 'excon'
+  gem 'faraday'
+  gem 'http'
+  gem 'httpclient'
+  gem 'opensearch-ruby'
+  gem 'rest-client'
+  gem 'stripe', '~> 7.0'
+  gem 'typhoeus'
+end
+
 appraise 'contrib' do
   gem 'actionpack'
   gem 'actionview'
@@ -166,36 +179,20 @@ appraise 'contrib' do
   gem 'dalli', '>= 3.0.0'
   gem 'delayed_job'
   gem 'delayed_job_active_record'
-  gem 'elasticsearch', '>= 8.0.0'
-  # Workaround bundle of JRuby/ethon issues:
-  # * ethon 0.15.0 is incompatible with most JRuby 9.2 versions (fixed in 9.2.20.0),
-  #   see https://github.com/typhoeus/ethon/issues/205
-  # * we test with 9.2.18.0 because ethon is completely broken on JRuby 9.2.19.0+ WHEN RUN on a Java 8 VM,
-  #   see https://github.com/jruby/jruby/issues/7033
-  #
-  # Thus let's keep our JRuby testing on 9.2.18.0 with Java 8, and avoid pulling in newer ethon versions until
-  # either the upstream issues are fixed OR we end up moving to Java 11.
-  gem 'ethon', (RUBY_PLATFORM == 'java' ? '< 0.15.0' : '>= 0')
-  gem 'excon'
-  gem 'faraday', '>= 1.0'
   gem 'grape'
   gem 'graphql', '>= 2.0'
   gem 'grpc', platform: :ruby
-  gem 'http'
-  gem 'httpclient'
   gem 'lograge', '~> 0.11'
   gem 'makara'
   gem 'minitest', '>= 5.0.0'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'mysql2', '< 1', platform: :ruby
-  gem 'opensearch-ruby'
   gem 'pg', '>= 0.18.4', platform: :ruby
   gem 'racecar', '>= 0.3.5'
   gem 'rack'
   gem 'rack-contrib'
   gem 'rack-test'
   gem 'rake', '>= 12.3'
-  gem 'rest-client'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
@@ -206,9 +203,7 @@ appraise 'contrib' do
   gem 'sneakers', '>= 2.12.0'
   gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
   gem 'sqlite3', '~> 1.4.1', platform: :ruby
-  gem 'stripe', '~> 7.0'
   gem 'sucker_punch'
-  gem 'typhoeus'
   gem 'que', '>= 1.0.0', '< 2.0.0'
 end
 
