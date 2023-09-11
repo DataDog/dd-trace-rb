@@ -24,6 +24,16 @@ jobs:
           build-args: DDTRACE_RUBY_SHA=${{ github.sha }}
           context: ./lib-injection
 
+  all_test_successful:
+    name: Lib injection tests successful
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - test-negative
+    steps:
+      - name: Lib injection tests successful
+        run: echo "Done"
+
   test:
     needs:
       - build-and-publish-test-image
