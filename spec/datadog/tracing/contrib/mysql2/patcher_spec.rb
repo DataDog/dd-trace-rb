@@ -78,7 +78,7 @@ RSpec.describe 'Mysql2::Client patcher' do
 
         it_behaves_like 'with sql comment propagation',
           span_op_name: 'mysql2.query',
-          peer_service: ENV.fetch('TEST_MYSQL_DB') || 'mysql'
+          peer_service: ENV.fetch('TEST_MYSQL_DB') { 'mysql' }
       end
 
       context 'when a successful query is made' do
@@ -113,7 +113,7 @@ RSpec.describe 'Mysql2::Client patcher' do
 
         it_behaves_like 'with sql comment propagation',
           span_op_name: 'mysql2.query',
-          peer_service: ENV.fetch('TEST_MYSQL_DB') || 'mysql'
+          peer_service: ENV.fetch('TEST_MYSQL_DB') { 'mysql' }
 
         it_behaves_like 'environment service name', 'DD_TRACE_MYSQL2_SERVICE_NAME' do
           let(:configuration_options) { {} }
@@ -146,7 +146,7 @@ RSpec.describe 'Mysql2::Client patcher' do
 
         it_behaves_like 'with sql comment propagation',
           span_op_name: 'mysql2.query',
-          peer_service: ENV.fetch('TEST_MYSQL_DB') || 'mysql',
+          peer_service: ENV.fetch('TEST_MYSQL_DB') { 'mysql' },
           error: Mysql2::Error
 
         it_behaves_like 'environment service name', 'DD_TRACE_MYSQL2_SERVICE_NAME', error: Mysql2::Error do

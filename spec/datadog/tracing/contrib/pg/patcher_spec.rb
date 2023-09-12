@@ -72,7 +72,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             exec
@@ -85,7 +85,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             exec
@@ -149,7 +149,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -194,7 +194,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             exec
@@ -207,7 +207,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             exec
@@ -271,7 +271,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -316,7 +316,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             exec_params
@@ -329,7 +329,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             exec_params
@@ -395,7 +395,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -440,7 +440,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             exec_params
@@ -453,7 +453,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             exec_params
@@ -523,7 +523,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -790,7 +790,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             async_exec
@@ -803,7 +803,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             async_exec
@@ -869,7 +869,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -913,7 +913,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             async_exec
@@ -926,7 +926,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             async_exec
@@ -996,7 +996,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -1044,7 +1044,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             async_exec_params
@@ -1057,7 +1057,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             async_exec_params
@@ -1123,7 +1123,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -1167,7 +1167,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             async_exec_params
@@ -1180,7 +1180,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             async_exec_params
@@ -1246,7 +1246,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -1522,7 +1522,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             sync_exec
@@ -1535,7 +1535,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             sync_exec
@@ -1599,7 +1599,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -1643,7 +1643,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             sync_exec
@@ -1656,7 +1656,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             sync_exec
@@ -1720,7 +1720,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -1767,7 +1767,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             sync_exec_params
@@ -1779,7 +1779,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             sync_exec_params
@@ -1845,7 +1845,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
@@ -1889,7 +1889,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace with service override' do
             sync_exec_params
@@ -1901,7 +1901,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres'
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
 
           it 'produces a trace' do
             sync_exec_params
@@ -1967,7 +1967,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           it_behaves_like 'with sql comment propagation',
             span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') || 'postgres',
+            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
             error: PG::Error
 
           it 'traces failed queries' do
