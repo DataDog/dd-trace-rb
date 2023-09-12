@@ -9,7 +9,6 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Writing tests](#writing-tests)
      - [Running tests](#running-tests)
      - [Checking code quality](#checking-code-quality)
-     - [Running benchmarks](#running-benchmarks)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
      - [Custom transport adapters](#custom-transport-adapters)
@@ -45,13 +44,13 @@ The test suite uses [RSpec](https://rspec.info/) tests to verify the correctness
 
 ### Writing tests
 
-New tests should be written as RSpec tests in the `spec/ddtrace` folder. Test files should generally mirror the structure of `lib`.
+New tests should be written as RSpec tests in the `spec/datadog` folder. Test files should generally mirror the structure of `lib`.
 
 All changes should be covered by a corresponding RSpec tests. Unit tests are preferred, and integration tests are accepted where appropriate (e.g. acceptance tests, verifying compatibility with datastores, etc) but should be kept to a minimum.
 
 **Considerations for CI**
 
-All tests should run in CI. When adding new `spec.rb` files, you may need to add a test task to ensure your test file is run in CI.
+All tests should run in CI. When adding new `_spec.rb` files, you may need to add a test task to ensure your test file is run in CI.
 
  - Ensure that there is a corresponding Rake task defined in `Rakefile` under the `spec` namespace, whose pattern matches your test file.
  - Verify the Rake task is configured to run for the appropriate Ruby runtimes in the `ci` Rake task.
@@ -156,16 +155,6 @@ The trace library uses Rubocop to enforce [code style](https://github.com/bbatso
 ```
 $ bundle exec rake rubocop
 ```
-
-### Running benchmarks
-
-If your changes can have a measurable performance impact, we recommend running our benchmark suite:
-
-```
-$ bundle exec rake spec:benchmark
-```
-
-Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
 
 ## Appendix
 
