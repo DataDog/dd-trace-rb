@@ -31,9 +31,6 @@ docker-compose run --rm tracer-3.0 /bin/bash
 # Then inside the container (e.g. `root@2a73c6d8673e:/app`)...
 # Install the library dependencies
 bundle install
-
-# Install build targets
-bundle exec appraisal install
 ```
 
 Then within this container you can [run tests](#running-tests), or [run code quality checks](#checking-code-quality).
@@ -50,10 +47,32 @@ All changes should be covered by a corresponding RSpec tests. Unit tests are pre
 
 **Considerations for CI**
 
-All tests should run in CI. When adding new `_spec.rb` files, you may need to add a test task to ensure your test file is run in CI.
+All tests should run in CI. When adding new `_spec.rb` files, you may need to add rake task to ensure your test file is run in CI.
 
- - Ensure that there is a corresponding Rake task defined in `Rakefile` under the `spec` namespace, whose pattern matches your test file.
- - Verify the Rake task is configured to run for the appropriate Ruby runtimes in the `ci` Rake task.
+ - Ensure that there is a corresponding Rake task defined in `Rakefile` under the `spec` namespace, whose pattern matches your test file. For example
+
+ ```
+   namespace :spec do
+     RSpec::Core::RakeTask.new(:foo) do |t, args|
+       t.pattern = "spec/datadog/tracing/contrib/bar/**/*_spec.rb"
+       t.rspec_opts = args.to_a.join(' ')
+     end
+   end
+ ```
+
+ - Ensure the Rake task is configured to run for the appropriate Ruby runtimes, by introducing it to our test matrix. You should find the task with `bundle exec rake -T test:<foo>`.
+
+```
+  TEST_METADATA = {
+    'foo' => {
+      # Without any appraisal group dependencies
+      ''    => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+
+      # or with appraisal group definition `bar`
+      'bar' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+    },
+  }
+```
 
 ### Running tests
 
@@ -64,17 +83,47 @@ Simplest way to run tests is to run `bundle exec rake ci`, which will run the en
 Run the tests for the core library with:
 
 ```
-$ bundle exec rake spec:main
+$ bundle exec rake test:main
 ```
 
 **For integrations**
 
-Integrations which interact with dependencies not listed in the `ddtrace` gemspec will need to load these dependencies to run their tests.
+Integrations which interact with dependencies not listed in the `ddtrace` gemspec will need to load these dependencies to run their tests. Each test task could consist of multiple spec tasks which are executed with different groups of dependencies (likely against different versions or variations).
 
-To get a list of the spec tasks run `bundle exec rake -T test:`
+To get a list of the test tasks, run `bundle exec rake -T test`
 
-To run any of the specs above just run `bundle exec rake test:<spec_name>`. Ex: `bundle exec rake test:redis`
+To run test, run `bundle exec rake test:<spec_name>`
 
+Take `bundle exec rake test:redis` as example, multiple versions of `redis` from different groups are tested.
+
+```
+TEST_METADATA = {
+  'redis' => {
+    'redis-3' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'redis-4' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'redis-5' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  }
+}
+```
+
+**Working with appraisal groups**
+
+Checkout [Apppraisal](https://github.com/thoughtbot/appraisal) to learn the basics.
+
+Groups are defined under `appraisal/` directory and their names are prefixed with Ruby runtime based on the environment. `*.gemfile` and `*.gemfile.lock` from `gemfiles/` directory are generated from those definitions.
+
+To find out existing groups in your environment, run `bundle exec appraisal list`
+
+After introducing a new group definition or changing existing one, run `bundle exec appraisal generate` to propagate the changes.
+
+To install dependencies, run `bundle exec appraisal install`.
+
+In addition, if you already know which appraisal group definition to work with, you can target a specific group operation with environment vairable `APPRAISAL_GROUP`, instead of all the groups from your environment. For example:
+
+```
+# This would only install dependencies for `aws` group definition
+APPRAISAL_GROUP=aws bundle exec appraisal install
+```
 
 **Passing arguments to tests**
 
