@@ -17,11 +17,11 @@ module Datadog
 
           # Inject span_op and trace_op instead of TraceDigest to improve memory usage
           # for `disabled` and `service` mode
-          def self.prepend_comment(sql, span_op, trace_op, mode)
+          def self.prepend_comment(sql, span_op, trace_op, mode, peer_service)
             return sql unless mode.enabled?
 
             tags = {
-              Ext::KEY_DATABASE_SERVICE => span_op.service,
+              Ext::KEY_DATABASE_SERVICE => peer_service || span_op.service,
               Ext::KEY_ENVIRONMENT => datadog_configuration.env,
               Ext::KEY_PARENT_SERVICE => datadog_configuration.service,
               Ext::KEY_VERSION => datadog_configuration.version

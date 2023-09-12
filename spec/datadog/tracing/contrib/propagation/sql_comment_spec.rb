@@ -67,7 +67,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         )
       end
 
-      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode) }
+      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode, nil) }
 
       context 'when `disabled` mode' do
         let(:mode) { 'disabled' }
@@ -102,6 +102,61 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
     end
 
+    context 'when tracing is enabled with peer.service' do
+      before do
+        Datadog.configure do |c|
+          c.env = 'production'
+          c.service = "Traders' Joe"
+          c.version = '1.0.0'
+        end
+      end
+
+      let(:span_op) { double(service: 'database_service') }
+      let(:trace_op) do
+        double(
+          to_digest: Datadog::Tracing::TraceDigest.new(
+            trace_id: 0xC0FFEE,
+            span_id: 0xBEE,
+            trace_flags: 0xFE
+          )
+        )
+      end
+
+      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode, 'sample_peer_service') }
+
+      context 'when `disabled` mode' do
+        let(:mode) { 'disabled' }
+
+        it { is_expected.to eq(sql_statement) }
+      end
+
+      context 'when `service` mode' do
+        let(:mode) { 'service' }
+
+        it do
+          is_expected.to eq(
+            "/*dddbs='sample_peer_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
+          )
+        end
+      end
+
+      context 'when `full` mode' do
+        let(:mode) { 'full' }
+        let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-fe' }
+
+        it {
+          is_expected.to eq(
+            "/*dddbs='sample_peer_service',"\
+              "dde='production',"\
+              "ddps='Traders%27%20Joe',"\
+              "ddpv='1.0.0',"\
+              "traceparent='#{traceparent}'*/ "\
+              "#{sql_statement}"
+          )
+        }
+      end
+    end
+
     describe 'when propagates with `full` mode but tracing is disabled ' do
       before do
         Datadog.configure do |c|
@@ -120,7 +175,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         Datadog::Tracing.trace('dummy.sql') do |span_op, trace_op|
           span_op.service = 'database_service'
 
-          result = described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode)
+          result = described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode, nil)
         end
 
         result
