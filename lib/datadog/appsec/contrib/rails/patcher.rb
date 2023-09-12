@@ -83,9 +83,15 @@ module Datadog
                 super
               end
 
-              if request_response && request_response.any? { |action, _event| action == :block }
-                @_response = AppSec::Response.negotiate(env).to_action_dispatch_response
-                request_return = @_response.body
+              if request_response
+                blocked_event = request_response.find { |action, _options| action == :block }
+                if blocked_event
+                  @_response = AppSec::Response.negotiate(
+                    env,
+                    blocked_event.last[:actions]
+                  ).to_action_dispatch_response
+                  request_return = @_response.body
+                end
               end
 
               request_return

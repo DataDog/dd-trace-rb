@@ -28,6 +28,7 @@ module Datadog
 
           private
 
+          # rubocop:disable Metrics/AbcSize
           def annotate!(span, context)
             span.service = configuration[:service_name]
             span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
@@ -45,6 +46,11 @@ module Datadog
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                 configuration[:peer_service]
               )
+            end
+
+            # Tag original global service name if not used
+            if span.service != Datadog.configuration.service
+              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
             end
 
             span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -71,6 +77,7 @@ module Datadog
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
           end
+          # rubocop:enable Metrics/AbcSize
 
           def configuration
             Datadog.configuration.tracing[:aws]

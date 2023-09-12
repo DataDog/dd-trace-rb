@@ -672,6 +672,7 @@ target :ddtrace do
   library 'delayed_job'
   library 'opentelemetry-api'
   library 'passenger'
+  library 'webmock'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'

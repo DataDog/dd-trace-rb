@@ -13,7 +13,7 @@ PATH
   specs:
     ddtrace (1.14.0)
       debase-ruby_core_source (= 3.2.1)
-      libdatadog (~> 3.0.0.1.0)
+      libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.11.0.0.0)
       msgpack
 
@@ -115,7 +115,7 @@ GEM
     jdbc-mysql (8.0.27)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (3.0.0.1.0)
+    libdatadog (4.0.0.1.0)
     libddwaf (1.11.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.12.0)
