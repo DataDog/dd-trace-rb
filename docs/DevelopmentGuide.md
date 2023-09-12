@@ -21,7 +21,7 @@ The trace library uses Docker Compose to create a Ruby environment to develop an
 
 To start a development environment, choose a target Ruby version then run the following:
 
-```
+```bash
 # In the root directory of the project...
 cd ~/dd-trace-rb
 
@@ -51,7 +51,7 @@ All tests should run in CI. When adding new `_spec.rb` files, you may need to ad
 
  - Ensure that there is a corresponding Rake task defined in `Rakefile` under the `spec` namespace, whose pattern matches your test file. For example
 
- ```
+ ```ruby
    namespace :spec do
      RSpec::Core::RakeTask.new(:foo) do |t, args|
        t.pattern = "spec/datadog/tracing/contrib/bar/**/*_spec.rb"
@@ -62,7 +62,7 @@ All tests should run in CI. When adding new `_spec.rb` files, you may need to ad
 
  - Ensure the Rake task is configured to run for the appropriate Ruby runtimes, by introducing it to our test matrix. You should find the task with `bundle exec rake -T test:<foo>`.
 
-```
+```ruby
   TEST_METADATA = {
     'foo' => {
       # Without any appraisal group dependencies
@@ -96,7 +96,7 @@ To run test, run `bundle exec rake test:<spec_name>`
 
 Take `bundle exec rake test:redis` as example, multiple versions of `redis` from different groups are tested.
 
-```
+```ruby
 TEST_METADATA = {
   'redis' => {
     'redis-3' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
