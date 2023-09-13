@@ -50,7 +50,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     let(:finish) { serialize[1] }
     let(:encoded_pprof) { serialize[2] }
 
-    let(:decoded_profile) { ::Perftools::Profiles::Profile.decode(encoded_pprof) }
+    let(:decoded_profile) do
+      require 'extlz4' # Lazily required, to avoid trying to load it on JRuby
+
+      ::Perftools::Profiles::Profile.decode(LZ4.decode(encoded_pprof))
+    end
 
     it 'debug logs profile information' do
       message = nil

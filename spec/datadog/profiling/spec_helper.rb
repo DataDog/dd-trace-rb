@@ -56,7 +56,9 @@ module ProfileHelpers
   end
 
   def samples_from_pprof(pprof_data)
-    decoded_profile = ::Perftools::Profiles::Profile.decode(pprof_data)
+    require 'extlz4' # Lazily required, to avoid trying to load it on JRuby
+
+    decoded_profile = ::Perftools::Profiles::Profile.decode(LZ4.decode(pprof_data))
 
     string_table = decoded_profile.string_table
     pretty_sample_types = decoded_profile.sample_type.map { |it| string_table[it.type].to_sym }

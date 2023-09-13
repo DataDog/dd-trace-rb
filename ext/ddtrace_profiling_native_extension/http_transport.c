@@ -314,12 +314,14 @@ static VALUE _native_do_export(
 
   files[0] = (ddog_prof_Exporter_File) {
     .name = char_slice_from_ruby_string(pprof_file_name),
-    .file = byte_slice_from_ruby_string(pprof_data)
+    .file = byte_slice_from_ruby_string(pprof_data),
+    .compress_before_exporting = false,
   };
   if (have_code_provenance) {
     files[1] = (ddog_prof_Exporter_File) {
       .name = char_slice_from_ruby_string(code_provenance_file_name),
-      .file = byte_slice_from_ruby_string(code_provenance_data)
+      .file = byte_slice_from_ruby_string(code_provenance_data),
+      .compress_before_exporting = true,
     };
   }
 

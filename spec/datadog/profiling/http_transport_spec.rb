@@ -371,8 +371,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         require 'extlz4' # Lazily required, to avoid trying to load it on JRuby
 
-        expect(LZ4.decode(body.fetch(pprof_file_name))).to eq pprof_data
-        expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data
+        expect(body.fetch(pprof_file_name)).to eq pprof_data # The pprof data is compressed in the datadog serializer, nothing to do
+        expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data # This one needs to be compressed
       end
     end
 
