@@ -73,6 +73,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
 
       subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode) }
+
       context 'when `disabled` mode' do
         let(:mode) { 'disabled' }
 
@@ -86,6 +87,22 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           is_expected.to eq(
             "/*dddbs='database_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
           )
+        end
+
+        context 'when given a span operation tagged with peer.service' do
+          let(:span_op) do
+            Datadog::Tracing::SpanOperation.new(
+              'sample_span',
+              service: 'database_service',
+              tags: { 'peer.service' => 'sample_peer_service' }
+            )
+          end
+
+          it do
+            is_expected.to eq(
+              "/*dddbs='sample_peer_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
+            )
+          end
         end
       end
 
@@ -103,33 +120,27 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             "#{sql_statement}"
           )
         }
-      end
-    end
 
-    context 'when given a span operation tagged with peer.service' do
-      let(:span_op) do
-        Datadog::Tracing::SpanOperation.new(
-          'sample_span',
-          service: 'database_service',
-          tags: { 'peer.service' => 'sample_peer_service' }
-        )
-      end
-      let(:mode) { 'service' }
-      let(:trace_op) do
-        double(
-          to_digest: Datadog::Tracing::TraceDigest.new(
-            trace_id: 0xC0FFEE,
-            span_id: 0xBEE,
-            trace_flags: 0xFE
-          )
-        )
-      end
+        context 'when given a span operation tagged with peer.service' do
+          let(:span_op) do
+            Datadog::Tracing::SpanOperation.new(
+              'sample_span',
+              service: 'database_service',
+              tags: { 'peer.service' => 'sample_peer_service' }
+            )
+          end
 
-      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode) }
-      it do
-        is_expected.to eq(
-          "/*dddbs='sample_peer_service',ddps='rspec'*/ #{sql_statement}"
-        )
+          it {
+            is_expected.to eq(
+              "/*dddbs='sample_peer_service',"\
+              "dde='production',"\
+              "ddps='Traders%27%20Joe',"\
+              "ddpv='1.0.0',"\
+              "traceparent='#{traceparent}'*/ "\
+              "#{sql_statement}"
+            )
+          }
+        end
       end
     end
 
