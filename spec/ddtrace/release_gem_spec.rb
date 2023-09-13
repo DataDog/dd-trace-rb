@@ -20,6 +20,7 @@ RSpec.describe 'gem release process' do
            |\.rspec
            |\.rubocop.yml
            |\.rubocop_todo.yml
+           |\.semgrepignore
            |\.simplecov
            |\.yardopts
            |Appraisals
