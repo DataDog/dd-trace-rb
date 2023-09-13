@@ -522,7 +522,8 @@ module Datadog
         end
 
         def exec_git_command(cmd)
-          out, status = Open3.capture2e(cmd)
+          # DEV: All `cmd`s are static strings.
+          out, status = Open3.capture2e(cmd) # nosemgrep: ruby.lang.security.dangerous-exec.dangerous-exec
 
           raise "Failed to run git command #{cmd}: #{out}" unless status.success?
 

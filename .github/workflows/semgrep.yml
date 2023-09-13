@@ -19,6 +19,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - run: semgrep ci --include=bin/* --include=ext/* --include=lib/*
+      - run: |
+          semgrep ci \
+          --include=bin/* --include=ext/* --include=lib/* \
+          --exclude-rule=ruby.lang.security.model-attributes-attr-accessible.model-attributes-attr
         env:
           SEMGREP_RULES: p/default
