@@ -5,6 +5,8 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
+require_relative 'shared_examples'
+
 require 'grpc'
 require 'ddtrace'
 
@@ -150,6 +152,7 @@ RSpec.describe 'tracing on the client connection' do
       end
 
       let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
+      let(:span_kind) { 'client' }
 
       context 'without an error handler' do
         it do
@@ -165,20 +168,25 @@ RSpec.describe 'tracing on the client connection' do
       end
 
       context 'with an error handler' do
-        let(:configuration_options) { { service_name: 'rspec', error_handler: error_handler } }
+        subject(:server) do
+          Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new { |c| c.error_handler = error_handler }
+        end
 
         let(:error_handler) do
-          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it") }
+          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from interceptor") }
         end
 
-        it do
-          expect { request_response }.to raise_error('test error')
+        it_behaves_like 'it handles the error', 'Got error test error, but ignored it from interceptor'
+      end
 
-          expect(span).not_to have_error
-          expect(span.get_tag('custom.handler')).to eq('Got error test error, but ignored it')
-          expect(span.get_tag('rpc.system')).to eq('grpc')
-          expect(span.get_tag('span.kind')).to eq('client')
+      context 'with an error handler defined in the configuration options' do
+        let(:configuration_options) { { service_name: 'rspec', client_error_handler: error_handler } }
+
+        let(:error_handler) do
+          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from configuration") }
         end
+
+        it_behaves_like 'it handles the error', 'Got error test error, but ignored it from configuration'
       end
     end
   end

@@ -102,6 +102,10 @@ module Datadog
               Datadog.logger.debug { "Could not parse host:port from #{call}: #{e}" }
               nil
             end
+
+            def error_handler
+              Datadog.configuration_for(self, :error_handler) || datadog_configuration[:client_error_handler]
+            end
           end
         end
       end
