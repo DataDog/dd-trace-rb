@@ -10,6 +10,8 @@ Examples:
 
 Bundler vendors gems from a specific location, instead of system default.
 ```bash
+bundle config path vendor/cache
+# or
 BUNDLE_PATH=vendor/cache bundle install
 # or
 bundle install --path=vendor/cache
