@@ -1,6 +1,6 @@
 ### Injection
 
-The inject script would add `ddtrace` to your application's `Gemfile` to [instrument your application](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/#rails-or-hanami-applications)).
+Injection is Datadog's strategy to [instrument application without touching application code](https://docs.datadoghq.com/tracing/trace_collection/library_injection_local/?tab=kubernetes). Currently, This strategy is implemented by adding `ddtrace` to your application's `Gemfile` to [instrument your application](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/#rails-or-hanami-applications)).
 
 * Supports `Ruby on Rails` and `Hanami` application
 * Requires [bundler](https://bundler.io/) version 2.3 or above
@@ -8,7 +8,7 @@ The inject script would add `ddtrace` to your application's `Gemfile` to [instru
 
 Examples:
 
-Bundler vendors the gems from a specific location, instead of system default.
+Bundler vendors gems from a specific location, instead of system default.
 ```bash
 BUNDLE_PATH=vendor/cache bundle install
 # or

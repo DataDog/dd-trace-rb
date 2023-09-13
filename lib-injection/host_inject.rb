@@ -1,52 +1,57 @@
-return if ENV["DD_TRACE_SKIP_LIB_INJECTION"] == "true"
-require "rubygems"
-require "rbconfig"
+# Keep in sync with auto_inject.rb
 
-ruby_api_version = RbConfig::CONFIG["ruby_version"]
+return if ENV['DD_TRACE_SKIP_LIB_INJECTION'] == 'true'
+
+require 'rubygems'
+require 'rbconfig'
+
+ruby_api_version = RbConfig::CONFIG['ruby_version']
 
 # Look for pre-installed tracers
 Gem.paths = {
-  "GEM_PATH" => "/opt/datadog/apm/library/ruby/#{ruby_api_version}:/opt/datadog/apm/library/ruby:#{ENV["GEM_PATH"]}"
+  'GEM_PATH' => "/opt/datadog/apm/library/ruby/#{ruby_api_version}:/opt/datadog/apm/library/ruby:#{ENV['GEM_PATH']}"
 }
 
 # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
-ENV["GEM_PATH"] = Gem.path.join(":")
+ENV['GEM_PATH'] = Gem.path.join(':')
 
 def debug_log(msg)
-  STDOUT.puts msg if ENV["DD_TRACE_DEBUG"] == "true"
+  $stdout.puts msg if ENV['DD_TRACE_DEBUG'] == 'true'
 end
 
 begin
-  require "open3"
-  require "bundler"
-  require "bundler/cli"
-  require "shellwords"
-  require "fileutils"
+  require 'open3'
+  require 'bundler'
+  require 'bundler/cli'
+  require 'shellwords'
+  require 'fileutils'
 
-  support_message = "For help solving this issue, please contact Datadog support at https://docs.datadoghq.com/help/."
+  support_message = 'For help solving this issue, please contact Datadog support at https://docs.datadoghq.com/help/.'
 
   unless Bundler::SharedHelpers.in_bundle?
-    debug_log "[ddtrace] Not in bundle... skipping injection"
+    debug_log '[ddtrace] Not in bundle... skipping injection'
     return
   end
 
-  _, status = Open3.capture2e({"DD_TRACE_SKIP_LIB_INJECTION" => "true"}, "bundle show ddtrace")
+  _, status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, 'bundle show ddtrace')
   if status.success?
-    debug_log "[ddtrace] ddtrace already installed... skipping injection"
+    debug_log '[ddtrace] ddtrace already installed... skipping injection'
     return
   end
 
   if Bundler.frozen_bundle?
-    STDERR.puts "[ddtrace] Injection failed: Frozen `Gemfile` because Bundler is configured with `deployment`."
+    warn '[ddtrace] Injection failed: Unable to inject into a frozen Gemfile '\
+    '(Bundler is configured with `deployment` or `frozen`)'
     return
   end
 
-  unless Bundler::CLI.commands["add"] && Bundler::CLI.commands["add"].options.key?("require")
-    STDERR.puts "[ddtrace] Injection failed: Bundler version #{Bundler::VERSION} is not supported. Please upgrade >= 2.3."
+  unless Bundler::CLI.commands['add'] && Bundler::CLI.commands['add'].options.key?('require')
+    warn "[ddtrace] Injection failed: Bundler version #{Bundler::VERSION} is not supported. "\
+      'Upgrade to Bundler >= 2.3 to enable injection.'
     return
   end
 
-  lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file("/opt/datadog/apm/library/ruby/Gemfile.lock"))
+  lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file('/opt/datadog/apm/library/ruby/Gemfile.lock'))
   gem_version_mapping = lock_file_parser.specs.each_with_object({}) do |spec, hash|
     hash[spec.name] = spec.version.to_s
     hash
@@ -54,14 +59,14 @@ begin
 
   # This is order dependent
   [
-    "msgpack",
-    "ffi",
-    "debase-ruby_core_source",
-    "libdatadog",
-    "libddwaf",
-    "ddtrace"
+    'msgpack',
+    'ffi',
+    'debase-ruby_core_source',
+    'libdatadog',
+    'libddwaf',
+    'ddtrace'
   ].each do |gem|
-    _, status = Open3.capture2e({"DD_TRACE_SKIP_LIB_INJECTION" => "true"}, "bundle show #{gem}")
+    _, status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, "bundle show #{gem}")
 
     if status.success?
       debug_log "[ddtrace] #{gem} already installed... skipping..."
@@ -69,17 +74,15 @@ begin
     else
       bundle_add_cmd = "bundle add #{gem} --skip-install --version #{gem_version_mapping[gem]} "
 
-      if gem == "ddtrace"
-        bundle_add_cmd << "--require ddtrace/auto_instrument"
-      end
+      bundle_add_cmd << '--require ddtrace/auto_instrument' if gem == 'ddtrace'
 
       debug_log "[ddtrace] Injection with `#{bundle_add_cmd}`"
 
       gemfile = Bundler::SharedHelpers.default_gemfile
       lockfile = Bundler::SharedHelpers.default_lockfile
 
-      datadog_gemfile = gemfile.dirname + "datadog-Gemfile"
-      datadog_lockfile = lockfile.dirname + "datadog-Gemfile.lock"
+      datadog_gemfile = gemfile.dirname + 'datadog-Gemfile'
+      datadog_lockfile = lockfile.dirname + 'datadog-Gemfile.lock'
 
       begin
         # Copies for trial
@@ -87,17 +90,19 @@ begin
         ::FileUtils.cp lockfile, datadog_lockfile
 
         output, status = Open3.capture2e(
-          {"DD_TRACE_SKIP_LIB_INJECTION" => "true", "BUNDLE_GEMFILE" => datadog_gemfile.to_s},
+          { 'DD_TRACE_SKIP_LIB_INJECTION' => 'true', 'BUNDLE_GEMFILE' => datadog_gemfile.to_s },
           bundle_add_cmd
         )
 
         if status.success?
-          STDOUT.puts "[ddtrace] Injection adds #{gem} to the application successfully."
+          $stdout.puts "[ddtrace] Injection adds #{gem} to the application successfully."
 
           ::FileUtils.cp datadog_gemfile, gemfile
           ::FileUtils.cp datadog_lockfile, lockfile
         else
-          STDERR.puts "[ddtrace] Injection failed: Unable to add ddtrace. Error output:\n#{output.split("\n").map { |l| "[ddtrace] #{l}" }.join("\n")}\n#{support_message}"
+          warn "[ddtrace] Injection failed: Unable to add ddtrace. Error output:\n#{output.split("\n").map do |l|
+            "[ddtrace] #{l}"
+          end.join("\n")}\n#{support_message}"
         end
       ensure
         # Remove the copies
@@ -107,5 +112,5 @@ begin
     end
   end
 rescue Exception => e
-  STDERR.puts "[ddtrace] #{failure_prefix} #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
+  warn "[ddtrace] #{failure_prefix} #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
 end
