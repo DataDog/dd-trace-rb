@@ -388,6 +388,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   VALUE finish = ruby_time_from(ddprof_finish);
 
   // This will raise on error
+  // TODO: This is no longer needed on libdatadog 5
   reset_profile(args.profile, /* start_time: */ NULL);
 
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
