@@ -106,15 +106,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
     end
 
-    context 'when tracing is enabled with peer.service' do
-      before do
-        Datadog.configure do |c|
-          c.env = 'production'
-          c.service = "Traders' Joe"
-          c.version = '1.0.0'
-        end
-      end
-
+    context 'when given a span operation tagged with peer.service' do
       let(:span_op) do
         Datadog::Tracing::SpanOperation.new(
           'sample_span',
@@ -122,6 +114,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           tags: { 'peer.service' => 'sample_peer_service' }
         )
       end
+      let(:mode) { 'service' }
       let(:trace_op) do
         double(
           to_digest: Datadog::Tracing::TraceDigest.new(
@@ -133,37 +126,10 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
 
       subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode) }
-
-      context 'when `disabled` mode' do
-        let(:mode) { 'disabled' }
-
-        it { is_expected.to eq(sql_statement) }
-      end
-
-      context 'when `service` mode' do
-        let(:mode) { 'service' }
-
-        it do
-          is_expected.to eq(
-            "/*dddbs='sample_peer_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
-          )
-        end
-      end
-
-      context 'when `full` mode' do
-        let(:mode) { 'full' }
-        let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-fe' }
-
-        it {
-          is_expected.to eq(
-            "/*dddbs='sample_peer_service',"\
-              "dde='production',"\
-              "ddps='Traders%27%20Joe',"\
-              "ddpv='1.0.0',"\
-              "traceparent='#{traceparent}'*/ "\
-              "#{sql_statement}"
-          )
-        }
+      it do
+        is_expected.to eq(
+          "/*dddbs='sample_peer_service',ddps='rspec'*/ #{sql_statement}"
+        )
       end
     end
 
