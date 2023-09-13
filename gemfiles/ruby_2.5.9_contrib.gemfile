@@ -20,7 +20,7 @@ gem "pry-stack_explorer"
 gem "rake", ">= 12.3"
 gem "rake-compiler", "~> 1.1", ">= 1.1.1"
 gem "redcarpet", "~> 3.4"
-gem "rspec", ">= 3.0.0"
+gem "rspec", "~> 3.12"
 gem "rspec-collection_matchers", "~> 1.1"
 gem "rspec-wait", "~> 0"
 gem "rspec_junit_formatter", ">= 0.5.1"
@@ -46,7 +46,6 @@ gem "graphql", ">= 2.0"
 gem "grpc", platform: :ruby
 gem "lograge", "~> 0.11"
 gem "makara"
-gem "minitest", ">= 5.0.0"
 gem "mongo", ">= 2.8.0", "< 2.15.0"
 gem "mysql2", "< 1", platform: :ruby
 gem "pg", ">= 0.18.4", platform: :ruby

@@ -12,6 +12,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.14.0)
+      datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.11.0.0.0)
@@ -38,6 +39,7 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
+    datadog-ci (0.1.1)
     debase-ruby_core_source (3.2.1)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
@@ -48,10 +50,10 @@ GEM
     elastic-transport (8.2.3)
       faraday (< 3)
       multi_json
-    elasticsearch (8.9.0)
+    elasticsearch (8.10.0)
       elastic-transport (~> 8)
-      elasticsearch-api (= 8.9.0)
-    elasticsearch-api (8.9.0)
+      elasticsearch-api (= 8.10.0)
+    elasticsearch-api (8.10.0)
       multi_json
     ethon (0.16.0)
       ffi (>= 1.15.0)

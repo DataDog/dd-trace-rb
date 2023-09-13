@@ -134,8 +134,6 @@ appraise 'resque2-redis4' do
   gem 'resque', '>= 2.0'
 end
 
-(3..4).each { |v| gem_cucumber(v) }
-
 appraise 'aws' do
   gem 'aws-sdk'
   gem 'shoryuken'
@@ -168,7 +166,6 @@ appraise 'contrib' do
   gem 'lograge', '~> 0.11'
   gem 'makara'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'minitest', '>= 5.0.0'
   gem 'mysql2', '< 0.5'
   gem 'pg', '>= 0.18.4'
   gem 'racecar', '>= 0.3.5'
@@ -179,7 +176,6 @@ appraise 'contrib' do
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
-  gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
   gem 'sidekiq'
