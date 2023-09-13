@@ -73,11 +73,11 @@ end
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
+  gem 'delayed_job'
+  gem 'delayed_job_active_record'
   gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
   gem 'mysql2', '>= 0.5.3', platform: :ruby
   gem 'pg', platform: :ruby
-  gem 'delayed_job'
-  gem 'delayed_job_active_record'
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
 end
