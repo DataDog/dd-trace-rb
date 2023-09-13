@@ -1,9 +1,8 @@
-RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, peer_service:, error: nil|
+RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, error: nil|
   context 'when default `disabled`' do
     it_behaves_like 'propagates with sql comment',
       mode: 'disabled',
       span_op_name: span_op_name,
-      peer_service: peer_service,
       error: error do
         let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled') }
       end
@@ -20,7 +19,6 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, peer
     it_behaves_like 'propagates with sql comment',
       mode: 'service',
       span_op_name: span_op_name,
-      peer_service: peer_service,
       error: error do
         let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service') }
       end
@@ -35,7 +33,6 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, peer
       it_behaves_like 'propagates with sql comment',
         mode: mode,
         span_op_name: span_op_name,
-        peer_service: peer_service,
         error: error do
           let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
         end
@@ -43,7 +40,7 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, peer
   end
 end
 
-RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:, peer_service:, error: nil|
+RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:, error: nil|
   it "propagates with mode: #{mode}" do
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode)
       .to receive(:new).with(mode).and_return(propagation_mode)

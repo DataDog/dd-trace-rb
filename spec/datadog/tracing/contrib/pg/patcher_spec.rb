@@ -70,9 +70,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec'
 
           it 'produces a trace with service override' do
             exec
@@ -83,9 +81,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec'
 
           it 'produces a trace' do
             exec
@@ -147,10 +143,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a failed query is made' do
           let(:sql_statement) { 'SELECT INVALID' }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec', error: PG::Error
 
           it 'traces failed queries' do
             expect { exec }.to raise_error(PG::Error)
@@ -192,9 +185,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec'
 
           it 'produces a trace with service override' do
             exec
@@ -205,9 +196,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec'
 
           it 'produces a trace' do
             exec
@@ -269,10 +258,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a failed query is made' do
           let(:sql_statement) { 'SELECT INVALID' }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec', error: PG::Error
 
           it 'traces failed queries' do
             expect { exec }.to raise_error(PG::Error)
@@ -314,9 +300,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params'
 
           it 'produces a trace with service override' do
             exec_params
@@ -327,9 +311,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params'
 
           it 'produces a trace' do
             exec_params
@@ -393,10 +375,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           subject(:exec_params) { conn.exec_params(sql_statement, ['INVALID']) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params', error: PG::Error
 
           it 'traces failed queries' do
             expect { exec_params }.to raise_error(PG::Error)
@@ -438,9 +417,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params'
 
           it 'produces a trace with service override' do
             exec_params
@@ -451,9 +428,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params'
 
           it 'produces a trace' do
             exec_params
@@ -521,10 +496,7 @@ RSpec.describe 'PG::Connection patcher' do
             end
           end
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params', error: PG::Error
 
           it 'traces failed queries' do
             expect { exec_params }.to raise_error(PG::Error)
@@ -788,9 +760,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec'
 
           it 'produces a trace with service override' do
             async_exec
@@ -801,9 +771,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec'
 
           it 'produces a trace' do
             async_exec
@@ -867,10 +835,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           subject(:async_exec) { conn.async_exec(sql_statement) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec', error: PG::Error
 
           it 'traces failed queries' do
             expect { async_exec }.to raise_error(PG::Error)
@@ -911,9 +876,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec'
 
           it 'produces a trace with service override' do
             async_exec
@@ -924,9 +887,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec'
 
           it 'produces a trace' do
             async_exec
@@ -994,10 +955,7 @@ RSpec.describe 'PG::Connection patcher' do
             end
           end
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec', error: PG::Error
 
           it 'traces failed queries' do
             expect { async_exec }.to raise_error(PG::Error)
@@ -1042,9 +1000,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params'
 
           it 'produces a trace with service override' do
             async_exec_params
@@ -1055,9 +1011,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params'
 
           it 'produces a trace' do
             async_exec_params
@@ -1121,10 +1075,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           subject(:async_exec_params) { conn.async_exec_params(sql_statement, ['INVALID']) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params', error: PG::Error
 
           it 'traces failed queries' do
             expect { async_exec_params }.to raise_error(PG::Error)
@@ -1165,9 +1116,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params'
 
           it 'produces a trace with service override' do
             async_exec_params
@@ -1178,9 +1127,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params'
 
           it 'produces a trace' do
             async_exec_params
@@ -1244,10 +1191,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           subject(:async_exec_params) { conn.async_exec_params(sql_statement, ['INVALID']) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.async.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params', error: PG::Error
 
           it 'traces failed queries' do
             expect { async_exec_params }.to raise_error(PG::Error)
@@ -1520,9 +1464,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec'
 
           it 'produces a trace with service override' do
             sync_exec
@@ -1533,9 +1475,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec'
 
           it 'produces a trace' do
             sync_exec
@@ -1597,10 +1537,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a failed query is made' do
           let(:sql_statement) { 'SELECT INVALID' }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec', error: PG::Error
 
           it 'traces failed queries' do
             expect { sync_exec }.to raise_error(PG::Error)
@@ -1641,9 +1578,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec'
 
           it 'produces a trace with service override' do
             sync_exec
@@ -1654,9 +1589,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec'
 
           it 'produces a trace' do
             sync_exec
@@ -1718,10 +1651,7 @@ RSpec.describe 'PG::Connection patcher' do
         context 'when a failed query is made' do
           let(:sql_statement) { 'SELECT INVALID' }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec', error: PG::Error
 
           it 'traces failed queries' do
             expect { sync_exec }.to raise_error(PG::Error)
@@ -1765,9 +1695,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params'
 
           it 'produces a trace with service override' do
             sync_exec_params
@@ -1777,9 +1705,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params'
 
           it 'produces a trace' do
             sync_exec_params
@@ -1843,10 +1769,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           subject(:sync_exec_params) { conn.sync_exec_params(sql_statement, ['INVALID']) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params', error: PG::Error
 
           it 'traces failed queries' do
             expect { sync_exec_params }.to raise_error(PG::Error)
@@ -1887,9 +1810,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           before { Datadog.configure_onto(conn, service_name: service_name) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params'
 
           it 'produces a trace with service override' do
             sync_exec_params
@@ -1899,9 +1820,7 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         context 'when a successful query is made' do
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' }
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params'
 
           it 'produces a trace' do
             sync_exec_params
@@ -1965,10 +1884,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           subject(:sync_exec_params) { conn.sync_exec_params(sql_statement, ['INVALID']) }
 
-          it_behaves_like 'with sql comment propagation',
-            span_op_name: 'pg.sync.exec.params',
-            peer_service: ENV.fetch('TEST_POSTGRES_DB') { 'postgres' },
-            error: PG::Error
+          it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params', error: PG::Error
 
           it 'traces failed queries' do
             expect { sync_exec_params }.to raise_error(PG::Error)

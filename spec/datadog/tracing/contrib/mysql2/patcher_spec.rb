@@ -76,9 +76,7 @@ RSpec.describe 'Mysql2::Client patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(database)
         end
 
-        it_behaves_like 'with sql comment propagation',
-          span_op_name: 'mysql2.query',
-          peer_service: ENV.fetch('TEST_MYSQL_DB') { 'mysql' }
+        it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
       end
 
       context 'when a successful query is made' do
@@ -111,9 +109,7 @@ RSpec.describe 'Mysql2::Client patcher' do
           before { query }
         end
 
-        it_behaves_like 'with sql comment propagation',
-          span_op_name: 'mysql2.query',
-          peer_service: ENV.fetch('TEST_MYSQL_DB') { 'mysql' }
+        it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
 
         it_behaves_like 'environment service name', 'DD_TRACE_MYSQL2_SERVICE_NAME' do
           let(:configuration_options) { {} }
@@ -144,10 +140,7 @@ RSpec.describe 'Mysql2::Client patcher' do
             .to eq("Unknown column 'INVALID' in 'field list'")
         end
 
-        it_behaves_like 'with sql comment propagation',
-          span_op_name: 'mysql2.query',
-          peer_service: ENV.fetch('TEST_MYSQL_DB') { 'mysql' },
-          error: Mysql2::Error
+        it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query', error: Mysql2::Error
 
         it_behaves_like 'environment service name', 'DD_TRACE_MYSQL2_SERVICE_NAME', error: Mysql2::Error do
           let(:configuration_options) { {} }
