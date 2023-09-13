@@ -56,7 +56,12 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         end
       end
 
-      let(:span_op) { Datadog::Tracing::Span.new('sample_span', service: 'database_service') }
+      let(:span_op) do
+        Datadog::Tracing::SpanOperation.new(
+          'sample_span',
+          service: 'database_service'
+        )
+      end
       let(:trace_op) do
         double(
           to_digest: Datadog::Tracing::TraceDigest.new(
@@ -111,10 +116,10 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
 
       let(:span_op) do
-        Datadog::Tracing::Span.new(
+        Datadog::Tracing::SpanOperation.new(
           'sample_span',
           service: 'database_service',
-          meta: { 'peer.service' => 'sample_peer_service' }
+          tags: { 'peer.service' => 'sample_peer_service' }
         )
       end
       let(:trace_op) do
