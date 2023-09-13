@@ -2,21 +2,46 @@
 
 The inject script would add `ddtrace` to your application's `Gemfile` to [instrument your application](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/#rails-or-hanami-applications)).
 
-* Supports `Ruby on Rails` / `Hanami` application
-* Supports `Bundler` version must be >= 2.3
-* Does not support vendoring gem ([Bundler's Deployment Mode](https://www.bundler.cn/man/bundle-install.1.html#DEPLOYMENT-MODE) or setting `BUNDLE_PATH`)
+* Supports `Ruby on Rails` and `Hanami` application
+* Requires [bundler](https://bundler.io/) version 2.3 or above
+* Does not support frozen `Gemfile` or vendoring gems ([Bundler's Deployment Mode](https://www.bundler.cn/man/bundle-install.1.html#DEPLOYMENT-MODE) or setting `BUNDLE_PATH`)
+
+Examples:
+
+Bundler vendors the gems from a specific location, instead of system default.
+```bash
+BUNDLE_PATH=vendor/cache bundle install
+# or
+bundle install --path=vendor/cache
+```
+
+Bundler freezes the `Gemfile` to prevent the `Gemfile.lock` to be updated after this install.
+```bash
+bundle config set frozen true
+# or
+bundle install --frozen
+```
+
+[Bundler's Deployment Mode](https://www.bundler.cn/man/bundle-install.1.html#DEPLOYMENT-MODE) would freeze the `Gemfile` and vendor gems from `vendor/cache`.
+
+```bash
+bundle config set deployment true
+# or
+bundle install --deployment
+```
+
 
 ### Packaging
 
-The gitlab build pipeline ships pre-installed `ddtrace` deb and rpm packages.
+There's an internal gitlab build pipeline ships pre-installed `ddtrace` deb and rpm packages.
 
 Currently, we support
 
 | Environment| version |
 |---|---|
 | Ruby  | `2.7`, `3.0`, `3.1`, `3.2`|
-| OS    | Debian 10+, CentOS 8+|
 | Arch  | `amd64` |
+| glibc |  2.28+ |
 
 In order to ship `ddtrace` and its dependencies as a pre-install package, we need a few tweaks in our build pipeline.
 

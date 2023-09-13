@@ -19,7 +19,7 @@ begin
   require 'shellwords'
 
   if Bundler.frozen_bundle?
-    STDERR.puts "[ddtrace] Injection failed: Frozen `Gemfile` because Bundler is configured with `deployment`."
+    STDERR.puts "[ddtrace] Injection failed: Unable to inject into a Frozen Gemfile (Bundler is configured with `deployment` or `frozen`)"
     return
   end
 
