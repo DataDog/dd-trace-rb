@@ -67,8 +67,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         )
       end
 
-      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode, nil) }
-
+      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode) }
       context 'when `disabled` mode' do
         let(:mode) { 'disabled' }
 
@@ -79,6 +78,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         let(:mode) { 'service' }
 
         it do
+          allow(span_op).to receive(:get_tag).with('peer.service').and_return(nil)
           is_expected.to eq(
             "/*dddbs='database_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
           )
@@ -90,6 +90,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-fe' }
 
         it {
+          allow(span_op).to receive(:get_tag).with('peer.service').and_return(nil)
           is_expected.to eq(
             "/*dddbs='database_service',"\
             "dde='production',"\
@@ -122,7 +123,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         )
       end
 
-      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode, 'sample_peer_service') }
+      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode) }
 
       context 'when `disabled` mode' do
         let(:mode) { 'disabled' }
@@ -134,6 +135,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         let(:mode) { 'service' }
 
         it do
+          allow(span_op).to receive(:get_tag).with('peer.service').and_return('sample_peer_service')
           is_expected.to eq(
             "/*dddbs='sample_peer_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
           )
@@ -145,6 +147,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-fe' }
 
         it {
+          allow(span_op).to receive(:get_tag).with('peer.service').and_return('sample_peer_service')
           is_expected.to eq(
             "/*dddbs='sample_peer_service',"\
               "dde='production',"\
@@ -175,7 +178,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         Datadog::Tracing.trace('dummy.sql') do |span_op, trace_op|
           span_op.service = 'database_service'
 
-          result = described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode, nil)
+          result = described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode)
         end
 
         result

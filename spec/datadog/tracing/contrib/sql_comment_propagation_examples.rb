@@ -80,8 +80,7 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
       sql_statement,
       a_span_operation_with(service: service_name),
       duck_type(:to_digest),
-      propagation_mode,
-      peer_service # change this to peer.service value either passed on
+      propagation_mode
     )
   end
 end

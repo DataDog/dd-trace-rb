@@ -62,8 +62,7 @@ module Datadog
                   sql,
                   span,
                   trace_op,
-                  propagation_mode,
-                  span.get_tag('peer.service')
+                  propagation_mode
                 )
 
                 super(sql, options)
