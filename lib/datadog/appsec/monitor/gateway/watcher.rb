@@ -24,7 +24,7 @@ module Datadog
                 scope = Datadog::AppSec.active_scope
 
                 AppSec::Reactive::Operation.new('identity.set_user') do |op|
-                  Monitor::Reactive::SetUser.subscribe(op, scope.processor_context) do |result, _block|
+                  Monitor::Reactive::SetUser.subscribe(op, scope.processor_context) do |result|
                     if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
@@ -44,10 +44,10 @@ module Datadog
                     end
                   end
 
-                  _result, block = Monitor::Reactive::SetUser.publish(op, user)
+                  block = Monitor::Reactive::SetUser.publish(op, user)
                 end
 
-                throw(Datadog::AppSec::Ext::INTERRUPT, [nil, [:block, event]]) if block
+                throw(Datadog::AppSec::Ext::INTERRUPT, [nil, [[:block, event]]]) if block
 
                 ret, res = stack.call(user)
 

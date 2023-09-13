@@ -28,6 +28,7 @@ module Datadog
           # Patches OpenSearch::Transport::Client module
           module Client
             # rubocop:disable Metrics/MethodLength
+            # rubocop:disable Metrics/AbcSize
             def perform_request(method, path, params = {}, body = nil, headers = nil)
               response = nil
               # rubocop:disable Metrics/BlockLength
@@ -59,6 +60,11 @@ module Datadog
                       Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                       datadog_configuration[:peer_service]
                     )
+                  end
+
+                  # Tag original global service name if not used
+                  if span.service != Datadog.configuration.service
+                    span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
                   end
 
                   # Set url tags
@@ -94,6 +100,7 @@ module Datadog
                 end
               end
               # rubocop:enable Metrics/BlockLength
+              # rubocop:enable Metrics/AbcSize
               response
             end
 

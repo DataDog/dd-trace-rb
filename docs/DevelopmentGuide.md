@@ -9,7 +9,6 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Writing tests](#writing-tests)
      - [Running tests](#running-tests)
      - [Checking code quality](#checking-code-quality)
-     - [Running benchmarks](#running-benchmarks)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
      - [Custom transport adapters](#custom-transport-adapters)
@@ -22,7 +21,7 @@ The trace library uses Docker Compose to create a Ruby environment to develop an
 
 To start a development environment, choose a target Ruby version then run the following:
 
-```
+```bash
 # In the root directory of the project...
 cd ~/dd-trace-rb
 
@@ -32,9 +31,6 @@ docker-compose run --rm tracer-3.0 /bin/bash
 # Then inside the container (e.g. `root@2a73c6d8673e:/app`)...
 # Install the library dependencies
 bundle install
-
-# Install build targets
-bundle exec appraisal install
 ```
 
 Then within this container you can [run tests](#running-tests), or [run code quality checks](#checking-code-quality).
@@ -45,16 +41,38 @@ The test suite uses [RSpec](https://rspec.info/) tests to verify the correctness
 
 ### Writing tests
 
-New tests should be written as RSpec tests in the `spec/ddtrace` folder. Test files should generally mirror the structure of `lib`.
+New tests should be written as RSpec tests in the `spec/datadog` folder. Test files should generally mirror the structure of `lib`.
 
 All changes should be covered by a corresponding RSpec tests. Unit tests are preferred, and integration tests are accepted where appropriate (e.g. acceptance tests, verifying compatibility with datastores, etc) but should be kept to a minimum.
 
 **Considerations for CI**
 
-All tests should run in CI. When adding new `spec.rb` files, you may need to add a test task to ensure your test file is run in CI.
+All tests should run in CI. When adding new `_spec.rb` files, you may need to add rake task to ensure your test file is run in CI.
 
- - Ensure that there is a corresponding Rake task defined in `Rakefile` under the `spec` namespace, whose pattern matches your test file.
- - Verify the Rake task is configured to run for the appropriate Ruby runtimes in the `ci` Rake task.
+ - Ensure that there is a corresponding Rake task defined in `Rakefile` under the `spec` namespace, whose pattern matches your test file. For example
+
+ ```ruby
+   namespace :spec do
+     RSpec::Core::RakeTask.new(:foo) do |t, args|
+       t.pattern = "spec/datadog/tracing/contrib/bar/**/*_spec.rb"
+       t.rspec_opts = args.to_a.join(' ')
+     end
+   end
+ ```
+
+ - Ensure the Rake task is configured to run for the appropriate Ruby runtimes, by introducing it to our test matrix. You should find the task with `bundle exec rake -T test:<foo>`.
+
+```ruby
+  TEST_METADATA = {
+    'foo' => {
+      # Without any appraisal group dependencies
+      ''    => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+
+      # or with appraisal group definition `bar`
+      'bar' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+    },
+  }
+```
 
 ### Running tests
 
@@ -65,17 +83,47 @@ Simplest way to run tests is to run `bundle exec rake ci`, which will run the en
 Run the tests for the core library with:
 
 ```
-$ bundle exec rake spec:main
+$ bundle exec rake test:main
 ```
 
 **For integrations**
 
-Integrations which interact with dependencies not listed in the `ddtrace` gemspec will need to load these dependencies to run their tests.
+Integrations which interact with dependencies not listed in the `ddtrace` gemspec will need to load these dependencies to run their tests. Each test task could consist of multiple spec tasks which are executed with different groups of dependencies (likely against different versions or variations).
 
-To get a list of the spec tasks run `bundle exec rake -T 'spec:'`
+To get a list of the test tasks, run `bundle exec rake -T test`
 
-To run any of the specs above just run `bundle exec rake 'test[<spec_name>]'`. Ex: `bundle exec rake test'[spec:redis]'`
+To run test, run `bundle exec rake test:<spec_name>`
 
+Take `bundle exec rake test:redis` as example, multiple versions of `redis` from different groups are tested.
+
+```ruby
+TEST_METADATA = {
+  'redis' => {
+    'redis-3' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'redis-4' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'redis-5' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  }
+}
+```
+
+**Working with appraisal groups**
+
+Checkout [Apppraisal](https://github.com/thoughtbot/appraisal) to learn the basics.
+
+Groups are defined under `appraisal/` directory and their names are prefixed with Ruby runtime based on the environment. `*.gemfile` and `*.gemfile.lock` from `gemfiles/` directory are generated from those definitions.
+
+To find out existing groups in your environment, run `bundle exec appraisal list`
+
+After introducing a new group definition or changing existing one, run `bundle exec appraisal generate` to propagate the changes.
+
+To install dependencies, run `bundle exec appraisal install`.
+
+In addition, if you already know which appraisal group definition to work with, you can target a specific group operation with environment vairable `APPRAISAL_GROUP`, instead of all the groups from your environment. For example:
+
+```
+# This would only install dependencies for `aws` group definition
+APPRAISAL_GROUP=aws bundle exec appraisal install
+```
 
 **Passing arguments to tests**
 
@@ -83,7 +131,7 @@ When running tests, you may pass additional args as parameters to the Rake task.
 
 ```
 # Runs Redis tests with seed 1234
-$ bundle exec rake test'[spec:redis, --seed 1234]'
+$ bundle exec rake test:redis'[--seed 1234]'
 ```
 
 This can be useful for replicating conditions from CI or isolating certain tests.
@@ -93,7 +141,7 @@ This can be useful for replicating conditions from CI or isolating certain tests
 You can check test code coverage by creating a report _after_ running a test suite:
 ```
 # Run the desired test suite
-$ bundle exec rake test'[spec:redis]'
+$ bundle exec rake test:redis
 # Generate report for the suite executed
 $ bundle exec rake coverage:report
 ```
@@ -156,16 +204,6 @@ The trace library uses Rubocop to enforce [code style](https://github.com/bbatso
 ```
 $ bundle exec rake rubocop
 ```
-
-### Running benchmarks
-
-If your changes can have a measurable performance impact, we recommend running our benchmark suite:
-
-```
-$ bundle exec rake test'[spec:benchmark]'
-```
-
-Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
 
 ## Appendix
 

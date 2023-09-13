@@ -11,12 +11,17 @@ module Datadog
       def to_sinatra_response: () -> ::Sinatra::Response
       def to_action_dispatch_response: () -> ::ActionDispatch::Response
 
-      def self.negotiate: (::Hash[untyped, untyped] env) -> Response
+      def self.negotiate: (::Hash[untyped, untyped] env, Array[String] actions) -> Response
 
       private
 
       CONTENT_TYPE_TO_FORMAT: ::Hash[::String, ::Symbol]
+      FORMAT_TO_CONTENT_TYPE: ::Hash[::String, ::String]
       DEFAULT_CONTENT_TYPE: ::String
+
+      def self.default_response: (::Hash[untyped, untyped] env) -> Response
+      def self.block_response: (::Hash[untyped, untyped] env, ::Hash[String, untyped] options) -> Response
+      def self.redirect_response: (::Hash[untyped, untyped] env, ::Hash[String, untyped] options) -> Response
 
       def self.content_type: (::Hash[untyped, untyped] env) -> ::String
       def self.content: (::String) -> ::String
