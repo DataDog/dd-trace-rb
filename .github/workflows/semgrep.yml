@@ -22,6 +22,6 @@ jobs:
       - run: |
           semgrep ci \
           --include=bin/* --include=ext/* --include=lib/* \
-          --exclude-rule=ruby.lang.security.model-attributes-attr-accessible.model-attributes-attr
+          --exclude-rule=ruby.lang.security.model-attributes-attr-accessible.model-attributes-attr-accessible
         env:
           SEMGREP_RULES: p/default
