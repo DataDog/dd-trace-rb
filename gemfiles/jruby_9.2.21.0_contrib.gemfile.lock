@@ -40,21 +40,6 @@ GEM
       jsonapi-renderer (>= 0.1.1.beta1, < 0.3)
     activemodel (5.2.8.1)
       activesupport (= 5.2.8.1)
-    activerecord (5.2.8.1)
-      activemodel (= 5.2.8.1)
-      activesupport (= 5.2.8.1)
-      arel (>= 9.0)
-    activerecord-jdbc-adapter (52.8-java)
-      activerecord (~> 5.2.0)
-    activerecord-jdbcmysql-adapter (52.8-java)
-      activerecord-jdbc-adapter (= 52.8)
-      jdbc-mysql (>= 5.1.36, < 9)
-    activerecord-jdbcpostgresql-adapter (52.8-java)
-      activerecord-jdbc-adapter (= 52.8)
-      jdbc-postgres (>= 9.4, < 43)
-    activerecord-jdbcsqlite3-adapter (52.8-java)
-      activerecord-jdbc-adapter (= 52.8)
-      jdbc-sqlite3 (~> 3.8, < 3.30)
     activesupport (5.2.8.1)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (>= 0.7, < 2)
@@ -66,7 +51,6 @@ GEM
       bundler
       rake
       thor (>= 0.14.0)
-    arel (9.0.0)
     benchmark-ips (2.10.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -88,11 +72,6 @@ GEM
     cri (2.15.11)
     dalli (3.2.0)
     debase-ruby_core_source (3.2.1)
-    delayed_job (4.1.11)
-      activesupport (>= 3.0, < 8.0)
-    delayed_job_active_record (4.1.7)
-      activerecord (>= 3.0, < 8.0)
-      delayed_job (>= 3.0, < 5)
     diff-lcs (1.5.0)
     digest-crc (0.6.5)
       rake (>= 12.0.0, < 14.0.0)
@@ -129,9 +108,6 @@ GEM
     hashdiff (1.0.1)
     i18n (1.8.7)
       concurrent-ruby (~> 1.0)
-    jdbc-mysql (8.0.27)
-    jdbc-postgres (42.2.25)
-    jdbc-sqlite3 (3.28.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
@@ -147,8 +123,6 @@ GEM
     loofah (2.21.3)
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)
-    makara (0.5.1)
-      activerecord (>= 5.2.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     mini_portile2 (2.8.1)
@@ -248,7 +222,6 @@ GEM
     ruby2_keywords (0.0.5)
     semantic_logger (4.14.0)
       concurrent-ruby (~> 1.0)
-    sequel (5.54.0)
     serverengine (2.1.1)
       sigdump (~> 0.2.2)
     sidekiq (6.5.9)
@@ -298,10 +271,6 @@ DEPENDENCIES
   actionpack
   actionview
   active_model_serializers (>= 0.10.0)
-  activerecord (~> 5)
-  activerecord-jdbcmysql-adapter (>= 52)
-  activerecord-jdbcpostgresql-adapter (>= 52)
-  activerecord-jdbcsqlite3-adapter (>= 52)
   addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
@@ -312,15 +281,12 @@ DEPENDENCIES
   concurrent-ruby
   dalli (>= 3.0.0)
   ddtrace!
-  delayed_job
-  delayed_job_active_record
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   grape
   graphql (>= 2.0)
   i18n (= 1.8.7)
   json-schema (< 3)
   lograge (~> 0.11)
-  makara
   memory_profiler (~> 0.9)
   minitest (>= 5.0.0)
   mongo (>= 2.8.0, < 2.15.0)
@@ -345,7 +311,6 @@ DEPENDENCIES
   rspec_n (~> 1.3)
   ruby-kafka (>= 0.7.10)
   semantic_logger (~> 4.0)
-  sequel (~> 5.54.0)
   sidekiq
   simplecov!
   simplecov-cobertura (~> 2.1.0)
