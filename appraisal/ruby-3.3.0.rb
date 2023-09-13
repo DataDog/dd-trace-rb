@@ -71,24 +71,29 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
+appraise 'relational_db' do
+  gem 'activerecord', '~> 7'
+  gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
+  gem 'mysql2', '>= 0.5.3', platform: :ruby
+  gem 'pg', platform: :ruby
+  gem 'delayed_job'
+  gem 'delayed_job_active_record'
+  gem 'sqlite3', '>= 1.4.2', platform: :ruby
+  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+end
+
 appraise 'contrib' do
   gem 'actionpack', '~> 7'
   gem 'actionview', '~> 7'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'activerecord', '~> 7'
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
-  gem 'delayed_job'
-  gem 'delayed_job_active_record'
   gem 'grape'
   gem 'graphql', '>= 2.0'
   gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
   gem 'lograge'
-  gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
   gem 'minitest', '>= 5.0.0'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'mysql2', '>= 0.5.3', platform: :ruby
-  gem 'pg', platform: :ruby
   gem 'racecar', '>= 0.3.5'
   gem 'rack'
   gem 'rack-contrib'
@@ -99,10 +104,8 @@ appraise 'contrib' do
   gem 'ruby-kafka', '>= 0.7.10'
   gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
   gem 'sidekiq', '~> 7'
   gem 'sneakers', '>= 2.12.0'
-  gem 'sqlite3', '>= 1.4.2', platform: :ruby
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
   gem 'net-smtp'
