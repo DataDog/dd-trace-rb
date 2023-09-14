@@ -49,7 +49,7 @@ module Datadog
             option :error_handler do |o|
               o.type :proc
               o.default_proc(&Tracing::SpanOperation::Events::DEFAULT_ON_ERROR)
-              o.on_set do |value|
+              o.after_set do |value|
                 if value != Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
                   Datadog.logger.warn(
                     'The gRPC `error_handler` setting has been deprecated for removal. Please replace ' \
