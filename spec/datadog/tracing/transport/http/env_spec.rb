@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/http/env'
+require 'datadog/core/transport/http/env'
 
 RSpec.describe Datadog::Tracing::Transport::HTTP::Env do
   subject(:env) { described_class.new(request, options) }

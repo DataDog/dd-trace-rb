@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/http/env'
+require 'datadog/core/transport/http/env'
 require 'datadog/tracing/transport/http/api/endpoint'
 
 RSpec.describe Datadog::Tracing::Transport::HTTP::API::Endpoint do

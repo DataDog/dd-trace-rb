@@ -1,5 +1,5 @@
 require_relative 'statistics'
-require_relative 'env'
+require_relative '../../../core/transport/http/env'
 
 module Datadog
   module Tracing
