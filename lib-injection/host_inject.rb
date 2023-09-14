@@ -95,7 +95,7 @@ begin
         )
 
         if status.success?
-          $stdout.puts "[ddtrace] Injection adds #{gem} to the application successfully."
+          $stdout.puts "[ddtrace] Successfully injected #{gem} into the application."
 
           ::FileUtils.cp datadog_gemfile, gemfile
           ::FileUtils.cp datadog_lockfile, lockfile
