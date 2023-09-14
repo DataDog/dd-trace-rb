@@ -203,6 +203,14 @@ appraise 'contrib' do
   gem 'que', '>= 1.0.0', '< 2.0.0'
 end
 
+[1, 2, 3].each do |n|
+  appraise "rack-#{n}" do
+    gem 'rack', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test'
+  end
+end
+
 appraise 'sinatra' do
   gem 'sinatra', '>= 3'
   gem 'rack-test'

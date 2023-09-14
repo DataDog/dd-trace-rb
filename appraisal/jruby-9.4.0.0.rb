@@ -115,6 +115,14 @@ end
   end
 end
 
+[1, 2, 3].each do |n|
+  appraise "rack-#{n}" do
+    gem 'rack', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test'
+  end
+end
+
 appraise 'sinatra' do
   gem 'sinatra', '>= 3'
   gem 'rack-test'
