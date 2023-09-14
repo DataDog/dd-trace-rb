@@ -31,6 +31,11 @@ gem 'mysql2'
 gem 'puma'
 gem 'unicorn'
 
+# Lock loofah's version as there were issues between specific loofah and nokogiri (a loofah dependency)
+# around loofah 2.20. We can't upgrade both loofah and nokogiri to their latest version because
+# they are not supported by Ruby < 2.5.
+gem 'loofah', '2.19.1'
+
 # Choose correct specs for 'ddtrace' demo environment
 gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
 
