@@ -91,7 +91,7 @@ static VALUE _native_sample(
   };
 
   long labels_count = RARRAY_LEN(labels_array) + RARRAY_LEN(numeric_labels_array);
-  ddog_prof_Label labels[labels_count];
+  ddog_prof_Label labels[labels_count + /* state hint prototype */ 1];
 
   for (int i = 0; i < RARRAY_LEN(labels_array); i++) {
     VALUE key_str_pair = rb_ary_entry(labels_array, i);
@@ -265,6 +265,15 @@ static void sample_thread_internal(
   // with that info.
   if (captured_frames == (long) buffer->max_frames) {
     maybe_add_placeholder_frames_omitted(thread, buffer, frames_omitted_message, frames_omitted_message_size);
+  }
+
+  if (true /* state_hint_prototype? */) {
+    ddog_prof_Label *label_data = labels.ptr;
+    label_data[labels.len] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("state hint prototype"),
+      .str = DDOG_CHARSLICE_C("hello world"),
+    };
+    labels.len++;
   }
 
   record_sample(

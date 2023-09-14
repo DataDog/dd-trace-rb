@@ -662,6 +662,7 @@ static void trigger_sample_for_thread(
     1 + // profiler overhead
     1 + // end_timestamp_ns
     2 + // ruby vm type and allocation class
+    1 + // state hint prototype
     2;  // local root span id and span id
   ddog_prof_Label labels[max_label_count];
   int label_pos = 0;
@@ -751,6 +752,10 @@ static void trigger_sample_for_thread(
   // changes the code erroneously and remove it entirely?
   if (label_pos > max_label_count) {
     rb_raise(rb_eRuntimeError, "BUG: Unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
+  }
+
+  if (label_pos == max_label_count) {
+    rb_raise(rb_eRuntimeError, "FIXME: state hint prototype slot is taken; there should always be one extra label spot for state hint!");
   }
 
   sample_thread(
