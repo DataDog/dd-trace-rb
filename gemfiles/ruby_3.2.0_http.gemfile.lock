@@ -27,7 +27,6 @@ GEM
       rake
       thor (>= 0.14.0)
     ast (2.4.2)
-    base64 (0.1.1)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -52,17 +51,16 @@ GEM
     elastic-transport (8.2.3)
       faraday (< 3)
       multi_json
-    elasticsearch (8.10.0)
+    elasticsearch (8.9.0)
       elastic-transport (~> 8)
-      elasticsearch-api (= 8.10.0)
-    elasticsearch-api (8.10.0)
+      elasticsearch-api (= 8.9.0)
+    elasticsearch-api (8.9.0)
       multi_json
     ethon (0.16.0)
       ffi (>= 1.15.0)
     excon (0.102.0)
     extlz4 (0.3.4)
-    faraday (2.7.11)
-      base64
+    faraday (2.7.10)
       faraday-net_http (>= 2.0, < 3.1)
       ruby2_keywords (>= 0.0.4)
     faraday-net_http (3.0.2)

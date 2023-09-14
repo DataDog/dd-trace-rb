@@ -50,10 +50,10 @@ GEM
     elastic-transport (8.2.3)
       faraday (< 3)
       multi_json
-    elasticsearch (8.10.0)
+    elasticsearch (8.9.0)
       elastic-transport (~> 8)
-      elasticsearch-api (= 8.10.0)
-    elasticsearch-api (8.10.0)
+      elasticsearch-api (= 8.9.0)
+    elasticsearch-api (8.9.0)
       multi_json
     ethon (0.16.0)
       ffi (>= 1.15.0)
