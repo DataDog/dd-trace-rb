@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/tracing/transport/io/client'
+require 'datadog/tracing/transport/io/traces'
 
 RSpec.describe Datadog::Tracing::Transport::IO::Client do
   subject(:client) { described_class.new(out, encoder) }
@@ -23,7 +24,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
     context 'given a request' do
       subject(:send_request) { client.send_request(request) }
 
-      let(:request) { instance_double(Datadog::Tracing::Transport::Request, parcel: parcel) }
+      let(:request) { instance_double(Datadog::Core::Transport::Request, parcel: parcel) }
       let(:parcel) { instance_double(Datadog::Tracing::Transport::IO::Traces::Parcel, data: data) }
       let(:data) { 'Hello, world!' }
       let(:encoded_data) { double('encoded data') }
@@ -59,7 +60,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
         end
       end
 
-      let(:request) { instance_double(Datadog::Tracing::Transport::Request) }
+      let(:request) { instance_double(Datadog::Core::Transport::Request) }
       let(:response) { instance_double(Datadog::Tracing::Transport::IO::Response) }
 
       before do
@@ -78,7 +79,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
   describe '#encode_data' do
     subject(:encode_data) { client.encode_data(encoder, request) }
 
-    let(:request) { instance_double(Datadog::Tracing::Transport::Request, parcel: parcel) }
+    let(:request) { instance_double(Datadog::Core::Transport::Request, parcel: parcel) }
     let(:parcel) { instance_double(Datadog::Tracing::Transport::Parcel) }
     let(:data) { double('data') }
 
@@ -111,7 +112,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
   describe '#build_response' do
     subject(:build_response) { client.build_response(request, data, result) }
 
-    let(:request) { instance_double(Datadog::Tracing::Transport::Request) }
+    let(:request) { instance_double(Datadog::Core::Transport::Request) }
     let(:data) { double('data') }
     let(:result) { double('result') }
     let(:response) { instance_double(Datadog::Tracing::Transport::IO::Response) }

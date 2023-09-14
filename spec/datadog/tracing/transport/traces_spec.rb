@@ -36,7 +36,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Request do
 
   let(:parcel) { double }
 
-  it { is_expected.to be_a_kind_of(Datadog::Tracing::Transport::Request) }
+  it { is_expected.to be_a_kind_of(Datadog::Core::Transport::Request) }
 
   describe '#initialize' do
     it do

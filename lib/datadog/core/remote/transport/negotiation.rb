@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-# TODO: EK - FIX THIS
-require_relative '../../../tracing/transport/request'
+require_relative '../../../core/transport/request'
 
 # TODO: Resolve conceptual conundrum
 #
@@ -28,7 +27,7 @@ module Datadog
       module Transport
         module Negotiation
           # Negotiation request
-          class Request < Datadog::Tracing::Transport::Request
+          class Request < Datadog::Core::Transport::Request
           end
 
           # Negotiation response

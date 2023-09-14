@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/request'
+require 'datadog/core/transport/request'
 
-RSpec.describe Datadog::Tracing::Transport::Request do
+RSpec.describe Datadog::Core::Transport::Request do
   subject(:request) { described_class.new(parcel) }
 
   let(:parcel) { instance_double(Datadog::Tracing::Transport::Parcel) }

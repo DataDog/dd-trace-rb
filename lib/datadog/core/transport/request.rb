@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Datadog
-  module Tracing
+  module Core
     module Transport
       # Defines request for transport operations
       class Request

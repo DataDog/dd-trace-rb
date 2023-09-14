@@ -16,7 +16,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
   describe '#send_request' do
     subject(:send_request) { client.send_request(request, &block) }
 
-    let(:request) { instance_double(Datadog::Tracing::Transport::Request) }
+    let(:request) { instance_double(Datadog::Core::Transport::Request) }
     let(:response_class) { stub_const('TestResponse', Class.new { include Datadog::Tracing::Transport::HTTP::Response }) }
     let(:response) { instance_double(response_class, code: double('status code')) }
 
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
   describe '#build_env' do
     subject(:env) { client.build_env(request) }
 
-    let(:request) { instance_double(Datadog::Tracing::Transport::Request) }
+    let(:request) { instance_double(Datadog::Core::Transport::Request) }
 
     it 'returns a Datadog::Tracing::Transport::HTTP::Env' do
       is_expected.to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Env)

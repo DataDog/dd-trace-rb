@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../../core/transport/request'
 # TODO: EK - FIX THIS
-require_relative '../../../tracing/transport/request'
 require_relative '../../../tracing/transport/parcel'
 
 module Datadog
@@ -19,7 +19,7 @@ module Datadog
           end
 
           # Config request
-          class Request < Datadog::Tracing::Transport::Request
+          class Request < Datadog::Core::Transport::Request
           end
 
           # Config response

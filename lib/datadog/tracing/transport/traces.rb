@@ -1,6 +1,6 @@
 require_relative '../../core/chunker'
 require_relative 'parcel'
-require_relative 'request'
+require_relative '../../core/transport/request'
 require_relative 'serializable_trace'
 require_relative 'trace_formatter'
 
@@ -26,7 +26,7 @@ module Datadog
 
         # Traces request
         # TODO: EK - Should this just be the base request?
-        class Request < Datadog::Tracing::Transport::Request
+        class Request < Datadog::Core::Transport::Request
         end
 
         # Traces response
