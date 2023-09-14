@@ -63,22 +63,31 @@ appraise 'rails4-postgres-redis' do
   gem 'lograge', '~> 0.11'
 end
 
-appraise 'contrib' do
-  gem 'active_model_serializers', '~> 0.9.0'
-  gem 'activerecord', '3.2.22.5'
-  gem 'activerecord-mysql-adapter'
+appraise 'aws' do
   gem 'aws-sdk', '~> 2.0'
-  gem 'concurrent-ruby'
-  gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
-  gem 'delayed_job'
-  gem 'delayed_job_active_record'
+end
+
+appraise 'http' do
   gem 'elasticsearch'
-  gem 'presto-client', '>=  0.5.14'
+  gem 'faraday'
   gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
   gem 'ethon'
   gem 'excon'
   gem 'http'
   gem 'httpclient'
+  gem 'rest-client'
+  gem 'typhoeus'
+end
+
+appraise 'contrib' do
+  gem 'active_model_serializers', '~> 0.9.0'
+  gem 'activerecord', '3.2.22.5'
+  gem 'activerecord-mysql-adapter'
+  gem 'concurrent-ruby'
+  gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
+  gem 'delayed_job'
+  gem 'delayed_job_active_record'
+  gem 'presto-client', '>=  0.5.14'
   gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
   gem 'mongo', '< 2.5'
   gem 'minitest', '>= 5.0.0'
@@ -89,19 +98,16 @@ appraise 'contrib' do
   gem 'rack-cache', '1.7.1'
   gem 'rack-test', '0.7.0'
   gem 'rake', '< 12.3'
-  gem 'rest-client'
   gem 'resque', '< 2.0'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
   gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sequel', '~> 4.0', '< 4.37'
-  gem 'shoryuken'
   gem 'sidekiq', '~> 3.5.4'
   gem 'sqlite3', '~> 1.3.6'
   gem 'sucker_punch'
   gem 'timers', '< 4.2'
-  gem 'typhoeus'
 end
 
 appraise 'sinatra' do

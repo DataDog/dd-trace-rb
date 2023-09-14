@@ -1,6 +1,6 @@
 # This image provides the files needed to install the dd-trace-rb
 # and auto instrument Ruby applications in containerized environments.
-FROM busybox
+FROM alpine:3.18.3
 
 # Set high UID to prevent possible conflict with existing users: http://www.linfo.org/uid.html
 ARG UID=10000

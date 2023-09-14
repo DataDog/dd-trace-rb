@@ -28,7 +28,8 @@ class ProfilerSampleLoopBenchmark
     Datadog.shutdown!
 
     # Call collection directly
-    @stack_collector = Datadog.send(:components).profiler.collectors.first
+    # Note -- this is going to be deprecated/removed soon
+    @stack_collector = Datadog.send(:components).profiler.send(:worker)
     @recorder = @stack_collector.recorder
   end
 
