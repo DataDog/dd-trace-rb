@@ -110,7 +110,7 @@ appraise 'contrib' do
   gem 'timers', '< 4.2'
 end
 
-[1, 2, 3].each do |n|
+[1].each do |n|
   appraise "rack-#{n}" do
     gem 'rack', "~> #{n}"
     gem 'rack-contrib'
