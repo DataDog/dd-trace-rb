@@ -8,7 +8,7 @@ require 'datadog/tracing/pipeline'
 require 'datadog/tracing/workers/trace_writer'
 require 'datadog/tracing/transport/http'
 require 'datadog/tracing/transport/http/client'
-require 'datadog/tracing/transport/http/response'
+require 'datadog/core/transport/http/response'
 require 'datadog/tracing/transport/response'
 
 RSpec.describe Datadog::Tracing::Workers::TraceWriter do
@@ -85,6 +85,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 
     let(:traces) { double('traces') }
     let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
+
 
     before do
       expect(writer).to receive(:write_traces)
@@ -568,7 +569,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
 
             expect_in_fork do
               traces.each do |trace|
-                expect(writer.write(trace)).to all(be_a(Datadog::Tracing::Transport::HTTP::Response))
+                expect(writer.write(trace)).to all(be_a(Datadog::Core::Transport::HTTP::Response))
               end
 
               expect(writer).to have_received(:after_fork).once

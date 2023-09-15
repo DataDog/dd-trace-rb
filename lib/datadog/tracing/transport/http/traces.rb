@@ -2,7 +2,7 @@ require 'json'
 
 require_relative '../traces'
 require_relative 'client'
-require_relative 'response'
+require_relative '../../../core/transport/http/response'
 require_relative 'api/endpoint'
 require_relative 'api/instance'
 
@@ -14,7 +14,7 @@ module Datadog
         module Traces
           # Response from HTTP transport for traces
           class Response
-            include HTTP::Response
+            include Datadog::Core::Transport::HTTP::Response
             include Datadog::Tracing::Transport::Traces::Response
 
             def initialize(http_response, options = {})

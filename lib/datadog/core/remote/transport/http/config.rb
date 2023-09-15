@@ -6,7 +6,7 @@ require 'base64'
 require_relative '../config'
 require_relative 'client'
 # TODO: EK - FIX THIS
-require_relative '../../../../tracing/transport/http/response'
+require_relative '../../../../tracing/transport/http/'
 require_relative '../../../../tracing/transport/http/api/endpoint'
 
 # TODO: Decouple standard transport/http/api/instance
@@ -34,7 +34,7 @@ module Datadog
           module Config
             # Response from HTTP transport for remote configuration
             class Response
-              include Datadog::Tracing::Transport::HTTP::Response
+              include Datadog::Core::Transport::HTTP::Response
               include Core::Remote::Transport::Config::Response
 
               def initialize(http_response, options = {}) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity

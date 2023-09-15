@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../response'
+require_relative '../../../tracing/transport/response'
 
 module Datadog
-  module Tracing
+  module Core
     module Transport
       module HTTP
         # Wraps an HTTP response from an adapter.

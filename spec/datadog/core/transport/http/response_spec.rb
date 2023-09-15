@@ -1,16 +1,17 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/http/response'
+require 'datadog/core/transport/http/response'
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::Response do
+RSpec.describe Datadog::Core::Transport::HTTP::Response do
   context 'when implemented by a class' do
     subject(:response) { response_class.new(http_response) }
 
     let(:response_class) do
-      stub_const('TestResponse', Class.new { include Datadog::Tracing::Transport::HTTP::Response })
+      stub_const('TestResponse', Class.new { include Datadog::Core::Transport::HTTP::Response })
     end
     let(:http_response) { instance_double(Datadog::Tracing::Transport::Response) }
 
+    # TODO: EK - Should this live here?
     describe 'Datadog::Transport::Response methods' do
       it 'are forwarded to the HTTP response' do
         (Datadog::Tracing::Transport::Response.instance_methods - [:inspect]).each do |method|

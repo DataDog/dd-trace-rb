@@ -5,7 +5,8 @@ require 'json'
 require_relative '../negotiation'
 require_relative 'client'
 # TODO: EK - FIX THIS
-require_relative '../../../../tracing/transport/http/response'
+require_relative '../../../transport/http/response'
+# require_relative '../../core/transport/http/'
 require_relative '../../../../tracing/transport/http/api/endpoint'
 
 # TODO: Decouple standard transport/http/api/instance
@@ -33,7 +34,7 @@ module Datadog
           module Negotiation
             # Response from HTTP transport for agent feature negotiation
             class Response
-              include Datadog::Tracing::Transport::HTTP::Response
+              include Datadog::Core::Transport::HTTP::Response
               include Core::Remote::Transport::Negotiation::Response
 
               def initialize(http_response, options = {})

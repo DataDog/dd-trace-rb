@@ -17,7 +17,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
     subject(:send_request) { client.send_request(request, &block) }
 
     let(:request) { instance_double(Datadog::Core::Transport::Request) }
-    let(:response_class) { stub_const('TestResponse', Class.new { include Datadog::Tracing::Transport::HTTP::Response }) }
+    let(:response_class) { stub_const('TestResponse', Class.new { include Datadog::Core::Transport::HTTP::Response }) }
     let(:response) { instance_double(response_class, code: double('status code')) }
 
     before { allow(Datadog.health_metrics).to receive(:send_metrics) }

@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Statistics do
     describe '#metrics_for_response' do
       subject(:metrics_for_response) { object.metrics_for_response(response) }
 
-      let(:response) { instance_double(Datadog::Tracing::Transport::HTTP::Response, code: status_code) }
+      let(:response) { instance_double(Datadog::Core::Transport::HTTP::Response, code: status_code) }
       let(:status_code) { double('status code') }
 
       context 'when the response' do

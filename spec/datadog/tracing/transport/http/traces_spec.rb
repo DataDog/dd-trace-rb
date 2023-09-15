@@ -8,7 +8,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::Response do
   let(:http_response) { instance_double(Datadog::Tracing::Transport::Response) }
   let(:options) { {} }
 
-  it { is_expected.to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Response) }
+  it { is_expected.to be_a_kind_of(Datadog::Core::Transport::HTTP::Response) }
   it { is_expected.to be_a_kind_of(Datadog::Tracing::Transport::Traces::Response) }
 
   describe '#initialize' do
