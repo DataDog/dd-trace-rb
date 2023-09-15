@@ -38,8 +38,9 @@ gem "rubocop-rspec", "~> 2.2", require: false
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
 gem "opentracing", ">= 0.4.1"
 gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
-gem "actionpack", "~> 7"
-gem "actionview", "~> 7"
+gem "activesupport", "~> 7"
+gem "actionpack"
+gem "actionview"
 gem "active_model_serializers", ">= 0.10.0"
 gem "grape"
 gem "lograge"

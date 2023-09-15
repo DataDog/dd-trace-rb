@@ -81,8 +81,10 @@ appraise 'relational_db' do
 end
 
 appraise 'activesupport' do
-  gem 'actionpack', '~> 7'
-  gem 'actionview', '~> 7'
+  gem 'activesupport', '~> 7'
+
+  gem 'actionpack'
+  gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
   gem 'grape'
   gem 'lograge'

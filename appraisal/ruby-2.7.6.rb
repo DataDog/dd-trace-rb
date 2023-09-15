@@ -177,6 +177,8 @@ appraise 'relational_db' do
 end
 
 appraise 'activesupport' do
+  gem 'activesupport', '~> 6.1.0'
+
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
