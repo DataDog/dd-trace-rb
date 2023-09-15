@@ -15,7 +15,7 @@ PATH
       datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 4.0.0.1.0)
-      libddwaf (~> 1.11.0.0.0)
+      libddwaf (~> 1.14.0.0.0)
       msgpack
 
 GEM
@@ -122,9 +122,7 @@ GEM
       addressable (>= 2.4)
     libdatadog (4.0.0.1.0-aarch64-linux)
     libdatadog (4.0.0.1.0-x86_64-linux)
-    libddwaf (1.11.0.0.0-aarch64-linux)
-      ffi (~> 1.0)
-    libddwaf (1.11.0.0.0-x86_64-linux)
+    libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     lograge (0.12.0)
       actionpack (>= 4)
