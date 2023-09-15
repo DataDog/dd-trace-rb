@@ -29,6 +29,10 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CACHE)
 
+                if span.service != Datadog.configuration.service
+                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
+                end
+
                 span.set_tag(Ext::TAG_CACHE_BACKEND, store) if store
                 set_cache_key(span, key, multi_key)
 

@@ -126,6 +126,8 @@ module Contrib
     # @return [String] Key/Value pairs representing relevant Tracer Configuration
     def parse_tracer_config
       dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
+      dd_env_variables['DD_SERVICE'] = dd_env_variables['DD_TEST_EXPECTED_SERVICE']
+      dd_env_variables.delete('DD_TEST_EXPECTED_SERVICE')
       dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
     end
 

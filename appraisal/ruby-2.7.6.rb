@@ -147,55 +147,58 @@ appraise 'resque2-redis4' do
   gem 'resque', '>= 2.0'
 end
 
-(3..8).each { |v| gem_cucumber(v) }
-
 appraise 'aws' do
   gem 'aws-sdk'
   gem 'shoryuken'
+end
+
+appraise 'http' do
+  gem 'elasticsearch'
+  gem 'ethon'
+  gem 'excon'
+  gem 'faraday'
+  gem 'http'
+  gem 'httpclient'
+  gem 'opensearch-ruby'
+  gem 'rest-client'
+  gem 'stripe'
+  gem 'typhoeus'
+end
+
+appraise 'relational_db' do
+  gem 'activerecord', '~> 6.1.0'
+  gem 'delayed_job'
+  gem 'delayed_job_active_record'
+  gem 'makara'
+  gem 'mysql2', '< 1', platform: :ruby
+  gem 'pg', '>= 0.18.4', platform: :ruby
+  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sqlite3', '~> 1.4.1'
 end
 
 appraise 'contrib' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'activerecord', '~> 6.1.0'
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
-  gem 'delayed_job'
-  gem 'delayed_job_active_record'
-  gem 'elasticsearch', '>= 8.0.0'
-  gem 'ethon'
-  gem 'excon'
   gem 'grape'
   gem 'graphql', '>= 2.0'
   gem 'grpc'
-  gem 'http'
-  gem 'httpclient'
   gem 'lograge', '~> 0.11'
-  gem 'makara'
-  gem 'minitest', '>= 5.0.0'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'mysql2', '< 1', platform: :ruby
-  gem 'opensearch-ruby'
-  gem 'pg', '>= 0.18.4', platform: :ruby
   gem 'racecar', '>= 0.3.5'
   gem 'rack'
   gem 'rack-contrib'
   gem 'rack-test'
   gem 'rake', '>= 12.3'
-  gem 'rest-client'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
-  gem 'rspec', '>= 3.0.0'
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
   gem 'sneakers', '>= 2.12.0'
-  gem 'sqlite3', '~> 1.4.1'
-  gem 'stripe'
   gem 'sucker_punch'
-  gem 'typhoeus'
   gem 'que', '>= 1.0.0'
 end
 

@@ -11,6 +11,7 @@ module Datadog
         # `MongoCommandSubscriber` listens to all events from the `Monitoring`
         # system available in the Mongo driver.
         class MongoCommandSubscriber
+          # rubocop:disable Metrics/AbcSize
           def started(event)
             return unless Tracing.enabled?
 
@@ -34,6 +35,11 @@ module Datadog
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                 datadog_configuration[:peer_service]
               )
+            end
+
+            # Tag original global service name if not used
+            if span.service != Datadog.configuration.service
+              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
             end
 
             span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
@@ -63,6 +69,7 @@ module Datadog
             # set the resource with the quantized query
             span.resource = serialized_query
           end
+          # rubocop:enable Metrics/AbcSize
 
           def failed(event)
             span = get_span(event)

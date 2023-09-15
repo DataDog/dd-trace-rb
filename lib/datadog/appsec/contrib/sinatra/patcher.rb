@@ -65,9 +65,12 @@ module Datadog
               catch(Datadog::AppSec::Contrib::Sinatra::Ext::ROUTE_INTERRUPT) { super }
             end
 
-            if request_response && request_response.any? { |action, _event| action == :block }
-              self.response = AppSec::Response.negotiate(env).to_sinatra_response
-              request_return = nil
+            if request_response
+              blocked_event = request_response.find { |action, _options| action == :block }
+              if blocked_event
+                self.response = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_sinatra_response
+                request_return = nil
+              end
             end
 
             request_return
@@ -103,11 +106,14 @@ module Datadog
                 [gateway_request, gateway_route_params]
               )
 
-              if request_response && request_response.any? { |action, _event| action == :block }
-                self.response = AppSec::Response.negotiate(env).to_sinatra_response
+              if request_response
+                blocked_event = request_response.find { |action, _options| action == :block }
+                if blocked_event
+                  self.response = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_sinatra_response
 
-                # interrupt request and return response to dispatch! for consistency
-                throw(Datadog::AppSec::Contrib::Sinatra::Ext::ROUTE_INTERRUPT, response)
+                  # interrupt request and return response to dispatch! for consistency
+                  throw(Datadog::AppSec::Contrib::Sinatra::Ext::ROUTE_INTERRUPT, response)
+                end
               end
 
               yield(*args)

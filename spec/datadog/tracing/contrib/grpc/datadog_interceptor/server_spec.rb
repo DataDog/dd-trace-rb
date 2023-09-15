@@ -4,6 +4,8 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
+require_relative 'shared_examples'
+
 require 'grpc'
 require 'ddtrace'
 
@@ -70,11 +72,12 @@ RSpec.describe 'tracing on the server connection' do
     end
 
     context 'with an error' do
-      subject(:request_response) do
+      let(:request_response) do
         server.request_response(**keywords) { raise error_class, 'test error' }
       end
 
       let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
+      let(:span_kind) { 'server' }
 
       context 'without an error handler' do
         it do
@@ -90,21 +93,35 @@ RSpec.describe 'tracing on the server connection' do
       end
 
       context 'with an error handler' do
-        let(:configuration_options) { { service_name: 'rspec', error_handler: error_handler } }
+        subject(:server) do
+          Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Server.new { |c| c.error_handler = error_handler }
+        end
+
         let(:error_handler) do
-          lambda do |span, error|
-            span.set_tag('custom.handler', "Got error #{error}, but ignored it")
-          end
+          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from interceptor") }
         end
 
-        it do
-          expect { request_response }.to raise_error('test error')
+        it_behaves_like 'it handles the error', 'Got error test error, but ignored it from interceptor'
+      end
 
-          expect(span).to_not have_error
-          expect(span.get_tag('custom.handler')).to eq('Got error test error, but ignored it')
-          expect(span.get_tag('rpc.system')).to eq('grpc')
-          expect(span.get_tag('span.kind')).to eq('server')
+      context 'with an error handler defined in the configuration_options' do
+        let(:configuration_options) { { service_name: 'rspec', server_error_handler: error_handler } }
+
+        let(:error_handler) do
+          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from configuration") }
         end
+
+        it_behaves_like 'it handles the error', 'Got error test error, but ignored it from configuration'
+      end
+
+      context 'with an error handler defined with the deprecated error_handler option' do
+        let(:configuration_options) { { service_name: 'rspec', error_handler: error_handler } }
+
+        let(:error_handler) do
+          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from deprecated config") }
+        end
+
+        it_behaves_like 'it handles the error', 'Got error test error, but ignored it from deprecated config'
       end
     end
   end

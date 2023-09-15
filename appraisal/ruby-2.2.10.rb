@@ -129,50 +129,54 @@ appraise 'aws' do
   gem 'shoryuken'
 end
 
-appraise 'contrib' do
-  gem 'actionpack'
-  gem 'actionview'
-  gem 'active_model_serializers', '>= 0.10.0'
-  gem 'activerecord', '< 5.1.5'
-  gem 'concurrent-ruby'
-  gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
-  gem 'delayed_job'
-  gem 'delayed_job_active_record'
+appraise 'http' do
   gem 'elasticsearch'
   gem 'ethon'
   gem 'excon'
   gem 'faraday'
   gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
+  gem 'http'
+  gem 'httpclient'
+  gem 'rest-client'
+  gem 'typhoeus'
+end
+
+appraise 'relational_db' do
+  gem 'activerecord', '< 5.1.5'
+  gem 'delayed_job'
+  gem 'delayed_job_active_record'
+  gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
+  gem 'mysql2', '< 0.5'
+  gem 'pg', '>= 0.18.4'
+  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sqlite3', '~> 1.3.6'
+end
+
+appraise 'contrib' do
+  gem 'actionpack'
+  gem 'actionview'
+  gem 'active_model_serializers', '>= 0.10.0'
+  gem 'concurrent-ruby'
+  gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
   gem 'grape'
   gem 'graphql'
   gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
-  gem 'http'
-  gem 'httpclient'
   gem 'lograge', '~> 0.11'
-  gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
   gem 'mongo', '>= 2.8.0'
-  gem 'minitest', '>= 5.0.0'
-  gem 'mysql2', '< 0.5'
-  gem 'pg', '>= 0.18.4'
   gem 'presto-client', '>=  0.5.14'
   gem 'racecar', '>= 0.3.5'
   gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
   gem 'rack-contrib'
   gem 'rack-test'
   gem 'rake', '>= 12.3'
-  gem 'rest-client'
   gem 'redis', '~> 3'
   gem 'resque', '< 2.0'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
-  gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
   gem 'sidekiq'
   gem 'sneakers', '>= 2.12.0'
-  gem 'sqlite3', '~> 1.3.6'
   gem 'sucker_punch'
-  gem 'typhoeus'
   gem 'que', '>= 1.0.0', '< 2.0.0'
 end
 

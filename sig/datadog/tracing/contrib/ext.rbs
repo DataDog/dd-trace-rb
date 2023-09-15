@@ -34,6 +34,7 @@ module Datadog
         end
 
         module Metadata
+          TAG_BASE_SERVICE: "_dd.base_service"
           TAG_PEER_SERVICE_SOURCE: "_dd.peer.service.source"
           TAG_PEER_SERVICE_REMAP: "_dd.peer.service.remapped_from"
         end

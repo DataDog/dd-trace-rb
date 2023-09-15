@@ -28,10 +28,32 @@ module Datadog
       end
 
       class << self
-        def negotiate(env)
-          content_type = content_type(env)
+        def negotiate(env, actions)
+          # @type var configured_response: Response?
+          configured_response = nil
+          actions.each do |action|
+            # Need to use next to make steep happy :(
+            # I rather use break to stop the execution
+            next if configured_response
 
-          Datadog.logger.debug { "negotiated response content type: #{content_type}" }
+            action_configuration = AppSec::Processor::Actions.fecth_configuration(action)
+            next unless action_configuration
+
+            configured_response = case action_configuration['type']
+                                  when 'block_request'
+                                    block_response(env, action_configuration['parameters'])
+                                  when 'redirect_request'
+                                    redirect_response(env, action_configuration['parameters'])
+                                  end
+          end
+
+          configured_response || default_response(env)
+        end
+
+        private
+
+        def default_response(env)
+          content_type = content_type(env)
 
           body = []
           body << content(content_type)
@@ -43,12 +65,53 @@ module Datadog
           )
         end
 
-        private
+        def block_response(env, options)
+          content_type = if options['type'] == 'auto'
+                           content_type(env)
+                         else
+                           FORMAT_TO_CONTENT_TYPE[options['type']]
+                         end
+
+          body = []
+          body << content(content_type)
+
+          Response.new(
+            status: options['status_code'] || 403,
+            headers: { 'Content-Type' => content_type },
+            body: body,
+          )
+        end
+
+        def redirect_response(env, options)
+          if options['location'] && !options['location'].empty?
+            content_type = content_type(env)
+
+            status = options['status_code'] >= 300 && options['status_code'] < 400 ? options['status_code'] : 303
+
+            headers = {
+              'Content-Type' => content_type,
+              'Location' => options['location']
+            }
+
+            Response.new(
+              status: status,
+              headers: headers,
+              body: [],
+            )
+          else
+            default_response(env)
+          end
+        end
 
         CONTENT_TYPE_TO_FORMAT = {
           'application/json' => :json,
           'text/html' => :html,
           'text/plain' => :text,
+        }.freeze
+
+        FORMAT_TO_CONTENT_TYPE = {
+          'json' => 'application/json',
+          'html' => 'text/html',
         }.freeze
 
         DEFAULT_CONTENT_TYPE = 'application/json'

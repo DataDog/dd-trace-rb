@@ -59,8 +59,8 @@ RSpec.describe Datadog::Profiling::Component do
 
         it 'sets up the Profiler with the OldStack collector' do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
-            [instance_of(Datadog::Profiling::Collectors::OldStack)],
-            anything,
+            worker: instance_of(Datadog::Profiling::Collectors::OldStack),
+            scheduler: anything,
           )
 
           build_profiler_component
@@ -244,8 +244,8 @@ RSpec.describe Datadog::Profiling::Component do
 
         it 'sets up the Profiler with the CpuAndWallTimeWorker collector' do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
-            [instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)],
-            anything,
+            worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),
+            scheduler: anything,
           )
 
           build_profiler_component
