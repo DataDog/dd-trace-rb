@@ -266,7 +266,7 @@ static void sample_thread_internal(
           state_hint = DDOG_CHARSLICE_C("waiting");
         } else if (frame_name("synchronize", name_slice)) {
           state_hint = DDOG_CHARSLICE_C("blocked");
-        } else if (frame_name("wait_readable", name_slice)) { // can match on file
+        } else if (frame_name("wait_readable", name_slice)) { // TODO: match on file as well
           state_hint = DDOG_CHARSLICE_C("network");
         }
       } else {
