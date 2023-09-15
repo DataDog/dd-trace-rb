@@ -763,7 +763,7 @@ static void trigger_sample_for_thread(
     state->sampling_buffer,
     state->recorder_instance,
     values,
-    (ddog_prof_Slice_Label) {.ptr = labels, .len = label_pos},
+    (prototype_ddog_prof_Slice_Label) {.ptr = labels, .len = label_pos},
     type
   );
 }

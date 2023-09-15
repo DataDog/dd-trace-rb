@@ -40,7 +40,7 @@ static void record_placeholder_stack_in_native_code(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  prototype_ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
 );
@@ -49,7 +49,7 @@ static void sample_thread_internal(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  prototype_ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
 );
@@ -120,7 +120,7 @@ static VALUE _native_sample(
     buffer,
     recorder_instance,
     values,
-    (ddog_prof_Slice_Label) {.ptr = labels, .len = labels_count},
+    (prototype_ddog_prof_Slice_Label) {.ptr = labels, .len = labels_count},
     RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
   );
 
@@ -134,7 +134,7 @@ void sample_thread(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  prototype_ddog_prof_Slice_Label labels,
   sample_type type
 ) {
   // Samples thread into recorder
@@ -195,7 +195,7 @@ static void sample_thread_internal(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  prototype_ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
 ) {
@@ -270,8 +270,8 @@ static void sample_thread_internal(
   bool cpu_and_wall_sample_for_inactive_thread = values.wall_time_ns > 0 && values.cpu_time_ns == 0;
 
   if (cpu_and_wall_sample_for_inactive_thread) {
-    ddog_prof_Label *label_data = labels.ptr;
-    label_data[labels.len] = (ddog_prof_Label) {
+    // ddog_prof_Label *label_data = labels.ptr;
+    labels.ptr[labels.len] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("state hint"),
       .str = DDOG_CHARSLICE_C("inactive thread"),
     };
@@ -282,7 +282,7 @@ static void sample_thread_internal(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = captured_frames + extra_frames_in_record_buffer},
     values,
-    labels
+    (ddog_prof_Slice_Label) {.ptr = labels.ptr, .len = labels.len}
   );
 }
 
@@ -331,7 +331,7 @@ static void record_placeholder_stack_in_native_code(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  prototype_ddog_prof_Slice_Label labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
 ) {
@@ -346,7 +346,7 @@ static void record_placeholder_stack_in_native_code(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = 1 + extra_frames_in_record_buffer},
     values,
-    labels
+    (ddog_prof_Slice_Label) {.ptr = labels.ptr, .len = labels.len}
   );
 }
 

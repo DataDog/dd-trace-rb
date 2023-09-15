@@ -29,3 +29,9 @@ inline static VALUE get_error_details_and_drop(ddog_Error *error) {
 // ruby_value_type that Ruby uses so that we can also use this for debugging.
 const char *ruby_value_type_to_string(enum ruby_value_type type);
 ddog_CharSlice ruby_value_type_to_char_slice(enum ruby_value_type type);
+
+// Hack: This is the same as ddog_prof_Slice_Label but without marking ptr as const
+typedef struct {
+  struct ddog_prof_Label *ptr;
+  uintptr_t len;
+} prototype_ddog_prof_Slice_Label;
