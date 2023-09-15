@@ -1,6 +1,8 @@
 require 'bundler'
 require 'set'
 
+require 'datadog/core/environment/ext'
+
 
 def parse_ddtrace_gemfiles(integrated_gems)
     # Find latest CRuby version
@@ -19,9 +21,6 @@ def parse_ddtrace_gemfiles(integrated_gems)
         parser = Bundler::LockfileParser.new(File.read(file))
         specs = parser.specs
         specs.each do |spec|
-        #   if (version = gems[spec.name]).nil? || version < spec.version
-        #     gems[spec.name] = spec.version
-        #   end
             (gems[spec.name] ||= Set[]).add(spec.version.to_s)
         end
       end
@@ -40,17 +39,26 @@ ddtrace_specs = `grep -Rho 'Gem.loaded_specs.*' lib/datadog/tracing/contrib/`
 
 integrated_gems = ddtrace_specs.split.map { |m| m.match(/Gem.loaded_specs\[.([^\]]+).\]/)&.[](1) }.uniq.compact
 
+payload = {
+  "data": {
+    "type" : "supported_integrations",
+    "id" : "1",
+    "attributes":{
+      "language_language": "ruby",
+      "tracer_version": Datadog::Core::Environment::Ext::TRACER_VERSION,
+      "integrations": []
+    }
+  }
+}
 tested_integrations = parse_ddtrace_gemfiles(integrated_gems)
 integrated_gems.each do |integration|
     puts integration + " " + tested_integrations[integration]
-    # for v in tested_integrations[integration] do
-    #     # make http post to telemetry
-    #     data = {
-    #         "tracer_version": nil,
-    #         "tracer_language": "ruby",
-    #         "integration_name": integration,
-    #         "integration_version": v
-    #     }
-    #     puts data
-    # end
+    
+    for v in tested_integrations[integration] do
+      payload["attributes"]["integrations"].append({
+        "integration_name": integration,
+        "integration_version": v,
+        "dependency_name": integration
+      })
+    end
 end
