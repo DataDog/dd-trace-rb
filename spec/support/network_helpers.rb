@@ -1,7 +1,4 @@
 module NetworkHelpers
-  TEST_AGENT_HOST = ENV['DD_AGENT_HOST'] || 'testagent'
-  TEST_AGENT_PORT = ENV['DD_TRACE_AGENT_PORT'] || 9126
-
   # Returns a TCP "host:port" endpoint currently available
   # for listening in the local machine
   #
@@ -21,19 +18,24 @@ module NetworkHelpers
     end
   end
 
-  # Yields an exclusion allowing WebMock traffic to APM Test Agent given an inputted block that calls webmock
-  # function, ie: call_web_mock_function_with_agent_host_exclusions { [options] webmock.disable! options }
+  # Returns the trace agent host to use
   #
-  # @yield [Hash] webmock exclusions to call webmock block with
-  def call_web_mock_function_with_agent_host_exclusions
-    yield allow: "http://#{TEST_AGENT_HOST}:#{TEST_AGENT_PORT}"
+  # @return [String] agent host
+  def agent_host
+    ENV['DD_AGENT_HOST']
   end
 
-  # Gets the Datadog Trace Configuration and returns a comma separated string of key/value pairs.
+  # Returns the trace agent port to use
   #
-  # @return [String] Key/Value pairs representing relevant Tracer Configuration
-  def parse_tracer_config
-    dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
-    dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
+  # @return [Integer] agent port
+  def agent_port
+    ENV['DD_TRACE_AGENT_PORT']
+  end
+
+  # Yields the agent url to use for testing
+  #
+  # @yield [String] agent url
+  def agent_url
+    "http://#{agent_host}:#{agent_port}"
   end
 end
