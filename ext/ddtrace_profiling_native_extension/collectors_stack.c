@@ -267,11 +267,13 @@ static void sample_thread_internal(
     maybe_add_placeholder_frames_omitted(thread, buffer, frames_omitted_message, frames_omitted_message_size);
   }
 
-  if (true /* state_hint_prototype? */) {
+  bool cpu_and_wall_sample_for_inactive_thread = values.wall_time_ns > 0 && values.cpu_time_ns == 0;
+
+  if (cpu_and_wall_sample_for_inactive_thread) {
     ddog_prof_Label *label_data = labels.ptr;
     label_data[labels.len] = (ddog_prof_Label) {
-      .key = DDOG_CHARSLICE_C("state hint prototype"),
-      .str = DDOG_CHARSLICE_C("hello world"),
+      .key = DDOG_CHARSLICE_C("state hint"),
+      .str = DDOG_CHARSLICE_C("inactive thread"),
     };
     labels.len++;
   }
