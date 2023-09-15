@@ -163,7 +163,6 @@ appraise 'contrib' do
   gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
   gem 'lograge', '~> 0.11'
   gem 'mongo', '>= 2.8.0'
-  gem 'minitest', '>= 5.0.0'
   gem 'presto-client', '>=  0.5.14'
   gem 'racecar', '>= 0.3.5'
   gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
@@ -174,7 +173,6 @@ appraise 'contrib' do
   gem 'resque', '< 2.0'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
-  gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq'
   gem 'sneakers', '>= 2.12.0'

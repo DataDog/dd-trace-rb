@@ -61,8 +61,6 @@ appraise 'resque2-redis4' do
   gem 'resque', '>= 2.0'
 end
 
-(3..4).each { |v| gem_cucumber(v) }
-
 appraise 'aws' do
   gem 'aws-sdk'
   gem 'shoryuken'
@@ -103,7 +101,6 @@ appraise 'contrib' do
   gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
   gem 'lograge', '~> 0.11'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'minitest', '>= 5.0.0'
   gem 'racecar', '>= 0.3.5'
   gem 'rack'
   gem 'rack-contrib'
@@ -112,7 +109,6 @@ appraise 'contrib' do
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
-  gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq'
   gem 'sneakers', '>= 2.12.0'

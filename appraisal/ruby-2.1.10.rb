@@ -97,7 +97,6 @@ appraise 'contrib' do
   gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
   gem 'presto-client', '>=  0.5.14'
   gem 'mongo', '< 2.5'
-  gem 'minitest', '>= 5.0.0'
   gem 'rack', '1.4.7'
   gem 'rack-contrib'
   gem 'rack-cache', '1.7.1'
@@ -106,7 +105,6 @@ appraise 'contrib' do
   gem 'resque', '< 2.0'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
-  gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 3.5.4'
   gem 'sucker_punch'
