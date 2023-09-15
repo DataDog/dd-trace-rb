@@ -41,9 +41,6 @@ GEM
       jsonapi-renderer (>= 0.1.1.beta1, < 0.3)
     activemodel (6.1.7.4)
       activesupport (= 6.1.7.4)
-    activerecord (6.1.7.4)
-      activemodel (= 6.1.7.4)
-      activesupport (= 6.1.7.4)
     activesupport (6.1.7.4)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (>= 1.6, < 2)
@@ -83,11 +80,6 @@ GEM
     datadog-ci (0.1.1)
     debase-ruby_core_source (3.2.1)
     debug_inspector (1.1.0)
-    delayed_job (4.1.11)
-      activesupport (>= 3.0, < 8.0)
-    delayed_job_active_record (4.1.7)
-      activerecord (>= 3.0, < 8.0)
-      delayed_job (>= 3.0, < 5)
     diff-lcs (1.5.0)
     digest-crc (0.6.4)
       rake (>= 12.0.0, < 14.0.0)
@@ -150,8 +142,6 @@ GEM
     loofah (2.19.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
-    makara (0.5.1)
-      activerecord (>= 5.2.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     mini_portile2 (2.8.1)
@@ -165,7 +155,6 @@ GEM
       ruby2_keywords (~> 0.0.1)
     mustermann-grape (1.0.2)
       mustermann (>= 1.0.0)
-    mysql2 (0.5.5)
     nokogiri (1.14.2-aarch64-linux)
       racc (~> 1.4)
     nokogiri (1.14.2-x86_64-linux)
@@ -175,7 +164,6 @@ GEM
     parallel (1.23.0)
     parser (3.2.1.0)
       ast (~> 2.4.1)
-    pg (1.4.6)
     pimpmychangelog (0.1.3)
     pry (0.14.2)
       coderay (~> 1.1)
@@ -284,7 +272,6 @@ GEM
     ruby2_keywords (0.0.5)
     semantic_logger (4.12.0)
       concurrent-ruby (~> 1.0)
-    sequel (5.54.0)
     serverengine (2.1.1)
       sigdump (~> 0.2.2)
     set (1.0.3)
@@ -312,7 +299,6 @@ GEM
     sorted_set (1.0.3)
       rbtree
       set (~> 1.0)
-    sqlite3 (1.4.4)
     sucker_punch (3.1.0)
       concurrent-ruby (~> 1.0)
     thor (1.2.1)
@@ -338,7 +324,6 @@ DEPENDENCIES
   actionpack
   actionview
   active_model_serializers (>= 0.10.0)
-  activerecord (~> 6.1.0)
   addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
@@ -348,8 +333,6 @@ DEPENDENCIES
   concurrent-ruby
   dalli (>= 3.0.0)
   ddtrace!
-  delayed_job
-  delayed_job_active_record
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
@@ -358,13 +341,10 @@ DEPENDENCIES
   grpc
   json-schema (< 3)
   lograge (~> 0.11)
-  makara
   memory_profiler (~> 0.9)
   mongo (>= 2.8.0, < 2.15.0)
-  mysql2 (< 1)
   opentracing (>= 0.4.1)
   os (~> 1.1)
-  pg (>= 0.18.4)
   pimpmychangelog (>= 0.1.2)
   pry
   pry-byebug
@@ -391,12 +371,10 @@ DEPENDENCIES
   ruby-kafka (>= 0.7.10)
   ruby-prof (~> 1.4)
   semantic_logger (~> 4.0)
-  sequel (~> 5.54.0)
   sidekiq (~> 6)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   sneakers (>= 2.12.0)
-  sqlite3 (~> 1.4.1)
   sucker_punch
   warning (~> 1)
   webmock (>= 3.10.0)

@@ -31,10 +31,6 @@ GEM
       jsonapi-renderer (>= 0.1.1.beta1, < 0.3)
     activemodel (5.1.4)
       activesupport (= 5.1.4)
-    activerecord (5.1.4)
-      activemodel (= 5.1.4)
-      activesupport (= 5.1.4)
-      arel (~> 8.0)
     activesupport (5.1.4)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (~> 0.7)
@@ -46,7 +42,6 @@ GEM
       bundler
       rake
       thor (>= 0.14.0)
-    arel (8.0.0)
     axiom-types (0.1.1)
       descendants_tracker (~> 0.0.4)
       ice_nine (~> 0.11.0)
@@ -73,11 +68,6 @@ GEM
     dalli (2.7.11)
     datadog-ci (0.1.1)
     debase-ruby_core_source (3.2.1)
-    delayed_job (4.1.11)
-      activesupport (>= 3.0, < 8.0)
-    delayed_job_active_record (4.1.7)
-      activerecord (>= 3.0, < 8.0)
-      delayed_job (>= 3.0, < 5)
     descendants_tracker (0.0.4)
       thread_safe (~> 0.3, >= 0.3.1)
     diff-lcs (1.5.0)
@@ -126,8 +116,6 @@ GEM
     loofah (2.19.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
-    makara (0.5.0)
-      activerecord (>= 3.0.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     mini_portile2 (2.4.0)
@@ -141,12 +129,10 @@ GEM
       ruby2_keywords (~> 0.0.1)
     mustermann-grape (1.0.2)
       mustermann (>= 1.0.0)
-    mysql2 (0.4.10)
     nokogiri (1.10.10)
       mini_portile2 (~> 2.4.0)
     opentracing (0.5.0)
     os (1.1.4)
-    pg (1.2.3)
     pimpmychangelog (0.1.3)
     pry (0.14.2)
       coderay (~> 1.1)
@@ -219,7 +205,6 @@ GEM
     ruby2_keywords (0.0.5)
     semantic_logger (4.7.4)
       concurrent-ruby (~> 1.0)
-    sequel (5.54.0)
     serverengine (2.1.1)
       sigdump (~> 0.2.2)
     set (1.0.3)
@@ -248,7 +233,6 @@ GEM
     sorted_set (1.0.3)
       rbtree
       set (~> 1.0)
-    sqlite3 (1.3.13)
     sucker_punch (3.1.0)
       concurrent-ruby (~> 1.0)
     thor (1.2.1)
@@ -277,7 +261,6 @@ DEPENDENCIES
   actionpack
   actionview
   active_model_serializers (>= 0.10.0)
-  activerecord (< 5.1.5)
   addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
@@ -287,8 +270,6 @@ DEPENDENCIES
   concurrent-ruby
   dalli (< 3.0.0)
   ddtrace!
-  delayed_job
-  delayed_job_active_record
   docile (~> 1.3.5)
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
@@ -298,14 +279,11 @@ DEPENDENCIES
   grpc
   json-schema (< 3)
   lograge (~> 0.11)
-  makara
   memory_profiler (~> 0.9)
   mongo (>= 2.8.0, < 2.15.0)
   msgpack (~> 1.3.3)
-  mysql2 (< 0.5)
   opentracing (>= 0.4.1)
   os (~> 1.1)
-  pg (>= 0.18.4)
   pimpmychangelog (>= 0.1.2)
   pry
   pry-nav
@@ -325,12 +303,10 @@ DEPENDENCIES
   rspec_junit_formatter (>= 0.5.1)
   ruby-kafka (>= 0.7.10)
   semantic_logger (~> 4.0)
-  sequel (~> 5.54.0)
   sidekiq
   simplecov (~> 0.17)
   simplecov-html (~> 0.10.2)
   sneakers (>= 2.12.0)
-  sqlite3 (~> 1.3.6)
   sucker_punch
   webmock (>= 3.10.0)
   yard (~> 0.9)
