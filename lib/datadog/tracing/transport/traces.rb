@@ -1,5 +1,5 @@
 require_relative '../../core/chunker'
-require_relative 'parcel'
+require_relative '../../core/transport/parcel'
 require_relative '../../core/transport/request'
 require_relative 'serializable_trace'
 require_relative 'trace_formatter'
@@ -10,7 +10,7 @@ module Datadog
       module Traces
         # Data transfer object for encoded traces
         class EncodedParcel
-          include Datadog::Tracing::Transport::Parcel
+          include Datadog::Core::Transport::Parcel
 
           attr_reader :trace_count
 

@@ -1,9 +1,9 @@
 require 'spec_helper'
 
 require 'datadog/core/transport/http/env'
-require 'datadog/tracing/transport/http/api/endpoint'
+require 'datadog/core/transport/http/api/endpoint'
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::API::Endpoint do
+RSpec.describe Datadog::Core::Transport::HTTP::API::Endpoint do
   subject(:endpoint) { described_class.new(verb, path) }
 
   let(:verb) { double('verb') }

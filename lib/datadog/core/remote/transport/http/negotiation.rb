@@ -6,8 +6,7 @@ require_relative '../negotiation'
 require_relative 'client'
 # TODO: EK - FIX THIS
 require_relative '../../../transport/http/response'
-# require_relative '../../core/transport/http/'
-require_relative '../../../../tracing/transport/http/api/endpoint'
+require_relative '../../../transport/http/api/endpoint'
 
 # TODO: Decouple standard transport/http/api/instance
 #
@@ -115,7 +114,7 @@ module Datadog
               end
 
               # Endpoint for negotiation
-              class Endpoint < Datadog::Tracing::Transport::HTTP::API::Endpoint
+              class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
                 def initialize(path)
                   super(:get, path)
                 end

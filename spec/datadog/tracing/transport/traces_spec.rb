@@ -8,7 +8,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::EncodedParcel do
   let(:data) { instance_double(Array) }
   let(:trace_count) { 123 }
 
-  it { is_expected.to be_a_kind_of(Datadog::Tracing::Transport::Parcel) }
+  it { is_expected.to be_a_kind_of(Datadog::Core::Transport::Parcel) }
 
   describe '#initialize' do
     it { is_expected.to have_attributes(data: data) }

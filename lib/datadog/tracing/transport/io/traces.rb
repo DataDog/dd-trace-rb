@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../transport/traces'
-
+require_relative '../../../core/transport/parcel'
 require_relative 'response'
 require_relative 'client'
 
@@ -80,7 +80,7 @@ module Datadog
 
           # Transfer object for list of traces
           class Parcel
-            include Transport::Parcel
+            include Datadog::Core::Transport::Parcel
             include Encoder
 
             def count

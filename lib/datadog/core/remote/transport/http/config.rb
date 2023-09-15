@@ -5,9 +5,8 @@ require 'base64'
 
 require_relative '../config'
 require_relative 'client'
-# TODO: EK - FIX THIS
-require_relative '../../../../tracing/transport/http/'
-require_relative '../../../../tracing/transport/http/api/endpoint'
+require_relative '../../../../core/transport/http/response'
+require_relative '../../../transport/http/api/endpoint'
 
 # TODO: Decouple standard transport/http/api/instance
 #
@@ -19,6 +18,7 @@ require_relative '../../../../tracing/transport/http/api/endpoint'
 # Separate classes are needed because of `include Trace::API::Instance`.
 #
 # Below should be:
+# TODO: EK - LOOK AT THIS
 # require_relative '../../../../ddtrace/transport/http/api/instance'
 require_relative 'api/instance'
 # Below should be:
@@ -242,7 +242,7 @@ module Datadog
               end
 
               # Endpoint for remote configuration
-              class Endpoint < Datadog::Tracing::Transport::HTTP::API::Endpoint
+              class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
                 HEADER_CONTENT_TYPE = 'Content-Type'
 
                 attr_reader :encoder

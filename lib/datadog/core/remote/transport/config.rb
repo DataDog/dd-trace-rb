@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../core/transport/request'
-# TODO: EK - FIX THIS
-require_relative '../../../tracing/transport/parcel'
+require_relative '../../../core/transport/parcel'
 
 module Datadog
   module Core
@@ -11,7 +10,7 @@ module Datadog
         module Config
           # Data transfer object for encoded traces
           class EncodedParcel
-            include Datadog::Tracing::Transport::Parcel
+            include Datadog::Core::Transport::Parcel
 
             def count
               data.length

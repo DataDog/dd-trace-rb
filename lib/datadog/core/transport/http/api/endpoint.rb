@@ -3,7 +3,7 @@
 require 'json'
 
 module Datadog
-  module Tracing
+  module Core
     module Transport
       module HTTP
         module API

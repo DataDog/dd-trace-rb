@@ -80,7 +80,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
     subject(:encode_data) { client.encode_data(encoder, request) }
 
     let(:request) { instance_double(Datadog::Core::Transport::Request, parcel: parcel) }
-    let(:parcel) { instance_double(Datadog::Tracing::Transport::Parcel) }
+    let(:parcel) { instance_double(Datadog::Core::Transport::Parcel) }
     let(:data) { double('data') }
 
     before do

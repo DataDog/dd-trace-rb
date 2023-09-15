@@ -3,7 +3,7 @@ require 'json'
 require_relative '../traces'
 require_relative 'client'
 require_relative '../../../core/transport/http/response'
-require_relative 'api/endpoint'
+require_relative '../../../core/transport/http/api/endpoint'
 require_relative 'api/instance'
 
 module Datadog
@@ -91,7 +91,7 @@ module Datadog
             end
 
             # Endpoint for submitting trace data
-            class Endpoint < HTTP::API::Endpoint
+            class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
               HEADER_CONTENT_TYPE = 'Content-Type'.freeze
               HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'.freeze
               SERVICE_RATE_KEY = 'rate_by_service'.freeze
