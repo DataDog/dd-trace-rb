@@ -9,7 +9,7 @@ jobs:
   build-and-publish-release-image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set version
         id: version
         run: echo "version=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT

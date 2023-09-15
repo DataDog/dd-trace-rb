@@ -68,7 +68,7 @@ jobs:
     name: Build (${{ matrix.engine }} ${{ matrix.version }})
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Using docker-container engine enables advanced buildx features
       - name: Set up Docker container engine

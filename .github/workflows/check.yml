@@ -10,7 +10,7 @@ jobs:
     name: Check types
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@31a7f6d628878b80bc63375a93ae079ec50a1601 # v1.143.0
         with:
           ruby-version: '3.2'
