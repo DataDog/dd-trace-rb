@@ -12,6 +12,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.14.0)
+      datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.11.0.0.0)
@@ -41,6 +42,7 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
+    datadog-ci (0.1.1)
     debase-ruby_core_source (3.2.1)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
@@ -57,6 +59,8 @@ GEM
     libdatadog (4.0.0.1.0-aarch64-linux)
     libdatadog (4.0.0.1.0-x86_64-linux)
     libddwaf (1.11.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.11.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)

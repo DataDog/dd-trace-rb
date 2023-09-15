@@ -12,6 +12,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.14.0)
+      datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.11.0.0.0)
@@ -78,6 +79,7 @@ GEM
     crass (1.0.6)
     cri (2.15.11)
     dalli (3.2.4)
+    datadog-ci (0.1.1)
     debase-ruby_core_source (3.2.1)
     debug_inspector (1.1.0)
     delayed_job (4.1.11)
@@ -136,6 +138,8 @@ GEM
     libdatadog (4.0.0.1.0-aarch64-linux)
     libdatadog (4.0.0.1.0-x86_64-linux)
     libddwaf (1.11.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.11.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     lograge (0.12.0)
       actionpack (>= 4)
@@ -364,7 +368,6 @@ DEPENDENCIES
   lograge
   makara (>= 0.6.0.pre)
   memory_profiler (~> 0.9)
-  minitest (>= 5.0.0)
   mongo (>= 2.8.0, < 2.15.0)
   mysql2 (>= 0.5.3)
   net-smtp
@@ -385,7 +388,7 @@ DEPENDENCIES
   redcarpet (~> 3.4)
   resque
   roda (>= 2.0.0)
-  rspec (>= 3.0.0)
+  rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)

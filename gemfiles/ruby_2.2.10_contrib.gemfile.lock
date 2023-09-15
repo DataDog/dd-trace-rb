@@ -2,6 +2,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.14.0)
+      datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.11.0.0.0)
@@ -69,6 +70,7 @@ GEM
       rexml
     crass (1.0.6)
     dalli (2.7.11)
+    datadog-ci (0.1.1)
     debase-ruby_core_source (3.2.1)
     delayed_job (4.1.11)
       activesupport (>= 3.0, < 8.0)
@@ -304,7 +306,6 @@ DEPENDENCIES
   lograge (~> 0.11)
   makara (< 0.5.0)
   memory_profiler (= 0.9.12)
-  minitest (>= 5.0.0)
   mongo (>= 2.8.0)
   msgpack (~> 1.3.3)
   mysql2 (< 0.5)
@@ -327,7 +328,7 @@ DEPENDENCIES
   resque (< 2.0)
   rexml (< 3.2.5)
   roda (>= 2.0.0)
-  rspec (>= 3.0.0)
+  rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (<= 0.4.1)

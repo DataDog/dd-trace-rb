@@ -156,7 +156,6 @@ appraise 'contrib' do
   gem 'lograge', '~> 0.11'
   gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
   gem 'mongo', '>= 2.8.0'
-  gem 'minitest', '>= 5.0.0'
   gem 'mysql2', '< 0.5'
   gem 'pg', '>= 0.18.4'
   gem 'presto-client', '>=  0.5.14'
@@ -169,7 +168,6 @@ appraise 'contrib' do
   gem 'resque', '< 2.0'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
-  gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
   gem 'sidekiq'
