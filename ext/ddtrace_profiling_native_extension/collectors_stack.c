@@ -171,6 +171,10 @@ void sample_thread(
   rb_raise(rb_eArgError, "Unexpected value for sample_type: %d", type);
 }
 
+static inline bool frame_name(const char *name_to_check, const ddog_CharSlice frame_name) {
+  return strlen(name_to_check) == frame_name.len && strncmp(name_to_check, frame_name.ptr, frame_name.len) == 0;
+}
+
 // Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads
 // could continue making progress while the sample was ingested into the profile.
 //
@@ -228,6 +232,9 @@ static void sample_thread_internal(
   VALUE last_ruby_frame = Qnil;
   int last_ruby_line = 0;
 
+  bool cpu_and_wall_sample_for_inactive_thread = values.wall_time_ns > 0 && values.cpu_time_ns == 0;
+  ddog_CharSlice state_hint = DDOG_CHARSLICE_C("");
+
   for (int i = captured_frames - 1; i >= 0; i--) {
     VALUE name, filename;
     int line;
@@ -248,10 +255,31 @@ static void sample_thread_internal(
     name = NIL_P(name) ? missing_string : name;
     filename = NIL_P(filename) ? missing_string : filename;
 
+    ddog_CharSlice name_slice = char_slice_from_ruby_string(name);
+    ddog_CharSlice filename_slice = char_slice_from_ruby_string(filename);
+
+    if (i == 0 /* Top of the stack*/) {
+      if (!buffer->is_ruby_frame[i]) {
+        if (frame_name("sleep", name_slice)) {
+          state_hint = DDOG_CHARSLICE_C("sleeping");
+        } else if (frame_name("select", name_slice) || frame_name("join", name_slice)) {
+          state_hint = DDOG_CHARSLICE_C("waiting");
+        } else if (frame_name("synchronize", name_slice)) {
+          state_hint = DDOG_CHARSLICE_C("blocked");
+        } else if (frame_name("wait_readable", name_slice)) { // can match on file
+          state_hint = DDOG_CHARSLICE_C("network");
+        }
+      } else {
+        if (frame_name("pop", name_slice) && frame_name("<internal:thread_sync>", filename_slice)) {
+          state_hint = DDOG_CHARSLICE_C("waiting");
+        }
+      }
+    }
+
     buffer->locations[i] = (ddog_prof_Location) {
       .function = (ddog_prof_Function) {
-        .name = char_slice_from_ruby_string(name),
-        .filename = char_slice_from_ruby_string(filename)
+        .name = name_slice,
+        .filename = filename_slice,
       },
       .line = line,
     };
@@ -267,13 +295,10 @@ static void sample_thread_internal(
     maybe_add_placeholder_frames_omitted(thread, buffer, frames_omitted_message, frames_omitted_message_size);
   }
 
-  bool cpu_and_wall_sample_for_inactive_thread = values.wall_time_ns > 0 && values.cpu_time_ns == 0;
-
   if (cpu_and_wall_sample_for_inactive_thread) {
-    // ddog_prof_Label *label_data = labels.ptr;
     labels.ptr[labels.len] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("state hint"),
-      .str = DDOG_CHARSLICE_C("inactive thread"),
+      .str = state_hint,
     };
     labels.len++;
   }
