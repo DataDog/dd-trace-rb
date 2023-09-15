@@ -40,13 +40,13 @@ ddtrace_specs = `grep -Rho 'Gem.loaded_specs.*' lib/datadog/tracing/contrib/`
 integrated_gems = ddtrace_specs.split.map { |m| m.match(/Gem.loaded_specs\[.([^\]]+).\]/)&.[](1) }.uniq.compact
 
 payload = {
-  "data": {
-    "type" : "supported_integrations",
-    "id" : "1",
-    "attributes":{
-      "language_language": "ruby",
-      "tracer_version": Datadog::Core::Environment::Ext::TRACER_VERSION,
-      "integrations": []
+  "data" => {
+    "type" => "supported_integrations",
+    "id" => "1",
+    "attributes" => {
+      "language_language" => "ruby",
+      "tracer_version" => Datadog::Core::Environment::Ext::TRACER_VERSION,
+      "integrations" => []
     }
   }
 }
@@ -56,9 +56,9 @@ integrated_gems.each do |integration|
     
     for v in tested_integrations[integration] do
       payload["attributes"]["integrations"].append({
-        "integration_name": integration,
-        "integration_version": v,
-        "dependency_name": integration
+        "integration_name" => integration,
+        "integration_version" => v,
+        "dependency_name" => integration
       })
     end
 end
