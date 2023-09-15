@@ -152,19 +152,25 @@ appraise 'relational_db' do
   gem 'sqlite3', '~> 1.3.6'
 end
 
-appraise 'contrib' do
+appraise 'activesupport' do
+  gem 'activesupport'
+
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
+  gem 'grape'
+  gem 'lograge', '~> 0.11'
+  gem 'racecar', '>= 0.3.5'
+  gem 'ruby-kafka', '>= 0.7.10'
+end
+
+appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
-  gem 'grape'
   gem 'graphql'
   gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
-  gem 'lograge', '~> 0.11'
   gem 'mongo', '>= 2.8.0'
   gem 'presto-client', '>=  0.5.14'
-  gem 'racecar', '>= 0.3.5'
   gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
   gem 'rack-contrib'
   gem 'rack-test'
@@ -172,7 +178,6 @@ appraise 'contrib' do
   gem 'redis', '~> 3'
   gem 'resque', '< 2.0'
   gem 'roda', '>= 2.0.0'
-  gem 'ruby-kafka', '>= 0.7.10'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq'
   gem 'sneakers', '>= 2.12.0'
