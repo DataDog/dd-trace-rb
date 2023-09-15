@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/http/adapters/unix_socket'
+require 'datadog/core/transport/http/adapters/unix_socket'
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::UnixSocket do
+RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket do
   subject(:adapter) { described_class.new(uds_path, **options) }
 
   let(:uds_path) { double('uds_path') }
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::UnixSocket do
   end
 end
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::UnixSocket::HTTP do
+RSpec.describe Datadog::Core::Transport::HTTP::Adapters::UnixSocket::HTTP do
   subject(:unix_http) { described_class.new(uds_path, options) }
 
   let(:uds_path) { double('uds_path') }

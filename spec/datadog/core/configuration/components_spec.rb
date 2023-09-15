@@ -29,7 +29,7 @@ require 'datadog/tracing/sampling/rule_sampler'
 require 'datadog/tracing/sync_writer'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
-require 'datadog/tracing/transport/http/adapters/net'
+require 'datadog/core/transport/http/adapters/net'
 
 # TODO: Components contains behavior for all of the different products.
 #       Test behavior needs to be extracted to complimentary component files for every product.

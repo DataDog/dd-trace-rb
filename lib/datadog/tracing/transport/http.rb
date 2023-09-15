@@ -6,9 +6,9 @@ require_relative '../../core/environment/container'
 require_relative '../../core/environment/ext'
 # TODO: EK - LOOK INTO THIS
 require_relative '../../../ddtrace/transport/ext'
-require_relative 'http/adapters/net'
-require_relative 'http/adapters/test'
-require_relative 'http/adapters/unix_socket'
+require_relative '../../core/transport/http/adapters/net'
+require_relative '../../core/transport/http/adapters/test'
+require_relative '../../core/transport/http/adapters/unix_socket'
 require_relative 'http/api'
 require_relative 'http/builder'
 require_relative '../../../ddtrace/version'
@@ -110,10 +110,12 @@ module Datadog
           nil
         end
 
+        # TODO: EK - NOT SURE THIS IS WHERE THIS BELONGS ANYMORE?
+
         # Add adapters to registry
-        Builder::REGISTRY.set(Adapters::Net, Datadog::Transport::Ext::HTTP::ADAPTER)
-        Builder::REGISTRY.set(Adapters::Test, Datadog::Transport::Ext::Test::ADAPTER)
-        Builder::REGISTRY.set(Adapters::UnixSocket, Datadog::Transport::Ext::UnixSocket::ADAPTER)
+        Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Net, Datadog::Transport::Ext::HTTP::ADAPTER)
+        Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Test, Datadog::Transport::Ext::Test::ADAPTER)
+        Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::UnixSocket, Datadog::Transport::Ext::UnixSocket::ADAPTER)
       end
     end
   end

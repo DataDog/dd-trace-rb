@@ -1,8 +1,8 @@
-require_relative '../../response'
+require_relative '../../../../tracing/transport/response'
 require_relative '../../../../core/vendor/multipart-post/net/http/post/multipart'
 
 module Datadog
-  module Tracing
+  module Core
     module Transport
       module HTTP
         module Adapters

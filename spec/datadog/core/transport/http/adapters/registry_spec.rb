@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/http/adapters/registry'
+require 'datadog/core/transport/http/adapters/registry'
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::Registry do
+RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Registry do
   subject(:registry) { described_class.new }
 
   describe '#get' do

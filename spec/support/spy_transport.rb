@@ -22,8 +22,8 @@ shared_context 'Datadog::Tracing::Transport::HTTP::Client spy' do
   end
 
   def build_trace_response(code)
-    Datadog::Tracing::Transport::HTTP::Traces::Response.new(
-      Datadog::Tracing::Transport::HTTP::Adapters::Net::Response.new(
+    Datadog::Core::Transport::HTTP::Traces::Response.new(
+      Datadog::Core::Transport::HTTP::Adapters::Net::Response.new(
         Net::HTTPResponse.new(1.0, code, code.to_s)
       )
     )
@@ -62,7 +62,7 @@ class SpyTransport < Datadog::Tracing::Transport::HTTP::Client
 
   def build_trace_response(code)
     Datadog::Tracing::Transport::HTTP::Traces::Response.new(
-      Datadog::Tracing::Transport::HTTP::Adapters::Net::Response.new(
+      Datadog::Core::Transport::HTTP::Adapters::Net::Response.new(
         Net::HTTPResponse.new(1.0, code, code.to_s)
       ),
       trace_count: 1

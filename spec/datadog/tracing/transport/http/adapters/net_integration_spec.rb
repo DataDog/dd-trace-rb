@@ -4,12 +4,12 @@ require 'stringio'
 require 'webrick'
 
 require 'datadog/tracing/transport/http'
-require 'datadog/tracing/transport/http/adapters/net'
+require 'datadog/core/transport/http/adapters/net'
 
 RSpec.describe 'Adapters::Net tracing integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  subject(:adapter) { Datadog::Tracing::Transport::HTTP::Adapters::Net.new(hostname: hostname, port: port) }
+  subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::Net.new(hostname: hostname, port: port) }
 
   shared_context 'HTTP server' do
     # HTTP

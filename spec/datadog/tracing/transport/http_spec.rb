@@ -54,12 +54,12 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
 
         case env_agent_settings.adapter
         when :net_http
-          expect(api.adapter).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Adapters::Net)
+          expect(api.adapter).to be_a_kind_of(Datadog::Core::Transport::HTTP::Adapters::Net)
           expect(api.adapter.hostname).to eq(env_agent_settings.hostname)
           expect(api.adapter.port).to eq(env_agent_settings.port)
           expect(api.adapter.ssl).to be(env_agent_settings.ssl)
         when :unix
-          expect(api.adapter).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Adapters::UnixSocket)
+          expect(api.adapter).to be_a_kind_of(Datadog::Core::Transport::HTTP::Adapters::UnixSocket)
           expect(api.adapter.filepath).to eq(env_agent_settings.uds_path)
         else
           raise("Unknown default adapter: #{env_agent_settings.adapter}")
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
 
         it 'returns a transport with provided options' do
           default.apis.each_value do |api|
-            expect(api.adapter).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Adapters::Net)
+            expect(api.adapter).to be_a_kind_of(Datadog::Core::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(hostname)
             expect(api.adapter.port).to eq(port)
             expect(api.adapter.timeout).to be(timeout_seconds)

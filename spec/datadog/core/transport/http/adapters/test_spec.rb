@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/http/adapters/test'
+require 'datadog/core/transport/http/adapters/test'
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::Test do
+RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
   subject(:adapter) { described_class.new(buffer) }
 
   let(:buffer) { nil }
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::Test do
   end
 end
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::Adapters::Test::Response do
+RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test::Response do
   subject(:response) { described_class.new(code, body) }
 
   let(:code) { double('code') }

@@ -6,9 +6,9 @@ require_relative '../../environment/container'
 require_relative '../../environment/ext'
 require_relative '../../../../ddtrace/transport/ext'
 # TODO: EK - LOOK INTO THIS
-require_relative '../../../tracing/transport/http/adapters/net'
-require_relative '../../../tracing/transport/http/adapters/test'
-require_relative '../../../tracing/transport/http/adapters/unix_socket'
+require_relative '../../transport/http/adapters/net'
+require_relative '../../transport/http/adapters/test'
+require_relative '../../transport/http/adapters/unix_socket'
 
 # TODO: Improve negotiation to allow per endpoint selection
 #
@@ -162,9 +162,9 @@ module Datadog
           end
 
           # Add adapters to registry
-          Builder::REGISTRY.set(Datadog::Tracing::Transport::HTTP::Adapters::Net, Datadog::Transport::Ext::HTTP::ADAPTER)
-          Builder::REGISTRY.set(Datadog::Tracing::Transport::HTTP::Adapters::Test, Datadog::Transport::Ext::Test::ADAPTER)
-          Builder::REGISTRY.set(Datadog::Tracing::Transport::HTTP::Adapters::UnixSocket, Datadog::Transport::Ext::UnixSocket::ADAPTER)
+          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Net, Datadog::Transport::Ext::HTTP::ADAPTER)
+          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Test, Datadog::Transport::Ext::Test::ADAPTER)
+          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::UnixSocket, Datadog::Transport::Ext::UnixSocket::ADAPTER)
         end
       end
     end

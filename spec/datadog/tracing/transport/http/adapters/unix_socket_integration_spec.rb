@@ -4,12 +4,12 @@ require 'stringio'
 require 'webrick'
 
 require 'datadog/tracing/transport/http'
-require 'datadog/tracing/transport/http/adapters/unix_socket'
+require 'datadog/core/transport/http/adapters/unix_socket'
 
 RSpec.describe 'Adapters::UnixSocket integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  subject(:adapter) { Datadog::Tracing::Transport::HTTP::Adapters::UnixSocket.new(**options) }
+  subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::UnixSocket.new(**options) }
 
   let(:uds_path) { '/tmp/ddtrace_unix_test.sock' }
   let(:options) { { uds_path: uds_path, timeout: timeout } }

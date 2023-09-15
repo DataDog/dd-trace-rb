@@ -4,7 +4,7 @@ require_relative '../../../../../ddtrace/transport/ext'
 require_relative 'net'
 
 module Datadog
-  module Tracing
+  module Core
     module Transport
       module HTTP
         module Adapters

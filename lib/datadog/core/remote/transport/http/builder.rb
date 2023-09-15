@@ -2,7 +2,7 @@
 
 require_relative '../../../configuration/agent_settings_resolver'
 # TODO: EK - FIX THIS
-require_relative '../../../../tracing/transport/http/adapters/registry'
+require_relative '../../../transport/http/adapters/registry'
 require_relative '../../../transport/http/api/map'
 
 # TODO: Decouple standard transport/http/api/instance
@@ -46,7 +46,7 @@ module Datadog
         module HTTP
           # Builds new instances of Transport::HTTP::Client
           class Builder
-            REGISTRY = Datadog::Tracing::Transport::HTTP::Adapters::Registry.new
+            REGISTRY = Datadog::Core::Transport::HTTP::Adapters::Registry.new
 
             attr_reader \
               :apis,

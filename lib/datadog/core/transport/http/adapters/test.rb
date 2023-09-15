@@ -1,7 +1,7 @@
-require_relative '../../response'
+require_relative '../../../../tracing/transport/response'
 
 module Datadog
-  module Tracing
+  module Core
     module Transport
       module HTTP
         module Adapters
