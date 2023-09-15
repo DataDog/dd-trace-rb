@@ -258,7 +258,7 @@ static void sample_thread_internal(
     ddog_CharSlice name_slice = char_slice_from_ruby_string(name);
     ddog_CharSlice filename_slice = char_slice_from_ruby_string(filename);
 
-    if (i == 0 /* Top of the stack*/) {
+    if (i == 0 /* Top of the stack*/ && cpu_and_wall_sample_for_inactive_thread) {
       if (!buffer->is_ruby_frame[i]) {
         if (frame_name("sleep", name_slice)) {
           state_hint = DDOG_CHARSLICE_C("sleeping");
