@@ -12,6 +12,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.14.0)
+      datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.11.0.0.0)
@@ -40,17 +41,6 @@ GEM
       jsonapi-renderer (>= 0.1.1.beta1, < 0.3)
     activemodel (6.0.6.1)
       activesupport (= 6.0.6.1)
-    activerecord (6.0.6.1)
-      activemodel (= 6.0.6.1)
-      activesupport (= 6.0.6.1)
-    activerecord-jdbc-adapter (60.4-java)
-      activerecord (~> 6.0.0)
-    activerecord-jdbcmysql-adapter (60.4-java)
-      activerecord-jdbc-adapter (= 60.4)
-      jdbc-mysql (>= 5.1.36, < 9)
-    activerecord-jdbcpostgresql-adapter (60.4-java)
-      activerecord-jdbc-adapter (= 60.4)
-      jdbc-postgres (>= 9.4, < 43)
     activesupport (6.0.6.1)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (>= 0.7, < 2)
@@ -84,12 +74,8 @@ GEM
     crass (1.0.6)
     cri (2.15.11)
     dalli (3.2.3)
+    datadog-ci (0.1.1)
     debase-ruby_core_source (3.2.1)
-    delayed_job (4.1.11)
-      activesupport (>= 3.0, < 8.0)
-    delayed_job_active_record (4.1.7)
-      activerecord (>= 3.0, < 8.0)
-      delayed_job (>= 3.0, < 5)
     diff-lcs (1.5.0)
     digest-crc (0.6.4)
       rake (>= 12.0.0, < 14.0.0)
@@ -126,9 +112,6 @@ GEM
     hashdiff (1.0.1)
     i18n (1.12.0)
       concurrent-ruby (~> 1.0)
-    jdbc-mysql (8.0.27)
-    jdbc-postgres (42.2.25)
-    jdbc-sqlite3 (3.32.3.3)
     json (2.6.3-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
@@ -145,8 +128,6 @@ GEM
     loofah (2.19.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
-    makara (0.5.1)
-      activerecord (>= 5.2.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     mini_portile2 (2.8.1)
@@ -270,7 +251,6 @@ GEM
     ruby2_keywords (0.0.5)
     semantic_logger (4.12.0)
       concurrent-ruby (~> 1.0)
-    sequel (5.54.0)
     serverengine (2.1.1)
       sigdump (~> 0.2.2)
     sidekiq (6.5.8)
@@ -322,9 +302,6 @@ DEPENDENCIES
   actionpack
   actionview
   active_model_serializers (>= 0.10.0)
-  activerecord (~> 6.0.0)
-  activerecord-jdbcmysql-adapter
-  activerecord-jdbcpostgresql-adapter
   addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
@@ -334,17 +311,12 @@ DEPENDENCIES
   concurrent-ruby
   dalli (>= 3.0.0)
   ddtrace!
-  delayed_job
-  delayed_job_active_record
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   grape
   graphql (>= 2.0)
-  jdbc-sqlite3 (>= 3.28)
   json-schema (< 3)
   lograge (~> 0.11)
-  makara
   memory_profiler (~> 0.9)
-  minitest (>= 5.0.0)
   mongo (>= 2.8.0, < 2.15.0)
   opentracing (>= 0.4.1)
   os (~> 1.1)
@@ -361,7 +333,7 @@ DEPENDENCIES
   redis (~> 4)
   resque
   roda (>= 2.0.0)
-  rspec (>= 3.0.0)
+  rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
@@ -372,7 +344,6 @@ DEPENDENCIES
   rubocop-rspec (~> 2.2)
   ruby-kafka (>= 0.7.10)
   semantic_logger (~> 4.0)
-  sequel (~> 5.54.0)
   sidekiq (~> 6.5)
   simplecov!
   simplecov-cobertura (~> 2.1.0)

@@ -79,20 +79,24 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
-appraise 'contrib' do
-  gem 'active_model_serializers', '~> 0.9.0'
+appraise 'relational_db' do
   gem 'activerecord', '3.2.22.5'
   gem 'activerecord-mysql-adapter'
-  gem 'concurrent-ruby'
-  gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
   gem 'delayed_job'
   gem 'delayed_job_active_record'
-  gem 'presto-client', '>=  0.5.14'
   gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
-  gem 'mongo', '< 2.5'
-  gem 'minitest', '>= 5.0.0'
   gem 'mysql2', '0.3.21'
   gem 'pg', '>= 0.18.4', '< 1.0'
+  gem 'sequel', '~> 4.0', '< 4.37'
+  gem 'sqlite3', '~> 1.3.6'
+end
+
+appraise 'contrib' do
+  gem 'active_model_serializers', '~> 0.9.0'
+  gem 'concurrent-ruby'
+  gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
+  gem 'presto-client', '>=  0.5.14'
+  gem 'mongo', '< 2.5'
   gem 'rack', '1.4.7'
   gem 'rack-contrib'
   gem 'rack-cache', '1.7.1'
@@ -101,11 +105,8 @@ appraise 'contrib' do
   gem 'resque', '< 2.0'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
-  gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
-  gem 'sequel', '~> 4.0', '< 4.37'
   gem 'sidekiq', '~> 3.5.4'
-  gem 'sqlite3', '~> 1.3.6'
   gem 'sucker_punch'
   gem 'timers', '< 4.2'
 end

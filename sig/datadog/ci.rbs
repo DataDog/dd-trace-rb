@@ -1,4 +1,0 @@
-module Datadog
-  module CI
-  end
-end

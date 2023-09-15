@@ -134,8 +134,6 @@ appraise 'resque2-redis4' do
   gem 'resque', '>= 2.0'
 end
 
-(3..4).each { |v| gem_cucumber(v) }
-
 appraise 'aws' do
   gem 'aws-sdk'
   gem 'shoryuken'
@@ -152,25 +150,29 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
+appraise 'relational_db' do
+  gem 'activerecord', '< 5.1.5'
+  gem 'delayed_job'
+  gem 'delayed_job_active_record'
+  gem 'makara'
+  gem 'mysql2', '< 0.5'
+  gem 'pg', '>= 0.18.4'
+  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sqlite3', '~> 1.3.6'
+end
+
 appraise 'contrib' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'activerecord', '< 5.1.5'
   gem 'concurrent-ruby'
   gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
-  gem 'delayed_job'
-  gem 'delayed_job_active_record'
   gem 'grape'
   gem 'graphql'
   gem 'grpc'
   gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
   gem 'lograge', '~> 0.11'
-  gem 'makara'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'minitest', '>= 5.0.0'
-  gem 'mysql2', '< 0.5'
-  gem 'pg', '>= 0.18.4'
   gem 'racecar', '>= 0.3.5'
   gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
   gem 'rack-contrib'
@@ -179,12 +181,9 @@ appraise 'contrib' do
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'ruby-kafka', '>= 0.7.10'
-  gem 'rspec', '>= 3.0.0'
   gem 'semantic_logger', '~> 4.0'
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
   gem 'sidekiq'
   gem 'sneakers', '>= 2.12.0'
-  gem 'sqlite3', '~> 1.3.6'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0', '< 2.0.0'
 end
