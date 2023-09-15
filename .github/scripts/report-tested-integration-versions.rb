@@ -1,9 +1,6 @@
 require 'bundler'
 require 'set'
 
-require 'datadog/core/environment/ext'
-
-
 def parse_ddtrace_gemfiles(integrated_gems)
     # Find latest CRuby version
     cruby_paths = Dir['gemfiles/ruby_*.lock']
@@ -32,7 +29,7 @@ def parse_ddtrace_gemfiles(integrated_gems)
       end
     end
 
-    gems.transform_values!(&:to_s)
+    gems
 end
 
 ddtrace_specs = `grep -Rho 'Gem.loaded_specs.*' lib/datadog/tracing/contrib/`
@@ -45,20 +42,23 @@ payload = {
     "id" => "1",
     "attributes" => {
       "language_language" => "ruby",
-      "tracer_version" => Datadog::Core::Environment::Ext::TRACER_VERSION,
+      "tracer_version" => "add-version-here",
       "integrations" => []
     }
   }
 }
 tested_integrations = parse_ddtrace_gemfiles(integrated_gems)
 integrated_gems.each do |integration|
-    puts integration + " " + tested_integrations[integration]
+    puts integration + " " + tested_integrations[integration].to_s
     
-    for v in tested_integrations[integration] do
-      payload["attributes"]["integrations"].append({
+    tested_integrations[integration].each do |v|
+      payload["data"]["attributes"]["integrations"].append({
         "integration_name" => integration,
         "integration_version" => v,
         "dependency_name" => integration
       })
     end
 end
+
+# send API call to endpoint
+puts payload
