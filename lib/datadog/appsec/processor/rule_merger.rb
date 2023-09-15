@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../assets'
+
 module Datadog
   module AppSec
     class Processor
@@ -16,8 +18,13 @@ module Datadog
           end
         end
 
+        DEFAULT_PROCESSORS = JSON.parse(Datadog::AppSec::Assets.waf_processors)
+
         class << self
-          def merge(rules:, data: [], overrides: [], exclusions: [], custom_rules: [])
+          def merge(
+            rules:, data: [], overrides: [], exclusions: [], custom_rules: [],
+            processors: DEFAULT_PROCESSORS
+          )
             combined_rules = combine_rules(rules)
 
             combined_data = combine_data(data) if data.any?
@@ -29,7 +36,7 @@ module Datadog
             combined_rules['rules_override'] = combined_overrides if combined_overrides
             combined_rules['exclusions'] = combined_exclusions if combined_exclusions
             combined_rules['custom_rules'] = combined_custom_rules if combined_custom_rules
-
+            combined_rules['processors'] = processors
             combined_rules
           end
 

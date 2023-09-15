@@ -11,8 +11,11 @@ module Datadog
         type overrides = ::Array[::Hash[::String, untyped]]
         type exclusions = ::Array[::Hash[::String, untyped]]
         type custom_rules = ::Array[::Hash[::String, untyped]]
+        type processors = ::Hash[::String, untyped]
 
-        def self.merge: (rules: ::Array[rules], ?data: ::Array[data], ?overrides: ::Array[overrides], ?exclusions: ::Array[exclusions], ?custom_rules: ::Array[custom_rules]) -> rules
+        DEFAULT_PROCESSORS: ::Hash[::String, untyped]
+
+        def self.merge: (rules: ::Array[rules], ?data: ::Array[data], ?overrides: ::Array[overrides], ?exclusions: ::Array[exclusions], ?custom_rules: ::Array[custom_rules], ?processors: processors) -> rules
 
         private
 
