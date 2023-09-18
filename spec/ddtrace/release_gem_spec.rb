@@ -20,6 +20,7 @@ RSpec.describe 'gem release process' do
            |\.rspec
            |\.rubocop.yml
            |\.rubocop_todo.yml
+           |\.semgrepignore
            |\.simplecov
            |\.yardopts
            |Appraisals
@@ -36,7 +37,22 @@ RSpec.describe 'gem release process' do
         /x
 
         directories_excluded = %r{
-          ^(sig|spec|docs|\.circleci|\.github|\.gitlab|lib-injection|benchmarks|gemfiles|integration|tasks|yard|vendor/rbs)/
+          ^(
+            sig
+            |spec
+            |docs
+            |\.circleci
+            |\.github
+            |\.gitlab
+            |lib-injection
+            |appraisal
+            |benchmarks
+            |gemfiles
+            |integration
+            |tasks
+            |yard
+            |vendor/rbs
+          )/
         }x
 
         expect(files)

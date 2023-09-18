@@ -52,20 +52,13 @@ module NetworkHelpers
     false
   end
 
-  # Adds the DD specific tracer configuration environment to the inputted tracer headers as
-  # a comma separated string of `k=v` pairs.
+  # Gets the Datadog Trace Configuration and returns a comma separated string of key/value pairs.
   #
-  # @return [Hash] trace headers
-  def parse_tracer_config_and_add_to_headers(trace_headers)
-    dd_service = Datadog.configuration.service
-    dd_span_attribute_schema = 'v0'
-    trace_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }.map { |key, value| "#{key}=#{value}" }.join(',')
-    if trace_variables.empty?
-      trace_variables = "DD_SERVICE=#{dd_service},DD_SPAN_ATTRIBUTE_SCHEMA=#{dd_span_attribute_schema}"
-    else
-      trace_variables += ",DD_SERVICE=#{dd_service},DD_SPAN_ATTRIBUTE_SCHEMA=#{dd_span_attribute_schema}"
-    end
-    trace_headers['X-Datadog-Trace-Env-Variables'] = trace_variables
-    trace_headers
+  # @return [String] Key/Value pairs representing relevant Tracer Configuration
+  def parse_tracer_config
+    dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
+    dd_env_variables['DD_SERVICE'] = dd_env_variables['DD_TEST_EXPECTED_SERVICE']
+    dd_env_variables.delete('DD_TEST_EXPECTED_SERVICE')
+    dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
   end
 end

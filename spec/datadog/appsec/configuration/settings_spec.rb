@@ -475,6 +475,14 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
               it { is_expected.to eq(false) }
             end
+
+            context 'using the mode values: extended | safe' do
+              ['extended', 'safe'].each do |value|
+                let(:track_user_events_enabled) { value }
+
+                it { is_expected.to eq(true) }
+              end
+            end
           end
         end
       end
@@ -548,6 +556,158 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           it {
             expect(settings.appsec.track_user_events.mode).to eq('safe')
           }
+        end
+      end
+    end
+
+    describe 'block' do
+      describe 'templates' do
+        [
+          { method_name: :html, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML' },
+          { method_name: :json, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON' },
+          { method_name: :text, env_var: 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT' }
+        ].each do |test_info|
+          describe "##{test_info[:method_name]}" do
+            context "when #{test_info[:env_var]}" do
+              subject(:template) { settings.appsec.block.templates.send(test_info[:method_name]) }
+
+              around do |example|
+                ClimateControl.modify(test_info[:env_var] => template_path) do
+                  example.run
+                end
+              end
+
+              context 'is defined and the file exists' do
+                before do
+                  File.write(template_path, 'testing')
+                end
+
+                after do
+                  File.delete(template_path)
+                end
+
+                let(:template_path) do
+                  "hello.#{test_info[:method_name]}"
+                end
+
+                it { is_expected.to eq 'testing' }
+              end
+
+              context 'is defined and the file do not exists' do
+                let(:template_path) do
+                  "hello.#{test_info[:method_name]}"
+                end
+
+                it { expect { is_expected }.to raise_error(ArgumentError) }
+              end
+            end
+          end
+
+          describe "##{test_info[:method_name]}=" do
+            subject(:template) { settings.appsec.block.templates.send("#{test_info[:method_name]}=", template_path) }
+
+            context 'is defined and the file exists' do
+              before do
+                File.write(template_path, 'testing')
+              end
+
+              after do
+                File.delete(template_path)
+              end
+
+              let(:template_path) do
+                "hello.#{test_info[:method_name]}"
+              end
+
+              it { is_expected.to eq 'testing' }
+            end
+
+            context 'is defined and the file do not exists' do
+              let(:template_path) do
+                "hello.#{test_info[:method_name]}"
+              end
+
+              it { expect { is_expected }.to raise_error(ArgumentError) }
+            end
+          end
+        end
+      end
+    end
+
+    describe 'api_security' do
+      describe '#enabled' do
+        subject(:enabled) { settings.appsec.api_security.enabled }
+
+        context 'when DD_EXPERIMENTAL_API_SECURITY_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_ENABLED' => api_security_enabled) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:api_security_enabled) { nil }
+
+            it { is_expected.to eq false }
+          end
+
+          context 'is defined' do
+            let(:api_security_enabled) { 'true' }
+
+            it { is_expected.to eq(true) }
+          end
+        end
+      end
+
+      describe '#enabled=' do
+        subject(:set_api_security_enabled) { settings.appsec.api_security.enabled = api_security_enabled }
+
+        [true, false].each do |value|
+          context "when given #{value}" do
+            let(:api_security_enabled) { value }
+
+            before { set_api_security_enabled }
+
+            it { expect(settings.appsec.api_security.enabled).to eq(value) }
+          end
+        end
+      end
+
+      describe '#sample_rate' do
+        subject(:sample_rate) { settings.appsec.api_security.sample_rate.rate }
+
+        context 'when DD_API_SECURITY_REQUEST_SAMPLE_RATE' do
+          around do |example|
+            ClimateControl.modify('DD_API_SECURITY_REQUEST_SAMPLE_RATE' => api_security_sample_rate) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:api_security_sample_rate) { nil }
+
+            it { is_expected.to eq 0.1 }
+          end
+
+          context 'is defined' do
+            let(:api_security_sample_rate) { '0.3' }
+
+            it { is_expected.to eq 0.3 }
+          end
+        end
+      end
+
+      describe '#sample_rate=' do
+        subject(:set_api_security_sample_rate) do
+          settings.appsec.api_security.sample_rate = api_security_sample_rate
+        end
+
+        context 'when given a value higher than 1.0' do
+          let(:api_security_sample_rate) { 1.2 }
+
+          before { set_api_security_sample_rate }
+
+          it { expect(settings.appsec.api_security.sample_rate.rate).to eq 1.0 }
         end
       end
     end

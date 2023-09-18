@@ -101,6 +101,8 @@ struct thread_context_collector_state {
   bool endpoint_collection_enabled;
   // Used to omit timestamps / timeline events from collected data
   bool timeline_enabled;
+  // Used to omit class information from collected allocation data
+  bool allocation_type_enabled;
   // Used when calling monotonic_to_system_epoch_ns
   monotonic_to_system_epoch_state time_converter_state;
   // Used to identify the main thread, to give it a fallback name
@@ -157,7 +159,8 @@ static VALUE _native_initialize(
   VALUE max_frames,
   VALUE tracer_context_key,
   VALUE endpoint_collection_enabled,
-  VALUE timeline_enabled
+  VALUE timeline_enabled,
+  VALUE allocation_type_enabled
 );
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
@@ -178,7 +181,9 @@ static void trigger_sample_for_thread(
   struct per_thread_context *thread_context,
   sample_values values,
   sample_type type,
-  long current_monotonic_wall_time_ns
+  long current_monotonic_wall_time_ns,
+  ddog_CharSlice *ruby_vm_type,
+  ddog_CharSlice *class_name
 );
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state);
@@ -196,11 +201,12 @@ static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
 static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
-static bool is_type_web(VALUE root_span_type);
+static bool should_collect_resource(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
-static VALUE _native_sample_allocation(VALUE self, VALUE collector_instance, VALUE sample_weight);
+static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object);
 static VALUE _native_new_empty_thread(VALUE self);
+ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -218,11 +224,11 @@ void collectors_thread_context_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 6);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 7);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
-  rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 2);
+  rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 3);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_sample_after_gc", _native_sample_after_gc, 1);
@@ -308,6 +314,7 @@ static VALUE _native_new(VALUE klass) {
   state->thread_list_buffer = rb_ary_new();
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
+  state->allocation_type_enabled = true;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   state->main_thread = rb_thread_main();
 
@@ -321,10 +328,12 @@ static VALUE _native_initialize(
   VALUE max_frames,
   VALUE tracer_context_key,
   VALUE endpoint_collection_enabled,
-  VALUE timeline_enabled
+  VALUE timeline_enabled,
+  VALUE allocation_type_enabled
 ) {
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
   ENFORCE_BOOLEAN(timeline_enabled);
+  ENFORCE_BOOLEAN(allocation_type_enabled);
 
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -338,6 +347,7 @@ static VALUE _native_initialize(
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->timeline_enabled = (timeline_enabled == Qtrue);
+  state->allocation_type_enabled = (allocation_type_enabled == Qtrue);
 
   if (RTEST(tracer_context_key)) {
     ENFORCE_TYPE(tracer_context_key, T_SYMBOL);
@@ -463,7 +473,9 @@ void update_metrics_and_sample(
     thread_context,
     (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
     SAMPLE_REGULAR,
-    current_monotonic_wall_time_ns
+    current_monotonic_wall_time_ns,
+    NULL,
+    NULL
   );
 }
 
@@ -606,7 +618,9 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
       thread_context,
       (sample_values) {.cpu_time_ns = gc_cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = gc_wall_time_elapsed_ns},
       SAMPLE_IN_GC,
-      INVALID_TIME // For now we're not collecting timestamps for these events
+      INVALID_TIME, // For now we're not collecting timestamps for these events
+      NULL,
+      NULL
     );
 
     // Mark thread as no longer in GC
@@ -637,13 +651,17 @@ static void trigger_sample_for_thread(
   struct per_thread_context *thread_context,
   sample_values values,
   sample_type type,
-  long current_monotonic_wall_time_ns
+  long current_monotonic_wall_time_ns,
+  // These two labels are only used for allocation profiling; @ivoanjo: may want to refactor this at some point?
+  ddog_CharSlice *ruby_vm_type,
+  ddog_CharSlice *class_name
 ) {
   int max_label_count =
     1 + // thread id
     1 + // thread name
     1 + // profiler overhead
     1 + // end_timestamp_ns
+    2 + // ruby vm type and allocation class
     2;  // local root span id and span id
   ddog_prof_Label labels[max_label_count];
   int label_pos = 0;
@@ -710,6 +728,20 @@ static void trigger_sample_for_thread(
     labels[label_pos++] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("end_timestamp_ns"),
       .num = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns)
+    };
+  }
+
+  if (ruby_vm_type != NULL) {
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("ruby vm type"),
+      .str = *ruby_vm_type
+    };
+  }
+
+  if (class_name != NULL) {
+    labels[label_pos++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("allocation class"),
+      .str = *class_name
     };
   }
 
@@ -819,6 +851,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" timeline_enabled=%"PRIsVALUE, state->timeline_enabled ? Qtrue : Qfalse));
+  rb_str_concat(result, rb_sprintf(" allocation_type_enabled=%"PRIsVALUE, state->allocation_type_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(
     " time_converter_state={.system_epoch_ns_reference=%ld, .delta_to_epoch_ns=%ld}",
     state->time_converter_state.system_epoch_ns_reference,
@@ -1008,7 +1041,7 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
   if (!state->endpoint_collection_enabled) return;
 
   VALUE root_span_type = rb_ivar_get(root_span, at_type_id /* @type */);
-  if (root_span_type == Qnil || !is_type_web(root_span_type)) return;
+  if (root_span_type == Qnil || !should_collect_resource(root_span_type)) return;
 
   VALUE trace_resource = rb_ivar_get(active_trace, at_resource_id /* @resource */);
   if (RB_TYPE_P(trace_resource, T_STRING)) {
@@ -1019,11 +1052,21 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
   }
 }
 
-static bool is_type_web(VALUE root_span_type) {
+// We only collect the resource for spans of types:
+// * 'web', for web requests
+// * proxy', used by the rack integration with request_queuing: true (e.g. also represents a web request)
+//
+// NOTE: Currently we're only interested in HTTP service endpoints. Over time, this list may be expanded.
+// Resources MUST NOT include personal identifiable information (PII); this should not be the case with
+// ddtrace integrations, but worth mentioning just in case :)
+static bool should_collect_resource(VALUE root_span_type) {
   ENFORCE_TYPE(root_span_type, T_STRING);
 
-  return RSTRING_LEN(root_span_type) == strlen("web") &&
-    (memcmp("web", StringValuePtr(root_span_type), strlen("web")) == 0);
+  int root_span_type_length = RSTRING_LEN(root_span_type);
+  const char *root_span_type_value = StringValuePtr(root_span_type);
+
+  return (root_span_type_length == strlen("web") && (memcmp("web", root_span_type_value, strlen("web")) == 0)) ||
+    (root_span_type_length == strlen("proxy") && (memcmp("proxy", root_span_type_value, strlen("proxy")) == 0));
 }
 
 // After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
@@ -1050,11 +1093,72 @@ static VALUE thread_list(struct thread_context_collector_state *state) {
   return result;
 }
 
-void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight) {
+void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object) {
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE current_thread = rb_thread_current();
+
+  enum ruby_value_type type = rb_type(new_object);
+
+  // Tag samples with the VM internal types
+  ddog_CharSlice ruby_vm_type = ruby_value_type_to_char_slice(type);
+
+  // Since this is stack allocated, be careful about moving it
+  ddog_CharSlice class_name;
+  ddog_CharSlice *optional_class_name = NULL;
+
+  if (state->allocation_type_enabled) {
+    optional_class_name = &class_name;
+
+    if (
+      type == RUBY_T_OBJECT   ||
+      type == RUBY_T_CLASS    ||
+      type == RUBY_T_MODULE   ||
+      type == RUBY_T_FLOAT    ||
+      type == RUBY_T_STRING   ||
+      type == RUBY_T_REGEXP   ||
+      type == RUBY_T_ARRAY    ||
+      type == RUBY_T_HASH     ||
+      type == RUBY_T_STRUCT   ||
+      type == RUBY_T_BIGNUM   ||
+      type == RUBY_T_FILE     ||
+      type == RUBY_T_DATA     ||
+      type == RUBY_T_MATCH    ||
+      type == RUBY_T_COMPLEX  ||
+      type == RUBY_T_RATIONAL ||
+      type == RUBY_T_NIL      ||
+      type == RUBY_T_TRUE     ||
+      type == RUBY_T_FALSE    ||
+      type == RUBY_T_SYMBOL   ||
+      type == RUBY_T_FIXNUM
+    ) {
+      VALUE klass = rb_class_of(new_object);
+
+      // Ruby sometimes plays a bit fast and loose with some of its internal objects, e.g.
+      // `rb_str_tmp_frozen_acquire` allocates a string with no class (klass=0).
+      // Thus, we need to make sure there's actually a class before getting its name.
+
+      if (klass != 0) {
+        const char *name = rb_obj_classname(new_object);
+        size_t name_length = name != NULL ? strlen(name) : 0;
+
+        if (name_length > 0) {
+          class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
+        } else {
+          // @ivoanjo: I'm not sure this can ever happen, but just-in-case
+          class_name = ruby_value_type_to_class_name(type);
+        }
+      } else {
+        // Fallback for objects with no class
+        class_name = ruby_value_type_to_class_name(type);
+      }
+    } else if (type == RUBY_T_IMEMO) {
+      class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
+    } else {
+      class_name = ruby_vm_type; // For other weird internal things we just use the VM type
+    }
+  }
 
   trigger_sample_for_thread(
     state,
@@ -1063,14 +1167,16 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     get_or_create_context_for(current_thread, state),
     (sample_values) {.alloc_samples = sample_weight},
     SAMPLE_REGULAR,
-    INVALID_TIME // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
+    INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
+    &ruby_vm_type,
+    optional_class_name
   );
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight) {
-  thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight));
+static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object) {
+  thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight), new_object);
   return Qtrue;
 }
 
@@ -1081,4 +1187,30 @@ static VALUE new_empty_thread_inner(DDTRACE_UNUSED void *arg) { return Qnil; }
 // (It creates an empty native thread, so we can test our native thread naming fallback)
 static VALUE _native_new_empty_thread(DDTRACE_UNUSED VALUE self) {
   return rb_thread_create(new_empty_thread_inner, NULL);
+}
+
+ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type) {
+  switch (type) {
+    case(RUBY_T_OBJECT  ): return DDOG_CHARSLICE_C("Object");
+    case(RUBY_T_CLASS   ): return DDOG_CHARSLICE_C("Class");
+    case(RUBY_T_MODULE  ): return DDOG_CHARSLICE_C("Module");
+    case(RUBY_T_FLOAT   ): return DDOG_CHARSLICE_C("Float");
+    case(RUBY_T_STRING  ): return DDOG_CHARSLICE_C("String");
+    case(RUBY_T_REGEXP  ): return DDOG_CHARSLICE_C("Regexp");
+    case(RUBY_T_ARRAY   ): return DDOG_CHARSLICE_C("Array");
+    case(RUBY_T_HASH    ): return DDOG_CHARSLICE_C("Hash");
+    case(RUBY_T_STRUCT  ): return DDOG_CHARSLICE_C("Struct");
+    case(RUBY_T_BIGNUM  ): return DDOG_CHARSLICE_C("Integer");
+    case(RUBY_T_FILE    ): return DDOG_CHARSLICE_C("File");
+    case(RUBY_T_DATA    ): return DDOG_CHARSLICE_C("(VM Internal, T_DATA)");
+    case(RUBY_T_MATCH   ): return DDOG_CHARSLICE_C("MatchData");
+    case(RUBY_T_COMPLEX ): return DDOG_CHARSLICE_C("Complex");
+    case(RUBY_T_RATIONAL): return DDOG_CHARSLICE_C("Rational");
+    case(RUBY_T_NIL     ): return DDOG_CHARSLICE_C("NilClass");
+    case(RUBY_T_TRUE    ): return DDOG_CHARSLICE_C("TrueClass");
+    case(RUBY_T_FALSE   ): return DDOG_CHARSLICE_C("FalseClass");
+    case(RUBY_T_SYMBOL  ): return DDOG_CHARSLICE_C("Symbol");
+    case(RUBY_T_FIXNUM  ): return DDOG_CHARSLICE_C("Integer");
+                  default: return DDOG_CHARSLICE_C("(VM Internal, Missing class)");
+  }
 }

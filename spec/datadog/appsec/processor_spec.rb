@@ -206,8 +206,8 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       results.reject { |r| r.status == :ok }
     end
 
-    let(:data) do
-      matches.map(&:data).flatten
+    let(:events) do
+      matches.map(&:events).flatten
     end
 
     let(:actions) do
@@ -218,7 +218,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       let(:input) { input_safe }
 
       it { expect(matches).to eq [] }
-      it { expect(data).to eq [] }
+      it { expect(events).to eq [] }
       it { expect(actions).to eq [] }
     end
 
@@ -226,7 +226,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       let(:input) { input_scanner }
 
       it { expect(matches).to have_attributes(count: 1) }
-      it { expect(data).to have_attributes(count: 1) }
+      it { expect(events).to have_attributes(count: 1) }
       it { expect(actions).to eq [[]] }
     end
 
@@ -234,7 +234,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       let(:input) { input_scanner.merge(input_sqli) }
 
       it { expect(matches).to have_attributes(count: 1) }
-      it { expect(data).to have_attributes(count: 2) }
+      it { expect(events).to have_attributes(count: 2) }
       it { expect(actions).to eq [[]] }
     end
 
@@ -252,7 +252,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
         # one action list returned.
 
         it { expect(matches).to have_attributes(count: 1) }
-        it { expect(data).to have_attributes(count: 1) }
+        it { expect(events).to have_attributes(count: 1) }
         it { expect(actions).to eq [[]] }
       end
 
@@ -268,7 +268,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
         # match results, thus two action lists, one for each.
 
         it { expect(matches).to have_attributes(count: 2) }
-        it { expect(data).to have_attributes(count: 2) }
+        it { expect(events).to have_attributes(count: 2) }
         it { expect(actions).to eq [[], []] }
       end
     end
@@ -287,8 +287,51 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       end
 
       it { expect(matches).to have_attributes(count: 1) }
-      it { expect(data).to have_attributes(count: 1) }
+      it { expect(events).to have_attributes(count: 1) }
       it { expect(actions).to eq [['block']] }
+    end
+  end
+
+  describe '#extract_schema' do
+    context 'when extrct_schema? returns true' do
+      around do |example|
+        ClimateControl.modify(
+          'DD_EXPERIMENTAL_API_SECURITY_ENABLED' => 'true',
+          'DD_API_SECURITY_REQUEST_SAMPLE_RATE' => '1'
+        ) do
+          example.run
+        end
+      end
+
+      it 'calls the the WAF with the right arguments' do
+        input = {
+          'waf.context.processor' => {
+            'extract-schema' => true
+          }
+        }
+
+        dummy_code = 1
+        dummy_result = 2
+
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          input,
+          Datadog::AppSec::WAF::LibDDWAF::DDWAF_RUN_TIMEOUT
+        ).and_return([dummy_code, dummy_result])
+
+        expect(context.extract_schema).to eq dummy_result
+      end
+    end
+
+    context 'when extrct_schema? returns false' do
+      around do |example|
+        ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_ENABLED' => 'false') do
+          example.run
+        end
+      end
+
+      it 'returns nil' do
+        expect(context.extract_schema).to be_nil
+      end
     end
   end
 end

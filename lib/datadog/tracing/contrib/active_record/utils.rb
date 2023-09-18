@@ -113,7 +113,7 @@ module Datadog
 
           # @return [Hash]
           def self.db_config(connection_pool)
-            if ::Rails::VERSION::MAJOR >= 6 && ::Rails::VERSION::MINOR >= 1
+            if connection_pool.respond_to? :db_config
               connection_pool.db_config.configuration_hash
             else
               connection_pool.spec.config

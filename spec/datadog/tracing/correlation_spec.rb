@@ -196,6 +196,61 @@ RSpec.describe Datadog::Tracing::Correlation do
       end
     end
 
+    describe '#to_h' do
+      context 'when given values' do
+        let(:trace_id) { Datadog::Tracing::Utils.next_id }
+        let(:span_id) { Datadog::Tracing::Utils.next_id }
+
+        it 'returns a formatted hash' do
+          identifier = described_class.new(
+            env: 'dev',
+            service: 'acme-api',
+            version: '1.0',
+            span_id: span_id,
+            trace_id: trace_id,
+          )
+
+          expect(identifier.to_h).to eq(
+            {
+              dd: {
+                env: 'dev',
+                service: 'acme-api',
+                version: '1.0',
+                trace_id: trace_id.to_s,
+                span_id: span_id.to_s
+              },
+              ddsource: 'ruby'
+            }
+          )
+        end
+      end
+
+      context 'when given `nil`' do
+        it 'returns a formatted hash with default values' do
+          identifier = described_class.new(
+            env: nil,
+            service: nil,
+            version: nil,
+            span_id: nil,
+            trace_id: nil,
+          )
+
+          expect(identifier.to_h).to eq(
+            {
+              dd: {
+                env: 'default-env',
+                service: 'default-service',
+                version: 'default-version',
+                trace_id: '0',
+                span_id: '0',
+              },
+              ddsource: 'ruby'
+            }
+          )
+        end
+      end
+    end
+
     describe '#to_log_format' do
       shared_examples_for 'a log format string' do
         subject(:string) { identifier.to_log_format }
@@ -218,6 +273,24 @@ RSpec.describe Datadog::Tracing::Correlation do
 
         it 'doesn\'t have attributes without values' do
           is_expected.to_not match(/.*=(?=\z|\s)/)
+        end
+
+        RSpec::Matchers.define :be_serialized_nested_hash do |expected|
+          match do |actual|
+            result = expected.each_with_object(String.new) do |(key, value), string|
+              if value.is_a? Hash
+                value.each_pair { |k, v| string << "#{key}.#{k}=#{v} " unless v.empty? }
+              else
+                string << "#{key}=#{value} "
+              end
+            end.strip!
+
+            actual == result
+          end
+        end
+
+        it 'serializes a nested hash' do
+          is_expected.to be_serialized_nested_hash(identifier.to_h)
         end
       end
 

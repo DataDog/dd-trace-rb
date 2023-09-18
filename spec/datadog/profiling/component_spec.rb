@@ -2,7 +2,8 @@ require 'datadog/profiling/spec_helper'
 
 RSpec.describe Datadog::Profiling::Component do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+  let(:logger) { nil }
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: logger) }
   let(:profiler_setup_task) { instance_double(Datadog::Profiling::Tasks::Setup) if Datadog::Profiling.supported? }
 
   before do
@@ -58,8 +59,8 @@ RSpec.describe Datadog::Profiling::Component do
 
         it 'sets up the Profiler with the OldStack collector' do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
-            [instance_of(Datadog::Profiling::Collectors::OldStack)],
-            anything,
+            worker: instance_of(Datadog::Profiling::Collectors::OldStack),
+            scheduler: anything,
           )
 
           build_profiler_component
@@ -90,9 +91,16 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        it 'sets up the Exporter with no_signals_workaround_enabled: false' do
+        it 'sets up the Exporter internal_metadata with no_signals_workaround_enabled: false, timeline_enabled: false' do
           expect(Datadog::Profiling::Exporter)
-            .to receive(:new).with(hash_including(no_signals_workaround_enabled: false))
+            .to receive(:new).with(
+              hash_including(
+                internal_metadata: {
+                  no_signals_workaround_enabled: false,
+                  timeline_enabled: false,
+                }
+              )
+            )
 
           build_profiler_component
         end
@@ -131,21 +139,35 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        it 'initializes a CpuAndWallTimeWorker collector' do
-          expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
+        it 'initializes a ThreadContext collector' do
+          allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
+
           expect(settings.profiling.advanced).to receive(:max_frames).and_return(:max_frames_config)
           expect(settings.profiling.advanced)
             .to receive(:experimental_timeline_enabled).and_return(:experimental_timeline_enabled_config)
+          expect(settings.profiling.advanced.endpoint.collection)
+            .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
 
-          expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
+          expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(
             recorder: instance_of(Datadog::Profiling::StackRecorder),
             max_frames: :max_frames_config,
             tracer: tracer,
-            endpoint_collection_enabled: anything,
+            endpoint_collection_enabled: :endpoint_collection_enabled_config,
+            timeline_enabled: :experimental_timeline_enabled_config,
+          )
+
+          build_profiler_component
+        end
+
+        it 'initializes a CpuAndWallTimeWorker collector' do
+          expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
+
+          expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
             allocation_counting_enabled: anything,
             no_signals_workaround_enabled: :no_signals_result,
-            timeline_enabled: :experimental_timeline_enabled_config,
+            thread_context_collector: instance_of(Datadog::Profiling::Collectors::ThreadContext),
+            allocation_sample_every: 0,
           )
 
           build_profiler_component
@@ -220,32 +242,10 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        it 'initializes a CpuAndWallTimeWorker collector with endpoint_collection_enabled set to true' do
-          expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-            endpoint_collection_enabled: true,
-          )
-
-          build_profiler_component
-        end
-
-        context 'when endpoint_collection_enabled is disabled' do
-          before do
-            settings.profiling.advanced.endpoint.collection.enabled = false
-          end
-
-          it 'initializes a CpuAndWallTimeWorker collector with endpoint_collection_enabled set to false' do
-            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-              endpoint_collection_enabled: false,
-            )
-
-            build_profiler_component
-          end
-        end
-
         it 'sets up the Profiler with the CpuAndWallTimeWorker collector' do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
-            [instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)],
-            anything,
+            worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),
+            scheduler: anything,
           )
 
           build_profiler_component
@@ -258,12 +258,20 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        it 'sets up the Exporter with no_signals_workaround_enabled setting' do
+        it 'sets up the Exporter internal_metadata with no_signals_workaround_enabled and timeline_enabled settings' do
+          allow(Datadog::Profiling::Collectors::ThreadContext).to receive(:new)
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
 
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
-          expect(Datadog::Profiling::Exporter)
-            .to receive(:new).with(hash_including(no_signals_workaround_enabled: :no_signals_result))
+          expect(settings.profiling.advanced).to receive(:experimental_timeline_enabled).and_return(:timeline_result)
+          expect(Datadog::Profiling::Exporter).to receive(:new).with(
+            hash_including(
+              internal_metadata: {
+                no_signals_workaround_enabled: :no_signals_result,
+                timeline_enabled: :timeline_result,
+              }
+            )
+          )
 
           build_profiler_component
         end

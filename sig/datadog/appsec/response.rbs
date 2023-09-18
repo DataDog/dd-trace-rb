@@ -3,22 +3,28 @@ module Datadog
     class Response
       attr_reader status: ::Integer
       attr_reader headers: ::Hash[::String, ::String]
-      attr_reader body: ::Array[untyped]
+      attr_reader body: ::Array[::String]
 
-      def initialize: (status: ::Integer, ?headers: ::Hash[::String, ::String], ?body: ::Array[untyped]) -> void
+
+      def initialize: (status: ::Integer, ?headers: ::Hash[::String, ::String], ?body: ::Array[::String]) -> void
       def to_rack: () -> ::Array[untyped]
       def to_sinatra_response: () -> ::Sinatra::Response
       def to_action_dispatch_response: () -> ::ActionDispatch::Response
 
-      def self.negotiate: (::Hash[untyped, untyped] env) -> Response
+      def self.negotiate: (::Hash[untyped, untyped] env, Array[String] actions) -> Response
 
       private
 
       CONTENT_TYPE_TO_FORMAT: ::Hash[::String, ::Symbol]
+      FORMAT_TO_CONTENT_TYPE: ::Hash[::String, ::String]
       DEFAULT_CONTENT_TYPE: ::String
 
-      def self.format: (::Hash[untyped, untyped] env) -> ::Symbol
+      def self.default_response: (::Hash[untyped, untyped] env) -> Response
+      def self.block_response: (::Hash[untyped, untyped] env, ::Hash[String, untyped] options) -> Response
+      def self.redirect_response: (::Hash[untyped, untyped] env, ::Hash[String, untyped] options) -> Response
+
       def self.content_type: (::Hash[untyped, untyped] env) -> ::String
+      def self.content: (::String) -> ::String
     end
   end
 end

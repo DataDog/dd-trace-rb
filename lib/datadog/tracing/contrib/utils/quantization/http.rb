@@ -134,18 +134,18 @@ module Datadog
                  (?:"|%22)?
               )
               (?: # common keys
-                 (?:old_?|new_?)?p(?:ass)?w(?:or)?d(?:1|2)? # pw, password variants
-                |pass(?:_?phrase)?  # pass, passphrase variants
+                 (?:old[-_]?|new_?)?p(?:ass)?w(?:or)?d(?:1|2)? # pw, password variants
+                |pass(?:[-_]?phrase)?  # pass, passphrase variants
                 |secret
                 |(?: # key, key_id variants
-                     api_?
-                    |private_?
-                    |public_?
-                    |access_?
-                    |secret_?
-                 )key(?:_?id)?
+                     api[-_]?
+                    |private[-_]?
+                    |public[-_]?
+                    |access[-_]?
+                    |secret[-_]?
+                 )key(?:[-_]?id)?
                 |token
-                |consumer_?(?:id|key|secret)
+                |consumer[-_]?(?:id|key|secret)
                 |sign(?:ed|ature)?
                 |auth(?:entication|orization)?
               )

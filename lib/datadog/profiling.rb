@@ -68,7 +68,8 @@ module Datadog
 
     def self.enabled?
       profiler = Datadog.send(:components).profiler
-      !!(profiler.scheduler.running? if profiler)
+      # Use .send(...) to avoid exposing the attr_reader as an API to the outside
+      !!(profiler.send(:scheduler).running? if profiler)
     end
 
     private_class_method def self.replace_noop_allocation_count
@@ -198,6 +199,7 @@ module Datadog
       require_relative 'profiling/collectors/old_stack'
       require_relative 'profiling/collectors/stack'
       require_relative 'profiling/collectors/thread_context'
+      require_relative 'profiling/diagnostics/environment_logger'
       require_relative 'profiling/stack_recorder'
       require_relative 'profiling/old_recorder'
       require_relative 'profiling/exporter'

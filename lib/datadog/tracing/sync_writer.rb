@@ -23,7 +23,7 @@ module Datadog
       # @param [Datadog::Transport::Traces::Transport] transport a custom transport instance.
       #   If provided, overrides `transport_options` and `agent_settings`.
       # @param [Hash<Symbol,Object>] transport_options options for the default transport instance.
-      # @param [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings] agent_settings agent options for
+      # @param [Datadog::Tracing::Configuration::AgentSettingsResolver::AgentSettings] agent_settings agent options for
       #   the default transport instance.
       def initialize(transport: nil, transport_options: {}, agent_settings: nil)
         @transport = transport || begin

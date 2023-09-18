@@ -23,3 +23,9 @@ inline static VALUE get_error_details_and_drop(ddog_Error *error) {
   ddog_Error_drop(error);
   return result;
 }
+
+// Used for pretty printing this Ruby enum. Returns "T_UNKNOWN_OR_MISSING_RUBY_VALUE_TYPE_ENTRY" for unknown elements.
+// In practice, there's a few types that the profiler will probably never encounter, but I've added all entries of
+// ruby_value_type that Ruby uses so that we can also use this for debugging.
+const char *ruby_value_type_to_string(enum ruby_value_type type);
+ddog_CharSlice ruby_value_type_to_char_slice(enum ruby_value_type type);

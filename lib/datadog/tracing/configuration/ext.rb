@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../core/configuration/ext'
+
 module Datadog
   module Tracing
     module Configuration
@@ -88,8 +90,8 @@ module Datadog
 
         # @public_api
         module Transport
-          ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'
-          ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'
+          ENV_DEFAULT_PORT = Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT
+          ENV_DEFAULT_URL = Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL
         end
 
         # @public_api

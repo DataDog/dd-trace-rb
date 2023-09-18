@@ -3,7 +3,6 @@ require 'datadog/profiling/spec_helper'
 
 require 'logger'
 
-require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/configuration/components'
 require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/core/diagnostics/health'
@@ -21,6 +20,7 @@ require 'datadog/profiling/scheduler'
 require 'datadog/profiling/tasks/setup'
 require 'datadog/profiling/trace_identifiers/helper'
 require 'datadog/statsd'
+require 'datadog/tracing/configuration/agent_settings_resolver'
 require 'datadog/tracing/flush'
 require 'datadog/tracing/sampling/all_sampler'
 require 'datadog/tracing/sampling/priority_sampler'
@@ -31,9 +31,12 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
 require 'ddtrace/transport/http/adapters/net'
 
+# TODO: Components contains behavior for all of the different products.
+#       Test behavior needs to be extracted to complimentary component files for every product.
 RSpec.describe Datadog::Core::Configuration::Components do
   subject(:components) { described_class.new(settings) }
 
+  let(:logger) { instance_double(Datadog::Core::Logger) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 
@@ -58,7 +61,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::new' do
-    let(:logger) { instance_double(Datadog::Core::Logger) }
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
@@ -70,12 +72,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .and_return(logger)
 
       expect(described_class).to receive(:build_tracer)
-        .with(settings, instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings))
+        .with(settings, logger: logger)
         .and_return(tracer)
 
       expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
         settings: settings,
-        agent_settings: instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings),
+        agent_settings: agent_settings,
         optional_tracer: tracer,
       ).and_return(profiler)
 
@@ -389,7 +391,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_tracer' do
-    subject(:build_tracer) { described_class.build_tracer(settings, agent_settings) }
+    subject(:build_tracer) { described_class.build_tracer(settings, logger: logger) }
 
     context 'given an instance' do
       let(:instance) { instance_double(Datadog::Tracing::Tracer) }
@@ -455,6 +457,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
           allow(Datadog::Tracing::Writer).to receive(:new)
             .with(agent_settings: agent_settings, **writer_options)
             .and_return(writer)
+
+          expect(Datadog::Tracing::Configuration::AgentSettingsResolver).to receive(:call)
+            .with(settings, logger: logger)
+            .and_return(agent_settings)
         end
 
         after do
@@ -945,17 +951,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe 'writer event callbacks' do
-    describe Datadog::Core::Configuration::Components.singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
-      subject(:call) { described_class.call(writer, responses) }
-      let(:writer) { double('writer') }
-      let(:responses) { [double('response')] }
-
-      it 'invokes the environment logger with responses' do
-        expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:log!).with(responses)
-        call
-      end
-    end
-
     describe '.writer_update_priority_sampler_rates_callback' do
       subject(:call) do
         described_class.writer_update_priority_sampler_rates_callback(sampler).call(writer, responses)

@@ -1,14 +1,16 @@
 # frozen_string_literal: true
 
+require_relative '../../datadog/core/configuration/ext'
+
 module Datadog
   module Transport
     # @public_api
     module Ext
       # @public_api
       module HTTP
-        ADAPTER = :net_http # DEV: Rename to simply `:http`, as Net::HTTP is an implementation detail.
-        DEFAULT_HOST = '127.0.0.1'
-        DEFAULT_PORT = 8126
+        ADAPTER = Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
+        DEFAULT_HOST = Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
+        DEFAULT_PORT = Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_PORT
 
         HEADER_CONTAINER_ID = 'Datadog-Container-ID'
         HEADER_DD_API_KEY = 'DD-API-KEY'
@@ -36,9 +38,9 @@ module Datadog
 
       # @public_api
       module UnixSocket
-        ADAPTER = :unix
-        DEFAULT_PATH = '/var/run/datadog/apm.socket'
-        DEFAULT_TIMEOUT_SECONDS = 1
+        ADAPTER = Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
+        DEFAULT_PATH = Datadog::Core::Configuration::Ext::Agent::UnixSocket::DEFAULT_PATH
+        DEFAULT_TIMEOUT_SECONDS = Datadog::Core::Configuration::Ext::Agent::UnixSocket::DEFAULT_TIMEOUT_SECONDS
       end
     end
   end

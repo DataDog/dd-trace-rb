@@ -46,7 +46,7 @@ module Datadog
 
             option :error_handler do |o|
               o.type :proc
-              o.experimental_default_proc(&Tracing::SpanOperation::Events::DEFAULT_ON_ERROR)
+              o.default_proc(&Tracing::SpanOperation::Events::DEFAULT_ON_ERROR)
             end
           end
         end

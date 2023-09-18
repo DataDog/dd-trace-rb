@@ -8,7 +8,7 @@ RSpec.describe Datadog::Profiling::Exporter do
     described_class.new(
       pprof_recorder: pprof_recorder,
       code_provenance_collector: code_provenance_collector,
-      no_signals_workaround_enabled: no_signals_workaround_enabled,
+      internal_metadata: internal_metadata,
       **options
     )
   end
@@ -24,6 +24,7 @@ RSpec.describe Datadog::Profiling::Exporter do
     allow(collector).to receive(:refresh).and_return(collector)
     collector
   end
+  let(:internal_metadata) { { no_signals_workaround_enabled: no_signals_workaround_enabled } }
   let(:no_signals_workaround_enabled) { false }
   let(:logger) { Datadog.logger }
   let(:options) { {} }

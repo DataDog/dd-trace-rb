@@ -1,6 +1,6 @@
-require_relative 'option_set'
+# frozen_string_literal: true
+
 require_relative 'option_definition'
-require_relative 'option_definition_set'
 
 module Datadog
   module Core
@@ -18,7 +18,7 @@ module Datadog
         module ClassMethods
           def options
             # Allows for class inheritance of option definitions
-            @options ||= superclass <= Options ? superclass.options.dup : OptionDefinitionSet.new
+            @options ||= superclass <= Options ? superclass.options.dup : {}
           end
 
           protected
@@ -64,7 +64,7 @@ module Datadog
         # @public_api
         module InstanceMethods
           def options
-            @options ||= OptionSet.new
+            @options ||= {}
           end
 
           def set_option(name, value, precedence: Configuration::Option::Precedence::PROGRAMMATIC)

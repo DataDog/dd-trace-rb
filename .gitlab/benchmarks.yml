@@ -33,25 +33,38 @@ variables:
     DD_RELENV_DDTRACE_COMMIT_ID: $CI_COMMIT_SHORT_SHA
     K6_RUN_ID_PREFIX: ci_rb
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
+
+    K6_OPTIONS_NORMAL_OPERATION_RATE: 30
+    K6_OPTIONS_NORMAL_OPERATION_DURATION: 10m
+    K6_OPTIONS_NORMAL_OPERATION_GRACEFUL_STOP: 1m
+    K6_OPTIONS_NORMAL_OPERATION_PRE_ALLOCATED_VUS: 4
+    K6_OPTIONS_NORMAL_OPERATION_MAX_VUS: 4
+
+    K6_OPTIONS_HIGH_LOAD_RATE: 200
+    K6_OPTIONS_HIGH_LOAD_DURATION: 5m
+    K6_OPTIONS_HIGH_LOAD_GRACEFUL_STOP: 30s
+    K6_OPTIONS_HIGH_LOAD_PRE_ALLOCATED_VUS: 4
+    K6_OPTIONS_HIGH_LOAD_MAX_VUS: 4
+
   # Workaround: Currently we're not running the benchmarks on every PR, but GitHub still shows them as pending.
   # By marking the benchmarks as allow_failure, this should go away. (This workaround should be removed once the
   # benchmarks get changed to run on every PR)
   allow_failure: true
 
-baseline-benchmarks:
+baseline:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: baseline
+    DD_BENCHMARKS_CONFIGURATION: baseline
 
-only-tracing-benchmarks:
+only-tracing:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: only-tracing
+    DD_BENCHMARKS_CONFIGURATION: only-tracing
 
-only-profiling-benchmarks:
+only-profiling:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: only-profiling
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
     # Gitlab makes use of the rugged gem, which triggers the automatic no signals workaround use, see
     # https://docs.datadoghq.com/profiler/profiler_troubleshooting/ruby/#unexpected-failures-or-errors-from-ruby-gems-that-use-native-extensions-in-dd-trace-rb-1110
@@ -59,46 +72,46 @@ only-profiling-benchmarks:
     # better accuracy, mode.
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
 
-only-profiling-timeline-benchmarks:
+only-profiling-timeline:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: only-profiling
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
     DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED: "true"
 
-profiling-and-tracing-benchmarks:
+profiling-and-tracing:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: profiling-and-tracing
+    DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
 
-tracing-and-appsec-benchmarks:
+tracing-and-appsec:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: tracing-and-appsec
+    DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec
     DD_APPSEC_ENABLED: "true"
 
-tracing-and-appsec-and-no-remote-configuration-benchmarks:
+tracing-and-appsec-and-no-remote-configuration:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: tracing-and-appsec-and-no-remote-configuration
+    DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec-and-no-remote-configuration
     DD_APPSEC_ENABLED: "true"
     DD_REMOTE_CONFIGURATION_ENABLED: "false"
 
-profiling-and-tracing-and-appsec-benchmarks:
+profiling-and-tracing-and-appsec:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: profiling-and-tracing-and-appsec
+    DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing-and-appsec
     DD_APPSEC_ENABLED: "true"
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
 
-timeline-profiling-and-tracing-and-appsec-benchmarks:
+profiling-and-tracing-and-appsec-timeline:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: profiling-and-tracing-and-appsec
+    DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing-and-appsec
     DD_APPSEC_ENABLED: "true"
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"

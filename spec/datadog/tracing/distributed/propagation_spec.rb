@@ -125,8 +125,13 @@ RSpec.shared_examples 'Distributed tracing propagator' do
     subject(:extract) { propagator.extract(data) }
     let(:trace_digest) { extract }
 
-    context 'given empty data' do
+    context 'given `nil`' do
       let(:data) { nil }
+      it { is_expected.to be nil }
+    end
+
+    context 'given empty hash' do
+      let(:data) { {} }
       it { is_expected.to be nil }
     end
 
@@ -323,24 +328,6 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             end
           end
         end
-
-        context 'with mismatched values' do
-          let(:data) do
-            {
-              prepare_key['x-datadog-trace-id'] => '7',
-              prepare_key['x-datadog-parent-id'] => '8',
-              prepare_key['x-b3-traceid'] => '00ef01',
-              prepare_key['x-b3-spanid'] => '011ef0'
-            }
-          end
-
-          it do
-            expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
-            expect(trace_digest.span_id).to be_nil
-            expect(trace_digest.trace_id).to be_nil
-            expect(trace_digest.trace_sampling_priority).to be nil
-          end
-        end
       end
 
       context 'datadog, b3, and b3 single header' do
@@ -381,26 +368,6 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             expect(trace_digest.trace_sampling_priority).to eq(1)
           end
         end
-
-        context 'with mismatched values' do
-          let(:data) do
-            # DEV: We only need 1 to be mismatched
-            {
-              prepare_key['x-datadog-trace-id'] => '7',
-              prepare_key['x-datadog-parent-id'] => '8',
-              prepare_key['x-b3-traceid'] => '00ef01',
-              prepare_key['x-b3-spanid'] => '011ef0',
-              prepare_key['b3'] => '00ef01-011ef0'
-            }
-          end
-
-          it do
-            expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
-            expect(trace_digest.span_id).to be_nil
-            expect(trace_digest.trace_id).to be_nil
-            expect(trace_digest.trace_sampling_priority).to be nil
-          end
-        end
       end
 
       context 'datadog, and b3 single header' do
@@ -436,21 +403,78 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             expect(trace_digest.trace_sampling_priority).to eq(1)
           end
         end
+      end
 
-        context 'with mismatched values' do
-          let(:data) do
-            {
-              prepare_key['x-datadog-trace-id'] => '7',
-              prepare_key['x-datadog-parent-id'] => '8',
-              prepare_key['b3'] => '00ef01-011ef0'
-            }
+      context 'when conflict across different extractions' do
+        let(:datadog_trace_id) { 0xabcdef }
+        let(:b3_multi_trace_id) { 0x123456 }
+        let(:b3_trace_id) { 0xfedcba }
+        let(:span_id) { 0xfffffff }
+        let(:data) do
+          {
+            prepare_key['x-datadog-trace-id'] => datadog_trace_id.to_s(10),
+            prepare_key['x-datadog-parent-id'] => span_id.to_s(10),
+            prepare_key['x-b3-traceid'] => b3_multi_trace_id.to_s(16),
+            prepare_key['x-b3-spanid'] => span_id.to_s(16),
+            prepare_key['b3'] => "#{b3_trace_id.to_s(16)}-#{span_id.to_s(16)}"
+          }
+        end
+
+        after do
+          Datadog.configuration.reset!
+        end
+
+        context "when extraction styles ['Datadog', 'b3multi', 'b3']" do
+          before do
+            Datadog.configure do |c|
+              c.tracing.distributed_tracing.propagation_extract_style = [
+                'Datadog',
+                'b3multi',
+                'b3',
+              ]
+            end
           end
 
-          it do
+          it 'returns trace digest from `Datadog` extraction' do
             expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
-            expect(trace_digest.span_id).to be nil
-            expect(trace_digest.trace_id).to be nil
-            expect(trace_digest.trace_sampling_priority).to be nil
+            expect(trace_digest.trace_id).to eq(datadog_trace_id)
+            expect(trace_digest.span_id).to eq(0xfffffff)
+          end
+        end
+
+        context "when extraction styles ['b3multi', 'b3', 'Datadog']" do
+          before do
+            Datadog.configure do |c|
+              c.tracing.distributed_tracing.propagation_extract_style = [
+                'b3multi',
+                'b3',
+                'Datadog',
+              ]
+            end
+          end
+
+          it 'returns trace digest from `b3multi` extraction' do
+            expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
+            expect(trace_digest.trace_id).to eq(b3_multi_trace_id)
+            expect(trace_digest.span_id).to eq(0xfffffff)
+          end
+        end
+
+        context "when extraction styles ['b3', 'Datadog', 'b3multi']" do
+          before do
+            Datadog.configure do |c|
+              c.tracing.distributed_tracing.propagation_extract_style = [
+                'b3',
+                'Datadog',
+                'b3multi',
+              ]
+            end
+          end
+
+          it 'returns trace digest from `b3` extraction' do
+            expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
+            expect(trace_digest.trace_id).to eq(b3_trace_id)
+            expect(trace_digest.span_id).to eq(0xfffffff)
           end
         end
       end

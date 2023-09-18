@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
 require_relative 'tracer'
+require_relative 'configuration/agent_settings_resolver'
 require_relative 'flush'
 require_relative 'sync_writer'
 require_relative 'sampling/span/rule_parser'
 require_relative 'sampling/span/sampler'
+require_relative 'diagnostics/environment_logger'
 
 module Datadog
   module Tracing
@@ -21,11 +23,13 @@ module Datadog
         end
       end
 
-      def build_tracer(settings, agent_settings)
+      def build_tracer(settings, logger:)
         # If a custom tracer has been provided, use it instead.
         # Ignore all other options (they should already be configured.)
         tracer = settings.tracing.instance
         return tracer unless tracer.nil?
+
+        agent_settings = Configuration::AgentSettingsResolver.call(settings, logger: logger)
 
         # Apply test mode settings if test mode is activated
         if settings.tracing.test_mode.enabled
@@ -154,7 +158,7 @@ module Datadog
       end
 
       WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK = lambda do |_, responses|
-        Core::Diagnostics::EnvironmentLogger.log!(responses)
+        Tracing::Diagnostics::EnvironmentLogger.collect_and_log!(responses: responses)
       end
 
       # Create new lambda for writer callback,

@@ -57,7 +57,7 @@ module Datadog
           end
         end
 
-        # TODO: Register `Datadog::Core::Diagnostics::EnvironmentLogger.log!`
+        # TODO: Register `Datadog::Tracing::Diagnostics::EnvironmentLogger.collect_and_log!`
         # TODO: as a flush_completed subscriber when the `TraceWriter`
         # TODO: instantiation code is implemented.
         def flush_completed

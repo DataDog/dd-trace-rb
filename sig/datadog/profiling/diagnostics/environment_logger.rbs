@@ -1,0 +1,16 @@
+module Datadog
+  module Profiling
+    module Diagnostics
+      module EnvironmentLogger
+        extend Core::Diagnostics::EnvironmentLogging
+
+        def self.collect_and_log!: () -> untyped
+      end
+      module EnvironmentCollector
+        def self.collect_config!: (*untyped args) -> { profiling_enabled: untyped }
+
+        def self.profiling_enabled: () -> untyped
+      end
+    end
+  end
+end

@@ -5,8 +5,18 @@ require 'spec_helper'
 require 'datadog/core/environment/execution'
 
 RSpec.describe Datadog::Core::Environment::Execution do
-  describe '#development?' do
+  around do |example|
+    WebMock.enable!
+    example.run
+    WebMock.disable!
+  end
+
+  describe '.development?' do
     subject(:development?) { described_class.development? }
+
+    before do
+      WebMock.disable!
+    end
 
     context 'when in an RSpec test' do
       it { is_expected.to eq(true) }
@@ -81,6 +91,119 @@ RSpec.describe Datadog::Core::Environment::Execution do
             is_expected.to eq(true)
           end
         end
+      end
+
+      context 'when in a Rails Spring process' do
+        before do
+          unless PlatformHelpers.ci? || Gem.loaded_specs['spring']
+            skip('spring gem not present. In CI, this test is never skipped.')
+          end
+        end
+
+        let(:script) do
+          <<-RUBY
+            require 'bundler/inline'
+
+            gemfile(true) do
+              source 'https://rubygems.org'
+              gem 'spring', '>= 2.0.2'
+            end
+
+            # Load the `bin/spring` file, just like a real Spring application would.
+            # https://github.com/rails/spring/blob/0a80019e1abdedb3291afb13e8cfb72f3992da90/bin/spring
+            ARGV = ['help'] # Let's ask for a simple Spring command, so that it returns quickly.
+            load Gem.bin_path('spring', 'spring')
+
+            #{repl_script}
+          RUBY
+        end
+
+        it 'returns true' do
+          _, err, = Open3.capture3('ruby', stdin_data: script)
+          expect(err).to end_with('true')
+        end
+      end
+    end
+
+    context 'when webmock has enabled net-http adapter' do
+      before do
+        allow(described_class).to receive(:repl?).and_return(false)
+        allow(described_class).to receive(:test?).and_return(false)
+        allow(described_class).to receive(:rails_development?).and_return(false)
+
+        WebMock.enable!
+      end
+
+      it { is_expected.to eq(true) }
+    end
+  end
+
+  describe '.webmock_enabled?' do
+    context 'when missing constant `WebMock::HttpLibAdapters::NetHttpAdapter`' do
+      it do
+        hide_const('::WebMock::HttpLibAdapters::NetHttpAdapter')
+        expect(described_class).not_to be_webmock_enabled
+      end
+    end
+
+    context 'when missing constant `Net::HTTP`' do
+      it do
+        hide_const('::Net::HTTP')
+        expect(described_class).not_to be_webmock_enabled
+      end
+    end
+
+    context 'when `WebMock::HttpLibAdapters::NetHttpAdapter` and `Net::HTTP` constants both exist' do
+      it do
+        WebMock.enable!
+
+        expect(described_class).to be_webmock_enabled
+      end
+
+      it do
+        WebMock.enable!(except: [:net_http])
+
+        expect(described_class).not_to be_webmock_enabled
+      end
+
+      it do
+        WebMock.disable!
+
+        expect(described_class).not_to be_webmock_enabled
+      end
+
+      it do
+        WebMock.disable!(except: [:net_http])
+
+        expect(described_class).to be_webmock_enabled
+      end
+    end
+
+    context 'when given WebMock', skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new('2') do
+      it do
+        out, err = Bundler.with_clean_env do
+          Open3.capture3('ruby', stdin_data: <<-RUBY
+            require 'bundler/inline'
+
+            gemfile(true, quiet: true) do
+              source 'https://rubygems.org'
+              gem 'webmock'
+            end
+
+            require 'webmock'
+            WebMock.enable!
+
+            lib = File.expand_path('lib', __dir__)
+            $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+            require 'datadog/core/environment/execution'
+
+            STDOUT.print Datadog::Core::Environment::Execution.webmock_enabled?
+          RUBY
+          )
+        end
+
+        expect(err).to be_empty
+        expect(out).to eq('true')
       end
     end
   end

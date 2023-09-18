@@ -969,7 +969,7 @@ RSpec.describe 'Tracer integration tests' do
               .with(kind_of(Datadog::Transport::HTTP::Builder))
               .at_least(1).time
             expect(double).to receive(:call)
-              .with(kind_of(Datadog::Core::Configuration::AgentSettingsResolver::TransportOptionsResolver))
+              .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
               .at_least(1).time
           end
         end
@@ -994,7 +994,7 @@ RSpec.describe 'Tracer integration tests' do
               .with(kind_of(Datadog::Transport::HTTP::Builder))
               .at_least(1).time
             expect(double).to receive(:call)
-              .with(kind_of(Datadog::Core::Configuration::AgentSettingsResolver::TransportOptionsResolver))
+              .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
               .at_least(1).time
           end
         end
@@ -1023,7 +1023,7 @@ RSpec.describe 'Tracer integration tests' do
               .with(kind_of(Datadog::Core::Transport::HTTP::Builder))
               .at_least(1).time
             expect(double).to receive(:call)
-              .with(kind_of(Datadog::Core::Configuration::AgentSettingsResolver::TransportOptionsResolver))
+              .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
               .at_least(1).time
           end
         end

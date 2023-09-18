@@ -10,7 +10,22 @@ module Datadog
           # This can be used to make decisions about when to enable
           # background systems like worker threads or telemetry.
           def development?
-            !!(repl? || test?)
+            !!(webmock_enabled? || repl? || test? || rails_development?)
+          end
+
+          # WebMock stores the reference to `Net::HTTP` with constant `OriginalNetHTTP`, and when WebMock enables,
+          # the adapter swaps `Net::HTTP` reference to its mock object, @webMockNetHTTP.
+          #
+          # Hence, we can detect by
+          #   1. Checking if `Net::HTTP` is referring to mock object
+          #   => ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter.instance_variable_get(:@webMockNetHTTP))
+          #
+          #   2. Checking if `Net::HTTP` is referring to the original one
+          #   => ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter::OriginalNetHTTP)
+          def webmock_enabled?
+            defined?(::WebMock::HttpLibAdapters::NetHttpAdapter) &&
+              defined?(::Net::HTTP) &&
+              ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter.instance_variable_get(:@webMockNetHTTP))
           end
 
           private
@@ -47,6 +62,16 @@ module Datadog
               (defined?(::Minitest::Unit) &&
                 ::Minitest::Unit.class_variable_defined?(:@@installed_at_exit) &&
                 ::Minitest::Unit.class_variable_get(:@@installed_at_exit))
+          end
+
+          # A Rails Spring Ruby process is a bit peculiar: the process is agnostic
+          # whether the application is running as a console or server.
+          # Luckily, the Spring gem *must not* be installed in a production environment so
+          # detecting its presence is enough to deduct if this is a development environment.
+          #
+          # @see https://github.com/rails/spring/blob/48b299348ace2188444489a0c216a6f3e9687281/README.md?plain=1#L204-L207
+          def rails_development?
+            defined?(::Spring)
           end
         end
       end

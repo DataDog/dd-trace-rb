@@ -20,7 +20,7 @@ module Datadog
         code_provenance_file_name: ::String,
         code_provenance_data: ::String?,
         tags_as_array: Array[[::String, ::String]],
-        no_signals_workaround_enabled: bool,
+        internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
       ) -> void
     end
   end

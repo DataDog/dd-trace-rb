@@ -1,5 +1,6 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
+require 'spec_helper'
 require 'datadog/core/diagnostics/environment_logger'
 require 'ddtrace/transport/io'
 require 'datadog/profiling/profiler'
@@ -7,86 +8,57 @@ require 'datadog/profiling/profiler'
 RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
 
-  # Reading DD_AGENT_HOST allows this to work in CI
-  let(:agent_hostname) { ENV['DD_AGENT_HOST'] || '127.0.0.1' }
-  let(:agent_port) { ENV['DD_TRACE_AGENT_PORT'] || 8126 }
-
   before do
     allow(DateTime).to receive(:now).and_return(DateTime.new(2020))
 
-    # Resets "only-once" execution pattern of `log!`
+    # Resets "only-once" execution pattern of `collect_and_log!`
     env_logger.instance_variable_set(:@executed, nil)
 
     Datadog.configuration.reset!
   end
 
-  describe '#log!' do
-    subject(:log!) { env_logger.log!([response]) }
+  describe '#collect_and_log!' do
+    subject(:collect_and_log!) { env_logger.collect_and_log! }
 
-    let(:logger) do
-      log!
-      tracer_logger
-    end
-
-    let(:response) { instance_double(Datadog::Transport::Response, ok?: true) }
-    let(:tracer_logger) { instance_double(Datadog::Core::Logger) }
+    let(:logger) { instance_double(Datadog::Core::Logger) }
 
     before do
-      allow(Datadog).to receive(:logger).and_return(tracer_logger)
-      allow(tracer_logger).to receive(:debug?).and_return true
-      allow(tracer_logger).to receive(:debug)
-      allow(tracer_logger).to receive(:info)
-      allow(tracer_logger).to receive(:warn)
-      allow(tracer_logger).to receive(:error)
+      allow(env_logger).to receive(:rspec?).and_return(false) # Allow rspec to log for testing purposes
+      allow(Datadog).to receive(:logger).and_return(logger)
+      allow(logger).to receive(:debug?).and_return(true)
+      allow(logger).to receive(:debug)
+      allow(logger).to receive(:info)
+      allow(logger).to receive(:warn)
     end
 
-    it 'with a default tracer settings' do
-      expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION') do |msg|
-        json = JSON.parse(msg.partition('-')[2].strip)
+    it 'with default core settings' do
+      collect_and_log!
+      expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION - CORE') do |msg|
+        json = JSON.parse(msg.partition('- CORE -')[2].strip)
         expect(json).to match(
-          'agent_url' => start_with("http://#{agent_hostname}:#{agent_port}?timeout="),
-          'analytics_enabled' => false,
           'date' => '2020-01-01T00:00:00+00:00',
-          'debug' => false,
-          'enabled' => true,
-          'health_metrics_enabled' => false,
+          'os_name' => (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
+          'version' => DDTrace::VERSION::STRING,
           'lang' => 'ruby',
           'lang_version' => match(/[23]\./),
-          'os_name' => (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
-          'partial_flushing_enabled' => false,
-          'priority_sampling_enabled' => false,
-          'runtime_metrics_enabled' => false,
-          'version' => DDTrace::VERSION::STRING,
-          'vm' => be_a(String),
+          'env' => nil,
           'service' => be_a(String),
-          'profiling_enabled' => false,
+          'dd_version' => nil,
+          'debug' => false,
+          'tags' => nil,
+          'runtime_metrics_enabled' => false,
+          'vm' => be_a(String),
+          'health_metrics_enabled' => false,
         )
       end
     end
 
     context 'with multiple invocations' do
       it 'executes only once' do
-        env_logger.log!([response])
-        env_logger.log!([response])
+        env_logger.collect_and_log!
+        env_logger.collect_and_log!
 
         expect(logger).to have_received(:info).once
-      end
-    end
-
-    context 'with agent error' do
-      before { allow(tracer_logger).to receive(:warn) }
-
-      let(:response) { Datadog::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
-
-      it do
-        expect(logger).to have_received(:warn).with start_with('DATADOG DIAGNOSTIC') do |msg|
-          error_line = msg.partition('-')[2].strip
-          error = error_line.partition(':')[2].strip
-
-          expect(error_line).to start_with('Agent Error')
-          expect(error).to include('ZeroDivisionError')
-          expect(error).to include('msg')
-        end
       end
     end
 
@@ -102,195 +74,105 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with default settings' do
+        before do
+          allow(env_logger).to receive(:rspec?).and_return(true) # Prevent rspec from logging
+        end
+
         it { expect(logger).to_not have_received(:info) }
       end
 
       context 'with explicit setting' do
         before do
-          Datadog.configure { |c| c.diagnostics.startup_logs.enabled = true }
+          allow(Datadog.configuration.diagnostics.startup_logs).to receive(:enabled).and_return(true)
         end
 
-        it { expect(logger).to have_received(:info) }
+        it do
+          collect_and_log!
+          expect(logger).to have_received(:info).with(/DATADOG CONFIGURATION - CORE -/).once
+        end
       end
     end
 
     context 'with error collecting information' do
       before do
-        allow(tracer_logger).to receive(:warn)
-        expect_any_instance_of(Datadog::Core::Diagnostics::EnvironmentCollector).to receive(:collect!).and_raise
+        allow(logger).to receive(:warn)
+        expect(Datadog::Core::Diagnostics::EnvironmentCollector).to receive(:collect_config!).and_raise
       end
 
       it 'rescues error and logs exception' do
-        expect(logger).to have_received(:warn).with start_with('Failed to collect environment information')
+        collect_and_log!
+        expect(logger).to have_received(:warn).with start_with('Failed to collect core environment information')
       end
     end
   end
 
   describe Datadog::Core::Diagnostics::EnvironmentCollector do
-    describe '#collect!' do
-      subject(:collect!) { collector.collect!([response]) }
+    describe '#collect_config!' do
+      subject(:collect_config!) { collector.collect_config! }
 
-      let(:collector) { described_class.new }
-      let(:response) { instance_double(Datadog::Transport::Response, ok?: true) }
+      let(:collector) { described_class }
 
-      it 'with a default tracer' do
+      it 'with a default core' do
         is_expected.to match(
-          agent_error: nil,
-          agent_url: start_with("http://#{agent_hostname}:#{agent_port}?timeout="),
-          analytics_enabled: false,
           date: '2020-01-01T00:00:00+00:00',
-          dd_version: nil,
-          debug: false,
-          enabled: true,
-          env: nil,
-          health_metrics_enabled: false,
-          integrations_loaded: nil,
+          os_name: (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
+          version: DDTrace::VERSION::STRING,
           lang: 'ruby',
           lang_version: match(/[23]\./),
-          os_name: (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
-          partial_flushing_enabled: false,
-          priority_sampling_enabled: false,
-          runtime_metrics_enabled: false,
-          sample_rate: nil,
-          sampling_rules: nil,
+          env: nil,
           service: be_a(String),
+          dd_version: nil,
+          debug: false,
           tags: nil,
-          version: DDTrace::VERSION::STRING,
+          runtime_metrics_enabled: false,
           vm: be_a(String),
-          profiling_enabled: false,
+          health_metrics_enabled: false
         )
       end
 
-      context 'with tracer disabled' do
-        before { Datadog.configure { |c| c.tracing.enabled = false } }
+      context 'with version configured' do
+        let(:version) { double('version') }
 
-        after { Datadog.configure { |c| c.tracing.enabled = true } }
+        before { allow(Datadog.configuration).to receive(:version).and_return(version) }
 
-        it { is_expected.to include enabled: false }
+        it { is_expected.to include dd_version: version }
       end
 
       context 'with env configured' do
-        before { Datadog.configure { |c| c.env = 'env' } }
+        let(:env) { double('env') }
 
-        it { is_expected.to include env: 'env' }
-      end
+        before { allow(Datadog.configuration).to receive(:env).and_return(env) }
 
-      context 'with tags configured' do
-        before { Datadog.configure { |c| c.tags = { 'k1' => 'v1', 'k2' => 'v2' } } }
-
-        it { is_expected.to include tags: 'k1:v1,k2:v2' }
+        it { is_expected.to include env: env }
       end
 
       context 'with service configured' do
-        before { Datadog.configure { |c| c.service = 'svc' } }
+        let(:service) { double('service') }
 
-        it { is_expected.to include service: 'svc' }
-      end
+        before { allow(Datadog.configuration).to receive(:service).and_return(service) }
 
-      context 'with version configured' do
-        before { Datadog.configure { |c| c.version = '1.2' } }
-
-        it { is_expected.to include dd_version: '1.2' }
+        it { is_expected.to include service: service }
       end
 
       context 'with debug enabled' do
         before do
-          Datadog.configure do |c|
-            c.diagnostics.debug = true
-            c.logger.instance = Datadog::Core::Logger.new(StringIO.new)
-          end
+          expect(Datadog.configuration.diagnostics).to receive(:debug).and_return(true)
+          allow(Datadog.configuration.logger).to receive(:instance).and_return(Datadog::Core::Logger.new(StringIO.new))
         end
 
         it { is_expected.to include debug: true }
       end
 
-      context 'with analytics enabled' do
-        before { Datadog.configure { |c| c.tracing.analytics.enabled = true } }
+      context 'with tags configured' do
+        before { expect(Datadog.configuration).to receive(:tags).and_return({ 'k1' => 'v1', 'k2' => 'v2' }) }
 
-        it { is_expected.to include analytics_enabled: true }
+        it { is_expected.to include tags: 'k1:v1,k2:v2' }
       end
 
       context 'with runtime metrics enabled' do
-        before { Datadog.configure { |c| c.runtime_metrics.enabled = true } }
-
-        after { Datadog.configuration.runtime_metrics.reset! }
+        before { expect(Datadog.configuration.runtime_metrics).to receive(:enabled).and_return(true) }
 
         it { is_expected.to include runtime_metrics_enabled: true }
-      end
-
-      context 'with partial flushing enabled' do
-        before { Datadog.configure { |c| c.tracing.partial_flush.enabled = true } }
-
-        it { is_expected.to include partial_flushing_enabled: true }
-      end
-
-      context 'with priority sampling enabled' do
-        before { Datadog.configure { |c| c.tracing.priority_sampling = true } }
-
-        it { is_expected.to include priority_sampling_enabled: true }
-      end
-
-      context 'with health metrics enabled' do
-        before { Datadog.configure { |c| c.diagnostics.health_metrics.enabled = true } }
-
-        it { is_expected.to include health_metrics_enabled: true }
-      end
-
-      context 'with agent connectivity issues' do
-        let(:response) { Datadog::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
-
-        it { is_expected.to include agent_error: include('ZeroDivisionError') }
-        it { is_expected.to include agent_error: include('msg') }
-      end
-
-      context 'with IO transport' do
-        before do
-          Datadog.configure do |c|
-            c.tracing.writer = Datadog::Tracing::SyncWriter.new(
-              transport: Datadog::Transport::IO.default
-            )
-          end
-        end
-
-        after { Datadog.configure { |c| c.tracing.writer = nil } }
-
-        it { is_expected.to include agent_url: nil }
-      end
-
-      context 'with unix socket transport' do
-        before do
-          Datadog.configure do |c|
-            c.tracing.transport_options = ->(t) { t.adapter :unix, '/tmp/trace.sock' }
-          end
-        end
-
-        after { Datadog.configuration.reset! }
-
-        it { is_expected.to include agent_url: include('unix') }
-        it { is_expected.to include agent_url: include('/tmp/trace.sock') }
-      end
-
-      context 'with integrations loaded' do
-        before { Datadog.configure { |c| c.tracing.instrument :http, options } }
-
-        let(:options) { {} }
-
-        it { is_expected.to include integrations_loaded: start_with('http') }
-
-        it do
-          # Because net/http is default gem, we use the Ruby version as the library version.
-          is_expected.to include integrations_loaded: end_with("@#{RUBY_VERSION}")
-        end
-
-        context 'with integration-specific settings' do
-          let(:options) { { service_name: 'my-http' } }
-
-          it { is_expected.to include integration_http_analytics_enabled: 'false' }
-          it { is_expected.to include integration_http_analytics_sample_rate: '1.0' }
-          it { is_expected.to include integration_http_service_name: 'my-http' }
-          it { is_expected.to include integration_http_distributed_tracing: 'true' }
-          it { is_expected.to include integration_http_split_by_domain: 'false' }
-        end
       end
 
       context 'with MRI' do
@@ -311,13 +193,10 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
         it { is_expected.to include vm: start_with('truffleruby') }
       end
 
-      context 'with profiling enabled' do
-        before do
-          allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start) if PlatformHelpers.mri?
-          Datadog.configure { |c| c.profiling.enabled = true }
-        end
+      context 'with health metrics enabled' do
+        before { expect(Datadog.configuration.diagnostics.health_metrics).to receive(:enabled).and_return(true) }
 
-        it { is_expected.to include profiling_enabled: true }
+        it { is_expected.to include health_metrics_enabled: true }
       end
     end
   end

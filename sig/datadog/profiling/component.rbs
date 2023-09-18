@@ -12,7 +12,7 @@ module Datadog
       def self.build_profiler_exporter: (
         untyped settings,
         (Datadog::Profiling::StackRecorder | Datadog::Profiling::OldRecorder) recorder,
-        no_signals_workaround_enabled: bool,
+        internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
       ) -> Datadog::Profiling::Exporter
 
       def self.build_profiler_oldstack_collector: (
@@ -27,8 +27,6 @@ module Datadog
       ) -> untyped
 
       def self.enable_gc_profiling?: (untyped settings) -> bool
-
-      def self.print_new_profiler_warnings: () -> void
 
       def self.enable_new_profiler?: (untyped settings) -> bool
 

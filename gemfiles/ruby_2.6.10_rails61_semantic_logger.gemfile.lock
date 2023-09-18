@@ -11,10 +11,11 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.13.0)
+    ddtrace (1.14.0)
+      datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
-      libdatadog (~> 3.0.0.1.0)
-      libddwaf (~> 1.9.0.0.0)
+      libdatadog (~> 4.0.0.1.0)
+      libddwaf (~> 1.14.0.0.0)
       msgpack
 
 GEM
@@ -100,6 +101,7 @@ GEM
       rexml
     crass (1.0.6)
     cri (2.15.11)
+    datadog-ci (0.1.1)
     date (3.3.3)
     debase-ruby_core_source (3.2.1)
     debug_inspector (1.1.0)
@@ -119,11 +121,11 @@ GEM
     json (2.6.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (3.0.0.1.0-aarch64-linux)
-    libdatadog (3.0.0.1.0-x86_64-linux)
-    libddwaf (1.9.0.0.0-aarch64-linux)
+    libdatadog (4.0.0.1.0-aarch64-linux)
+    libdatadog (4.0.0.1.0-x86_64-linux)
+    libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.9.0.0.0-x86_64-linux)
+    libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     loofah (2.19.1)
       crass (~> 1.0.2)
@@ -290,7 +292,6 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  activerecord-jdbcpostgresql-adapter
   addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
