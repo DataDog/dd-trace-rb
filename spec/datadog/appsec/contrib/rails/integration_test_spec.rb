@@ -186,19 +186,7 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
-
-          context 'with schema extraction' do
-            let(:api_security_enabled) { true }
-            let(:api_security_sample) { 1 }
-
-            it { is_expected.to be_ok }
-
-            it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a GET 200 span'
-            it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace without AppSec events'
-            it_behaves_like 'a trace with AppSec api security tags'
-          end
+          it_behaves_like 'a trace with AppSec api security tags'
         end
 
         context 'with an event-triggering request in headers' do
@@ -211,20 +199,7 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
-
-          context 'with schema extraction' do
-            let(:api_security_enabled) { true }
-            let(:api_security_sample) { 1 }
-
-            it { is_expected.to be_ok }
-            it { expect(triggers).to be_a Array }
-
-            it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a GET 200 span'
-            it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
-            it_behaves_like 'a trace with AppSec api security tags'
-          end
+          it_behaves_like 'a trace with AppSec api security tags'
         end
 
         context 'with an event-triggering request in query string' do
@@ -236,19 +211,7 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
-
-          context 'with schema extraction' do
-            let(:api_security_enabled) { true }
-            let(:api_security_sample) { 1 }
-
-            it { is_expected.to be_ok }
-
-            it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a GET 200 span'
-            it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
-            it_behaves_like 'a trace with AppSec api security tags'
-          end
+          it_behaves_like 'a trace with AppSec api security tags'
 
           context 'and a blocking rule' do
             let(:appsec_ruleset) { crs_942_100 }
@@ -259,19 +222,7 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events', { blocking: true }
-
-            context 'with schema extraction' do
-              let(:api_security_enabled) { true }
-              let(:api_security_sample) { 1 }
-
-              it { is_expected.to be_forbidden }
-
-              it_behaves_like 'normal with tracing disable'
-              it_behaves_like 'a GET 403 span'
-              it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events', { blocking: true }
-              it_behaves_like 'a trace with AppSec api security tags'
-            end
+            it_behaves_like 'a trace with AppSec api security tags'
           end
         end
 
@@ -290,19 +241,7 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
-
-          context 'with schema extraction' do
-            let(:api_security_enabled) { true }
-            let(:api_security_sample) { 1 }
-
-            it { is_expected.to be_ok }
-
-            it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a GET 200 span'
-            it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
-            it_behaves_like 'a trace with AppSec api security tags'
-          end
+          it_behaves_like 'a trace with AppSec api security tags'
 
           context 'and a blocking rule' do
             let(:appsec_ruleset) { crs_942_100 }
@@ -313,19 +252,7 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events', { blocking: true }
-
-            context 'with schema extraction' do
-              let(:api_security_enabled) { true }
-              let(:api_security_sample) { 1 }
-
-              it { is_expected.to be_forbidden }
-
-              it_behaves_like 'normal with tracing disable'
-              it_behaves_like 'a GET 403 span'
-              it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events', { blocking: true }
-              it_behaves_like 'a trace with AppSec api security tags'
-            end
+            it_behaves_like 'a trace with AppSec api security tags'
           end
         end
 
@@ -340,19 +267,7 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a GET 403 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events', { blocking: true }
-
-          context 'with schema extraction' do
-            let(:api_security_enabled) { true }
-            let(:api_security_sample) { 1 }
-
-            it { is_expected.to be_forbidden }
-
-            it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a GET 403 span'
-            it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events', { blocking: true }
-            it_behaves_like 'a trace with AppSec api security tags'
-          end
+          it_behaves_like 'a trace with AppSec api security tags'
         end
 
         context 'with an event-triggering response' do
@@ -365,20 +280,7 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a GET 404 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
-
-          context 'with schema extraction' do
-            let(:api_security_enabled) { true }
-            let(:api_security_sample) { 1 }
-
-            it { is_expected.to be_not_found }
-            it { expect(triggers).to be_a Array }
-
-            it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a GET 404 span'
-            it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
-            it_behaves_like 'a trace with AppSec api security tags'
-          end
+          it_behaves_like 'a trace with AppSec api security tags'
         end
 
         context 'with user blocking ID' do
@@ -390,19 +292,7 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
-
-          context 'with schema extraction' do
-            let(:api_security_enabled) { true }
-            let(:api_security_sample) { 1 }
-
-            it { is_expected.to be_ok }
-
-            it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a GET 200 span'
-            it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace without AppSec events'
-            it_behaves_like 'a trace with AppSec api security tags'
-          end
+          it_behaves_like 'a trace with AppSec api security tags'
 
           context 'with an event-triggering user ID' do
             let(:appsec_user_id_denylist) { ['blocked-user-id'] }
@@ -413,19 +303,7 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
-
-            context 'with schema extraction' do
-              let(:api_security_enabled) { true }
-              let(:api_security_sample) { 1 }
-
-              it { is_expected.to be_forbidden }
-
-              it_behaves_like 'normal with tracing disable'
-              it_behaves_like 'a GET 403 span'
-              it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events'
-              it_behaves_like 'a trace with AppSec api security tags'
-            end
+            it_behaves_like 'a trace with AppSec api security tags'
           end
         end
       end
@@ -445,19 +323,7 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
-
-          context 'with schema extraction' do
-            let(:api_security_enabled) { true }
-            let(:api_security_sample) { 1 }
-
-            it { is_expected.to be_ok }
-
-            it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a POST 200 span'
-            it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace without AppSec events'
-            it_behaves_like 'a trace with AppSec api security tags'
-          end
+          it_behaves_like 'a trace with AppSec api security tags'
         end
 
         context 'with an event-triggering request in application/x-www-form-url-encoded body' do
@@ -469,19 +335,7 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
-
-          context 'with schema extraction' do
-            let(:api_security_enabled) { true }
-            let(:api_security_sample) { 1 }
-
-            it { is_expected.to be_ok }
-
-            it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a POST 200 span'
-            it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
-            it_behaves_like 'a trace with AppSec api security tags'
-          end
+          it_behaves_like 'a trace with AppSec api security tags'
 
           context 'and a blocking rule' do
             let(:appsec_ruleset) { crs_942_100 }
@@ -492,19 +346,7 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events', { blocking: true }
-
-            context 'with schema extraction' do
-              let(:api_security_enabled) { true }
-              let(:api_security_sample) { 1 }
-
-              it { is_expected.to be_forbidden }
-
-              it_behaves_like 'normal with tracing disable'
-              it_behaves_like 'a POST 403 span'
-              it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events', { blocking: true }
-              it_behaves_like 'a trace with AppSec api security tags'
-            end
+            it_behaves_like 'a trace with AppSec api security tags'
           end
         end
 
@@ -519,19 +361,7 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'a POST 200 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
-
-            context 'with schema extraction' do
-              let(:api_security_enabled) { true }
-              let(:api_security_sample) { 1 }
-
-              it { is_expected.to be_ok }
-
-              it_behaves_like 'normal with tracing disable'
-              it_behaves_like 'a POST 200 span'
-              it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events'
-              it_behaves_like 'a trace with AppSec api security tags'
-            end
+            it_behaves_like 'a trace with AppSec api security tags'
 
             context 'and a blocking rule' do
               let(:appsec_ruleset) { crs_942_100 }
@@ -542,19 +372,7 @@ RSpec.describe 'Rails integration tests' do
               it_behaves_like 'a POST 403 span'
               it_behaves_like 'a trace with AppSec tags'
               it_behaves_like 'a trace with AppSec events', { blocking: true }
-
-              context 'with schema extraction' do
-                let(:api_security_enabled) { true }
-                let(:api_security_sample) { 1 }
-
-                it { is_expected.to be_forbidden }
-
-                it_behaves_like 'normal with tracing disable'
-                it_behaves_like 'a POST 403 span'
-                it_behaves_like 'a trace with AppSec tags'
-                it_behaves_like 'a trace with AppSec events', { blocking: true }
-                it_behaves_like 'a trace with AppSec api security tags'
-              end
+              it_behaves_like 'a trace with AppSec api security tags'
             end
           end
         end
@@ -569,19 +387,7 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
-
-          context 'with schema extraction' do
-            let(:api_security_enabled) { true }
-            let(:api_security_sample) { 1 }
-
-            it { is_expected.to be_ok }
-
-            it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a POST 200 span'
-            it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
-            it_behaves_like 'a trace with AppSec api security tags'
-          end
+          it_behaves_like 'a trace with AppSec api security tags'
 
           context 'and a blocking rule' do
             let(:appsec_ruleset) { crs_942_100 }
@@ -592,19 +398,7 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events', { blocking: true }
-
-            context 'with schema extraction' do
-              let(:api_security_enabled) { true }
-              let(:api_security_sample) { 1 }
-
-              it { is_expected.to be_forbidden }
-
-              it_behaves_like 'normal with tracing disable'
-              it_behaves_like 'a POST 403 span'
-              it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events', { blocking: true }
-              it_behaves_like 'a trace with AppSec api security tags'
-            end
+            it_behaves_like 'a trace with AppSec api security tags'
           end
         end
       end

@@ -121,16 +121,25 @@ RSpec.shared_examples 'a trace with AppSec tags' do
 end
 
 RSpec.shared_examples 'a trace with AppSec api security tags' do
-  it do
-    api_security_tags = service_span.send(:meta).select { |key, _value| key.include?('_dd.appsec.s') }
+  context 'with api security enabled' do
+    let(:api_security_enabled) { true }
+    let(:api_security_sample) { 1 }
 
-    expect(api_security_tags).to_not be_empty
+    it do
+      api_security_tags = service_span.send(:meta).select { |key, _value| key.include?('_dd.appsec.s') }
+
+      expect(api_security_tags).to_not be_empty
+    end
   end
 
-  context 'with appsec disabled' do
-    let(:appsec_enabled) { false }
+  context 'with api security disabled' do
+    let(:api_security_enabled) { false }
 
-    it_behaves_like 'a trace without AppSec tags'
+    it do
+      api_security_tags = service_span.send(:meta).select { |key, _value| key.include?('_dd.appsec.s') }
+
+      expect(api_security_tags).to be_empty
+    end
   end
 end
 
