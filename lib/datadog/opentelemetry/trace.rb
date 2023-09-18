@@ -21,9 +21,7 @@ module Datadog
                    end
 
           # Create a new TraceOperation, attached to the current Datadog Tracer.
-          # This is important because trace flushing is performed by the active
-          # tracer instance.
-          Tracing.send(:tracer).send(:start_trace, continue_from: digest)
+          Datadog::Tracing.continue_trace!(digest)
         end
 
         private
