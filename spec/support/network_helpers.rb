@@ -32,7 +32,7 @@ module NetworkHelpers
     ENV['DD_TRACE_AGENT_PORT']
   end
 
-  # Yields the agent url to use for testing
+  # Returns the agent url to use for testing
   #
   # @yield [String] agent url
   def agent_url
