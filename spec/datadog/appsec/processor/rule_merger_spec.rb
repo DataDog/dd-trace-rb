@@ -689,7 +689,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
     it 'merges default processors' do
       result = described_class.merge(rules: rules)
       expect(result).to include('rules' => rules[0]['rules'])
-      expect(result).to include('processors' => described_class::DEFAULT_PROCESSORS)
+      expect(result).to include('processors' => described_class::DEFAULT_WAF_PROCESSORS)
     end
 
     it 'merges the provided processors' do

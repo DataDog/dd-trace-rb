@@ -18,12 +18,17 @@ module Datadog
           end
         end
 
-        DEFAULT_PROCESSORS = JSON.parse(Datadog::AppSec::Assets.waf_processors)
+        DEFAULT_WAF_PROCESSORS = begin
+          JSON.parse(Datadog::AppSec::Assets.waf_processors)
+        rescue StandardError => e
+          Datadog.logger.error { "libddwaf rulemerger failed to parse default waf processors. Error: #{e.inspect}" }
+          []
+        end
 
         class << self
           def merge(
             rules:, data: [], overrides: [], exclusions: [], custom_rules: [],
-            processors: DEFAULT_PROCESSORS
+            processors: DEFAULT_WAF_PROCESSORS
           )
             combined_rules = combine_rules(rules)
 
