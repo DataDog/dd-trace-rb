@@ -34,7 +34,7 @@ module NetworkHelpers
 
   # Returns the agent url to use for testing
   #
-  # @yield [String] agent url
+  # @return [String] agent url
   def agent_url
     "http://#{agent_host}:#{agent_port}"
   end
