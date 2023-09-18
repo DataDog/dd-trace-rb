@@ -41,11 +41,13 @@ RSpec.describe Datadog::AppSec::Event do
         dbl = double
 
         allow(dbl).to receive(:events).and_return([])
+        allow(dbl).to receive(:derivatives).and_return(derivatives)
 
         dbl
       end
 
       let(:event_count) { 1 }
+      let(:derivatives) { {} }
 
       let(:events) do
         Array.new(event_count) do
@@ -101,6 +103,19 @@ RSpec.describe Datadog::AppSec::Event do
 
         it 'marks the trace to be kept' do
           expect(trace.sampling_priority).to eq Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+        end
+
+        context 'waf_result derivatives' do
+          let(:derivatives) do
+            {
+              '_dd.appsec.s.req.headers' => [{ 'host' => [8], 'version' => [8] }]
+            }
+          end
+
+          it 'adds derivatives to the top level span meta' do
+            meta = top_level_span.meta
+            expect(meta['_dd.appsec.s.req.headers']).to eq JSON.dump([{ 'host' => [8], 'version' => [8] }])
+          end
         end
       end
 

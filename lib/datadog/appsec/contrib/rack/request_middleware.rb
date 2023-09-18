@@ -75,6 +75,16 @@ module Datadog
 
             _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
 
+            result = scope.processor_context.extract_schema
+
+            if result
+              scope.processor_context.events << {
+                trace: scope.trace,
+                span: scope.service_entry_span,
+                waf_result: result,
+              }
+            end
+
             scope.processor_context.events.each do |e|
               e[:response] ||= gateway_response
               e[:request]  ||= gateway_request
