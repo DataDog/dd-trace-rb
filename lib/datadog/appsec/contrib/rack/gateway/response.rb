@@ -20,7 +20,7 @@ module Datadog
             end
 
             def parsed_body
-              return unless body.instance_of?(Array)
+              return unless body.instance_of?(Array) || body.instance_of?(::Rack::BodyProxy)
               return unless supported_response_type
 
               body_dup = body.dup # avoid interating over the body. This is just in case code.
