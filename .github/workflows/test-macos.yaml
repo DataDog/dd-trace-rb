@@ -1,5 +1,11 @@
 name: Test macOS
-on: [push]
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ master ]
 jobs:
   test-macos:
     strategy:
@@ -26,7 +32,7 @@ jobs:
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_REMOTE_CONFIGURATION_ENABLED: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # bundler appears to match both prerelease and release rubies when we
       # want the former only. relax the constraint to allow any version for
       # head rubies

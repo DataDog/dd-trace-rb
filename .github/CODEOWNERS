@@ -1,1 +1,5 @@
 * @DataDog/apm-ruby
+
+# Public Documentation
+/docs/Compatibility.md @DataDog/documentation
+/docs/GettingStarted.md @DataDog/documentation

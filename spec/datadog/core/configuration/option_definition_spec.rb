@@ -24,21 +24,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
   end
 
-  describe '#delegate_to' do
-    subject(:delegate_to) { definition.delegate_to }
-
-    context 'when given a value' do
-      let(:meta) { { delegate_to: delegate_to_value } }
-      let(:delegate_to_value) { double('delegate_to') }
-
-      it { is_expected.to be delegate_to_value }
-    end
-
-    context 'when not initialized' do
-      it { is_expected.to be nil }
-    end
-  end
-
   describe '#name' do
     subject(:result) { definition.name }
 
@@ -55,14 +40,14 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
   end
 
-  describe '#on_set' do
-    subject(:on_set) { definition.on_set }
+  describe '#after_set' do
+    subject(:after_set) { definition.after_set }
 
     context 'when given a value' do
-      let(:meta) { { on_set: on_set_value } }
-      let(:on_set_value) { double('on_set') }
+      let(:meta) { { after_set: after_set_value } }
+      let(:after_set_value) { double('after_set') }
 
-      it { is_expected.to be on_set_value }
+      it { is_expected.to be after_set_value }
     end
 
     context 'when not initialized' do
@@ -161,10 +146,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
           it 'generates an OptionDefinition with defaults' do
             is_expected.to have_attributes(
               default: nil,
-              experimental_default_proc: nil,
-              delegate_to: nil,
+              default_proc: nil,
               name: name,
-              on_set: nil,
+              after_set: nil,
               resetter: nil,
               setter: Datadog::Core::Configuration::OptionDefinition::IDENTITY,
               type: nil,
@@ -200,11 +184,11 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
 
     context 'validate_options!' do
-      context 'when default and experimental_default_proc is provided' do
+      context 'when default and default_proc is provided' do
         let(:initialize_block) do
           proc do |o|
             o.default false
-            o.experimental_default_proc { true }
+            o.default_proc { true }
           end
         end
 
@@ -243,22 +227,14 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
-  describe '#experimental_default_proc' do
-    subject(:experimental_default_proc) { builder.experimental_default_proc(&block) }
+  describe '#default_proc' do
+    subject(:default_proc) { builder.default_proc(&block) }
 
     context 'given a block' do
       let(:block) { proc { false } }
 
       it { is_expected.to be block }
     end
-  end
-
-  describe '#delegate_to' do
-    subject(:delegate_to) { builder.delegate_to(&block) }
-
-    let(:block) { proc {} }
-
-    it { is_expected.to be block }
   end
 
   describe '#helper' do
@@ -294,8 +270,8 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
-  describe '#on_set' do
-    subject(:on_set) { builder.on_set(&block) }
+  describe '#after_set' do
+    subject(:after_set) { builder.after_set(&block) }
 
     let(:block) { proc {} }
 
@@ -385,25 +361,12 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
-    context 'given :delegate_to' do
-      let(:options) { { delegate_to: value } }
+    context 'given :after_set' do
+      let(:options) { { after_set: value } }
       let(:value) { proc {} }
 
       it do
-        expect(builder).to receive(:delegate_to) do |&block|
-          expect(block).to be value
-        end
-
-        apply_options!
-      end
-    end
-
-    context 'given :on_set' do
-      let(:options) { { on_set: value } }
-      let(:value) { proc {} }
-
-      it do
-        expect(builder).to receive(:on_set) do |&block|
+        expect(builder).to receive(:after_set) do |&block|
           expect(block).to be value
         end
 
@@ -460,9 +423,8 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     it 'contains the arguments for OptionDefinition' do
       expect(meta.keys).to include(
         :default,
-        :experimental_default_proc,
-        :delegate_to,
-        :on_set,
+        :default_proc,
+        :after_set,
         :resetter,
         :setter,
         :type,

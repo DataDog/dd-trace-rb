@@ -22,7 +22,8 @@ module Datadog
               options = {
                 span_type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
                 service: service_name, # Maintain client-side service name configuration
-                resource: formatter.resource_name
+                resource: formatter.resource_name,
+                on_error: error_handler
               }
 
               Tracing.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
@@ -54,6 +55,11 @@ module Datadog
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                   datadog_configuration[:peer_service]
                 )
+              end
+
+              # Tag original global service name if not used
+              if span.service != Datadog.configuration.service
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -100,6 +106,10 @@ module Datadog
             rescue => e
               Datadog.logger.debug { "Could not parse host:port from #{call}: #{e}" }
               nil
+            end
+
+            def error_handler
+              Datadog.configuration_for(self, :error_handler) || datadog_configuration[:client_error_handler]
             end
           end
         end

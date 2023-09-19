@@ -48,6 +48,11 @@ module Datadog
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
+              # Tag original global service name if not used
+              if span.service != Datadog.configuration.service
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
+              end
+
               span.set_tag(Ext::TAG_TOPIC, payload[:topic])
               span.set_tag(Ext::TAG_CONSUMER, payload[:consumer_class])
               span.set_tag(Ext::TAG_PARTITION, payload[:partition])

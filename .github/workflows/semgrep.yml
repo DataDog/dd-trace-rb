@@ -1,0 +1,27 @@
+name: Semgrep
+
+on:
+  # Scan changed files in PRs (diff-aware scanning):
+  pull_request: {}
+  # Scan on-demand through GitHub Actions interface:
+  workflow_dispatch: {}
+  # Scan mainline branches and report all findings:
+  push:
+    branches: ["master"]
+
+jobs:
+  semgrep:
+    name: semgrep/ci
+    runs-on: ubuntu-latest
+
+    container:
+      image: returntocorp/semgrep
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          semgrep ci \
+          --include=bin/* --include=ext/* --include=lib/* \
+          --exclude-rule=ruby.lang.security.model-attributes-attr-accessible.model-attributes-attr-accessible
+        env:
+          SEMGREP_RULES: p/default

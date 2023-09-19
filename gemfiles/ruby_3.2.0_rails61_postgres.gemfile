@@ -40,7 +40,6 @@ gem "opentracing", ">= 0.4.1"
 gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
 gem "rails", "~> 6.1.0"
 gem "pg", ">= 1.1", platform: :ruby
-gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "sprockets", "< 4"
 gem "lograge", "~> 0.11"
 gem "net-smtp"

@@ -23,7 +23,6 @@ struct sampling_buffer {
   int *lines_buffer;
   bool *is_ruby_frame;
   ddog_prof_Location *locations;
-  ddog_prof_Line *lines;
 }; // Note: typedef'd in the header to sampling_buffer
 
 static VALUE _native_sample(
@@ -150,7 +149,7 @@ void sample_thread(
   if (type == SAMPLE_IN_GC) {
     ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
     ddog_CharSlice function_filename = DDOG_CHARSLICE_C("Garbage Collection");
-    buffer->lines[0] = (ddog_prof_Line) {
+    buffer->locations[0] = (ddog_prof_Location) {
       .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
       .line = 0
     };
@@ -162,7 +161,6 @@ void sample_thread(
       .lines_buffer = buffer->lines_buffer + 1,
       .is_ruby_frame = buffer->is_ruby_frame + 1,
       .locations = buffer->locations + 1,
-      .lines = buffer->lines + 1
     };
     sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
     int extra_frames_in_record_buffer = 1;
@@ -250,7 +248,7 @@ static void sample_thread_internal(
     name = NIL_P(name) ? missing_string : name;
     filename = NIL_P(filename) ? missing_string : filename;
 
-    buffer->lines[i] = (ddog_prof_Line) {
+    buffer->locations[i] = (ddog_prof_Location) {
       .function = (ddog_prof_Function) {
         .name = char_slice_from_ruby_string(name),
         .filename = char_slice_from_ruby_string(filename)
@@ -292,7 +290,7 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
   // `record_sample`. So be careful where it gets allocated. (We do have tests for this, at least!)
   ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
   ddog_CharSlice function_filename = {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)};
-  buffer->lines[buffer->max_frames - 1] = (ddog_prof_Line) {
+  buffer->locations[buffer->max_frames - 1] = (ddog_prof_Location) {
     .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
     .line = 0,
   };
@@ -328,7 +326,7 @@ static void record_placeholder_stack_in_native_code(
 ) {
   ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
   ddog_CharSlice function_filename = DDOG_CHARSLICE_C("In native code");
-  buffer->lines[0] = (ddog_prof_Line) {
+  buffer->locations[0] = (ddog_prof_Location) {
     .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
     .line = 0
   };
@@ -354,14 +352,6 @@ sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
   buffer->lines_buffer  = ruby_xcalloc(max_frames, sizeof(int));
   buffer->is_ruby_frame = ruby_xcalloc(max_frames, sizeof(bool));
   buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddog_prof_Location));
-  buffer->lines         = ruby_xcalloc(max_frames, sizeof(ddog_prof_Line));
-
-  // Currently we have a 1-to-1 correspondence between lines and locations, so we just initialize the locations once
-  // here and then only mutate the contents of the lines.
-  for (unsigned int i = 0; i < max_frames; i++) {
-    ddog_prof_Slice_Line lines = (ddog_prof_Slice_Line) {.ptr = &buffer->lines[i], .len = 1};
-    buffer->locations[i] = (ddog_prof_Location) {.lines = lines};
-  }
 
   return buffer;
 }
@@ -373,7 +363,6 @@ void sampling_buffer_free(sampling_buffer *buffer) {
   ruby_xfree(buffer->lines_buffer);
   ruby_xfree(buffer->is_ruby_frame);
   ruby_xfree(buffer->locations);
-  ruby_xfree(buffer->lines);
 
   ruby_xfree(buffer);
 }

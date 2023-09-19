@@ -12,9 +12,10 @@ PATH
   remote: ..
   specs:
     ddtrace (1.14.0)
+      datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
-      libdatadog (~> 3.0.0.1.0)
-      libddwaf (~> 1.9.0.0.0)
+      libdatadog (~> 4.0.0.1.0)
+      libddwaf (~> 1.14.0.0.0)
       msgpack
 
 GEM
@@ -98,6 +99,7 @@ GEM
       rexml
     crass (1.0.6)
     cri (2.15.11)
+    datadog-ci (0.1.1)
     date (3.3.3-java)
     debase-ruby_core_source (3.2.1)
     diff-lcs (1.5.0)
@@ -114,8 +116,8 @@ GEM
     json (2.6.3-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (3.0.0.1.0)
-    libddwaf (1.9.0.0.0-java)
+    libdatadog (4.0.0.1.0)
+    libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.12.0)
       actionpack (>= 4)
@@ -295,7 +297,6 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   opentracing (>= 0.4.1)
   os (~> 1.1)
-  pg (< 1.0)
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby

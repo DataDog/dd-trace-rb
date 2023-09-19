@@ -69,6 +69,14 @@ module Datadog
 
               @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
+              # Tag original global service name if not used
+              if @datadog_multi_span.service != Datadog.configuration.service
+                @datadog_multi_span.set_tag(
+                  Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE,
+                  Datadog.configuration.service
+                )
+              end
+
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(@datadog_multi_span, analytics_sample_rate) if analytics_enabled?
 

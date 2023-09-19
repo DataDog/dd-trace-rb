@@ -103,7 +103,7 @@ module Datadog
             o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED
             o.default false
             o.type :bool
-            o.on_set do |enabled|
+            o.after_set do |enabled|
               # Enable rich debug print statements.
               # We do not need to unnecessarily load 'pp' unless in debugging mode.
               require 'pp' if enabled
@@ -177,7 +177,7 @@ module Datadog
           #
           # @return Logger::Severity
           option :instance do |o|
-            o.on_set { |value| set_option(:level, value.level) unless value.nil? }
+            o.after_set { |value| set_option(:level, value.level) unless value.nil? }
           end
 
           # Log level for `Datadog.logger`.
@@ -215,7 +215,7 @@ module Datadog
             # per second for a 60 second period.
             option :max_events do |o|
               o.default 32768
-              o.on_set do |value|
+              o.after_set do |value|
                 if value != 32768
                   Datadog.logger.warn(
                     'The profiling.advanced.max_events setting has been deprecated for removal. It no longer does ' \
@@ -261,7 +261,7 @@ module Datadog
             # This was added as a temporary support option in case of issues with the new `Profiling::HttpTransport` class
             # but we're now confident it's working nicely so we've removed the old code path.
             option :legacy_transport_enabled do |o|
-              o.on_set do
+              o.after_set do
                 Datadog.logger.warn(
                   'The profiling.advanced.legacy_transport_enabled setting has been deprecated for removal and no ' \
                   'longer does anything. Please remove it from your Datadog.configure block.'
@@ -274,7 +274,7 @@ module Datadog
             # This was used prior to the GA of the new CPU Profiling 2.0 profiler. Using CPU Profiling 2.0 is now the
             # default and this doesn't do anything.
             option :force_enable_new_profiler do |o|
-              o.on_set do
+              o.after_set do
                 Datadog.logger.warn(
                   'The profiling.advanced.force_enable_new_profiler setting has been deprecated for removal and no ' \
                   'longer does anything. Please remove it from your Datadog.configure block.'
@@ -292,7 +292,7 @@ module Datadog
               o.env 'DD_PROFILING_FORCE_ENABLE_LEGACY'
               o.default false
               o.type :bool
-              o.on_set do |value|
+              o.after_set do |value|
                 if value
                   Datadog.logger.warn(
                     'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal. ' \
@@ -527,10 +527,10 @@ module Datadog
         # @default `->{ Time.now }`
         # @return [Proc<Time>]
         option :time_now_provider do |o|
-          o.experimental_default_proc { ::Time.now }
+          o.default_proc { ::Time.now }
           o.type :proc
 
-          o.on_set do |time_provider|
+          o.after_set do |time_provider|
             Core::Utils::Time.now_provider = time_provider
           end
 

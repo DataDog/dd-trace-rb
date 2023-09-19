@@ -64,6 +64,11 @@ module Datadog
                 span.set_tag(header, value)
               end
 
+              # Tag original global service name if not used
+              if span.service != Datadog.configuration.service
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
+              end
+
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SERVICE)
@@ -80,6 +85,19 @@ module Datadog
               Contrib::Analytics.set_measured(span)
             rescue StandardError => e
               Datadog.logger.debug("GRPC server trace failed: #{e}")
+            end
+
+            def error_handler
+              self_handler = Datadog.configuration_for(self, :error_handler)
+              return self_handler if self_handler
+
+              unless datadog_configuration.using_default?(:server_error_handler)
+                return datadog_configuration[:server_error_handler]
+              end
+
+              # As a last resort, fallback to the deprecated error_handler
+              # configuration option.
+              datadog_configuration[:error_handler]
             end
           end
         end

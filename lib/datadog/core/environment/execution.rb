@@ -12,7 +12,22 @@ module Datadog
           # This can be used to make decisions about when to enable
           # background systems like worker threads or telemetry.
           def development?
-            !!(repl? || test? || rails_development?)
+            !!(webmock_enabled? || repl? || test? || rails_development?)
+          end
+
+          # WebMock stores the reference to `Net::HTTP` with constant `OriginalNetHTTP`, and when WebMock enables,
+          # the adapter swaps `Net::HTTP` reference to its mock object, @webMockNetHTTP.
+          #
+          # Hence, we can detect by
+          #   1. Checking if `Net::HTTP` is referring to mock object
+          #   => ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter.instance_variable_get(:@webMockNetHTTP))
+          #
+          #   2. Checking if `Net::HTTP` is referring to the original one
+          #   => ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter::OriginalNetHTTP)
+          def webmock_enabled?
+            defined?(::WebMock::HttpLibAdapters::NetHttpAdapter) &&
+              defined?(::Net::HTTP) &&
+              ::Net::HTTP.equal?(::WebMock::HttpLibAdapters::NetHttpAdapter.instance_variable_get(:@webMockNetHTTP))
           end
 
           private
