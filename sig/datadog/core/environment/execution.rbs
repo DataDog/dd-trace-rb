@@ -19,7 +19,7 @@ module Datadog
 
         RAILS_ENV_DEVELOPMENT: Set[String]
 
-        def self.rails_env_development?: -> untyped
+        def self.rails_env_development?: -> bool
       end
     end
   end
