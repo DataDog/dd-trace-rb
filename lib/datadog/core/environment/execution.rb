@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'set'
+
 module Datadog
   module Core
     module Environment
@@ -64,14 +66,30 @@ module Datadog
                 ::Minitest::Unit.class_variable_get(:@@installed_at_exit))
           end
 
-          # A Rails Spring Ruby process is a bit peculiar: the process is agnostic
-          # whether the application is running as a console or server.
-          # Luckily, the Spring gem *must not* be installed in a production environment so
-          # detecting its presence is enough to deduct if this is a development environment.
-          #
-          # @see https://github.com/rails/spring/blob/48b299348ace2188444489a0c216a6f3e9687281/README.md?plain=1#L204-L207
+          # If this is a Rails application, use different heuristics to detect
+          # whether this is a development environment or not.
           def rails_development?
-            defined?(::Spring)
+            # A Rails Spring Ruby process is a bit peculiar: the process is agnostic
+            # whether the application is running as a console or server.
+            # Luckily, the Spring gem *must not* be installed in a production environment so
+            # detecting its presence is enough to deduct if this is a development environment.
+            #
+            # @see https://github.com/rails/spring/blob/48b299348ace2188444489a0c216a6f3e9687281/README.md?plain=1#L204-L207
+            defined?(::Spring) || rails_env_development?
+          end
+
+          RAILS_ENV_DEVELOPMENT = Set['development', 'test'].freeze
+          private_constant :RAILS_ENV_DEVELOPMENT
+
+          # By default, every Rails application has three environments: `development`, `test`, and `production`.
+          # This has been the case since Rails 3.0.0:
+          # https://github.com/rails/rails/blob/3e48484ff16ea07ffe5db232bf43c14992e273c1/railties/doc/guides/getting_started_with_rails/getting_started_with_rails.txt#L144
+          #
+          # Instead of checking for "not production", we instead check for "development" and "test" because
+          # it's common to have a custom "staging" environment, and such environment normally want to run as close
+          # to production as possible.
+          def rails_env_development?
+            defined?(::Rails.env) && RAILS_ENV_DEVELOPMENT.include?(::Rails.env)
           end
         end
       end

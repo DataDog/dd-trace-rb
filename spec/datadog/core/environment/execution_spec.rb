@@ -123,6 +123,32 @@ RSpec.describe Datadog::Core::Environment::Execution do
           expect(err).to end_with('true')
         end
       end
+
+      context 'for Rails' do
+        context 'not loaded' do
+          it { is_expected.to eq(false) }
+        end
+
+        context 'with environment' do
+          before { stub_const('Rails', rails) }
+          let(:rails) { double('Rails', env: env) }
+
+          context 'development' do
+            let(:env) { 'development' }
+            it { is_expected.to eq(true) }
+          end
+
+          context 'test' do
+            let(:env) { 'test' }
+            it { is_expected.to eq(true) }
+          end
+
+          context 'production' do
+            let(:env) { 'production' }
+            it { is_expected.to eq(false) }
+          end
+        end
+      end
     end
 
     context 'when webmock has enabled net-http adapter' do
