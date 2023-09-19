@@ -25,7 +25,7 @@ module Datadog
           #       Remove this when transport implements its own "skip tracing" mechanism.
           def internal_request?(request)
             !!(request[Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION] ||
-              request[Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST])
+              request[Datadog::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST])
           end
 
           def should_skip_distributed_tracing?(client_config)
