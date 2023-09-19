@@ -1,7 +1,7 @@
 {
   "version": "2.2",
   "metadata": {
-    "rules_version": "1.7.0"
+    "rules_version": "1.7.2"
   },
   "rules": [
     {
