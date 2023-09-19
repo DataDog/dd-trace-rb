@@ -13,7 +13,7 @@ require 'time'
 require 'json'
 
 RSpec.describe 'net/http requests' do
-  before { call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options } }
+  before { WebMock.enable!(allow: agent_url) }
 
   after do
     WebMock.reset!
@@ -539,7 +539,7 @@ RSpec.describe 'net/http requests' do
 
   context 'when basic auth in url' do
     before do
-      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+      WebMock.enable!(allow: agent_url)
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 
@@ -557,7 +557,7 @@ RSpec.describe 'net/http requests' do
 
   context 'when query string in url' do
     before do
-      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+      WebMock.enable!(allow: agent_url)
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 

@@ -5,7 +5,7 @@ require 'net/http'
 require 'time'
 
 RSpec.describe 'net/http miniapp tests' do
-  before { call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options } }
+  before { WebMock.enable!(allow: agent_url) }
 
   after do
     WebMock.reset!
