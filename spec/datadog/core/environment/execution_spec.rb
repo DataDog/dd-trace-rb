@@ -39,15 +39,15 @@ RSpec.describe Datadog::Core::Environment::Execution do
         end
       end
 
-      let(:repl_script) do
-        <<-'RUBY'
+      let!(:repl_script) do
+        lib = File.expand_path('lib')
+        <<-RUBY
           # Load the working directory version of `ddtrace`
-          lib = File.expand_path('lib', __dir__)
-          $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+          $LOAD_PATH.unshift("#{lib}") unless $LOAD_PATH.include?("#{lib}")
           require 'datadog/core/environment/execution'
 
           # Print actual value to STDERR, as STDOUT tends to have more noise in REPL sessions.
-          STDERR.print "ACTUAL:#{Datadog::Core::Environment::Execution.development?}"
+          STDERR.print "ACTUAL:\#{Datadog::Core::Environment::Execution.development?}"
         RUBY
       end
 
@@ -178,7 +178,9 @@ RSpec.describe Datadog::Core::Environment::Execution do
               # Add our script to `env.rb`, which is always run before any feature is executed.
               File.write('features/support/env.rb', repl_script)
 
-              _, err, = Open3.capture3('ruby', stdin_data: script)
+              _, err = Bundler.with_clean_env do # Ruby 2.6 does not have irb by default in a bundle, but has it outside of it.
+                Open3.capture3('ruby', stdin_data: script)
+              end
               expect(err).to include('ACTUAL:true')
             end
           end
