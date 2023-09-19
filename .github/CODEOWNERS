@@ -3,3 +3,28 @@
 # Public Documentation
 /docs/Compatibility.md @DataDog/documentation
 /docs/GettingStarted.md @DataDog/documentation
+
+# Library
+lib/datadog/appsec/* @DataDog/asm-ruby
+lib/datadog/appsec.rb @DataDog/asm-ruby
+lib/datadog/tracing/* @DataDog/apm-ruby
+lib/datadog/tracing.rb @DataDog/apm-ruby
+lib/datadog/opentelemetry/* @DataDog/apm-ruby
+lib/datadog/opentelemetry.rb @DataDog/apm-ruby
+lib/datadog/opentracer/* @DataDog/apm-ruby
+lib/datadog/opentracer.rb @DataDog/apm-ruby
+lib-injection/* @DataDog/apm-ruby
+lib/datadog/profiling/* @ivoanjo
+lib/datadog/profiling.rb @ivoanjo
+ext/* @ivoanjo
+
+# Specs
+spec/datadog/appsec/* @DataDog/asm-ruby
+spec/datadog/tracing/* @DataDog/apm-ruby
+spec/datadog/tracing_spec.rb @DataDog/apm-ruby
+spec/datadog/opentelemetry/* @DataDog/apm-ruby
+spec/datadog/opentelemetry_spec.rb @DataDog/apm-ruby
+spec/datadog/opentracer/* @DataDog/apm-ruby
+spec/datadog/opentracer.rb @DataDog/apm-ruby
+spec/datadog/profiling/* @ivoanjo
+spec/datadog/profiling_spec.rb @ivoanjo
