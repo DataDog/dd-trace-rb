@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../response'
+require_relative '../../../core/transport/response'
 
 module Datadog
   module Tracing
@@ -8,7 +8,7 @@ module Datadog
       module IO
         # Response from HTTP transport for traces
         class Response
-          include Transport::Response
+          include Datadog::Core::Transport::Response
 
           attr_reader \
             :result

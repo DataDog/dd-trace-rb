@@ -1,13 +1,13 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/response'
+require 'datadog/core/transport/response'
 
-RSpec.describe Datadog::Tracing::Transport::Response do
+RSpec.describe Datadog::Core::Transport::Response do
   context 'when implemented by a class' do
     subject(:response) { response_class.new }
 
     let(:response_class) do
-      stub_const('TestResponse', Class.new { include Datadog::Tracing::Transport::Response })
+      stub_const('TestResponse', Class.new { include Datadog::Core::Transport::Response })
     end
 
     describe '#payload' do
@@ -54,7 +54,7 @@ RSpec.describe Datadog::Tracing::Transport::Response do
   end
 end
 
-RSpec.describe Datadog::Tracing::Transport::InternalErrorResponse do
+RSpec.describe Datadog::Core::Transport::InternalErrorResponse do
   subject(:response) { described_class.new(error) }
 
   let(:error) { instance_double(StandardError) }

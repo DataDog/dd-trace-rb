@@ -1,4 +1,4 @@
-require_relative '../../../../tracing/transport/response'
+require_relative '../../../../core/transport/response'
 
 module Datadog
   module Core
@@ -40,7 +40,7 @@ module Datadog
 
             # Response for test adapter
             class Response
-              include Datadog::Tracing::Transport::Response
+              include Datadog::Core::Transport::Response
 
               attr_reader \
                 :body,

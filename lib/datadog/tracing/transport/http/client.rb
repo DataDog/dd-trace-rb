@@ -1,5 +1,6 @@
 require_relative 'statistics'
 require_relative '../../../core/transport/http/env'
+require_relative '../../../core/transport/http/response'
 
 module Datadog
   module Tracing
@@ -41,7 +42,7 @@ module Datadog
             # Update statistics
             update_stats_from_exception!(e)
 
-            InternalErrorResponse.new(e)
+            Datadog::Core::Transport::InternalErrorResponse.new(e)
           end
 
           def build_env(request)

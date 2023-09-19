@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../tracing/transport/response'
+require_relative '../../../core/transport/response'
 
 module Datadog
   module Core
@@ -15,37 +15,37 @@ module Datadog
             @http_response = http_response
           end
 
-          # (see Datadog::Tracing::Transport::Response#payload)
+          # (see Datadog::Core::Transport::Response#payload)
           def payload
             @http_response.payload
           end
 
-          # (see Datadog::Tracing::Transport::Response#internal_error?)
+          # (see Datadog::Core::Transport::Response#internal_error?)
           def internal_error?
             @http_response.internal_error?
           end
 
-          # (see Datadog::Tracing::Transport::Response#unsupported?)
+          # (see Datadog::Core::Transport::Response#unsupported?)
           def unsupported?
             @http_response.unsupported?
           end
 
-          # (see Datadog::Tracing::Transport::Response#ok?)
+          # (see Datadog::Core::Transport::Response#ok?)
           def ok?
             @http_response.ok?
           end
 
-          # (see Datadog::Tracing::Transport::Response#not_found?)
+          # (see Datadog::Core::Transport::Response#not_found?)
           def not_found?
             @http_response.not_found?
           end
 
-          # (see Datadog::Tracing::Transport::Response#client_error?)
+          # (see Datadog::Core::Transport::Response#client_error?)
           def client_error?
             @http_response.client_error?
           end
 
-          # (see Datadog::Tracing::Transport::Response#server_error?)
+          # (see Datadog::Core::Transport::Response#server_error?)
           def server_error?
             @http_response.server_error?
           end

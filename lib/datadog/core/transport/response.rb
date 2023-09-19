@@ -1,5 +1,5 @@
 module Datadog
-  module Tracing
+  module Core
     module Transport
       # Defines abstract response for transport operations
       module Response

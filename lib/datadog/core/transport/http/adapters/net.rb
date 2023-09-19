@@ -1,4 +1,4 @@
-require_relative '../../../../tracing/transport/response'
+require_relative '../../../../core/transport/response'
 require_relative '../../../../core/vendor/multipart-post/net/http/post/multipart'
 
 module Datadog
@@ -108,7 +108,7 @@ module Datadog
 
             # A wrapped Net::HTTP response that implements the Transport::Response interface
             class Response
-              include Datadog::Tracing::Transport::Response
+              include Datadog::Core::Transport::Response
 
               attr_reader :http_response
 

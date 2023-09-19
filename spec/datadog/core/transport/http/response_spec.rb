@@ -9,12 +9,12 @@ RSpec.describe Datadog::Core::Transport::HTTP::Response do
     let(:response_class) do
       stub_const('TestResponse', Class.new { include Datadog::Core::Transport::HTTP::Response })
     end
-    let(:http_response) { instance_double(Datadog::Tracing::Transport::Response) }
+    let(:http_response) { instance_double(Datadog::Core::Transport::Response) }
 
     # TODO: EK - Should this live here?
     describe 'Datadog::Transport::Response methods' do
       it 'are forwarded to the HTTP response' do
-        (Datadog::Tracing::Transport::Response.instance_methods - [:inspect]).each do |method|
+        (Datadog::Core::Transport::Response.instance_methods - [:inspect]).each do |method|
           expect(http_response).to receive(method)
           response.send(method)
         end

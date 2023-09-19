@@ -157,7 +157,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     subject(:send_traces) { transport.send_traces(traces) }
 
     let(:traces) { [] }
-    let(:response) { Class.new { include Datadog::Tracing::Transport::Response }.new }
+    let(:response) { Class.new { include Datadog::Core::Transport::Response }.new }
     let(:responses) { [response] }
 
     let(:encoded_traces) { double }
@@ -261,7 +261,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
 
     subject(:downgrade?) { transport.send(:downgrade?, response) }
 
-    let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
+    let(:response) { instance_double(Datadog::Core::Transport::Response) }
 
     context 'when there is no fallback' do
       let(:current_api_id) { :v1 }

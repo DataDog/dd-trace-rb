@@ -5,7 +5,7 @@ require 'datadog/tracing/transport/http/traces'
 RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::Response do
   subject(:response) { described_class.new(http_response, options) }
 
-  let(:http_response) { instance_double(Datadog::Tracing::Transport::Response) }
+  let(:http_response) { instance_double(Datadog::Core::Transport::Response) }
   let(:options) { {} }
 
   it { is_expected.to be_a_kind_of(Datadog::Core::Transport::HTTP::Response) }

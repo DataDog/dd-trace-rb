@@ -64,7 +64,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
 
       before { allow(logger).to receive(:warn) }
 
-      let(:response) { Datadog::Tracing::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
+      let(:response) { Datadog::Core::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
 
       it do
         collect_and_log!
@@ -229,7 +229,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       subject(:collect_errors!) { collector.collect_errors!([response]) }
 
       let(:collector) { described_class }
-      let(:response) { instance_double(Datadog::Tracing::Transport::Response, ok?: true) }
+      let(:response) { instance_double(Datadog::Core::Transport::Response, ok?: true) }
 
       it 'with a default tracer' do
         is_expected.to match(
@@ -238,7 +238,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       end
 
       context 'with agent connectivity issues' do
-        let(:response) { Datadog::Tracing::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
+        let(:response) { Datadog::Core::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
 
         it { is_expected.to include agent_error: include('ZeroDivisionError') }
         it { is_expected.to include agent_error: include('msg') }

@@ -2,6 +2,7 @@
 
 # TODO: EK - FIX THIS
 require_relative '../../../../core/transport/http/env'
+require_relative '../../../../core/transport/http/response'
 
 # TODO: Decouple transport/http/client
 #
@@ -34,7 +35,7 @@ module Datadog
 
               Datadog.logger.debug(message)
 
-              Datadog::Tracing::Transport::InternalErrorResponse.new(e)
+              Datadog::Core::Transport::InternalErrorResponse.new(e)
             end
 
             def build_env(request)

@@ -9,7 +9,7 @@ require 'datadog/tracing/workers/trace_writer'
 require 'datadog/tracing/transport/http'
 require 'datadog/tracing/transport/http/client'
 require 'datadog/core/transport/http/response'
-require 'datadog/tracing/transport/response'
+require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Tracing::Workers::TraceWriter do
   subject(:writer) { described_class.new(options) }
@@ -69,7 +69,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     subject(:write) { writer.write(trace) }
 
     let(:trace) { double('trace') }
-    let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
+    let(:response) { instance_double(Datadog::Core::Transport::Response) }
 
     before do
       expect(writer).to receive(:write_traces)
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     subject(:perform) { writer.perform(traces) }
 
     let(:traces) { double('traces') }
-    let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
+    let(:response) { instance_double(Datadog::Core::Transport::Response) }
 
 
     before do
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 
     let(:traces) { double('traces') }
     let(:processed_traces) { double('processed traces') }
-    let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
+    let(:response) { instance_double(Datadog::Core::Transport::Response) }
 
     before do
       expect(writer).to receive(:process_traces)
@@ -135,7 +135,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     subject(:flush_traces) { writer.flush_traces(traces) }
 
     let(:traces) { double('traces') }
-    let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
+    let(:response) { instance_double(Datadog::Core::Transport::Response) }
 
     before do
       expect(writer.transport).to receive(:send_traces)

@@ -9,7 +9,7 @@ require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/writer'
 require 'datadog/tracing/transport/http'
 require 'datadog/tracing/transport/http/traces'
-require 'datadog/tracing/transport/response'
+require 'datadog/core/transport/response'
 require 'datadog/tracing/transport/statistics'
 require 'datadog/tracing/transport/traces'
 
@@ -115,7 +115,7 @@ RSpec.describe Datadog::Tracing::Writer do
           end
 
           context 'an internal error' do
-            let(:response) { Datadog::Tracing::Transport::InternalErrorResponse.new(double('error')) }
+            let(:response) { Datadog::Core::Transport::InternalErrorResponse.new(double('error')) }
             let(:error) { double('error') }
 
             it_behaves_like 'after_send events'

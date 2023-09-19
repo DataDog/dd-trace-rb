@@ -70,7 +70,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
           expect(client).to receive(:update_stats_from_exception!)
             .with(kind_of(error_class))
 
-          is_expected.to be_a_kind_of(Datadog::Tracing::Transport::InternalErrorResponse)
+          is_expected.to be_a_kind_of(Datadog::Core::Transport::InternalErrorResponse)
           expect(send_request.error).to be_a_kind_of(error_class)
           expect(handler).to have_received(:api).with(api).once
 
@@ -97,7 +97,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
           end
 
           it 'makes only one attempt per request and returns an internal error response' do
-            is_expected.to be_a_kind_of(Datadog::Tracing::Transport::InternalErrorResponse)
+            is_expected.to be_a_kind_of(Datadog::Core::Transport::InternalErrorResponse)
             expect(send_request.error).to be_a_kind_of(error_class)
             expect(handler).to have_received(:api).with(api).twice
 

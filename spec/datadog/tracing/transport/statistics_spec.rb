@@ -18,7 +18,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
     describe '#update_stats_from_response!' do
       subject(:update) { object.update_stats_from_response!(response) }
 
-      let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
+      let(:response) { instance_double(Datadog::Core::Transport::Response) }
 
       before { allow(Datadog.health_metrics).to receive(:send_metrics) }
 
@@ -142,7 +142,7 @@ RSpec.describe Datadog::Tracing::Transport::Statistics do
     describe '#metrics_for_response' do
       subject(:metrics_for_response) { object.metrics_for_response(response) }
 
-      let(:response) { instance_double(Datadog::Tracing::Transport::Response) }
+      let(:response) { instance_double(Datadog::Core::Transport::Response) }
 
       context 'when the response' do
         context 'is OK' do
