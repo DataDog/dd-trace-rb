@@ -68,7 +68,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
       context 'all body parts are strings' do
         let(:body) { ['{ "f', 'oo":', ' "ba', 'r" }'] }
 
-        it 'returns a hash object' do
+        it 'returns a string' do
           expect(response.parsed_body).to eq('{ "foo": "bar" }')
         end
       end
@@ -96,6 +96,14 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
 
       it 'returns nil' do
         expect(response.parsed_body).to be_nil
+      end
+    end
+
+    context 'with a body that is a Rack::BodyProxy' do
+      let(:body) { Rack::BodyProxy.new(['{ "foo":  "bar" }']) }
+
+      it 'returns a string' do
+        expect(response.parsed_body).to eq('{ "foo":  "bar" }')
       end
     end
 
