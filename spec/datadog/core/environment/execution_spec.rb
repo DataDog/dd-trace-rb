@@ -178,7 +178,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
               # Add our script to `env.rb`, which is always run before any feature is executed.
               File.write('features/support/env.rb', repl_script)
 
-              _, err = Bundler.with_clean_env do # Ruby 2.6 does not have irb by default in a bundle, but has it outside of it.
+              _, err = Bundler.with_clean_env do
                 Open3.capture3('ruby', stdin_data: script)
               end
               expect(err).to include('ACTUAL:true')
