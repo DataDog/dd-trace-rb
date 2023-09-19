@@ -1,4 +1,4 @@
-* @DataDog/apm-ruby
+* @DataDog/apm-ruby @DataDog/asm-ruby @ivoanjo
 
 # Public Documentation
 /docs/Compatibility.md @DataDog/documentation
