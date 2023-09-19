@@ -1,4 +1,4 @@
-* @DataDog/apm-ruby @DataDog/asm-ruby @DataDog/profiling-rb
+* @DataDog/ruby-guild
 
 # Public Documentation
 /docs/Compatibility.md @DataDog/documentation
