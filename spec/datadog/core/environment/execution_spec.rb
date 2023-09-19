@@ -40,14 +40,14 @@ RSpec.describe Datadog::Core::Environment::Execution do
       end
 
       let(:repl_script) do
-        <<-RUBY
+        <<-'RUBY'
           # Load the working directory version of `ddtrace`
           lib = File.expand_path('lib', __dir__)
           $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
           require 'datadog/core/environment/execution'
 
           # Print actual value to STDERR, as STDOUT tends to have more noise in REPL sessions.
-          STDERR.print Datadog::Core::Environment::Execution.development?
+          STDERR.print "ACTUAL:#{Datadog::Core::Environment::Execution.development?}"
         RUBY
       end
 
@@ -146,6 +146,41 @@ RSpec.describe Datadog::Core::Environment::Execution do
           context 'production' do
             let(:env) { 'production' }
             it { is_expected.to eq(false) }
+          end
+        end
+      end
+
+      context 'for Cucumber' do
+        before do
+          unless PlatformHelpers.ci? || Gem.loaded_specs['cucumber']
+            skip('cucumber gem not present. In CI, this test is never skipped.')
+          end
+        end
+
+        let(:script) do
+          <<-'RUBY'
+            require 'bundler/inline'
+
+            gemfile(true) do
+              source 'https://rubygems.org'
+              gem 'cucumber', '>= 3'
+            end
+
+            load Gem.bin_path('cucumber', 'cucumber')
+          RUBY
+        end
+
+        it 'returns true' do
+          Dir.mktmpdir do |dir|
+            Dir.chdir(dir) do
+              FileUtils.mkdir_p('features/support')
+
+              # Add our script to `env.rb`, which is always run before any feature is executed.
+              File.write('features/support/env.rb', repl_script)
+
+              _, err, = Open3.capture3('ruby', stdin_data: script)
+              expect(err).to include('ACTUAL:true')
+            end
           end
         end
       end
