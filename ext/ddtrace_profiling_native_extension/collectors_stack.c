@@ -307,7 +307,7 @@ static void sample_thread_internal(
 
   if (cpu_and_wall_sample) {
     labels.ptr[labels.len] = (ddog_prof_Label) {
-      .key = DDOG_CHARSLICE_C("state hint"),
+      .key = DDOG_CHARSLICE_C("state"),
       .str = state_hint,
     };
     labels.len++;
