@@ -6,8 +6,8 @@ on:
     # The branches below must be a subset of the branches above
     branches: [ master ]
 jobs:
-  check:
-    name: Check types
+  lint:
+    name: Check code for style violations
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -15,8 +15,5 @@ jobs:
         with:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-      - name: TEST REMOVE ME
-        run: |
-          ruby -e 'require "etc";puts "Etc.nprocessors: #{Etc.nprocessors}"'
-      - name: Check code style with Rubocop
-        run: bundle exec rake rubocop
+      - name: Check  with Rubocop
+        run: bundle exec rake rubocop[-d]
