@@ -83,10 +83,12 @@ else
 end
 
 if RUBY_VERSION >= '2.6.0'
-  gem 'rubocop', '~> 1.34.0', require: false
+  # 1.50 is the last version to support Ruby 2.6
+  gem 'rubocop', '~> 1.50.0', require: false
   gem 'rubocop-packaging', '~> 0.5.2', require: false
   gem 'rubocop-performance', '~> 1.9', require: false
-  gem 'rubocop-rspec', '~> 2.2', require: false
+  # 2.20 is the last version to support Ruby 2.6
+  gem 'rubocop-rspec', ['~> 2.20', '< 2.21'], require: false
 end
 
 # Optional extensions
