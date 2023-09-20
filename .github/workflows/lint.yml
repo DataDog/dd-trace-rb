@@ -18,4 +18,4 @@ jobs:
       - name: Check  with Rubocop
         run: bundle exec rake rubocop
         env:
-          RUBOCOP_OPTS: -d --parallel
+          RUBOCOP_OPTS: --parallel
