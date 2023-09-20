@@ -262,9 +262,9 @@ static void sample_thread_internal(
       if (!buffer->is_ruby_frame[i]) {
         if (frame_name("sleep", name_slice)) {
           state_hint = DDOG_CHARSLICE_C("sleeping");
-        } else if (frame_name("select", name_slice) || frame_name("join", name_slice)) {
+        } else if (frame_name("select", name_slice)) {
           state_hint = DDOG_CHARSLICE_C("waiting");
-        } else if (frame_name("synchronize", name_slice)) {
+        } else if (frame_name("synchronize", name_slice) || frame_name("join", name_slice)) {
           state_hint = DDOG_CHARSLICE_C("blocked");
         } else if (frame_name("wait_readable", name_slice)) { // TODO: match on file as well
           state_hint = DDOG_CHARSLICE_C("network");
