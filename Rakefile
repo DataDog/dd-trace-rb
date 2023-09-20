@@ -531,7 +531,7 @@ end
 
 if defined?(RuboCop::RakeTask)
   RuboCop::RakeTask.new(:rubocop) do |t|
-    t.options = ['-d']
+    t.options = ['-d', '--parallel']
   end
 end
 
