@@ -32,12 +32,6 @@ Lint/MissingSuper:
     - 'lib/datadog/profiling/pprof/converter.rb'
     - 'lib/datadog/profiling/pprof/template.rb'
     - 'lib/datadog/profiling/scheduler.rb'
-    - 'lib/ddtrace/transport/http/adapters/net.rb'
-    - 'lib/ddtrace/transport/http/adapters/unix_socket.rb'
-    - 'lib/ddtrace/transport/http/builder.rb'
-    - 'lib/ddtrace/transport/http/env.rb'
-    - 'lib/ddtrace/transport/http/traces.rb'
-    - 'lib/ddtrace/transport/traces.rb'
     - 'spec/support/faux_transport.rb'
     - 'spec/support/spy_transport.rb'
 
@@ -71,12 +65,6 @@ RSpec/LeakyConstantDeclaration:
     - 'spec/datadog/tracing/benchmark/support/benchmark_helper.rb'
     - 'spec/datadog/tracing/contrib/rails/rack_spec.rb'
 
-# Offense count: 32
-RSpec/MissingExampleGroupArgument:
-  Exclude:
-    - 'spec/ddtrace/transport/http/adapters/net_spec.rb'
-    - 'spec/ddtrace/transport/http/adapters/test_spec.rb'
-
 # Offense count: 71
 # Configuration parameters: IgnoreSharedExamples.
 RSpec/NamedSubject:
@@ -96,7 +84,6 @@ RSpec/NamedSubject:
     - 'spec/datadog/tracing/contrib/patcher_spec.rb'
     - 'spec/datadog/tracing/contrib/rails/cache_spec.rb'
     - 'spec/datadog/tracing/contrib/rails/database_spec.rb'
-    - 'spec/ddtrace/transport/traces_spec.rb'
 
 # Offense count: 8
 RSpec/RepeatedDescription:
@@ -391,18 +378,6 @@ Style/FrozenStringLiteralComment:
     - 'lib/datadog/tracing/workers/trace_writer.rb'
     - 'lib/datadog/tracing/writer.rb'
     - 'lib/ddtrace/profiling/preload.rb'
-    - 'lib/ddtrace/transport/http/adapters/net.rb'
-    - 'lib/ddtrace/transport/http/adapters/test.rb'
-    - 'lib/ddtrace/transport/http/adapters/unix_socket.rb'
-    - 'lib/ddtrace/transport/http/api.rb'
-    - 'lib/ddtrace/transport/http/builder.rb'
-    - 'lib/ddtrace/transport/http/client.rb'
-    - 'lib/ddtrace/transport/http/statistics.rb'
-    - 'lib/ddtrace/transport/http/traces.rb'
-    - 'lib/ddtrace/transport/io/client.rb'
-    - 'lib/ddtrace/transport/response.rb'
-    - 'lib/ddtrace/transport/serializable_trace.rb'
-    - 'lib/ddtrace/transport/traces.rb'
 
 Metrics/BlockNesting:
   Exclude:

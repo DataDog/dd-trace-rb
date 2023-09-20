@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'statistics'
 require_relative '../../../core/transport/http/env'
 require_relative '../../../core/transport/http/response'

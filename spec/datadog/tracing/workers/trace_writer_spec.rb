@@ -44,7 +44,9 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
       let(:agent_settings) { double('AgentSettings') }
 
       it 'configures a transport with the agent_settings' do
-        expect(Datadog::Tracing::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings).and_return(transport)
+        expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
+          .with(agent_settings: agent_settings)
+          .and_return(transport)
 
         expect(writer.transport).to be transport
       end
@@ -85,7 +87,6 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 
     let(:traces) { double('traces') }
     let(:response) { instance_double(Datadog::Core::Transport::Response) }
-
 
     before do
       expect(writer).to receive(:write_traces)

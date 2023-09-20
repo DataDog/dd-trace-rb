@@ -42,13 +42,13 @@ module Datadog
                 ROOT => Spec.new do |s|
                   s.info = Negotiation::API::Endpoint.new(
                     '/info',
-                    )
+                  )
                 end,
                 V7 => Spec.new do |s|
                   s.config = Config::API::Endpoint.new(
                     '/v0.7/config',
                     Core::Encoding::JSONEncoder,
-                    )
+                  )
                 end,
               ]
             end

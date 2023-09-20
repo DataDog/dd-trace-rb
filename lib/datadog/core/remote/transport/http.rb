@@ -48,7 +48,7 @@ module Datadog
           DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::AgentSettingsResolver.call(
             Datadog::Core::Configuration::Settings.new,
             logger: nil,
-            )
+          )
 
           module_function
 
@@ -164,7 +164,10 @@ module Datadog
           # Add adapters to registry
           Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Net, Datadog::Transport::Ext::HTTP::ADAPTER)
           Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Test, Datadog::Transport::Ext::Test::ADAPTER)
-          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::UnixSocket, Datadog::Transport::Ext::UnixSocket::ADAPTER)
+          Builder::REGISTRY.set(
+            Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
+            Datadog::Transport::Ext::UnixSocket::ADAPTER
+          )
         end
       end
     end

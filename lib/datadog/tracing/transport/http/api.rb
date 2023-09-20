@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../core/encoding'
 
 require_relative '../../../core/transport/http/api/map'
@@ -12,8 +14,8 @@ module Datadog
         # Namespace for API components
         module API
           # Default API versions
-          V4 = 'v0.4'.freeze
-          V3 = 'v0.3'.freeze
+          V4 = 'v0.4'
+          V3 = 'v0.3'
 
           module_function
 
@@ -21,14 +23,14 @@ module Datadog
             Datadog::Core::Transport::HTTP::API::Map[
               V4 => Spec.new do |s|
                 s.traces = Traces::API::Endpoint.new(
-                  '/v0.4/traces'.freeze,
+                  '/v0.4/traces',
                   Core::Encoding::MsgpackEncoder,
                   service_rates: true
                 )
               end,
               V3 => Spec.new do |s|
                 s.traces = Traces::API::Endpoint.new(
-                  '/v0.3/traces'.freeze,
+                  '/v0.3/traces',
                   Core::Encoding::MsgpackEncoder
                 )
               end,

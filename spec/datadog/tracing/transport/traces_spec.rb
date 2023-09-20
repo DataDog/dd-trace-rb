@@ -118,7 +118,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
       end
 
       it 'does not force enumerator expansion' do
-        expect(subject).to be_a(Enumerator::Lazy)
+        expect(encode_in_chunks).to be_a(Enumerator::Lazy)
       end
     end
   end
@@ -145,7 +145,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
   describe '#initialize' do
     include_context 'APIs with fallbacks'
 
-    it { expect(subject.stats).to be_a(Datadog::Tracing::Transport::Statistics::Counts) }
+    it { expect(transport.stats).to be_a(Datadog::Tracing::Transport::Statistics::Counts) }
 
     it { is_expected.to have_attributes(apis: apis, current_api_id: current_api_id) }
   end

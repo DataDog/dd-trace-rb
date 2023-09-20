@@ -67,7 +67,11 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API::Spec do
     let(:block) { proc {} }
 
     context 'when a trace endpoint has not been defined' do
-      it { expect { send_traces }.to raise_error(Datadog::Tracing::Transport::HTTP::Traces::API::Spec::NoTraceEndpointDefinedError) }
+      it {
+        expect do
+          send_traces
+        end.to raise_error(Datadog::Tracing::Transport::HTTP::Traces::API::Spec::NoTraceEndpointDefinedError)
+      }
     end
 
     context 'when a trace endpoint has been defined' do
@@ -86,7 +90,9 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API::Spec do
   describe '#encoder' do
     subject { spec.encoder }
 
-    let!(:endpoint) { spec.traces = instance_double(Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint, encoder: encoder) }
+    let!(:endpoint) do
+      spec.traces = instance_double(Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint, encoder: encoder)
+    end
     let(:encoder) { double }
 
     it { is_expected.to eq(encoder) }
@@ -106,7 +112,11 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API::Instance do
     context 'when specification does not support traces' do
       let(:spec) { double('spec') }
 
-      it { expect { send_traces }.to raise_error(Datadog::Tracing::Transport::HTTP::Traces::API::Instance::TracesNotSupportedError) }
+      it {
+        expect do
+          send_traces
+        end.to raise_error(Datadog::Tracing::Transport::HTTP::Traces::API::Instance::TracesNotSupportedError)
+      }
     end
 
     context 'when specification supports traces' do

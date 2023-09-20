@@ -10,6 +10,9 @@ module Datadog
             :request
 
           def initialize(request, options = nil)
+            # TODO: EK - FIX
+            # super(request, options)
+
             @request = request
             merge!(options) unless options.nil?
           end

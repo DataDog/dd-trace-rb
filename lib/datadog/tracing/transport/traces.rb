@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../core/chunker'
 require_relative '../../core/transport/parcel'
 require_relative '../../core/transport/request'
@@ -192,6 +194,8 @@ module Datadog
             attr_reader :version
 
             def initialize(version)
+              super
+
               @version = version
             end
 
@@ -205,6 +209,8 @@ module Datadog
             attr_reader :version
 
             def initialize(version)
+              super
+
               @version = version
             end
 

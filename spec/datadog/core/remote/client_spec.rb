@@ -305,22 +305,24 @@ RSpec.describe Datadog::Core::Remote::Client do
           # We have to modify the response to trick the client into think on the second sync
           # the content for datadog/603646/ASM_DATA/blocked_ips/config have change
           new_blocked_ips = '{"rules_data":[{"data":["fake new data"]}]}'
-          expect_any_instance_of(Datadog::Core::Remote::Transport::HTTP::Config::Response).to receive(:target_files).and_return(
-            [
-              {
-                :path => 'datadog/603646/ASM_DATA/blocked_ips/config',
-                :content => StringIO.new(new_blocked_ips)
-              },
-              {
-                :path => 'datadog/603646/ASM/exclusion_filters/config',
-                :content => StringIO.new(exclusions)
-              },
-              {
-                :path => 'datadog/603646/ASM_DD/latest/config',
-                :content => StringIO.new(rules_data)
-              }
-            ]
-          )
+          expect_any_instance_of(Datadog::Core::Remote::Transport::HTTP::Config::Response)
+            .to receive(:target_files)
+            .and_return(
+              [
+                {
+                  :path => 'datadog/603646/ASM_DATA/blocked_ips/config',
+                  :content => StringIO.new(new_blocked_ips)
+                },
+                {
+                  :path => 'datadog/603646/ASM/exclusion_filters/config',
+                  :content => StringIO.new(exclusions)
+                },
+                {
+                  :path => 'datadog/603646/ASM_DD/latest/config',
+                  :content => StringIO.new(rules_data)
+                }
+              ]
+            )
 
           updated_targets = {
             'signed' => {

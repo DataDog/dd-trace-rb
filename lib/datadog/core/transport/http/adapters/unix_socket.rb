@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'net/http'
 # TODO: EK - FIX MAYBE?
 require_relative '../../../../../ddtrace/transport/ext'
@@ -18,6 +20,9 @@ module Datadog
 
             # @deprecated Positional parameters are deprecated. Use named parameters instead.
             def initialize(uds_path = nil, **options)
+              # TODO: EK - FIX
+              # super
+
               @filepath = uds_path || options.fetch(:uds_path)
               @timeout = options[:timeout] || Datadog::Transport::Ext::UnixSocket::DEFAULT_TIMEOUT_SECONDS
             end
@@ -26,7 +31,7 @@ module Datadog
               new(
                 uds_path: agent_settings.uds_path,
                 timeout: agent_settings.timeout_seconds,
-                )
+              )
             end
 
             def open(&block)

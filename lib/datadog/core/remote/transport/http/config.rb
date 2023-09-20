@@ -62,16 +62,16 @@ module Datadog
                   raise TypeError.new(String, root) unless root.is_a?(String)
 
                   decoded = begin
-                              Base64.strict_decode64(root) # TODO: unprocessed, don't symbolize_names
-                            rescue ArgumentError
-                              raise DecodeError.new(:roots, root)
-                            end
+                    Base64.strict_decode64(root) # TODO: unprocessed, don't symbolize_names
+                  rescue ArgumentError
+                    raise DecodeError.new(:roots, root)
+                  end
 
                   parsed = begin
-                             JSON.parse(decoded)
-                           rescue JSON::ParserError
-                             raise ParseError.new(:roots, decoded)
-                           end
+                    JSON.parse(decoded)
+                  rescue JSON::ParserError
+                    raise ParseError.new(:roots, decoded)
+                  end
 
                   # TODO: perform more processing to validate content. til then, no freeze
 
@@ -81,22 +81,22 @@ module Datadog
                 raise TypeError.new(String, targets) unless targets.is_a?(String)
 
                 @targets = begin
-                             decoded = begin
-                                         Base64.strict_decode64(targets)
-                                       rescue ArgumentError
-                                         raise DecodeError.new(:targets, targets)
-                                       end
+                  decoded = begin
+                    Base64.strict_decode64(targets)
+                  rescue ArgumentError
+                    raise DecodeError.new(:targets, targets)
+                  end
 
-                             parsed = begin
-                                        JSON.parse(decoded) # TODO: unprocessed, don't symbolize_names
-                                      rescue JSON::ParserError
-                                        raise ParseError.new(:targets, decoded)
-                                      end
+                  parsed = begin
+                    JSON.parse(decoded) # TODO: unprocessed, don't symbolize_names
+                  rescue JSON::ParserError
+                    raise ParseError.new(:targets, decoded)
+                  end
 
-                             # TODO: perform more processing to validate content. til then, no freeze
+                  # TODO: perform more processing to validate content. til then, no freeze
 
-                             parsed
-                           end
+                  parsed
+                end
 
                 raise TypeError.new(Array, target_files) unless target_files.is_a?(Array)
 
@@ -110,10 +110,10 @@ module Datadog
                   raise TypeError.new(String, raw) unless raw.is_a?(String)
 
                   content = begin
-                              Base64.strict_decode64(raw)
-                            rescue ArgumentError
-                              raise DecodeError.new(:target_files, raw)
-                            end
+                    Base64.strict_decode64(raw)
+                  rescue ArgumentError
+                    raise DecodeError.new(:target_files, raw)
+                  end
 
                   {
                     path: h[:path].freeze,

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../statistics'
 
 module Datadog
@@ -28,7 +30,7 @@ module Datadog
             private
 
             # The most common status code on a healthy tracer
-            STATUS_CODE_200 = 'status_code:200'.freeze
+            STATUS_CODE_200 = 'status_code:200'
 
             def metrics_tag_value(status_code)
               if status_code == 200

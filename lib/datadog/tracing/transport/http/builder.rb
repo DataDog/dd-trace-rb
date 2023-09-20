@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../core/configuration/agent_settings_resolver'
 require_relative '../../../core/transport/http/adapters/registry'
 require_relative '../../../core/transport/http/api/map'
@@ -121,40 +123,22 @@ module Datadog
 
           # Raised when the API key does not match known APIs.
           class UnknownApiError < StandardError
-            attr_reader :key
-
             def initialize(key)
-              @key = key
-            end
-
-            def message
-              "Unknown transport API '#{key}'!"
+              super("Unknown transport API '#{key}'!")
             end
           end
 
           # Raised when the identifier cannot be matched to an adapter.
           class UnknownAdapterError < StandardError
-            attr_reader :type
-
             def initialize(type)
-              @type = type
-            end
-
-            def message
-              "Unknown transport adapter '#{type}'!"
+              super("Unknown transport adapter '#{type}'!")
             end
           end
 
           # Raised when an adapter cannot be resolved for an API instance.
           class NoAdapterForApiError < StandardError
-            attr_reader :key
-
             def initialize(key)
-              @key = key
-            end
-
-            def message
-              "No adapter resolved for transport API '#{key}'!"
+              super("No adapter resolved for transport API '#{key}'!")
             end
           end
 

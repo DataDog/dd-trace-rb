@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../../core/transport/response'
 require_relative '../../../../core/vendor/multipart-post/net/http/post/multipart'
 
@@ -98,11 +100,7 @@ module Datadog
               attr_reader :verb
 
               def initialize(verb)
-                @verb = verb
-              end
-
-              def message
-                "No matching Net::HTTP function for '#{verb}'!"
+                super("No matching Net::HTTP function for '#{verb}'!")
               end
             end
 

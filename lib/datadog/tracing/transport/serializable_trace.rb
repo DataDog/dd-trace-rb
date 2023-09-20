@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'msgpack'
 require 'datadog/tracing/utils'
