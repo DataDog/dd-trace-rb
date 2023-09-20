@@ -232,8 +232,18 @@ static void sample_thread_internal(
   VALUE last_ruby_frame = Qnil;
   int last_ruby_line = 0;
 
-  bool cpu_and_wall_sample_for_inactive_thread = values.wall_time_ns > 0 && values.cpu_time_ns == 0;
-  ddog_CharSlice state_hint = DDOG_CHARSLICE_C("");
+  bool cpu_and_wall_sample = values.cpu_samples > 0;
+  bool thread_was_active = values.cpu_time_ns > 0;
+
+  // The state hint is only included for cpu/wall-time samples.
+  // When the thread was active (had cpu time) in the period, we use the `was active` state.
+  // When the thread was not active, we start with the `unknown` state, and try to find a better one below. In case
+  // we don't find the better one, we send `unknown` as a fallback.
+  // The above strategy means that every cpu/wall-time sample will include a state hint.
+  ddog_CharSlice state_hint =
+    cpu_and_wall_sample ?
+      (thread_was_active ? DDOG_CHARSLICE_C("was active") : DDOG_CHARSLICE_C("unknown")) :
+      DDOG_CHARSLICE_C("(state hint ignored for non-cpu/wall samples)");
 
   for (int i = captured_frames - 1; i >= 0; i--) {
     VALUE name, filename;
@@ -258,7 +268,7 @@ static void sample_thread_internal(
     ddog_CharSlice name_slice = char_slice_from_ruby_string(name);
     ddog_CharSlice filename_slice = char_slice_from_ruby_string(filename);
 
-    if (i == 0 /* Top of the stack*/ && cpu_and_wall_sample_for_inactive_thread) {
+    if (i == 0 /* Top of the stack*/ && cpu_and_wall_sample && !thread_was_active) {
       if (!buffer->is_ruby_frame[i]) {
         if (frame_name("sleep", name_slice)) {
           state_hint = DDOG_CHARSLICE_C("sleeping");
@@ -295,7 +305,7 @@ static void sample_thread_internal(
     maybe_add_placeholder_frames_omitted(thread, buffer, frames_omitted_message, frames_omitted_message_size);
   }
 
-  if (cpu_and_wall_sample_for_inactive_thread) {
+  if (cpu_and_wall_sample) {
     labels.ptr[labels.len] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("state hint"),
       .str = state_hint,
