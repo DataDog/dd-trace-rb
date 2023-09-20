@@ -125,7 +125,6 @@ PLATFORMS
 DEPENDENCIES
   activerecord (= 3.2.22.5)
   activerecord-mysql-adapter
-  addressable (~> 2.4.0)
   appraisal (~> 2.2.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)

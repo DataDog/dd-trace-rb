@@ -3,7 +3,6 @@ source 'https://rubygems.org'
 gemspec
 
 # Development dependencies
-gem 'addressable', '~> 2.4.0' # locking transitive dependency of webmock
 if RUBY_VERSION < '2.3'
   gem 'appraisal', '~> 2.2.0'
 else

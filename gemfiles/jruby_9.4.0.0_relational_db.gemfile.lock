@@ -176,7 +176,6 @@ DEPENDENCIES
   activerecord (~> 7)
   activerecord-jdbcmysql-adapter
   activerecord-jdbcpostgresql-adapter
-  addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)

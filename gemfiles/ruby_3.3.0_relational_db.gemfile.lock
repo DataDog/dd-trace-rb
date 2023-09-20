@@ -76,6 +76,8 @@ GEM
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
+    makara (0.6.0.pre)
+      activerecord (>= 5.2.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     mini_portile2 (2.8.4)
@@ -169,10 +171,10 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-linux
 
 DEPENDENCIES
   activerecord (~> 7)
-  addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
