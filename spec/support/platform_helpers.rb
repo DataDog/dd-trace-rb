@@ -6,15 +6,15 @@ module PlatformHelpers
   # Ruby runtime engines
 
   def mri?
-    RUBY_ENGINE == 'ruby'.freeze
+    'ruby'.freeze == RUBY_ENGINE
   end
 
   def jruby?
-    RUBY_ENGINE == 'jruby'.freeze
+    'jruby'.freeze == RUBY_ENGINE
   end
 
   def truffleruby?
-    RUBY_ENGINE == 'truffleruby'.freeze
+    'truffleruby'.freeze == RUBY_ENGINE
   end
 
   def engine_version

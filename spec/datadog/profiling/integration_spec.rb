@@ -255,9 +255,8 @@ RSpec.describe 'profiling integration test' do
           is_expected.to have(4).items
 
           # All but last are unique
-          (0..-2).each do |i|
+          3.times do |i|
             stack_sample = stack_samples[i]
-
             expect(sample[i].to_h).to eq(
               location_id: stack_sample.frames.collect { |f| stack_frame_to_location_id(f) },
               value: [stack_sample.cpu_time_interval_ns, stack_sample.wall_time_interval_ns],
