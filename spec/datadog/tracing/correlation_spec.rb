@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'support/object_helpers'
 
 require 'datadog/core'
 require 'datadog/tracing/correlation'

@@ -3,8 +3,6 @@ require 'spec_helper'
 require 'datadog/tracing/contrib/qless/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Qless::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:qless) }
 
   describe '.version' do

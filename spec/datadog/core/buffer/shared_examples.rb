@@ -61,7 +61,14 @@ RSpec.shared_examples 'thread-safe buffer' do
         let(:barrier) { Concurrent::CyclicBarrier.new(thread_count + 1) }
 
         before do
-          allow(Datadog).to receive(:logger).and_return(double)
+          logger = double(Datadog::Core::Logger)
+          allow(logger).to receive(:debug?).and_return true
+          allow(logger).to receive(:debug)
+          allow(logger).to receive(:info)
+          allow(logger).to receive(:warn)
+          allow(logger).to receive(:error)
+
+          allow(Datadog).to receive(:logger).and_return(logger)
         end
 
         it 'executes without error' do
@@ -136,7 +143,14 @@ RSpec.shared_examples 'thread-safe buffer' do
         let(:barrier) { Concurrent::CyclicBarrier.new(thread_count + 1) }
 
         before do
-          allow(Datadog).to receive(:logger).and_return(double)
+          logger = double(Datadog::Core::Logger)
+          allow(logger).to receive(:debug?).and_return true
+          allow(logger).to receive(:debug)
+          allow(logger).to receive(:info)
+          allow(logger).to receive(:warn)
+          allow(logger).to receive(:error)
+
+          allow(Datadog).to receive(:logger).and_return(logger)
         end
 
         it 'executes without error' do

@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/sinatra/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Sinatra::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:sinatra) }
 
   describe '.version' do
