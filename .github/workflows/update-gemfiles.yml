@@ -25,14 +25,28 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@31a7f6d628878b80bc63375a93ae079ec50a1601 # v1.143.0
+      - uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        id: filter
+        with:
+          # Compare with previous commit on the same branch
+          base: ${{ github.ref }}
+          filters: |
+            gemfiles:
+              - Gemfile
+              - Appraisals
+              - ddtrace.gemspec
+      - if: steps.changes.outputs.gemfiles == 'true'
+        uses: ruby/setup-ruby@31a7f6d628878b80bc63375a93ae079ec50a1601 # v1.143.0
         with:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - if: steps.changes.outputs.gemfiles == 'true'
       - name: Update gemfiles/*.gemfile
         run: bundle exec rake appraisal:generate
-      - name: Update gemfiles/*.gemfile.lock
+      - if: steps.changes.outputs.gemfiles == 'true'
+        name: Update gemfiles/*.gemfile.lock
         run: bundle exec rake appraisal:lock
-      - uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
+      - if: steps.changes.outputs.gemfiles == 'true'
+        uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
         with:
           commit_message: Update gemfiles/*
