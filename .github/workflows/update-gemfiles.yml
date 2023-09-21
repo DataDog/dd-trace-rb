@@ -15,7 +15,7 @@ jobs:
     name: Update Gemfiles
     runs-on: ubuntu-22.04
     steps:
-      - uses: 8BitJonny/gh-get-current-pr@2.2.0
+      - uses: 8bitjonny/gh-get-current-pr@2215326c76d51bfa3f2af0a470f32677f6c0cae9 # v2.2.0
         id: pr
       - if: steps.pr.outputs.pr_found == 'true'
         uses: actions/checkout@v4
