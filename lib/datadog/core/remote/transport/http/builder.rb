@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../../configuration/agent_settings_resolver'
-# TODO: EK - FIX THIS
 require_relative '../../../transport/http/adapters/registry'
 require_relative '../../../transport/http/api/map'
 

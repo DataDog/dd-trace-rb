@@ -4,7 +4,6 @@ require 'json'
 
 require_relative '../negotiation'
 require_relative 'client'
-# TODO: EK - FIX THIS
 require_relative '../../../transport/http/response'
 require_relative '../../../transport/http/api/endpoint'
 

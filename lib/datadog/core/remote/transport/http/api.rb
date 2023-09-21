@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../../encoding'
-
-# TODO: EK - FIX THIS
 require_relative '../../../transport/http/api/map'
 
 # TODO: Decouple standard transport/http/api/instance

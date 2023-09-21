@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# TODO: EK - FIX THIS
 require_relative '../../../../core/transport/http/env'
 require_relative '../../../../core/transport/http/response'
 
