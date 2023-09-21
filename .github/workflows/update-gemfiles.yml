@@ -1,7 +1,6 @@
 name: Update Gemfiles
 on:
   push:
-    branches: [ master ]
     paths:
       - Gemfile
       - Appraisals
