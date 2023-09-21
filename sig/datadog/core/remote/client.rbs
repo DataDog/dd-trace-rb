@@ -30,6 +30,7 @@ module Datadog
         @tracer_version_semver2: ::String
 
         def payload: () ->  ::Hash[Symbol, untyped]
+        def extra_service_names: () -> ::Array[::String]
         def service_name: () -> ::String
         def gem_spec: (::String) -> (::Gem::Specification | untyped)
         def tracer_version_semver2: () -> ::String
