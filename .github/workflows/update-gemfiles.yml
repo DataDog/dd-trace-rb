@@ -28,8 +28,6 @@ jobs:
       - uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
         id: filter
         with:
-          # Compare with previous commit on the same branch
-          base: ${{ github.ref }}
           filters: |
             gemfiles:
               - Gemfile
