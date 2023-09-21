@@ -645,7 +645,9 @@ module Datadog
           # @return [Array<String>,nil]
           option :extra_services do |o|
             o.setter do |v|
-              if !v.is_a?(Array)
+              if v.nil?
+                []
+              elsif !v.is_a?(Array)
                 Datadog.logger.warn(
                   "Unexpected remote.extra_services type #{v.class}, expected Array. " \
                   'Using default value `[]`'

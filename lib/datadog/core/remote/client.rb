@@ -140,14 +140,15 @@ module Datadog
             language: Core::Environment::Identity.lang,
             tracer_version: tracer_version_semver2,
             service: service_name,
-            extra_services: extra_service_names,
             env: Datadog.configuration.env,
             tags: client_tracer_tags,
           }
 
           app_version = Datadog.configuration.version
-
           client_tracer[:app_version] = app_version if app_version
+
+          extra_services = extra_service_names
+          client_tracer[:extra_services] = extra_services if extra_services.any?
 
           {
             client: {
