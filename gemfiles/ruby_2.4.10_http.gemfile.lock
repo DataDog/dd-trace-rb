@@ -66,6 +66,7 @@ GEM
       ffi (>= 1.0.0)
       rake
     google-protobuf (3.19.1)
+    google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.0.1)
     http (4.4.1)
       addressable (~> 2.3)
@@ -82,7 +83,10 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (4.0.0.1.0-aarch64-linux)
+    libdatadog (4.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
@@ -109,6 +113,7 @@ GEM
       method_source (~> 1.0)
     pry-nav (1.0.0)
       pry (>= 0.9.10, < 0.15)
+    rack (3.0.8)
     rake (13.0.6)
     rake-compiler (1.2.5)
       rake
@@ -162,6 +167,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-linux
 
 DEPENDENCIES
   addressable (~> 2.4.0)
@@ -189,6 +195,7 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-nav
+  rack
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)

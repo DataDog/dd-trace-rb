@@ -165,6 +165,7 @@ DEPENDENCIES
   pry
   pry-nav
   pry-stack_explorer
+  rack
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)

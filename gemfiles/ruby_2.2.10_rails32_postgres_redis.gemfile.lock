@@ -210,6 +210,7 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-nav
+  rack
   rack-cache (= 1.7.1)
   rails (= 3.2.22.5)
   rake (>= 10.5)

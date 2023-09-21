@@ -238,6 +238,7 @@ DEPENDENCIES
   pry-byebug
   pry-stack_explorer
   qless (= 0.12.0)
+  rack
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)

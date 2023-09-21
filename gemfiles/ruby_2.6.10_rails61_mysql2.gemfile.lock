@@ -314,6 +314,7 @@ DEPENDENCIES
   pry
   pry-byebug
   pry-stack_explorer
+  rack
   rails (~> 6.1.0)
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)

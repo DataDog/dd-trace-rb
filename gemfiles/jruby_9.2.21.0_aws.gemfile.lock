@@ -1484,6 +1484,7 @@ GEM
     pry-debugger-jruby (2.1.1-java)
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
+    rack (3.0.8)
     rake (13.0.6)
     rake-compiler (1.2.5)
       rake
@@ -1551,6 +1552,7 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby
+  rack
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   rspec (~> 3.12)

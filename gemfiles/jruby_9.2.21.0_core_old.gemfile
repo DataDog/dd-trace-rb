@@ -29,6 +29,7 @@ gem "webmock", ">= 3.10.0"
 gem "yard", "~> 0.9"
 gem "dogstatsd-ruby", "~> 4"
 gem "opentracing", ">= 0.4.1"
+gem "rack"
 
 group :check do
 
