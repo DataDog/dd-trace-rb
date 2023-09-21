@@ -7,14 +7,6 @@ on:
       - Appraisals
       - ddtrace.gemspec
 
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ master ]
-    paths:
-      - Gemfile
-      - Appraisals
-      - ddtrace.gemspec
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -24,27 +16,22 @@ jobs:
     name: Update Gemfiles
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
-        id: filter
-        with:
-          filters: |
-            gemfiles:
-              - Gemfile
-              - Appraisals
-              - ddtrace.gemspec
-      - if: steps.filter.outputs.gemfiles == 'true'
+      - uses: 8BitJonny/gh-get-current-pr@2.2.0
+        id: pr
+      - if: steps.pr.outputs.pr_found == 'true'
+        uses: actions/checkout@v4
+      - if: steps.pr.outputs.pr_found == 'true'
         uses: ruby/setup-ruby@31a7f6d628878b80bc63375a93ae079ec50a1601 # v1.143.0
         with:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-      - if: steps.filter.outputs.gemfiles == 'true'
+      - if: steps.pr.outputs.pr_found == 'true'
         name: Update gemfiles/*.gemfile
         run: bundle exec rake appraisal:generate
-      - if: steps.filter.outputs.gemfiles == 'true'
+      - if: steps.pr.outputs.pr_found == 'true'
         name: Update gemfiles/*.gemfile.lock
         run: bundle exec rake appraisal:lock
-      - if: steps.filter.outputs.gemfiles == 'true'
+      - if: steps.pr.outputs.pr_found == 'true'
         uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
         with:
           commit_message: Update gemfiles/*
