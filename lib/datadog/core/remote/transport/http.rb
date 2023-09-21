@@ -5,6 +5,9 @@ require 'uri'
 require_relative '../../environment/container'
 require_relative '../../environment/ext'
 require_relative '../../../../ddtrace/transport/ext'
+require_relative '../../transport/http/adapters/net'
+require_relative '../../transport/http/adapters/unix_socket'
+require_relative '../../transport/http/adapters/test'
 
 # TODO: Improve negotiation to allow per endpoint selection
 #
