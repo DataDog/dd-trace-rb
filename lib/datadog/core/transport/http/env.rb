@@ -11,7 +11,6 @@ module Datadog
 
           # rubocop:disable Lint/MissingSuper
           def initialize(request, options = nil)
-
             @request = request
             merge!(options) unless options.nil?
           end

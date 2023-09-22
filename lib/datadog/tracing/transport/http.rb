@@ -71,7 +71,8 @@ module Datadog
             Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Environment::Ext::LANG_VERSION,
             Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER =>
               Datadog::Core::Environment::Ext::LANG_INTERPRETER,
-            Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
+            Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
+              Datadog::Core::Environment::Ext::TRACER_VERSION
           }.tap do |headers|
             # Add container ID, if present.
             container_id = Datadog::Core::Environment::Container.container_id

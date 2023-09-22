@@ -118,10 +118,12 @@ module Datadog
             {
               Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_TOP_LEVEL => '1',
               Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG => Datadog::Core::Environment::Ext::LANG,
-              Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Environment::Ext::LANG_VERSION,
+              Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_VERSION =>
+                Datadog::Core::Environment::Ext::LANG_VERSION,
               Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER =>
                 Datadog::Core::Environment::Ext::LANG_INTERPRETER,
-              Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
+              Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
+                Datadog::Core::Environment::Ext::TRACER_VERSION
             }.tap do |headers|
               # Add container ID, if present.
               container_id = Datadog::Core::Environment::Container.container_id
@@ -162,7 +164,10 @@ module Datadog
 
           # Add adapters to registry
           Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Net, Datadog::Core::Transport::Ext::HTTP::ADAPTER)
-          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Test, Datadog::Core::Transport::Ext::Test::ADAPTER)
+          Builder::REGISTRY.set(
+            Datadog::Core::Transport::HTTP::Adapters::Test,
+            Datadog::Core::Transport::Ext::Test::ADAPTER
+          )
           Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
             Datadog::Core::Transport::Ext::UnixSocket::ADAPTER

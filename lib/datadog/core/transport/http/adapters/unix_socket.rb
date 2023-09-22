@@ -23,7 +23,7 @@ module Datadog
               @filepath = uds_path || options.fetch(:uds_path)
               @timeout = options[:timeout] || Datadog::Core::Transport::Ext::UnixSocket::DEFAULT_TIMEOUT_SECONDS
             end
-            #  # rubocop:enable Lint/MissingSuper
+            # rubocop:enable Lint/MissingSuper
 
             def self.build(agent_settings)
               new(
