@@ -28,7 +28,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API::Instance do
   end
 
   describe '#call' do
-    let(:env) { instance_double(Datadog::Tracing::Transport::HTTP::Env, headers: env_headers) }
+    let(:env) { instance_double(Datadog::Core::Transport::HTTP::Env, headers: env_headers) }
     let(:env_headers) { {} }
 
     before { instance.call(env) }

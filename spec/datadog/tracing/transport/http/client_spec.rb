@@ -51,7 +51,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
         it 'sends to only the current API once' do
           is_expected.to eq(response)
           expect(handler).to have_received(:api).with(api).once
-          expect(handler).to have_received(:env).with(kind_of(Datadog::Tracing::Transport::HTTP::Env)).once
+          expect(handler).to have_received(:env).with(kind_of(Datadog::Core::Transport::HTTP::Env)).once
         end
       end
 
@@ -115,8 +115,8 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
 
     let(:request) { instance_double(Datadog::Core::Transport::Request) }
 
-    it 'returns a Datadog::Tracing::Transport::HTTP::Env' do
-      is_expected.to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Env)
+    it 'returns a Datadog::Core::Transport::HTTP::Env' do
+      is_expected.to be_a_kind_of(Datadog::Core::Transport::HTTP::Env)
       expect(env.request).to be request
     end
   end

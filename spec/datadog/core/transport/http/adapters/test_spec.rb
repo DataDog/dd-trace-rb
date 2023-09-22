@@ -33,7 +33,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
   describe '#call' do
     subject(:call) { adapter.call(env) }
 
-    let(:env) { instance_double(Datadog::Tracing::Transport::HTTP::Env) }
+    let(:env) { instance_double(Datadog::Core::Transport::HTTP::Env) }
 
     it 'returns a response with correct attributes' do
       is_expected.to be_a_kind_of(described_class::Response)
@@ -85,7 +85,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Test do
   describe '#add_request' do
     subject(:call) { adapter.add_request(env) }
 
-    let(:env) { instance_double(Datadog::Tracing::Transport::HTTP::Env) }
+    let(:env) { instance_double(Datadog::Core::Transport::HTTP::Env) }
 
     context 'when buffer' do
       context 'is not active' do

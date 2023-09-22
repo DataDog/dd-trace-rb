@@ -33,7 +33,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
   shared_context 'HTTP Env' do
     let(:env) do
       instance_double(
-        Datadog::Tracing::Transport::HTTP::Env,
+        Datadog::Core::Transport::HTTP::Env,
         path: path,
         body: body,
         headers: headers,

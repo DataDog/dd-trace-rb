@@ -19,7 +19,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::API::Endpoint do
   end
 
   describe '#call' do
-    let(:env) { instance_double(Datadog::Tracing::Transport::HTTP::Env) }
+    let(:env) { instance_double(Datadog::Core::Transport::HTTP::Env) }
 
     before do
       expect(env).to receive(:verb=).with(verb)

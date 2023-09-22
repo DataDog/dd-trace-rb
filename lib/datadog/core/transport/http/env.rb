@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Datadog
-  module Tracing
+  module Core
     module Transport
       module HTTP
         # Data structure for an HTTP request

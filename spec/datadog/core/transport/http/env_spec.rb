@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'datadog/core/transport/http/env'
 require 'datadog/core/transport/request'
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::Env do
+RSpec.describe Datadog::Core::Transport::HTTP::Env do
   subject(:env) { described_class.new(request, options) }
 
   let(:request) { instance_double(Datadog::Core::Transport::Request) }

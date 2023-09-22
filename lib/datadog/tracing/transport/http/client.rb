@@ -48,7 +48,7 @@ module Datadog
           end
 
           def build_env(request)
-            Env.new(request)
+            Datadog::Core::Transport::HTTP::Env.new(request)
           end
         end
       end

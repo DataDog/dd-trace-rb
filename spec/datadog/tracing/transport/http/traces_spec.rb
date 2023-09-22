@@ -39,7 +39,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
         .with(response)
 
       expect(api).to receive(:send_traces) do |env|
-        expect(env).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Env)
+        expect(env).to be_a_kind_of(Datadog::Core::Transport::HTTP::Env)
         expect(env.request).to be(request)
         response
       end
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API::Spec do
   describe '#send_traces' do
     subject(:send_traces) { spec.send_traces(env, &block) }
 
-    let(:env) { instance_double(Datadog::Tracing::Transport::HTTP::Env) }
+    let(:env) { instance_double(Datadog::Core::Transport::HTTP::Env) }
     let(:block) { proc {} }
 
     context 'when a trace endpoint has not been defined' do
@@ -107,7 +107,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API::Instance do
   describe '#send_traces' do
     subject(:send_traces) { instance.send_traces(env) }
 
-    let(:env) { instance_double(Datadog::Tracing::Transport::HTTP::Env) }
+    let(:env) { instance_double(Datadog::Core::Transport::HTTP::Env) }
 
     context 'when specification does not support traces' do
       let(:spec) { double('spec') }
@@ -164,7 +164,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint do
   describe '#call' do
     subject(:call) { endpoint.call(env, &block) }
 
-    let(:env) { Datadog::Tracing::Transport::HTTP::Env.new(request) }
+    let(:env) { Datadog::Core::Transport::HTTP::Env.new(request) }
     let(:request) { Datadog::Tracing::Transport::Traces::Request.new(parcel) }
     let(:parcel) { double(Datadog::Tracing::Transport::Traces::EncodedParcel, data: data, trace_count: trace_count) }
     let(:data) { double('trace_once') }

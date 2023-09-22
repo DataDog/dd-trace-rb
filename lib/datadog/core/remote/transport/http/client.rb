@@ -38,7 +38,7 @@ module Datadog
             end
 
             def build_env(request)
-              Datadog::Tracing::Transport::HTTP::Env.new(request)
+              Datadog::Core::Transport::HTTP::Env.new(request)
             end
           end
         end
