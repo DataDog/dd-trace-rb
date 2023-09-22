@@ -652,6 +652,7 @@ target :ddtrace do
   library 'digest'
 
   repo_path 'vendor/rbs'
+  library 'cucumber'
   library 'ffi'
   library 'jruby'
   library 'gem'

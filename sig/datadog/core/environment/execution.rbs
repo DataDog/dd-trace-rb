@@ -5,6 +5,8 @@ module Datadog
         def self.development?: () -> bool
         def self.webmock_enabled?: () -> bool
 
+        def self.cucumber?: -> bool
+
         private
         def self.test?: () -> bool
         def self.repl?: () -> bool

@@ -34,7 +34,7 @@ module Datadog
 
           # Is this process running a test?
           def test?
-            rspec? || minitest?
+            rspec? || minitest? || cucumber?
           end
 
           # Is this process running inside on a Read–eval–print loop?
@@ -64,6 +64,11 @@ module Datadog
               (defined?(::Minitest::Unit) &&
                 ::Minitest::Unit.class_variable_defined?(:@@installed_at_exit) &&
                 ::Minitest::Unit.class_variable_get(:@@installed_at_exit))
+          end
+
+          # Check if we are running from `bin/cucumber` or `cucumber/rake/task`.
+          def cucumber?
+            defined?(::Cucumber::Cli)
           end
 
           # If this is a Rails application, use different heuristics to detect
