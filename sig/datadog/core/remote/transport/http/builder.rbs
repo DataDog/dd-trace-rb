@@ -1,66 +1,68 @@
 module Datadog
   module Core
-    module Transport
-      module HTTP
-        class Builder
-          REGISTRY: Datadog::Transport::HTTP::Adapters::Registry
+    module Remote
+      module Transport
+        module HTTP
+          class Builder
+            REGISTRY: Datadog::Core::Transport::HTTP::Adapters::Registry
 
-          attr_reader apis: untyped
+            attr_reader apis: untyped
 
-          attr_reader api_options: untyped
+            attr_reader api_options: untyped
 
-          attr_reader default_adapter: untyped
+            attr_reader default_adapter: untyped
 
-          attr_reader default_api: untyped
+            attr_reader default_api: untyped
 
-          attr_reader default_headers: untyped
+            attr_reader default_headers: untyped
 
-          def initialize: () ?{ (untyped) -> untyped } -> void
+            def initialize: () ?{ (untyped) -> untyped } -> void
 
-          def adapter: (untyped config, *untyped args, **untyped kwargs) -> untyped
+            def adapter: (untyped config, *untyped args, **untyped kwargs) -> untyped
 
-          def headers: (?::Hash[untyped, untyped] values) -> untyped
+            def headers: (?::Hash[untyped, untyped] values) -> untyped
 
-          def api: (untyped key, untyped spec, ?::Hash[untyped, untyped] options) -> untyped
+            def api: (untyped key, untyped spec, ?::Hash[untyped, untyped] options) -> untyped
 
-          def default_api=: (untyped key) -> untyped
+            def default_api=: (untyped key) -> untyped
 
-          def to_transport: (untyped klass) -> untyped
+            def to_transport: (untyped klass) -> untyped
 
-          def to_api_instances: () -> untyped
+            def to_api_instances: () -> untyped
 
-          def api_instance_class: () -> untyped
+            def api_instance_class: () -> untyped
 
-          class UnknownApiError < StandardError
-            attr_reader key: untyped
+            class UnknownApiError < StandardError
+              attr_reader key: untyped
 
-            def initialize: (untyped key) -> void
+              def initialize: (untyped key) -> void
 
-            def message: () -> ::String
-          end
+              def message: () -> ::String
+            end
 
-          class UnknownAdapterError < StandardError
-            attr_reader type: untyped
+            class UnknownAdapterError < StandardError
+              attr_reader type: untyped
 
-            def initialize: (untyped `type`) -> void
+              def initialize: (untyped `type`) -> void
 
-            def message: () -> ::String
-          end
+              def message: () -> ::String
+            end
 
-          class NoAdapterForApiError < StandardError
-            attr_reader key: untyped
+            class NoAdapterForApiError < StandardError
+              attr_reader key: untyped
 
-            def initialize: (untyped key) -> void
+              def initialize: (untyped key) -> void
 
-            def message: () -> ::String
-          end
+              def message: () -> ::String
+            end
 
-          class NoApisError < StandardError
-            def message: () -> "No APIs configured for transport!"
-          end
+            class NoApisError < StandardError
+              def message: () -> "No APIs configured for transport!"
+            end
 
-          class NoDefaultApiError < StandardError
-            def message: () -> "No default API configured for transport!"
+            class NoDefaultApiError < StandardError
+              def message: () -> "No default API configured for transport!"
+            end
           end
         end
       end

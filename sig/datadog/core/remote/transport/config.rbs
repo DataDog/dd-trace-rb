@@ -1,49 +1,51 @@
 module Datadog
   module Core
-    module Transport
-      module Config
-        # Data transfer object for encoded traces
-        class EncodedParcel
-          include Datadog::Transport::Parcel
+    module Remote
+      module Transport
+        module Config
+          # Data transfer object for encoded traces
+          class EncodedParcel
+            include Datadog::Core::Transport::Parcel
 
-          def count: () -> untyped
-        end
+            def count: () -> untyped
+          end
 
-        # Config request
-        class Request < Datadog::Transport::Request
-        end
+          # Config request
+          class Request < Datadog::Core::Transport::Request
+          end
 
-        # Config response
-        module Response
-          attr_reader roots: untyped
+          # Config response
+          module Response
+            attr_reader roots: untyped
 
-          attr_reader targets: untyped
+            attr_reader targets: untyped
 
-          attr_reader target_files: untyped
+            attr_reader target_files: untyped
 
-          attr_reader client_configs: untyped
+            attr_reader client_configs: untyped
 
-          attr_reader empty: bool
+            attr_reader empty: bool
 
-          def empty?: () -> bool
-        end
+            def empty?: () -> bool
+          end
 
-        # Config transport
-        class Transport
-          attr_reader client: untyped
+          # Config transport
+          class Transport
+            attr_reader client: untyped
 
-          attr_reader apis: untyped
+            attr_reader apis: untyped
 
-          attr_reader default_api: untyped
+            attr_reader default_api: untyped
 
-          attr_reader current_api_id: untyped
+            attr_reader current_api_id: untyped
 
-          def initialize: (untyped apis, untyped default_api) -> void
+            def initialize: (untyped apis, untyped default_api) -> void
 
-          # ### there is only one transport! it's negotiation!
-          def send_config: (untyped payload) -> untyped
+            # ### there is only one transport! it's negotiation!
+            def send_config: (untyped payload) -> untyped
 
-          def current_api: () -> untyped
+            def current_api: () -> untyped
+          end
         end
       end
     end

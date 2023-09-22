@@ -1,62 +1,64 @@
 module Datadog
-  module Transport
-    module HTTP
-      module Adapters
-        class Net
-          attr_reader hostname: untyped
+  module Core
+    module Transport
+      module HTTP
+        module Adapters
+          class Net
+            attr_reader hostname: untyped
 
-          attr_reader port: untyped
+            attr_reader port: untyped
 
-          attr_reader timeout: untyped
+            attr_reader timeout: untyped
 
-          attr_reader ssl: untyped
+            attr_reader ssl: untyped
 
-          DEFAULT_TIMEOUT: 30
+            DEFAULT_TIMEOUT: 30
 
-          def initialize: (?untyped? hostname, ?untyped? port, **untyped options) -> void
+            def initialize: (?untyped? hostname, ?untyped? port, **untyped options) -> void
 
-          def self.build: (untyped agent_settings) -> untyped
+            def self.build: (untyped agent_settings) -> untyped
 
-          def open: () ?{ () -> untyped } -> untyped
+            def open: () ?{ () -> untyped } -> untyped
 
-          def call: (untyped env) -> untyped
+            def call: (untyped env) -> untyped
 
-          def get: (untyped env) -> untyped
+            def get: (untyped env) -> untyped
 
-          def post: (untyped env) -> untyped
+            def post: (untyped env) -> untyped
 
-          def url: () -> ::String
+            def url: () -> ::String
 
-          class UnknownHTTPMethod < StandardError
-            attr_reader verb: untyped
+            class UnknownHTTPMethod < StandardError
+              attr_reader verb: untyped
 
-            def initialize: (untyped verb) -> void
+              def initialize: (untyped verb) -> void
 
-            def message: () -> ::String
-          end
+              def message: () -> ::String
+            end
 
-          class Response
-            include Datadog::Transport::Response
+            class Response
+              include Transport::Response
 
-            attr_reader http_response: untyped
+              attr_reader http_response: untyped
 
-            def initialize: (untyped http_response) -> void
+              def initialize: (untyped http_response) -> void
 
-            def payload: () -> untyped
+              def payload: () -> untyped
 
-            def code: () -> untyped
+              def code: () -> untyped
 
-            def ok?: () -> untyped
+              def ok?: () -> untyped
 
-            def unsupported?: () -> untyped
+              def unsupported?: () -> untyped
 
-            def not_found?: () -> untyped
+              def not_found?: () -> untyped
 
-            def client_error?: () -> untyped
+              def client_error?: () -> untyped
 
-            def server_error?: () -> untyped
+              def server_error?: () -> untyped
 
-            def inspect: () -> ::String
+              def inspect: () -> ::String
+            end
           end
         end
       end

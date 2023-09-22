@@ -1,19 +1,21 @@
 module Datadog
-  module Transport
-    module HTTP
-      module Adapters
-        interface _Class
-          def new: (*untyped, **untyped) -> untyped
-          def nil?: () -> bool
-          def build: (untyped) -> untyped
-        end
+  module Core
+    module Transport
+      module HTTP
+        module Adapters
+          interface _Class
+            def new: (*untyped, **untyped) -> untyped
+            def nil?: () -> bool
+            def build: (untyped) -> untyped
+          end
 
-        class Registry
-          def initialize: () -> void
+          class Registry
+            def initialize: () -> void
 
-          def get: (untyped name) -> _Class
+            def get: (untyped name) -> _Class
 
-          def set: (untyped klass, ?untyped? name) -> (nil | untyped)
+            def set: (untyped klass, ?untyped? name) -> (nil | untyped)
+          end
         end
       end
     end

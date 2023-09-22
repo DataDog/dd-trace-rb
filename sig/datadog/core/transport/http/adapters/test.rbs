@@ -1,46 +1,48 @@
 module Datadog
-  module Transport
-    module HTTP
-      module Adapters
-        class Test
-          attr_reader buffer: untyped
+  module Core
+    module Transport
+      module HTTP
+        module Adapters
+          class Test
+            attr_reader buffer: untyped
 
-          attr_reader status: untyped
+            attr_reader status: untyped
 
-          def initialize: (?untyped? buffer, **untyped options) -> void
+            def initialize: (?untyped? buffer, **untyped options) -> void
 
-          def call: (untyped env) -> untyped
+            def call: (untyped env) -> untyped
 
-          def buffer?: () -> untyped
+            def buffer?: () -> untyped
 
-          def add_request: (untyped env) -> (untyped | nil)
+            def add_request: (untyped env) -> (untyped | nil)
 
-          def set_status!: (untyped status) -> untyped
+            def set_status!: (untyped status) -> untyped
 
-          def url: () -> nil
+            def url: () -> nil
 
-          class Response
-            include Datadog::Transport::Response
+            class Response
+              include Datadog::Core::Transport::Response
 
-            attr_reader body: untyped
+              attr_reader body: untyped
 
-            attr_reader code: untyped
+              attr_reader code: untyped
 
-            def initialize: (untyped code, ?untyped? body) -> void
+              def initialize: (untyped code, ?untyped? body) -> void
 
-            def payload: () -> untyped
+              def payload: () -> untyped
 
-            def ok?: () -> untyped
+              def ok?: () -> untyped
 
-            def unsupported?: () -> untyped
+              def unsupported?: () -> untyped
 
-            def not_found?: () -> untyped
+              def not_found?: () -> untyped
 
-            def client_error?: () -> untyped
+              def client_error?: () -> untyped
 
-            def server_error?: () -> untyped
+              def server_error?: () -> untyped
 
-            def inspect: () -> ::String
+              def inspect: () -> ::String
+            end
           end
         end
       end

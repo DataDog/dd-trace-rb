@@ -1,12 +1,14 @@
 module Datadog
   module Core
-    module Transport
-      module HTTP
-        module API
-          ROOT: "root"
-          V7: "v0.7"
+    module Remote
+      module Transport
+        module HTTP
+          module API
+            ROOT: "root"
+            V7: "v0.7"
 
-          def self?.defaults: () -> untyped
+            def self?.defaults: () -> untyped
+          end
         end
       end
     end

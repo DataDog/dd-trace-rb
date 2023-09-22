@@ -1,9 +1,11 @@
 module Datadog
-  module Transport
-    module HTTP
-      module API
-        class Spec
-          def initialize: () { (untyped) -> untyped } -> void
+  module Tracing
+    module Transport
+      module HTTP
+        module API
+          class Spec
+            def initialize: () { (untyped) -> untyped } -> void
+          end
         end
       end
     end

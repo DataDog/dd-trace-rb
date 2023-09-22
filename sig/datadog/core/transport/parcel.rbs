@@ -1,11 +1,13 @@
 module Datadog
-  module Transport
-    module Parcel
-      attr_reader data: untyped
+  module Core
+    module Transport
+      module Parcel
+        attr_reader data: untyped
 
-      def initialize: (untyped data) -> void
+        def initialize: (untyped data) -> void
 
-      def encode_with: (untyped encoder) -> untyped
+        def encode_with: (untyped encoder) -> untyped
+      end
     end
   end
 end

@@ -1,32 +1,34 @@
 module Datadog
   module Core
-    module Transport
-      module Negotiation
-        class Request < Datadog::Transport::Request
-        end
+    module Remote
+      module Transport
+        module Negotiation
+          class Request < Datadog::Core::Transport::Request
+          end
 
-        module Response
-          attr_reader version: untyped
+          module Response
+            attr_reader version: untyped
 
-          attr_reader endpoints: untyped
+            attr_reader endpoints: untyped
 
-          attr_reader config: untyped
-        end
+            attr_reader config: untyped
+          end
 
-        class Transport
-          attr_reader client: untyped
+          class Transport
+            attr_reader client: untyped
 
-          attr_reader apis: untyped
+            attr_reader apis: untyped
 
-          attr_reader default_api: untyped
+            attr_reader default_api: untyped
 
-          attr_reader current_api_id: untyped
+            attr_reader current_api_id: untyped
 
-          def initialize: (untyped apis, untyped default_api) -> void
+            def initialize: (untyped apis, untyped default_api) -> void
 
-          def send_info: () -> untyped
+            def send_info: () -> untyped
 
-          def current_api: () -> untyped
+            def current_api: () -> untyped
+          end
         end
       end
     end

@@ -1,29 +1,31 @@
 module Datadog
-  module Transport
-    class SerializableTrace
-      attr_reader trace: untyped
+  module Tracing
+    module Transport
+      class SerializableTrace
+        attr_reader trace: untyped
 
-      def initialize: (untyped trace) -> void
+        def initialize: (untyped trace) -> void
 
-      def to_msgpack: (?untyped? packer) -> untyped
+        def to_msgpack: (?untyped? packer) -> untyped
 
-      def to_json: (*untyped args) -> untyped
-    end
+        def to_json: (*untyped args) -> untyped
+      end
 
-    class SerializableSpan
-      attr_reader span: untyped
+      class SerializableSpan
+        attr_reader span: untyped
 
-      def initialize: (untyped span) -> void
+        def initialize: (untyped span) -> void
 
-      def to_msgpack: (?untyped? packer) -> untyped
+        def to_msgpack: (?untyped? packer) -> untyped
 
-      def to_json: (*untyped args) -> untyped
+        def to_json: (*untyped args) -> untyped
 
-      def time_nano: (untyped time) -> untyped
+        def time_nano: (untyped time) -> untyped
 
-      def to_hash: () -> untyped
+        def to_hash: () -> untyped
 
-      def duration_nano: (untyped duration) -> untyped
+        def duration_nano: (untyped duration) -> untyped
+      end
     end
   end
 end

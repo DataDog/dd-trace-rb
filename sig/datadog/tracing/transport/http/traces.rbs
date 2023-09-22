@@ -3,9 +3,9 @@ module Datadog
     module HTTP
       module Traces
         class Response
-          include HTTP::Response
+          include Core::Transport::HTTP::Response
 
-          include Datadog::Transport::Traces::Response
+          include Tracing::Transport::Traces::Response
 
           def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
         end
@@ -45,7 +45,7 @@ module Datadog
             end
           end
 
-          class Endpoint < HTTP::API::Endpoint
+          class Endpoint < Core::Transport::HTTP::API::Endpoint
             HEADER_CONTENT_TYPE: "Content-Type"
 
             HEADER_TRACE_COUNT: "X-Datadog-Trace-Count"

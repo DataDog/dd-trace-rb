@@ -1,21 +1,23 @@
 module Datadog
-  module Transport
-    module HTTP
-      DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS: untyped
+  module Tracing
+    module Transport
+      module HTTP
+        DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS: untyped
 
-      def self?.new: () ?{ () -> untyped } -> untyped
+        def self?.new: () ?{ () -> untyped } -> untyped
 
-      def self?.default: (?agent_settings: untyped, **untyped options) { (untyped) -> untyped } -> untyped
+        def self?.default: (?agent_settings: untyped, **untyped options) { (untyped) -> untyped } -> untyped
 
-      def self?.default_headers: () -> untyped
+        def self?.default_headers: () -> untyped
 
-      def self?.default_adapter: () -> untyped
+        def self?.default_adapter: () -> untyped
 
-      def self?.default_hostname: (?logger: untyped) -> untyped
+        def self?.default_hostname: (?logger: untyped) -> untyped
 
-      def self?.default_port: (?logger: untyped) -> untyped
+        def self?.default_port: (?logger: untyped) -> untyped
 
-      def self?.default_url: (?logger: untyped) -> nil
+        def self?.default_url: (?logger: untyped) -> nil
+      end
     end
   end
 end

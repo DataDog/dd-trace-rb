@@ -1,49 +1,51 @@
 module Datadog
-  module Transport
-    class TraceFormatter
-      attr_reader root_span: untyped
+  module Tracing
+    module Transport
+      class TraceFormatter
+        attr_reader root_span: untyped
 
-      attr_reader trace: untyped
+        attr_reader trace: untyped
 
-      def self.format!: (untyped trace) -> untyped
+        def self.format!: (untyped trace) -> untyped
 
-      def initialize: (untyped trace) -> void
+        def initialize: (untyped trace) -> void
 
-      def format!: () -> (nil | untyped)
+        def format!: () -> (nil | untyped)
 
-      def set_resource!: () -> (nil | untyped)
+        def set_resource!: () -> (nil | untyped)
 
-      def set_trace_tags!: () -> (nil | untyped)
+        def set_trace_tags!: () -> (nil | untyped)
 
-      def tag_agent_sample_rate!: () -> (nil | untyped)
+        def tag_agent_sample_rate!: () -> (nil | untyped)
 
-      def tag_hostname!: () -> (nil | untyped)
+        def tag_hostname!: () -> (nil | untyped)
 
-      def tag_lang!: () -> (nil | untyped)
+        def tag_lang!: () -> (nil | untyped)
 
-      def tag_origin!: () -> (nil | untyped)
+        def tag_origin!: () -> (nil | untyped)
 
-      def tag_process_id!: () -> (nil | untyped)
+        def tag_process_id!: () -> (nil | untyped)
 
-      def tag_rate_limiter_rate!: () -> (nil | untyped)
+        def tag_rate_limiter_rate!: () -> (nil | untyped)
 
-      def tag_rule_sample_rate!: () -> (nil | untyped)
+        def tag_rule_sample_rate!: () -> (nil | untyped)
 
-      def tag_runtime_id!: () -> (nil | untyped)
+        def tag_runtime_id!: () -> (nil | untyped)
 
-      def tag_sample_rate!: () -> (nil | untyped)
+        def tag_sample_rate!: () -> (nil | untyped)
 
-      def tag_sampling_decision_maker!: () -> (nil | untyped)
+        def tag_sampling_decision_maker!: () -> (nil | untyped)
 
-      def tag_sampling_priority!: () -> (nil | untyped)
+        def tag_sampling_priority!: () -> (nil | untyped)
 
-      def tag_high_order_trace_id!: () -> (nil | untyped)
+        def tag_high_order_trace_id!: () -> (nil | untyped)
 
-      private
+        private
 
-      def partial?: () -> untyped
+        def partial?: () -> untyped
 
-      def find_root_span: (untyped trace) -> untyped
+        def find_root_span: (untyped trace) -> untyped
+      end
     end
   end
 end

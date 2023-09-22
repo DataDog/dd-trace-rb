@@ -1,24 +1,26 @@
 module Datadog
   module Core
-    module Transport
-      module HTTP
-        DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS: untyped
+    module Remote
+      module Transport
+        module HTTP
+          DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS: untyped
 
-        def self?.new: (untyped klass) ?{ (untyped) -> untyped } -> untyped
+          def self?.new: (untyped klass) ?{ (untyped) -> untyped } -> untyped
 
-        def self?.root: (?agent_settings: untyped, **untyped options) ?{ (untyped) -> untyped } -> untyped
+          def self?.root: (?agent_settings: untyped, **untyped options) ?{ (untyped) -> untyped } -> untyped
 
-        def self?.v7: (?agent_settings: untyped, **untyped options) ?{ (untyped) -> untyped } -> untyped
+          def self?.v7: (?agent_settings: untyped, **untyped options) ?{ (untyped) -> untyped } -> untyped
 
-        def self?.default_headers: () -> untyped
+          def self?.default_headers: () -> untyped
 
-        def self?.default_adapter: () -> untyped
+          def self?.default_adapter: () -> untyped
 
-        def self?.default_hostname: (?logger: untyped) -> untyped
+          def self?.default_hostname: (?logger: untyped) -> untyped
 
-        def self?.default_port: (?logger: untyped) -> untyped
+          def self?.default_port: (?logger: untyped) -> untyped
 
-        def self?.default_url: (?logger: untyped) -> nil
+          def self?.default_url: (?logger: untyped) -> nil
+        end
       end
     end
   end

@@ -1,84 +1,86 @@
 module Datadog
-  module Transport
-    module Traces
-      class EncodedParcel
-        include Datadog::Transport::Parcel
+  module Tracing
+    module Transport
+      module Traces
+        class EncodedParcel
+          include Core::Transport::Parcel
 
-        attr_reader trace_count: untyped
+          attr_reader trace_count: untyped
 
-        def initialize: (untyped data, untyped trace_count) -> void
+          def initialize: (untyped data, untyped trace_count) -> void
 
-        def count: () -> untyped
-      end
-
-      class Request < Datadog::Transport::Request
-      end
-
-      module Response
-        attr_reader service_rates: untyped
-
-        attr_reader trace_count: untyped
-      end
-
-      class Chunker
-        DEFAULT_MAX_PAYLOAD_SIZE: untyped
-
-        attr_reader encoder: untyped
-
-        attr_reader max_size: untyped
-
-        def initialize: (untyped encoder, ?max_size: untyped) -> void
-
-        def encode_in_chunks: (untyped traces) -> untyped
-
-        private
-
-        def encode_one: (untyped trace) -> (nil | untyped)
-      end
-
-      module Encoder
-        def self?.encode_trace: (untyped encoder, untyped trace) -> untyped
-      end
-
-      class Transport
-        attr_reader client: untyped
-
-        attr_reader apis: untyped
-
-        attr_reader default_api: untyped
-
-        attr_reader current_api_id: untyped
-
-        def initialize: (untyped apis, untyped default_api) -> void
-
-        def send_traces: (untyped traces) -> untyped
-
-        def stats: () -> untyped
-
-        def current_api: () -> untyped
-
-        private
-
-        def downgrade?: (untyped response) -> (false | untyped)
-
-        def downgrade!: () -> untyped
-
-        def change_api!: (untyped api_id) -> untyped
-
-        class UnknownApiVersionError < StandardError
-          attr_reader version: untyped
-
-          def initialize: (untyped version) -> void
-
-          def message: () -> ::String
+          def count: () -> untyped
         end
 
-        class NoDowngradeAvailableError < StandardError
-          attr_reader version: untyped
+        class Request < Core::Transport::Request
+        end
 
-          def initialize: (untyped version) -> void
+        module Response
+          attr_reader service_rates: untyped
 
-          def message: () -> ::String
+          attr_reader trace_count: untyped
+        end
+
+        class Chunker
+          DEFAULT_MAX_PAYLOAD_SIZE: untyped
+
+          attr_reader encoder: untyped
+
+          attr_reader max_size: untyped
+
+          def initialize: (untyped encoder, ?max_size: untyped) -> void
+
+          def encode_in_chunks: (untyped traces) -> untyped
+
+          private
+
+          def encode_one: (untyped trace) -> (nil | untyped)
+        end
+
+        module Encoder
+          def self?.encode_trace: (untyped encoder, untyped trace) -> untyped
+        end
+
+        class Transport
+          attr_reader client: untyped
+
+          attr_reader apis: untyped
+
+          attr_reader default_api: untyped
+
+          attr_reader current_api_id: untyped
+
+          def initialize: (untyped apis, untyped default_api) -> void
+
+          def send_traces: (untyped traces) -> untyped
+
+          def stats: () -> untyped
+
+          def current_api: () -> untyped
+
+          private
+
+          def downgrade?: (untyped response) -> (false | untyped)
+
+          def downgrade!: () -> untyped
+
+          def change_api!: (untyped api_id) -> untyped
+
+          class UnknownApiVersionError < StandardError
+            attr_reader version: untyped
+
+            def initialize: (untyped version) -> void
+
+            def message: () -> ::String
+          end
+
+          class NoDowngradeAvailableError < StandardError
+            attr_reader version: untyped
+
+            def initialize: (untyped version) -> void
+
+            def message: () -> ::String
+          end
         end
       end
     end

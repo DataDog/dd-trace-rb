@@ -1,30 +1,32 @@
 module Datadog
-  module Transport
-    module Statistics
-      def stats: () -> untyped
+  module Tracing
+    module Transport
+      module Statistics
+        def stats: () -> untyped
 
-      def update_stats_from_response!: (untyped response) -> untyped
+        def update_stats_from_response!: (untyped response) -> untyped
 
-      def metrics_for_response: (untyped response) -> untyped
+        def metrics_for_response: (untyped response) -> untyped
 
-      def update_stats_from_exception!: (untyped exception) -> untyped
+        def update_stats_from_exception!: (untyped exception) -> untyped
 
-      def metrics_for_exception: (untyped _exception) -> { api_errors: untyped }
+        def metrics_for_exception: (untyped _exception) -> { api_errors: untyped }
 
-      class Counts
-        attr_accessor success: untyped
+        class Counts
+          attr_accessor success: untyped
 
-        attr_accessor client_error: untyped
+          attr_accessor client_error: untyped
 
-        attr_accessor server_error: untyped
+          attr_accessor server_error: untyped
 
-        attr_accessor internal_error: untyped
+          attr_accessor internal_error: untyped
 
-        attr_accessor consecutive_errors: untyped
+          attr_accessor consecutive_errors: untyped
 
-        def initialize: () -> void
+          def initialize: () -> void
 
-        def reset!: () -> untyped
+          def reset!: () -> untyped
+        end
       end
     end
   end

@@ -1,20 +1,22 @@
 module Datadog
   module Core
-    module Transport
-      module HTTP
-        module API
-          class Instance
-            attr_reader adapter: untyped
+    module Remote
+      module Transport
+        module HTTP
+          module API
+            class Instance
+              attr_reader adapter: untyped
 
-            attr_reader headers: untyped
+              attr_reader headers: untyped
 
-            attr_reader spec: untyped
+              attr_reader spec: untyped
 
-            def initialize: (untyped spec, untyped adapter, ?::Hash[untyped, untyped] options) -> void
+              def initialize: (untyped spec, untyped adapter, ?::Hash[untyped, untyped] options) -> void
 
-            def encoder: () -> untyped
+              def encoder: () -> untyped
 
-            def call: (untyped env) -> untyped
+              def call: (untyped env) -> untyped
+            end
           end
         end
       end

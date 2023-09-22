@@ -1,9 +1,11 @@
 module Datadog
-  module Transport
-    module IO
-      def self?.new: (untyped `out`, untyped encoder) -> untyped
+  module Tracing
+    module Transport
+      module IO
+        def self?.new: (untyped `out`, untyped encoder) -> untyped
 
-      def self?.default: (?::Hash[untyped, untyped] options) -> untyped
+        def self?.default: (?::Hash[untyped, untyped] options) -> untyped
+      end
     end
   end
 end
