@@ -89,7 +89,6 @@ GEM
       ruby-debug-base (>= 0.10.4, < 0.12)
     qless (0.10.0)
       redis (>= 2.2)
-    rack (3.0.8)
     rainbow (3.1.1)
     rake (13.0.6)
     rake-compiler (1.2.1)
@@ -183,7 +182,6 @@ DEPENDENCIES
   pry
   pry-debugger-jruby
   qless (= 0.10.0)
-  rack
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redis (< 4)

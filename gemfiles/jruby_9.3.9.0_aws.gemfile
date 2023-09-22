@@ -33,7 +33,6 @@ gem "rubocop-performance", "~> 1.9", require: false
 gem "rubocop-rspec", "~> 2.2", require: false
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
 gem "opentracing", ">= 0.4.1"
-gem "rack"
 gem "aws-sdk"
 gem "shoryuken"
 

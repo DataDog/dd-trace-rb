@@ -153,7 +153,6 @@ DEPENDENCIES
   pry
   pry-nav
   pry-stack_explorer
-  rack
   rack-test
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)

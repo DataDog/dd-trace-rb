@@ -1478,7 +1478,6 @@ GEM
       method_source (~> 1.0)
     pry-nav (1.0.0)
       pry (>= 0.9.10, < 0.15)
-    rack (3.0.8)
     rake (13.0.6)
     rake-compiler (1.2.5)
       rake
@@ -1547,7 +1546,6 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-nav
-  rack
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)

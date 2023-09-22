@@ -35,7 +35,6 @@ gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1", "< 3.8.0"]
 gem "docile", "~> 1.3.5"
 gem "ffi", "~> 1.12.2"
 gem "msgpack", "~> 1.3.3"
-gem "rack"
 gem "rails", "4.2.11.1"
 gem "pg", "< 1.0"
 gem "redis-rails"

@@ -211,7 +211,6 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-nav
-  rack
   rails (= 4.2.11.1)
   rails_semantic_logger (~> 4.0)
   rake (~> 12.3)

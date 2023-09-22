@@ -148,7 +148,6 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby
-  rack
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redis (< 4.0)

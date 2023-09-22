@@ -287,7 +287,6 @@ DEPENDENCIES
   pry
   pry-nav
   pry-stack_explorer
-  rack
   rails (~> 6.0.0)
   rails_semantic_logger (~> 4.0)
   rake (>= 10.5)
