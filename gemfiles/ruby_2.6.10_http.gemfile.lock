@@ -70,6 +70,7 @@ GEM
       ffi (>= 1.0.0)
       rake
     google-protobuf (3.19.1)
+    google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.0.1)
     http (5.0.1)
       addressable (~> 2.3)
@@ -85,7 +86,10 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (4.0.0.1.0-aarch64-linux)
+    libdatadog (4.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     llhttp-ffi (0.3.1)
       ffi-compiler (~> 1.0)
@@ -201,9 +205,9 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-linux
 
 DEPENDENCIES
-  addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)

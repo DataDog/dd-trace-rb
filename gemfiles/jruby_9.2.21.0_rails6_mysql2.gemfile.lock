@@ -240,7 +240,6 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord-jdbcmysql-adapter (>= 60)
-  addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)

@@ -322,7 +322,6 @@ DEPENDENCIES
   actionpack (~> 7)
   actionview (~> 7)
   active_model_serializers (>= 0.10.0)
-  addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)

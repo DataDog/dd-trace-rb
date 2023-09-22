@@ -1218,7 +1218,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  addressable (~> 2.4.0)
   appraisal (~> 2.2.0)
   aws-sdk
   benchmark-ips (~> 2.8)

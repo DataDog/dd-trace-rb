@@ -52,6 +52,7 @@ GEM
     extlz4 (0.3.4)
     ffi (1.15.5)
     google-protobuf (3.19.1)
+    google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.0.1)
     i18n (0.9.5)
       concurrent-ruby (~> 1.0)
@@ -63,6 +64,8 @@ GEM
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
+    makara (0.5.0)
+      activerecord (>= 3.0.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     minitest (5.15.0)
@@ -123,10 +126,10 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-linux
 
 DEPENDENCIES
   activerecord (< 5.1.5)
-  addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
