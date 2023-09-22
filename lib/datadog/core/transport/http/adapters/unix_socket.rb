@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 require 'net/http'
-# TODO: EK - FIX MAYBE?
-require_relative '../../../../../ddtrace/transport/ext'
+require_relative '../../../transport/ext'
 require_relative 'net'
 
 module Datadog
@@ -19,13 +18,12 @@ module Datadog
             alias_method :uds_path, :filepath
 
             # @deprecated Positional parameters are deprecated. Use named parameters instead.
+            # rubocop:disable Lint/MissingSuper
             def initialize(uds_path = nil, **options)
-              # TODO: EK - FIX
-              # super
-
               @filepath = uds_path || options.fetch(:uds_path)
-              @timeout = options[:timeout] || Datadog::Transport::Ext::UnixSocket::DEFAULT_TIMEOUT_SECONDS
+              @timeout = options[:timeout] || Datadog::Core::Transport::Ext::UnixSocket::DEFAULT_TIMEOUT_SECONDS
             end
+            #  # rubocop:enable Lint/MissingSuper
 
             def self.build(agent_settings)
               new(

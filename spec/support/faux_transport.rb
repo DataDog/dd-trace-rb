@@ -1,7 +1,7 @@
 require 'datadog/tracing/transport/http'
 require 'datadog/core/transport/http/adapters/net'
 
-# FauxTransport is a dummy Datadog::Transport that doesn't send data to an agent.
+# FauxTransport is a dummy Datadog::Tracing::Transport that doesn't send data to an agent.
 class FauxTransport < Datadog::Tracing::Transport::HTTP::Client
   def initialize(*); end
 

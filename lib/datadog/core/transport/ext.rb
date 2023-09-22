@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require_relative '../configuration/ext'
+# DEV(2.0): This file should replace /ddtrace/transport/ext.rb
+# WARN: This file is used in /dd trace/transport/ext.rb which is a public API. Any changes here
+# should be treated as changes to a public API.
 module Datadog
   module Core
     module Transport

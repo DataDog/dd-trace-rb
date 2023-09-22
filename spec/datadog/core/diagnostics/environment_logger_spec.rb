@@ -2,7 +2,6 @@
 
 require 'spec_helper'
 require 'datadog/core/diagnostics/environment_logger'
-# TODO: EK - LOOK INTO THIS
 require 'datadog/tracing/transport/io'
 require 'datadog/profiling/profiler'
 

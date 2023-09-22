@@ -96,8 +96,6 @@ RSpec.configure do |config|
   # rspec-wait configuration
   config.wait_timeout = 5 # default timeout for `wait_for(...)`, in seconds
   config.wait_delay = 0.01 # default retry delay for `wait_for(...)`, in seconds
-  # TODO: EK - TEMP
-  # config.default_formatter = 'doc'
 
   if config.files_to_run.one?
     # Use the documentation formatter for detailed output,

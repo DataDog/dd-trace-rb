@@ -5,7 +5,7 @@ require 'datadog/tracing/transport/http'
 require 'datadog/tracing/transport/http/traces'
 require 'datadog/tracing/transport/traces'
 
-RSpec.describe 'Datadog::Transport::HTTP integration tests' do
+RSpec.describe 'Datadog::Tracing::Transport::HTTP integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   describe 'HTTP#default' do

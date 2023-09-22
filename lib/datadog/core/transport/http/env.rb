@@ -9,13 +9,13 @@ module Datadog
           attr_reader \
             :request
 
+          # rubocop:disable Lint/MissingSuper
           def initialize(request, options = nil)
-            # TODO: EK - FIX
-            # super(request, options)
 
             @request = request
             merge!(options) unless options.nil?
           end
+          # rubocop:enable Lint/MissingSuper
 
           def verb
             self[:verb]

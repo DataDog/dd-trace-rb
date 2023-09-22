@@ -2,8 +2,6 @@
 
 require 'spec_helper'
 require 'datadog/profiling/diagnostics/environment_logger'
-# TODO: EK - LOOK INTO THIS
-require 'datadog/tracing/transport/io'
 
 RSpec.describe Datadog::Profiling::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }

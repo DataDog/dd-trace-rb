@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../datadog/core/transport/ext'
-
+# DEV(2.0): This file should be replaced by /datadog/core/transport/ext.rb.
 module Datadog
   module Transport
     # @public_api

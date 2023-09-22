@@ -4,7 +4,7 @@ require 'uri'
 
 require_relative '../../environment/container'
 require_relative '../../environment/ext'
-require_relative '../../../../ddtrace/transport/ext'
+require_relative '../../transport/ext'
 require_relative '../../transport/http/adapters/net'
 require_relative '../../transport/http/adapters/unix_socket'
 require_relative '../../transport/http/adapters/test'
@@ -16,7 +16,7 @@ require_relative '../../transport/http/adapters/test'
 # the possible combinations as specs. See http/api.
 #
 # Below should be:
-# require_relative '../../../ddtrace/transport/http/api'
+# require_relative '../../transport/http/api'
 require_relative 'http/api'
 
 # TODO: Decouple transport/http/builder
@@ -24,7 +24,7 @@ require_relative 'http/api'
 # See http/builder
 #
 # Below should be:
-# require_relative '../../../ddtrace/transport/http/builder'
+# require_relative '../../transport/http/builder'
 require_relative 'http/builder'
 
 # TODO: Decouple transport/http
@@ -116,21 +116,21 @@ module Datadog
 
           def default_headers
             {
-              Datadog::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_TOP_LEVEL => '1',
-              Datadog::Transport::Ext::HTTP::HEADER_META_LANG => Datadog::Core::Environment::Ext::LANG,
-              Datadog::Transport::Ext::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Environment::Ext::LANG_VERSION,
-              Datadog::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER =>
+              Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_TOP_LEVEL => '1',
+              Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG => Datadog::Core::Environment::Ext::LANG,
+              Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Environment::Ext::LANG_VERSION,
+              Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER =>
                 Datadog::Core::Environment::Ext::LANG_INTERPRETER,
-              Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
+              Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
             }.tap do |headers|
               # Add container ID, if present.
               container_id = Datadog::Core::Environment::Container.container_id
-              headers[Datadog::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
+              headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
             end
           end
 
           def default_adapter
-            Datadog::Transport::Ext::HTTP::ADAPTER
+            Datadog::Core::Transport::Ext::HTTP::ADAPTER
           end
 
           def default_hostname(logger: Datadog.logger)
@@ -161,11 +161,11 @@ module Datadog
           end
 
           # Add adapters to registry
-          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Net, Datadog::Transport::Ext::HTTP::ADAPTER)
-          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Test, Datadog::Transport::Ext::Test::ADAPTER)
+          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Net, Datadog::Core::Transport::Ext::HTTP::ADAPTER)
+          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Test, Datadog::Core::Transport::Ext::Test::ADAPTER)
           Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
-            Datadog::Transport::Ext::UnixSocket::ADAPTER
+            Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
           )
         end
       end

@@ -2,6 +2,7 @@ require 'uri'
 
 require_relative 'settings'
 require_relative 'ext'
+require_relative '../transport/ext'
 
 module Datadog
   module Core
@@ -66,9 +67,9 @@ module Datadog
 
         def call
           # A transport_options proc configured for unix domain socket overrides most of the logic on this file
-          if transport_options.adapter == Datadog::Transport::Ext::UnixSocket::ADAPTER
+          if transport_options.adapter == Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
             return AgentSettings.new(
-              adapter: Datadog::Transport::Ext::UnixSocket::ADAPTER,
+              adapter: Datadog::Core::Transport::Ext::UnixSocket::ADAPTER,
               ssl: false,
               hostname: nil,
               port: nil,
@@ -96,9 +97,9 @@ module Datadog
 
         def adapter
           if should_use_uds?
-            Datadog::Transport::Ext::UnixSocket::ADAPTER
+            Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
           else
-            Datadog::Transport::Ext::HTTP::ADAPTER
+            Datadog::Core::Transport::Ext::HTTP::ADAPTER
           end
         end
 

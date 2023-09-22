@@ -27,7 +27,6 @@ module Datadog
         end
 
         # Traces request
-        # TODO: EK - Should this just be the base request?
         class Request < Datadog::Core::Transport::Request
         end
 

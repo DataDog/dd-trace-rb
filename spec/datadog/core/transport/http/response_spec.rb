@@ -11,8 +11,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Response do
     end
     let(:http_response) { instance_double(Datadog::Core::Transport::Response) }
 
-    # TODO: EK - Should this live here?
-    describe 'Datadog::Transport::Response methods' do
+    describe 'Datadog::Core::Transport::Response methods' do
       it 'are forwarded to the HTTP response' do
         (Datadog::Core::Transport::Response.instance_methods - [:inspect]).each do |method|
           expect(http_response).to receive(method)

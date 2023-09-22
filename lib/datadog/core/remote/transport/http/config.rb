@@ -5,7 +5,7 @@ require 'base64'
 
 require_relative '../config'
 require_relative 'client'
-require_relative '../../../../core/transport/http/response'
+require_relative '../../../transport/http/response'
 require_relative '../../../transport/http/api/endpoint'
 
 # TODO: Decouple standard transport/http/api/instance
@@ -18,11 +18,10 @@ require_relative '../../../transport/http/api/endpoint'
 # Separate classes are needed because of `include Trace::API::Instance`.
 #
 # Below should be:
-# TODO: EK - LOOK AT THIS
-# require_relative '../../../../ddtrace/transport/http/api/instance'
+# require_relative '../../../core/transport/http/api/instance'
 require_relative 'api/instance'
 # Below should be:
-# require_relative '../../../../ddtrace/transport/http/api/spec'
+# require_relative '../../../core/transport/http/api/spec'
 require_relative 'api/spec'
 
 module Datadog

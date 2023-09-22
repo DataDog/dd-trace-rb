@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../../ddtrace/transport/ext'
+require_relative '../../../core/transport/ext'
 
 module Datadog
   module Tracing
@@ -24,8 +24,8 @@ module Datadog
           # TODO: We don't want this kind of soft-check on HTTP requests.
           #       Remove this when transport implements its own "skip tracing" mechanism.
           def internal_request?(request)
-            !!(request[Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION] ||
-              request[Datadog::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST])
+            !!(request[Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION] ||
+              request[Datadog::Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST])
           end
 
           def should_skip_distributed_tracing?(client_config)
