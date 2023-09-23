@@ -1,4 +1,5 @@
 require_relative '../../tracing/configuration/ext'
+require_relative '../../core/environment/variable_helpers'
 require_relative 'http'
 
 module Datadog
@@ -425,7 +426,7 @@ module Datadog
                 option :enabled do |o|
                   o.type :bool
                   o.default do
-                    disabled = env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED)
+                    disabled = Core::Environment::VariableHelpers.env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED)
 
                     enabled = if disabled.nil?
                                 false
@@ -438,7 +439,7 @@ module Datadog
                               end
 
                     # ENABLED env var takes precedence over deprecated DISABLED
-                    env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_ENABLED, enabled)
+                    Core::Environment::VariableHelpers.env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_ENABLED, enabled)
                   end
                 end
 
