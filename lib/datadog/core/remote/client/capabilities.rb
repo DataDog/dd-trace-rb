@@ -7,7 +7,7 @@ module Datadog
   module Core
     module Remote
       class Client
-        # Capbailities
+        # Capabilities
         class Capabilities
           attr_reader :products, :capabilities, :receivers, :base64_capabilities
 

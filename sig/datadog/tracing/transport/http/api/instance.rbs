@@ -1,0 +1,23 @@
+module Datadog
+  module Tracing
+    module Transport
+      module HTTP
+        module API
+          class Instance
+            attr_reader adapter: untyped
+
+            attr_reader headers: untyped
+
+            attr_reader spec: untyped
+
+            def initialize: (untyped spec, untyped adapter, ?::Hash[untyped, untyped] options) -> void
+
+            def encoder: () -> untyped
+
+            def call: (untyped env) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

@@ -2,7 +2,7 @@ require_relative 'event'
 require_relative 'runtime/metrics'
 require_relative 'workers'
 
-require_relative '../../ddtrace/transport/http'
+require_relative 'transport/http'
 
 module Datadog
   module Tracing

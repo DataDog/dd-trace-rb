@@ -36,7 +36,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       timeout_seconds: nil,
     )
   end
-  let(:adapter) { Datadog::Transport::Ext::HTTP::ADAPTER }
+  let(:adapter) { Datadog::Core::Transport::Ext::HTTP::ADAPTER }
   let(:uds_path) { nil }
   let(:ssl) { false }
   let(:hostname) { '192.168.0.1' }
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
 
       context 'when agent_settings requests a unix domain socket' do
-        let(:adapter) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
+        let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
         let(:uds_path) { '/var/run/datadog/apm.socket' }
 
         it 'picks the :agent working mode with unix domain stocket reporting' do
@@ -426,7 +426,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         server.listeners << unix_domain_socket
         server
       end
-      let(:adapter) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
+      let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
       let(:uds_path) { socket_path }
 
       after do

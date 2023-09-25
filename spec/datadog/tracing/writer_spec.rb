@@ -7,11 +7,11 @@ require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/tracing/runtime/metrics'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/writer'
-require 'ddtrace/transport/http'
-require 'ddtrace/transport/http/traces'
-require 'ddtrace/transport/response'
-require 'ddtrace/transport/statistics'
-require 'ddtrace/transport/traces'
+require 'datadog/tracing/transport/http'
+require 'datadog/tracing/transport/http/traces'
+require 'datadog/core/transport/response'
+require 'datadog/tracing/transport/statistics'
+require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Tracing::Writer do
   include HttpHelpers
@@ -20,7 +20,7 @@ RSpec.describe Datadog::Tracing::Writer do
     subject(:writer) { described_class.new(options) }
 
     let(:options) { { transport: transport } }
-    let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
+    let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
 
     describe 'behavior' do
       describe '#initialize' do
@@ -28,7 +28,7 @@ RSpec.describe Datadog::Tracing::Writer do
 
         context 'and default transport options' do
           it do
-            expect(Datadog::Transport::HTTP).to receive(:default) do |**options|
+            expect(Datadog::Tracing::Transport::HTTP).to receive(:default) do |**options|
               expect(options).to be_empty
             end
 
@@ -41,7 +41,7 @@ RSpec.describe Datadog::Tracing::Writer do
           let(:api_version) { double('API version') }
 
           it do
-            expect(Datadog::Transport::HTTP).to receive(:default) do |**options|
+            expect(Datadog::Tracing::Transport::HTTP).to receive(:default) do |**options|
               expect(options).to include(api_version: api_version)
             end
 
@@ -55,7 +55,7 @@ RSpec.describe Datadog::Tracing::Writer do
           let(:options) { { agent_settings: agent_settings } }
 
           it 'configures the transport using the agent_settings' do
-            expect(Datadog::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings)
+            expect(Datadog::Tracing::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings)
 
             writer
           end
@@ -66,7 +66,7 @@ RSpec.describe Datadog::Tracing::Writer do
         subject(:send_spans) { writer.send_spans(traces, writer.transport) }
 
         let(:traces) { get_test_traces(1) }
-        let(:transport_stats) { instance_double(Datadog::Transport::Statistics) }
+        let(:transport_stats) { instance_double(Datadog::Tracing::Transport::Statistics) }
         let(:responses) { [response] }
         let(:response) { double('response') }
 
@@ -92,7 +92,7 @@ RSpec.describe Datadog::Tracing::Writer do
         end
 
         context 'which returns a response that is' do
-          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
+          let(:response) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::Response, trace_count: 1) }
 
           context 'successful' do
             before do
@@ -115,7 +115,7 @@ RSpec.describe Datadog::Tracing::Writer do
           end
 
           context 'an internal error' do
-            let(:response) { Datadog::Transport::InternalErrorResponse.new(double('error')) }
+            let(:response) { Datadog::Core::Transport::InternalErrorResponse.new(double('error')) }
             let(:error) { double('error') }
 
             it_behaves_like 'after_send events'
@@ -125,7 +125,7 @@ RSpec.describe Datadog::Tracing::Writer do
         context 'with multiple responses' do
           let(:response1) do
             instance_double(
-              Datadog::Transport::HTTP::Traces::Response,
+              Datadog::Tracing::Transport::HTTP::Traces::Response,
               internal_error?: false,
               server_error?: false,
               ok?: true,
@@ -134,7 +134,7 @@ RSpec.describe Datadog::Tracing::Writer do
           end
           let(:response2) do
             instance_double(
-              Datadog::Transport::HTTP::Traces::Response,
+              Datadog::Tracing::Transport::HTTP::Traces::Response,
               internal_error?: false,
               server_error?: false,
               ok?: true,
@@ -147,7 +147,7 @@ RSpec.describe Datadog::Tracing::Writer do
           context 'and at least one being server error' do
             let(:response2) do
               instance_double(
-                Datadog::Transport::HTTP::Traces::Response,
+                Datadog::Tracing::Transport::HTTP::Traces::Response,
                 internal_error?: false,
                 server_error?: true,
                 ok?: false

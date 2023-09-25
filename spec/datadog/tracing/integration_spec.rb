@@ -11,12 +11,12 @@ require 'datadog/tracing/sampling/rule_sampler'
 require 'datadog/tracing/sampling/rule'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
-require 'ddtrace/transport/http'
-require 'ddtrace/transport/http/api'
-require 'ddtrace/transport/http/builder'
-require 'ddtrace/transport/io'
-require 'ddtrace/transport/io/client'
-require 'ddtrace/transport/traces'
+require 'datadog/tracing/transport/http'
+require 'datadog/tracing/transport/http/api'
+require 'datadog/tracing/transport/http/builder'
+require 'datadog/tracing/transport/io'
+require 'datadog/tracing/transport/io/client'
+require 'datadog/tracing/transport/traces'
 
 RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
@@ -28,7 +28,7 @@ RSpec.describe 'Tracer integration tests' do
 
       # Capture trace segments as they are about to be serialized
       segments = trace_segments
-      allow_any_instance_of(Datadog::Transport::TraceFormatter)
+      allow_any_instance_of(Datadog::Tracing::Transport::TraceFormatter)
         .to receive(:format!).and_wrap_original do |original|
           segments << original.call
         end
@@ -839,7 +839,7 @@ RSpec.describe 'Tracer integration tests' do
       )
     end
 
-    let(:transport) { Datadog::Transport::IO.default(out: out) }
+    let(:transport) { Datadog::Tracing::Transport::IO.default(out: out) }
     let(:out) { instance_double(IO) } # Dummy output so we don't pollute STDOUT
 
     before do
@@ -848,7 +848,7 @@ RSpec.describe 'Tracer integration tests' do
       end
 
       # Verify Transport::IO is configured
-      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Tracing::Transport::IO::Client)
       expect(tracer.writer.transport.encoder).to be(Datadog::Core::Encoding::JSONEncoder)
 
       # Verify sampler can receive agent rate updates
@@ -889,7 +889,7 @@ RSpec.describe 'Tracer integration tests' do
     include_context 'agent-based test'
 
     let(:writer) { Datadog::Tracing::Writer.new(transport: transport) }
-    let(:transport) { Datadog::Transport::HTTP.default }
+    let(:transport) { Datadog::Tracing::Transport::HTTP.default }
 
     before do
       Datadog.configure do |c|
@@ -898,7 +898,7 @@ RSpec.describe 'Tracer integration tests' do
       end
 
       # Verify Transport::HTTP is configured
-      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
+      expect(tracer.writer.transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
 
       # Verify sampler can receive agent rate updates
       expect(tracer.sampler).to respond_to(:update)
@@ -966,7 +966,7 @@ RSpec.describe 'Tracer integration tests' do
           double('on_build').tap do |double|
             allow(double).to receive(:call).with(any_args) # e.g. Telemetry transport, RC transport
             expect(double).to receive(:call)
-              .with(kind_of(Datadog::Transport::HTTP::Builder))
+              .with(kind_of(Datadog::Tracing::Transport::HTTP::Builder))
               .at_least(1).time
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
@@ -978,7 +978,7 @@ RSpec.describe 'Tracer integration tests' do
           configure
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
+            expect(transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port
           end
@@ -991,7 +991,7 @@ RSpec.describe 'Tracer integration tests' do
           double('on_build').tap do |double|
             allow(double).to receive(:call).with(any_args) # e.g. Telemetry transport, RC transport
             expect(double).to receive(:call)
-              .with(kind_of(Datadog::Transport::HTTP::Builder))
+              .with(kind_of(Datadog::Tracing::Transport::HTTP::Builder))
               .at_least(1).time
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
@@ -1003,7 +1003,7 @@ RSpec.describe 'Tracer integration tests' do
           configure
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
+            expect(transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port
           end
@@ -1016,11 +1016,11 @@ RSpec.describe 'Tracer integration tests' do
         let(:on_build) do
           double('on_build').tap do |double|
             expect(double).to receive(:call)
-              .with(kind_of(Datadog::Transport::HTTP::Builder))
+              .with(kind_of(Datadog::Tracing::Transport::HTTP::Builder))
               .at_least(1).time
             # For the remote component.
             expect(double).to receive(:call)
-              .with(kind_of(Datadog::Core::Transport::HTTP::Builder))
+              .with(kind_of(Datadog::Core::Remote::Transport::HTTP::Builder))
               .at_least(1).time
             expect(double).to receive(:call)
               .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
@@ -1032,7 +1032,7 @@ RSpec.describe 'Tracer integration tests' do
           configure
 
           tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
+            expect(transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port
           end

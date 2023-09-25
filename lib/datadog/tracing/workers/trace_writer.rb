@@ -7,7 +7,7 @@ require_relative '../buffer'
 require_relative '../pipeline'
 require_relative '../event'
 
-require_relative '../../../ddtrace/transport/http'
+require_relative '../transport/http'
 
 module Datadog
   module Tracing
@@ -24,7 +24,7 @@ module Datadog
           transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
 
           @transport = options.fetch(:transport) do
-            Transport::HTTP.default(**transport_options)
+            Datadog::Tracing::Transport::HTTP.default(**transport_options)
           end
         end
         # rubocop:enable Lint/MissingSuper

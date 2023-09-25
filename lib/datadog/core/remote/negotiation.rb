@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../transport/http'
+require_relative 'transport/http'
 
 module Datadog
   module Core
@@ -11,7 +11,7 @@ module Datadog
           transport_options = {}
           transport_options[:agent_settings] = agent_settings if agent_settings
 
-          @transport_root = Datadog::Core::Transport::HTTP.root(**transport_options.dup)
+          @transport_root = Datadog::Core::Remote::Transport::HTTP.root(**transport_options.dup)
           @logged = {}
         end
 

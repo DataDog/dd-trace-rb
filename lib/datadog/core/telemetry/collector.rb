@@ -11,7 +11,7 @@ require_relative 'v1/dependency'
 require_relative 'v1/host'
 require_relative 'v1/integration'
 require_relative 'v1/product'
-require_relative '../../../ddtrace/transport/ext'
+require_relative '../transport/ext'
 
 module Datadog
   module Core
@@ -190,7 +190,7 @@ module Datadog
 
         def agent_transport
           adapter = Core::Configuration::AgentSettingsResolver.call(Datadog.configuration).adapter
-          if adapter == Datadog::Transport::Ext::UnixSocket::ADAPTER
+          if adapter == Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
             'UDS'
           else
             'TCP'
