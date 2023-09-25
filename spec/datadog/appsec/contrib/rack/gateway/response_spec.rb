@@ -44,7 +44,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
 
   describe '#parsed_body' do
     context 'json response' do
-      let(:content_type) { 'appplication/json' }
+      let(:content_type) { 'application/json' }
 
       context 'all body parts are strings' do
         let(:body) { ['{ "f', 'oo":', ' "ba', 'r" }'] }
@@ -62,39 +62,26 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
           expect(response.parsed_body).to be_nil
         end
       end
-    end
 
-    context 'text response' do
-      context 'disabled parse_response_body' do
-        before do
-          expect(Datadog.configuration.appsec).to receive(:parse_response_body).and_return(false)
-        end
+      context 'fail to parse response body' do
+        let(:body) { [''] }
 
         it 'returns nil' do
           expect(response.parsed_body).to be_nil
         end
       end
 
-      context 'all body parts are strings' do
-        let(:body) { ['{ "f', 'oo":', ' "ba', 'r" }'] }
+      context 'with a body that is a Rack::BodyProxy' do
+        let(:body) { Rack::BodyProxy.new(['{ "foo":  "bar" }']) }
 
-        it 'returns a string' do
-          expect(response.parsed_body).to eq('{ "foo": "bar" }')
-        end
-      end
-
-      context 'not all body parts are strings' do
-        let(:body_proc) { proc { ' "ba' } }
-        let(:body) { ['{ "f', 'oo":', body_proc, 'r" }'] }
-
-        it 'returns nil' do
-          expect(response.parsed_body).to be_nil
+        it 'returns a hash object' do
+          expect(response.parsed_body).to eq({ 'foo' => 'bar' })
         end
       end
     end
 
     context 'non supported response type' do
-      let(:content_type) { 'video/mpeg' }
+      let(:content_type) { 'text/xml' }
 
       it 'returns nil' do
         expect(response.parsed_body).to be_nil
@@ -106,14 +93,6 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
 
       it 'returns nil' do
         expect(response.parsed_body).to be_nil
-      end
-    end
-
-    context 'with a body that is a Rack::BodyProxy' do
-      let(:body) { Rack::BodyProxy.new(['{ "foo":  "bar" }']) }
-
-      it 'returns a string' do
-        expect(response.parsed_body).to eq('{ "foo":  "bar" }')
       end
     end
 

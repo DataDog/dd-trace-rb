@@ -23,14 +23,12 @@ module Datadog
               return unless Datadog.configuration.appsec.parse_response_body
 
               unless body.instance_of?(Array) || body.instance_of?(::Rack::BodyProxy)
-                if result.timeout
-                  Datadog.logger.debug do
-                    "Unable to parse response body because of unsupported body type: #{body.class}"
-                  end
+                Datadog.logger.debug do
+                  "Response body type unsupported: #{body.class}"
                 end
                 return
               end
-              return unless supported_response_type
+              return unless json_content_type?
 
               body_dup = body.dup # avoid interating over the body. This is just in case code.
               result = ''.dup
@@ -47,10 +45,11 @@ module Datadog
 
               return unless all_body_parts_are_string
 
-              if json?
+              begin
                 JSON.parse(result)
-              else
-                result
+              rescue JSON::ParserError => e
+                Datadog.logger.debug { "Failed to parse response body. Error #{e.class}. Message #{e.message}" }
+                nil
               end
             end
 
@@ -60,16 +59,13 @@ module Datadog
 
             private
 
-            def supported_response_type
-              json? || text?
-            end
+            VALID_JSON_TYPES = [
+              'application/json',
+              'text/json'
+            ].freeze
 
-            def json?
-              headers['content-type'].include?('json')
-            end
-
-            def text?
-              headers['content-type'].include?('text')
+            def json_content_type?
+              VALID_JSON_TYPES.include?(headers['content-type'])
             end
           end
         end
