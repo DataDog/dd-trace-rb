@@ -128,6 +128,7 @@ end
 
 appraise 'sinatra' do
   gem 'sinatra', '>= 3'
+  gem 'rack-contrib'
   gem 'rack-test'
 end
 

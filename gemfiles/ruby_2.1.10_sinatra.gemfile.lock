@@ -53,6 +53,8 @@ GEM
     pry-nav (1.0.0)
       pry (>= 0.9.10, < 0.15)
     rack (1.6.13)
+    rack-contrib (1.8.0)
+      rack (~> 1.4)
     rack-protection (1.5.5)
       rack
     rack-test (2.0.2)
@@ -125,6 +127,7 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-nav
+  rack-contrib
   rack-test
   rake (~> 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)

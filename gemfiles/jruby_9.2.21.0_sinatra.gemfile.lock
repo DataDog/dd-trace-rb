@@ -65,6 +65,8 @@ GEM
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
     rack (2.2.5)
+    rack-contrib (2.3.0)
+      rack (~> 2.0)
     rack-protection (2.2.4)
       rack
     rack-test (2.0.2)
@@ -139,6 +141,7 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby
+  rack-contrib
   rack-test
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)

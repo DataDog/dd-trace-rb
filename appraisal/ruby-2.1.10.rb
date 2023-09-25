@@ -124,6 +124,7 @@ end
 
 appraise 'sinatra' do
   gem 'sinatra'
+  gem 'rack-contrib'
   gem 'rack-test'
 end
 
