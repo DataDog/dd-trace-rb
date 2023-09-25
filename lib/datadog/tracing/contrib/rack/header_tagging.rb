@@ -42,6 +42,10 @@ module Datadog
 
                        header_tag = Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)
 
+                       # Maintain the value format between Rack 2 and 3
+                       #
+                       # Rack 2.x => { 'foo' => 'bar,baz' }
+                       # Rack 3.x => { 'foo' => ['bar', 'baz'] }
                        result[header_tag] = if header_value.is_a? Array
                                               header_value.join(',')
                                             else
