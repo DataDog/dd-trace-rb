@@ -377,6 +377,15 @@ static void record_placeholder_stack_in_native_code(
     .line = 0
   };
 
+  bool cpu_and_wall_sample = values.cpu_samples > 0;
+  if (cpu_and_wall_sample) {
+    labels.ptr[labels.len] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("state"),
+      .str = DDOG_CHARSLICE_C("unknown"),
+    };
+    labels.len++;
+  }
+
   record_sample(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = 1 + extra_frames_in_record_buffer},
