@@ -114,6 +114,14 @@ appraise 'contrib' do
   gem 'timers', '< 4.2'
 end
 
+[1].each do |n|
+  appraise "rack-#{n}" do
+    gem 'rack', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test'
+  end
+end
+
 appraise 'sinatra' do
   gem 'sinatra'
   gem 'rack-test'
