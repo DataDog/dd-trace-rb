@@ -153,7 +153,7 @@ appraise 'relational_db' do
 end
 
 appraise 'activesupport' do
-  gem 'activesupport'
+  gem 'activesupport', '~> 5'
 
   gem 'actionpack'
   gem 'actionview'
@@ -162,6 +162,9 @@ appraise 'activesupport' do
   gem 'lograge', '~> 0.11'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'
+
+  gem 'rack', '~> 2.0.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
+  gem 'loofah', '~> 2.19.0' # Fix `rails-html-sanitizer` used by `action_pack` and `actionview`
 end
 
 appraise 'contrib' do
