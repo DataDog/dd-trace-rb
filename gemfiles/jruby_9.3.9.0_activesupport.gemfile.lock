@@ -15,7 +15,7 @@ PATH
       datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 4.0.0.1.0)
-      libddwaf (~> 1.11.0.0.0)
+      libddwaf (~> 1.14.0.0.0)
       msgpack
 
 GEM
@@ -110,7 +110,7 @@ GEM
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
     libdatadog (4.0.0.1.0)
-    libddwaf (1.11.0.0.0-java)
+    libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.13.0)
       actionpack (>= 4)
@@ -252,7 +252,6 @@ DEPENDENCIES
   actionview
   active_model_serializers (>= 0.10.0)
   activesupport (~> 6.0.0)
-  addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
