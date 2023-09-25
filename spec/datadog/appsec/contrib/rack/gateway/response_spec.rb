@@ -65,6 +65,16 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
     end
 
     context 'text response' do
+      context 'disabled parse_response_body' do
+        before do
+          expect(Datadog.configuration.appsec).to receive(:parse_response_body).and_return(false)
+        end
+
+        it 'returns nil' do
+          expect(response.parsed_body).to be_nil
+        end
+      end
+
       context 'all body parts are strings' do
         let(:body) { ['{ "f', 'oo":', ' "ba', 'r" }'] }
 

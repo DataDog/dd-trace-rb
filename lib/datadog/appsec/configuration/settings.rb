@@ -188,6 +188,11 @@ module Datadog
                   end
                 end
               end
+
+              option :parse_response_body do |o|
+                o.type :bool
+                o.default true
+              end
             end
           end
         end
