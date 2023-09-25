@@ -18,7 +18,7 @@ require 'datadog/tracing/utils'
 require 'datadog/tracing/writer'
 
 RSpec.describe Datadog::Tracing::Tracer do
-  let(:writer) { FauxWriter.new disable_test_agent: true }
+  let(:writer) { FauxWriter.new }
   let(:tracer_options) { {} }
 
   subject(:tracer) { described_class.new(writer: writer, **tracer_options) }

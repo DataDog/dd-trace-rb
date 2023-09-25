@@ -159,7 +159,8 @@ RSpec.describe Datadog::AppSec::Remote do
               }],
               'transformers' => [],
               'on_match' => ['block']
-            }]
+            }],
+            'processors' => Datadog::AppSec::Processor::RuleMerger::DEFAULT_WAF_PROCESSORS
           }
 
           expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: expected_ruleset, actions: [])
@@ -368,7 +369,9 @@ RSpec.describe Datadog::AppSec::Remote do
               end
 
               it 'pass the actions to reconfigure' do
-                expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: default_ruleset[0], actions: actions)
+                ruleset = Datadog::AppSec::Processor::RuleMerger.merge(rules: default_ruleset)
+
+                expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: ruleset, actions: actions)
                   .and_return(nil)
 
                 changes = transaction
@@ -475,11 +478,7 @@ RSpec.describe Datadog::AppSec::Remote do
               let(:transaction) { repository.transaction { |repository, transaction| } }
 
               it 'uses the rules from the appsec settings' do
-                ruleset = 'foo'
-
-                expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
-                  ruleset: Datadog.configuration.appsec.ruleset
-                ).and_return(ruleset)
+                ruleset = Datadog::AppSec::Processor::RuleMerger.merge(rules: default_ruleset)
 
                 changes = transaction
                 expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: ruleset, actions: [])

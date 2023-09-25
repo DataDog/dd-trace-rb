@@ -16,7 +16,11 @@ module Datadog
 
         def initialize: (Processor processor) -> void
         def run: (data input, ?::Integer timeout) -> WAF::Result
+        def extract_schema: () -> WAF::Result?
         def finalize: () -> void
+
+        private
+        def extract_schema?: () -> bool
       end
 
       def self.active_context: () -> Context

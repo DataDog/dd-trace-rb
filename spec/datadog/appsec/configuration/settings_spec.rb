@@ -633,5 +633,83 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
       end
     end
+
+    describe 'api_security' do
+      describe '#enabled' do
+        subject(:enabled) { settings.appsec.api_security.enabled }
+
+        context 'when DD_EXPERIMENTAL_API_SECURITY_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_ENABLED' => api_security_enabled) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:api_security_enabled) { nil }
+
+            it { is_expected.to eq false }
+          end
+
+          context 'is defined' do
+            let(:api_security_enabled) { 'true' }
+
+            it { is_expected.to eq(true) }
+          end
+        end
+      end
+
+      describe '#enabled=' do
+        subject(:set_api_security_enabled) { settings.appsec.api_security.enabled = api_security_enabled }
+
+        [true, false].each do |value|
+          context "when given #{value}" do
+            let(:api_security_enabled) { value }
+
+            before { set_api_security_enabled }
+
+            it { expect(settings.appsec.api_security.enabled).to eq(value) }
+          end
+        end
+      end
+
+      describe '#sample_rate' do
+        subject(:sample_rate) { settings.appsec.api_security.sample_rate.rate }
+
+        context 'when DD_API_SECURITY_REQUEST_SAMPLE_RATE' do
+          around do |example|
+            ClimateControl.modify('DD_API_SECURITY_REQUEST_SAMPLE_RATE' => api_security_sample_rate) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:api_security_sample_rate) { nil }
+
+            it { is_expected.to eq 0.1 }
+          end
+
+          context 'is defined' do
+            let(:api_security_sample_rate) { '0.3' }
+
+            it { is_expected.to eq 0.3 }
+          end
+        end
+      end
+
+      describe '#sample_rate=' do
+        subject(:set_api_security_sample_rate) do
+          settings.appsec.api_security.sample_rate = api_security_sample_rate
+        end
+
+        context 'when given a value higher than 1.0' do
+          let(:api_security_sample_rate) { 1.2 }
+
+          before { set_api_security_sample_rate }
+
+          it { expect(settings.appsec.api_security.sample_rate.rate).to eq 1.0 }
+        end
+      end
+    end
   end
 end
