@@ -204,25 +204,30 @@ appraise 'relational_db' do
   gem 'activerecord-jdbcsqlite3-adapter', '>= 52', platform: :jruby
 end
 
-appraise 'contrib' do
+appraise 'activesupport' do
+  gem 'activesupport', '~> 5'
+
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
+  gem 'grape'
+  gem 'lograge', '~> 0.11'
+  gem 'racecar', '>= 0.3.5'
+  gem 'ruby-kafka', '>= 0.7.10'
+end
+
+appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
-  gem 'grape'
   gem 'graphql', '>= 2.0'
-  gem 'lograge', '~> 0.11'
   gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'racecar', '>= 0.3.5'
   gem 'rack'
   gem 'rack-contrib'
   gem 'rack-test'
   gem 'rake', '>= 12.3'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
-  gem 'ruby-kafka', '>= 0.7.10'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq'
   gem 'sneakers', '>= 2.12.0'

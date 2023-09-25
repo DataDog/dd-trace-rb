@@ -80,25 +80,30 @@ appraise 'relational_db' do
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
 end
 
-appraise 'contrib' do
-  gem 'actionpack', '~> 7'
-  gem 'actionview', '~> 7'
+appraise 'activesupport' do
+  gem 'activesupport', '~> 7'
+
+  gem 'actionpack'
+  gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
+  gem 'grape'
+  gem 'lograge'
+  gem 'racecar', '>= 0.3.5'
+  gem 'ruby-kafka', '>= 0.7.10'
+end
+
+appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
-  gem 'grape'
   gem 'graphql', '>= 2.0'
   gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
-  gem 'lograge'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'racecar', '>= 0.3.5'
   gem 'rack'
   gem 'rack-contrib'
   gem 'rack-test'
   gem 'rake', '>= 12.3'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
-  gem 'ruby-kafka', '>= 0.7.10'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 7'
   gem 'sneakers', '>= 2.12.0'
