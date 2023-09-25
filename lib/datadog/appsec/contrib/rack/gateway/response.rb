@@ -20,7 +20,16 @@ module Datadog
             end
 
             def parsed_body
-              return unless body.instance_of?(Array) || body.instance_of?(::Rack::BodyProxy)
+              return unless Datadog.configuration.appsec.parse_response_body
+
+              unless body.instance_of?(Array) || body.instance_of?(::Rack::BodyProxy)
+                if result.timeout
+                  Datadog.logger.debug do
+                    "Unable to parse response body because of unsupported body type: #{body.class}"
+                  end
+                end
+                return
+              end
               return unless supported_response_type
 
               body_dup = body.dup # avoid interating over the body. This is just in case code.

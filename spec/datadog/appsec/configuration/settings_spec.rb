@@ -711,5 +711,27 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
       end
     end
+
+    describe 'parse_response_body' do
+      subject(:enabled) { settings.appsec.parse_response_body }
+
+      context 'default value' do
+        it { is_expected.to eq true }
+      end
+
+      context 'parse_response_body=' do
+        subject(:set_parse_response_body) { settings.appsec.parse_response_body = parse_response_body }
+
+        [true, false].each do |value|
+          context "when given #{value}" do
+            let(:parse_response_body) { value }
+
+            before { set_parse_response_body }
+
+            it { expect(settings.appsec.parse_response_body).to eq(value) }
+          end
+        end
+      end
+    end
   end
 end
