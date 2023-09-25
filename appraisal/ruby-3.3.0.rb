@@ -104,7 +104,6 @@ appraise 'contrib' do
   gem 'rake', '>= 12.3'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
-  gem 'ruby-kafka', '>= 0.7.10'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 7'
   gem 'sneakers', '>= 2.12.0'
