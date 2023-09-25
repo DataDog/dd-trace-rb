@@ -407,3 +407,7 @@ Style/FrozenStringLiteralComment:
 Metrics/BlockNesting:
   Exclude:
     - 'lib/datadog/appsec/configuration/settings.rb'
+
+Style/YodaCondition:
+  Exclude:
+    - 'spec/support/platform_helpers.rb'

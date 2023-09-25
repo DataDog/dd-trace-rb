@@ -404,9 +404,7 @@ RSpec.describe Datadog::AppSec::Remote do
             context 'unsupported key' do
               let(:data) do
                 {
-                  'unsupported' => {
-
-                  }
+                  'unsupported' => {}
                 }
               end
 
@@ -452,9 +450,7 @@ RSpec.describe Datadog::AppSec::Remote do
             context 'without rules_data information' do
               let(:data) do
                 {
-                  'other_key' => {
-
-                  }
+                  'other_key' => {}
                 }
               end
 
