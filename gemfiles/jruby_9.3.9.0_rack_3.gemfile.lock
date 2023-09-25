@@ -12,9 +12,10 @@ PATH
   remote: ..
   specs:
     ddtrace (1.14.0)
+      datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 4.0.0.1.0)
-      libddwaf (~> 1.11.0.0.0)
+      libddwaf (~> 1.14.0.0.0)
       msgpack
 
 GEM
@@ -37,6 +38,7 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
+    datadog-ci (0.1.1)
     debase-ruby_core_source (3.2.1)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -47,7 +49,7 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (4.0.0.1.0)
-    libddwaf (1.11.0.0.0-java)
+    libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
@@ -141,7 +143,6 @@ PLATFORMS
   universal-java-11
 
 DEPENDENCIES
-  addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
