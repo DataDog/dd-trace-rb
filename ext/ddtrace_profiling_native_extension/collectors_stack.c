@@ -234,6 +234,7 @@ static void sample_thread_internal(
 
   bool cpu_and_wall_sample = values.cpu_samples > 0;
   bool thread_was_active = values.cpu_time_ns > 0;
+  bool some_wall_time = values.wall_time_ns > 0;
 
   // The state hint is only included for cpu/wall-time samples.
   // When the thread was active (had cpu time) in the period, we use the `had cpu` state.
@@ -268,7 +269,7 @@ static void sample_thread_internal(
     ddog_CharSlice name_slice = char_slice_from_ruby_string(name);
     ddog_CharSlice filename_slice = char_slice_from_ruby_string(filename);
 
-    if (i == 0 /* Top of the stack*/ && cpu_and_wall_sample && !thread_was_active) {
+    if (i == 0 /* Top of the stack*/ && cpu_and_wall_sample && !thread_was_active && some_wall_time /* Avoid categorization for samples with no wall time */) {
       if (!buffer->is_ruby_frame[i]) {
         if (frame_name("sleep", name_slice)) {
           state_hint = DDOG_CHARSLICE_C("sleeping");
