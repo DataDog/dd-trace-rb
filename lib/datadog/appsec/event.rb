@@ -62,6 +62,7 @@ module Datadog
 
           # prepare and gather tags to apply
           service_entry_tags = build_service_entry_tags(event_group)
+
           # complex types are unsupported, we need to serialize to a string
           triggers = service_entry_tags.delete('_dd.appsec.triggers')
           span.set_tag('_dd.appsec.json', JSON.dump({ triggers: triggers }))
@@ -104,8 +105,15 @@ module Datadog
           tags['_dd.origin'] = 'appsec'
 
           # accumulate triggers
+          waf_result = event[:waf_result]
           tags['_dd.appsec.triggers'] ||= []
-          tags['_dd.appsec.triggers'] += event[:waf_result].events
+          tags['_dd.appsec.triggers'] += waf_result.events
+
+          waf_result.derivatives.each do |key, value|
+            tags[key] = JSON.dump(value)
+          end
+
+          tags
         end
       end
     end

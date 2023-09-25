@@ -62,7 +62,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'debase-ruby_core_source', '= 3.2.1'
 
   # Used by appsec
-  spec.add_dependency 'libddwaf', '~> 1.11.0.0.0'
+  spec.add_dependency 'libddwaf', '~> 1.14.0.0.0'
 
   # Used by profiling (and possibly others in the future)
   # When updating the version here, please also update the version in `native_extension_helpers.rb` (and yes we have a test for it)

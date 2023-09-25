@@ -291,4 +291,47 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       it { expect(actions).to eq [['block']] }
     end
   end
+
+  describe '#extract_schema' do
+    context 'when extrct_schema? returns true' do
+      around do |example|
+        ClimateControl.modify(
+          'DD_EXPERIMENTAL_API_SECURITY_ENABLED' => 'true',
+          'DD_API_SECURITY_REQUEST_SAMPLE_RATE' => '1'
+        ) do
+          example.run
+        end
+      end
+
+      it 'calls the the WAF with the right arguments' do
+        input = {
+          'waf.context.processor' => {
+            'extract-schema' => true
+          }
+        }
+
+        dummy_code = 1
+        dummy_result = 2
+
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          input,
+          Datadog::AppSec::WAF::LibDDWAF::DDWAF_RUN_TIMEOUT
+        ).and_return([dummy_code, dummy_result])
+
+        expect(context.extract_schema).to eq dummy_result
+      end
+    end
+
+    context 'when extrct_schema? returns false' do
+      around do |example|
+        ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_ENABLED' => 'false') do
+          example.run
+        end
+      end
+
+      it 'returns nil' do
+        expect(context.extract_schema).to be_nil
+      end
+    end
+  end
 end

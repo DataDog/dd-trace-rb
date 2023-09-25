@@ -5,7 +5,7 @@ PATH
       datadog-ci (~> 0.1.0)
       debase-ruby_core_source (= 3.2.1)
       libdatadog (~> 4.0.0.1.0)
-      libddwaf (~> 1.11.0.0.0)
+      libddwaf (~> 1.14.0.0.0)
       msgpack
 
 GEM
@@ -48,13 +48,17 @@ GEM
     extlz4 (0.3.4)
     ffi (1.15.5)
     google-protobuf (3.19.1)
+    google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.0.1)
     i18n (0.9.5)
       concurrent-ruby (~> 1.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (4.0.0.1.0-aarch64-linux)
-    libddwaf (1.11.0.0.0-aarch64-linux)
+    libdatadog (4.0.0.1.0-x86_64-linux)
+    libddwaf (1.14.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     makara (0.3.10)
       activerecord (>= 3.0.0)
@@ -116,10 +120,10 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-linux
 
 DEPENDENCIES
   activerecord (~> 4)
-  addressable (~> 2.4.0)
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
