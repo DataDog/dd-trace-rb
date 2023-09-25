@@ -11,12 +11,13 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
   let(:processor_context) { instance_double(Datadog::AppSec::Processor::Context) }
   let(:scope) { instance_double(Datadog::AppSec::Scope, processor_context: processor_context) }
   let(:body) { ['Ok'] }
+  let(:headers) { { 'content-type' => 'text/html', 'set-cookie' => 'foo' } }
 
   let(:response) do
     Datadog::AppSec::Contrib::Rack::Gateway::Response.new(
       body,
       200,
-      { 'content-type' => 'text/html', 'set-cookie' => 'foo' },
+      headers,
       scope: scope,
     )
   end
@@ -26,14 +27,33 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
       expect(operation).to receive(:publish).with('response.status', 200)
       expect(operation).to receive(:publish).with(
         'response.headers',
-        { 'content-type' => 'text/html', 'set-cookie' => 'foo' },
+        headers,
       )
       expect(operation).to receive(:publish).with(
         'response.body',
-        'Ok',
+        nil,
       )
 
       described_class.publish(operation, response)
+    end
+
+    context 'JSON response' do
+      let(:headers) { { 'content-type' => 'application/json', 'set-cookie' => 'foo' } }
+      let(:body) { ['{"a":"b"}'] }
+
+      it 'propagates response attributes to the operation' do
+        expect(operation).to receive(:publish).with('response.status', 200)
+        expect(operation).to receive(:publish).with(
+          'response.headers',
+          headers,
+        )
+        expect(operation).to receive(:publish).with(
+          'response.body',
+          { 'a' => 'b' },
+        )
+
+        described_class.publish(operation, response)
+      end
     end
   end
 
@@ -68,7 +88,6 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
             'server.response.headers.no_cookies' => {
               'content-type' => 'text/html',
             },
-            'server.response.body' => 'Ok',
           }
         end
 
@@ -81,23 +100,53 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
           result = described_class.publish(operation, response)
           expect(result).to be_nil
         end
+      end
 
-        context 'when parsed response body is nil' do
+      context 'JSON response' do
+        let(:headers) { { 'content-type' => 'application/json', 'set-cookie' => 'foo' } }
+        let(:body) { ['{"a":"b"}'] }
+
+        context 'all addresses have been published' do
+          let(:expected_waf_arguments) do
+            {
+              'server.response.status' => '200',
+              'server.response.headers' => {
+                'content-type' => 'application/json',
+                'set-cookie' => 'foo',
+              },
+              'server.response.headers.no_cookies' => {
+                'content-type' => 'application/json',
+              },
+              'server.response.body' => { 'a' => 'b' },
+            }
+          end
+
+          it 'does call the waf context with the right arguments' do
+            expect(processor_context).to receive(:run).with(
+              expected_waf_arguments,
+              Datadog.configuration.appsec.waf_timeout
+            ).and_return(waf_result)
+            described_class.subscribe(operation, processor_context)
+            result = described_class.publish(operation, response)
+            expect(result).to be_nil
+          end
+        end
+
+        context 'when unparsable response body' do
           # since the body is not all string values we bail out in Datadog::AppSec::Contrib::Rack::Gateway::Response
           let(:body) do
-            ['Ok', proc {
-            }]
+            [proc {}]
           end
 
           let(:expected_waf_arguments) do
             {
               'server.response.status' => '200',
               'server.response.headers' => {
-                'content-type' => 'text/html',
+                'content-type' => 'application/json',
                 'set-cookie' => 'foo',
               },
               'server.response.headers.no_cookies' => {
-                'content-type' => 'text/html',
+                'content-type' => 'application/json',
               }
             }
           end
