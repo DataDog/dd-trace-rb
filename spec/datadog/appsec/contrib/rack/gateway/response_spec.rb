@@ -70,14 +70,6 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
           expect(response.parsed_body).to be_nil
         end
       end
-
-      context 'with a body that is a Rack::BodyProxy' do
-        let(:body) { Rack::BodyProxy.new(['{ "foo":  "bar" }']) }
-
-        it 'returns a hash object' do
-          expect(response.parsed_body).to eq({ 'foo' => 'bar' })
-        end
-      end
     end
 
     context 'non supported response type' do
