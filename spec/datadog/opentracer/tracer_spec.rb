@@ -167,4 +167,56 @@ RSpec.describe Datadog::OpenTracer::Tracer do
       end
     end
   end
+
+  context 'after shutdown' do
+    subject(:shutdown!) { Datadog.shutdown! }
+
+    before do
+      OpenTracing.global_tracer = described_class.new(writer: writer)
+
+      Datadog.configure do |c|
+        # Do nothing
+      end
+
+      shutdown!
+    end
+
+    after do
+      Datadog.shutdown!
+    end
+
+    context 'calling public apis' do
+      let(:tracer) do
+        OpenTracing.global_tracer
+      end
+
+      it 'does not error on tracing' do
+        span = tracer.start_span('test')
+
+        expect { span.finish }.to_not raise_error
+      end
+
+      it 'does not error on tracing with block' do
+        scope = tracer.start_span('test') do |scp|
+          expect(scp).to be_a(OpenTracing::Scope)
+        end
+
+        expect(scope).to be_a(OpenTracing::Span)
+      end
+
+      it 'does not error on registered scope tracing' do
+        span = tracer.start_active_span('test')
+
+        expect { span.close }.to_not raise_error
+      end
+
+      it 'does not error on registered scope tracing with block' do
+        scope = tracer.start_active_span('test') do |scp|
+          expect(scp).to be_a(OpenTracing::Scope)
+        end
+
+        expect(scope).to be_a(OpenTracing::Scope)
+      end
+    end
+  end
 end
