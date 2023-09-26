@@ -133,6 +133,10 @@ appraise 'sinatra' do
   gem 'rack-test'
 end
 
+appraise 'opentracing' do
+  gem 'opentracing', '>= 0.4.1'
+end
+
 appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
   gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0

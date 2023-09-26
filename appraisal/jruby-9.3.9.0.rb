@@ -221,6 +221,10 @@ appraise 'sinatra' do
   gem 'rack-test'
 end
 
+appraise 'opentracing' do
+  gem 'opentracing', '>= 0.4.1'
+end
+
 [3, 4, 5].each do |n|
   appraise "redis-#{n}" do
     gem 'redis', "~> #{n}"
