@@ -1476,7 +1476,6 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.0.0)
     msgpack (1.7.2-java)
-    opentracing (0.5.0)
     os (1.1.4)
     parallel (1.23.0)
     parser (3.2.2.3)
@@ -1578,7 +1577,6 @@ DEPENDENCIES
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
-  opentracing (>= 0.4.1)
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry

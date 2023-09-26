@@ -161,7 +161,6 @@ GEM
       racc (~> 1.4)
     nokogiri (1.14.2-x86_64-linux)
       racc (~> 1.4)
-    opentracing (0.5.0)
     os (1.1.4)
     parallel (1.23.0)
     parser (3.2.1.0)
@@ -311,7 +310,6 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   mysql2 (~> 0.5)
   net-smtp
-  opentracing (>= 0.4.1)
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
