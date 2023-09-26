@@ -47,7 +47,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
       shared_context 'graceful stop' do
         before do
           allow(worker).to receive(:join)
-            .with(described_class::SHUTDOWN_TIMEOUT)
+            .with(described_class::DEFAULT_SHUTDOWN_TIMEOUT)
             .and_return(true)
         end
       end
@@ -55,7 +55,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
       context 'when the worker has not been started' do
         before do
           allow(worker).to receive(:join)
-            .with(described_class::SHUTDOWN_TIMEOUT)
+            .with(described_class::DEFAULT_SHUTDOWN_TIMEOUT)
             .and_return(true)
         end
 
@@ -112,6 +112,22 @@ RSpec.describe Datadog::Core::Workers::Polling do
             end
           end
         end
+      end
+
+      context 'given shutdown timeout' do
+        subject(:stop) { worker.stop(false, 1000) }
+        include_context 'graceful stop'
+
+        before do
+          expect(worker).to receive(:join)
+            .with(1000)
+            .and_return(true)
+
+          worker.perform
+          try_wait_until { worker.running? && worker.run_loop? }
+        end
+
+        it { is_expected.to be true }
       end
     end
 
