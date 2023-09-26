@@ -413,7 +413,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   uint8_t *position_for = state->position_for;
 
   metric_values[position_for[CPU_TIME_VALUE_ID]]      = values.cpu_time_ns;
-  metric_values[position_for[CPU_SAMPLES_VALUE_ID]]   = values.cpu_samples;
+  metric_values[position_for[CPU_SAMPLES_VALUE_ID]]   = values.cpu_or_wall_samples;
   metric_values[position_for[WALL_TIME_VALUE_ID]]     = values.wall_time_ns;
   metric_values[position_for[ALLOC_SAMPLES_VALUE_ID]] = values.alloc_samples;
 

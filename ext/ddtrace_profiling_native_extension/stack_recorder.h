@@ -5,7 +5,7 @@
 typedef struct sample_values {
   int64_t cpu_time_ns;
   int64_t wall_time_ns;
-  uint32_t cpu_samples;
+  uint32_t cpu_or_wall_samples;
   uint32_t alloc_samples;
 } sample_values;
 

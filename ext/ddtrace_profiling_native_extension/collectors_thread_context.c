@@ -471,7 +471,7 @@ void update_metrics_and_sample(
     thread_being_sampled,
     stack_from_thread,
     thread_context,
-    (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
+    (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
     SAMPLE_REGULAR,
     current_monotonic_wall_time_ns,
     NULL,
@@ -616,7 +616,7 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
       /* thread: */  thread,
       /* stack_from_thread: */ thread,
       thread_context,
-      (sample_values) {.cpu_time_ns = gc_cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = gc_wall_time_elapsed_ns},
+      (sample_values) {.cpu_time_ns = gc_cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = gc_wall_time_elapsed_ns},
       SAMPLE_IN_GC,
       INVALID_TIME, // For now we're not collecting timestamps for these events
       NULL,
