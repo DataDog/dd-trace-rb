@@ -638,8 +638,10 @@ module Datadog
             o.type :string, nilable: true
           end
 
-          # Declare additional service names to bind to remote configuration. Use when
-          # integrations are configured to use names that differ from DD_SERVICE.
+          # Declare additional service names to fold under the main service
+          # name used by remote configuration. Use when integrations are
+          # configured to use names that differ from DD_SERVICE and should be
+          # considered as a single remote configuration controllable service.
           #
           # @default `nil`.
           # @return [Array<String>,nil]
