@@ -627,7 +627,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
         // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
         // includes a check to see if it got called in the right thread
         state->stats.interrupt_thread_attempts++;
-        pthread_kill(owner.owner, SIGPROF);
+        pthread_kill(owner.owner, SIGTRAP);
       } else {
         if (state->skip_idle_samples_for_testing) {
           // This was added to make sure our tests don't accidentally pass due to idle samples. Specifically, if we
@@ -728,7 +728,7 @@ static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_current_sigprof_signal_handler(DDTRACE_UNUSED VALUE self) {
   struct sigaction existing_signal_handler_config = {.sa_sigaction = NULL};
-  if (sigaction(SIGPROF, NULL, &existing_signal_handler_config) != 0) {
+  if (sigaction(SIGTRAP, NULL, &existing_signal_handler_config) != 0) {
     rb_sys_fail("Failed to probe existing handler");
   }
 

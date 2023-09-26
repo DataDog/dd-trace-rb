@@ -210,7 +210,7 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 
   // We keep trying for ~5 seconds (500 x 10ms) to try to avoid any flakiness if the test machine is a bit slow
   for (int tries = 0; holding_the_gvl_signal_handler_result[0] == Qfalse && tries < 500; tries++) {
-    pthread_kill(thread, SIGPROF);
+    pthread_kill(thread, SIGTRAP);
 
     // pthread_cond_timedwait is simply awful -- the deadline is based on wall-clock using a struct timespec, so we need
     // all of the below complexity just to tell it "timeout is 10ms". The % limit dance below is needed because the
