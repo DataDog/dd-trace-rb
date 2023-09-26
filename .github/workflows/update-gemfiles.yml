@@ -1,5 +1,20 @@
 name: Update Gemfiles
 on:
+  # Execute on `push` and not `pull_request` because `pull_request`
+  # always compares if the `paths` have changed compared to the PR base.
+  # This is an issue because it means that all commits to the branch
+  # will trigger the gemfile update process, which is unnecessary and expensive.
+  #
+  # By executing on `push`, GitHub compares `paths` with the parent commit,
+  # meaning the gemfile update process will only execute on the exact commit
+  # that changes any of the `paths`.
+  #
+  # Because this process is slow and expensive, and we commit the gemfile changes back
+  # to the branch, we have an additional filter to only execute this action on branches
+  # attached to a PR.
+  #
+  # We could do the inverse: execute this action on `pull_request`, and additionally check
+  # if `paths` was changed compared to the parent commit, but this proved more complicated.
   push:
     paths:
       - Gemfile
@@ -15,7 +30,10 @@ jobs:
     name: Update Gemfiles
     runs-on: ubuntu-22.04
     steps:
-      - uses: 8bitjonny/gh-get-current-pr@2215326c76d51bfa3f2af0a470f32677f6c0cae9 # v2.2.0
+      # Only execute if there's a PR attached to this branch.
+      # Because we execute on `push`, we have to double check here if this is part of a PR.
+      - name: Check if this branch is attached to a Pull Request
+        uses: 8bitjonny/gh-get-current-pr@2215326c76d51bfa3f2af0a470f32677f6c0cae9 # v2.2.0
         id: pr
       - if: steps.pr.outputs.pr_found == 'true'
         uses: actions/checkout@v4
@@ -31,6 +49,7 @@ jobs:
         name: Update gemfiles/*.gemfile.lock
         run: bundle exec rake appraisal:lock
       - if: steps.pr.outputs.pr_found == 'true'
+        name: Commit gemfiles changes, if any, back to the branch
         uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
         with:
           commit_message: Update gemfiles/*
