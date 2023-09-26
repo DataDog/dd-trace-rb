@@ -79,7 +79,7 @@ appraise 'http' do
 end
 
 appraise 'relational_db' do
-  gem 'activerecord', '< 5.1.5'
+  gem 'activerecord',  '~> 5'
   gem 'delayed_job'
   gem 'delayed_job_active_record'
   gem 'makara'
