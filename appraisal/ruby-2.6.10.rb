@@ -194,9 +194,6 @@ appraise 'contrib' do
   gem 'graphql', '>= 2.0'
   gem 'grpc', platform: :ruby
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'rack'
-  gem 'rack-contrib'
-  gem 'rack-test'
   gem 'rake', '>= 12.3'
   gem 'redis', '~> 4' # TODO: Support redis 5.x
   gem 'resque'

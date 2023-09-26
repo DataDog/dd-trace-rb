@@ -183,9 +183,6 @@ appraise 'contrib' do
   gem 'grpc'
   gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
-  gem 'rack-contrib'
-  gem 'rack-test'
   gem 'rake', '>= 12.3'
   gem 'resque'
   gem 'roda', '>= 2.0.0'

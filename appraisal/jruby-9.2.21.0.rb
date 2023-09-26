@@ -222,9 +222,6 @@ appraise 'contrib' do
   gem 'graphql', '>= 2.0'
   gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'rack'
-  gem 'rack-contrib'
-  gem 'rack-test'
   gem 'rake', '>= 12.3'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
