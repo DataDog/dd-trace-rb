@@ -11,6 +11,10 @@ typedef struct {
 
 typedef struct sample_labels {
   ddog_prof_Slice_Label labels;
+
+  // This is used to allow the `Collectors::Stack` to modify the existing label, if any. This MUST be NULL or point
+  // somewhere inside the labels slice above.
+  ddog_prof_Label *state_label;
 } sample_labels;
 
 void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels);

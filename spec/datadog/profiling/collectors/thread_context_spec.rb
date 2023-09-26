@@ -108,7 +108,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sample
 
       expect(Thread.list).to eq(all_threads), 'Threads finished during this spec, causing flakiness!'
-      expect(samples.size).to be all_threads.size
+
+      seen_threads = samples.map(&:labels).map { |it| it.fetch(:'thread id') }.uniq
+
+      expect(seen_threads.size).to be all_threads.size
     end
 
     it 'tags the samples with the object ids of the Threads they belong to' do
@@ -167,20 +170,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
 
       t1_samples = samples_for_thread(samples, t1)
-      wall_time = t1_samples.first.values.fetch(:'wall-time')
 
-      expect(t1_samples.size)
-        .to be(1), "Expected thread t1 to always have same stack trace (because it's sleeping), got #{t1_samples.inspect}"
-
+      wall_time = t1_samples.map(&:values).map { |it| it.fetch(:'wall-time') }.sum
       expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
     end
 
     it 'tags samples with how many times they were seen' do
       5.times { sample }
 
-      t1_sample = samples_for_thread(samples, t1).first
+      t1_samples = samples_for_thread(samples, t1)
 
-      expect(t1_sample.values).to include(:'cpu-samples' => 5)
+      expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.sum).to eq 5
     end
 
     [:before, :after].each do |on_gc_finish_order|
@@ -239,7 +239,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         it 'sets the cpu-time on every sample to zero' do
           5.times { sample }
 
-          expect(samples).to all include(values: include(:'cpu-time' => 0))
+          expect(samples).to all have_attributes(values: include(:'cpu-time' => 0))
         end
       end
 
@@ -499,9 +499,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                 t1_samples = samples_for_thread(samples, t1)
 
-                expect(t1_samples).to have(1).item
-                expect(t1_samples.first.labels).to include(:'trace endpoint' => 'changed_after_first_sample')
-                expect(t1_samples.first.values).to include(:'cpu-samples' => 2)
+                expect(t1_samples)
+                  .to all have_attributes(labels: include(:'trace endpoint' => 'changed_after_first_sample'))
+                expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.sum).to eq 2
               end
 
               context 'when the resource is changed multiple times' do
@@ -514,9 +514,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                   t1_samples = samples_for_thread(samples, t1)
 
-                  expect(t1_samples).to have(1).item
-                  expect(t1_samples.first.labels).to include(:'trace endpoint' => 'changed_after_second_sample')
-                  expect(t1_samples.first.values).to include(:'cpu-samples' => 3)
+                  expect(t1_samples)
+                    .to all have_attributes(labels: include(:'trace endpoint' => 'changed_after_second_sample'))
+                  expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.sum).to eq 3
                 end
               end
             end

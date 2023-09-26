@@ -662,6 +662,7 @@ static void trigger_sample_for_thread(
     1 + // profiler overhead
     1 + // end_timestamp_ns
     2 + // ruby vm type and allocation class
+    1 + // state (only set for cpu/wall-time samples)
     2;  // local root span id and span id
   ddog_prof_Label labels[max_label_count];
   int label_pos = 0;
@@ -745,6 +746,19 @@ static void trigger_sample_for_thread(
     };
   }
 
+  // This label is handled specially:
+  // 1. It's only set for cpu/wall-time samples
+  // 2. We set it here to its default state of "unknown", but the `Collectors::Stack` may choose to override it with
+  //    something more interesting.
+  ddog_prof_Label *state_label = NULL;
+  if (values.cpu_or_wall_samples > 0) {
+    state_label = &labels[label_pos++];
+    *state_label = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("state"),
+      .str = DDOG_CHARSLICE_C("unknown"),
+    };
+  }
+
   // The number of times `label_pos++` shows up in this function needs to match `max_label_count`. To avoid "oops I
   // forgot to update max_label_count" in the future, we've also added this validation.
   // @ivoanjo: I wonder if C compilers are smart enough to statically prove this check never triggers unless someone
@@ -760,7 +774,7 @@ static void trigger_sample_for_thread(
     state->sampling_buffer,
     state->recorder_instance,
     values,
-    (sample_labels) {.labels = slice_labels},
+    (sample_labels) {.labels = slice_labels, .state_label = state_label},
     type
   );
 }

@@ -92,6 +92,7 @@ static VALUE _native_sample(
 
   long labels_count = RARRAY_LEN(labels_array) + RARRAY_LEN(numeric_labels_array);
   ddog_prof_Label labels[labels_count];
+  ddog_prof_Label *state_label = NULL;
 
   for (int i = 0; i < RARRAY_LEN(labels_array); i++) {
     VALUE key_str_pair = rb_ary_entry(labels_array, i);
@@ -100,6 +101,10 @@ static VALUE _native_sample(
       .key = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 0)),
       .str = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 1))
     };
+
+    if (rb_str_equal(rb_ary_entry(key_str_pair, 0), rb_str_new_cstr("state"))) {
+      state_label = &labels[i];
+    }
   }
   for (int i = 0; i < RARRAY_LEN(numeric_labels_array); i++) {
     VALUE key_str_pair = rb_ary_entry(numeric_labels_array, i);
@@ -122,7 +127,7 @@ static VALUE _native_sample(
     buffer,
     recorder_instance,
     values,
-    (sample_labels) {.labels = slice_labels},
+    (sample_labels) {.labels = slice_labels, .state_label = state_label},
     RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
   );
 
@@ -172,6 +177,8 @@ void sample_thread(
 
   rb_raise(rb_eArgError, "Unexpected value for sample_type: %d", type);
 }
+
+#define CHARSLICE_EQUALS(must_be_a_literal, charslice) (strlen("" must_be_a_literal) == charslice.len && strncmp(must_be_a_literal, charslice.ptr, charslice.len) == 0)
 
 // Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads
 // could continue making progress while the sample was ingested into the profile.
@@ -230,6 +237,15 @@ static void sample_thread_internal(
   VALUE last_ruby_frame = Qnil;
   int last_ruby_line = 0;
 
+  ddog_prof_Label *state_label = labels.state_label;
+  bool cpu_or_wall_sample = values.cpu_or_wall_samples > 0;
+  bool has_cpu_time = cpu_or_wall_sample && values.cpu_time_ns > 0;
+  bool only_wall_time = cpu_or_wall_sample && values.cpu_time_ns == 0 && values.wall_time_ns > 0;
+
+  if (cpu_or_wall_sample && state_label == NULL) rb_raise(rb_eRuntimeError, "BUG: Unexpected missing state_label");
+
+  if (has_cpu_time) state_label->str = DDOG_CHARSLICE_C("had cpu");
+
   for (int i = captured_frames - 1; i >= 0; i--) {
     VALUE name, filename;
     int line;
@@ -250,10 +266,55 @@ static void sample_thread_internal(
     name = NIL_P(name) ? missing_string : name;
     filename = NIL_P(filename) ? missing_string : filename;
 
+    ddog_CharSlice name_slice = char_slice_from_ruby_string(name);
+    ddog_CharSlice filename_slice = char_slice_from_ruby_string(filename);
+
+    bool top_of_the_stack = i == 0;
+
+    // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
+    //
+    // We try to categorize what it was doing based on what we observe at the top of the stack. This is a very rough
+    // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
+    // GVL instrumentation API.)
+    if (top_of_the_stack && only_wall_time) {
+      if (!buffer->is_ruby_frame[i]) {
+        // We know that known versions of Ruby implement these using native code; thus if we find a method with the
+        // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
+        // has the same name. Thus, even though "matching just by method name" is kinda weak,
+        // "matching by method name" + is native code seems actually to be good enough for a lot of cases.
+
+        if (CHARSLICE_EQUALS("sleep", name_slice)) { // Expected to be Kernel.sleep
+          state_label->str  = DDOG_CHARSLICE_C("sleeping");
+        } else if (CHARSLICE_EQUALS("select", name_slice)) { // Expected to be Kernel.select
+          state_label->str  = DDOG_CHARSLICE_C("waiting");
+        } else if (
+            CHARSLICE_EQUALS("synchronize", name_slice) || // Expected to be Monitor/Mutex#synchronize
+            CHARSLICE_EQUALS("lock", name_slice) ||        // Expected to be Mutex#lock
+            CHARSLICE_EQUALS("join", name_slice)           // Expected to be Thread#join
+        ) {
+          state_label->str  = DDOG_CHARSLICE_C("blocked");
+        } else if (CHARSLICE_EQUALS("wait_readable", name_slice)) { // Expected to be IO#wait_readable
+          state_label->str  = DDOG_CHARSLICE_C("network");
+        }
+        #ifdef NO_PRIMITIVE_POP // Ruby < 3.2
+          else if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
+            state_label->str  = DDOG_CHARSLICE_C("waiting");
+          }
+        #endif
+      } else {
+        #ifndef NO_PRIMITIVE_POP // Ruby >= 3.2
+          // Unlike the above, Ruby actually treats this one specially and gives it a nice file name we can match on!
+          if (CHARSLICE_EQUALS("pop", name_slice) && CHARSLICE_EQUALS("<internal:thread_sync>", filename_slice)) { // Expected to be Queue/SizedQueue#pop
+            state_label->str  = DDOG_CHARSLICE_C("waiting");
+          }
+        #endif
+      }
+    }
+
     buffer->locations[i] = (ddog_prof_Location) {
       .function = (ddog_prof_Function) {
-        .name = char_slice_from_ruby_string(name),
-        .filename = char_slice_from_ruby_string(filename)
+        .name = name_slice,
+        .filename = filename_slice,
       },
       .line = line,
     };
