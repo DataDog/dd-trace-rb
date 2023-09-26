@@ -753,12 +753,14 @@ static void trigger_sample_for_thread(
     rb_raise(rb_eRuntimeError, "BUG: Unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
 
+  ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = label_pos};
+
   sample_thread(
     stack_from_thread,
     state->sampling_buffer,
     state->recorder_instance,
     values,
-    (ddog_prof_Slice_Label) {.ptr = labels, .len = label_pos},
+    (sample_labels) {.labels = slice_labels},
     type
   );
 }

@@ -40,7 +40,7 @@ static void record_placeholder_stack_in_native_code(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  sample_labels labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
 );
@@ -49,7 +49,7 @@ static void sample_thread_internal(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  sample_labels labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
 );
@@ -115,12 +115,14 @@ static VALUE _native_sample(
 
   sampling_buffer *buffer = sampling_buffer_new(max_frames_requested);
 
+  ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
+
   sample_thread(
     thread,
     buffer,
     recorder_instance,
     values,
-    (ddog_prof_Slice_Label) {.ptr = labels, .len = labels_count},
+    (sample_labels) {.labels = slice_labels},
     RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
   );
 
@@ -134,7 +136,7 @@ void sample_thread(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  sample_labels labels,
   sample_type type
 ) {
   // Samples thread into recorder
@@ -195,7 +197,7 @@ static void sample_thread_internal(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  sample_labels labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
 ) {
@@ -320,7 +322,7 @@ static void record_placeholder_stack_in_native_code(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  sample_labels labels,
   sampling_buffer *record_buffer,
   int extra_frames_in_record_buffer
 ) {

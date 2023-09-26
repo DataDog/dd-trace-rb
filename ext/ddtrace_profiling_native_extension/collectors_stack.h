@@ -13,7 +13,7 @@ void sample_thread(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  ddog_prof_Slice_Label labels,
+  sample_labels labels,
   sample_type type
 );
 sampling_buffer *sampling_buffer_new(unsigned int max_frames);
