@@ -267,7 +267,7 @@ RSpec.describe 'net/http requests' do
     end
 
     describe 'integration' do
-      let(:transport) { Datadog::Transport::HTTP.default }
+      let(:transport) { Datadog::Tracing::Transport::HTTP.default }
 
       it 'does not create a span for the transport request' do
         expect(Datadog::Tracing).to_not receive(:trace)

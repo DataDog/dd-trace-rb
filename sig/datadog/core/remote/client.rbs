@@ -8,7 +8,7 @@ module Datadog
         class SyncError < StandardError
         end
 
-        attr_reader transport: Datadog::Core::Transport::Config::Transport
+        attr_reader transport: Datadog::Core::Remote::Transport::Config::Transport
 
         attr_reader repository: Configuration::Repository
 
@@ -18,7 +18,7 @@ module Datadog
 
         attr_reader capabilities: Capabilities
 
-        def initialize: (Datadog::Core::Transport::Config::Transport transport, Capabilities capabilities, ?repository: Configuration::Repository) -> void
+        def initialize: (Datadog::Core::Remote::Transport::Config::Transport transport, Capabilities capabilities, ?repository: Configuration::Repository) -> void
 
         def sync: () -> void
 

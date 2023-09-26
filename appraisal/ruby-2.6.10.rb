@@ -176,19 +176,24 @@ appraise 'relational_db' do
   gem 'sqlite3', '~> 1.4.1', platform: :ruby
 end
 
-appraise 'contrib' do
+appraise 'activesupport' do
+  gem 'activesupport', '~> 6.0.0'
+
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
+  gem 'grape'
+  gem 'lograge', '~> 0.11'
+  gem 'racecar', '>= 0.3.5'
+  gem 'ruby-kafka', '>= 0.7.10'
+end
+
+appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
-  gem 'grape'
   gem 'graphql', '>= 2.0'
   gem 'grpc', platform: :ruby
-  gem 'lograge', '~> 0.11'
-  gem 'makara'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'racecar', '>= 0.3.5'
   gem 'rack'
   gem 'rack-contrib'
   gem 'rack-test'
@@ -196,12 +201,19 @@ appraise 'contrib' do
   gem 'redis', '~> 4' # TODO: Support redis 5.x
   gem 'resque'
   gem 'roda', '>= 2.0.0'
-  gem 'ruby-kafka', '>= 0.7.10'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 6.5'
   gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0', '< 2.0.0'
+end
+
+[1, 2, 3].each do |n|
+  appraise "rack-#{n}" do
+    gem 'rack', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test'
+  end
 end
 
 appraise 'sinatra' do

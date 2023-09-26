@@ -91,8 +91,12 @@ appraise 'relational_db' do
   gem 'sqlite3', '~> 1.3.6'
 end
 
-appraise 'contrib' do
+appraise 'activesupport' do
   gem 'active_model_serializers', '~> 0.9.0'
+  gem 'ruby-kafka', '>= 0.7.10'
+end
+
+appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
   gem 'presto-client', '>=  0.5.14'
@@ -104,11 +108,18 @@ appraise 'contrib' do
   gem 'rake', '< 12.3'
   gem 'resque', '< 2.0'
   gem 'roda', '>= 2.0.0'
-  gem 'ruby-kafka', '>= 0.7.10'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 3.5.4'
   gem 'sucker_punch'
   gem 'timers', '< 4.2'
+end
+
+[1].each do |n|
+  appraise "rack-#{n}" do
+    gem 'rack', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test'
+  end
 end
 
 appraise 'sinatra' do

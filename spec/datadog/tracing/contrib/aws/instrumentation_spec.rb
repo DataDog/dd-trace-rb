@@ -454,9 +454,7 @@ RSpec.describe 'AWS instrumentation' do
       end
 
       let(:responses) do
-        { create_topic: {
-
-        } }
+        { create_topic: {} }
       end
 
       it_behaves_like 'schema version span'

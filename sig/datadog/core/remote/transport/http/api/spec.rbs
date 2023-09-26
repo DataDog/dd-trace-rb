@@ -1,0 +1,15 @@
+module Datadog
+  module Core
+    module Remote
+      module Transport
+        module HTTP
+          module API
+            class Spec
+              def initialize: () { (untyped) -> untyped } -> void
+            end
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,17 @@
+module Datadog
+  module Core
+    module Transport
+      module HTTP
+        module API
+          module Fallbacks
+            def fallbacks: () -> untyped
+
+            def with_fallbacks: (untyped fallbacks) -> untyped
+
+            def add_fallbacks!: (untyped fallbacks) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

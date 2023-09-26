@@ -17,8 +17,8 @@ end
 
 require 'datadog/tracing'
 require 'datadog/tracing/tracer'
-require 'ddtrace/transport/http'
-require 'ddtrace/transport/io'
+require 'datadog/tracing/transport/http'
+require 'datadog/tracing/transport/io'
 
 # Tests that combine the core library with integrations,
 # whose examples don't belong exclusively to either.
@@ -60,14 +60,14 @@ RSpec.describe 'transport with integrations' do
     end
 
     context 'given the default transport' do
-      let(:transport) { Datadog::Transport::HTTP.default }
+      let(:transport) { Datadog::Tracing::Transport::HTTP.default }
 
       it_behaves_like 'an uninstrumented transport'
     end
 
     context 'given an Unix socket transport' do
       let(:transport) do
-        Datadog::Transport::HTTP.default do |t|
+        Datadog::Tracing::Transport::HTTP.default do |t|
           t.adapter :unix, '/tmp/ddagent/trace.sock'
         end
       end
@@ -76,7 +76,7 @@ RSpec.describe 'transport with integrations' do
     end
 
     context 'given an IO transport' do
-      let(:transport) { Datadog::Transport::IO.default(out: out) }
+      let(:transport) { Datadog::Tracing::Transport::IO.default(out: out) }
       let(:out) { instance_double(::IO) }
 
       before { allow(out).to receive(:puts) }

@@ -1,0 +1,29 @@
+module Datadog
+  module Tracing
+    module Transport
+      module IO
+        class Client
+          include Transport::Statistics
+
+          attr_reader encoder: untyped
+
+          attr_reader out: untyped
+
+          def initialize: (untyped `out`, untyped encoder, ?::Hash[untyped, untyped] options) -> void
+
+          def send_request: (untyped request) { (untyped, untyped) -> untyped } -> untyped
+
+          def encode_data: (untyped encoder, untyped request) -> untyped
+
+          def write_data: (untyped `out`, untyped data) -> untyped
+
+          def build_response: (untyped _request, untyped _data, untyped result) -> untyped
+
+          private
+
+          def send_default_request: (untyped `out`, untyped request) -> untyped
+        end
+      end
+    end
+  end
+end

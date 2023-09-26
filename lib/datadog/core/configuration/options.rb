@@ -101,7 +101,7 @@ module Datadog
           end
 
           def reset_options!
-            options.values.each(&:reset)
+            options.each_value(&:reset)
           end
 
           private
