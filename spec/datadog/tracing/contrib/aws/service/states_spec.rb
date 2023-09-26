@@ -28,11 +28,15 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
     let(:state_machine_arn) { 'arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine' }
     let(:params) { { state_machine_arn: state_machine_arn } }
 
-    it 'sets the state_machine_name based on the state_machine_arn' do
+    it 'sets the state_machine_name and state_machine_arn based on the state_machine_arn' do
       step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
         'MyStateMachine'
+      )
+      expect(span).to have_received(:set_tag).with(
+        Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_ARN,
+        'arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine'
       )
     end
 

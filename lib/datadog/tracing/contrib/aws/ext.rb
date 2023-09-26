@@ -31,6 +31,10 @@ module Datadog
           TAG_STREAM_NAME = 'streamname'
           TAG_RULE_NAME = 'rulename'
           TAG_STATE_MACHINE_NAME = 'statemachinename'
+          TAG_STATE_MACHINE_ARN = 'statemachinearn'
+          TAG_LOG_GROUP_NAME = 'loggroupname'
+          TAG_CLUSTER_IDENTIFIER = 'clusteridentifier'
+          TAG_FUNCTION_NAME = 'functionname'
           TAG_BUCKET_NAME = 'bucketname'
           PEER_SERVICE_SOURCES = Array[TAG_QUEUE_NAME,
             TAG_TOPIC_NAME,

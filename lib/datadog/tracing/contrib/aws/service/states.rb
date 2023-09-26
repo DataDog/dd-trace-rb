@@ -31,6 +31,7 @@ module Datadog
               end
               span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, state_machine_account_id)
               span.set_tag(Aws::Ext::TAG_STATE_MACHINE_NAME, state_machine_name)
+              span.set_tag(Aws::Ext::TAG_STATE_MACHINE_ARN, state_machine_arn)
             end
           end
         end
