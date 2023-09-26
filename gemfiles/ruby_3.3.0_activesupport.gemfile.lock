@@ -110,7 +110,10 @@ GEM
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
     libdatadog (4.0.0.1.0-aarch64-linux)
+    libdatadog (4.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     lograge (0.13.0)
       actionpack (>= 4)
@@ -250,6 +253,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-linux
 
 DEPENDENCIES
   actionpack
