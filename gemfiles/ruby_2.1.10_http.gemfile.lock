@@ -48,6 +48,7 @@ GEM
       multipart-post (>= 1.2, < 3)
     ffi (1.12.2)
     google-protobuf (3.6.1)
+    google-protobuf (3.6.1-x86_64-linux)
     hashdiff (1.0.1)
     http (3.0.0)
       addressable (~> 2.3)
@@ -129,7 +130,9 @@ GEM
     yard (0.9.26)
 
 PLATFORMS
+  aarch64-linux
   ruby
+  x86_64-linux
 
 DEPENDENCIES
   appraisal (~> 2.2.0)

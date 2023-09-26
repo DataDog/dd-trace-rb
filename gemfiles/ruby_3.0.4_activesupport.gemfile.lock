@@ -95,6 +95,7 @@ GEM
     extlz4 (0.3.4)
     ffi (1.15.5)
     google-protobuf (3.24.3-aarch64-linux)
+    google-protobuf (3.24.3-x86_64-linux)
     grape (1.8.0)
       activesupport (>= 5)
       builder
@@ -111,7 +112,10 @@ GEM
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
     libdatadog (4.0.0.1.0-aarch64-linux)
+    libdatadog (4.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     lograge (0.13.0)
       actionpack (>= 4)
@@ -131,6 +135,8 @@ GEM
     mustermann-grape (1.0.2)
       mustermann (>= 1.0.0)
     nokogiri (1.15.4-aarch64-linux)
+      racc (~> 1.4)
+    nokogiri (1.15.4-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
     parallel (1.23.0)
@@ -252,6 +258,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-linux
 
 DEPENDENCIES
   actionpack
