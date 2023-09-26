@@ -97,6 +97,8 @@ GEM
     rack (2.2.6.2)
     rack-protection (2.2.4)
       rack
+    rack-test (2.1.0)
+      rack (>= 1.3)
     rake (12.3.3)
     rake-compiler (1.2.5)
       rake
@@ -207,6 +209,7 @@ DEPENDENCIES
   pry-nav
   pry-stack_explorer
   que (>= 1.0.0, < 2.0.0)
+  rack-test
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)

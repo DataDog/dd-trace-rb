@@ -31,6 +31,7 @@ gem "dalli", ">= 3.0.0"
 gem "graphql", ">= 2.0"
 gem "i18n", "1.8.7", platform: :jruby
 gem "mongo", ">= 2.8.0", "< 2.15.0"
+gem "rack-test"
 gem "resque"
 gem "roda", ">= 2.0.0"
 gem "semantic_logger", "~> 4.0"
