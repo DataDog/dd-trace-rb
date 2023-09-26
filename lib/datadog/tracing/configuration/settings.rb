@@ -371,6 +371,12 @@ module Datadog
                   o.env Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED
                 end
 
+                # Use async writer in test mode
+                option :async do |o|
+                  o.type :bool
+                  o.default false
+                end
+
                 option :trace_flush
 
                 option :writer_options do |o|

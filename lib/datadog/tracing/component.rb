@@ -134,12 +134,12 @@ module Datadog
       # process, but can take a variety of options (including
       # a fully custom instance) that makes the Tracer
       # initialization process complex.
-      def build_writer(settings, agent_settings)
+      def build_writer(settings, agent_settings, options = settings.tracing.writer_options)
         if (writer = settings.tracing.writer)
           return writer
         end
 
-        Tracing::Writer.new(agent_settings: agent_settings, **settings.tracing.writer_options)
+        Tracing::Writer.new(agent_settings: agent_settings, **options)
       end
 
       def subscribe_to_writer_events!(writer, sampler_delegator, test_mode)
@@ -223,8 +223,11 @@ module Datadog
       end
 
       def build_test_mode_writer(settings, agent_settings)
-        # Flush traces synchronously, to guarantee they are written.
         writer_options = settings.tracing.test_mode.writer_options || {}
+
+        return build_writer(settings, agent_settings, writer_options) if settings.tracing.test_mode.async
+
+        # Flush traces synchronously, to guarantee they are written.
         Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
       end
     end
