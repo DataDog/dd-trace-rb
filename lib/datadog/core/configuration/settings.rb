@@ -99,7 +99,6 @@ module Datadog
           # Datadog features are sending to the Agent or backend.
           # @default `DD_TRACE_DEBUG` environment variable, otherwise `false`
           # @return [Boolean]
-          # rubocop:disable Lint/RedundantRequireStatement
           option :debug do |o|
             o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED
             o.default false
@@ -110,8 +109,6 @@ module Datadog
               require 'pp' if enabled
             end
           end
-          # rubocop:enable Lint/RedundantRequireStatement
-
           # Internal {Datadog::Statsd} metrics collection.
           #
           # @public_api

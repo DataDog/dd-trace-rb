@@ -376,13 +376,6 @@ Style/RedundantFetchBlock:
 RSpec/BeforeAfterAll:
   Enabled: false
 
-# Enforces snake case file names.
-Naming/FileName:
-  Exclude:
-    - 'integration/**/Gemfile'
-    - 'integration/**/Rakefile'
-    - 'Steepfile'
-
 # Enforces boolean parameters with default to be keyword arguments.
 Style/OptionalBooleanParameter:
   Enabled: false
@@ -444,3 +437,8 @@ Style/WordArray:
 # `!!` is the de facto way in Ruby to cast an Object to boolean.
 Style/DoubleNegation:
   Enabled: false
+
+Lint/RedundantRequireStatement:
+  Enabled: true
+  Exclude:
+    - 'lib/datadog/core/configuration/settings.rb'
