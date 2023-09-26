@@ -74,7 +74,7 @@ GEM
     pry-nav (1.0.0)
       pry (>= 0.9.10, < 0.15)
     que (1.4.1)
-    rack (2.0.9.2)
+    rack (2.2.8)
     rack-protection (2.0.8.1)
       rack
     rack-test (2.1.0)

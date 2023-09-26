@@ -78,7 +78,7 @@ GEM
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
     que (1.4.1)
-    rack (2.2.5)
+    rack (2.2.8)
     rack-protection (2.2.4)
       rack
     rack-test (2.1.0)
