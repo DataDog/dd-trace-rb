@@ -31,7 +31,9 @@ module Datadog
 
         return [nil, { profiling_enabled: false }] unless Profiling.supported?
 
-        # Activate forking extensions
+        require 'datadog/kit/enable_core_dumps'
+
+        # Load extensions needed to support some of the Profiling features
         Profiling::Tasks::Setup.new.run
 
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
