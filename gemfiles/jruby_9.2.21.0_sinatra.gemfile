@@ -29,6 +29,7 @@ gem "yard", "~> 0.9"
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
 gem "opentracing", ">= 0.4.1"
 gem "sinatra"
+gem "rack-contrib"
 gem "rack-test"
 
 group :check do

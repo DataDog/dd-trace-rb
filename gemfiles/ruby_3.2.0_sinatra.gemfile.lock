@@ -78,6 +78,8 @@ GEM
       binding_of_caller (~> 1.0)
       pry (~> 0.13)
     rack (2.2.6.2)
+    rack-contrib (2.3.0)
+      rack (~> 2.0)
     rack-protection (3.0.5)
       rack
     rack-test (2.0.2)
@@ -180,6 +182,7 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-stack_explorer
+  rack-contrib
   rack-test
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)

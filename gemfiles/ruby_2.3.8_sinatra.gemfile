@@ -33,6 +33,7 @@ gem "docile", "~> 1.3.5"
 gem "msgpack", "~> 1.3.3"
 gem "sinatra", "< 3.0"
 gem "mustermann", "< 3.0"
+gem "rack-contrib"
 gem "rack-test"
 
 group :check do
