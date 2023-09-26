@@ -46,7 +46,7 @@ end
 appraise 'rails5-postgres-sidekiq' do
   gem 'rails', '~> 5.2.1'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
+  gem 'sidekiq', '~> 6'
   gem 'activejob'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
@@ -94,7 +94,7 @@ end
 appraise 'rails6-postgres-sidekiq' do
   gem 'rails', '~> 6.0.0'
   gem 'pg', '< 1.0', platform: :ruby
-  gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
+  gem 'sidekiq', '~> 6'
   gem 'activejob'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
@@ -199,7 +199,7 @@ appraise 'contrib' do
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
-  gem 'sidekiq', '~> 6' # TODO: Support sidekiq 7.x
+  gem 'sidekiq', '~> 6'
   gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'

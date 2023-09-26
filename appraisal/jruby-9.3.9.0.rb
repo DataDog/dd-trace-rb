@@ -28,7 +28,7 @@ end
 appraise 'rails5-postgres-redis' do
   gem 'rails', '~> 5.2.1'
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-  gem 'redis', '~> 4' # TODO: Support redis 5.x
+  gem 'redis', '~> 4'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
 end
@@ -76,7 +76,7 @@ end
 appraise 'rails6-postgres-redis' do
   gem 'rails', '~> 6.0.0'
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-  gem 'redis', '~> 4' # TODO: Support redis 5.x
+  gem 'redis', '~> 4'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
 end
@@ -117,7 +117,7 @@ end
 appraise 'rails61-postgres-redis' do
   gem 'rails', '~> 6.1.0'
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-  gem 'redis', '~> 4' # TODO: Support redis 5.x
+  gem 'redis', '~> 4'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
 end
@@ -195,7 +195,7 @@ appraise 'contrib' do
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
-  gem 'redis', '~> 4' # TODO: Support redis 5.x
+  gem 'redis', '~> 4'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'

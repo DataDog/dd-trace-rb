@@ -19,7 +19,7 @@ end
 appraise 'rails61-postgres-redis' do
   gem 'rails', '~> 6.1.0'
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-  gem 'redis', '~> 4' # TODO: Support redis 5.x
+  gem 'redis', '~> 4'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
   gem 'net-smtp'
