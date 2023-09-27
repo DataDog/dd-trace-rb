@@ -16,22 +16,35 @@ module Datadog
               execution_arn = params[:execution_arn]
               state_machine_account_id = ''
 
-              if execution_arn
-                # 'arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution'
-                parts = execution_arn.split(':')
-                state_machine_name = parts[-2]
+              if state_machine_arn
+                span.set_tag(Aws::Ext::TAG_STATE_MACHINE_ARN, state_machine_arn)
+                # https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html#API_StartExecution_RequestSyntax:~:text=Required%3A%20No-,stateMachineArn,-The%20Amazon%20Resource
+                # arn:<partition>:states:<region>:<account-id>:stateMachine:<myStateMachineName>
+                # arn:<partition>:states:<region>:<account-id>:stateMachine:<myStateMachineName>:10
+                # arn:<partition>:states:<region>:<account-id>:stateMachine:<myStateMachineName:PROD>
+                # There are 3 patterns to cover and attempt to capture the `myStateMachineName`, it should always be in index 6 and account_id at index 4
+                parts = state_machine_arn.split(':')
+                state_machine_name ||= parts[6]
                 state_machine_account_id = parts[4]
               end
 
-              if state_machine_arn
-                # example statemachinearn: arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine
-                parts = state_machine_arn.split(':')
-                state_machine_name ||= parts[-1]
-                state_machine_account_id = parts[-3]
+              if execution_arn
+                span.set_tag(Aws::Ext::TAG_STATE_EXECUTION_ARN, execution_arn)
+                # express
+                # arn:aws:states:sa-east-1:123456789012:express:targetStateMachineName:1234:5678
+                # standard
+                # arn:aws:states:sa-east-1:123456789012:execution:targetStateMachineName:1234
+                parts = execution_arn.split(':')
+                state_machine_name = parts[6]
+                state_machine_account_id = parts[4]
               end
-              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, state_machine_account_id)
-              span.set_tag(Aws::Ext::TAG_STATE_MACHINE_NAME, state_machine_name)
-              span.set_tag(Aws::Ext::TAG_STATE_MACHINE_ARN, state_machine_arn)
+              
+              if state_machine_account_id
+                span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, state_machine_account_id)
+              end
+              if state_machine_name
+                span.set_tag(Aws::Ext::TAG_STATE_MACHINE_NAME, state_machine_name)
+              end
             end
           end
         end
