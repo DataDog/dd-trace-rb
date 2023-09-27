@@ -12,14 +12,22 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
   end
 
   context 'with execution_arn provided' do
-    let(:execution_arn) { 'arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution' }
+    let(:execution_arn) { 'arn:aws:states:sa-east-1:123456789012:express:targetStateMachineName:1234:5678' }
     let(:params) { { execution_arn: execution_arn } }
 
-    it 'sets the state_machine_name based on the execution_arn' do
+    it 'sets the state_machine_name, execution_arn, and aws_account based on the execution_arn' do
       step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
         'example-state-machine'
+      )
+      expect(span).to have_received(:set_tag).with(
+        Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_EXECUTION_ARN,
+        'arn:aws:states:sa-east-1:123456789012:express:targetStateMachineName:1234:5678'
+      )
+      expect(span).to have_received(:set_tag).with(
+        Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT,
+        '123456789012'
       )
     end
   end
