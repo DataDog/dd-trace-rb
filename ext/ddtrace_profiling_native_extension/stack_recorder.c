@@ -257,6 +257,9 @@ static const rb_data_type_t stack_recorder_typed_data = {
 static VALUE _native_new(VALUE klass) {
   struct stack_recorder_state *state = ruby_xcalloc(1, sizeof(struct stack_recorder_state));
 
+  // FIXME: State gets leaked if any exception happens between here and the end of the method
+  // TODO: Check other similar methods for the same issue
+
   ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
 
   initialize_slot_concurrency_control(state);
@@ -265,8 +268,22 @@ static VALUE _native_new(VALUE klass) {
 
   // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
 
-  state->slot_one_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
-  state->slot_two_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+  ddog_prof_Profile_NewResult slot_one_profile_result =
+    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+
+  if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
+    return Qnil; // FIXME
+  }
+
+  ddog_prof_Profile_NewResult slot_two_profile_result =
+    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+
+  if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
+    return Qnil; // FIXME
+  }
+
+  state->slot_one_profile = slot_one_profile_result.ok;
+  state->slot_two_profile = slot_two_profile_result.ok;
 
   return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 }
@@ -339,8 +356,22 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_insta
   ddog_prof_Profile_drop(&state->slot_one_profile);
   ddog_prof_Profile_drop(&state->slot_two_profile);
 
-  state->slot_one_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
-  state->slot_two_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+  ddog_prof_Profile_NewResult slot_one_profile_result =
+    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+
+  if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
+    return Qnil; // FIXME
+  }
+
+  ddog_prof_Profile_NewResult slot_two_profile_result =
+    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+
+  if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
+    return Qnil; // FIXME
+  }
+
+  state->slot_one_profile = slot_one_profile_result.ok;
+  state->slot_two_profile = slot_two_profile_result.ok;
 
   return Qtrue;
 }
