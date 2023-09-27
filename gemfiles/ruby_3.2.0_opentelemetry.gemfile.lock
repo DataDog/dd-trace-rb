@@ -75,7 +75,6 @@ GEM
       opentelemetry-semantic_conventions
     opentelemetry-semantic_conventions (1.8.0)
       opentelemetry-api (~> 1.0)
-    opentracing (0.5.0)
     os (1.1.4)
     parallel (1.23.0)
     parser (3.2.1.0)
@@ -174,7 +173,6 @@ DEPENDENCIES
   json-schema (< 3)
   memory_profiler (~> 0.9)
   opentelemetry-sdk (~> 1.1)
-  opentracing (>= 0.4.1)
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry

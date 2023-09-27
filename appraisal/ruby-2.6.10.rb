@@ -226,6 +226,10 @@ appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.1'
 end
 
+appraise 'opentracing' do
+  gem 'opentracing', '>= 0.4.1'
+end
+
 [3, 4, 5].each do |n|
   appraise "redis-#{n}" do
     gem 'redis', "~> #{n}"

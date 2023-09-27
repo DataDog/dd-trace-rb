@@ -1,5 +1,4 @@
 require 'datadog/tracing'
-require 'datadog/opentracer'
 require 'datadog/statsd'
 
 RSpec.describe 'Datadog integration' do
@@ -122,44 +121,6 @@ RSpec.describe 'Datadog integration' do
 
       it 'does not error on reporting health metrics' do
         expect { Datadog.health_metrics.queue_accepted(1) }.to_not raise_error
-      end
-
-      context 'with OpenTracer' do
-        before do
-          OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new
-        end
-
-        let(:tracer) do
-          OpenTracing.global_tracer
-        end
-
-        it 'does not error on tracing' do
-          span = tracer.start_span('test')
-
-          expect { span.finish }.to_not raise_error
-        end
-
-        it 'does not error on tracing with block' do
-          scope = tracer.start_span('test') do |scp|
-            expect(scp).to be_a(OpenTracing::Scope)
-          end
-
-          expect(scope).to be_a(OpenTracing::Span)
-        end
-
-        it 'does not error on registered scope tracing' do
-          span = tracer.start_active_span('test')
-
-          expect { span.close }.to_not raise_error
-        end
-
-        it 'does not error on registered scope tracing with block' do
-          scope = tracer.start_active_span('test') do |scp|
-            expect(scp).to be_a(OpenTracing::Scope)
-          end
-
-          expect(scope).to be_a(OpenTracing::Scope)
-        end
       end
     end
   end

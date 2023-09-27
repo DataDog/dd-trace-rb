@@ -36,7 +36,6 @@ gem "rubocop-packaging", "~> 0.5.2", require: false
 gem "rubocop-performance", "~> 1.9", require: false
 gem "rubocop-rspec", ["~> 2.20", "< 2.21"], require: false
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
-gem "opentracing", ">= 0.4.1"
 gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
 gem "activesupport", "~> 7"
 gem "actionpack"
