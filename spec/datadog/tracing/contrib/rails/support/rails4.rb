@@ -134,13 +134,7 @@ RSpec.shared_context 'Rails 4 base application' do
     #
     # see: https://github.com/reidmorrison/rails_semantic_logger/tree/master/lib/rails_semantic_logger/extensions/active_support
     Logger.new(log_output).tap do |l|
-      l.formatter = if defined?(ActiveSupport::Logger::SimpleFormatter)
-                      ActiveSupport::Logger::SimpleFormatter.new
-                    else
-                      proc do |_, _, _, msg|
-                        "#{String === msg ? msg : msg.inspect}\n"
-                      end
-                    end
+      l.formatter = ActiveSupport::Logger::SimpleFormatter.new
     end
   end
 

@@ -147,20 +147,11 @@ RSpec.shared_context 'Rails 3 base application' do
   end
 
   let(:logger) do
-    # Use `ActiveSupport::Logger::SimpleFormatter` to exclude unnecessary metadata.
-    #
-    # This must not be replaced by `ActiveSupport::Logger` instance with `ActiveSupport::Logger.new(log_output)`,
-    # because RailsSemanticLogger monkey patch
-    #
-    # see: https://github.com/reidmorrison/rails_semantic_logger/tree/master/lib/rails_semantic_logger/extensions/active_support
+    # Rails 3.x does not have `ActiveSupport::Logger::SimpleFormatter`
     Logger.new(log_output).tap do |l|
-      l.formatter = if defined?(ActiveSupport::Logger::SimpleFormatter)
-                      ActiveSupport::Logger::SimpleFormatter.new
-                    else
-                      proc do |_, _, _, msg|
-                        "#{String === msg ? msg : msg.inspect}\n"
-                      end
-                    end
+      l.formatter = proc do |_, _, _, msg|
+        "#{String === msg ? msg : msg.inspect}\n"
+      end
     end
   end
 
