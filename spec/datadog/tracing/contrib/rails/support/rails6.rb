@@ -277,7 +277,6 @@ RSpec.shared_context 'Rails 6 base application' do
     # puts ActiveSupport::LogSubscriber.log_subscribers
     # puts "Before: ===================="
     ::Lograge::LogSubscribers::ActionController.detach_from :action_controller
-    ::Lograge::ActionView::LogSubscriber.detach_from :action_view
     # To Debug:
     #
     # puts "After: ===================="
