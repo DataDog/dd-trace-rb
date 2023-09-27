@@ -5,7 +5,6 @@ require_relative './service/kinesis'
 require_relative './service/eventbridge'
 require_relative './service/states'
 require_relative './service/s3'
-require_relative './service/lambda'
 
 module Datadog
   module Tracing
@@ -131,7 +130,6 @@ module Datadog
           'eventbridge' => Service::EventBridge.new,
           'states' => Service::States.new,
           's3' => Service::S3.new,
-          'lambda' => Service::Lambda.new
         }.freeze
       end
     end
