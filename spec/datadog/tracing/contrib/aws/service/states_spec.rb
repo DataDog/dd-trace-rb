@@ -46,6 +46,10 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_ARN,
         'arn:aws:states:us-east-1:123456789012:stateMachine:MyStateMachine'
       )
+      expect(span).to have_received(:set_tag).with(
+        Datadog::Tracing::Contrib::Aws::Ext::TAG_AWS_ACCOUNT,
+        '123456789012'
+      )
     end
 
     it 'sets the state_machine_account_id based on the state_machine_arn' do
