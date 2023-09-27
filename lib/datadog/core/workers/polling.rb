@@ -6,7 +6,7 @@ module Datadog
     module Workers
       # Adds polling (async looping) behavior to workers
       module Polling
-        SHUTDOWN_TIMEOUT = 1
+        DEFAULT_SHUTDOWN_TIMEOUT = 1
 
         def self.included(base)
           base.include(Workers::IntervalLoop)
@@ -21,7 +21,7 @@ module Datadog
           end
         end
 
-        def stop(force_stop = false, timeout = SHUTDOWN_TIMEOUT)
+        def stop(force_stop = false, timeout = DEFAULT_SHUTDOWN_TIMEOUT)
           if running?
             # Attempt graceful stop and wait
             stop_loop

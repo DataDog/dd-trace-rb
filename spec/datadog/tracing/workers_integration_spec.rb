@@ -236,7 +236,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         expect(trace_task).to have_received(:call).once
         expect(service_task).to_not have_received(:call)
         expect(@shutdown_end - @shutdown_beg)
-          .to be < Datadog::Tracing::Workers::AsyncTransport::SHUTDOWN_TIMEOUT
+          .to be < Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT
       end
     end
 
@@ -248,7 +248,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
       it 'interrupts the worker to speed up shutdown' do
         expect(@shutdown_end - @shutdown_beg)
           .to be_within(5).of(
-            Datadog::Tracing::Workers::AsyncTransport::SHUTDOWN_TIMEOUT
+            Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT
           )
       end
     end

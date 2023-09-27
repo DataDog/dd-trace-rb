@@ -631,6 +631,21 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
       end
 
+      describe '#async' do
+        subject(:enabled) { settings.tracing.test_mode.async }
+
+        it { is_expected.to be false }
+      end
+
+      describe '#async=' do
+        it 'updates the #async setting' do
+          expect { settings.tracing.test_mode.async = true }
+            .to change { settings.tracing.test_mode.async }
+            .from(false)
+            .to(true)
+        end
+      end
+
       describe '#writer_options' do
         subject(:writer_options) { settings.tracing.test_mode.writer_options }
 

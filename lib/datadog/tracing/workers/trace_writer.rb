@@ -104,6 +104,8 @@ module Datadog
           # Workers::Queue settings
           @buffer_size = options.fetch(:buffer_size, DEFAULT_BUFFER_MAX_SIZE)
           self.buffer = TraceBuffer.new(@buffer_size)
+
+          @shutdown_timeout = options.fetch(:shutdown_timeout, Core::Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT)
         end
 
         # NOTE: #perform is wrapped by other modules:
@@ -119,7 +121,7 @@ module Datadog
           nil
         end
 
-        def stop(*args)
+        def stop(force_stop = false, timeout = @shutdown_timeout)
           buffer.close if running?
           super
         end
