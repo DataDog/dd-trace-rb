@@ -11,6 +11,8 @@ require 'datadog/tracing/contrib/rails/support/controllers'
 require 'datadog/tracing/contrib/rails/support/middleware'
 require 'datadog/tracing/contrib/rails/support/models'
 
+require_relative 'backport'
+
 RSpec.shared_context 'Rails 5 base application' do
   include_context 'Rails controllers'
   include_context 'Rails middleware'
@@ -255,7 +257,9 @@ RSpec.shared_context 'Rails 5 base application' do
     # puts "Before: ===================="
     # puts ActiveSupport::LogSubscriber.log_subscribers
     # puts "Before: ===================="
-    unsubscribe(ActiveSupport::LogSubscriber.log_subscribers.select { |s| ::Lograge::LogSubscribers::Base === s })
+    ::Datadog::Tracing::Contrib::Rails::Test::Backport.unsubscribe(
+      ActiveSupport::LogSubscriber.log_subscribers.select { |s| ::Lograge::LogSubscribers::Base === s }
+    )
     # To Debug:
     #
     # puts "After: ===================="
@@ -277,7 +281,7 @@ RSpec.shared_context 'Rails 5 base application' do
     # puts "Before: ===================="
     # puts ActiveSupport::LogSubscriber.log_subscribers
     # puts "Before: ===================="
-    unsubscribe(
+    ::Datadog::Tracing::Contrib::Rails::Test::Backport.unsubscribe(
       ActiveSupport::LogSubscriber.log_subscribers.select do |s|
         s.class.name.start_with? 'RailsSemanticLogger::'
       end

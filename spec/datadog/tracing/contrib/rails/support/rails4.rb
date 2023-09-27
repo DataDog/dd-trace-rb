@@ -11,6 +11,8 @@ require 'datadog/tracing/contrib/rails/support/controllers'
 require 'datadog/tracing/contrib/rails/support/middleware'
 require 'datadog/tracing/contrib/rails/support/models'
 
+require_relative 'backport'
+
 RSpec.shared_context 'Rails 4 base application' do
   include_context 'Rails controllers'
   include_context 'Rails middleware'
@@ -252,7 +254,9 @@ RSpec.shared_context 'Rails 4 base application' do
     # puts "Before: ===================="
     # puts ActiveSupport::LogSubscriber.log_subscribers
     # puts "Before: ===================="
-    unsubscribe(ActiveSupport::LogSubscriber.log_subscribers.select { |s| ::Lograge::LogSubscribers::Base === s })
+    ::Datadog::Tracing::Contrib::Rails::Test::Backport.unsubscribe(
+      ActiveSupport::LogSubscriber.log_subscribers.select { |s| ::Lograge::LogSubscribers::Base === s }
+    )
     # To Debug:
     #
     # puts "After: ===================="
@@ -274,7 +278,7 @@ RSpec.shared_context 'Rails 4 base application' do
     # puts "Before: ===================="
     # puts ActiveSupport::LogSubscriber.log_subscribers
     # puts "Before: ===================="
-    unsubscribe(
+    ::Datadog::Tracing::Contrib::Rails::Test::Backport.unsubscribe(
       ActiveSupport::LogSubscriber.log_subscribers.select do |s|
         s.class.name.start_with? 'RailsSemanticLogger::'
       end
@@ -284,23 +288,6 @@ RSpec.shared_context 'Rails 4 base application' do
     # puts "After: ===================="
     # puts ActiveSupport::LogSubscriber.log_subscribers
     # puts "After: ===================="
-  end
-
-  # Backporting `ActiveSupport::Subscriber#detach_from` implementation for older Rails
-  def unsubscribe(subscribers)
-    subscribers.each do |subscriber|
-      patterns = if subscriber.patterns.respond_to?(:keys)
-                   subscriber.patterns.keys
-                 else
-                   subscriber.patterns
-                 end
-      patterns.each do |pattern|
-        ActiveSupport::Notifications.notifier.listeners_for(pattern).each do |listener|
-          ActiveSupport::Notifications.unsubscribe listener if listener.instance_variable_get('@delegate') == subscriber
-        end
-      end
-      ActiveSupport::LogSubscriber.log_subscribers.delete(subscriber)
-    end
   end
 
   def append_routes!
