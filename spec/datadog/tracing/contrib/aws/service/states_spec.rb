@@ -19,7 +19,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::States do
       step_functions.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_MACHINE_NAME,
-        'example-state-machine'
+        'targetStateMachineName'
       )
       expect(span).to have_received(:set_tag).with(
         Datadog::Tracing::Contrib::Aws::Ext::TAG_STATE_EXECUTION_ARN,
