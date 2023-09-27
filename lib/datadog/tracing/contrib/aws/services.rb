@@ -129,7 +129,7 @@ module Datadog
           'kinesis' => Service::Kinesis.new,
           'eventbridge' => Service::EventBridge.new,
           'states' => Service::States.new,
-          's3' => Service::S3.new,
+          's3' => Service::S3.new
         }.freeze
       end
     end
