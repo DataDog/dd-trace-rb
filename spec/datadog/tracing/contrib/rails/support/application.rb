@@ -223,14 +223,6 @@ RSpec.shared_context 'Rails test application' do
     end
   end
 
-  if Rails.version < '4.0'
-    around do |example|
-      without_warnings do
-        example.run
-      end
-    end
-  end
-
   let(:tracer_options) { {} }
 
   let(:app_name) { Datadog::Tracing::Contrib::Rails::Utils.app_name }

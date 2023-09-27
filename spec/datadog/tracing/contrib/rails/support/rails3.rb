@@ -28,6 +28,12 @@ RSpec.shared_context 'Rails 3 base application' do
   include_context 'Rails middleware'
   include_context 'Rails models'
 
+  around do |example|
+    without_warnings do
+      example.run
+    end
+  end
+
   let(:rails_base_application) do
     during_init = initialize_block
     klass = Class.new(Rails::Application) do
