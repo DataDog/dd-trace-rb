@@ -349,8 +349,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch('event'))
 
-        expect(event_data).to eq(
-          'attachments' => [pprof_file_name, code_provenance_file_name],
+        expect(event_data).to match(
+          'attachments' => contain_exactly(pprof_file_name, code_provenance_file_name),
           'tags_profiler' => 'tag_a:value_a,tag_b:value_b',
           'start' => start_timestamp,
           'end' => end_timestamp,
