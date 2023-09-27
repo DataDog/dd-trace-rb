@@ -87,7 +87,7 @@ module Datadog
             on_unknown_os? ||
             on_unsupported_cpu_arch? ||
             on_unsupported_ruby_version? ||
-            on_ruby_3_3? ||
+            #on_ruby_3_3? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
             libdatadog_not_available? ||
             libdatadog_not_usable?

@@ -82,6 +82,16 @@ bool is_current_thread_holding_the_gvl(void) {
   return owner.valid && pthread_equal(pthread_self(), owner.owner);
 }
 
+rb_ractor_t *get_ractor_replacement(void) {
+  VALUE current_thread = rb_thread_current();
+  return thread_struct_from_object(current_thread)->ractor;
+}
+
+rb_vm_t *vm_from_current_thread(void) {
+  VALUE current_thread = rb_thread_current();
+  return thread_struct_from_object(current_thread)->vm;
+}
+
 #ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
   // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
   //
@@ -93,13 +103,13 @@ bool is_current_thread_holding_the_gvl(void) {
   //   anyway. So unless we want to prevent the Ruby scheduler from switching threads, we need to deal with races here.
   current_gvl_owner gvl_owner(void) {
     const rb_thread_t *current_owner =
-      #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
-        GET_RACTOR()->threads.sched.running;
-      #elif HAVE_RUBY_RACTOR_H
-        GET_RACTOR()->threads.gvl.owner;
-      #else
-        GET_VM()->gvl.owner;
-      #endif
+      // #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
+        get_ractor_replacement()->threads.sched.running;
+      // #elif HAVE_RUBY_RACTOR_H
+      //   GET_RACTOR()->threads.gvl.owner;
+      // #else
+      //   GET_VM()->gvl.owner;
+      // #endif
 
     if (current_owner == NULL) return (current_gvl_owner) {.valid = false};
 
@@ -233,18 +243,18 @@ void ddtrace_thread_list(VALUE result_array) {
   //
   // I suspect the design in `rb_ractor_thread_list` may be done that way to perhaps in the future expose it to be
   // called from a different Ractor, but I'm not sure...
-  #ifdef HAVE_RUBY_RACTOR_H
-    rb_ractor_t *current_ractor = GET_RACTOR();
+  // #ifdef HAVE_RUBY_RACTOR_H
+    rb_ractor_t *current_ractor = get_ractor_replacement();
     ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
-  #else
-    rb_vm_t *vm =
-      #ifndef NO_GET_VM
-        GET_VM();
-      #else
-        thread_struct_from_object(rb_thread_current())->vm;
-      #endif
-    list_for_each(&vm->living_threads, thread, vmlt_node) {
-  #endif
+  // #else
+  //   rb_vm_t *vm =
+  //     #ifndef NO_GET_VM
+  //       GET_VM();
+  //     #else
+  //       thread_struct_from_object(rb_thread_current())->vm;
+  //     #endif
+  //   list_for_each(&vm->living_threads, thread, vmlt_node) {
+  // #endif
       switch (thread->status) {
         case THREAD_RUNNABLE:
         case THREAD_STOPPED:
@@ -742,9 +752,10 @@ check_method_entry(VALUE obj, int can_be_svar)
     // * None
     bool rb_ractor_main_p_(void)
     {
-        VM_ASSERT(rb_multi_ractor_p());
-        rb_execution_context_t *ec = GET_EC();
-        return rb_ec_ractor_ptr(ec) == rb_ec_vm_ptr(ec)->ractor.main_ractor;
+        // VM_ASSERT(rb_multi_ractor_p());
+        // rb_execution_context_t *ec = GET_EC();
+        return get_ractor_replacement() == vm_from_current_thread()->ractor.main_ractor;
+        // return rb_ec_ractor_ptr(ec) == rb_ec_vm_ptr(ec)->ractor.main_ractor;
     }
   #else
     // Directly access Ruby internal fast path for detecting multiple Ractors.
