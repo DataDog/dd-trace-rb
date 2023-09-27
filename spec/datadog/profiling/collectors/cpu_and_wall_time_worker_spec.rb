@@ -403,13 +403,31 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             .map { |it| it.values.fetch(:'cpu-samples') }
             .reduce(:+)
 
+        # Since we're reading the stats AFTER the worker is stopped, we expect a consistent view, as otherwise we
+        # would have races (e.g. the stats could be changing as we're trying to read them, since it's on a background
+        # thread that doesn't hold the Global VM Lock while mutating some of these values)
         stats = cpu_and_wall_time_worker.stats
+        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
 
         expect(sample_count).to be > 0
-        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:trigger_simulated_signal_delivery_attempts))
-        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:simulated_signal_delivery))
-        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:signal_handler_enqueued_sample))
-        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:postponed_job_success))
+        expect(stats).to(
+          match(
+            a_hash_including(
+              trigger_simulated_signal_delivery_attempts: trigger_sample_attempts,
+              simulated_signal_delivery: trigger_sample_attempts,
+              signal_handler_enqueued_sample: trigger_sample_attempts,
+              # @ivoanjo: A flaky test run was reported for this assertion -- a case where `trigger_sample_attempts` was 1
+              # but `postponed_job_success` was 0 (on Ruby 2.6).
+              # See https://app.circleci.com/pipelines/github/DataDog/dd-trace-rb/11866/workflows/08660eeb-0746-4675-87fd-33d473a3f479/jobs/445903
+              # At the time, the test didn't print the full `stats` contents, so it's unclear to me if the test failed
+              # because the postponed job API returned something other than success, or if something else entirely happened.
+              # If/when it happens again, hopefully the extra debugging + this info helps out with the investigation.
+              postponed_job_success: trigger_sample_attempts,
+            )
+          ),
+          "**If you see this test flaking, please report it to @ivoanjo!**\n\n" \
+          "sample_count: #{sample_count}, samples: #{all_samples}"
+        )
       end
     end
 
