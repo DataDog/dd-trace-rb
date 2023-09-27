@@ -12,6 +12,6 @@ RSpec.describe 'Rails tracer' do
   end
 
   it 'sets default database' do
-    expect(adapter_name).not_to eq('defaultdb')
+    expect(Datadog::Tracing::Contrib::ActiveRecord::Utils.adapter_name).not_to eq('defaultdb')
   end
 end
