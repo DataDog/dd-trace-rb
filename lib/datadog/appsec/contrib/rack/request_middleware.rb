@@ -73,7 +73,7 @@ module Datadog
               # On Gateway::Response#parsed_body we might iterate over the reposne body using :each
               # https://github.com/rack/rack/blob/main/SPEC.rdoc#enumerable-body-
               consumed_body = request_return[2].to_ary
-              request_return[2] = consumed_body
+              request_return[2] = consumed_body if consumed_body
             end
 
             gateway_response = Gateway::Response.new(
