@@ -100,38 +100,6 @@ RSpec.shared_context 'Rails test application' do
     end
   end
 
-  before do
-    reset_rails_configuration!
-    reset_lograge_configuration! if defined?(::Lograge)
-    raise_on_rails_deprecation!
-  end
-
-  after do
-    reset_rails_configuration!
-    reset_lograge_configuration! if defined?(::Lograge)
-    reset_lograge_subscription! if defined?(::Lograge)
-    reset_rails_semantic_logger_subscription! if defined?(::RailsSemanticLogger)
-
-    # Reset references stored in the Rails class
-    Rails.application = nil
-    Rails.logger = nil
-
-    if Rails::VERSION::MAJOR >= 4
-      Rails.app_class = nil
-      Rails.cache = nil
-    end
-
-    without_warnings { Datadog.configuration.reset! }
-    Datadog.configuration.tracing[:rails].reset_options!
-    Datadog.configuration.tracing[:rack].reset_options!
-    Datadog.configuration.tracing[:redis].reset_options!
-  end
-
-  let(:app) do
-    initialize_app!
-    rails_test_application.instance
-  end
-
   def initialize_app!
     # Reinitializing Rails applications generates a lot of warnings.
     without_warnings do
