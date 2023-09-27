@@ -191,8 +191,6 @@ RSpec.shared_context 'Rails test application' do
     end
   end
 
-  let(:tracer_options) { {} }
-
   let(:app_name) { Datadog::Tracing::Contrib::Rails::Utils.app_name }
 
   def adapter_name
