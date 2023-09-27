@@ -83,6 +83,10 @@ RSpec.shared_context 'Rails 5 base application' do
     klass
   end
 
+  let(:rails_test_application) do
+    stub_const('Rails5::Application', Class.new(rails_base_application))
+  end
+
   let(:before_test_initialize_block) do
     proc do
       append_routes!

@@ -74,6 +74,10 @@ RSpec.shared_context 'Rails 3 base application' do
     klass
   end
 
+  let(:rails_test_application) do
+    stub_const('Rails3::Application', rails_base_application)
+  end
+
   let(:before_test_initialize_block) do
     proc do
       append_routes!
