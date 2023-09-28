@@ -1,12 +1,5 @@
 require 'rails/all'
 
-require 'ddtrace' if ENV['TEST_AUTO_INSTRUMENT'] == true
-
-if ENV['USE_SIDEKIQ']
-  require 'sidekiq/testing'
-  require 'datadog/tracing/contrib/sidekiq/server_tracer'
-end
-
 require 'datadog/tracing/contrib/rails/support/controllers'
 require 'datadog/tracing/contrib/rails/support/middleware'
 require 'datadog/tracing/contrib/rails/support/models'

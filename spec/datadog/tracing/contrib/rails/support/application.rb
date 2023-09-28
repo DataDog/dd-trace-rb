@@ -3,14 +3,6 @@ require 'spec/datadog/tracing/contrib/rails/support/deprecation'
 require 'rails/all'
 require 'ddtrace'
 
-if ENV['USE_SIDEKIQ']
-  require 'sidekiq/testing'
-  require 'datadog/tracing/contrib/sidekiq/server_tracer'
-end
-
-require 'lograge' if ENV['USE_LOGRAGE'] == true
-require 'rails_semantic_logger' if ENV['USE_SEMANTIC_LOGGER'] == true
-
 RSpec.shared_context 'Rails test application' do
   if Rails.version >= '6.0'
     require 'datadog/tracing/contrib/rails/support/rails6'
