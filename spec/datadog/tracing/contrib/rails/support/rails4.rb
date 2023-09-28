@@ -10,6 +10,7 @@ require 'datadog/tracing/contrib/rails/support/middleware'
 require 'datadog/tracing/contrib/rails/support/models'
 
 require_relative 'reset_log_subscription'
+require_relative 'deprecation'
 
 RSpec.shared_context 'Rails 4 base application' do
   include_context 'Rails controllers'

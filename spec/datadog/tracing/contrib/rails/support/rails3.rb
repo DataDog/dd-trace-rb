@@ -5,6 +5,7 @@ require 'datadog/tracing/contrib/rails/support/middleware'
 require 'datadog/tracing/contrib/rails/support/models'
 
 require_relative 'reset_log_subscription'
+require_relative 'deprecation'
 
 # Patch Rails::Application so it doesn't raise an exception
 # when we reinitialize applications.
