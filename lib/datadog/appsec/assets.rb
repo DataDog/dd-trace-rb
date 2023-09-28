@@ -14,6 +14,10 @@ module Datadog
         read('waf_rules/processors.json')
       end
 
+      def waf_scanners
+        read('waf_rules/scanners.json')
+      end
+
       def blocked(format: :html)
         (@blocked ||= {})[format] ||= read("blocked.#{format}")
       end
