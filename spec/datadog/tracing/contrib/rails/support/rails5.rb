@@ -200,7 +200,6 @@ RSpec.shared_context 'Rails 5 base application' do
   after do
     reset_rails_configuration!
     reset_lograge_configuration! if defined?(::Lograge)
-    reset_log_subscription!
 
     # Reset references stored in the Rails class
     Rails.application = nil

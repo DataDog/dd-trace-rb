@@ -3,7 +3,7 @@ require_relative 'backport'
 RSpec.shared_context 'Reset log subscription' do
   # Unsubscribe log subscription to prevent flaky specs due to multiple subscription
   # after several test cases.
-  def reset_log_subscription!
+  after do
     # To Debug:
     #
     # puts "Before: ===================="
