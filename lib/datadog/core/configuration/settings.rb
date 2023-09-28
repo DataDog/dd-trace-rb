@@ -646,23 +646,13 @@ module Datadog
           # @default `nil`.
           # @return [Array<String>,nil]
           option :extra_services do |o|
+            o.type :array
+            o.default []
             o.setter do |v|
-              if v.nil?
-                []
-              elsif !v.is_a?(Array)
-                Datadog.logger.warn(
-                  "Unexpected remote.extra_services type #{v.class}, expected Array. " \
-                  'Using default value `[]`'
-                )
+              if v.any? { |e| !e.is_a?(String) }
+                t = v.find { |e| !e.is_a?(String) }
 
-                []
-              elsif (t = v.find { |e| !e.is_a?(String) })
-                Datadog.logger.warn(
-                  "Unexpected remote.extra_services element type #{t.class}, expected String. " \
-                  'Using default value `[]`'
-                )
-
-                []
+                raise ArgumentError, "Unexpected remote.extra_services element type #{t.class}, expected String."
               else
                 v
               end

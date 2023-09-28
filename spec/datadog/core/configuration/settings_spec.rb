@@ -1392,5 +1392,37 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to('foo')
       end
     end
+
+    describe '#extra_services' do
+      subject(:extra_services) { settings.remote.extra_services }
+
+      context 'defaults to []' do
+        it { is_expected.to eq [] }
+      end
+    end
+
+    describe '#extra_services=' do
+      it 'updates the #extra_services setting' do
+        expect { settings.remote.extra_services = ['foo'] }
+          .to change { settings.remote.extra_services }
+          .from([])
+          .to(['foo'])
+      end
+
+      it 'rejects nil' do
+        expect { settings.remote.extra_services = nil }
+          .to raise_error(ArgumentError, /expects a array/)
+      end
+
+      it 'rejects nil items' do
+        expect { settings.remote.extra_services = [nil] }
+          .to raise_error(ArgumentError, /expected String/)
+      end
+
+      it 'rejects non-string items' do
+        expect { settings.remote.extra_services = [42] }
+          .to raise_error(ArgumentError, /expected String/)
+      end
+    end
   end
 end
