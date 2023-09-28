@@ -756,6 +756,7 @@ static void trigger_sample_for_thread(
     *state_label = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("state"),
       .str = DDOG_CHARSLICE_C("unknown"),
+      .num = 0, // This shouldn't be needed but the tracer-2.7 docker image ships a buggy gcc that complains about this
     };
   }
 
