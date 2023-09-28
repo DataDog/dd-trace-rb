@@ -202,6 +202,15 @@ services:
     command: /bin/bash
     depends_on:
       - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - opensearch
+      - postgres
+      - presto
+      - redis
+      - redis_old
       - testagent
     env_file: ./.env
     environment: &common-environment-3x
