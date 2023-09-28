@@ -304,6 +304,9 @@ static int hash_map_per_thread_context_free_values(DDTRACE_UNUSED st_data_t _thr
 static VALUE _native_new(VALUE klass) {
   struct thread_context_collector_state *state = ruby_xcalloc(1, sizeof(struct thread_context_collector_state));
 
+  // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
+  // being leaked.
+
   // Update this when modifying state struct
   state->sampling_buffer = NULL;
   state->hash_map_per_thread_context =
