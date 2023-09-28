@@ -272,22 +272,24 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a thread waiting on a select' do
-        let(:read_pipe) do
-          read_pipe, write_pipe = IO.pipe
-          write_pipe.close
-          read_pipe
-        end
-        let(:background_thread) { Thread.new(ready_queue, read_pipe, &do_in_background_thread) }
+        let(:server_socket) { TCPServer.new(6006) }
+        let(:background_thread) { Thread.new(ready_queue, server_socket, &do_in_background_thread) }
         let(:do_in_background_thread) do
           proc do |ready_queue, read_pipe|
             ready_queue << true
-            IO.select([read_pipe])
+            IO.select([server_socket])
+            # server_socket.wait_readable
+            # ready_queue << true
+            # IO.select([read_pipe])
+            puts "Select failed!"
           end
         end
         let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
 
         after do
-          read_pipe.close
+          background_thread.kill
+          background_thread.join
+          server_socket.close
         end
 
         it do
