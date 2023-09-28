@@ -275,13 +275,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:server_socket) { TCPServer.new(6006) }
         let(:background_thread) { Thread.new(ready_queue, server_socket, &do_in_background_thread) }
         let(:do_in_background_thread) do
-          proc do |ready_queue, read_pipe|
+          proc do |ready_queue, server_socket|
             ready_queue << true
             IO.select([server_socket])
-            # server_socket.wait_readable
-            # ready_queue << true
-            # IO.select([read_pipe])
-            puts "Select failed!"
           end
         end
         let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
