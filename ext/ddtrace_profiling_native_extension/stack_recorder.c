@@ -423,7 +423,8 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
       .locations = locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
       .labels = labels.labels
-    }
+    },
+    labels.end_timestamp_ns
   );
 
   sampler_unlock_active_profile(active_slot);

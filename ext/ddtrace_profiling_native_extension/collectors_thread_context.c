@@ -660,7 +660,6 @@ static void trigger_sample_for_thread(
     1 + // thread id
     1 + // thread name
     1 + // profiler overhead
-    1 + // end_timestamp_ns
     2 + // ruby vm type and allocation class
     1 + // state (only set for cpu/wall-time samples)
     2;  // local root span id and span id
@@ -725,13 +724,6 @@ static void trigger_sample_for_thread(
     };
   }
 
-  if (state->timeline_enabled && current_monotonic_wall_time_ns != INVALID_TIME) {
-    labels[label_pos++] = (ddog_prof_Label) {
-      .key = DDOG_CHARSLICE_C("end_timestamp_ns"),
-      .num = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns)
-    };
-  }
-
   if (ruby_vm_type != NULL) {
     labels[label_pos++] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("ruby vm type"),
@@ -770,12 +762,18 @@ static void trigger_sample_for_thread(
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = label_pos};
 
+  // The end_timestamp_ns is treated specially by libdatadog and that's why it's not added as a ddog_prof_Label
+  int64_t end_timestamp_ns = 0;
+  if (state->timeline_enabled && current_monotonic_wall_time_ns != INVALID_TIME) {
+    end_timestamp_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns);
+  }
+
   sample_thread(
     stack_from_thread,
     state->sampling_buffer,
     state->recorder_instance,
     values,
-    (sample_labels) {.labels = slice_labels, .state_label = state_label},
+    (sample_labels) {.labels = slice_labels, .state_label = state_label, .end_timestamp_ns = end_timestamp_ns},
     type
   );
 }
