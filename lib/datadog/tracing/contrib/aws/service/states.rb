@@ -24,16 +24,20 @@ module Datadog
                 # arn:<partition>:states:<region>:<account-id>:stateMachine:<myStateMachineName:PROD>
                 # There are 3 patterns to cover and attempt to capture the `myStateMachineName`, it should always be in index 6 and account_id at index 4
                 parts = state_machine_arn.split(':')
-                state_machine_name ||= parts[6]
+                if state_machine_name == nil
+                  state_machine_name ||= parts[6]
+                end
                 state_machine_account_id = parts[4]
-            elsif execution_arn
+              elsif execution_arn
                 span.set_tag(Aws::Ext::TAG_STATE_EXECUTION_ARN, execution_arn)
                 # express
                 # arn:aws:states:sa-east-1:123456789012:express:targetStateMachineName:1234:5678
                 # standard
                 # arn:aws:states:sa-east-1:123456789012:execution:targetStateMachineName:1234
                 parts = execution_arn.split(':')
-                state_machine_name = parts[6]
+                if state_machine_name == nil
+                  state_machine_name ||= parts[6]
+                end
                 state_machine_account_id = parts[4]
               end
               
