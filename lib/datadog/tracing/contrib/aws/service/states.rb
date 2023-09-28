@@ -27,7 +27,8 @@ module Datadog
 
                 state_machine_name ||= parts[6] if state_machine_name.nil?
                 state_machine_account_id = parts[4]
-              elsif execution_arn
+              end
+              if execution_arn
                 span.set_tag(Aws::Ext::TAG_STATE_EXECUTION_ARN, execution_arn)
                 # express
                 # arn:aws:states:sa-east-1:123456789012:express:targetStateMachineName:1234:5678
