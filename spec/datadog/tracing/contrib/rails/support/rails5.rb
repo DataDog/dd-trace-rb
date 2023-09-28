@@ -239,23 +239,6 @@ RSpec.shared_context 'Rails 5 base application' do
     ::Lograge.formatter = nil
   end
 
-  # Backporting `ActiveSupport::Subscriber#detach_from` implementation for older Rails
-  def unsubscribe(subscribers)
-    subscribers.each do |subscriber|
-      patterns = if subscriber.patterns.respond_to?(:keys)
-                   subscriber.patterns.keys
-                 else
-                   subscriber.patterns
-                 end
-      patterns.each do |pattern|
-        ActiveSupport::Notifications.notifier.listeners_for(pattern).each do |listener|
-          ActiveSupport::Notifications.unsubscribe listener if listener.instance_variable_get('@delegate') == subscriber
-        end
-      end
-      ActiveSupport::LogSubscriber.log_subscribers.delete(subscriber)
-    end
-  end
-
   def append_routes!
     # Make sure to load controllers first
     # otherwise routes won't draw properly.
