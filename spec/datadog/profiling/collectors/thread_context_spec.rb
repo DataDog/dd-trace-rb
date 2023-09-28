@@ -171,7 +171,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       t1_samples = samples_for_thread(samples, t1)
 
-      wall_time = t1_samples.map(&:values).map { |it| it.fetch(:'wall-time') }.sum
+      wall_time = t1_samples.map(&:values).map { |it| it.fetch(:'wall-time') }.reduce(:+)
       expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
     end
 
@@ -180,7 +180,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       t1_samples = samples_for_thread(samples, t1)
 
-      expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.sum).to eq 5
+      expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.reduce(:+)).to eq 5
     end
 
     [:before, :after].each do |on_gc_finish_order|
@@ -501,7 +501,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                 expect(t1_samples)
                   .to all have_attributes(labels: include(:'trace endpoint' => 'changed_after_first_sample'))
-                expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.sum).to eq 2
+                expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.reduce(:+)).to eq 2
               end
 
               context 'when the resource is changed multiple times' do
@@ -516,7 +516,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                   expect(t1_samples)
                     .to all have_attributes(labels: include(:'trace endpoint' => 'changed_after_second_sample'))
-                  expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.sum).to eq 3
+                  expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.reduce(:+)).to eq 3
                 end
               end
             end
