@@ -536,7 +536,8 @@ namespace :spec do
 end
 
 if defined?(RuboCop::RakeTask)
-  RuboCop::RakeTask.new(:rubocop) do |_t|
+  RuboCop::RakeTask.new(:rubocop) do |t|
+    t.options = ['--auto-correct']
   end
 end
 

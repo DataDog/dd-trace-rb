@@ -22,11 +22,10 @@ module Datadog
                 # arn:<partition>:states:<region>:<account-id>:stateMachine:<myStateMachineName>
                 # arn:<partition>:states:<region>:<account-id>:stateMachine:<myStateMachineName>:10
                 # arn:<partition>:states:<region>:<account-id>:stateMachine:<myStateMachineName:PROD>
-                # There are 3 patterns to cover and attempt to capture the `myStateMachineName`, it should always be in index 6 and account_id at index 4
+                # 3 patterns to cover and attempt to capture the `myStateMachineName` at index 6 and account_id 4
                 parts = state_machine_arn.split(':')
-                if state_machine_name == nil
-                  state_machine_name ||= parts[6]
-                end
+
+                state_machine_name ||= parts[6] if state_machine_name.nil?
                 state_machine_account_id = parts[4]
               elsif execution_arn
                 span.set_tag(Aws::Ext::TAG_STATE_EXECUTION_ARN, execution_arn)
@@ -35,18 +34,12 @@ module Datadog
                 # standard
                 # arn:aws:states:sa-east-1:123456789012:execution:targetStateMachineName:1234
                 parts = execution_arn.split(':')
-                if state_machine_name == nil
-                  state_machine_name ||= parts[6]
-                end
+                state_machine_name ||= parts[6] if state_machine_name.nil?
                 state_machine_account_id = parts[4]
               end
-              
-              if state_machine_account_id
-                span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, state_machine_account_id)
-              end
-              if state_machine_name
-                span.set_tag(Aws::Ext::TAG_STATE_MACHINE_NAME, state_machine_name)
-              end
+
+              span.set_tag(Aws::Ext::TAG_AWS_ACCOUNT, state_machine_account_id) if state_machine_account_id
+              span.set_tag(Aws::Ext::TAG_STATE_MACHINE_NAME, state_machine_name) if state_machine_name
             end
           end
         end
