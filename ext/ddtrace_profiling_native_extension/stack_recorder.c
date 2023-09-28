@@ -387,9 +387,6 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
 
-  // This will raise on error
-  reset_profile(args.profile, /* start_time: */ NULL);
-
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
 }
 
@@ -453,7 +450,8 @@ static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
   args->profile = serializer_flip_active_and_inactive_slots(args->state);
-  args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */);
+  // Note: The profile gets reset by the serialize call
+  args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
   args->serialize_ran = true;
 
   return NULL; // Unused
