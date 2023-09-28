@@ -180,16 +180,16 @@ module Datadog
           config = Datadog.configuration.remote.extra_services
 
           if config.nil? && Datadog.configuration.tracing.enabled
-            return Datadog.configuration.tracing.instrumented_integrations.each_with_object([]) do |(k, v), a|
+            integrations = Datadog.configuration.tracing.instrumented_integrations.each_with_object([]) do |(k, v), a|
               next unless v.respond_to?(:service_name)
 
-              name = v.service_name.to_s
-
-              a << name unless name == service_name
+              a << v.service_name.to_s
             end
+
+            return integrations + [Datadog.configuration.service] - [service_name]
           end
 
-          config
+          config + [Datadog.configuration.service] - [service_name]
         end
 
         def tracer_version_semver2
