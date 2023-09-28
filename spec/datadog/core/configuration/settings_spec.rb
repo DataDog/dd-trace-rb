@@ -1396,8 +1396,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#extra_services' do
       subject(:extra_services) { settings.remote.extra_services }
 
-      context 'defaults to []' do
-        it { is_expected.to eq [] }
+      context 'defaults to nil' do
+        it { is_expected.to eq nil }
       end
     end
 
@@ -1405,13 +1405,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       it 'updates the #extra_services setting' do
         expect { settings.remote.extra_services = ['foo'] }
           .to change { settings.remote.extra_services }
-          .from([])
+          .from(nil)
           .to(['foo'])
-      end
-
-      it 'rejects nil' do
-        expect { settings.remote.extra_services = nil }
-          .to raise_error(ArgumentError, /expects a array/)
       end
 
       it 'rejects nil items' do

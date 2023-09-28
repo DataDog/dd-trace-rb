@@ -643,13 +643,15 @@ module Datadog
           # configured to use names that differ from DD_SERVICE and should be
           # considered as a single remote configuration controllable service.
           #
-          # @default `nil`.
+          # @default `nil`. Automatically gathers service names from tracing configuration; use `[]` to disable.
           # @return [Array<String>,nil]
           option :extra_services do |o|
-            o.type :array
-            o.default []
+            o.type :array, nilable: true
+            o.default nil
             o.setter do |v|
-              if v.any? { |e| !e.is_a?(String) }
+              if v.nil?
+                v
+              elsif v.any? { |e| !e.is_a?(String) }
                 t = v.find { |e| !e.is_a?(String) }
 
                 raise ArgumentError, "Unexpected remote.extra_services element type #{t.class}, expected String."

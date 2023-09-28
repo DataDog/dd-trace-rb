@@ -177,7 +177,19 @@ module Datadog
         end
 
         def extra_service_names
-          Datadog.configuration.remote.extra_services || []
+          config = Datadog.configuration.remote.extra_services
+
+          if config.nil? && Datadog.configuration.tracing.enabled
+            return Datadog.configuration.tracing.instrumented_integrations.each_with_object([]) do |(k, v), a|
+              next unless v.respond_to?(:service_name)
+
+              name = v.service_name.to_s
+
+              a << name unless name == service_name
+            end
+          end
+
+          config
         end
 
         def tracer_version_semver2
