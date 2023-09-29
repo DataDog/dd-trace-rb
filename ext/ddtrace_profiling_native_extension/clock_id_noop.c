@@ -10,7 +10,6 @@
 #include "helpers.h"
 
 void self_test_clock_id(void) { } // Nothing to check
-VALUE clock_id_for(DDTRACE_UNUSED VALUE _self, DDTRACE_UNUSED VALUE _thread) { return Qnil; } // Nothing to return
 
 thread_cpu_time_id thread_cpu_time_id_for(DDTRACE_UNUSED VALUE _thread) {
   return (thread_cpu_time_id) {.valid = false};

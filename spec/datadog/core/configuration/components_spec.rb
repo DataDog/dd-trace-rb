@@ -10,15 +10,6 @@ require 'datadog/core/logger'
 require 'datadog/core/telemetry/client'
 require 'datadog/core/runtime/metrics'
 require 'datadog/core/workers/runtime_metrics'
-require 'datadog/profiling'
-require 'datadog/profiling/collectors/code_provenance'
-require 'datadog/profiling/collectors/old_stack'
-require 'datadog/profiling/profiler'
-require 'datadog/profiling/old_recorder'
-require 'datadog/profiling/exporter'
-require 'datadog/profiling/scheduler'
-require 'datadog/profiling/tasks/setup'
-require 'datadog/profiling/trace_identifiers/helper'
 require 'datadog/statsd'
 require 'datadog/tracing/configuration/agent_settings_resolver'
 require 'datadog/tracing/flush'
@@ -785,73 +776,104 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           context 'set to true' do
             let(:enabled) { true }
-            let(:sync_writer) { Datadog::Tracing::SyncWriter.new }
 
-            before do
-              expect(Datadog::Tracing::SyncWriter)
-                .to receive(:new)
-                .with(agent_settings: agent_settings, **writer_options)
-                .and_return(writer)
-            end
+            context 'and :async' do
+              context 'is set' do
+                let(:writer) { Datadog::Tracing::Writer.new }
+                let(:writer_options) { { transport_options: :bar } }
+                let(:writer_options_test_mode) { { transport_options: :baz } }
 
-            context 'and :trace_flush' do
-              before do
-                allow(settings.tracing.test_mode)
-                  .to receive(:trace_flush)
-                  .and_return(trace_flush)
+                before do
+                  allow(settings.tracing.test_mode)
+                    .to receive(:async)
+                    .and_return(true)
+
+                  allow(settings.tracing.test_mode)
+                    .to receive(:writer_options)
+                    .and_return(writer_options_test_mode)
+
+                  expect(Datadog::Tracing::SyncWriter)
+                    .not_to receive(:new)
+
+                  expect(Datadog::Tracing::Writer)
+                    .to receive(:new)
+                    .with(agent_settings: agent_settings, **writer_options_test_mode)
+                    .and_return(writer)
+                end
+
+                it_behaves_like 'event publishing writer'
               end
 
               context 'is not set' do
-                let(:trace_flush) { nil }
+                let(:sync_writer) { Datadog::Tracing::SyncWriter.new }
 
-                it_behaves_like 'new tracer' do
-                  let(:options) do
-                    {
-                      writer: kind_of(Datadog::Tracing::SyncWriter)
-                    }
-                  end
-                  let(:writer) { sync_writer }
-
-                  it_behaves_like 'event publishing writer'
+                before do
+                  expect(Datadog::Tracing::SyncWriter)
+                    .to receive(:new)
+                    .with(agent_settings: agent_settings, **writer_options)
+                    .and_return(writer)
                 end
-              end
 
-              context 'is set' do
-                let(:trace_flush) { instance_double(Datadog::Tracing::Flush::Finished) }
-
-                it_behaves_like 'new tracer' do
-                  let(:options) do
-                    {
-                      trace_flush: trace_flush,
-                      writer: kind_of(Datadog::Tracing::SyncWriter)
-                    }
+                context 'and :trace_flush' do
+                  before do
+                    allow(settings.tracing.test_mode)
+                      .to receive(:trace_flush)
+                      .and_return(trace_flush)
                   end
-                  let(:writer) { sync_writer }
 
-                  it_behaves_like 'event publishing writer'
+                  context 'is not set' do
+                    let(:trace_flush) { nil }
+
+                    it_behaves_like 'new tracer' do
+                      let(:options) do
+                        {
+                          writer: kind_of(Datadog::Tracing::SyncWriter)
+                        }
+                      end
+                      let(:writer) { sync_writer }
+
+                      it_behaves_like 'event publishing writer'
+                    end
+                  end
+
+                  context 'is set' do
+                    let(:trace_flush) { instance_double(Datadog::Tracing::Flush::Finished) }
+
+                    it_behaves_like 'new tracer' do
+                      let(:options) do
+                        {
+                          trace_flush: trace_flush,
+                          writer: kind_of(Datadog::Tracing::SyncWriter)
+                        }
+                      end
+                      let(:writer) { sync_writer }
+
+                      it_behaves_like 'event publishing writer'
+                    end
+                  end
                 end
-              end
-            end
 
-            context 'and :writer_options' do
-              before do
-                allow(settings.tracing.test_mode)
-                  .to receive(:writer_options)
-                  .and_return(writer_options)
-              end
-
-              context 'are set' do
-                let(:writer_options) { { transport_options: :bar } }
-
-                it_behaves_like 'new tracer' do
-                  let(:options) do
-                    {
-                      writer: writer
-                    }
+                context 'and :writer_options' do
+                  before do
+                    allow(settings.tracing.test_mode)
+                      .to receive(:writer_options)
+                      .and_return(writer_options)
                   end
-                  let(:writer) { sync_writer }
 
-                  it_behaves_like 'event publishing writer'
+                  context 'are set' do
+                    let(:writer_options) { { transport_options: :bar } }
+
+                    it_behaves_like 'new tracer' do
+                      let(:options) do
+                        {
+                          writer: writer
+                        }
+                      end
+                      let(:writer) { sync_writer }
+
+                      it_behaves_like 'event publishing writer'
+                    end
+                  end
                 end
               end
             end

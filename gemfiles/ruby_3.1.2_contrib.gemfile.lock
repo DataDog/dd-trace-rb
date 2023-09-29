@@ -13,7 +13,7 @@ PATH
   specs:
     ddtrace (1.14.0)
       datadog-ci (~> 0.1.0)
-      debase-ruby_core_source (= 3.2.1)
+      debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -49,7 +49,7 @@ GEM
     cri (2.15.11)
     dalli (3.2.4)
     datadog-ci (0.1.1)
-    debase-ruby_core_source (3.2.1)
+    debase-ruby_core_source (3.2.2)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -71,7 +71,6 @@ GEM
     json (2.6.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    king_konf (1.0.1)
     libdatadog (4.0.0.1.0-aarch64-linux)
     libdatadog (4.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
@@ -80,7 +79,6 @@ GEM
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
-    mini_portile2 (2.8.1)
     mongo (2.14.1)
       bson (>= 4.8.2, < 5.0.0)
     mono_logger (1.1.1)
@@ -88,11 +86,6 @@ GEM
     multi_json (1.15.0)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
-    net-protocol (0.2.1)
-      timeout
-    net-smtp (0.3.3)
-      net-protocol
-    opentracing (0.5.0)
     os (1.1.4)
     parallel (1.23.0)
     parser (3.2.1.0)
@@ -108,25 +101,16 @@ GEM
       binding_of_caller (~> 1.0)
       pry (~> 0.13)
     que (2.2.0)
-    racecar (2.8.2)
-      king_konf (~> 1.0.0)
-      rdkafka (~> 0.12.0)
-    rack (2.2.6.2)
-    rack-contrib (2.3.0)
-      rack (~> 2.0)
+    rack (2.2.8)
     rack-protection (3.0.5)
       rack
-    rack-test (2.0.2)
+    rack-test (2.1.0)
       rack (>= 1.3)
     rainbow (3.1.1)
     rake (12.3.3)
     rake-compiler (1.2.1)
       rake
     rbtree (0.4.6)
-    rdkafka (0.12.0)
-      ffi (~> 1.15)
-      mini_portile2 (~> 2.6)
-      rake (> 12)
     redcarpet (3.6.0)
     redis (4.8.1)
     redis-client (0.14.1)
@@ -223,7 +207,6 @@ GEM
       concurrent-ruby (~> 1.0)
     thor (1.2.1)
     tilt (2.1.0)
-    timeout (0.3.2)
     unicode-display_width (2.4.2)
     warning (1.3.0)
     webmock (3.13.0)
@@ -255,17 +238,12 @@ DEPENDENCIES
   json-schema (< 3)
   memory_profiler (~> 0.9)
   mongo (>= 2.8.0, < 2.15.0)
-  net-smtp
-  opentracing (>= 0.4.1)
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
   pry-byebug
   pry-stack_explorer
   que (>= 1.0.0)
-  racecar (>= 0.3.5)
-  rack
-  rack-contrib
   rack-test
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)

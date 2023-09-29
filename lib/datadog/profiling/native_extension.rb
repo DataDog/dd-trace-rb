@@ -15,27 +15,6 @@ module Datadog
           false
         end
       end
-
-      unless singleton_class.method_defined?(:clock_id_for)
-        def self.clock_id_for(_)
-          nil
-        end
-      end
-
-      def self.cpu_time_ns_for(thread)
-        clock_id =
-          begin
-            clock_id_for(thread)
-          rescue Errno::ESRCH
-            nil
-          end
-
-        begin
-          ::Process.clock_gettime(clock_id, :nanosecond) if clock_id
-        rescue Errno::EINVAL
-          nil
-        end
-      end
     end
   end
 end

@@ -142,7 +142,7 @@ appraise 'http' do
 end
 
 appraise 'relational_db' do
-  gem 'activerecord', '< 5.1.5'
+  gem 'activerecord', '~> 5'
   gem 'delayed_job'
   gem 'delayed_job_active_record'
   gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
@@ -174,9 +174,7 @@ appraise 'contrib' do
   gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
   gem 'mongo', '>= 2.8.0'
   gem 'presto-client', '>=  0.5.14'
-  gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
-  gem 'rack-contrib'
-  gem 'rack-test'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'redis', '~> 3'
   gem 'resque', '< 2.0'
@@ -192,13 +190,18 @@ end
   appraise "rack-#{n}" do
     gem 'rack', "~> #{n}"
     gem 'rack-contrib'
-    gem 'rack-test'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
   end
 end
 
 appraise 'sinatra' do
   gem 'sinatra'
-  gem 'rack-test'
+  gem 'rack-contrib'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+end
+
+appraise 'opentracing' do
+  gem 'opentracing', '>= 0.4.1'
 end
 
 [3].each do |n|

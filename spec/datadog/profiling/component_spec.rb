@@ -50,95 +50,7 @@ RSpec.describe Datadog::Profiling::Component do
         allow(profiler_setup_task).to receive(:run)
       end
 
-      context 'when using the legacy profiler' do
-        before do
-          allow(Datadog.logger).to receive(:warn).with(/Legacy profiler has been force-enabled/)
-          allow(Datadog.logger).to receive(:warn).with(/force_enable_legacy_profiler setting has been deprecated/)
-          settings.profiling.advanced.force_enable_legacy_profiler = true
-        end
-
-        it 'sets up the Profiler with the OldStack collector' do
-          expect(Datadog::Profiling::Profiler).to receive(:new).with(
-            worker: instance_of(Datadog::Profiling::Collectors::OldStack),
-            scheduler: anything,
-          )
-
-          build_profiler_component
-        end
-
-        it 'initializes the OldStack collector with the max_frames setting' do
-          expect(Datadog::Profiling::Collectors::OldStack).to receive(:new).with(
-            instance_of(Datadog::Profiling::OldRecorder),
-            hash_including(max_frames: settings.profiling.advanced.max_frames),
-          )
-
-          build_profiler_component
-        end
-
-        it 'initializes the OldRecorder with the correct event classes and max_events setting' do
-          expect(Datadog::Profiling::OldRecorder)
-            .to receive(:new)
-            .with([Datadog::Profiling::Events::StackSample], settings.profiling.advanced.max_events)
-            .and_call_original
-
-          build_profiler_component
-        end
-
-        it 'sets up the Exporter with the OldRecorder' do
-          expect(Datadog::Profiling::Exporter)
-            .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::OldRecorder)))
-
-          build_profiler_component
-        end
-
-        it 'sets up the Exporter internal_metadata with no_signals_workaround_enabled: false, timeline_enabled: false' do
-          expect(Datadog::Profiling::Exporter)
-            .to receive(:new).with(
-              hash_including(
-                internal_metadata: {
-                  no_signals_workaround_enabled: false,
-                  timeline_enabled: false,
-                }
-              )
-            )
-
-          build_profiler_component
-        end
-
-        [true, false].each do |value|
-          context "when endpoint_collection_enabled is #{value}" do
-            before { settings.profiling.advanced.endpoint.collection.enabled = value }
-
-            it "initializes the TraceIdentifiers::Helper with endpoint_collection_enabled: #{value}" do
-              expect(Datadog::Profiling::TraceIdentifiers::Helper)
-                .to receive(:new).with(tracer: tracer, endpoint_collection_enabled: value)
-
-              build_profiler_component
-            end
-          end
-        end
-
-        # See comments on file for why we do this
-        it 'loads the pprof support' do
-          expect(described_class).to receive(:load_pprof_support)
-
-          build_profiler_component
-        end
-      end
-
       context 'when using the new CPU Profiling 2.0 profiler' do
-        it 'does not initialize the OldStack collector' do
-          expect(Datadog::Profiling::Collectors::OldStack).to_not receive(:new)
-
-          build_profiler_component
-        end
-
-        it 'does not initialize the OldRecorder' do
-          expect(Datadog::Profiling::OldRecorder).to_not receive(:new)
-
-          build_profiler_component
-        end
-
         it 'initializes a ThreadContext collector' do
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
 
@@ -204,13 +116,6 @@ RSpec.describe Datadog::Profiling::Component do
 
               build_profiler_component
             end
-          end
-
-          # See comments on file for why we do this
-          it 'does not load the pprof support' do
-            expect(described_class).to_not receive(:load_pprof_support)
-
-            build_profiler_component
           end
         end
 
@@ -372,33 +277,6 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
       end
-    end
-  end
-
-  describe '.enable_new_profiler?' do
-    subject(:enable_new_profiler?) { described_class.send(:enable_new_profiler?, settings) }
-
-    before { skip_if_profiling_not_supported(self) }
-
-    context 'when force_enable_legacy_profiler is enabled' do
-      before do
-        allow(Datadog.logger).to receive(:warn)
-        settings.profiling.advanced.force_enable_legacy_profiler = true
-      end
-
-      it { is_expected.to be false }
-
-      it 'logs a warning message mentioning that the legacy profiler was enabled' do
-        expect(Datadog.logger).to receive(:warn).with(/Legacy profiler has been force-enabled/)
-
-        enable_new_profiler?
-      end
-    end
-
-    context 'when force_enable_legacy_profiler is not enabled' do
-      before { settings.profiling.advanced.force_enable_legacy_profiler = false }
-
-      it { is_expected.to be true }
     end
   end
 

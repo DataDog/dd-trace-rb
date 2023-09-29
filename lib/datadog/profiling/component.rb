@@ -7,7 +7,7 @@ module Datadog
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
-      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:)
         require_relative '../profiling/diagnostics/environment_logger'
 
         Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
@@ -34,72 +34,32 @@ module Datadog
         require_relative '../profiling'
         return unless Profiling.supported?
 
-        unless defined?(Profiling::Tasks::Setup)
-          # In #1545 a user reported a NameError due to this constant being uninitialized
-          # I've documented my suspicion on why that happened in
-          # https://github.com/DataDog/dd-trace-rb/issues/1545#issuecomment-856049025
-          #
-          # > Thanks for the info! It seems to feed into my theory: there's two moments in the code where we check if
-          # > profiler is "supported": 1) when loading ddtrace (inside preload) and 2) when starting the profile
-          # > after Datadog.configure gets run.
-          # > The problem is that the code assumes that both checks 1) and 2) will always reach the same conclusion:
-          # > either profiler is supported, or profiler is not supported.
-          # > In the problematic case, it looks like in your case check 1 decides that profiler is not
-          # > supported => doesn't load it, and then check 2 decides that it is => assumes it is loaded and tries to
-          # > start it.
-          #
-          # I was never able to validate if this was the issue or why exactly .supported? would change its mind BUT
-          # just in case it happens again, I've left this check which avoids breaking the user's application AND
-          # would instead direct them to report it to us instead, so that we can investigate what's wrong.
-          #
-          # TODO: As of June 2021, most checks in .supported? are related to the google-protobuf gem; so it's
-          # very likely that it was the origin of the issue we saw. Thus, if, as planned we end up moving away from
-          # protobuf OR enough time has passed and no users saw the issue again, we can remove this check altogether.
-          Datadog.logger.error(
-            'Profiling was marked as supported and enabled, but setup task was not loaded properly. ' \
-            'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug'
-          )
-
-          return
-        end
-
-        # Load extensions needed to support some of the Profiling features
+        # Activate forking extensions
         Profiling::Tasks::Setup.new.run
 
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
-        no_signals_workaround_enabled = false
-        timeline_enabled = false
-        worker = nil
+        no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
+        timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
 
-        if enable_new_profiler?(settings)
-          no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
-          timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
-
-          recorder = Datadog::Profiling::StackRecorder.new(
-            cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
-            alloc_samples_enabled: false, # Always disabled for now -- work in progress
-          )
-          thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.new(
-            recorder: recorder,
-            max_frames: settings.profiling.advanced.max_frames,
-            tracer: optional_tracer,
-            endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
-            timeline_enabled: timeline_enabled,
-          )
-          worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
-            gc_profiling_enabled: enable_gc_profiling?(settings),
-            allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
-            no_signals_workaround_enabled: no_signals_workaround_enabled,
-            thread_context_collector: thread_context_collector,
-            allocation_sample_every: 0,
-          )
-        else
-          load_pprof_support
-
-          recorder = build_profiler_old_recorder(settings)
-          worker = build_profiler_oldstack_collector(settings, recorder, optional_tracer)
-        end
+        recorder = Datadog::Profiling::StackRecorder.new(
+          cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
+          alloc_samples_enabled: false, # Always disabled for now -- work in progress
+        )
+        thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.new(
+          recorder: recorder,
+          max_frames: settings.profiling.advanced.max_frames,
+          tracer: optional_tracer,
+          endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
+          timeline_enabled: timeline_enabled,
+        )
+        worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
+          gc_profiling_enabled: enable_gc_profiling?(settings),
+          allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
+          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          thread_context_collector: thread_context_collector,
+          allocation_sample_every: 0,
+        )
 
         internal_metadata = {
           no_signals_workaround_enabled: no_signals_workaround_enabled,
@@ -113,10 +73,6 @@ module Datadog
         Profiling::Profiler.new(worker: worker, scheduler: scheduler)
       end
 
-      private_class_method def self.build_profiler_old_recorder(settings)
-        Profiling::OldRecorder.new([Profiling::Events::StackSample], settings.profiling.advanced.max_events)
-      end
-
       private_class_method def self.build_profiler_exporter(settings, recorder, internal_metadata:)
         code_provenance_collector =
           (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
@@ -125,19 +81,6 @@ module Datadog
           pprof_recorder: recorder,
           code_provenance_collector: code_provenance_collector,
           internal_metadata: internal_metadata,
-        )
-      end
-
-      private_class_method def self.build_profiler_oldstack_collector(settings, old_recorder, tracer)
-        trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
-          tracer: tracer,
-          endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
-        )
-
-        Profiling::Collectors::OldStack.new(
-          old_recorder,
-          trace_identifiers_helper: trace_identifiers_helper,
-          max_frames: settings.profiling.advanced.max_frames
         )
       end
 
@@ -165,17 +108,6 @@ module Datadog
         else
           false
         end
-      end
-
-      private_class_method def self.enable_new_profiler?(settings)
-        if settings.profiling.advanced.force_enable_legacy_profiler
-          Datadog.logger.warn(
-            'Legacy profiler has been force-enabled via configuration. Do not use unless instructed to by support.'
-          )
-          return false
-        end
-
-        true
       end
 
       private_class_method def self.no_signals_workaround_enabled?(settings) # rubocop:disable Metrics/MethodLength
@@ -304,19 +236,6 @@ module Datadog
 
           true
         end
-      end
-
-      # The old profiler's pprof support conflicts with the ruby-cloud-profiler gem.
-      #
-      # This is not a problem for almost all customers, since we now default everyone to use the new CPU Profiling 2.0
-      # profiler. But the issue was still triggered, because currently we still _load_ both the old and new profiling
-      # code paths.
-      #
-      # To work around this issue, and because we plan on deleting the old profiler soon, rather than poking at the
-      # pprof support code, we only load the conflicting file when the old profiler is in use. This way customers using
-      # the new profiler will not be affected by the issue any longer.
-      private_class_method def self.load_pprof_support
-        require_relative 'pprof/pprof_pb'
       end
     end
   end

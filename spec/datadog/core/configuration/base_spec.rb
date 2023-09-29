@@ -51,8 +51,6 @@ RSpec.describe Datadog::Core::Configuration::Base do
     describe 'instance behavior' do
       subject(:base_object) { base_class.new }
 
-      it { is_expected.to be_a_kind_of(Datadog::Core::Environment::VariableHelpers) }
-
       describe '#initialize' do
         subject(:base_object) { base_class.new(options) }
 

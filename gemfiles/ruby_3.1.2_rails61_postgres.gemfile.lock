@@ -13,7 +13,7 @@ PATH
   specs:
     ddtrace (1.14.0)
       datadog-ci (~> 0.1.0)
-      debase-ruby_core_source (= 3.2.1)
+      debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -103,7 +103,7 @@ GEM
     cri (2.15.11)
     datadog-ci (0.1.1)
     date (3.3.3)
-    debase-ruby_core_source (3.2.1)
+    debase-ruby_core_source (3.2.2)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -160,7 +160,6 @@ GEM
       racc (~> 1.4)
     nokogiri (1.14.2-x86_64-linux)
       racc (~> 1.4)
-    opentracing (0.5.0)
     os (1.1.4)
     parallel (1.23.0)
     parser (3.2.1.0)
@@ -310,7 +309,6 @@ DEPENDENCIES
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
   net-smtp
-  opentracing (>= 0.4.1)
   os (~> 1.1)
   pg (>= 1.1)
   pimpmychangelog (>= 0.1.2)

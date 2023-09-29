@@ -397,6 +397,22 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
         end
       end
     end
+
+    context 'given shutdown_timeout' do
+      let(:options) { { shutdown_timeout: 1000 } }
+      include_context 'shuts down the worker'
+
+      context 'and the worker has been started' do
+        before do
+          expect(writer).to receive(:join).with(1000).and_return(true)
+
+          writer.perform
+          try_wait_until { writer.running? && writer.run_loop? }
+        end
+
+        it { is_expected.to be true }
+      end
+    end
   end
 
   describe '#work_pending?' do

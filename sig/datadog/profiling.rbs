@@ -1,9 +1,5 @@
 module Datadog
   module Profiling
-    GOOGLE_PROTOBUF_MINIMUM_VERSION: ::Gem::Version
-
-    self.@protobuf_loaded: bool
-
     def self.supported?: () -> bool
 
     def self.unsupported_reason: () -> ::String?
@@ -17,16 +13,6 @@ module Datadog
     def self.native_library_compilation_skipped?: () -> ::String?
 
     def self.try_reading_skipped_reason_file: (?untyped file_api) -> ::String?
-
-    def self.protobuf_gem_unavailable?: () -> ::String?
-
-    def self.protobuf_version_unsupported?: () -> ::String?
-
-    def self.protobuf_already_loaded?: () -> bool
-
-    def self.protobuf_failed_to_load?: () -> ::String?
-
-    def self.protobuf_loaded_successfully?: () -> bool
 
     def self.native_library_failed_to_load?: () -> ::String?
 

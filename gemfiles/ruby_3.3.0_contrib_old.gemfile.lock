@@ -13,7 +13,7 @@ PATH
   specs:
     ddtrace (1.14.0)
       datadog-ci (~> 0.1.0)
-      debase-ruby_core_source (= 3.2.1)
+      debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -46,7 +46,7 @@ GEM
     daemons (1.4.1)
     dalli (2.7.11)
     datadog-ci (0.1.1)
-    debase-ruby_core_source (3.2.1)
+    debase-ruby_core_source (3.2.2)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -90,7 +90,6 @@ GEM
     multipart-post (2.3.0)
     mustermann (1.1.2)
       ruby2_keywords (~> 0.0.1)
-    opentracing (0.5.0)
     os (1.1.4)
     parallel (1.23.0)
     parser (3.2.2.1)
@@ -116,6 +115,7 @@ GEM
       thin (~> 1.6)
       thor (~> 0.19.1)
       vegas (~> 0.1.11)
+    racc (1.7.1)
     rack (2.2.7)
     rack-protection (2.0.8.1)
       rack
@@ -225,13 +225,13 @@ DEPENDENCIES
   graphql (~> 1.12.0, < 2.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
-  opentracing (>= 0.4.1)
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   presto-client (>= 0.5.14)
   pry
   pry-stack_explorer
   qless (= 0.12.0)
+  racc
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)

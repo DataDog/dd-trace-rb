@@ -76,6 +76,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:ready_queue) { Queue.new }
     let(:stacks) { { reference: background_thread.backtrace_locations, gathered: sample_and_decode(background_thread) } }
     let(:background_thread) { Thread.new(ready_queue, &do_in_background_thread) }
+    let(:expected_eval_path) do
+      # Starting in Ruby 3.3, the path on evals went from being "(eval)" to being "(eval at some_file.rb:line)"
+      RUBY_VERSION < '3.3.' ? '(eval)' : match(/\(eval at .+stack_spec.rb:\d+\)/)
+    end
 
     before do
       background_thread
@@ -126,8 +130,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       it 'has eval frames on the stack' do
         expect(reference_stack[0..2]).to contain_exactly(
-          have_attributes(base_label: 'sleep', path: '(eval)'),
-          have_attributes(base_label: '<top (required)>', path: '(eval)'),
+          have_attributes(base_label: 'sleep', path: expected_eval_path),
+          have_attributes(base_label: '<top (required)>', path: expected_eval_path),
           have_attributes(base_label: 'eval', path: end_with('stack_spec.rb')),
         )
       end
@@ -170,8 +174,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           # These two frames are the frames that get created with the evaluation of the string, e.g. if instead of
           # `eval("foo")` we did `eval { foo }` then it is the block containing foo; eval with a string works similarly,
           # although you don't see a block there.
-          have_attributes(base_label: 'call_eval', path: '(eval)', lineno: 1),
-          have_attributes(base_label: 'call_instance_eval', path: '(eval)', lineno: 1),
+          have_attributes(base_label: 'call_eval', path: expected_eval_path, lineno: 1),
+          have_attributes(base_label: 'call_instance_eval', path: expected_eval_path, lineno: 1),
         )
       end
     end

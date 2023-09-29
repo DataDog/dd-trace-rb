@@ -1,6 +1,6 @@
 appraise 'hanami-1' do
   gem 'rack'
-  gem 'rack-test'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'hanami', '~> 1'
 end
 
@@ -79,7 +79,7 @@ appraise 'http' do
 end
 
 appraise 'relational_db' do
-  gem 'activerecord', '< 5.1.5'
+  gem 'activerecord',  '~> 5'
   gem 'delayed_job'
   gem 'delayed_job_active_record'
   gem 'makara'
@@ -110,9 +110,7 @@ appraise 'contrib' do
   gem 'grpc'
   gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'rack'
-  gem 'rack-contrib'
-  gem 'rack-test'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
@@ -134,13 +132,18 @@ end
   appraise "rack-#{n}" do
     gem 'rack', "~> #{n}"
     gem 'rack-contrib'
-    gem 'rack-test'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
   end
 end
 
 appraise 'sinatra' do
   gem 'sinatra'
-  gem 'rack-test'
+  gem 'rack-contrib'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+end
+
+appraise 'opentracing' do
+  gem 'opentracing', '>= 0.4.1'
 end
 
 [3, 4].each do |n|

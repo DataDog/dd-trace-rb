@@ -19,7 +19,7 @@ end
 appraise 'rails61-postgres-redis' do
   gem 'rails', '~> 6.1.0'
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-  gem 'redis', '~> 4' # TODO: Support redis 5.x
+  gem 'redis', '~> 4'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
   gem 'net-smtp'
@@ -99,9 +99,7 @@ appraise 'contrib' do
   gem 'dalli', '>= 3.0.0'
   gem 'graphql', '>= 2.0'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-  gem 'rack'
-  gem 'rack-contrib'
-  gem 'rack-test'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
   gem 'roda', '>= 2.0.0'
@@ -110,7 +108,6 @@ appraise 'contrib' do
   gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
-  gem 'net-smtp'
 end
 
 [3, 4, 5].each do |n|
@@ -123,13 +120,18 @@ end
   appraise "rack-#{n}" do
     gem 'rack', "~> #{n}"
     gem 'rack-contrib'
-    gem 'rack-test'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
   end
 end
 
 appraise 'sinatra' do
   gem 'sinatra', '>= 3'
-  gem 'rack-test'
+  gem 'rack-contrib'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+end
+
+appraise 'opentracing' do
+  gem 'opentracing', '>= 0.4.1'
 end
 
 appraise 'contrib-old' do
@@ -138,12 +140,8 @@ appraise 'contrib-old' do
   gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
-  if RUBY_PLATFORM == 'java'
-    gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby
-    gem 'redis', '< 4' # Missing redis version cap for `qless`
-  else
-    gem 'qless', '0.12.0'
-  end
+  gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby
+  gem 'redis', '< 4' # Missing redis version cap for `qless`
 end
 
 appraise 'core-old' do

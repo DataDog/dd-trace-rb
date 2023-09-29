@@ -7,6 +7,7 @@ require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/tracing/runtime/metrics'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/writer'
+require 'datadog/tracing/workers'
 require 'datadog/tracing/transport/http'
 require 'datadog/tracing/transport/http/traces'
 require 'datadog/core/transport/response'
@@ -58,6 +59,42 @@ RSpec.describe Datadog::Tracing::Writer do
             expect(Datadog::Tracing::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings)
 
             writer
+          end
+        end
+      end
+
+      describe '#start_worker' do
+        let(:worker) { double(:async_transport, start: nil) }
+        let(:async_transport_params) do
+          {
+            transport: transport,
+            buffer_size: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE,
+            on_trace: anything,
+            interval: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL,
+            shutdown_timeout: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT
+          }
+        end
+
+        before do
+          expect(Datadog::Tracing::Workers::AsyncTransport).to(
+            receive(:new).with(**expected_async_transport_params).and_return(worker)
+          )
+        end
+
+        context 'without shutdown timeout' do
+          let(:expected_async_transport_params) { async_transport_params }
+
+          it 'creates worker with default shutdown timeout' do
+            writer.start
+          end
+        end
+
+        context 'with shutdown timeout provided in options' do
+          let(:options) { { transport: transport, shutdown_timeout: 1000 } }
+          let(:expected_async_transport_params) { async_transport_params.merge(shutdown_timeout: 1000) }
+
+          it 'creates worker with configured shutdown timeout' do
+            writer.start
           end
         end
       end

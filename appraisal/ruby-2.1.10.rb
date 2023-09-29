@@ -101,10 +101,7 @@ appraise 'contrib' do
   gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
   gem 'presto-client', '>=  0.5.14'
   gem 'mongo', '< 2.5'
-  gem 'rack', '1.4.7'
-  gem 'rack-contrib'
-  gem 'rack-cache', '1.7.1'
-  gem 'rack-test', '0.7.0'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '< 12.3'
   gem 'resque', '< 2.0'
   gem 'roda', '>= 2.0.0'
@@ -118,13 +115,18 @@ end
   appraise "rack-#{n}" do
     gem 'rack', "~> #{n}"
     gem 'rack-contrib'
-    gem 'rack-test'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
   end
 end
 
 appraise 'sinatra' do
   gem 'sinatra'
-  gem 'rack-test'
+  gem 'rack-contrib'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+end
+
+appraise 'opentracing' do
+  gem 'opentracing', '>= 0.4.1'
 end
 
 [3].each do |n|
