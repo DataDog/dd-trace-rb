@@ -82,6 +82,16 @@ bool is_current_thread_holding_the_gvl(void) {
   return owner.valid && pthread_equal(pthread_self(), owner.owner);
 }
 
+#ifdef HAVE_RUBY_RACTOR_H
+  static inline rb_ractor_t *ddtrace_get_ractor(void) {
+    #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY // Ruby >= 3.3
+      return thread_struct_from_object(rb_thread_current())->ractor;
+    #else
+      return GET_RACTOR();
+    #endif
+  }
+#endif
+
 #ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
   // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
   //
@@ -94,9 +104,9 @@ bool is_current_thread_holding_the_gvl(void) {
   current_gvl_owner gvl_owner(void) {
     const rb_thread_t *current_owner =
       #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
-        GET_RACTOR()->threads.sched.running;
+        ddtrace_get_ractor()->threads.sched.running;
       #elif HAVE_RUBY_RACTOR_H
-        GET_RACTOR()->threads.gvl.owner;
+        ddtrace_get_ractor()->threads.gvl.owner;
       #else
         GET_VM()->gvl.owner;
       #endif
@@ -234,7 +244,7 @@ void ddtrace_thread_list(VALUE result_array) {
   // I suspect the design in `rb_ractor_thread_list` may be done that way to perhaps in the future expose it to be
   // called from a different Ractor, but I'm not sure...
   #ifdef HAVE_RUBY_RACTOR_H
-    rb_ractor_t *current_ractor = GET_RACTOR();
+    rb_ractor_t *current_ractor = ddtrace_get_ractor();
     ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
   #else
     rb_vm_t *vm =
@@ -736,15 +746,10 @@ check_method_entry(VALUE obj, int can_be_svar)
     // versions, so we need to do a bit more work.
     struct rb_ractor_struct *ruby_single_main_ractor = NULL;
 
-    // Taken from upstream ractor.c at commit a1b01e7701f9fc370f8dff777aad6d39a2c5a3e3 (May 2023, Ruby 3.3.0-preview1)
-    // to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
-    // Modifications:
-    // * None
-    bool rb_ractor_main_p_(void)
-    {
-        VM_ASSERT(rb_multi_ractor_p());
-        rb_execution_context_t *ec = GET_EC();
-        return rb_ec_ractor_ptr(ec) == rb_ec_vm_ptr(ec)->ractor.main_ractor;
+    // Alternative implementation of rb_ractor_main_p_ that avoids relying on non-public symbols
+    bool rb_ractor_main_p_(void) {
+      // We need to get the main ractor in a bit of a roundabout way, since Ruby >= 3.3 hid `GET_VM()`
+      return ddtrace_get_ractor() == thread_struct_from_object(rb_thread_current())->vm->ractor.main_ractor;
     }
   #else
     // Directly access Ruby internal fast path for detecting multiple Ractors.
