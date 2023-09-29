@@ -107,7 +107,7 @@ check-gem-presence:
       when: on_success
   stage: package
   script:
-    -  ../.gitlab/check_gem_presence.sh
+    -  .gitlab/check_gem_presence.sh
 
 package:
   extends: .package
