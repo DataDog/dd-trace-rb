@@ -20,6 +20,9 @@ on:
       - Gemfile
       - Appraisals
       - ddtrace.gemspec
+      # In case these files were updated in a merge or manually
+      - appraisal
+      - gemfiles
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
