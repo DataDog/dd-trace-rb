@@ -99,7 +99,7 @@ install-version-dependant-gems:
       - pkg
 
 check-gem-presence:
-  image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION:current
+  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2:current
   rules:
     - if: $RUBY_PACKAGE_VERSION
       when: on_success
