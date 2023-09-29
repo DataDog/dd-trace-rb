@@ -493,6 +493,39 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(samples_from_pprof(recorder.serialize!).map(&:values)).to all(include(:'alloc-samples' => 0))
       end
     end
+
+    context 'Process::Waiter crash regression tests' do
+      # On Ruby 2.3 to 2.6, there's a crash when accessing instance variables of the `process_waiter_thread`,
+      # see https://bugs.ruby-lang.org/issues/17807 .
+      #
+      # In those Ruby versions, there's a very special subclass of `Thread` called `Process::Waiter` that causes VM
+      # crashes whenever something tries to read its instance or thread variables. This subclass of thread only
+      # shows up when the `Process.detach` API gets used.
+      #
+      # @ivoanjo: This affected the old profiler at some point (but never affected the new profiler), but I think
+      # it's useful to keep around so that we don't regress if we decide to start reading/writing some
+      # info to thread objects to implement some future feature.
+      it 'can sample an instance of Process::Waiter without crashing' do
+        forked_process = fork { sleep }
+        process_waiter_thread = Process.detach(forked_process)
+
+        start
+
+        all_samples = try_wait_until do
+          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+          samples if samples.any?
+        end
+
+        cpu_and_wall_time_worker.stop
+
+        sample = samples_for_thread(all_samples, process_waiter_thread).first
+
+        expect(sample.locations.first.path).to eq 'In native code'
+
+        Process.kill('TERM', forked_process)
+        process_waiter_thread.join
+      end
+    end
   end
 
   describe 'Ractor safety' do
@@ -621,12 +654,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       stop
 
       expect(inner_ran).to be true
-    end
-  end
-
-  describe '#enabled=' do
-    it 'does nothing (provided only for API compatibility)' do
-      cpu_and_wall_time_worker.enabled = true
     end
   end
 
