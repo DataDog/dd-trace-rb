@@ -70,13 +70,18 @@ RSpec.describe 'Dalli instrumentation' do
       expect(span.name).to eq('memcached.command')
       expect(span.span_type).to eq('memcached')
       expect(span.resource).to eq('SET')
-      expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
+      expect(span).to_not have_tag('memcached.command')
       expect(span.get_tag('out.host')).to eq(test_host)
       expect(span.get_tag('out.port')).to eq(test_port.to_f)
       expect(span.get_tag('db.system')).to eq('memcached')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq('client')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('dalli')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
+    end
+
+    context 'with command tag captured enabled' do
+      let(:configuration_options) { { command_enabled: true } }
+      it { expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0') }
     end
 
     it_behaves_like 'a peer service span' do
@@ -87,12 +92,7 @@ RSpec.describe 'Dalli instrumentation' do
 
   describe 'when multiplexed configuration is provided' do
     let(:service_name) { 'multiplex-service' }
-
-    before do
-      Datadog.configure do |c|
-        c.tracing.instrument :dalli, describes: "#{test_host}:#{test_port}", service_name: service_name
-      end
-    end
+    let(:configuration_options) { { describes: "#{test_host}:#{test_port}", service_name: service_name } }
 
     context 'and #set is called' do
       before do
@@ -106,7 +106,7 @@ RSpec.describe 'Dalli instrumentation' do
         expect(span.name).to eq('memcached.command')
         expect(span.span_type).to eq('memcached')
         expect(span.resource).to eq('SET')
-        expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
+        expect(span).to_not have_tag('memcached.command')
         expect(span.get_tag('out.host')).to eq(test_host)
         expect(span.get_tag('out.port')).to eq(test_port.to_f)
 
@@ -114,6 +114,11 @@ RSpec.describe 'Dalli instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq('client')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('dalli')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
+      end
+
+      context 'with command tag captured enabled' do
+        let(:configuration_options) { super().merge(command_enabled: true) }
+        it { expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0') }
       end
 
       it_behaves_like 'a peer service span' do
