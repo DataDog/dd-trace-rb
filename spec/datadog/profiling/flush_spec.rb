@@ -1,3 +1,5 @@
+require 'datadog/profiling/flush'
+
 RSpec.describe Datadog::Profiling::Flush do
   describe '.new' do
     let(:start) { instance_double(Time, 'start time') }

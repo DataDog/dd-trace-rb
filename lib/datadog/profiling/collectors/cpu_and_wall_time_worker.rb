@@ -82,11 +82,7 @@ module Datadog
           true
         end
 
-        # TODO: Provided only for compatibility with the API for Collectors::OldStack used in the Profiler class.
-        # Can be removed once we remove OldStack.
-        def enabled=(_); end
-
-        def stop(*_unused)
+        def stop
           @start_stop_mutex.synchronize do
             Datadog.logger.debug('Requesting CpuAndWallTimeWorker thread shut down')
 

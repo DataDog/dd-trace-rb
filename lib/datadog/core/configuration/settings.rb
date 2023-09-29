@@ -207,21 +207,16 @@ module Datadog
 
           # @public_api
           settings :advanced do
-            # @deprecated This setting is ignored when CPU Profiling 2.0 is in use, and will be removed on dd-trace-rb 2.0.
+            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
             #
-            # This should never be reduced, as it can cause the resulting profiles to become biased.
-            # The default should be enough for most services, allowing 16 threads to be sampled around 30 times
-            # per second for a 60 second period.
+            # This was used prior to the GA of the new CPU Profiling 2.0 profiler. The CPU Profiling 2.0 profiler does not
+            # use or need this setting and thus it doesn't do anything.
             option :max_events do |o|
-              o.default 32768
-              o.after_set do |value|
-                if value != 32768
-                  Datadog.logger.warn(
-                    'The profiling.advanced.max_events setting has been deprecated for removal. It no longer does ' \
-                    'anything unless you the `force_enable_legacy_profiler` option is in use. ' \
-                    'Please remove it from your Datadog.configure block.'
-                  )
-                end
+              o.after_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.max_events setting has been deprecated for removal and no ' \
+                  'longer does anything. Please remove it from your Datadog.configure block.'
+                )
               end
             end
 
@@ -281,26 +276,16 @@ module Datadog
               end
             end
 
-            # @deprecated Will be removed for dd-trace-rb 2.0.
+            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
             #
-            # Forces enabling the *legacy* non-CPU Profiling 2.0 profiler.
-            # Do not use unless instructed to by support.
-            #
-            # @default `DD_PROFILING_FORCE_ENABLE_LEGACY` environment variable, otherwise `false`
+            # This was used prior to the GA of the new CPU Profiling 2.0 profiler. Using CPU Profiling 2.0 is now the
+            # default and this doesn't do anything.
             option :force_enable_legacy_profiler do |o|
-              o.env 'DD_PROFILING_FORCE_ENABLE_LEGACY'
-              o.default false
-              o.type :bool
-              o.after_set do |value|
-                if value
-                  Datadog.logger.warn(
-                    'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal. ' \
-                    'Do not use unless instructed to by support. ' \
-                    'If you needed to use it due to incompatibilities with the CPU Profiling 2.0 profiler, consider ' \
-                    'using the profiling.advanced.no_signals_workaround_enabled setting instead. ' \
-                    'See <https://dtdg.co/ruby-profiler-troubleshooting> for details.'
-                  )
-                end
+              o.after_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal and no ' \
+                  'longer does anything. Please remove it from your Datadog.configure block.'
+                )
               end
             end
 
