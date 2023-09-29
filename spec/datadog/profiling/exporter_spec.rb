@@ -1,5 +1,4 @@
 require 'datadog/profiling/exporter'
-require 'datadog/profiling/old_recorder'
 require 'datadog/profiling/collectors/code_provenance'
 require 'datadog/core/logger'
 
@@ -18,7 +17,7 @@ RSpec.describe Datadog::Profiling::Exporter do
   let(:pprof_data) { 'dummy pprof data' }
   let(:code_provenance_data) { 'dummy code provenance data' }
   let(:pprof_recorder_serialize) { [start, finish, pprof_data] }
-  let(:pprof_recorder) { instance_double(Datadog::Profiling::OldRecorder, serialize: pprof_recorder_serialize) }
+  let(:pprof_recorder) { instance_double(Datadog::Profiling::StackRecorder, serialize: pprof_recorder_serialize) }
   let(:code_provenance_collector) do
     collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance_data)
     allow(collector).to receive(:refresh).and_return(collector)

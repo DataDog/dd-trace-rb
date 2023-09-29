@@ -54,6 +54,7 @@ GEM
     extlz4 (0.3.4)
     ffi (1.12.2)
     google-protobuf (3.6.1)
+    google-protobuf (3.6.1-x86_64-linux)
     hashdiff (1.0.1)
     i18n (0.9.5)
       concurrent-ruby (~> 1.0)
@@ -119,7 +120,9 @@ GEM
     yard (0.9.26)
 
 PLATFORMS
+  aarch64-linux
   ruby
+  x86_64-linux
 
 DEPENDENCIES
   activerecord (= 3.2.22.5)

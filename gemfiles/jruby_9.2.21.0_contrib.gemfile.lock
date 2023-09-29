@@ -78,9 +78,7 @@ GEM
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
     que (1.4.1)
-    rack (2.2.5)
-    rack-contrib (2.3.0)
-      rack (~> 2.0)
+    rack (2.2.8)
     rack-protection (2.2.4)
       rack
     rack-test (2.1.0)
@@ -188,8 +186,6 @@ DEPENDENCIES
   pry
   pry-debugger-jruby
   que (>= 1.0.0, < 2.0.0)
-  rack
-  rack-contrib
   rack-test
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)

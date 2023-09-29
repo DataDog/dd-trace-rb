@@ -28,8 +28,7 @@ module Datadog
       def shutdown!
         Datadog.logger.debug('Shutting down profiler')
 
-        worker.enabled = false
-        worker.stop(true)
+        worker.stop
 
         scheduler.enabled = false
         scheduler.stop(true)

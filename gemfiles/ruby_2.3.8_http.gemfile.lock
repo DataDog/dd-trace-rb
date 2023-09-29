@@ -43,6 +43,7 @@ GEM
       ffi (>= 1.0.0)
       rake
     google-protobuf (3.19.1)
+    google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.0.1)
     http (4.4.1)
       addressable (~> 2.3)
@@ -125,7 +126,9 @@ GEM
     yard (0.9.34)
 
 PLATFORMS
+  aarch64-linux
   ruby
+  x86_64-linux
 
 DEPENDENCIES
   appraisal (~> 2.4.0)
