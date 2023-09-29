@@ -13,7 +13,7 @@ PATH
   specs:
     ddtrace (1.14.0)
       datadog-ci (~> 0.1.0)
-      debase-ruby_core_source (= 3.2.1)
+      debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -45,7 +45,7 @@ GEM
     cri (2.15.11)
     dalli (3.2.0)
     datadog-ci (0.1.1)
-    debase-ruby_core_source (3.2.1)
+    debase-ruby_core_source (3.2.2)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.6.0)
@@ -78,9 +78,7 @@ GEM
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
     que (1.4.1)
-    rack (2.2.5)
-    rack-contrib (2.3.0)
-      rack (~> 2.0)
+    rack (2.2.8)
     rack-protection (2.2.4)
       rack
     rack-test (2.1.0)
@@ -188,8 +186,6 @@ DEPENDENCIES
   pry
   pry-debugger-jruby
   que (>= 1.0.0, < 2.0.0)
-  rack
-  rack-contrib
   rack-test
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)

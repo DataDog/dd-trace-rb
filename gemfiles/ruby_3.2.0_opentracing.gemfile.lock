@@ -13,7 +13,7 @@ PATH
   specs:
     ddtrace (1.14.0)
       datadog-ci (~> 0.1.0)
-      debase-ruby_core_source (= 3.2.1)
+      debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -42,7 +42,7 @@ GEM
       rexml
     cri (2.15.11)
     datadog-ci (0.1.1)
-    debase-ruby_core_source (3.2.1)
+    debase-ruby_core_source (3.2.2)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -50,12 +50,16 @@ GEM
     extlz4 (0.3.4)
     ffi (1.16.2)
     google-protobuf (3.24.3-aarch64-linux)
+    google-protobuf (3.24.3-x86_64-linux)
     hashdiff (1.0.1)
     json (2.6.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (4.0.0.1.0-aarch64-linux)
+    libdatadog (4.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
@@ -145,6 +149,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-linux
 
 DEPENDENCIES
   appraisal (~> 2.4.0)

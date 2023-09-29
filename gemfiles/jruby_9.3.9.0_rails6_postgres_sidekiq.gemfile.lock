@@ -13,7 +13,7 @@ PATH
   specs:
     ddtrace (1.14.0)
       datadog-ci (~> 0.1.0)
-      debase-ruby_core_source (= 3.2.1)
+      debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 4.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -102,7 +102,7 @@ GEM
     cri (2.15.11)
     datadog-ci (0.1.1)
     date (3.3.3-java)
-    debase-ruby_core_source (3.2.1)
+    debase-ruby_core_source (3.2.2)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)

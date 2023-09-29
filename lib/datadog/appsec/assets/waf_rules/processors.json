@@ -77,6 +77,13 @@
           ],
           "output": "_dd.appsec.s.res.body"
         }
+      ],
+      "scanners": [
+        {
+          "tags": {
+            "category": "pii"
+          }
+        }
       ]
     },
     "evaluate": false,

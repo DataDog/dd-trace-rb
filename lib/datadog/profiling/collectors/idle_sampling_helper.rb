@@ -48,7 +48,7 @@ module Datadog
           true
         end
 
-        def stop(*_unused)
+        def stop
           @start_stop_mutex.synchronize do
             Datadog.logger.debug('Requesting IdleSamplingHelper thread shut down')
 

@@ -127,7 +127,10 @@ RSpec.describe Datadog::AppSec::Processor do
 end
 
 RSpec.describe Datadog::AppSec::Processor::Context do
-  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended) }
+  let(:ruleset) do
+    rules = Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended)
+    Datadog::AppSec::Processor::RuleMerger.merge(rules: [rules])
+  end
 
   let(:input_safe) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Ruby' } } }
   let(:input_sqli) { { 'server.request.query' => { 'q' => '1 OR 1;' } } }
@@ -319,6 +322,16 @@ RSpec.describe Datadog::AppSec::Processor::Context do
         ).and_return([dummy_code, dummy_result])
 
         expect(context.extract_schema).to eq dummy_result
+      end
+
+      it 'returns schema extraction information' do
+        input = { 'server.request.query' => { 'vin' => '4Y1SL65848Z411439' } }
+        context.run(input, timeout)
+
+        results = context.extract_schema
+        derivatives = results.derivatives
+        expect(derivatives).to_not be_empty
+        expect(derivatives['_dd.appsec.s.req.query']).to eq([{ 'vin' => [8, { 'category' => 'pii', 'type' => 'vin' }] }])
       end
     end
 

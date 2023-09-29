@@ -343,36 +343,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#advanced' do
-      describe '#max_events' do
-        before { allow(Datadog.logger).to receive(:warn) }
-
-        subject(:max_events) { settings.profiling.advanced.max_events }
-
-        it { is_expected.to eq(32768) }
-      end
-
       describe '#max_events=' do
-        before { allow(Datadog.logger).to receive(:warn) }
-
-        it 'updates the #max_events setting' do
-          expect { settings.profiling.advanced.max_events = 1234 }
-            .to change { settings.profiling.advanced.max_events }
-            .from(32768)
-            .to(1234)
-        end
-
-        it 'logs a warning informing customers this has been deprecated for removal' do
-          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
 
           settings.profiling.advanced.max_events = 1234
-        end
-
-        context 'when value is set to default' do
-          it 'does not log a warning' do
-            expect(Datadog.logger).to_not receive(:warn)
-
-            settings.profiling.advanced.max_events = 32768
-          end
         end
       end
 
@@ -479,56 +454,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#force_enable_legacy_profiler' do
-        before { allow(Datadog.logger).to receive(:warn) }
-
-        subject(:force_enable_legacy_profiler) { settings.profiling.advanced.force_enable_legacy_profiler }
-
-        context 'when DD_PROFILING_FORCE_ENABLE_LEGACY' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_FORCE_ENABLE_LEGACY' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be false }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
-      end
-
       describe '#force_enable_legacy_profiler=' do
-        before { allow(Datadog.logger).to receive(:warn) }
-
-        it 'updates the #force_enable_legacy_profiler setting' do
-          expect { settings.profiling.advanced.force_enable_legacy_profiler = true }
-            .to change { settings.profiling.advanced.force_enable_legacy_profiler }
-            .from(false)
-            .to(true)
-        end
-
-        it 'logs a warning informing customers this has been deprecated for removal' do
-          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
 
           settings.profiling.advanced.force_enable_legacy_profiler = true
-        end
-
-        context 'when value is set to false' do
-          it 'does not log a warning' do
-            expect(Datadog.logger).to_not receive(:warn)
-
-            settings.profiling.advanced.force_enable_legacy_profiler = false
-          end
         end
       end
 

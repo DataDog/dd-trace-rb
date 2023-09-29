@@ -698,4 +698,18 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
       expect(result).to include('processors' => 'hello')
     end
   end
+
+  context 'scanners' do
+    it 'merges default scanners' do
+      result = described_class.merge(rules: rules)
+      expect(result).to include('rules' => rules[0]['rules'])
+      expect(result).to include('scanners' => described_class::DEFAULT_WAF_SCANNERS)
+    end
+
+    it 'merges the provided processors' do
+      result = described_class.merge(rules: rules, scanners: 'hello')
+      expect(result).to include('rules' => rules[0]['rules'])
+      expect(result).to include('scanners' => 'hello')
+    end
+  end
 end

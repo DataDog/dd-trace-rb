@@ -22,3 +22,12 @@ require_relative 'opentracer/global_tracer'
 
 # Modify the OpenTracing module functions
 ::OpenTracing.singleton_class.prepend(Datadog::OpenTracer::GlobalTracer)
+
+module Datadog
+  # Datadog OpenTracing integration.
+  # DEV: This module should be named `Datadog::OpenTracing` to match the gem (`opentracing`).
+  module OpenTracer
+    # Used by Telemetry to decide if OpenTracing instrumentation is enabled
+    LOADED = true
+  end
+end

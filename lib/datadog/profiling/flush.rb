@@ -4,9 +4,6 @@ require 'json'
 
 module Datadog
   module Profiling
-    # Represents a collection of events of a specific type being flushed.
-    EventGroup = Struct.new(:event_class, :events)
-
     # Entity class used to represent metadata for a given profile
     class Flush
       attr_reader \
