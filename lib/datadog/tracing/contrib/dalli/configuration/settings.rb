@@ -42,6 +42,12 @@ module Datadog
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
             end
+
+            option :command_enabled do |o|
+              o.type :bool
+              o.env Ext::ENV_COMMAND_ENABLED
+              o.default false
+            end
           end
         end
       end

@@ -659,6 +659,7 @@ client.set('abc', 123)
 
 | Key            | Env Var                       | Description                                                                                                                                                                               | Default     |
 |----------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| `command_enabled` | `DD_TRACE_MEMCACHED_COMMAND_ENABLED` | Collect commands as the `memcached.command` tag. Command `keys` can potentially contain sensitive information. | `false` |
 | `service_name` | `DD_TRACE_DALLI_SERVICE_NAME` | Name of application running the `dalli` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `memcached` |
 | `peer_service` | `DD_TRACE_DALLI_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`       |
 
