@@ -51,7 +51,7 @@ RSpec.describe 'ActiveJob' do
       end
 
       allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+      allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return('true')
 
       # initialize the application
       app

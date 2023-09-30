@@ -80,7 +80,7 @@ RSpec.describe 'Rails Log Auto Injection' do
       subject(:response) { get '/logging' }
 
       before do
-        allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)
+        allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return('true')
       end
 
       context 'with semantic logger enabled' do
@@ -205,7 +205,7 @@ RSpec.describe 'Rails Log Auto Injection' do
       subject(:response) { get '/logging' }
 
       before do
-        allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)
+        allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return('true')
       end
 
       context 'with semantic logger enabled' do

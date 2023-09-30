@@ -6,9 +6,6 @@ if ENV['USE_SIDEKIQ']
   require 'datadog/tracing/contrib/sidekiq/server_tracer'
 end
 
-require 'lograge' if ENV['USE_LOGRAGE'] == true
-require 'rails_semantic_logger' if ENV['USE_SEMANTIC_LOGGER'] == true
-
 RSpec.shared_context 'Rails base application' do
   if Rails.version >= '6.0'
     require 'datadog/tracing/contrib/rails/support/rails6'
@@ -64,7 +61,7 @@ RSpec.shared_context 'Rails base application' do
       #
       config.log_tags = ENV['LOG_TAGS'] if ENV['LOG_TAGS']
 
-      config.logger = if ENV['USE_TAGGED_LOGGING'] == true
+      config.logger = if ENV['USE_TAGGED_LOGGING'] == 'true'
                         ActiveSupport::TaggedLogging.new(logger)
                       else
                         logger
@@ -79,7 +76,7 @@ RSpec.shared_context 'Rails base application' do
         config.lograge.keep_original_rails_log = true
         config.lograge.logger = config.logger
 
-        if ENV['USE_LOGRAGE'] == true
+        if ENV['USE_LOGRAGE'] == 'true'
           config.lograge.enabled = true
           config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS'] if ENV['LOGRAGE_CUSTOM_OPTIONS']
         else
@@ -89,7 +86,7 @@ RSpec.shared_context 'Rails base application' do
       end
 
       # Semantic Logger settings should be exclusive to `ActiveSupport::TaggedLogging` and `Lograge`
-      if ENV['USE_SEMANTIC_LOGGER'] == true
+      if ENV['USE_SEMANTIC_LOGGER'] == 'true'
         config.rails_semantic_logger.add_file_appender = false
         config.semantic_logger.add_appender(logger: logger)
       end
