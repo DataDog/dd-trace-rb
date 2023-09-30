@@ -17,13 +17,18 @@ on:
   # if `paths` was changed compared to the parent commit, but this proved more complicated.
   push:
     paths:
+      # Files that declare the dependency tree
       - Gemfile
       - Appraisals
       - ddtrace.gemspec
-      # In case these files were updated in a merge or manually
+      # Files that control gemfile generation
+      - tasks/appraisal.rake
+      - .github/workflows/update-gemfiles.yml
+      # In case the generated files were updated manually or in a merge commit
       - appraisal
       - gemfiles
 
+# Ensure obsolete job is cancelled if another commit is pushed to the same branch.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
