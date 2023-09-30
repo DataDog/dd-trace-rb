@@ -12,10 +12,6 @@ on:
     branches:
       - "**"
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 env:
   GEM_HOST: 'https://rubygems.pkg.github.com/DataDog'
 
