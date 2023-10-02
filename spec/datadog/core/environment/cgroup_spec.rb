@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'support/container_helpers'
 require 'datadog/core/environment/cgroup'
 
 # rubocop:disable Layout/LineLength

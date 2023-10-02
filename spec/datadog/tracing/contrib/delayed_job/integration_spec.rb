@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/delayed_job/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:delayed_job) }
 
   describe '.version' do

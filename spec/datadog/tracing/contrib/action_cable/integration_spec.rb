@@ -4,8 +4,6 @@ require 'datadog/tracing/contrib/auto_instrument_examples'
 require 'datadog/tracing/contrib/action_cable/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::ActionCable::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:action_cable) }
 
   describe '.version' do

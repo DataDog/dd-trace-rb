@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/presto/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Presto::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:presto) }
 
   describe '.version' do
