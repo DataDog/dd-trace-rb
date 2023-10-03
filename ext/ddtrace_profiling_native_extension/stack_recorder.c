@@ -399,7 +399,7 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   return rb_time_timespec_new(&time, utc);
 }
 
-void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, ddog_prof_Slice_Label labels) {
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -413,7 +413,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   uint8_t *position_for = state->position_for;
 
   metric_values[position_for[CPU_TIME_VALUE_ID]]      = values.cpu_time_ns;
-  metric_values[position_for[CPU_SAMPLES_VALUE_ID]]   = values.cpu_samples;
+  metric_values[position_for[CPU_SAMPLES_VALUE_ID]]   = values.cpu_or_wall_samples;
   metric_values[position_for[WALL_TIME_VALUE_ID]]     = values.wall_time_ns;
   metric_values[position_for[ALLOC_SAMPLES_VALUE_ID]] = values.alloc_samples;
 
@@ -422,7 +422,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     (ddog_prof_Sample) {
       .locations = locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
-      .labels = labels
+      .labels = labels.labels
     }
   );
 

@@ -146,6 +146,9 @@ $defs << '-DNO_RB_THREAD_SCHED' if RUBY_VERSION < '3.2'
 # On older Rubies, the first_lineno inside a location was a VALUE and not a int (https://github.com/ruby/ruby/pull/6430)
 $defs << '-DNO_INT_FIRST_LINENO' if RUBY_VERSION < '3.2'
 
+# On older Rubies, "pop" was not a primitive operation
+$defs << '-DNO_PRIMITIVE_POP' if RUBY_VERSION < '3.2'
+
 # On older Rubies, there was no tid member in the internal thread structure
 $defs << '-DNO_THREAD_TID' if RUBY_VERSION < '3.1'
 
