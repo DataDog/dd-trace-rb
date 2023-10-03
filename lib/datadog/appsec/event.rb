@@ -111,7 +111,7 @@ module Datadog
 
               if compressed_data_size >= MAX_ENCODED_SCHEMA_SIZE && parsed_value_size >= MAX_ENCODED_SCHEMA_SIZE
                 Datadog.logger.debug do
-                  "Schema key: #{key} exceed max size value. We do not include it as part of the span tags"
+                  "Schema key: #{key} exceeds the max size value. It will not be included as part of the span tags"
                 end
                 next
               end
