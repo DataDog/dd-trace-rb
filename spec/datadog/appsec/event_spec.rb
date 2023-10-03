@@ -112,12 +112,23 @@ RSpec.describe Datadog::AppSec::Event do
             }
           end
 
-          it 'adds derivatives after comporessing and encode to Base64 to the top level span meta' do
-            meta = top_level_span.meta
-            gzip = described_class.send(:gzip, JSON.dump([{ 'host' => [8], 'version' => [8] }]))
-            result = Base64.encode64(gzip)
+          context 'JSON payload' do
+            it 'uses JSON string as is smaller than the compressed value' do
+              meta = top_level_span.meta
 
-            expect(meta['_dd.appsec.s.req.headers']).to eq result
+              expect(meta['_dd.appsec.s.req.headers']).to eq('[{"host":[8],"version":[8]}]')
+            end
+          end
+
+          context 'Compressed payload' do
+            it 'uses compressed value when is smaller than JSON string' do
+              result = "H4sIAOYoHGUAA4aphwAAAA=\n"
+              expect(described_class).to receive(:compressed_and_base64_encoded).and_return(result)
+
+              meta = top_level_span.meta
+
+              expect(meta['_dd.appsec.s.req.headers']).to eq(result)
+            end
           end
 
           context 'derivative values exceed Event::MAX_ENCODED_SCHEMA_SIZE value' do
