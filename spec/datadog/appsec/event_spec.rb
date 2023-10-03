@@ -112,9 +112,20 @@ RSpec.describe Datadog::AppSec::Event do
             }
           end
 
-          it 'adds derivatives to the top level span meta' do
+          it 'adds derivatives after comporessing and encode to Base64 to the top level span meta' do
             meta = top_level_span.meta
-            expect(meta['_dd.appsec.s.req.headers']).to eq JSON.dump([{ 'host' => [8], 'version' => [8] }])
+            result = Base64.encode64(Zlib.gzip(JSON.dump([{ 'host' => [8], 'version' => [8] }])))
+
+            expect(meta['_dd.appsec.s.req.headers']).to eq result
+          end
+
+          context 'derivative values exceed Event::MAX_ENCODED_SCHEMA_SIZE value' do
+            it 'do not add derivative key to meta' do
+              stub_const('Datadog::AppSec::Event::MAX_ENCODED_SCHEMA_SIZE', 1)
+              meta = top_level_span.meta
+
+              expect(meta['_dd.appsec.s.req.headers']).to be_nil
+            end
           end
         end
       end

@@ -1,4 +1,6 @@
 require 'json'
+require 'zlib'
+require 'base64'
 
 require_relative 'rate_limiter'
 
@@ -33,6 +35,8 @@ module Datadog
         Content-Encoding
         Content-Language
       ].map!(&:downcase).freeze
+
+      MAX_ENCODED_SCHEMA_SIZE = 25000
 
       # Record events for a trace
       #
@@ -110,7 +114,15 @@ module Datadog
           tags['_dd.appsec.triggers'] += waf_result.events
 
           waf_result.derivatives.each do |key, value|
-            tags[key] = JSON.dump(value)
+            data = Base64.encode64(Zlib.gzip(JSON.dump(value)))
+
+            if data.size >= MAX_ENCODED_SCHEMA_SIZE
+              Datadog.logger.debug do
+                "Schema key: #{key} exceed max size value. We do not include it as part of the span tags"
+              end
+              next
+            end
+            tags[key] = data
           end
 
           tags

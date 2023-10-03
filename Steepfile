@@ -619,6 +619,7 @@ target :ddtrace do
   library 'securerandom'
   library 'base64'
   library 'digest'
+  library 'zlib'
 
   repo_path 'vendor/rbs'
   library 'cucumber'
