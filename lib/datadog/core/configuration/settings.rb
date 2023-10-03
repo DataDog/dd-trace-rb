@@ -314,15 +314,28 @@ module Datadog
 
             # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
             #
-            # This feature is safe and enabled by default on Ruby 2.x, but
-            # on Ruby 3.x it can break in applications that make use of Ractors due to two Ruby VM bugs:
-            # https://bugs.ruby-lang.org/issues/19112 AND https://bugs.ruby-lang.org/issues/18464.
+            # This feature is safe and enabled by default on Ruby 2.x, but has a few caveats on Ruby 3.x.
             #
-            # If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
-            # feature is fully safe to enable and this toggle can be used to do so.
+            # Caveat 1 (severe):
+            # On Ruby versions 3.0 (all), 3.1.0 to 3.1.3, and 3.2.0 to 3.2.2 this is disabled by default because it
+            # can trigger a VM bug that causes a segmentation fault during garbage collection of Ractors
+            # (https://bugs.ruby-lang.org/issues/18464). We don't recommend using this feature on such Rubies.
+            # This bug is fixed on Ruby versions 3.1.4, 3.2.3 and 3.3.0.
             #
-            # @default `true` on Ruby 2.x, `false` on Ruby 3.x
-            option :allocation_counting_enabled, default: RUBY_VERSION.start_with?('2.')
+            # Caveat 2 (annoyance):
+            # On all known versions of Ruby 3.x, due to https://bugs.ruby-lang.org/issues/19112, when a ractor gets
+            # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
+            # Thus this feature is only usable if you're not using Ractors.
+            #
+            # @default `true` on Ruby 2.x and 3.1.4+, 3.2.3+ and 3.3.0+; `false` for Ruby 3.0 and unpatched Rubies.
+            option :allocation_counting_enabled do |o|
+              o.default do
+                RUBY_VERSION.start_with?('2.') ||
+                  (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION >= '3.1.4') ||
+                  (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION >= '3.2.3') ||
+                  RUBY_VERSION >= '3.3.'
+              end
+            end
 
             # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.
             #

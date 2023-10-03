@@ -500,16 +500,25 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#allocation_counting_enabled' do
         subject(:allocation_counting_enabled) { settings.profiling.advanced.allocation_counting_enabled }
 
-        context 'on Ruby 2.x' do
-          before { skip("Spec doesn't run on Ruby 3.x") unless RUBY_VERSION.start_with?('2.') }
+        before { stub_const('RUBY_VERSION', testing_version) }
 
+        context 'on Ruby 2.x' do
+          let(:testing_version) { '2.3.0 ' }
           it { is_expected.to be true }
         end
 
-        context 'on Ruby 3.x' do
-          before { skip("Spec doesn't run on Ruby 2.x") if RUBY_VERSION.start_with?('2.') }
+        ['3.0.0', '3.1.0', '3.1.3', '3.2.0', '3.2.2'].each do |broken_ruby|
+          context "on a Ruby 3 version affected by https://bugs.ruby-lang.org/issues/18464 (#{broken_ruby})" do
+            let(:testing_version) { broken_ruby }
+            it { is_expected.to be false }
+          end
+        end
 
-          it { is_expected.to be false }
+        ['3.1.4', '3.2.3', '3.3.0'].each do |fixed_ruby|
+          context "on a Ruby 3 version where https://bugs.ruby-lang.org/issues/18464 is fixed (#{fixed_ruby})" do
+            let(:testing_version) { fixed_ruby }
+            it { is_expected.to be true }
+          end
         end
       end
 
