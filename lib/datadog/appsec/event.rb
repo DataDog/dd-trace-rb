@@ -75,6 +75,7 @@ module Datadog
           end
         end
 
+        # rubocop: disable Metrics/MethodLength
         def build_service_entry_tags(event_group)
           waf_events = []
           entry_tags = event_group.each_with_object({ '_dd.origin' => 'appsec' }) do |event, tags|
@@ -101,6 +102,8 @@ module Datadog
 
             waf_result.derivatives.each do |key, value|
               parsed_value = json_parse(value)
+              next unless parsed_value
+
               parsed_value_size = parsed_value.size
 
               compressed_data = compressed_and_base64_encoded(parsed_value)
@@ -125,12 +128,11 @@ module Datadog
           entry_tags['_dd.appsec.json'] = appsec_events if appsec_events
           entry_tags
         end
+        # rubocop: enable Metrics/MethodLength
 
         private
 
         def compressed_and_base64_encoded(value)
-          return unless value
-
           Base64.encode64(gzip(value))
         rescue TypeError
           nil

@@ -619,6 +619,7 @@ target :ddtrace do
   library 'securerandom'
   library 'base64'
   library 'digest'
+  library 'zlib'
 
   repo_path 'vendor/rbs'
   library 'cucumber'
@@ -643,7 +644,6 @@ target :ddtrace do
   library 'opentelemetry-api'
   library 'passenger'
   library 'webmock'
-  library 'zlib'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'
