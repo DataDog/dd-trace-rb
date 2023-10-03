@@ -1,0 +1,6 @@
+Zlib::DEFAULT_COMPRESSION: Integer
+
+# <!-- rdoc-file=ext/zlib/zlib.c -->
+# Default deflate strategy which is used for normal data.
+#
+Zlib::DEFAULT_STRATEGY: Integer

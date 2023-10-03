@@ -12,6 +12,8 @@ module Datadog
       def self.record_via_span: (Datadog::Tracing::SpanOperation, *untyped events) -> untyped
 
       def self.build_service_entry_tags: (Array[Hash[::Symbol, untyped]] event_group) -> Hash[::String, untyped]
+
+      def self.gzip: (untyped String) -> String
     end
   end
 end

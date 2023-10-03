@@ -114,7 +114,7 @@ module Datadog
           tags['_dd.appsec.triggers'] += waf_result.events
 
           waf_result.derivatives.each do |key, value|
-            data = Base64.encode64(Zlib.gzip(JSON.dump(value)))
+            data = Base64.encode64(gzip(JSON.dump(value)))
 
             if data.size >= MAX_ENCODED_SCHEMA_SIZE
               Datadog.logger.debug do
@@ -128,6 +128,16 @@ module Datadog
           tags
         end
       end
+
+      def self.gzip(value)
+        sio = StringIO.new
+        gz = Zlib::GzipWriter.new(sio, Zlib::DEFAULT_COMPRESSION, Zlib::DEFAULT_STRATEGY)
+        gz.write(value)
+        gz.close
+        sio.string
+      end
+
+      private_class_method :gzip
     end
   end
 end

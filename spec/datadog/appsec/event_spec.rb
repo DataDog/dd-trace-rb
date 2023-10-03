@@ -114,7 +114,8 @@ RSpec.describe Datadog::AppSec::Event do
 
           it 'adds derivatives after comporessing and encode to Base64 to the top level span meta' do
             meta = top_level_span.meta
-            result = Base64.encode64(Zlib.gzip(JSON.dump([{ 'host' => [8], 'version' => [8] }])))
+            gzip = described_class.send(:gzip, JSON.dump([{ 'host' => [8], 'version' => [8] }]))
+            result = Base64.encode64(gzip)
 
             expect(meta['_dd.appsec.s.req.headers']).to eq result
           end
