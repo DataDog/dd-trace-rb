@@ -1244,6 +1244,36 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           invoke_location = per_thread_context.fetch(native_thread).fetch(:thread_invoke_location)
           expect(invoke_location).to eq '(Unnamed thread from native code)'
         end
+
+        context 'when the `logging` gem has monkey patched thread creation' do
+          # rubocop:disable Style/GlobalVars
+          before do
+            load("#{__dir__}/helper/lib/logging/diagnostic_context.rb")
+            $simulated_logging_gem_monkey_patched_thread_ready_queue.pop
+          end
+
+          after do
+            $simulated_logging_gem_monkey_patched_thread.kill
+            $simulated_logging_gem_monkey_patched_thread.join
+            $simulated_logging_gem_monkey_patched_thread = nil
+            $simulated_logging_gem_monkey_patched_thread_ready_queue = nil
+          end
+
+          # We detect logging gem monkey patching by checking the invoke location of a thread and not using it when
+          # it belongs to the logging gem. This matching is done by matching the partial path
+          # `lib/logging/diagnostic_context.rb`, which is where the monkey patching is implemented.
+          #
+          # To simulate this on our test suite without having to bring in the `logging` gem (and monkey patch our
+          # threads), a helper was created that has a matching partial path.
+          it 'contains a placeholder only' do
+            sample
+
+            invoke_location =
+              per_thread_context.fetch($simulated_logging_gem_monkey_patched_thread).fetch(:thread_invoke_location)
+            expect(invoke_location).to eq '(Unnamed thread)'
+          end
+          # rubocop:enable Style/GlobalVars
+        end
       end
     end
 
