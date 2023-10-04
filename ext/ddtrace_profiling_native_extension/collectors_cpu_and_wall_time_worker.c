@@ -260,6 +260,9 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
 static VALUE _native_new(VALUE klass) {
   struct cpu_and_wall_time_worker_state *state = ruby_xcalloc(1, sizeof(struct cpu_and_wall_time_worker_state));
 
+  // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
+  // being leaked.
+
   state->gc_profiling_enabled = false;
   state->allocation_counting_enabled = false;
   state->no_signals_workaround_enabled = false;
