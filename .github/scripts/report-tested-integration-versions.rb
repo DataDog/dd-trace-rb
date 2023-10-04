@@ -42,7 +42,7 @@ payload = {
     "type" => "supported_integrations",
     "id" => "1",
     "attributes" => {
-      "language_language" => "ruby",
+      "language_name" => "ruby",
       "tracer_version" => "add-version-here",
       "integrations" => []
     }
