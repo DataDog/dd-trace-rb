@@ -6,7 +6,7 @@ require 'datadog/tracing/contrib/rails/support/models'
 
 require_relative 'reset_log_subscription'
 require_relative 'deprecation'
-require_relative 'logging_configuration'
+require_relative 'log_configuration'
 
 # Patch Rails::Application so it doesn't raise an exception
 # when we reinitialize applications.
@@ -159,42 +159,10 @@ RSpec.shared_context 'Rails 3 base application' do
 
   let(:initialize_block) do
     middleware = rails_middleware
-    logger = self.logger
-    lograge_options = OpenStruct.new(self.lograge_options)
+    log_configuration = ::Datadog::Tracing::Contrib::Rails::Test::LogConfiguration.new(self)
 
     proc do
-      #
-      # It is important to distinguish between `nil` and an empty array.
-      #
-      # If `nil` (which is the default), `Rails::Rack::Logger` would initialize with an new array.
-      # https://github.com/rails/rails/blob/e88857bbb9d4e1dd64555c34541301870de4a45b/railties/lib/rails/application/default_middleware_stack.rb#L51
-      #
-      # Datadog integration need to provide an array during `before_initialize` hook
-      #
-      config.log_tags = ENV['LOG_TAGS'] if ENV['LOG_TAGS']
-
-      config.logger = if ENV['USE_TAGGED_LOGGING'] == true
-                        ActiveSupport::TaggedLogging.new(logger)
-                      else
-                        logger
-                      end
-
-      # Not to use ANSI color codes when logging information
-      config.colorize_logging = false
-
-      if config.respond_to?(:lograge)
-        ::Datadog::Tracing::Contrib::Rails::Test::Lograge.config(
-          config,
-          lograge_options
-        )
-      end
-
-      # Semantic Logger settings should be exclusive to `ActiveSupport::TaggedLogging` and `Lograge`
-      if config.respond_to?(:rails_semantic_logger)
-        config.rails_semantic_logger.add_file_appender = false
-        config.semantic_logger.add_appender(logger: logger)
-      end
-
+      log_configuration.setup(config)
       middleware.each { |m| config.middleware.use m }
     end
   end
