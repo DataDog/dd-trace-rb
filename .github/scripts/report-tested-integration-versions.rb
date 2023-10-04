@@ -49,7 +49,7 @@ payload = {
 }
 tested_integrations = parse_ddtrace_gemfiles(integrated_gems)
 integrated_gems.each do |integration|
-    puts integration + " " + tested_integrations[integration].to_s
+    # puts integration + " " + tested_integrations[integration].to_s
     
     tested_integrations[integration].each do |v|
       payload["data"]["attributes"]["integrations"].append({
