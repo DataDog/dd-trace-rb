@@ -5,11 +5,22 @@ module Datadog
 
       ALLOWED_RESPONSE_HEADERS: untyped
 
+      MAX_ENCODED_SCHEMA_SIZE: Numeric
+      MIN_SCHEMA_SIZE_FOR_COMPRESSION: Numeric
+
       def self.record: (Datadog::Tracing::SpanOperation, *untyped events) -> (nil | untyped)
 
       def self.record_via_span: (Datadog::Tracing::SpanOperation, *untyped events) -> untyped
 
       def self.build_service_entry_tags: (Array[Hash[::Symbol, untyped]] event_group) -> Hash[::String, untyped]
+
+      private
+
+      def self.compressed_and_base64_encoded: (untyped value) -> untyped
+
+      def self.json_parse: (untyped value) -> untyped
+
+      def self.gzip: (untyped value) -> untyped
     end
   end
 end
