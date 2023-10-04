@@ -1,4 +1,5 @@
 require 'bundler'
+require 'json'
 require 'set'
 
 def parse_ddtrace_gemfiles(integrated_gems)
@@ -61,5 +62,5 @@ integrated_gems.each do |integration|
 end
 
 # send API call to endpoint
-puts payload
-payload
+puts JSON.generate(payload)
+JSON.generate(payload)
