@@ -369,8 +369,10 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
-        expect(body.fetch(pprof_file_name)).to eq pprof_data # The pprof data is compressed in the datadog serializer, nothing to do
-        expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data # This one needs to be compressed
+        # The pprof data is compressed in the datadog serializer, nothing to do
+        expect(body.fetch(pprof_file_name)).to eq pprof_data
+        # This one needs to be compressed
+        expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data
       end
     end
 
