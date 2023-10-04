@@ -205,7 +205,7 @@ RSpec.shared_context 'Rails 6 base application' do
       end
 
       # Semantic Logger settings should be exclusive to `ActiveSupport::TaggedLogging` and `Lograge`
-      if ENV['USE_SEMANTIC_LOGGER'] == true
+      if config.respond_to?(:rails_semantic_logger)
         config.rails_semantic_logger.add_file_appender = false
         config.semantic_logger.add_appender(logger: logger)
       end

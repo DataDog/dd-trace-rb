@@ -79,10 +79,6 @@ RSpec.describe 'Rails Log Auto Injection' do
 
       subject(:response) { get '/logging' }
 
-      before do
-        allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)
-      end
-
       context 'with semantic logger enabled' do
         context 'with semantic logger setup and no log_tags' do
           it 'injects trace_id into logs' do
@@ -203,10 +199,6 @@ RSpec.describe 'Rails Log Auto Injection' do
       require 'rails_semantic_logger'
 
       subject(:response) { get '/logging' }
-
-      before do
-        allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)
-      end
 
       context 'with semantic logger enabled' do
         context 'with semantic logger setup and no log_tags' do
