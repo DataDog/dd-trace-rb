@@ -98,8 +98,8 @@ RSpec.describe 'Rails Log Auto Injection' do
     end
 
     context 'with Tagged Logging' do
-      before do
-        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+      let(:logger) do
+        ::ActiveSupport::TaggedLogging.new(super())
       end
 
       context 'with Tagged logging setup and no tags' do
@@ -118,7 +118,6 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
 
       context 'with tagged logging setup and existing log_tags' do
-
         let(:log_tags) do
           %w[some_info some_other_info]
         end
@@ -257,8 +256,8 @@ RSpec.describe 'Rails Log Auto Injection' do
         # for log_injection testing
         require 'lograge'
 
-        before do
-          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+        let(:logger) do
+          ::ActiveSupport::TaggedLogging.new(super())
         end
 
         let(:lograge_options) do
@@ -430,8 +429,8 @@ RSpec.describe 'Rails Log Auto Injection' do
     end
 
     context 'with Tagged Logging' do
-      before do
-        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+      let(:logger) do
+        ::ActiveSupport::TaggedLogging.new(super())
       end
 
       context 'with Tagged logging setup and no tags' do

@@ -12,11 +12,7 @@ module Datadog
             def setup(config)
               config.log_tags = example_group.log_tags if example_group.log_tags
 
-              config.logger = if ENV['USE_TAGGED_LOGGING'] == true
-                                ::ActiveSupport::TaggedLogging.new(example_group.logger)
-                              else
-                                example_group.logger
-                              end
+              config.logger = example_group.logger
 
               # Not to use ANSI color codes when logging information
               config.colorize_logging = false
