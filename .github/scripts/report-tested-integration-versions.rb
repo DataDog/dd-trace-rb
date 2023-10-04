@@ -1,8 +1,6 @@
 require 'bundler'
 require 'set'
 
-URL = 
-
 def parse_ddtrace_gemfiles(integrated_gems)
     # Find latest CRuby version
     cruby_paths = Dir['gemfiles/ruby_*.lock']
