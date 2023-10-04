@@ -37,13 +37,17 @@ ddtrace_specs = `grep -Rho 'Gem.loaded_specs.*' lib/datadog/tracing/contrib/`
 
 integrated_gems = ddtrace_specs.split.map { |m| m.match(/Gem.loaded_specs\[.([^\]]+).\]/)&.[](1) }.uniq.compact
 
+lib = File.expand_path('../../lib', __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require 'ddtrace/version'
+
 payload = {
   "data" => {
     "type" => "supported_integrations",
     "id" => "1",
     "attributes" => {
       "language_name" => "ruby",
-      "tracer_version" => "add-version-here",
+      "tracer_version" => DDTrace::VERSION::STRING,
       "integrations" => []
     }
   }
