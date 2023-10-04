@@ -259,7 +259,6 @@ RSpec.describe 'Rails Log Auto Injection' do
 
         before do
           allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
         end
 
         let(:lograge_options) do
