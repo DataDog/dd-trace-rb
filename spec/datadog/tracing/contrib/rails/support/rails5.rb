@@ -11,6 +11,7 @@ require 'datadog/tracing/contrib/rails/support/models'
 
 require_relative 'reset_log_subscription'
 require_relative 'deprecation'
+require_relative 'logging_configuration'
 
 RSpec.shared_context 'Rails 5 base application' do
   include_context 'Rails controllers'
@@ -100,6 +101,10 @@ RSpec.shared_context 'Rails 5 base application' do
     end
   end
 
+  let(:lograge_options) do
+    {}
+  end
+
   let(:after_test_initialize_block) do
     proc do
       # Rails autoloader recommends controllers to be loaded
@@ -146,6 +151,7 @@ RSpec.shared_context 'Rails 5 base application' do
   let(:initialize_block) do
     middleware = rails_middleware
     logger = self.logger
+    lograge_options = OpenStruct.new(self.lograge_options)
 
     proc do
       #
@@ -168,18 +174,10 @@ RSpec.shared_context 'Rails 5 base application' do
       config.colorize_logging = false
 
       if config.respond_to?(:lograge)
-        # `keep_original_rails_log` is important to prevent monkey patching from `lograge`
-        #  which leads to flaky spec in the same test process
-        config.lograge.keep_original_rails_log = true
-        config.lograge.logger = config.logger
-
-        if ENV['USE_LOGRAGE'] == true
-          config.lograge.enabled = true
-          config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS'] if ENV['LOGRAGE_CUSTOM_OPTIONS']
-        else
-          # ensure no test leakage from other tests
-          config.lograge.enabled = false
-        end
+        ::Datadog::Tracing::Contrib::Rails::Test::Lograge.config(
+          config,
+          lograge_options
+        )
       end
 
       # Semantic Logger settings should be exclusive to `ActiveSupport::TaggedLogging` and `Lograge`
