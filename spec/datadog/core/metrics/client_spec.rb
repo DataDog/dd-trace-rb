@@ -1,8 +1,7 @@
 require 'spec_helper'
-
 require 'datadog/statsd'
-
 require 'datadog/core/metrics/client'
+require 'support/metric_helpers'
 
 RSpec.describe Datadog::Core::Metrics::Client do
   include_context 'metrics'

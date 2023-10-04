@@ -1,9 +1,0 @@
-module Datadog
-  module Profiling
-    module Pprof
-      class MessageSet < Core::Utils::ObjectSet
-        def messages: () -> untyped
-      end
-    end
-  end
-end

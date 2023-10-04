@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/shoryuken/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:shoryuken) }
 
   describe '.version' do

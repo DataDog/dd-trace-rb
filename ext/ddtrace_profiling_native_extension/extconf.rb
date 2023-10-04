@@ -82,9 +82,9 @@ end
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
 #
-# @ivoanjo TODO: Ruby 3.3.0-preview1 was causing issues in CI because `have_header('vm_core.h')` below triggers warnings;
+# @ivoanjo TODO: 3.3.0-preview releases are causing issues in CI because `have_header('vm_core.h')` below triggers warnings;
 # I've chosen to disable `-Werror` for this Ruby version for now, and we can revisit this on a later 3.3 release.
-add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true' && !RUBY_DESCRIPTION.include?('3.3.0preview1')
+add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true' && !RUBY_DESCRIPTION.include?('3.3.0preview')
 
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase
@@ -145,6 +145,9 @@ $defs << '-DNO_RB_THREAD_SCHED' if RUBY_VERSION < '3.2'
 
 # On older Rubies, the first_lineno inside a location was a VALUE and not a int (https://github.com/ruby/ruby/pull/6430)
 $defs << '-DNO_INT_FIRST_LINENO' if RUBY_VERSION < '3.2'
+
+# On older Rubies, "pop" was not a primitive operation
+$defs << '-DNO_PRIMITIVE_POP' if RUBY_VERSION < '3.2'
 
 # On older Rubies, there was no tid member in the internal thread structure
 $defs << '-DNO_THREAD_TID' if RUBY_VERSION < '3.1'

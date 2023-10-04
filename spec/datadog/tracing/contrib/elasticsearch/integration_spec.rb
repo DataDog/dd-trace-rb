@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/elasticsearch/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:elasticsearch) }
 
   describe '.version' do

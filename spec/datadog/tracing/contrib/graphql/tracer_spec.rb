@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/graphql/test_types'
 
 require 'ddtrace'
 RSpec.describe 'GraphQL patcher' do
-  include ConfigurationHelpers
-
   # GraphQL generates tons of warnings.
   # This suppresses those warnings.
   around do |example|

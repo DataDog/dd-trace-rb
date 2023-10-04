@@ -343,36 +343,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#advanced' do
-      describe '#max_events' do
-        before { allow(Datadog.logger).to receive(:warn) }
-
-        subject(:max_events) { settings.profiling.advanced.max_events }
-
-        it { is_expected.to eq(32768) }
-      end
-
       describe '#max_events=' do
-        before { allow(Datadog.logger).to receive(:warn) }
-
-        it 'updates the #max_events setting' do
-          expect { settings.profiling.advanced.max_events = 1234 }
-            .to change { settings.profiling.advanced.max_events }
-            .from(32768)
-            .to(1234)
-        end
-
-        it 'logs a warning informing customers this has been deprecated for removal' do
-          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
 
           settings.profiling.advanced.max_events = 1234
-        end
-
-        context 'when value is set to default' do
-          it 'does not log a warning' do
-            expect(Datadog.logger).to_not receive(:warn)
-
-            settings.profiling.advanced.max_events = 32768
-          end
         end
       end
 
@@ -479,56 +454,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#force_enable_legacy_profiler' do
-        before { allow(Datadog.logger).to receive(:warn) }
-
-        subject(:force_enable_legacy_profiler) { settings.profiling.advanced.force_enable_legacy_profiler }
-
-        context 'when DD_PROFILING_FORCE_ENABLE_LEGACY' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_FORCE_ENABLE_LEGACY' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be false }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
-      end
-
       describe '#force_enable_legacy_profiler=' do
-        before { allow(Datadog.logger).to receive(:warn) }
-
-        it 'updates the #force_enable_legacy_profiler setting' do
-          expect { settings.profiling.advanced.force_enable_legacy_profiler = true }
-            .to change { settings.profiling.advanced.force_enable_legacy_profiler }
-            .from(false)
-            .to(true)
-        end
-
-        it 'logs a warning informing customers this has been deprecated for removal' do
-          expect(Datadog.logger).to receive(:warn).with(/deprecated for removal/)
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
 
           settings.profiling.advanced.force_enable_legacy_profiler = true
-        end
-
-        context 'when value is set to false' do
-          it 'does not log a warning' do
-            expect(Datadog.logger).to_not receive(:warn)
-
-            settings.profiling.advanced.force_enable_legacy_profiler = false
-          end
         end
       end
 
@@ -570,16 +500,25 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#allocation_counting_enabled' do
         subject(:allocation_counting_enabled) { settings.profiling.advanced.allocation_counting_enabled }
 
-        context 'on Ruby 2.x' do
-          before { skip("Spec doesn't run on Ruby 3.x") unless RUBY_VERSION.start_with?('2.') }
+        before { stub_const('RUBY_VERSION', testing_version) }
 
+        context 'on Ruby 2.x' do
+          let(:testing_version) { '2.3.0 ' }
           it { is_expected.to be true }
         end
 
-        context 'on Ruby 3.x' do
-          before { skip("Spec doesn't run on Ruby 2.x") if RUBY_VERSION.start_with?('2.') }
+        ['3.0.0', '3.1.0', '3.1.3', '3.2.0', '3.2.2'].each do |broken_ruby|
+          context "on a Ruby 3 version affected by https://bugs.ruby-lang.org/issues/18464 (#{broken_ruby})" do
+            let(:testing_version) { broken_ruby }
+            it { is_expected.to be false }
+          end
+        end
 
-          it { is_expected.to be false }
+        ['3.1.4', '3.2.3', '3.3.0'].each do |fixed_ruby|
+          context "on a Ruby 3 version where https://bugs.ruby-lang.org/issues/18464 is fixed (#{fixed_ruby})" do
+            let(:testing_version) { fixed_ruby }
+            it { is_expected.to be true }
+          end
         end
       end
 

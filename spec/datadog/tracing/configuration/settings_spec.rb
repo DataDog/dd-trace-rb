@@ -118,6 +118,10 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             let(:var_value) { 'b3multi,b3' }
 
             it do
+              expect(::Datadog::Core).to receive(:log_deprecation).with(no_args) do |&message_block|
+                expect(message_block.call).to match('DD_PROPAGATION_STYLE_EXTRACT environment variable is deprecated')
+              end
+
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
@@ -125,8 +129,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
                 ]
               )
             end
-
-            include_examples 'records deprecated action', 'DD_PROPAGATION_STYLE_EXTRACT environment variable is deprecated'
           end
         end
       end
@@ -177,6 +179,10 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             let(:var_value) { 'Datadog,b3' }
 
             it do
+              expect(::Datadog::Core).to receive(:log_deprecation).with(no_args) do |&message_block|
+                expect(message_block.call).to match('DD_PROPAGATION_STYLE_INJECT environment variable is deprecated')
+              end
+
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
@@ -184,8 +190,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
                 ]
               )
             end
-
-            include_examples 'records deprecated action', 'DD_PROPAGATION_STYLE_INJECT environment variable is deprecated'
           end
         end
       end

@@ -5,13 +5,13 @@ module Datadog
 
       private
 
-      attr_reader worker: untyped # TODO: Change this to CpuAndWallTimeWorker once legacy profiler is retired
+      attr_reader worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
       attr_reader scheduler: Datadog::Profiling::Scheduler
 
       public
 
       def initialize: (
-        worker: Datadog::Profiling::Collectors::OldStack | Datadog::Profiling::Collectors::CpuAndWallTimeWorker,
+        worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker,
         scheduler: Datadog::Profiling::Scheduler,
       ) -> void
 

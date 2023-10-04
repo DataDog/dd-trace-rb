@@ -7,19 +7,11 @@ module Datadog
         optional_tracer: Datadog::Tracing::Tracer?,
       ) -> Datadog::Profiling::Profiler?
 
-      def self.build_profiler_old_recorder: (untyped settings) -> Datadog::Profiling::OldRecorder
-
       def self.build_profiler_exporter: (
         untyped settings,
-        (Datadog::Profiling::StackRecorder | Datadog::Profiling::OldRecorder) recorder,
+        Datadog::Profiling::StackRecorder recorder,
         internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
       ) -> Datadog::Profiling::Exporter
-
-      def self.build_profiler_oldstack_collector: (
-        untyped settings,
-        Datadog::Profiling::OldRecorder old_recorder,
-        Datadog::Tracing::Tracer? tracer,
-      ) -> Datadog::Profiling::Collectors::OldStack
 
       def self.build_profiler_transport: (
         untyped settings,
@@ -28,13 +20,9 @@ module Datadog
 
       def self.enable_gc_profiling?: (untyped settings) -> bool
 
-      def self.enable_new_profiler?: (untyped settings) -> bool
-
       def self.no_signals_workaround_enabled?: (untyped settings) -> bool
 
       def self.incompatible_libmysqlclient_version?: (untyped settings) -> bool
-
-      def self.load_pprof_support: () -> void
     end
   end
 end

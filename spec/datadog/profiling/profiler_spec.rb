@@ -44,8 +44,7 @@ RSpec.describe Datadog::Profiling::Profiler do
     subject(:shutdown!) { profiler.shutdown! }
 
     it 'signals worker and scheduler to disable and stop' do
-      expect(worker).to receive(:enabled=).with(false)
-      expect(worker).to receive(:stop).with(true)
+      expect(worker).to receive(:stop)
 
       expect(scheduler).to receive(:enabled=).with(false)
       expect(scheduler).to receive(:stop).with(true)

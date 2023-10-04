@@ -11,7 +11,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   subject(:collectors_stack) { described_class.new }
 
   let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
-  let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
+  let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
   let(:raw_reference_stack) { stacks.fetch(:reference) }
   let(:reference_stack) { convert_reference_stack(raw_reference_stack) }
@@ -76,6 +76,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:ready_queue) { Queue.new }
     let(:stacks) { { reference: background_thread.backtrace_locations, gathered: sample_and_decode(background_thread) } }
     let(:background_thread) { Thread.new(ready_queue, &do_in_background_thread) }
+    let(:expected_eval_path) do
+      # Starting in Ruby 3.3, the path on evals went from being "(eval)" to being "(eval at some_file.rb:line)"
+      RUBY_VERSION < '3.3.' ? '(eval)' : match(/\(eval at .+stack_spec.rb:\d+\)/)
+    end
 
     before do
       background_thread
@@ -126,8 +130,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       it 'has eval frames on the stack' do
         expect(reference_stack[0..2]).to contain_exactly(
-          have_attributes(base_label: 'sleep', path: '(eval)'),
-          have_attributes(base_label: '<top (required)>', path: '(eval)'),
+          have_attributes(base_label: 'sleep', path: expected_eval_path),
+          have_attributes(base_label: '<top (required)>', path: expected_eval_path),
           have_attributes(base_label: 'eval', path: end_with('stack_spec.rb')),
         )
       end
@@ -170,8 +174,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           # These two frames are the frames that get created with the evaluation of the string, e.g. if instead of
           # `eval("foo")` we did `eval { foo }` then it is the block containing foo; eval with a string works similarly,
           # although you don't see a block there.
-          have_attributes(base_label: 'call_eval', path: '(eval)', lineno: 1),
-          have_attributes(base_label: 'call_instance_eval', path: '(eval)', lineno: 1),
+          have_attributes(base_label: 'call_eval', path: expected_eval_path, lineno: 1),
+          have_attributes(base_label: 'call_instance_eval', path: expected_eval_path, lineno: 1),
         )
       end
     end
@@ -213,6 +217,203 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       it 'matches the Ruby backtrace API AND has a sleeping frame at the top of the stack' do
         expect(gathered_stack).to eq reference_stack
         expect(reference_stack.first.base_label).to eq 'sleep'
+      end
+    end
+
+    describe 'approximate thread state categorization based on current stack' do
+      describe 'state label validation' do
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            ready_queue << true
+            sleep
+          end
+        end
+        let(:labels) { [] }
+
+        context 'when taking a cpu/wall-time sample and the state label is missing' do
+          let(:metric_values) { { 'cpu-samples' => 1 } }
+
+          it 'raises an exception' do
+            expect { gathered_stack }.to raise_error(RuntimeError, /BUG: Unexpected missing state_label/)
+          end
+        end
+
+        context 'when taking a non-cpu/wall-time sample and the state label is missing' do
+          let(:metric_values) { { 'cpu-samples' => 0 } }
+
+          it 'does not raise an exception' do
+            expect(gathered_stack).to be_truthy
+          end
+        end
+      end
+
+      context 'when sampling a thread with cpu-time' do
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            ready_queue << true
+            sleep
+          end
+        end
+        let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: 'had cpu')
+        end
+      end
+
+      context 'when sampling a sleeping thread with no cpu-time' do
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            ready_queue << true
+            sleep
+          end
+        end
+        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: 'sleeping')
+        end
+      end
+
+      context 'when sampling a thread waiting on a select' do
+        let(:server_socket) { TCPServer.new(6006) }
+        let(:background_thread) { Thread.new(ready_queue, server_socket, &do_in_background_thread) }
+        let(:do_in_background_thread) do
+          proc do |ready_queue, server_socket|
+            ready_queue << true
+            IO.select([server_socket])
+          end
+        end
+        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+
+        after do
+          background_thread.kill
+          background_thread.join
+          server_socket.close
+        end
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: 'waiting')
+        end
+      end
+
+      context 'when sampling a thread blocked on Thread#join' do
+        let(:another_thread) { Thread.new { sleep } }
+        let(:background_thread) { Thread.new(ready_queue, another_thread, &do_in_background_thread) }
+        let(:do_in_background_thread) do
+          proc do |ready_queue, another_thread|
+            ready_queue << true
+            another_thread.join
+          end
+        end
+        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+
+        after do
+          another_thread.kill
+          another_thread.join
+        end
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: 'blocked')
+        end
+      end
+
+      context 'when sampling a thread blocked on Mutex#synchronize' do
+        let(:locked_mutex) { Mutex.new.tap(&:lock) }
+        let(:background_thread) { Thread.new(ready_queue, locked_mutex, &do_in_background_thread) }
+        let(:do_in_background_thread) do
+          proc do |ready_queue, locked_mutex|
+            ready_queue << true
+            locked_mutex.synchronize {}
+          end
+        end
+        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: 'blocked')
+        end
+      end
+
+      context 'when sampling a thread blocked on Mutex#lock' do
+        let(:locked_mutex) { Mutex.new.tap(&:lock) }
+        let(:background_thread) { Thread.new(ready_queue, locked_mutex, &do_in_background_thread) }
+        let(:do_in_background_thread) do
+          proc do |ready_queue, locked_mutex|
+            ready_queue << true
+            locked_mutex.lock
+          end
+        end
+        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: 'blocked')
+        end
+      end
+
+      context 'when sampling a thread blocked on Monitor#synchronize' do
+        let(:locked_monitor) { Monitor.new.tap(&:enter) }
+        let(:background_thread) { Thread.new(ready_queue, locked_monitor, &do_in_background_thread) }
+        let(:do_in_background_thread) do
+          proc do |ready_queue, locked_monitor|
+            ready_queue << true
+            locked_monitor.synchronize {}
+          end
+        end
+        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: 'blocked')
+        end
+      end
+
+      context 'when sampling a thread waiting on a IO object' do
+        let(:server_socket) { TCPServer.new(6006) }
+        let(:background_thread) { Thread.new(ready_queue, server_socket, &do_in_background_thread) }
+        let(:do_in_background_thread) do
+          proc do |ready_queue, server_socket|
+            ready_queue << true
+            server_socket.wait_readable
+          end
+        end
+        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+
+        after do
+          background_thread.kill
+          background_thread.join
+          server_socket.close
+        end
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: 'network')
+        end
+      end
+
+      context 'when sampling a thread waiting on a Queue object' do
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            ready_queue << true
+            Queue.new.pop
+          end
+        end
+        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: 'waiting')
+        end
+      end
+
+      context 'when sampling a thread in an unknown state' do
+        let(:do_in_background_thread) do
+          proc do |ready_queue|
+            ready_queue << true
+            Thread.stop
+          end
+        end
+        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels)).to include(state: 'unknown')
+        end
       end
     end
   end
@@ -411,13 +612,13 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
-  def sample_and_decode(thread, max_frames: 400, recorder: build_stack_recorder, in_gc: false)
+  def sample_and_decode(thread, data = :locations, max_frames: 400, recorder: build_stack_recorder, in_gc: false)
     sample(thread, recorder, metric_values, labels, max_frames: max_frames, in_gc: in_gc)
 
     samples = samples_from_pprof(recorder.serialize!)
 
     expect(samples.size).to be 1
-    samples.first.locations
+    samples.first.public_send(data)
   end
 end
 

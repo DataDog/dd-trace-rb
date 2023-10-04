@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/rest_client/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::RestClient::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:rest_client) }
 
   describe '.version' do

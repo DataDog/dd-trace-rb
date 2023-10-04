@@ -87,7 +87,6 @@ module Datadog
             on_unknown_os? ||
             on_unsupported_cpu_arch? ||
             on_unsupported_ruby_version? ||
-            on_ruby_3_3? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
             libdatadog_not_available? ||
             libdatadog_not_usable?
@@ -268,20 +267,6 @@ module Datadog
           )
 
           ruby_version_not_supported if RUBY_VERSION.start_with?('2.1.', '2.2.')
-        end
-
-        private_class_method def self.on_ruby_3_3?
-          incompatible_with_3_3 = explain_issue(
-            'the profiler in the current version of ddtrace does not yet support',
-            'Ruby version 3.3.',
-            '(See https://github.com/datadog/dd-trace-rb/issues/3053 for details).',
-            suggested: [
-              'Try upgrading to the latest ddtrace, as this issue may have been',
-              'fixed by now.',
-            ] + CONTACT_SUPPORT,
-          )
-
-          incompatible_with_3_3 if RUBY_VERSION.start_with?('3.3.')
         end
 
         # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip

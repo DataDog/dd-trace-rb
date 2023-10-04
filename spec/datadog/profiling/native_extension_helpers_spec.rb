@@ -197,12 +197,6 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
 
             it { is_expected.to include 'profiler only supports Ruby 2.3 or newer' }
           end
-
-          context 'when on Ruby 3.3' do
-            before { stub_const('RUBY_VERSION', '3.3.0') }
-
-            it { is_expected.to include "does not yet support\nRuby version 3.3." }
-          end
         end
 
         context 'when on amd64 (x86-64) linux' do

@@ -16,8 +16,7 @@ the gem. Setting `DD_PROFILING_NO_EXTENSION` at installation time skips compilat
 
 (If you're a customer and needed to use this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>.)
 
-In past releases, it was possible for the profiler to run without the native extension, but that's no longer the case,
-and disabling the extension will disable profiling.
+Disabling the profiler extension will disable profiling.
 
 ## Who is this page for?
 
@@ -83,7 +82,7 @@ contribute upstream changes so that they become official public VM APIs.
 Ruby versions 2.6 to 3.2 shipped a JIT compiler called MJIT. This compiler does not directly generate machine code;
 instead it generates C code and uses the system C compiler to turn it into machine code.
 
-The generated C code `#include`s a private header -- which we reference as "the MJIT header" everywhere.
+The generated C code `#include`s a private header -- which we call "the MJIT header".
 The MJIT header gets shipped with all MJIT-enabled Rubies and includes the layout of many internal VM structures;
 and of course the intention is that it is only used by the Ruby MJIT compiler.
 
@@ -104,8 +103,7 @@ Thus, even though a regular Ruby installation does not include these files, we c
 * **OS support**: Linux
 
 To enable CPU-time profiling, we use the `pthread_getcpuclockid(pthread_t thread, clockid_t *clockid)` C function to
-obtain a `clockid_t` that can then be used with the `Process.clock_gettime` method (or directly with the
-`clock_gettime()` C function).
+obtain a `clockid_t` that can then be used with the `clock_gettime` function.
 
 The challenge with using `pthread_getcpuclockid()` is that we need to get the `pthread_t` for a given Ruby `Thread`
 object. We previously did this with a weird combination of monkey patching and `pthread_self()` (effectively patching

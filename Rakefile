@@ -269,12 +269,14 @@ namespace :test do
 
   ruby_version = RUBY_VERSION[0..2]
 
-  ruby_runtime =
-    if defined?(RUBY_ENGINE_VERSION)
-      "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
-    else
-      "#{RUBY_ENGINE}-#{RUBY_VERSION}" # For Ruby < 2.3
-    end
+  major, minor, = if defined?(RUBY_ENGINE_VERSION)
+                    Gem::Version.new(RUBY_ENGINE_VERSION).segments
+                  else
+                    # For Ruby < 2.3
+                    Gem::Version.new(RUBY_VERSION).segments
+                  end
+
+  ruby_runtime = "#{RUBY_ENGINE}-#{major}.#{minor}"
 
   TEST_METADATA.each do |key, spec_metadata|
     spec_task = "spec:#{key}"
@@ -329,8 +331,7 @@ namespace :spec do
                         ' spec/**/{auto_instrument,opentelemetry}_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
-  if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3.0') \
-    && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3.0')
+  if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3.0')
     # "bundle exec rake compile" currently only works on MRI Ruby on Linux
     Rake::Task[:main].enhance([:clean])
     Rake::Task[:main].enhance([:compile])
