@@ -59,8 +59,6 @@ RSpec.describe 'Rails Log Auto Injection' do
       c.tracing.instrument :rails
       c.tracing.log_injection = log_injection
     end
-
-    allow(ENV).to receive(:[]).and_call_original
   end
 
   after do
