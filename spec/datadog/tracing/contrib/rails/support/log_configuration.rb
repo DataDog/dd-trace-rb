@@ -10,7 +10,7 @@ module Datadog
             end
 
             def setup(config)
-              config.log_tags = ENV['LOG_TAGS'] if ENV['LOG_TAGS']
+              config.log_tags = example_group.log_tags if example_group.log_tags
 
               config.logger = if ENV['USE_TAGGED_LOGGING'] == true
                                 ::ActiveSupport::TaggedLogging.new(example_group.logger)

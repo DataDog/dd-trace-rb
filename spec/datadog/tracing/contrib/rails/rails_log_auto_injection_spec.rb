@@ -118,8 +118,9 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
 
       context 'with tagged logging setup and existing log_tags' do
-        before do
-          allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
+
+        let(:log_tags) do
+          %w[some_info some_other_info]
         end
 
         it 'injects trace_id into logs and preserve existing log tags' do
@@ -285,9 +286,7 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with tagged logging setup and existing log_tags' do
-            before do
-              allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-            end
+            let(:log_tags) { %w[some_info some_other_info] }
 
             it 'injects trace_id into logs and preserve existing log tags' do
               is_expected.to be_ok
@@ -373,9 +372,7 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with existing log_tags and Lograge custom_options' do
-            before do
-              allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-            end
+            let(:log_tags) { %w[some_info some_other_info] }
 
             let(:lograge_options) do
               super().merge(
@@ -454,9 +451,7 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
 
       context 'with tagged logging setup and existing log_tags' do
-        before do
-          allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-        end
+        let(:log_tags) { %w[some_info some_other_info] }
 
         it 'does not inject trace_id' do
           is_expected.to be_ok

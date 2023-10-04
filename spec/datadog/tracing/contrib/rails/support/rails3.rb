@@ -117,6 +117,10 @@ RSpec.shared_context 'Rails 3 base application' do
     {}
   end
 
+  let(:log_tags) do
+    nil
+  end
+
   let(:after_test_initialize_block) do
     proc do
       # Rails autoloader recommends controllers to be loaded
