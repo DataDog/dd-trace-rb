@@ -6,6 +6,7 @@ module Datadog
       ALLOWED_RESPONSE_HEADERS: untyped
 
       MAX_ENCODED_SCHEMA_SIZE: Numeric
+      MIN_SCHEMA_SIZE_FOR_COMPRESSION: Numeric
 
       def self.record: (Datadog::Tracing::SpanOperation, *untyped events) -> (nil | untyped)
 

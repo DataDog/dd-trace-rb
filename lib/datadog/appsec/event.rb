@@ -37,6 +37,9 @@ module Datadog
       ].map!(&:downcase).freeze
 
       MAX_ENCODED_SCHEMA_SIZE = 25000
+      # For more information about this number
+      # please check https://github.com/DataDog/dd-trace-rb/pull/3177#issuecomment-1747221082
+      MIN_SCHEMA_SIZE_FOR_COMPRESSION = 260
 
       # Record events for a trace
       #
@@ -75,7 +78,7 @@ module Datadog
           end
         end
 
-        # rubocop: disable Metrics/MethodLength
+        # rubocop:disable Metrics/MethodLength
         def build_service_entry_tags(event_group)
           waf_events = []
           entry_tags = event_group.each_with_object({ '_dd.origin' => 'appsec' }) do |event, tags|
@@ -106,19 +109,21 @@ module Datadog
 
               parsed_value_size = parsed_value.size
 
-              compressed_data = compressed_and_base64_encoded(parsed_value)
-              compressed_data_size = compressed_data.size
+              schema_value = if parsed_value_size >= MIN_SCHEMA_SIZE_FOR_COMPRESSION
+                               compressed_and_base64_encoded(parsed_value)
+                             else
+                               parsed_value
+                             end
+              next unless schema_value
 
-              if compressed_data_size >= MAX_ENCODED_SCHEMA_SIZE && parsed_value_size >= MAX_ENCODED_SCHEMA_SIZE
+              if schema_value.size >= MAX_ENCODED_SCHEMA_SIZE
                 Datadog.logger.debug do
                   "Schema key: #{key} exceeds the max size value. It will not be included as part of the span tags"
                 end
                 next
               end
 
-              derivative_value = parsed_value_size > compressed_data_size ? compressed_data : parsed_value
-
-              tags[key] = derivative_value
+              tags[key] = schema_value
             end
 
             tags
@@ -128,25 +133,32 @@ module Datadog
           entry_tags['_dd.appsec.json'] = appsec_events if appsec_events
           entry_tags
         end
-        # rubocop: enable Metrics/MethodLength
+        # rubocop:enable Metrics/MethodLength
 
         private
 
         def compressed_and_base64_encoded(value)
           Base64.encode64(gzip(value))
-        rescue TypeError
+        rescue TypeError => e
+          Datadog.logger.debug do
+            "Failed to compress and encode value when populating AppSec::Event. Error: #{e.message}"
+          end
           nil
         end
 
         def json_parse(value)
           JSON.dump(value)
-        rescue ArgumentError
+        rescue ArgumentError => e
+          Datadog.logger.debug do
+            "Failed to parse value to JSON when populating AppSec::Event. Error: #{e.message}"
+          end
           nil
         end
 
         def gzip(value)
           sio = StringIO.new
-          gz = Zlib::GzipWriter.new(sio, Zlib::DEFAULT_COMPRESSION, Zlib::DEFAULT_STRATEGY)
+          # For an in depth comparison of Zlib options check https://github.com/DataDog/dd-trace-rb/pull/3177#issuecomment-1747215473
+          gz = Zlib::GzipWriter.new(sio, Zlib::BEST_SPEED, Zlib::DEFAULT_STRATEGY)
           gz.write(value)
           gz.close
           sio.string

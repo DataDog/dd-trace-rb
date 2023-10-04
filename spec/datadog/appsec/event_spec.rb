@@ -113,7 +113,8 @@ RSpec.describe Datadog::AppSec::Event do
           end
 
           context 'JSON payload' do
-            it 'uses JSON string as is smaller than the compressed value' do
+            it 'uses JSON string when do not exceeds MIN_SCHEMA_SIZE_FOR_COMPRESSION' do
+              stub_const('Datadog::AppSec::Event::MIN_SCHEMA_SIZE_FOR_COMPRESSION', 3000)
               meta = top_level_span.meta
 
               expect(meta['_dd.appsec.s.req.headers']).to eq('[{"host":[8],"version":[8]}]')
@@ -121,8 +122,9 @@ RSpec.describe Datadog::AppSec::Event do
           end
 
           context 'Compressed payload' do
-            it 'uses compressed value when is smaller than JSON string' do
+            it 'uses compressed value when JSON string is bigger than MIN_SCHEMA_SIZE_FOR_COMPRESSION' do
               result = "H4sIAOYoHGUAA4aphwAAAA=\n"
+              stub_const('Datadog::AppSec::Event::MIN_SCHEMA_SIZE_FOR_COMPRESSION', 1)
               expect(described_class).to receive(:compressed_and_base64_encoded).and_return(result)
 
               meta = top_level_span.meta
