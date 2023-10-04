@@ -819,6 +819,13 @@ static struct per_thread_context *get_context_for(VALUE thread, struct thread_co
 
 // The `logging` gem monkey patches thread creation, which makes the `invoke_location_for` useless, since every thread
 // will point to the `logging` gem. When that happens, we avoid using the invoke location.
+//
+// TODO: This approach is a bit brittle, since it matches on the specific gem path, and only works for the `logging`
+// gem.
+// In the future we should probably explore a more generic fix (e.g. using Thread.method(:new).source_location or
+// something like that to detect redefinition of the `Thread` methods). One difficulty of doing it is that we need
+// to either run Ruby code during sampling (not great), or otherwise use some of the VM private APIs to detect this.
+//
 static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
   int logging_gem_path_len = strlen(LOGGING_GEM_PATH);
   char *invoke_file = StringValueCStr(invoke_file_location);
