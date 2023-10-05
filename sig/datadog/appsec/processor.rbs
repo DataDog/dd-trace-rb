@@ -21,6 +21,8 @@ module Datadog
 
         private
         def extract_schema?: () -> bool
+        def remove_empty_entries: (untyped entries) -> data
+        def empty_value?: (untyped v) -> bool
       end
 
       def self.active_context: () -> Context
