@@ -16,6 +16,7 @@ require_relative 'opentelemetry/api/context'
 # DEV: This is different from our existing OpenTracer API, but there are many safety
 # DEV: features built into Contrib instrumentation today.
 require_relative 'opentelemetry/sdk/configurator' if defined?(OpenTelemetry::SDK)
+require_relative 'opentelemetry/sdk/trace/span' if defined?(OpenTelemetry::SDK)
 
 module Datadog
   # Datadog OpenTelemetry integration.

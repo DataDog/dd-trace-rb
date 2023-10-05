@@ -50,7 +50,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     let(:finish) { serialize[1] }
     let(:encoded_pprof) { serialize[2] }
 
-    let(:decoded_profile) { ::Perftools::Profiles::Profile.decode(encoded_pprof) }
+    let(:decoded_profile) { decode_profile(encoded_pprof) }
 
     it 'debug logs profile information' do
       message = nil

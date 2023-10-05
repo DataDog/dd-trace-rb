@@ -437,6 +437,34 @@ Style/WordArray:
 Style/DoubleNegation:
   Enabled: false
 
+Naming/FileName:
+  ExpectMatchingDefinition: true
+  CheckDefinitionPathHierarchy: true
+  Include:
+    - 'lib/**/*.rb'
+  AllowedAcronyms:
+    - HTTP
+    - MongoDB
+    - GRPC
+    - QL
+    - SQS
+    - SNS
+    - AWS
+    - OpenSearch
+    - AppSec
+    - SQL
+    - API
+    - CRuby
+    - GC
+    - OpenTelemetry
+    - OpenTracer
+    - VM
+    - SDK
+    - GraphQL
+    - DynamoDB
+    - YJIT
+    - IO
+
 Lint/RedundantRequireStatement:
   Enabled: true
   Exclude:

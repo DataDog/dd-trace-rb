@@ -27,7 +27,7 @@ module Datadog
         #
         # @param [Span] span the {Span} that just ended.
         def on_finish(span)
-          span.datadog_span.finish
+          span.datadog_span.finish(ns_to_time(span.end_timestamp))
         end
 
         # Export all ended spans to the configured `Exporter` that have not yet
@@ -81,9 +81,21 @@ module Datadog
           kind = span.kind || 'internal'
           tags[Tracing::Metadata::Ext::TAG_KIND] = kind
 
-          datadog_span = Tracing.trace(span.name, tags: tags)
+          datadog_span = Tracing.trace(
+            span.name,
+            tags: tags,
+            start_time: ns_to_time(span.start_timestamp)
+          )
+
           datadog_span.set_error([nil, span.status.description]) unless span.status.ok?
+          datadog_span.set_tags(span.attributes)
+
           datadog_span
+        end
+
+        # From nanoseconds, used by OpenTelemetry, to a {Time} object, used by the Datadog Tracer.
+        def ns_to_time(timestamp_ns)
+          Time.at(timestamp_ns / 1000000000.0)
         end
       end
     end

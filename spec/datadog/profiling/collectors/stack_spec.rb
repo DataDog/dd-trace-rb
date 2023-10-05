@@ -314,7 +314,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
 
         it do
-          expect(sample_and_decode(background_thread, :labels)).to include(state: 'blocked')
+          sample = sample_and_decode(background_thread, :itself)
+          expect(sample.labels).to(
+            include(state: 'blocked'),
+            "**If you see this test flaking, please report it to @ivoanjo!**\n\n" \
+            "sample: #{sample}",
+          )
         end
       end
 
