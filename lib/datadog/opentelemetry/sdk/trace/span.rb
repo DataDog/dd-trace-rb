@@ -39,7 +39,8 @@ module Datadog
         private
 
         def datadog_set_attribute(key)
-          return unless defined?(@attributes) && @attributes # Return if attributes are currently disabled by OpenTelemetry.
+          # Return if attributes are currently disabled by OpenTelemetry.
+          return unless defined?(@attributes) && @attributes
           return unless (span = datadog_span)
 
           # DEV: Accesses `@attributes` directly, since using `#attributes`
