@@ -166,6 +166,9 @@ RSpec.shared_context 'Rails 5 base application' do
 
     # Clear out any spans generated during initialization
     clear_traces!
+
+    # Clear out log entries generated during initialization
+    log_output.reopen
   end
 
   def append_routes!

@@ -7,11 +7,6 @@ RSpec.shared_context 'Rails log configuration' do
     reset_lograge_configuration! if defined?(::Lograge)
   end
 
-  # Clear out log entries generated during initialization
-  before do
-    log_output.reopen
-  end
-
   # Unsubscribe log subscription to prevent flaky specs due to multiple subscription
   # after several test cases.
   after do
