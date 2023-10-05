@@ -5,9 +5,9 @@ if ENV['USE_SIDEKIQ']
   require 'datadog/tracing/contrib/sidekiq/server_tracer'
 end
 
-require 'datadog/tracing/contrib/rails/support/controllers'
-require 'datadog/tracing/contrib/rails/support/middleware'
-require 'datadog/tracing/contrib/rails/support/models'
+require_relative 'controllers'
+require_relative 'middleware'
+require_relative 'models'
 
 require_relative 'deprecation'
 require_relative 'log_configuration'
