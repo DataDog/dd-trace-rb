@@ -327,6 +327,11 @@ module Datadog
             # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
             # Thus this feature is only usable if you're not using Ractors.
             #
+            # Caveat 3 (severe):
+            # Ruby 3.2.0 to 3.2.2 have a bug in the newobj tracepoint (https://bugs.ruby-lang.org/issues/19482,
+            # https://github.com/ruby/ruby/pull/7464) so that's an extra reason why it's not safe on those Rubies.
+            # This bug is fixed on Ruby versions 3.2.2 and 3.3.0.
+            #
             # @default `true` on Ruby 2.x and 3.1.4+, 3.2.3+ and 3.3.0+; `false` for Ruby 3.0 and unpatched Rubies.
             option :allocation_counting_enabled do |o|
               o.default do
