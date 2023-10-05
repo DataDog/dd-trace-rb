@@ -1,9 +1,19 @@
-require 'rails/all'
+version = Gem::Version.new(Rails.version)
+major_version, = version.segments
+
+require_relative 'base'
+require_relative "rails#{major_version}"
 
 RSpec.shared_context 'Rails test application' do
-  version = Gem::Version.new(Rails.version)
-  major_version, = version.segments
+  include_context 'Rails base application' do
+    include_context "Rails #{major_version} test application"
+  end
 
-  require "datadog/tracing/contrib/rails/support/rails#{major_version}"
-  include_context "Rails #{major_version} base application"
+  after do
+    without_warnings { Datadog.configuration.reset! }
+
+    Datadog.configuration.tracing[:rails].reset_options!
+    Datadog.configuration.tracing[:rack].reset_options!
+    Datadog.configuration.tracing[:redis].reset_options!
+  end
 end

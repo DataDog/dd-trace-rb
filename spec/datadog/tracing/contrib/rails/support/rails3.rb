@@ -1,12 +1,5 @@
 require 'rails/all'
 
-require_relative 'controllers'
-require_relative 'middleware'
-require_relative 'models'
-
-require_relative 'deprecation'
-require_relative 'log_configuration'
-
 # Patch Rails::Application so it doesn't raise an exception
 # when we reinitialize applications.
 Rails::Application.singleton_class.class_eval do
@@ -19,12 +12,7 @@ Rails::Application.singleton_class.class_eval do
   end
 end
 
-RSpec.shared_context 'Rails 3 base application' do
-  include_context 'Rails controllers'
-  include_context 'Rails middleware'
-  include_context 'Rails models'
-  include_context 'Rails log configuration'
-
+RSpec.shared_context 'Rails 3 test application' do
   around do |example|
     without_warnings do
       example.run
@@ -75,15 +63,6 @@ RSpec.shared_context 'Rails 3 base application' do
       after_test_init.call
     end
     klass
-  end
-
-  let(:rails_test_application) do
-    stub_const('Rails3::Application', rails_base_application)
-  end
-
-  let(:app) do
-    initialize_app!
-    rails_test_application.instance
   end
 
   let(:before_test_initialize_block) do
@@ -138,46 +117,12 @@ RSpec.shared_context 'Rails 3 base application' do
     end
   end
 
-  let(:initialize_block) do
-    middleware = rails_middleware
-    log_configuration = ::Datadog::Tracing::Contrib::Rails::Test::LogConfiguration.new(self)
-
-    proc do
-      log_configuration.setup(config)
-      middleware.each { |m| config.middleware.use m }
-    end
-  end
-
   before do
     reset_rails_configuration!
-    raise_on_rails_deprecation!
   end
 
   after do
     reset_rails_configuration!
-
-    # Reset references stored in the Rails class
-    Rails.application = nil
-    Rails.logger = nil
-
-    without_warnings { Datadog.configuration.reset! }
-    Datadog.configuration.tracing[:rails].reset_options!
-    Datadog.configuration.tracing[:rack].reset_options!
-    Datadog.configuration.tracing[:redis].reset_options!
-  end
-
-  def initialize_app!
-    # Reinitializing Rails applications generates a lot of warnings.
-    without_warnings do
-      # Initialize the application and stub Rails with the test app
-      rails_test_application.test_initialize!
-    end
-
-    # Clear out any spans generated during initialization
-    clear_traces!
-
-    # Clear out log entries generated during initialization
-    log_output.reopen
   end
 
   def append_routes!
