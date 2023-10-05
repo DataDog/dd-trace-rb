@@ -135,6 +135,11 @@ RSpec.shared_context 'Rails 6 test application' do
 
   after do
     reset_rails_configuration!
+
+    # Push this to base when Rails 3 removed
+    # Reset references stored in the Rails class
+    Rails.app_class = nil
+    Rails.cache = nil
   end
 
   def append_routes!

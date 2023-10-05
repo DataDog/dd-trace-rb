@@ -22,8 +22,9 @@ RSpec.shared_context 'Rails base application' do
     Rails.application = nil
     Rails.logger = nil
 
-    Rails.app_class = nil
-    Rails.cache = nil
+    # Uncommnt this when Rails 3 removed
+    # Rails.app_class = nil
+    # Rails.cache = nil
   end
 
   let(:rails_base_application) do
