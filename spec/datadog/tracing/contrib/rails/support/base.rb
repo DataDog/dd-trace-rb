@@ -36,21 +36,6 @@ RSpec.shared_context 'Rails base application' do
   end
 
   let(:app) do
-    initialize_app!
-    rails_test_application.instance
-  end
-
-  let(:initialize_block) do
-    middleware = rails_middleware
-    log_configuration = ::Datadog::Tracing::Contrib::Rails::Test::LogConfiguration.new(self)
-
-    proc do
-      log_configuration.setup(config)
-      middleware.each { |m| config.middleware.use m }
-    end
-  end
-
-  def initialize_app!
     # Reinitializing Rails applications generates a lot of warnings.
     without_warnings do
       # Initialize the application and stub Rails with the test app
@@ -62,5 +47,17 @@ RSpec.shared_context 'Rails base application' do
 
     # Clear out log entries generated during initialization
     log_output.reopen
+
+    rails_test_application.instance
+  end
+
+  let(:initialize_block) do
+    middleware = rails_middleware
+    log_configuration = ::Datadog::Tracing::Contrib::Rails::Test::LogConfiguration.new(self)
+
+    proc do
+      log_configuration.setup(config)
+      middleware.each { |m| config.middleware.use m }
+    end
   end
 end

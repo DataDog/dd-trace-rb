@@ -48,6 +48,7 @@ RSpec.shared_context 'Rails log configuration' do
       l.formatter = if defined?(::ActiveSupport::Logger::SimpleFormatter)
                       ::ActiveSupport::Logger::SimpleFormatter.new
                     else
+                      # Remove this when dropping Rails 3
                       l.formatter = proc do |_, _, _, msg|
                         "#{String === msg ? msg : msg.inspect}\n"
                       end
@@ -67,6 +68,7 @@ RSpec.shared_context 'Rails log configuration' do
   end
 end
 
+# Utility functions for lograge subscription
 module LogrageSubscription
   module_function
 
