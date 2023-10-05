@@ -187,10 +187,15 @@ appraise 'http' do
   gem 'faraday'
   gem 'http', '~> 4' # TODO: Fix test breakage and flakiness for 5+
   gem 'httpclient'
-  gem 'opensearch-ruby'
   gem 'rest-client'
   gem 'stripe', '~> 7.0'
   gem 'typhoeus'
+end
+
+[2, 3].each do |n|
+  appraise "opensearch-#{n}" do
+    gem 'opensearch-ruby', "~> #{n}"
+  end
 end
 
 appraise 'relational_db' do

@@ -159,10 +159,15 @@ appraise 'http' do
   gem 'faraday'
   gem 'http'
   gem 'httpclient'
-  gem 'opensearch-ruby'
   gem 'rest-client'
   gem 'stripe', '~> 8.0'
   gem 'typhoeus'
+end
+
+[2, 3].each do |n|
+  appraise "opensearch-#{n}" do
+    gem 'opensearch-ruby', "~> #{n}"
+  end
 end
 
 appraise 'relational_db' do

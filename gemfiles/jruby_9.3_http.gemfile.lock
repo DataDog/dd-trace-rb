@@ -91,14 +91,6 @@ GEM
     msgpack (1.7.2-java)
     multi_json (1.15.0)
     netrc (0.11.0)
-    opensearch-api (2.2.0)
-      multi_json
-    opensearch-ruby (2.1.0)
-      opensearch-api (~> 2.1)
-      opensearch-transport (~> 2.0)
-    opensearch-transport (2.1.0)
-      faraday (>= 1.0, < 3)
-      multi_json
     os (1.1.4)
     parallel (1.23.0)
     parser (3.2.2.3)
@@ -211,7 +203,6 @@ DEPENDENCIES
   httpclient
   json-schema (< 3)
   memory_profiler (~> 0.9)
-  opensearch-ruby
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
