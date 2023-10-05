@@ -13,8 +13,8 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
   let(:artile) { Article.new(title: 'test') }
 
   before do
-    # Prevent extra spans during tests
-    Article.count
+    # # Prevent extra spans during tests
+    # Article.count
 
     # Reset options (that might linger from other tests)
     Datadog.configuration.tracing[:active_record].reset!
@@ -34,7 +34,7 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
   end
 
   context 'when a model is instantiated' do
-    before { Article.count }
+    before { artile }
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_ENABLED }
