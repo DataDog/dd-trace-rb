@@ -221,7 +221,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     describe 'approximate thread state categorization based on current stack' do
+      before do
+        wait_for { background_thread.backtrace_locations.first.base_label }.to eq(expected_method_name)
+      end
+
       describe 'state label validation' do
+        let(:expected_method_name) { 'sleep' }
         let(:do_in_background_thread) do
           proc do |ready_queue|
             ready_queue << true
@@ -248,6 +253,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a thread with cpu-time' do
+        let(:expected_method_name) { 'sleep' }
         let(:do_in_background_thread) do
           proc do |ready_queue|
             ready_queue << true
@@ -262,6 +268,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a sleeping thread with no cpu-time' do
+        let(:expected_method_name) { 'sleep' }
         let(:do_in_background_thread) do
           proc do |ready_queue|
             ready_queue << true
@@ -276,6 +283,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a thread waiting on a select' do
+        let(:expected_method_name) { 'select' }
         let(:server_socket) { TCPServer.new(6006) }
         let(:background_thread) { Thread.new(ready_queue, server_socket, &do_in_background_thread) }
         let(:do_in_background_thread) do
@@ -298,6 +306,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a thread blocked on Thread#join' do
+        let(:expected_method_name) { 'join' }
         let(:another_thread) { Thread.new { sleep } }
         let(:background_thread) { Thread.new(ready_queue, another_thread, &do_in_background_thread) }
         let(:do_in_background_thread) do
@@ -324,6 +333,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a thread blocked on Mutex#synchronize' do
+        let(:expected_method_name) { 'synchronize' }
         let(:locked_mutex) { Mutex.new.tap(&:lock) }
         let(:background_thread) { Thread.new(ready_queue, locked_mutex, &do_in_background_thread) }
         let(:do_in_background_thread) do
@@ -340,6 +350,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a thread blocked on Mutex#lock' do
+        let(:expected_method_name) { 'lock' }
         let(:locked_mutex) { Mutex.new.tap(&:lock) }
         let(:background_thread) { Thread.new(ready_queue, locked_mutex, &do_in_background_thread) }
         let(:do_in_background_thread) do
@@ -356,6 +367,14 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a thread blocked on Monitor#synchronize' do
+        let(:expected_method_name) do
+          # On older Rubies Monitor is implemented using Mutex instead of natively
+          if RUBY_VERSION.start_with?('2.3', '2.4', '2.5', '2.6')
+            'lock'
+          else
+            'synchronize'
+          end
+        end
         let(:locked_monitor) { Monitor.new.tap(&:enter) }
         let(:background_thread) { Thread.new(ready_queue, locked_monitor, &do_in_background_thread) }
         let(:do_in_background_thread) do
@@ -372,6 +391,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a thread waiting on a IO object' do
+        let(:expected_method_name) { 'wait_readable' }
         let(:server_socket) { TCPServer.new(6006) }
         let(:background_thread) { Thread.new(ready_queue, server_socket, &do_in_background_thread) }
         let(:do_in_background_thread) do
@@ -394,6 +414,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a thread waiting on a Queue object' do
+        let(:expected_method_name) { 'pop' }
         let(:do_in_background_thread) do
           proc do |ready_queue|
             ready_queue << true
@@ -408,6 +429,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'when sampling a thread in an unknown state' do
+        let(:expected_method_name) { 'stop' }
         let(:do_in_background_thread) do
           proc do |ready_queue|
             ready_queue << true
