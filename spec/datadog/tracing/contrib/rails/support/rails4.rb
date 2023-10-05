@@ -9,7 +9,6 @@ require 'datadog/tracing/contrib/rails/support/controllers'
 require 'datadog/tracing/contrib/rails/support/middleware'
 require 'datadog/tracing/contrib/rails/support/models'
 
-require_relative 'reset_log_subscription'
 require_relative 'deprecation'
 require_relative 'log_configuration'
 
@@ -17,7 +16,7 @@ RSpec.shared_context 'Rails 4 base application' do
   include_context 'Rails controllers'
   include_context 'Rails middleware'
   include_context 'Rails models'
-  include_context 'Reset log subscription'
+  include_context 'Rails log configuration'
 
   let(:rails_base_application) do
     klass = Class.new(Rails::Application) do
@@ -98,14 +97,6 @@ RSpec.shared_context 'Rails 4 base application' do
     end
   end
 
-  let(:lograge_options) do
-    {}
-  end
-
-  let(:log_tags) do
-    nil
-  end
-
   let(:after_test_initialize_block) do
     proc do
       # Rails autoloader recommends controllers to be loaded
@@ -132,23 +123,6 @@ RSpec.shared_context 'Rails 4 base application' do
     end
   end
 
-  # for log_injection testing
-  let(:log_output) do
-    StringIO.new
-  end
-
-  let(:logger) do
-    # Use `ActiveSupport::Logger::SimpleFormatter` to exclude unnecessary metadata.
-    #
-    # This must not be replaced by `ActiveSupport::Logger` instance with `ActiveSupport::Logger.new(log_output)`,
-    # because RailsSemanticLogger monkey patch
-    #
-    # see: https://github.com/reidmorrison/rails_semantic_logger/tree/master/lib/rails_semantic_logger/extensions/active_support
-    Logger.new(log_output).tap do |l|
-      l.formatter = ActiveSupport::Logger::SimpleFormatter.new
-    end
-  end
-
   let(:initialize_block) do
     middleware = rails_middleware
     log_configuration = ::Datadog::Tracing::Contrib::Rails::Test::LogConfiguration.new(self)
@@ -161,13 +135,11 @@ RSpec.shared_context 'Rails 4 base application' do
 
   before do
     reset_rails_configuration!
-    reset_lograge_configuration! if defined?(::Lograge)
     raise_on_rails_deprecation!
   end
 
   after do
     reset_rails_configuration!
-    reset_lograge_configuration! if defined?(::Lograge)
 
     # Reset references stored in the Rails class
     Rails.application = nil
@@ -191,19 +163,6 @@ RSpec.shared_context 'Rails 4 base application' do
 
     # Clear out any spans generated during initialization
     clear_traces!
-    # Clear out log entries generated during initialization
-    log_output.reopen
-  end
-
-  def reset_lograge_configuration!
-    # Reset the global
-    ::Lograge.logger = nil
-    ::Lograge.application = nil
-    ::Lograge.custom_options = nil
-    ::Lograge.ignore_tests = nil
-    ::Lograge.before_format = nil
-    ::Lograge.log_level = nil
-    ::Lograge.formatter = nil
   end
 
   def append_routes!
