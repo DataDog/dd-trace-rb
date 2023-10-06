@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+// Originally imported from https://github.com/DataDog/java-profiler/blob/11fe6206c31a14c6e5134e8401eaec8b22c618d7/ddprof-lib/src/main/cpp/pidController.cpp
+
 #include "pidController.h"
 
 double PidController::compute(u64 input, double time_delta_coefficient) {
