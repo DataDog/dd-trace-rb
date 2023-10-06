@@ -22,9 +22,16 @@ module Datadog
 
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
-          cleaned_input = remove_empty_entries(input)
+          input.reject! do |_, v|
+            case v
+            when TrueClass, FalseClass
+              false
+            else
+              v.nil? ? true : v.empty?
+            end
+          end
 
-          _code, res = @context.run(cleaned_input, timeout)
+          _code, res = @context.run(input, timeout)
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
@@ -61,18 +68,6 @@ module Datadog
         def extract_schema?
           Datadog.configuration.appsec.api_security.enabled &&
             Datadog.configuration.appsec.api_security.sample_rate.sample?
-        end
-
-        def remove_empty_entries(entries)
-          entries.each_with_object({}) do |(k, v), acc|
-            acc[k] = v unless empty_value?(v)
-          end
-        end
-
-        def empty_value?(v)
-          return true unless v
-
-          v.empty?
         end
       end
 

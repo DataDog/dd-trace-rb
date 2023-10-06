@@ -15,14 +15,12 @@ module Datadog
         @run_mutex: ::Thread::Mutex
 
         def initialize: (Processor processor) -> void
-        def run: (data input, ?::Integer timeout) -> WAF::Result
+        def run: (Hash[untyped, untyped] input, ?::Integer timeout) -> WAF::Result
         def extract_schema: () -> WAF::Result?
         def finalize: () -> void
 
         private
         def extract_schema?: () -> bool
-        def remove_empty_entries: (untyped entries) -> data
-        def empty_value?: (untyped v) -> bool
       end
 
       def self.active_context: () -> Context

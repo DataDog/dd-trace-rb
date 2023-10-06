@@ -233,6 +233,18 @@ RSpec.describe Datadog::AppSec::Processor::Context do
         context.run(input, timeout)
       end
 
+      it 'do not removes boolean values' do
+        input = {
+          'false_value' => false,
+          'true_value' => true
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          input, timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+
       it 'removes empty string values' do
         input = {
           'empty_string_value' => '',
