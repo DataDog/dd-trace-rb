@@ -25,7 +25,9 @@ module Datadog
               @on_require[name].call
             end
           rescue => e
-            Datadog.logger.debug { "Failed to execute callback for gem '#{name}': #{e.class.name} #{e.message} at #{Array(e.backtrace).join("\n")}" }
+            Datadog.logger.debug do
+              "Failed to execute callback for gem '#{name}': #{e.class.name} #{e.message} at #{Array(e.backtrace).join("\n")}"
+            end
           end
 
           def on_require(gem, &block)

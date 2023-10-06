@@ -40,7 +40,6 @@ module Datadog
             Patcher
           end
 
-
           register_as :roda
         end
       end

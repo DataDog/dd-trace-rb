@@ -84,7 +84,9 @@ module Datadog
 
                     integration.gems.each do |gem|
                       Datadog::Tracing::Contrib::Kernel.on_require(gem) do
-                        Datadog.logger.debug { "Gem '#{gem}' loaded for integration '#{integration.name}', instrumenting it." }
+                        Datadog.logger.debug do
+                          "Gem '#{gem}' loaded for integration '#{integration.name}', instrumenting it."
+                        end
 
                         patch_integration(integration, ignore_integration_load_errors)
                       end
@@ -120,7 +122,7 @@ module Datadog
 
             # Try to patch it with another approach. Do not report patching
             # errors at this point, as we haven't given up yet.
-            return fallback.call if fallback
+            return yield if fallback
 
             # if patching failed, only log output if verbosity is unset
             # or if patching failure is due to compatibility or integration specific reasons
