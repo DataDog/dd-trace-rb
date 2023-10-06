@@ -12,6 +12,7 @@
 #include "collectors_thread_context.h"
 #include "collectors_dynamic_sampling_rate.h"
 #include "collectors_idle_sampling_helper.h"
+#include "pid_controller.h"
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
@@ -91,6 +92,7 @@ struct cpu_and_wall_time_worker_state {
   dynamic_sampling_rate_state dynamic_sampling_rate;
   VALUE gc_tracepoint; // Used to get gc start/finish information
   VALUE object_allocation_tracepoint; // Used to get allocation counts and allocation profiling
+  pid_controller allocation_sampling_rate;
 
   // These are mutable and used to signal things between the worker thread and other threads
 
@@ -141,6 +143,8 @@ struct cpu_and_wall_time_worker_state {
     unsigned int allocations_during_sample;
   } stats;
 };
+
+#define CONFIG_UPDATE_CHECK_PERIOD_SECS 1
 
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(
@@ -274,6 +278,15 @@ static VALUE _native_new(VALUE klass) {
   dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
+  pid_controller_init(
+    &state->allocation_sampling_rate,
+    /* target_per_second: */  1000,
+    /* proportional_gain: */ 16, // Taken from java-profiler: use a rather strong proportional gain in order to react quickly to bursts
+    /* integral_gain: */ 23,     // Taken from java-profiler: emphasize the integration based gain to focus on long-term rate limiting rather than on fair distribution
+    /* derivative_gain: */ 3,    // Taken from java-profiler: the derivative gain is rather small because the allocation rate can change abruptly (low impact of the predicted allocation rate)
+    /* sampling_window: */ CONFIG_UPDATE_CHECK_PERIOD_SECS,
+    /* cutoff_secs: */ 15
+  );
 
   atomic_init(&state->should_run, false);
   state->failure_exception = Qnil;
@@ -893,6 +906,13 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
   return is_profiler_running ? ULL2NUM(allocation_count) : Qnil;
 }
 
+long last_sampling_rate_adjustment_at = 0;
+uint64_t samples_in_window = 0;
+
+static void update_configuration(struct cpu_and_wall_time_worker_state *state, u64 events, double time_coefficient) {
+
+}
+
 // Implements memory-related profiling events. This function is called by Ruby via the `object_allocation_tracepoint`
 // when the RUBY_INTERNAL_EVENT_NEWOBJ event is triggered.
 static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
@@ -927,6 +947,18 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   if (state->allocation_sample_every > 0 && ((allocation_count % state->allocation_sample_every) == 0)) {
     // Rescue against any exceptions that happen during sampling
     safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
+
+    samples_in_window++;
+
+    long now_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+    long elapsed_time_ns = now_ns - last_sampling_rate_adjustment_at;
+
+    if (elapsed_time_ns > SECONDS_AS_NS(1)) {
+      update_configuration(samples_in_window, ((double) SECONDS_AS_NS(CONFIG_UPDATE_CHECK_PERIOD_SECS)) / elapsed_time_ns);
+
+      last_sampling_rate_adjustment_at = now_time_ns;
+      samples_in_window = 0;
+    }
   }
 
   state->during_sample = false;
