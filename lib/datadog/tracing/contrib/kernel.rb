@@ -33,19 +33,28 @@ module Datadog
           end
         end
 
-        def self.on_require(gem, &block)
-          @@dd_instance.on_require(gem, &block)
-        end
+        class << self
+          def on_require(gem, &block)
+            @@dd_instance.on_require(gem, &block)
+          end
 
-        def self.patch!
-          DD_PATCH_ONLY_ONCE.run do
-            @@dd_instance = Instance.new
-            ::Kernel.prepend(self)
+          def patch!
+            @@DD_PATCH_ONLY_ONCE.run do
+              @@dd_instance = Instance.new
+              ::Kernel.prepend(self)
+            end
+          end
+
+          @@DD_PATCH_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
+
+          private
+
+          # Only use this method for resetting patching between test runs.
+          def reset_patch!
+            @@dd_instance = nil
+            @@DD_PATCH_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
           end
         end
-
-        DD_PATCH_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
-        private_constant :DD_PATCH_ONLY_ONCE
       end
     end
   end

@@ -1,6 +1,7 @@
 require 'set'
 
 require_relative '../../core/configuration/settings'
+require_relative 'kernel'
 
 # Datadog
 module Datadog
@@ -67,6 +68,8 @@ module Datadog
             configuration = self.configuration.tracing
 
             if configuration.respond_to?(:integrations_pending_activation)
+              Datadog::Tracing::Contrib::Kernel.patch! # Only needs to run once
+
               ignore_integration_load_errors = if configuration.respond_to?(:ignore_integration_load_errors?)
                                                  configuration.ignore_integration_load_errors?
                                                else
