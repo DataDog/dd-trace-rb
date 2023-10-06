@@ -1,16 +1,5 @@
 require 'rails/all'
 
-require 'ddtrace' if ENV['TEST_AUTO_INSTRUMENT'] == true
-
-if ENV['USE_SIDEKIQ']
-  require 'sidekiq/testing'
-  require 'datadog/tracing/contrib/sidekiq/server_tracer'
-end
-
-require 'datadog/tracing/contrib/rails/support/controllers'
-require 'datadog/tracing/contrib/rails/support/middleware'
-require 'datadog/tracing/contrib/rails/support/models'
-
 # Patch Rails::Application so it doesn't raise an exception
 # when we reinitialize applications.
 Rails::Application.singleton_class.class_eval do
@@ -23,10 +12,12 @@ Rails::Application.singleton_class.class_eval do
   end
 end
 
-RSpec.shared_context 'Rails 3 base application' do
-  include_context 'Rails controllers'
-  include_context 'Rails middleware'
-  include_context 'Rails models'
+RSpec.shared_context 'Rails 3 test application' do
+  around do |example|
+    without_warnings do
+      example.run
+    end
+  end
 
   let(:rails_base_application) do
     during_init = initialize_block
@@ -124,6 +115,14 @@ RSpec.shared_context 'Rails 3 base application' do
         this.send(:render, wrapper.status_code, 'Test error response body')
       end
     end
+  end
+
+  before do
+    reset_rails_configuration!
+  end
+
+  after do
+    reset_rails_configuration!
   end
 
   def append_routes!
