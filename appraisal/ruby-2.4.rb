@@ -72,10 +72,13 @@ appraise 'http' do
   gem 'faraday'
   gem 'http'
   gem 'httpclient'
-  gem 'opensearch-ruby'
   gem 'rest-client'
   gem 'stripe', '~> 6.0'
   gem 'typhoeus'
+end
+
+appraise 'opensearch-2' do
+  gem 'opensearch-ruby', '~> 2'
 end
 
 appraise 'relational_db' do
