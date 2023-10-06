@@ -18,20 +18,40 @@
 
 #include "pidController.h"
 
-double PidController::compute(u64 input, double time_delta_coefficient) {
+#include <math.h>
+
+inline static double computeAlpha(float cutoff) {
+    if (cutoff <= 0)
+        return 1;
+    // α(fₙ) = cos(2πfₙ) - 1 + √( cos(2πfₙ)² - 4 cos(2πfₙ) + 3 )
+    const double c = std::cos(2 * double(M_PI) * cutoff);
+    return c - 1 + std::sqrt(c * c - 4 * c + 3);
+}
+
+void pid_controller_init(pid_controller *controller, u64 target_per_second, double proportional_gain, double integral_gain, double derivative_gain, int sampling_window, double cutoff_secs) {
+    controller->_target = target_per_second * sampling_window;
+    controller->_proportional_gain = proportional_gain;
+    controller->_integral_gain = integral_gain * sampling_window;
+    controller->_derivative_gain = derivative_gain / sampling_window;
+    controller->_alpha = computeAlpha(sampling_window / cutoff_secs);
+    controller->_avg_error= 0;
+    controller->_integral_value = 0;
+}
+
+double pid_controller_compute(pid_controller *controller, u64 input, double time_delta_coefficient) {
     // time_delta_coefficient allows variable sampling window
     // the values are linearly scaled using that coefficient to reinterpret the given value within the expected sampling window
-    double absolute_error = (static_cast<double>(_target) - static_cast<double>(input)) * time_delta_coefficient;
+    double absolute_error = (((double) controller->_target) - ((double) input)) * time_delta_coefficient;
 
-    double avg_error = (_alpha * absolute_error) + ((1 - _alpha) * _avg_error);
-    double derivative = avg_error - _avg_error;
+    double avg_error = (controller->_alpha * absolute_error) + ((1 - controller->_alpha) * controller->_avg_error);
+    double derivative = avg_error - controller->_avg_error;
 
     // PID formula:
     // u[k] = Kp e[k] + Ki e_i[k] + Kd e_d[k], control signal
-    double signal = _proportional_gain * absolute_error + _integral_gain * _integral_value + _derivative_gain * derivative;
+    double signal = controller->_proportional_gain * absolute_error + controller->_integral_gain * controller->_integral_value + controller->_derivative_gain * derivative;
 
-    _integral_value += absolute_error;
-    _avg_error = avg_error;
+    controller->_integral_value += absolute_error;
+    controller->_avg_error = avg_error;
 
     return signal;
 }
