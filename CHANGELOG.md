@@ -6,6 +6,12 @@
 
 ### Highlights
 
+* Timeline view for Profiler beta
+* Configure AppSec blocking responses via configuration or Remote Configuration
+* CI visibility to configure with agentless mode
+
+
+
 #### Timeline view for Profiler beta
 
 As of ddtrace 1.15.0, the Profiler now supports gathering data for the new
@@ -15,21 +21,6 @@ The Timeline view allows you to look at time-based patterns and work distributio
 
 You can use the timeline view both when looking at individual profiles, as well as when scoped to a given trace.
 
-You can enable it:
-
-* Using an environment variable by setting `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED=true`
-* Or via code by adding to your `Datadog.configure` block:
-
-```ruby
-Datadog.configure do |c|
-  # … existing configuration …
-  c.profiling.advanced.experimental_timeline_enabled = true
-end
-```
-
-Give it a try, let us know what you think!
-
-(Note: We do not recommend enabling this feature prior to 1.15.0!)
 
 #### google-protobuf dependency is no longer needed by the Profiler
 
@@ -77,6 +68,10 @@ Datadog.configure do |c|
   # don't forget to set DD_API_KEY env variable!
 end
 ```
+
+For more details, check the release notes.
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.15.0
 
 ### Added
 * Profiling: Import java-profiler PID controller and port it to C ([#3190][])
