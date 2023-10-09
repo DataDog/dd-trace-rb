@@ -10,121 +10,58 @@
 * Configure AppSec blocking responses via configuration or Remote Configuration
 * CI visibility to configure with agentless mode
 
-
-
-#### Timeline view for Profiler beta
-
-As of ddtrace 1.15.0, the Profiler now supports gathering data for the new
-[Timeline view](https://docs.datadoghq.com/profiler/profile_visualizations/#timeline-view).
-
-The Timeline view allows you to look at time-based patterns and work distribution over the period of a single profile: you can look at what individual threads were doing, and when 🎉
-
-You can use the timeline view both when looking at individual profiles, as well as when scoped to a given trace.
-
-
-#### google-protobuf dependency is no longer needed by the Profiler
-
-As of ddtrace version 1.15.0, the `google-protobuf` gem is no longer needed to enable the Profiler.
-
-If you've added this gem to your `Gemfile`/`gems.rb` file as part of enabling the Profiler, you can
-remove it now. (If you're curious, we've internally replaced this dependency with the `libdatadog` gem.)
-
-#### Configure blocking responses for AppSec via configuration or Remote Configuration
-
-As of dd-trace-rb 1.15.0, AppSec supports configuring the blocking response.
-
-You can configure the blocking response via:
-- Using the ENV variables: `DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML=#{file_name}`, and `DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON=#{file_name}`
-- Via code by adding to your `Datadog.configure` block:
-
-```ruby
-Datadog.configure do |c|
-  # … existing configuration …
-  c.appsec.block.templates.html = "#{file_name}"
-  c.appsec.block.templates.json = "#{file_name}"
-end
-```
-
-- Using the Remote configuration UI. This option allow you to configure the status code and the blocking behaviour. You can redirect malicious attacker to custome pages.
-  You can find more information on the [official documentation](https://docs.datadoghq.com/security/application_security/threats/protection/#customize-protection-behavior)
-
-#### Configure agentless mode for CI visibility
-
-If you are using CI visibility with a cloud CI provider without access to the underlying worker nodes, such as GitHub Actions or CircleCI, configure the library to use the Agentless mode.
-
-For this, set the following environment variables:
-- DD_CIVISIBILITY_AGENTLESS_ENABLED=true
-- DD_API_KEY=<your_api_key>
-
-Additionally, configure which Datadog site you want to send your data to:
-- DD_SITE (default: datadoghq.com)
-
-You can also enable agentless mode with `Datadog.configure` block:
-
-```ruby
-Datadog.configure do |c|
-  # … existing configuration …
-  c.ci.agentless_mode_enabled = true
-  # don't forget to set DD_API_KEY env variable!
-end
-```
-
-For more details, check the release notes.
-
-Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.15.0
+For more details, check the [release notes](https://github.com/DataDog/dd-trace-rb/releases/tag/v1.15.0)
 
 ### Added
-* Profiling: Import java-profiler PID controller and port it to C ([#3190][])
-* Tracing: Support Opensearch 3 ([#3189][])
-* bump datadog-ci dependency to 0.2 ([#3186][])
+
 * Enable allocation counting feature by default for some Ruby 3 versions ([#3176][])
-* Tracing: Introduce async configuration for test mode to use standard writer when needed ([#3158][])
-* Appsec: Update AppSec rules to 1.8.0 ([#3140][])
-* Appsec: Update AppSec rules to 1.7.2 ([#3139][])
-* Appsec: ASM API security. Schema extraction ([#3131][], [#3166][], [#3177][])
-* Tracing: peer.service adjustment for sql propagation with DBM ([#3127][])
-* Ci-app: CI visibility: validate git tags ([#3100][])
-* Appsec: Enable configuring blocking response via Remote Configuration  ([#3099][])
+* Detect `WebMock` `Cucumber` and `Rails.env` to disable telemetry and remote configuration for development environment ([#3065][], [#3062][], [#3145][])
+* Profiling: Import java-profiler PID controller and port it to C ([#3190][])
 * Profiling: Record allocation type when sampling objects ([#3096][])
-* Appsec: Uppgrade libddwaf-rb version to 1.11.0 ([#3087][])
-* Profiling: Mergequeue-status: removed: Include 'ruby vm type' in profiler allocation samples ([#3074][])
-* Detect WebMock to disable telemetry and remote configuration  ([#3065][])
-* Ensure Rails testing is considered a development environment ([#3062][])
+* Profiling: Include `ruby vm type` in profiler allocation samples ([#3074][])
+* Tracing: Support `Rack` 3 ([#3132][])
+* Tracing: Support `Opensearch` 3 ([#3189][])
+* Tracing: `grpc` adds `client_error_handler` option ([#3095][])
+* Tracing: Add `async` option for `test_mode` configuration ([#3158][])
 * Tracing: Implements `_dd.base_service` tag ([#3018][])
 * Appsec: Allow blocking response template configuration via ENV variables  ([#2975][])
-* Ci-app: agentless mode ([#3186][])
+* Appsec: ASM API security. Schema extraction ([#3131][], [#3166][], [#3177][])
+* Appsec: Enable configuring blocking response via Remote Configuration  ([#3099][])
+* Ci-app: Validate git tags ([#3100][])
+* Ci-app: Add agentless mode ([#3186][])
 
 ### Changed
-* Appsec: skip passing waf addresses when the value is empty ([#3188][])
-* Tracing: Disable memcached command tag by default ([#3171][])
-* Profiling: Upgrade to libdatadog 5 ([#3169][])
+
+* Appsec: Skip passing waf addresses when the value is empty ([#3188][])
 * Profiling: Restore support for Ruby 3.3 ([#3167][])
-* Bump debase-ruby_core_source dependency to 3.2.2 ([#3163][])
 * Profiling: Add approximate thread state categorization for timeline ([#3162][])
-* Tracing: remove variable helpers module from our configuration DSL ([#3152][])
-* Profiling: Tracing: ekump/decouple core transport ([#3150][])
-* Test:Remove explicit dependency on `addressable` ([#3148][])
-* Detect Cucumber as a development environment ([#3145][])
-* Tracing: rename core configuration option on_set to after_set ([#3107][])
-* Profiling: Upgrade to libdatadog 4 ([#3104][])
 * Profiling: Wire up allocation sampling into `CpuAndWallTimeWorker` ([#3103][])
-* Tracing: rename experimental_default_proc to default_proc ([#3091][])
-* remove `delegate_to` configuration option from our DSL ([#3086][])
-* Ci-app: Fix Datadog::CI::Environment to support the new CI specs ([#3080][])
+* Tracing: `dalli` disable memcached command tag by default ([#3171][])
 * Tracing: Use first valid extracted style for distributed tracing ([#2879][])
+* Tracing: Rename configuration option `on_set` to `after_set` ([#3107][])
+* Tracing: Rename `experimental_default_proc` to `default_proc` ([#3091][])
+* Tracing: Use `peer.service` for sql comment propagation ([#3127][])
+* Ci-app: Fix `Datadog::CI::Environment` to support the new CI specs ([#3080][])
+* Bump `datadog-ci` dependency to 0.2 ([#3186][])
+* Bump `debase-ruby_core_source` dependency to 3.2.2 ([#3163][])
+* Upgrade `libdatadog` 5 ([#3169][], [#3104][])
+* Upgrade `libddwaf-rb` 1.11.0 ([#3087][])
+* Update AppSec rules to 1.8.0 ([#3140][], [#3139][])
 
 ### Fixed
+
 * Profiling: Add workaround for incorrect invoke location when logging gem is in use ([#3183][])
-* Profiling: Fix missing endpoint profiling when request_queuing is enabled in rack instrumentation ([#3109][])
-* Appsec: Fix a bug with ASM span tags reporting the number of WAF failed loaded rules ([#3106][])
+* Profiling: Fix missing endpoint profiling when `request_queuing` is enabled in `rack` instrumentation ([#3109][])
+* Appsec: Span tags reporting the number of WAF failed loaded rules ([#3106][])
 * Tracing: Fix tagging with empty data ([#3102][])
-* Tracing: fix(grpc): allow custom error_handler for client interceptor ([#3095][])
-* Tracing: Correctly set `rails.cache.backend` span tag for multiple stores ([#3060][])
+* Tracing: Fix `rails.cache.backend` span tag with multiple stores ([#3060][])
 
 ### Removed
+
 * Profiling: Remove legacy profiler codepath ([#3172][])
-* Ci-app: remove CI module and add a dependency on datadog-ci gem ([#3128][])
-* Tracing: Remove `depends_on` from Core Configuration option ([#3085][])
+* Ci-app: Remove CI module and add a dependency on [`datadog-ci` gem](https://github.com/DataDog/datadog-ci-rb) ([#3128][])
+* Tracing: Remove `depends_on` option from configuration DSL ([#3085][])
+* Tracing: Remove `delegate_to` option from configuration DSL ([#3086][])
 
 ## [1.14.0] - 2023-08-24
 
@@ -3837,6 +3774,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3127]: https://github.com/DataDog/dd-trace-rb/issues/3127
 [#3128]: https://github.com/DataDog/dd-trace-rb/issues/3128
 [#3131]: https://github.com/DataDog/dd-trace-rb/issues/3131
+[#3132]: https://github.com/DataDog/dd-trace-rb/issues/3132
 [#3139]: https://github.com/DataDog/dd-trace-rb/issues/3139
 [#3140]: https://github.com/DataDog/dd-trace-rb/issues/3140
 [#3145]: https://github.com/DataDog/dd-trace-rb/issues/3145
