@@ -526,6 +526,19 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         process_waiter_thread.join
       end
     end
+
+    context 'when the _native_sampling_loop terminates with an exception' do
+      it 'calls the on_failure_proc' do
+        expect(described_class).to receive(:_native_sampling_loop).and_raise(StandardError.new('Simulated error'))
+        expect(Datadog.logger).to receive(:warn)
+
+        proc_called = Queue.new
+
+        cpu_and_wall_time_worker.start(on_failure_proc: proc { proc_called << true })
+
+        proc_called.pop
+      end
+    end
   end
 
   describe 'Ractor safety' do

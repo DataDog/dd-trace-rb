@@ -81,6 +81,27 @@ RSpec.describe Datadog::Profiling::Scheduler do
           result: nil
         )
       end
+
+      context 'when perform fails' do
+        it 'calls the on_failure_proc and logs the error' do
+          expect(scheduler).to receive(:flush_and_wait).and_raise(StandardError.new('Simulated error'))
+
+          # This is a bit ugly, but we want the logic in the background thread to be called immediately, and by
+          # default we don't do that
+          expect(scheduler).to receive(:loop_wait_before_first_iteration?).and_return(false)
+          expect(scheduler).to receive(:work_pending?).and_return(true)
+
+          allow(Datadog.logger).to receive(:debug)
+
+          expect(Datadog.logger).to receive(:warn).with(/Profiling::Scheduler thread error/)
+
+          proc_called = Queue.new
+
+          scheduler.start(on_failure_proc: proc { proc_called << true })
+
+          proc_called.pop
+        end
+      end
     end
   end
 
