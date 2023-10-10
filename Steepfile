@@ -32,6 +32,7 @@ target :ddtrace do
   ignore 'lib/datadog/appsec/contrib/sinatra/request_middleware.rb'
   ignore 'lib/datadog/appsec/monitor/gateway/watcher.rb'
   ignore 'lib/datadog/appsec/monitor/reactive/set_user.rb'
+  ignore 'lib/datadog/appsec/processor/rule_merger.rb'
   ignore 'lib/datadog/ci.rb'
   ignore 'lib/datadog/ci/configuration/components.rb'
   ignore 'lib/datadog/ci/configuration/settings.rb'

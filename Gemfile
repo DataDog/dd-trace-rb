@@ -113,7 +113,7 @@ end
 group :check do
   if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
     gem 'rbs', '~> 3.2.0', require: false
-    gem 'steep', '~> 1.4.0', require: false
+    gem 'steep', '~> 1.5.3', require: false
   end
 end
 
