@@ -7,9 +7,14 @@ on:
 
 jobs:
   add_milestone_to_merged:
+    permissions:
+      pull-requests: write
+
     if: github.event.pull_request.merged && github.event.pull_request.milestone == null
+
     name: Add milestone to merged pull requests
     runs-on: ubuntu-latest
+
     steps:
       - name: Get project milestones
         id: milestones
