@@ -1,4 +1,7 @@
 name: Update Gemfiles
+
+# This action cannot be skipped altogether because it is a mandatory status check.
+# Instead we conditionally skip it at job level, instead of workflow level.
 on:
   # Execute on `push` and not `pull_request` because `pull_request`
   # always compares if the `paths` have changed compared to the PR base.
@@ -34,6 +37,7 @@ jobs:
         id: pr
       - if: steps.pr.outputs.pr_found == 'true'
         uses: actions/checkout@v4
+      # And also, only execute if files that can affect gemfiles are modified.
       - if: steps.pr.outputs.pr_found == 'true'
         uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
         id: filter
