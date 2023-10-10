@@ -33,6 +33,8 @@ jobs:
         uses: 8bitjonny/gh-get-current-pr@2215326c76d51bfa3f2af0a470f32677f6c0cae9 # v2.2.0
         id: pr
       - if: steps.pr.outputs.pr_found == 'true'
+        uses: actions/checkout@v4
+      - if: steps.pr.outputs.pr_found == 'true'
         uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
         id: filter
         with:
@@ -48,8 +50,6 @@ jobs:
               # In case the generated files were updated manually or in a merge commit
               - appraisal
               - gemfiles
-      - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
-        uses: actions/checkout@v4
       - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
         uses: ruby/setup-ruby@31a7f6d628878b80bc63375a93ae079ec50a1601 # v1.143.0
         with:
