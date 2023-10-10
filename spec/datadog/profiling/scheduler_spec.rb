@@ -1,15 +1,16 @@
-require 'spec_helper'
+require 'datadog/profiling/spec_helper'
 
-require 'datadog/profiling/http_transport'
-require 'datadog/profiling/exporter'
-require 'datadog/profiling/scheduler'
+RSpec.describe 'Datadog::Profiling::Scheduler' do
+  before { skip_if_profiling_not_supported(self) }
 
-RSpec.describe Datadog::Profiling::Scheduler do
-  subject(:scheduler) { described_class.new(exporter: exporter, transport: transport, **options) }
-
+  # This is needed because this class uses syntax that doesn't work on Ruby 2.1/2.2; we can undo this once dd-trace-rb
+  # drops support for these Rubies globally
+  let(:described_class) { Datadog::Profiling::Scheduler }
   let(:exporter) { instance_double(Datadog::Profiling::Exporter) }
   let(:transport) { instance_double(Datadog::Profiling::HttpTransport) }
   let(:options) { {} }
+
+  subject(:scheduler) { described_class.new(exporter: exporter, transport: transport, **options) }
 
   describe '.new' do
     describe 'default settings' do
@@ -129,7 +130,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
       let(:options) { { **super(), interval: 0.01 } }
 
       # Assert that the interval isn't set below the min interval
-      it "floors the wait interval to #{described_class.const_get(:MINIMUM_INTERVAL_SECONDS)}" do
+      it 'floors the wait interval to MINIMUM_INTERVAL_SECONDS' do
         expect(scheduler).to receive(:loop_wait_time=)
           .with(described_class.const_get(:MINIMUM_INTERVAL_SECONDS))
 

@@ -1,8 +1,11 @@
 require 'datadog/profiling/spec_helper'
-require 'datadog/profiling/collectors/cpu_and_wall_time_worker'
 
-RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
+RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   before { skip_if_profiling_not_supported(self) }
+
+  # This is needed because this class uses syntax that doesn't work on Ruby 2.1/2.2; we can undo this once dd-trace-rb
+  # drops support for these Rubies globally
+  let(:described_class) { Datadog::Profiling::Collectors::CpuAndWallTimeWorker }
 
   let(:recorder) { build_stack_recorder }
   let(:endpoint_collection_enabled) { true }
