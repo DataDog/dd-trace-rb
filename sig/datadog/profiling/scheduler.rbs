@@ -11,7 +11,7 @@ module Datadog
         ?enabled: bool,
       ) -> void
 
-      def start: () -> void
+      def start: (?on_failure_proc: ::Proc?) -> void
 
       def reset_after_fork: () -> void
     end
