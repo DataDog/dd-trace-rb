@@ -106,6 +106,31 @@ RSpec.describe 'Datadog::Profiling::Scheduler' do
           proc_called.pop
         end
       end
+
+      context 'when perform is interrupted' do
+        it 'logs the interruption' do
+          inside_flush = Queue.new
+
+          # This is a bit ugly, but we want the logic in the background thread to be called immediately, and by
+          # default we don't do that
+          expect(scheduler).to receive(:loop_wait_before_first_iteration?).and_return(false)
+          expect(scheduler).to receive(:work_pending?).and_return(true)
+
+          allow(Datadog.logger).to receive(:debug)
+          expect(Datadog.logger).to receive(:debug).with(/#flush was interrupted or failed/)
+
+          expect(scheduler).to receive(:flush_and_wait) do
+            inside_flush << true
+            sleep
+          end
+
+          scheduler.start
+          inside_flush.pop
+
+          scheduler.stop(true, 0)
+          scheduler.join
+        end
+      end
     end
   end
 

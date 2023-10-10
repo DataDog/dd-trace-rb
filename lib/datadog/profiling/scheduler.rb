@@ -57,12 +57,8 @@ module Datadog
           # This can be somewhat confusing (why did it not get reported?), so let's at least log what happened.
           interrupted = true
 
-          begin
-            flush_and_wait
-            interrupted = false
-          ensure
-            Datadog.logger.debug('#flush was interrupted or failed before it could complete') if interrupted
-          end
+          flush_and_wait
+          interrupted = false
         rescue Exception => e # rubocop:disable Lint/RescueException
           Datadog.logger.warn(
             'Profiling::Scheduler thread error. ' \
@@ -70,6 +66,8 @@ module Datadog
           )
           on_failure_proc&.call
           raise
+        ensure
+          Datadog.logger.debug('#flush was interrupted or failed before it could complete') if interrupted
         end
       end
 
