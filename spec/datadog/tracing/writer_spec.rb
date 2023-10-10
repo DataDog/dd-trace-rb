@@ -15,8 +15,6 @@ require 'datadog/tracing/transport/statistics'
 require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Tracing::Writer do
-  include HttpHelpers
-
   describe 'instance' do
     subject(:writer) { described_class.new(options) }
 

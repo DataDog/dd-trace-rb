@@ -59,8 +59,6 @@ RSpec.describe 'Rails Log Auto Injection' do
       c.tracing.instrument :rails
       c.tracing.log_injection = log_injection
     end
-
-    allow(ENV).to receive(:[]).and_call_original
   end
 
   after do
@@ -78,10 +76,6 @@ RSpec.describe 'Rails Log Auto Injection' do
       require 'rails_semantic_logger'
 
       subject(:response) { get '/logging' }
-
-      before do
-        allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)
-      end
 
       context 'with semantic logger enabled' do
         context 'with semantic logger setup and no log_tags' do
@@ -133,9 +127,7 @@ RSpec.describe 'Rails Log Auto Injection' do
         end
 
         context 'with semantic logger setup and existing log_tags' do
-          before do
-            allow(ENV).to receive(:[]).with('LOG_TAGS').and_return({ some_tag: 'some_value' })
-          end
+          let(:log_tags) { { some_tag: 'some_value' } }
 
           it 'injects trace correlation context into logs and preserve existing log tags' do
             is_expected.to be_ok
@@ -204,10 +196,6 @@ RSpec.describe 'Rails Log Auto Injection' do
 
       subject(:response) { get '/logging' }
 
-      before do
-        allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)
-      end
-
       context 'with semantic logger enabled' do
         context 'with semantic logger setup and no log_tags' do
           it 'does not inject trace_id into logs' do
@@ -233,9 +221,7 @@ RSpec.describe 'Rails Log Auto Injection' do
         end
 
         context 'with semantic logger setup and existing log_tags' do
-          before do
-            allow(ENV).to receive(:[]).with('LOG_TAGS').and_return({ some_tag: 'some_value' })
-          end
+          let(:log_tags) { { some_tag: 'some_value' } }
 
           it 'does not inject trace correlation context and preserve existing log tags' do
             is_expected.to be_ok

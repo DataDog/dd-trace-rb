@@ -50,7 +50,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     let(:finish) { serialize[1] }
     let(:encoded_pprof) { serialize[2] }
 
-    let(:decoded_profile) { ::Perftools::Profiles::Profile.decode(encoded_pprof) }
+    let(:decoded_profile) { decode_profile(encoded_pprof) }
 
     it 'debug logs profile information' do
       message = nil
@@ -186,7 +186,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     context 'when profile has a sample' do
       let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789, 'alloc-samples' => 4242 } }
-      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
+      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
@@ -211,7 +211,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       it 'encodes the sample with the labels provided' do
-        expect(samples.first.labels).to eq(label_a: 'value_a', label_b: 'value_b')
+        labels = samples.first.labels
+        labels.delete(:state) # We test this separately!
+
+        expect(labels).to eq(label_a: 'value_a', label_b: 'value_b')
       end
 
       it 'encodes a single empty mapping' do
@@ -240,7 +243,13 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # We're using `_native_sample` here to test the behavior of `record_sample` in `stack_recorder.c`
           expect do
             Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-              Thread.current, stack_recorder, metric_values, { 'local root span id' => 'incorrect' }.to_a, [], 400, false
+              Thread.current,
+              stack_recorder,
+              metric_values,
+              { 'local root span id' => 'incorrect', 'state' => 'unknown' }.to_a,
+              [],
+              400,
+              false,
             )
           end.to raise_error(ArgumentError)
         end
@@ -256,8 +265,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         local_root_span_id_without_endpoint = { 'local root span id' => 456 }
 
         sample = proc do |numeric_labels = {}|
-          Datadog::Profiling::Collectors::Stack::Testing
-            ._native_sample(Thread.current, stack_recorder, metric_values, [], numeric_labels.to_a, 400, false)
+          Datadog::Profiling::Collectors::Stack::Testing._native_sample(
+            Thread.current, stack_recorder, metric_values, { 'state' => 'unknown' }.to_a, numeric_labels.to_a, 400, false
+          )
         end
 
         sample.call
@@ -270,16 +280,23 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         sample.call(local_root_span_id_without_endpoint)
         sample.call(local_root_span_id_with_endpoint)
 
-        expect(samples).to have(6).items
+        expect(samples).to have(6).items # Samples are guaranteed unique since each sample call is on a different line
+
+        labels_without_state = proc { |labels| labels.reject { |key| key == :state } }
 
         # Other samples have not been changed
-        expect(samples.select { |it| it[:labels].empty? }).to have(2).items
-        expect(samples.select { |it| it[:labels] == { :'local root span id' => 456 } }).to have(2).items
+        expect(samples.select { |it| labels_without_state.call(it[:labels]).empty? }).to have(2).items
+        expect(
+          samples.select do |it|
+            labels_without_state.call(it[:labels]) == { :'local root span id' => 456 }
+          end
+        ).to have(2).items
 
         # Matching samples taken before and after recording the endpoint have been changed
         expect(
           samples.select do |it|
-            it[:labels] == { :'local root span id' => 123, :'trace endpoint' => 'recorded-endpoint' }
+            labels_without_state.call(it[:labels]) ==
+              { :'local root span id' => 123, :'trace endpoint' => 'recorded-endpoint' }
           end
         ).to have(2).items
       end
@@ -382,7 +399,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     context 'when profile has a sample' do
       let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
-      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
+      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
       it 'makes the next calls to serialize return no data' do
         # Add some data

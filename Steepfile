@@ -153,6 +153,7 @@ target :ddtrace do
   ignore 'lib/datadog/opentelemetry/sdk/id_generator.rb'
   ignore 'lib/datadog/opentelemetry/sdk/propagator.rb'
   ignore 'lib/datadog/opentelemetry/sdk/span_processor.rb'
+  ignore 'lib/datadog/opentelemetry/sdk/trace/span.rb'
   ignore 'lib/datadog/opentracer.rb'
   ignore 'lib/datadog/opentracer/binary_propagator.rb'
   ignore 'lib/datadog/opentracer/carrier.rb'
@@ -619,6 +620,7 @@ target :ddtrace do
   library 'securerandom'
   library 'base64'
   library 'digest'
+  library 'zlib'
 
   repo_path 'vendor/rbs'
   library 'cucumber'

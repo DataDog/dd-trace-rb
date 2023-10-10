@@ -1,4 +1,5 @@
 module Datadog
   module Tracing
+    def self.continue_trace!: (TraceDigest) ? { (untyped) -> untyped } -> untyped
   end
 end

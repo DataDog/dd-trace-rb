@@ -22,6 +22,15 @@ module Datadog
 
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
+          input.reject! do |_, v|
+            case v
+            when TrueClass, FalseClass
+              false
+            else
+              v.nil? ? true : v.empty?
+            end
+          end
+
           _code, res = @context.run(input, timeout)
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)

@@ -1,10 +1,12 @@
+require 'support/http_helpers'
+
 RSpec.shared_context 'Elasticsearch client' do
   let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').to_i }
   let(:server) { "http://#{host}:#{port}" }
 
   before do
-    wait_http_server(server, 60)
+    HttpHelpers.wait_http_server(server, 60)
 
     # Elasticsearch sends a sanity request to `/` once per client.
     # We send a preemptive request here to avoid polluting our test runs with

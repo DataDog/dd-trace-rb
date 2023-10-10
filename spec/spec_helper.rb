@@ -24,20 +24,15 @@ require 'datadog/core/encoding'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 
-require 'support/configuration_helpers'
-require 'support/container_helpers'
 require 'support/core_helpers'
 require 'support/faux_transport'
 require 'support/faux_writer'
+require 'support/loaded_gem'
 require 'support/health_metric_helpers'
-require 'support/http_helpers'
 require 'support/log_helpers'
-require 'support/metric_helpers'
 require 'support/network_helpers'
-require 'support/object_helpers'
 require 'support/object_space_helper'
 require 'support/platform_helpers'
-require 'support/rack_support'
 require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
@@ -61,21 +56,16 @@ WebMock.allow_net_connect!
 WebMock.disable!
 
 RSpec.configure do |config|
-  config.include ConfigurationHelpers
-  config.include ContainerHelpers
   config.include CoreHelpers
   config.include HealthMetricHelpers
-  config.include HttpHelpers
   config.include LogHelpers
-  config.include MetricHelpers
   config.include NetworkHelpers
-  config.include ObjectHelpers
-  config.include RackSupport
+  config.include LoadedGem
+  config.extend  LoadedGem::Helpers
+  config.include LoadedGem::Helpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
-  config.include TestHelpers
   config.include TracerHelpers
-
   config.include TestHelpers::RSpec::Integration, :integration
 
   config.expect_with :rspec do |expectations|

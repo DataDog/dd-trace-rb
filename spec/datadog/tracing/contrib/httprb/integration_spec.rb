@@ -3,8 +3,6 @@ require 'spec_helper'
 require 'datadog/tracing/contrib/httprb/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Httprb::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:http) }
 
   describe '.version' do

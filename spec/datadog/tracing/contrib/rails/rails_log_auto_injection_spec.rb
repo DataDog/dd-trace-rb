@@ -66,8 +66,6 @@ RSpec.describe 'Rails Log Auto Injection' do
       c.tracing.instrument :rails
       c.tracing.log_injection = log_injection
     end
-
-    allow(ENV).to receive(:[]).and_call_original
   end
 
   after do
@@ -98,8 +96,8 @@ RSpec.describe 'Rails Log Auto Injection' do
     end
 
     context 'with Tagged Logging' do
-      before do
-        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+      let(:logger) do
+        ::ActiveSupport::TaggedLogging.new(super())
       end
 
       context 'with Tagged logging setup and no tags' do
@@ -118,8 +116,8 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
 
       context 'with tagged logging setup and existing log_tags' do
-        before do
-          allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
+        let(:log_tags) do
+          %w[some_info some_other_info]
         end
 
         it 'injects trace_id into logs and preserve existing log tags' do
@@ -146,8 +144,8 @@ RSpec.describe 'Rails Log Auto Injection' do
         # for log_injection testing
         require 'lograge'
 
-        before do
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+        let(:lograge_options) do
+          { enabled?: true }
         end
 
         context 'with lograge enabled' do
@@ -170,10 +168,12 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with Lograge and existing custom_options as a hash' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                'some_hash_info' => 'test_hash_value',
-                'some_other_hash_info' => 'other_test_hash_value'
+            let(:lograge_options) do
+              super().merge(
+                custom_options: {
+                  'some_hash_info' => 'test_hash_value',
+                  'some_other_hash_info' => 'other_test_hash_value'
+                }
               )
             end
 
@@ -197,9 +197,9 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with Lograge and existing custom_options as a lambda' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                lambda do |_event|
+            let(:lograge_options) do
+              super().merge(
+                custom_options: lambda do |_event|
                   {
                     'some_lambda_info' => 'test_lambda_value',
                     'some_other_lambda_info' => 'other_test_lambda_value'
@@ -254,9 +254,12 @@ RSpec.describe 'Rails Log Auto Injection' do
         # for log_injection testing
         require 'lograge'
 
-        before do
-          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+        let(:logger) do
+          ::ActiveSupport::TaggedLogging.new(super())
+        end
+
+        let(:lograge_options) do
+          { enabled?: true }
         end
 
         context 'with lograge and tagged logging enabled' do
@@ -279,9 +282,7 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with tagged logging setup and existing log_tags' do
-            before do
-              allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-            end
+            let(:log_tags) { %w[some_info some_other_info] }
 
             it 'injects trace_id into logs and preserve existing log tags' do
               is_expected.to be_ok
@@ -307,10 +308,12 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with Lograge and existing custom_options as a hash' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                'some_hash_info' => 'test_hash_value',
-                'some_other_hash_info' => 'other_test_hash_value'
+            let(:lograge_options) do
+              super().merge(
+                custom_options: {
+                  'some_hash_info' => 'test_hash_value',
+                  'some_other_hash_info' => 'other_test_hash_value'
+                }
               )
             end
 
@@ -334,9 +337,9 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with Lograge and existing custom_options as a lambda' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                lambda do |_event|
+            let(:lograge_options) do
+              super().merge(
+                custom_options: lambda do |_event|
                   {
                     'some_lambda_info' => 'test_lambda_value',
                     'some_other_lambda_info' => 'other_test_lambda_value'
@@ -365,11 +368,14 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with existing log_tags and Lograge custom_options' do
-            before do
-              allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                'some_hash_info' => 'test_hash_value',
-                'some_other_hash_info' => 'other_test_hash_value'
+            let(:log_tags) { %w[some_info some_other_info] }
+
+            let(:lograge_options) do
+              super().merge(
+                custom_options: {
+                  'some_hash_info' => 'test_hash_value',
+                  'some_other_hash_info' => 'other_test_hash_value'
+                }
               )
             end
 
@@ -421,8 +427,8 @@ RSpec.describe 'Rails Log Auto Injection' do
     end
 
     context 'with Tagged Logging' do
-      before do
-        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+      let(:logger) do
+        ::ActiveSupport::TaggedLogging.new(super())
       end
 
       context 'with Tagged logging setup and no tags' do
@@ -441,9 +447,7 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
 
       context 'with tagged logging setup and existing log_tags' do
-        before do
-          allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-        end
+        let(:log_tags) { %w[some_info some_other_info] }
 
         it 'does not inject trace_id' do
           is_expected.to be_ok
@@ -489,8 +493,8 @@ RSpec.describe 'Rails Log Auto Injection' do
         # for log_injection testing
         require 'lograge'
 
-        before do
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+        let(:lograge_options) do
+          { enabled?: true }
         end
 
         context 'with lograge enabled' do
@@ -512,10 +516,12 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with Lograge and existing custom_options as a hash' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                'some_hash_info' => 'test_hash_value',
-                'some_other_hash_info' => 'other_test_hash_value'
+            let(:lograge_options) do
+              super().merge(
+                custom_options: {
+                  'some_hash_info' => 'test_hash_value',
+                  'some_other_hash_info' => 'other_test_hash_value'
+                }
               )
             end
 
@@ -538,9 +544,9 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with Lograge and existing custom_options as a lambda' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                lambda do |_event|
+            let(:lograge_options) do
+              super().merge(
+                custom_options: lambda do |_event|
                   {
                     'some_lambda_info' => 'test_lambda_value',
                     'some_other_lambda_info' => 'other_test_lambda_value'

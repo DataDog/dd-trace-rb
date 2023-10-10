@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/concurrent_ruby/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::ConcurrentRuby::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:concurrent_ruby) }
 
   describe '.version' do

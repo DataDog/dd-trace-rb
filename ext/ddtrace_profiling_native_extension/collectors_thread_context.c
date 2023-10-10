@@ -304,6 +304,9 @@ static int hash_map_per_thread_context_free_values(DDTRACE_UNUSED st_data_t _thr
 static VALUE _native_new(VALUE klass) {
   struct thread_context_collector_state *state = ruby_xcalloc(1, sizeof(struct thread_context_collector_state));
 
+  // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
+  // being leaked.
+
   // Update this when modifying state struct
   state->sampling_buffer = NULL;
   state->hash_map_per_thread_context =
@@ -471,7 +474,7 @@ void update_metrics_and_sample(
     thread_being_sampled,
     stack_from_thread,
     thread_context,
-    (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
+    (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
     SAMPLE_REGULAR,
     current_monotonic_wall_time_ns,
     NULL,
@@ -616,7 +619,7 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
       /* thread: */  thread,
       /* stack_from_thread: */ thread,
       thread_context,
-      (sample_values) {.cpu_time_ns = gc_cpu_time_elapsed_ns, .cpu_samples = 1, .wall_time_ns = gc_wall_time_elapsed_ns},
+      (sample_values) {.cpu_time_ns = gc_cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = gc_wall_time_elapsed_ns},
       SAMPLE_IN_GC,
       INVALID_TIME, // For now we're not collecting timestamps for these events
       NULL,
@@ -660,8 +663,8 @@ static void trigger_sample_for_thread(
     1 + // thread id
     1 + // thread name
     1 + // profiler overhead
-    1 + // end_timestamp_ns
     2 + // ruby vm type and allocation class
+    1 + // state (only set for cpu/wall-time samples)
     2;  // local root span id and span id
   ddog_prof_Label labels[max_label_count];
   int label_pos = 0;
@@ -724,13 +727,6 @@ static void trigger_sample_for_thread(
     };
   }
 
-  if (state->timeline_enabled && current_monotonic_wall_time_ns != INVALID_TIME) {
-    labels[label_pos++] = (ddog_prof_Label) {
-      .key = DDOG_CHARSLICE_C("end_timestamp_ns"),
-      .num = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns)
-    };
-  }
-
   if (ruby_vm_type != NULL) {
     labels[label_pos++] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("ruby vm type"),
@@ -745,6 +741,20 @@ static void trigger_sample_for_thread(
     };
   }
 
+  // This label is handled specially:
+  // 1. It's only set for cpu/wall-time samples
+  // 2. We set it here to its default state of "unknown", but the `Collectors::Stack` may choose to override it with
+  //    something more interesting.
+  ddog_prof_Label *state_label = NULL;
+  if (values.cpu_or_wall_samples > 0) {
+    state_label = &labels[label_pos++];
+    *state_label = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("state"),
+      .str = DDOG_CHARSLICE_C("unknown"),
+      .num = 0, // This shouldn't be needed but the tracer-2.7 docker image ships a buggy gcc that complains about this
+    };
+  }
+
   // The number of times `label_pos++` shows up in this function needs to match `max_label_count`. To avoid "oops I
   // forgot to update max_label_count" in the future, we've also added this validation.
   // @ivoanjo: I wonder if C compilers are smart enough to statically prove this check never triggers unless someone
@@ -753,12 +763,20 @@ static void trigger_sample_for_thread(
     rb_raise(rb_eRuntimeError, "BUG: Unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
 
+  ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = label_pos};
+
+  // The end_timestamp_ns is treated specially by libdatadog and that's why it's not added as a ddog_prof_Label
+  int64_t end_timestamp_ns = 0;
+  if (state->timeline_enabled && current_monotonic_wall_time_ns != INVALID_TIME) {
+    end_timestamp_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns);
+  }
+
   sample_thread(
     stack_from_thread,
     state->sampling_buffer,
     state->recorder_instance,
     values,
-    (ddog_prof_Slice_Label) {.ptr = labels, .len = label_pos},
+    (sample_labels) {.labels = slice_labels, .state_label = state_label, .end_timestamp_ns = end_timestamp_ns},
     type
   );
 }
@@ -797,6 +815,27 @@ static struct per_thread_context *get_context_for(VALUE thread, struct thread_co
   return thread_context;
 }
 
+#define LOGGING_GEM_PATH "/lib/logging/diagnostic_context.rb"
+
+// The `logging` gem monkey patches thread creation, which makes the `invoke_location_for` useless, since every thread
+// will point to the `logging` gem. When that happens, we avoid using the invoke location.
+//
+// TODO: This approach is a bit brittle, since it matches on the specific gem path, and only works for the `logging`
+// gem.
+// In the future we should probably explore a more generic fix (e.g. using Thread.method(:new).source_location or
+// something like that to detect redefinition of the `Thread` methods). One difficulty of doing it is that we need
+// to either run Ruby code during sampling (not great), or otherwise use some of the VM private APIs to detect this.
+//
+static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
+  int logging_gem_path_len = strlen(LOGGING_GEM_PATH);
+  char *invoke_file = StringValueCStr(invoke_file_location);
+  int invoke_file_len = strlen(invoke_file);
+
+  if (invoke_file_len < logging_gem_path_len) return false;
+
+  return strncmp(invoke_file + invoke_file_len - logging_gem_path_len, LOGGING_GEM_PATH, logging_gem_path_len) == 0;
+}
+
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context, struct thread_context_collector_state *state) {
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
@@ -804,13 +843,17 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   int invoke_line_location;
   VALUE invoke_file_location = invoke_location_for(thread, &invoke_line_location);
   if (invoke_file_location != Qnil) {
-    snprintf(
-      thread_context->thread_invoke_location,
-      THREAD_INVOKE_LOCATION_LIMIT_CHARS,
-      "%s:%d",
-      StringValueCStr(invoke_file_location),
-      invoke_line_location
-    );
+    if (!is_logging_gem_monkey_patch(invoke_file_location)) {
+      snprintf(
+        thread_context->thread_invoke_location,
+        THREAD_INVOKE_LOCATION_LIMIT_CHARS,
+        "%s:%d",
+        StringValueCStr(invoke_file_location),
+        invoke_line_location
+      );
+    } else {
+      snprintf(thread_context->thread_invoke_location, THREAD_INVOKE_LOCATION_LIMIT_CHARS, "%s", "(Unnamed thread)");
+    }
   } else if (thread != state->main_thread) {
     // If the first function of a thread is native code, there won't be an invoke location, so we use this fallback.
     // NOTE: In the future, I wonder if we could take the pointer to the native function, and try to see if there's a native
