@@ -44,7 +44,7 @@ module Datadog
 
         recorder = Datadog::Profiling::StackRecorder.new(
           cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
-          alloc_samples_enabled: false, # Always disabled for now -- work in progress
+          alloc_samples_enabled: true, # Always disabled for now -- work in progress
         )
         thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.new(
           recorder: recorder,
@@ -58,7 +58,7 @@ module Datadog
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           thread_context_collector: thread_context_collector,
-          allocation_sample_every: 0,
+          allocation_sample_every: 1,
         )
 
         internal_metadata = {

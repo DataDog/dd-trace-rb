@@ -908,9 +908,19 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
 
 long last_sampling_rate_adjustment_at = 0;
 uint64_t samples_in_window = 0;
+// TODO: Unclear what the default should be
+int _configured_interval = 1;
+// TODO: I guess the default should match _configured_interval
+int _interval = 1;
 
 static void update_configuration(struct cpu_and_wall_time_worker_state *state, u64 events, double time_coefficient) {
-
+  float signal = pid_controller_compute(&state->allocation_sampling_rate, events, time_coefficient);
+  fprintf(stderr, "  Signal! signal=%f\n", signal);
+  int required_interval = _interval - signal;
+  required_interval = required_interval >= _configured_interval ? required_interval : _configured_interval; // do not dip below the manually configured sampling interval
+  if (required_interval != _interval) {
+      _interval = required_interval;
+  }
 }
 
 // Implements memory-related profiling events. This function is called by Ruby via the `object_allocation_tracepoint`
@@ -944,20 +954,23 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
 
   // TODO: This is a placeholder sampling decision strategy. We plan to replace it with a better one soon (e.g. before
   // beta), and having something here allows us to test the rest of feature, sampling decision aside.
-  if (state->allocation_sample_every > 0 && ((allocation_count % state->allocation_sample_every) == 0)) {
+  if (state->allocation_sample_every > 0 && ((allocation_count % _interval) == 0)) {
     // Rescue against any exceptions that happen during sampling
     safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
 
     samples_in_window++;
 
     long now_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-    long elapsed_time_ns = now_ns - last_sampling_rate_adjustment_at;
+    long elapsed_time_ns = now_time_ns - last_sampling_rate_adjustment_at;
+
+    fprintf(stderr, "    Sampled! current_sampling_rate=%3d, samples_in_window=%3lu, total_allocations=%9lu\n", _interval, samples_in_window, allocation_count);
 
     if (elapsed_time_ns > SECONDS_AS_NS(1)) {
-      update_configuration(samples_in_window, ((double) SECONDS_AS_NS(CONFIG_UPDATE_CHECK_PERIOD_SECS)) / elapsed_time_ns);
+      update_configuration(state, samples_in_window, ((double) SECONDS_AS_NS(CONFIG_UPDATE_CHECK_PERIOD_SECS)) / elapsed_time_ns);
 
       last_sampling_rate_adjustment_at = now_time_ns;
       samples_in_window = 0;
+      fprintf(stderr, "  Updated! current_sampling_rate=%3d\n", _interval);
     }
   }
 
