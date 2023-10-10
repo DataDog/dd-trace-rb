@@ -84,6 +84,9 @@ RSpec.describe 'Datadog::Profiling::Scheduler' do
       end
 
       context 'when perform fails' do
+        before { Thread.report_on_exception = false if Thread.respond_to?(:report_on_exception=) }
+        after  { Thread.report_on_exception = true  if Thread.respond_to?(:report_on_exception=) }
+
         it 'calls the on_failure_proc and logs the error' do
           expect(scheduler).to receive(:flush_and_wait).and_raise(StandardError.new('Simulated error'))
 
