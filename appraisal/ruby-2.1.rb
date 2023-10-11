@@ -68,7 +68,6 @@ appraise 'aws' do
 end
 
 appraise 'http' do
-  gem 'elasticsearch'
   gem 'faraday'
   gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
   gem 'ethon'
@@ -77,6 +76,12 @@ appraise 'http' do
   gem 'httpclient'
   gem 'rest-client'
   gem 'typhoeus'
+end
+
+[8].each do |n|
+  appraise "elasticsearch-#{n}" do
+    gem 'elasticsearch', "~> #{n}"
+  end
 end
 
 appraise 'relational_db' do

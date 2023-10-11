@@ -130,7 +130,6 @@ appraise 'aws' do
 end
 
 appraise 'http' do
-  gem 'elasticsearch'
   gem 'ethon'
   gem 'excon'
   gem 'faraday'
@@ -139,6 +138,12 @@ appraise 'http' do
   gem 'httpclient'
   gem 'rest-client'
   gem 'typhoeus'
+end
+
+[8].each do |n|
+  appraise "elasticsearch-#{n}" do
+    gem 'elasticsearch', "~> #{n}"
+  end
 end
 
 appraise 'relational_db' do

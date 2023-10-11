@@ -59,7 +59,6 @@ appraise 'aws' do
 end
 
 appraise 'http' do
-  gem 'elasticsearch'
   gem 'ethon'
   gem 'excon'
   gem 'faraday'
@@ -73,6 +72,12 @@ end
 [2, 3].each do |n|
   appraise "opensearch-#{n}" do
     gem 'opensearch-ruby', "~> #{n}"
+  end
+end
+
+[7, 8].each do |n|
+  appraise "elasticsearch-#{n}" do
+    gem 'elasticsearch', "~> #{n}"
   end
 end
 
@@ -141,7 +146,6 @@ end
 
 appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
-  gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
   gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
