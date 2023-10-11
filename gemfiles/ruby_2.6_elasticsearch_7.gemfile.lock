@@ -82,12 +82,16 @@ GEM
     faraday-rack (1.0.0)
     faraday-retry (1.0.3)
     ffi (1.16.3)
+    google-protobuf (3.19.1)
     google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.0.1)
     json (2.6.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (5.0.0.1.0-aarch64-linux)
     libdatadog (5.0.0.1.0-x86_64-linux)
+    libddwaf (1.14.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -181,6 +185,7 @@ GEM
     yard (0.9.34)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
