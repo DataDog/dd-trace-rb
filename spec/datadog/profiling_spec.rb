@@ -2,8 +2,6 @@ require 'spec_helper'
 require 'datadog/profiling'
 
 RSpec.describe Datadog::Profiling do
-  extend ConfigurationHelpers
-
   describe '.start_if_enabled' do
     subject(:start_if_enabled) { described_class.start_if_enabled }
 

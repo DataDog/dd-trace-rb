@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/rake/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Rake::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:rake) }
 
   describe '.version' do

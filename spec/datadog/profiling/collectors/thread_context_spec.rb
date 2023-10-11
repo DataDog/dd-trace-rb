@@ -108,7 +108,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sample
 
       expect(Thread.list).to eq(all_threads), 'Threads finished during this spec, causing flakiness!'
-      expect(samples.size).to be all_threads.size
+
+      seen_threads = samples.map(&:labels).map { |it| it.fetch(:'thread id') }.uniq
+
+      expect(seen_threads.size).to be all_threads.size
     end
 
     it 'tags the samples with the object ids of the Threads they belong to' do
@@ -167,20 +170,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
 
       t1_samples = samples_for_thread(samples, t1)
-      wall_time = t1_samples.first.values.fetch(:'wall-time')
 
-      expect(t1_samples.size)
-        .to be(1), "Expected thread t1 to always have same stack trace (because it's sleeping), got #{t1_samples.inspect}"
-
+      wall_time = t1_samples.map(&:values).map { |it| it.fetch(:'wall-time') }.reduce(:+)
       expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
     end
 
     it 'tags samples with how many times they were seen' do
       5.times { sample }
 
-      t1_sample = samples_for_thread(samples, t1).first
+      t1_samples = samples_for_thread(samples, t1)
 
-      expect(t1_sample.values).to include(:'cpu-samples' => 5)
+      expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.reduce(:+)).to eq 5
     end
 
     [:before, :after].each do |on_gc_finish_order|
@@ -239,7 +239,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         it 'sets the cpu-time on every sample to zero' do
           5.times { sample }
 
-          expect(samples).to all include(values: include(:'cpu-time' => 0))
+          expect(samples).to all have_attributes(values: include(:'cpu-time' => 0))
         end
       end
 
@@ -499,9 +499,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                 t1_samples = samples_for_thread(samples, t1)
 
-                expect(t1_samples).to have(1).item
-                expect(t1_samples.first.labels).to include(:'trace endpoint' => 'changed_after_first_sample')
-                expect(t1_samples.first.values).to include(:'cpu-samples' => 2)
+                expect(t1_samples)
+                  .to all have_attributes(labels: include(:'trace endpoint' => 'changed_after_first_sample'))
+                expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.reduce(:+)).to eq 2
               end
 
               context 'when the resource is changed multiple times' do
@@ -514,9 +514,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                   t1_samples = samples_for_thread(samples, t1)
 
-                  expect(t1_samples).to have(1).item
-                  expect(t1_samples.first.labels).to include(:'trace endpoint' => 'changed_after_second_sample')
-                  expect(t1_samples.first.values).to include(:'cpu-samples' => 3)
+                  expect(t1_samples)
+                    .to all have_attributes(labels: include(:'trace endpoint' => 'changed_after_second_sample'))
+                  expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.reduce(:+)).to eq 3
                 end
               end
             end
@@ -1243,6 +1243,36 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           invoke_location = per_thread_context.fetch(native_thread).fetch(:thread_invoke_location)
           expect(invoke_location).to eq '(Unnamed thread from native code)'
+        end
+
+        context 'when the `logging` gem has monkey patched thread creation' do
+          # rubocop:disable Style/GlobalVars
+          before do
+            load("#{__dir__}/helper/lib/logging/diagnostic_context.rb")
+            $simulated_logging_gem_monkey_patched_thread_ready_queue.pop
+          end
+
+          after do
+            $simulated_logging_gem_monkey_patched_thread.kill
+            $simulated_logging_gem_monkey_patched_thread.join
+            $simulated_logging_gem_monkey_patched_thread = nil
+            $simulated_logging_gem_monkey_patched_thread_ready_queue = nil
+          end
+
+          # We detect logging gem monkey patching by checking the invoke location of a thread and not using it when
+          # it belongs to the logging gem. This matching is done by matching the partial path
+          # `lib/logging/diagnostic_context.rb`, which is where the monkey patching is implemented.
+          #
+          # To simulate this on our test suite without having to bring in the `logging` gem (and monkey patch our
+          # threads), a helper was created that has a matching partial path.
+          it 'contains a placeholder only' do
+            sample
+
+            invoke_location =
+              per_thread_context.fetch($simulated_logging_gem_monkey_patched_thread).fetch(:thread_invoke_location)
+            expect(invoke_location).to eq '(Unnamed thread)'
+          end
+          # rubocop:enable Style/GlobalVars
         end
       end
     end

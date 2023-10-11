@@ -228,6 +228,16 @@ RSpec.describe Datadog::Core::Error do
       end
     end
 
+    context 'with a string' do
+      let(:value) { 'my-message' }
+
+      it 'records it as the message' do
+        expect(error.type).to be_empty
+        expect(error.message).to eq('my-message')
+        expect(error.backtrace).to be_empty
+      end
+    end
+
     context 'with nil' do
       let(:value) { nil }
 

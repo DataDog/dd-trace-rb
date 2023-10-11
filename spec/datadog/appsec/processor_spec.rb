@@ -217,6 +217,80 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       matches.map(&:actions)
     end
 
+    context 'clear key with empty values' do
+      it 'removes nil values' do
+        input = {
+          'nil_value' => nil,
+          'string_value' => 'hello'
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          {
+            'string_value' => 'hello'
+          },
+          timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+
+      it 'do not removes boolean values' do
+        input = {
+          'false_value' => false,
+          'true_value' => true
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          input, timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+
+      it 'removes empty string values' do
+        input = {
+          'empty_string_value' => '',
+          'string_value' => 'hello'
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          {
+            'string_value' => 'hello'
+          },
+          timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+
+      it 'removes empty arrays values' do
+        input = {
+          'empty_array' => [],
+          'non_empty_array_value' => [1, 2],
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          {
+            'non_empty_array_value' => [1, 2]
+          },
+          timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+
+      it 'removes empty hash values' do
+        input = {
+          'empty_hash' => {},
+          'non_empty_hash_value' => { 'hello' => 'world' },
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          {
+            'non_empty_hash_value' => { 'hello' => 'world' }
+          },
+          timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+    end
+
     context 'no attack' do
       let(:input) { input_safe }
 

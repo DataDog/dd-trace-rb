@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'support/rack_support'
 
 require 'datadog/tracing/contrib/http/distributed/propagation'
 

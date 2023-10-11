@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/active_model_serializers/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::ActiveModelSerializers::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:active_model_serializers) }
 
   describe '.version' do

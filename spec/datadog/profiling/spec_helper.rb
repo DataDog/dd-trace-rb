@@ -1,5 +1,8 @@
 require 'datadog/profiling'
-require 'datadog/profiling/pprof/pprof_pb' if Datadog::Profiling.supported?
+if Datadog::Profiling.supported?
+  require 'datadog/profiling/pprof/pprof_pb'
+  require 'extlz4'
+end
 
 module ProfileHelpers
   Sample = Struct.new(:locations, :values, :labels) # rubocop:disable Lint/StructNewOverride
@@ -26,8 +29,12 @@ module ProfileHelpers
       'Try running `bundle exec rake compile` before running this test.'
   end
 
+  def decode_profile(pprof_data)
+    ::Perftools::Profiles::Profile.decode(LZ4.decode(pprof_data))
+  end
+
   def samples_from_pprof(pprof_data)
-    decoded_profile = ::Perftools::Profiles::Profile.decode(pprof_data)
+    decoded_profile = decode_profile(pprof_data)
 
     string_table = decoded_profile.string_table
     pretty_sample_types = decoded_profile.sample_type.map { |it| string_table[it.type].to_sym }

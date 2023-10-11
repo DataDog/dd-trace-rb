@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/sucker_punch/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::SuckerPunch::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:sucker_punch) }
 
   describe '.version' do

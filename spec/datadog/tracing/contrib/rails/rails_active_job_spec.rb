@@ -45,13 +45,16 @@ RSpec.describe 'ActiveJob' do
       ExampleJob
     end
 
+    let(:logger) do
+      ::ActiveSupport::TaggedLogging.new(super())
+    end
+
     before do
       Datadog.configure do |c|
         c.tracing.instrument :active_job
       end
 
       allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
 
       # initialize the application
       app

@@ -5,6 +5,9 @@ on:
 
 jobs:
   create_next_milestone:
+    permissions:
+      issues: write
+
     runs-on: ubuntu-latest
     steps:
       - name: Get next minor version

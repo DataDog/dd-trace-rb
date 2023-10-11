@@ -2,8 +2,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/action_mailer/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::ActionMailer::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:action_mailer) }
 
   describe '.version' do
