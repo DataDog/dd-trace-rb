@@ -78,10 +78,9 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
-[7].each do |n|
-  appraise "elasticsearch-#{n}" do
-    gem 'elasticsearch', "~> #{n}"
-  end
+appraise 'elasticsearch-7' do
+  gem 'elasticsearch', '~> 7'
+  gem 'multipart-post', '~> 2.1.1' # Compatible with faraday 0.x
 end
 
 appraise 'relational_db' do

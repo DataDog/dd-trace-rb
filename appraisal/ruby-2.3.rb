@@ -150,10 +150,8 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
-[7].each do |n|
-  appraise "elasticsearch-#{n}" do
-    gem 'elasticsearch', "~> #{n}"
-  end
+appraise 'elasticsearch-7' do
+  gem 'elasticsearch', '~> 7'
 end
 
 appraise 'relational_db' do

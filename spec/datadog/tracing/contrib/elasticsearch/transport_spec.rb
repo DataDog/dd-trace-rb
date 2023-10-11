@@ -203,7 +203,8 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
           before do
             skip('Configuration through client object is not possible in Elasticsearch >= 8.0.0') if version_greater_than_8
 
-            Datadog::Tracing::Contrib::Elasticsearch::Patcher::SELF_DEPRECATION_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
+            Datadog::Tracing::Contrib::Elasticsearch::Patcher::SELF_DEPRECATION_ONLY_ONCE
+              .send(:reset_ran_once_state_for_tests)
 
             Datadog.configure_onto(client, service_name: 'custom')
           end

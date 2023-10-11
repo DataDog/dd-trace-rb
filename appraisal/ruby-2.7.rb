@@ -153,7 +153,7 @@ appraise 'aws' do
 end
 
 appraise 'http' do
-    gem 'ethon'
+  gem 'ethon'
   gem 'excon'
   gem 'faraday'
   gem 'http'
@@ -174,7 +174,6 @@ end
     gem 'elasticsearch', "~> #{n}"
   end
 end
-
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.1.0'
