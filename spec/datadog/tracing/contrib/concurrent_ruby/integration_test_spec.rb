@@ -62,13 +62,13 @@ RSpec.describe 'ConcurrentRuby integration tests' do
     describe 'patching' do
       subject(:patch) do
         Datadog.configure do |c|
-          c.use :concurrent_ruby
+          c.tracing.instrument :concurrent_ruby
         end
       end
 
       it 'adds PromisesFuturePatch to Promises ancestors' do
         expect { patch }.to change { ::Concurrent::Promises.singleton_class.ancestors.map(&:to_s) }
-                              .to include('Datadog::Contrib::ConcurrentRuby::PromisesFuturePatch')
+          .to include('Datadog::Tracing::Contrib::ConcurrentRuby::PromisesFuturePatch')
       end
     end
 
@@ -77,14 +77,14 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
       it 'inner span should not have parent' do
         deferred_execution
-        expect(inner_span.parent).to be_nil
+        expect(inner_span).to be_root_span
       end
     end
 
     context 'when context propagation is enabled' do
       before do
         Datadog.configure do |c|
-          c.use :concurrent_ruby
+          c.tracing.instrument :concurrent_ruby
         end
       end
 
@@ -92,7 +92,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
       it 'inner span parent should be included in outer span' do
         deferred_execution
-        expect(inner_span.parent).to eq(outer_span)
+        expect(inner_span.parent_id).to eq(outer_span.span_id)
       end
     end
   end
@@ -129,7 +129,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
       it 'adds FuturePatch to Future ancestors' do
         expect { patch }.to change { ::Concurrent::Future.ancestors.map(&:to_s) }
-                              .to include('Datadog::Tracing::Contrib::ConcurrentRuby::FuturePatch')
+          .to include('Datadog::Tracing::Contrib::ConcurrentRuby::FuturePatch')
       end
     end
 
