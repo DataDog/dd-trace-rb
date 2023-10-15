@@ -49,7 +49,6 @@ module Datadog
             end
 
             option :distributed_tracing, default: true, type: :bool
-            option :request_queuing, default: false, type: :bool
             option :web_service_name, default: Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME, type: :string
 
             option :request_queuing do |o|
