@@ -48,6 +48,12 @@ RSpec.describe Datadog::Core::Remote::Worker do
         expect(result).to eq([1])
       end
     end
+
+    it 'names the worker thread' do
+      worker.start
+
+      expect(Thread.list.map(&:name)).to include(described_class.to_s)
+    end
   end
 
   describe '#stop' do
