@@ -49,10 +49,16 @@ RSpec.describe Datadog::Core::Remote::Worker do
       end
     end
 
-    it 'names the worker thread' do
-      worker.start
+    context 'on Ruby >= 2.3' do
+      before do
+        skip 'Not supported on old Rubies' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+      end
 
-      expect(Thread.list.map(&:name)).to include(described_class.to_s)
+      it 'names the worker thread' do
+        worker.start
+
+        expect(Thread.list.map(&:name)).to include(described_class.to_s)
+      end
     end
   end
 
