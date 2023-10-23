@@ -156,4 +156,5 @@ end
 
 appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
+  gem 'rack'
 end
