@@ -122,7 +122,7 @@ profiling-and-tracing-and-appsec-timeline:
 candidate-tracer-appsec-with-api-security:
   extends: .benchmarks
   variables:
-    DD_BENCHMARKS_CONFIGURATION: "tracing-and-appsec-with-api-secuirty"
+    DD_BENCHMARKS_CONFIGURATION: "tracing-and-appsec-with-api-security"
     DD_PROFILING_ENABLED: "false"
     DD_APPSEC_ENABLED: "true"
     DD_EXPERIMENTAL_API_SECURITY_ENABLED: "true"
@@ -131,7 +131,7 @@ candidate-tracer-appsec-with-api-security:
 candidate-tracer-appsec-with-api-security-and-parse-response-body:
   extends: .benchmarks
   variables:
-    DD_BENCHMARKS_CONFIGURATION: "tracing-and-appsec-with-api-secuirty-and-parsed-body"
+    DD_BENCHMARKS_CONFIGURATION: "tracing-and-appsec-with-api-security-and-parsed-body"
     DD_PROFILING_ENABLED: "false"
     DD_APPSEC_ENABLED: "true"
     DD_EXPERIMENTAL_API_SECURITY_ENABLED: "true"
