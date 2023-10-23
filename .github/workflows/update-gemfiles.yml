@@ -53,19 +53,19 @@ jobs:
               - tasks/appraisal.rake
               - .github/workflows/update-gemfiles.yml
               # In case the generated files were updated manually or in a merge commit
-              - appraisal
-              - gemfiles
+              - appraisal/**
+              - gemfiles/**
       - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
         uses: ruby/setup-ruby@31a7f6d628878b80bc63375a93ae079ec50a1601 # v1.143.0
         with:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
       - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
-        name: Update gemfiles/*.gemfile
-        run: bundle exec rake appraisal:generate
-      - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
-        name: Update gemfiles/*.gemfile.lock
+        name: Ensure gemfiles/*.gemfile.lock match gem definition
         run: bundle exec rake appraisal:lock
+      - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
+        name: Add all supported platforms to gemfiles/*.gemfile.lock
+        run: bundle exec rake appraisal:platform
       - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
         name: Commit gemfiles changes, if any, back to the branch
         uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
