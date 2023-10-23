@@ -119,6 +119,25 @@ profiling-and-tracing-and-appsec-timeline:
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
     DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED: "true"
 
+candidate-tracer-appsec-with-api-security:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: "tracing-and-appsec-with-api-security"
+    DD_PROFILING_ENABLED: "false"
+    DD_APPSEC_ENABLED: "true"
+    DD_EXPERIMENTAL_API_SECURITY_ENABLED: "true"
+    DD_API_SECURITY_REQUEST_SAMPLE_RATE: "1.0"
+
+candidate-tracer-appsec-with-api-security-and-parse-response-body:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: "tracing-and-appsec-with-api-security-and-parsed-body"
+    DD_PROFILING_ENABLED: "false"
+    DD_APPSEC_ENABLED: "true"
+    DD_EXPERIMENTAL_API_SECURITY_ENABLED: "true"
+    DD_API_SECURITY_REQUEST_SAMPLE_RATE: "1.0"
+    DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY: "true"
+
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd
 # -----------------------------------------------------
