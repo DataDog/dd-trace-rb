@@ -626,11 +626,12 @@ workflows:
           integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
           ruby_version: '3.2'
           <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-3.3
-          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
-          ruby_version: '3.3'
-          <<: *filters_all_branches_and_tags
+#      # Disabled until https://github.com/protocolbuffers/protobuf/issues/14509 is fixed.
+#      - orb/build_and_test_integration:
+#          name: build_and_test_integration-3.3
+#          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+#          ruby_version: '3.3'
+#          <<: *filters_all_branches_and_tags
       # ⬆️ **Note**: If add/remove test apps above, remember to also copy-paste the changes to the "edge" workflow further down the file.
       #
       # ADD NEW RUBIES HERE
