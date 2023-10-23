@@ -711,5 +711,43 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
       end
     end
+
+    describe 'parse_response_body' do
+      subject(:enabled) { settings.appsec.parse_response_body }
+
+      context 'when DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY' do
+        around do |example|
+          ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY' => api_security_parse_response_body) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:api_security_parse_response_body) { nil }
+
+          it { is_expected.to eq false }
+        end
+
+        context 'is defined' do
+          let(:api_security_parse_response_body) { 'true' }
+
+          it { is_expected.to eq(true) }
+        end
+      end
+    end
+
+    context 'parse_response_body=' do
+      subject(:set_parse_response_body) { settings.appsec.parse_response_body = parse_response_body }
+
+      [true, false].each do |value|
+        context "when given #{value}" do
+          let(:parse_response_body) { value }
+
+          before { set_parse_response_body }
+
+          it { expect(settings.appsec.parse_response_body).to eq(value) }
+        end
+      end
+    end
   end
 end
