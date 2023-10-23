@@ -137,6 +137,10 @@ module Datadog
           private
 
           def instrumented_integrations
+            # `instrumented_integrations` method is added only if tracing contrib extensions are required
+            # If tracing is used in manual mode without integrations enabled this method does not exist
+            return {} unless Datadog.configuration.tracing.respond_to?(:instrumented_integrations)
+
             Datadog.configuration.tracing.instrumented_integrations
           end
 
