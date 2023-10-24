@@ -1,8 +1,11 @@
 require 'datadog/profiling/spec_helper'
-require 'datadog/profiling/collectors/cpu_and_wall_time_worker'
 
-RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
+RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   before { skip_if_profiling_not_supported(self) }
+
+  # This is needed because this class uses syntax that doesn't work on Ruby 2.1/2.2; we can undo this once dd-trace-rb
+  # drops support for these Rubies globally
+  let(:described_class) { Datadog::Profiling::Collectors::CpuAndWallTimeWorker }
 
   let(:recorder) { build_stack_recorder }
   let(:endpoint_collection_enabled) { true }
@@ -524,6 +527,19 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         Process.kill('TERM', forked_process)
         process_waiter_thread.join
+      end
+    end
+
+    context 'when the _native_sampling_loop terminates with an exception' do
+      it 'calls the on_failure_proc' do
+        expect(described_class).to receive(:_native_sampling_loop).and_raise(StandardError.new('Simulated error'))
+        expect(Datadog.logger).to receive(:warn)
+
+        proc_called = Queue.new
+
+        cpu_and_wall_time_worker.start(on_failure_proc: proc { proc_called << true })
+
+        proc_called.pop
       end
     end
   end
