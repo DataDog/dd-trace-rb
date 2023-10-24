@@ -53,7 +53,7 @@ module Datadog
           @idle_sampling_helper = idle_sampling_helper
         end
 
-        def start
+        def start(on_failure_proc: nil)
           @start_stop_mutex.synchronize do
             return if @worker_thread && @worker_thread.alive?
 
@@ -74,6 +74,7 @@ module Datadog
                   'CpuAndWallTimeWorker thread error. ' \
                   "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
                 )
+                on_failure_proc&.call
               end
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
