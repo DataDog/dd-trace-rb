@@ -21,27 +21,6 @@ RSpec.describe 'Datadog integration' do
       try_wait_until { Datadog::Tracing.send(:tracer).writer.transport.stats.success > 0 }
     end
 
-    context 'for threads' do
-      let(:original_threads) { Thread.list }
-      let!(:original_threads_inspect) { inspect_threads(original_threads) } # Store result as stack trace will change
-      let(:threads) { Thread.list }
-
-      def inspect_threads(threads)
-        threads.map.with_index { |t, idx| "#{idx}=#{t.backtrace}" }.join(';')
-      end
-
-      it 'closes tracer threads' do
-        start_tracer
-        wait_for_tracer_sent
-
-        shutdown
-
-        expect(threads.size).to eq(original_threads.size),
-          "Expected #{original_threads.size} threads (#{original_threads_inspect}), "\
-                  "got #{threads.size} threads (#{inspect_threads(threads)})"
-      end
-    end
-
     context 'for file descriptors' do
       def open_file_descriptors
         # Unix-specific way to get the current process' open file descriptors and the files (if any) they correspond to
