@@ -61,6 +61,26 @@ RSpec.describe 'Rails cache' do
       end
     end
 
+    context 'with a cache not in the ActiveSupport::Cache:: namespace' do
+      let(:cache_class) { stub_const('My::CustomCache', Class.new(ActiveSupport::Cache::MemoryStore)) }
+      let(:cache) { cache_class.new }
+
+      it 'returns the matching backend type' do
+        subject
+        expect(spans[0].get_tag('rails.cache.backend')).to eq('custom_cache')
+      end
+    end
+
+    context 'with an unnamespaced cache class' do
+      let(:cache_class) { stub_const('CustomCache', Class.new(ActiveSupport::Cache::MemoryStore)) }
+      let(:cache) { cache_class.new }
+
+      it 'returns the matching backend type' do
+        subject
+        expect(spans[0].get_tag('rails.cache.backend')).to eq('custom_cache')
+      end
+    end
+
     it_behaves_like 'measured span for integration', false do
       before { subject }
       let(:span) { spans[0] }
