@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.15.0)
+    ddtrace (2.0.0.alpha1)
       datadog-ci (~> 0.2.0)
       debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 5.0.0.1.0)
@@ -47,6 +47,7 @@ GEM
     daemons (1.4.1)
     dalli (2.7.11)
     datadog-ci (0.2.0)
+      msgpack
     debase-ruby_core_source (3.2.2)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
@@ -66,7 +67,7 @@ GEM
       multipart-post (>= 1.2, < 3)
     faraday_middleware (0.12.2)
       faraday (>= 0.7.4, < 1.0)
-    ffi (1.15.5)
+    ffi (1.16.3)
     google-protobuf (3.22.0)
     google-protobuf (3.22.0-x86_64-linux)
     graphql (1.12.24)
