@@ -137,8 +137,10 @@ module Datadog
           private
 
           def instrumented_integrations
-            # `instrumented_integrations` method is added only if tracing contrib extensions are required
-            # If tracing is used in manual mode without integrations enabled this method does not exist
+            # `instrumented_integrations` method is added only if tracing contrib extensions are required.
+            # If tracing is used in manual mode without integrations enabled this method does not exist.
+            # CI visibility gem datadog-ci uses Datadog::Tracer without requiring datadog/tracing/contrib folder
+            # nor enabling any integrations by default which causes EnvironmentCollector to fail.
             return {} unless Datadog.configuration.tracing.respond_to?(:instrumented_integrations)
 
             Datadog.configuration.tracing.instrumented_integrations
