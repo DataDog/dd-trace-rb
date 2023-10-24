@@ -35,6 +35,8 @@ jobs:
       - name: Check if this branch is attached to a Pull Request
         uses: 8bitjonny/gh-get-current-pr@2215326c76d51bfa3f2af0a470f32677f6c0cae9 # v2.2.0
         id: pr
+        with:
+          filterOutClosed: true # Don't trigger on commits with closed PRs, including merges into `master`.
       - if: steps.pr.outputs.pr_found == 'true'
         uses: actions/checkout@v4
       # And also, only execute if files that can affect gemfiles are modified.
