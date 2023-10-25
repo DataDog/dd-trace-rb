@@ -725,7 +725,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:api_security_parse_response_body) { nil }
 
-          it { is_expected.to eq false }
+          it { is_expected.to eq true }
         end
 
         context 'is defined' do
