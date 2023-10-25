@@ -54,7 +54,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
 
       context 'when parse_response_body is enabled' do
         around do |example|
-          ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY' => 'true') do
+          ClimateControl.modify('DD_API_SECURITY_PARSE_RESPONSE_BODY' => 'true') do
             example.run
           end
         end
