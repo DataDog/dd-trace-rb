@@ -43,7 +43,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
 
       context 'when parsed_response_body is enabled' do
         around do |example|
-          ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY' => 'true') do
+          ClimateControl.modify('DD_API_SECURITY_PARSE_RESPONSE_BODY' => 'true') do
             example.run
           end
         end
@@ -132,7 +132,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
 
         context 'when parsed_response_body is enabled' do
           around do |example|
-            ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY' => 'true') do
+            ClimateControl.modify('DD_API_SECURITY_PARSE_RESPONSE_BODY' => 'true') do
               example.run
             end
           end
