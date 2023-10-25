@@ -23,12 +23,19 @@ RSpec.describe 'Datadog integration' do
 
     context 'for threads' do
       let(:original_threads) { Thread.list }
-      let!(:original_threads_inspect) { inspect_threads(original_threads) } # Store result as stack trace will change
-      let(:threads) { Thread.list }
+      let(:start_tracer) do
+        Datadog::Tracing.trace('test.op') {}
+
+        new_threads = Thread.list - original_threads
+        tracer_threads.concat(new_threads.map(&:object_id))
+      end
+      let(:tracer_threads) { [] }
 
       def inspect_threads(threads)
-        threads.map.with_index { |t, idx| "#{idx}=#{t.backtrace}" }.join(';')
+        threads.map.with_index { |t, idx| "#{idx}=#{t.object_id}:#{t.backtrace}" }.join(';')
       end
+
+      subject(:shutdown) { Datadog.shutdown! }
 
       it 'closes tracer threads' do
         start_tracer
@@ -36,9 +43,10 @@ RSpec.describe 'Datadog integration' do
 
         shutdown
 
-        expect(threads.size).to eq(original_threads.size),
-          "Expected #{original_threads.size} threads (#{original_threads_inspect}), "\
-                  "got #{threads.size} threads (#{inspect_threads(threads)})"
+        post_shutdown_threads = Thread.list.map(&:object_id)
+
+        expect(post_shutdown_threads & tracer_threads).to be_empty,
+          "Tracer threads not terminated: #{inspect_threads(Thread.list)}"
       end
     end
 
