@@ -12,6 +12,7 @@ module Datadog
           # DEV: If add support for the `memcached` gem (not popular as of 2023), we'll have issues with span naming
           # DEV: conflicts.
           ENV_ENABLED = 'DD_TRACE_DALLI_ENABLED'
+          # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_DALLI_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_DALLI_ANALYTICS_SAMPLE_RATE'
           # DEV: This is named `*_MEMCACHED_*` because the spans it refer to are `memcached.*` and this variable
