@@ -264,7 +264,7 @@ module Datadog
             # when restoring a value from `@value_per_precedence`, and we are only running `definition.setter`
             # on the original value, not on a valud that has already been processed by `definition.setter`.
             @value_per_precedence[precedence] = value
-            context_exec(v, old_value, &definition.after_set) if definition.after_set
+            context_exec(v, old_value, precedence, &definition.after_set) if definition.after_set
           end
         end
 

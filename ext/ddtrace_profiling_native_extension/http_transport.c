@@ -46,7 +46,8 @@ static VALUE _native_do_export(
   VALUE code_provenance_file_name,
   VALUE code_provenance_data,
   VALUE tags_as_array,
-  VALUE internal_metadata_json
+  VALUE internal_metadata_json,
+  VALUE system_info_json
 );
 static void *call_exporter_without_gvl(void *call_args);
 static void interrupt_exporter_call(void *cancel_token);
@@ -56,7 +57,7 @@ void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
-  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 12);
+  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 13);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -208,6 +209,7 @@ static VALUE perform_export(
   ddog_prof_Exporter_Slice_File files_to_export_unmodified,
   ddog_Vec_Tag *additional_tags,
   ddog_CharSlice internal_metadata,
+  ddog_CharSlice system_info,
   uint64_t timeout_milliseconds
 ) {
   ddog_prof_ProfiledEndpointsStats *endpoints_stats = NULL; // Not in use yet
@@ -220,6 +222,7 @@ static VALUE perform_export(
     additional_tags,
     endpoints_stats,
     &internal_metadata,
+    &system_info,
     timeout_milliseconds
   );
 
@@ -290,7 +293,8 @@ static VALUE _native_do_export(
   VALUE code_provenance_file_name,
   VALUE code_provenance_data,
   VALUE tags_as_array,
-  VALUE internal_metadata_json
+  VALUE internal_metadata_json,
+  VALUE system_info_json
 ) {
   ENFORCE_TYPE(upload_timeout_milliseconds, T_FIXNUM);
   ENFORCE_TYPE(start_timespec_seconds, T_FIXNUM);
@@ -301,6 +305,7 @@ static VALUE _native_do_export(
   ENFORCE_TYPE(pprof_data, T_STRING);
   ENFORCE_TYPE(code_provenance_file_name, T_STRING);
   ENFORCE_TYPE(internal_metadata_json, T_STRING);
+  ENFORCE_TYPE(system_info_json, T_STRING);
 
   // Code provenance can be disabled and in that case will be set to nil
   bool have_code_provenance = !NIL_P(code_provenance_data);
@@ -335,6 +340,7 @@ static VALUE _native_do_export(
 
   ddog_Vec_Tag *null_additional_tags = NULL;
   ddog_CharSlice internal_metadata = char_slice_from_ruby_string(internal_metadata_json);
+  ddog_CharSlice system_info = char_slice_from_ruby_string(system_info_json);
 
   ddog_prof_Exporter_NewResult exporter_result = create_exporter(exporter_configuration, tags_as_array);
   // Note: Do not add anything that can raise exceptions after this line, as otherwise the exporter memory will leak
@@ -350,6 +356,7 @@ static VALUE _native_do_export(
     files_to_export_unmodified,
     null_additional_tags,
     internal_metadata,
+    system_info,
     timeout_milliseconds
   );
 }

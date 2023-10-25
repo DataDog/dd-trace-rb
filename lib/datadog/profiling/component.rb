@@ -100,11 +100,13 @@ module Datadog
       end
 
       private_class_method def self.build_profiler_exporter(settings, recorder, internal_metadata:)
+        system_info_collector = Profiling::Collectors::SystemInfo.new(settings)
         code_provenance_collector =
           (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
         Profiling::Exporter.new(
           pprof_recorder: recorder,
+          system_info_collector: system_info_collector,
           code_provenance_collector: code_provenance_collector,
           internal_metadata: internal_metadata,
         )

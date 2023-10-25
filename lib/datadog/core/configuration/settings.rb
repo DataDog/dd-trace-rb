@@ -212,11 +212,13 @@ module Datadog
             # This was used prior to the GA of the new CPU Profiling 2.0 profiler. The CPU Profiling 2.0 profiler does not
             # use or need this setting and thus it doesn't do anything.
             option :max_events do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.max_events setting has been deprecated for removal and no ' \
-                  'longer does anything. Please remove it from your Datadog.configure block.'
-                )
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.max_events setting has been deprecated for removal and no ' \
+                    'longer does anything. Please remove it from your Datadog.configure block.'
+                  )
+                end
               end
             end
 
@@ -255,11 +257,13 @@ module Datadog
             # This was added as a temporary support option in case of issues with the new `Profiling::HttpTransport` class
             # but we're now confident it's working nicely so we've removed the old code path.
             option :legacy_transport_enabled do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.legacy_transport_enabled setting has been deprecated for removal and no ' \
-                  'longer does anything. Please remove it from your Datadog.configure block.'
-                )
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.legacy_transport_enabled setting has been deprecated for removal and no ' \
+                    'longer does anything. Please remove it from your Datadog.configure block.'
+                  )
+                end
               end
             end
 
@@ -268,11 +272,13 @@ module Datadog
             # This was used prior to the GA of the new CPU Profiling 2.0 profiler. Using CPU Profiling 2.0 is now the
             # default and this doesn't do anything.
             option :force_enable_new_profiler do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.force_enable_new_profiler setting has been deprecated for removal and no ' \
-                  'longer does anything. Please remove it from your Datadog.configure block.'
-                )
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.force_enable_new_profiler setting has been deprecated for removal and no ' \
+                    'longer does anything. Please remove it from your Datadog.configure block.'
+                  )
+                end
               end
             end
 
@@ -281,11 +287,13 @@ module Datadog
             # This was used prior to the GA of the new CPU Profiling 2.0 profiler. Using CPU Profiling 2.0 is now the
             # default and this doesn't do anything.
             option :force_enable_legacy_profiler do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal and no ' \
-                  'longer does anything. Please remove it from your Datadog.configure block.'
-                )
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal and no ' \
+                    'longer does anything. Please remove it from your Datadog.configure block.'
+                  )
+                end
               end
             end
 
@@ -316,12 +324,14 @@ module Datadog
             #
             # This feature is now controlled via {:experimental_allocation_enabled}
             option :allocation_counting_enabled do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.allocation_counting_enabled setting has been deprecated for removal and no ' \
-                  'longer does anything. Please remove it from your Datadog.configure block. ' \
-                  'Allocation counting is now controlled by the `experimental_allocation_enabled` setting instead.'
-                )
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.allocation_counting_enabled setting has been deprecated for removal and no ' \
+                    'longer does anything. Please remove it from your Datadog.configure block. ' \
+                    'Allocation counting is now controlled by the `experimental_allocation_enabled` setting instead.'
+                  )
+                end
               end
             end
 

@@ -10,6 +10,16 @@ RSpec.describe Datadog::Profiling::Flush do
     let(:code_provenance_data) { 'the_code_provenance_data' }
     let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
     let(:internal_metadata) { { no_signals_workaround_enabled: false } }
+    let(:system_info) do
+      {
+        application: {
+          start_time: '2023-09-08 13:45:29.415742 UTC'
+        },
+        runtime: {
+          engine: 'ruby'
+        },
+      }
+    end
 
     subject(:flush) do
       described_class.new(
@@ -21,6 +31,7 @@ RSpec.describe Datadog::Profiling::Flush do
         code_provenance_data: code_provenance_data,
         tags_as_array: tags_as_array,
         internal_metadata: internal_metadata,
+        system_info: system_info,
       )
     end
 
@@ -34,6 +45,7 @@ RSpec.describe Datadog::Profiling::Flush do
         code_provenance_data: code_provenance_data,
         tags_as_array: tags_as_array,
         internal_metadata_json: '{"no_signals_workaround_enabled":"false"}',
+        system_info_json: '{"application":{"start_time":"2023-09-08 13:45:29.415742 UTC"},"runtime":{"engine":"ruby"}}'
       )
     end
   end

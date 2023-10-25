@@ -1,0 +1,30 @@
+module Datadog
+  module Profiling
+    module Collectors
+      class SystemInfo
+        def initialize: (untyped settings) -> void
+
+        attr_reader system_info: ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+
+        def refresh: () -> self
+
+        private
+        START_TIME: ::Time
+
+
+        @settings: untyped
+        @platform_info: ::Hash[::Symbol, untyped]
+        @runtime_info: ::Hash[::Symbol, untyped]
+        @application_info: ::Hash[::Symbol, untyped]
+        @profiler_info: ::Hash[::Symbol, untyped]
+
+        def collect_platform_info: () -> ::Hash[::Symbol, untyped]
+        def collect_runtime_info: () -> ::Hash[::Symbol, untyped]
+        def collect_application_info: () -> ::Hash[::Symbol, untyped]
+        def collect_profiler_info: () -> ::Hash[::Symbol, untyped]
+
+        def collect_settings_recursively: (untyped v) -> untyped
+      end
+    end
+  end
+end
