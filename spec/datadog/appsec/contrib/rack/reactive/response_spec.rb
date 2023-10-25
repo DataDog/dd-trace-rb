@@ -42,12 +42,6 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
       let(:body) { ['{"a":"b"}'] }
 
       context 'when parsed_response_body is enabled' do
-        around do |example|
-          ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY' => 'true') do
-            example.run
-          end
-        end
-
         it 'propagates response attributes to the operation' do
           expect(operation).to receive(:publish).with('response.status', 200)
           expect(operation).to receive(:publish).with(
@@ -64,6 +58,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
       end
 
       context 'when parsed_response_body is disabled' do
+        around do |example|
+          ClimateControl.modify('DD_API_SECURITY_PARSE_RESPONSE_BODY' => 'false') do
+            example.run
+          end
+        end
+
         it 'propagates response attributes to the operation' do
           expect(operation).to receive(:publish).with('response.status', 200)
           expect(operation).to receive(:publish).with(
@@ -131,12 +131,6 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
         let(:body) { ['{"a":"b"}'] }
 
         context 'when parsed_response_body is enabled' do
-          around do |example|
-            ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY' => 'true') do
-              example.run
-            end
-          end
-
           context 'all addresses have been published' do
             let(:expected_waf_arguments) do
               {
@@ -195,6 +189,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
         end
 
         context 'when parsed_response_body is disabled' do
+          around do |example|
+            ClimateControl.modify('DD_API_SECURITY_PARSE_RESPONSE_BODY' => 'false') do
+              example.run
+            end
+          end
+
           let(:expected_waf_arguments) do
             {
               'server.response.status' => '200',

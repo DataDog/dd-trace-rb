@@ -128,15 +128,15 @@ candidate-tracer-appsec-with-api-security:
     DD_EXPERIMENTAL_API_SECURITY_ENABLED: "true"
     DD_API_SECURITY_REQUEST_SAMPLE_RATE: "1.0"
 
-candidate-tracer-appsec-with-api-security-and-parse-response-body:
+candidate-tracer-appsec-with-api-security-without-response-body:
   extends: .benchmarks
   variables:
-    DD_BENCHMARKS_CONFIGURATION: "tracing-and-appsec-with-api-security-and-parsed-body"
+    DD_BENCHMARKS_CONFIGURATION: "tracing-and-appsec-with-api-security-without-response-body"
     DD_PROFILING_ENABLED: "false"
     DD_APPSEC_ENABLED: "true"
     DD_EXPERIMENTAL_API_SECURITY_ENABLED: "true"
     DD_API_SECURITY_REQUEST_SAMPLE_RATE: "1.0"
-    DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY: "true"
+    DD_API_SECURITY_PARSE_RESPONSE_BODY: "false"
 
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd

@@ -191,8 +191,8 @@ module Datadog
 
               option :parse_response_body do |o|
                 o.type :bool
-                o.env 'DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY'
-                o.default false
+                o.env 'DD_API_SECURITY_PARSE_RESPONSE_BODY'
+                o.default true
               end
             end
           end

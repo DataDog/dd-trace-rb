@@ -47,18 +47,18 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
       let(:content_type) { 'application/json' }
 
       context 'when parse_response_body is disable' do
+        around do |example|
+          ClimateControl.modify('DD_API_SECURITY_PARSE_RESPONSE_BODY' => 'false') do
+            example.run
+          end
+        end
+
         it 'returns a nil' do
           expect(response.parsed_body).to be_nil
         end
       end
 
       context 'when parse_response_body is enabled' do
-        around do |example|
-          ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_PARSE_RESPONSE_BODY' => 'true') do
-            example.run
-          end
-        end
-
         context 'all body parts are strings' do
           let(:body) { ['{ "f', 'oo":', ' "ba', 'r" }'] }
 
