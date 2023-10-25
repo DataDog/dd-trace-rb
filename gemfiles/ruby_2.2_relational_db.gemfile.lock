@@ -2,7 +2,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.15.0)
-      datadog-ci (~> 0.2.0)
+      datadog-ci (~> 0.3.0)
       debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 5.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -37,7 +37,8 @@ GEM
     concurrent-ruby (1.1.10)
     crack (0.4.5)
       rexml
-    datadog-ci (0.2.0)
+    datadog-ci (0.3.0)
+      msgpack
     debase-ruby_core_source (3.2.2)
     delayed_job (4.1.11)
       activesupport (>= 3.0, < 8.0)
