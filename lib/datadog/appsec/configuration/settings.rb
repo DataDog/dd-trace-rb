@@ -54,6 +54,10 @@ module Datadog
                 o.default :recommended
               end
 
+              option :ip_passlist do |o|
+                o.default []
+              end
+
               option :ip_denylist do |o|
                 o.type :array
                 o.default []
