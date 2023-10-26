@@ -25,12 +25,12 @@ module Datadog
         # @param request_type [String] the type of telemetry request to collect data for
         # @param seq_id [Integer] the ID of the request; incremented each time a telemetry request is sent to the API
         # @param data [Object] arbitrary object to be passed to the respective `request_type` handler
-        def telemetry_request(request_type:, seq_id:, data: nil)
+        def telemetry_request(request_type:, seq_id:, data: nil, payload: nil)
           Telemetry::V1::TelemetryRequest.new(
             api_version: @api_version,
             application: application,
             host: host,
-            payload: payload(request_type, data),
+            payload: generate_payload(request_type, data, payload),
             request_type: request_type,
             runtime_id: runtime_id,
             seq_id: seq_id,
@@ -40,7 +40,7 @@ module Datadog
 
         private
 
-        def payload(request_type, data)
+        def generate_payload(request_type, data, payload)
           case request_type
           when :'app-started'
             app_started
@@ -50,6 +50,10 @@ module Datadog
             app_integrations_change
           when 'app-client-configuration-change'
             app_client_configuration_change(data)
+          when 'generate-metrics', 'distributions'
+            raise ArgumentError, 'Metrics request needs to provide the payload argument' unless payload
+
+            payload
           else
             raise ArgumentError, "Request type invalid, received request_type: #{@request_type}"
           end

@@ -22,12 +22,18 @@ module Datadog
         # Retrieves and emits a TelemetryRequest object based on the request type specified
         # @param request_type [String] the type of telemetry request to collect data for
         # @param data [Object] arbitrary object to be passed to the respective `request_type` handler
-        def request(request_type, data: nil)
+        def request(request_type, data: nil, payload: nil)
+          if payload && data
+            Datadog.logger.debug('Can not provide data and payload when generating temetry request')
+            return
+          end
+
           begin
             request = Datadog::Core::Telemetry::Event.new.telemetry_request(
               request_type: request_type,
               seq_id: self.class.sequence.next,
               data: data,
+              payload: payload,
             ).to_h
             @http_transport.request(request_type: request_type.to_s, payload: request.to_json)
           rescue StandardError => e

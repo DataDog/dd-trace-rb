@@ -27,11 +27,11 @@ module Datadog
             @path = Http::Ext::AGENT_ENDPOINT
           end
 
-          def request(request_type:, payload:)
+          def request(request_type:, payload:, api_version: Http::Ext::API_VERSION)
             env = Http::Env.new
             env.path = @path
             env.body = payload
-            env.headers = headers(request_type: request_type)
+            env.headers = headers(request_type: request_type, api_version: api_version)
             adapter.post(env)
           end
 

@@ -100,6 +100,7 @@ target :ddtrace do
   ignore 'lib/datadog/core/telemetry/event.rb'
   ignore 'lib/datadog/core/telemetry/ext.rb'
   ignore 'lib/datadog/core/telemetry/heartbeat.rb'
+  ignore 'lib/datadog/core/telemetry/metric_worker.rb'
   ignore 'lib/datadog/core/telemetry/http/adapters/net.rb'
   ignore 'lib/datadog/core/telemetry/http/env.rb'
   ignore 'lib/datadog/core/telemetry/http/ext.rb'
