@@ -101,7 +101,9 @@ module Datadog
 
                 # DEV: String#underscore is available through ActiveSupport, and is
                 # DEV: the exact reverse operation to `#camelize`.
-                @store_name = self.class.name.underscore.match(%r{active_support/cache/(.*)})[1]
+                # DEV: String#demodulize is available through ActiveSupport, and is
+                # DEV: used to remove the module ('*::') part of a constant name.
+                @store_name = self.class.name.demodulize.underscore
               end
             end
 
