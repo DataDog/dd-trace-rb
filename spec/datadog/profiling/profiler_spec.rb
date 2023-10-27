@@ -14,9 +14,9 @@ RSpec.describe Datadog::Profiling::Profiler do
   describe '#start' do
     subject(:start) { profiler.start }
 
-    it 'signals collectors and scheduler to start' do
-      expect(worker).to receive(:start)
-      expect(scheduler).to receive(:start)
+    it 'signals the worker and scheduler to start' do
+      expect(worker).to receive(:start).with(on_failure_proc: an_instance_of(Proc))
+      expect(scheduler).to receive(:start).with(on_failure_proc: an_instance_of(Proc))
 
       start
     end
@@ -50,6 +50,71 @@ RSpec.describe Datadog::Profiling::Profiler do
       expect(scheduler).to receive(:stop).with(true)
 
       shutdown!
+    end
+  end
+
+  describe 'Component failure handling' do
+    let(:worker) { instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker, start: nil) }
+    let(:scheduler) { instance_double(Datadog::Profiling::Scheduler, start: nil) }
+
+    before { allow(Datadog.logger).to receive(:warn) }
+
+    context 'when the worker failed' do
+      let(:worker_on_failure) do
+        on_failure = nil
+        expect(worker).to receive(:start) { |on_failure_proc:| on_failure = on_failure_proc }
+
+        profiler.start
+
+        on_failure.call
+      end
+
+      it 'logs the issue' do
+        allow(scheduler).to receive(:enabled=)
+        allow(scheduler).to receive(:stop)
+
+        expect(Datadog.logger).to receive(:warn).with(/worker component/)
+
+        worker_on_failure
+      end
+
+      it 'stops the scheduler' do
+        expect(scheduler).to receive(:enabled=).with(false)
+        expect(scheduler).to receive(:stop).with(true)
+
+        worker_on_failure
+      end
+    end
+
+    context 'when the scheduler failed' do
+      let(:scheduler_on_failure) do
+        on_failure = nil
+        expect(scheduler).to receive(:start) { |on_failure_proc:| on_failure = on_failure_proc }
+
+        profiler.start
+
+        on_failure.call
+      end
+
+      it 'logs the issue' do
+        allow(worker).to receive(:stop)
+
+        expect(Datadog.logger).to receive(:warn).with(/scheduler component/)
+
+        scheduler_on_failure
+      end
+
+      it 'stops the worker' do
+        expect(worker).to receive(:stop)
+
+        scheduler_on_failure
+      end
+    end
+
+    context 'when unknown component failed' do
+      it 'raises an ArgumentError' do
+        expect { profiler.send(:component_failed, 'test') }.to raise_error(ArgumentError, /failed_component: "test"/)
+      end
     end
   end
 end
