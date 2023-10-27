@@ -284,7 +284,7 @@ module Datadog
 
         private_class_method def self.libdatadog_not_available?
           begin
-            gem 'libdatadog', LIBDATADOG_VERSION
+            # gem 'libdatadog', LIBDATADOG_VERSION
             require 'libdatadog'
             nil
           # rubocop:disable Lint/RescueException
