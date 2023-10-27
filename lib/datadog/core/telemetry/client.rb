@@ -15,6 +15,7 @@ module Datadog
         attr_reader \
           :emitter,
           :enabled,
+          :metrics_enabled,
           :unsupported,
           :worker,
           :metrics_worker
@@ -23,8 +24,9 @@ module Datadog
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
         # @param heartbeat_interval_seconds [Float] How frequently heartbeats will be reported, in seconds.
-        def initialize(heartbeat_interval_seconds:, enabled: true)
+        def initialize(heartbeat_interval_seconds:, metrics_enabled:, enabled: true)
           @enabled = enabled
+          @metrics_enabled = metrics_enabled
           @emitter = Emitter.new
           @stopped = false
           @unsupported = false
@@ -37,7 +39,7 @@ module Datadog
           @metric_queue = MetricQueue.new
 
           @metrics_worker = Telemetry::MetricWorker.new(
-            enabled: @enabled,
+            enabled: @metrics_enabled,
             heartbeat_interval_seconds: heartbeat_interval_seconds
           ) do
             flush_metrics!
@@ -46,6 +48,7 @@ module Datadog
 
         def disable!
           @enabled = false
+          @metrics_enabled = false
           @worker.enabled = false
           @metrics_worker.enabled = false
         end
@@ -92,25 +95,25 @@ module Datadog
         end
 
         def add_count_metric(namespace, name, value, tags)
-          return if !@enabled || forked?
+          return if !@metrics_enabled || forked?
 
           @metric_queue.add_metric(namespace, name, value, tags, Metric::Count)
         end
 
         def add_rate_metric(namespace, name, value, tags)
-          return if !@enabled || forked?
+          return if !@metrics_enabled || forked?
 
           @metric_queue.add_metric(namespace, name, value, tags, Metric::Rate)
         end
 
         def add_gauge_metric(namespace, name, value, tags)
-          return if !@enabled || forked?
+          return if !@metrics_enabled || forked?
 
           @metric_queue.add_metric(namespace, name, value, tags, Metric::Gauge)
         end
 
         def add_distribution_metric(namespace, name, value, tags)
-          return if !@enabled || forked?
+          return if !@metrics_enabled || forked?
 
           @metric_queue.add_metric(namespace, name, value, tags, Metric::Distribution)
         end
@@ -124,7 +127,7 @@ module Datadog
         end
 
         def flush_metrics!
-          return if !@enabled || forked?
+          return if !@metrics_enabled || forked?
 
           # Send metrics
           @metric_queue.build_metrics_payload do |metric_type, payload|

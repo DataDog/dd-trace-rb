@@ -580,6 +580,22 @@ module Datadog
             o.type :bool
           end
 
+          option :metrics do |o|
+            o.env Core::Telemetry::Ext::ENV_METRICS_ENABLED
+            o.default do
+              if Datadog::Core::Environment::Execution.development?
+                Datadog.logger.debug do
+                  'Development environment detected, disabling Telemetry. ' \
+                    'You can enable it with DD_TELEMETRY_METRICS_ENABLED=true.'
+                end
+                false
+              else
+                true
+              end
+            end
+            o.type :bool
+          end
+
           # The interval in seconds when telemetry must be sent.
           #
           # This method is used internally, for testing purposes only.

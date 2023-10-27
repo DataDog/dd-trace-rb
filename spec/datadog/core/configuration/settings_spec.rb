@@ -1208,6 +1208,47 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
+    describe '#metrics' do
+      subject(:metrics) { settings.telemetry.metrics }
+      let(:env_var_name) { 'DD_TELEMETRY_METRICS_ENABLED' }
+
+      context 'when DD_TELEMETRY_METRICS_ENABLED' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          context 'in a development environment' do
+            it { is_expected.to be false }
+          end
+
+          context 'not in a development environment' do
+            include_context 'non-development execution environment'
+
+            it { is_expected.to be true }
+          end
+        end
+
+        [true, false].each do |value|
+          context "is defined as #{value}" do
+            let(:env_var_value) { value.to_s }
+
+            it { is_expected.to be value }
+          end
+        end
+      end
+    end
+
+    describe '#metrics=' do
+      let(:env_var_name) { 'DD_TELEMETRY_METRICS_ENABLED' }
+      let(:env_var_value) { 'true' }
+
+      it 'updates the #metrics setting' do
+        expect { settings.telemetry.metrics = false }
+          .to change { settings.telemetry.metrics }
+          .from(true)
+          .to(false)
+      end
+    end
+
     describe '#heartbeat_interval' do
       subject(:heartbeat_interval_seconds) { settings.telemetry.heartbeat_interval_seconds }
       let(:env_var_name) { 'DD_TELEMETRY_HEARTBEAT_INTERVAL' }

@@ -3,8 +3,15 @@ require 'spec_helper'
 require 'datadog/core/telemetry/client'
 
 RSpec.describe Datadog::Core::Telemetry::Client do
-  subject(:client) { described_class.new(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds) }
+  subject(:client) do
+    described_class.new(
+      enabled: enabled,
+      metrics_enabled: metrics_enabled,
+      heartbeat_interval_seconds: heartbeat_interval_seconds
+    )
+  end
   let(:enabled) { true }
+  let(:metrics_enabled) { true }
   let(:heartbeat_interval_seconds) { 1.3 }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
   let(:response) { double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
@@ -25,7 +32,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     end
 
     context 'with default parameters' do
-      subject(:client) { described_class.new(heartbeat_interval_seconds: heartbeat_interval_seconds) }
+      subject(:client) do
+        described_class.new(heartbeat_interval_seconds: heartbeat_interval_seconds, metrics_enabled: metrics_enabled)
+      end
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(true) }
       it { expect(client.emitter).to be(emitter) }
@@ -41,7 +50,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(false) }
       it { expect(client.worker.enabled?).to be(false) }
-      it { expect(client.metrics_worker.enabled?).to be(false) }
     end
 
     context 'when enabled' do
@@ -50,6 +58,17 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(true) }
       it { expect(client.worker.enabled?).to be(true) }
+    end
+
+    context 'when metrics is disabled' do
+      let(:metrics_enabled) { false }
+
+      it { expect(client.metrics_worker.enabled?).to be(false) }
+    end
+
+    context 'when metrics is enabled' do
+      let(:metrics_enabled) { true }
+
       it { expect(client.metrics_worker.enabled?).to be(true) }
     end
   end
@@ -312,14 +331,14 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       [:add_distribution_metric, Datadog::Core::Telemetry::Metric::Distribution],
     ].each do |metric_method, metric_klass|
       context 'when disabled' do
-        let(:enabled) { false }
+        let(:metrics_enabled) { false }
         it do
           expect(client.send(metric_method, 'test_namespace', 'name', 1, {})).to be_nil
         end
       end
 
       context 'when enabled' do
-        let(:enabled) { true }
+        let(:metrics_enabled) { true }
         it do
           expect_any_instance_of(Datadog::Core::Telemetry::MetricQueue).to receive(:add_metric).with(
             'test_namespace',
@@ -342,14 +361,14 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       end
 
       context 'when disabled' do
-        let(:enabled) { false }
+        let(:metrics_enabled) { false }
         it do
           expect(client.send(:flush_metrics!)).to be_nil
         end
       end
 
       context 'when enabled' do
-        let(:enabled) { true }
+        let(:metrics_enabled) { true }
         it 'send metrics to the emitter and reset the metric_queue' do
           old_metric_queue = client.instance_variable_get(:@metric_queue)
 

@@ -1,21 +1,27 @@
 module Datadog
   module Core
     module Telemetry
+      # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
       class Client
-        attr_reader emitter: untyped
+        @metric_queue: untyped
 
-        attr_reader enabled: untyped
+        attr_reader emitter: Core::Telemetry::Emitter
 
-        attr_reader unsupported: untyped
+        attr_reader enabled: bool
+
+        attr_reader metrics_enabled: bool
+
+        attr_reader unsupported: bool
 
         attr_reader worker: untyped
 
+        attr_reader metrics_worker: untyped
+
         include Core::Utils::Forking
-        def initialize: (?enabled: bool) -> void
+
+        def initialize: (heartbeat_interval_seconds: untyped, metrics_enabled: bool, ?enabled: bool) -> void
 
         def disable!: () -> untyped
-
-        def client_configuration_change!: (Enumerable[[String, Numeric | bool | String]] changes) -> void
 
         def started!: () -> (nil | untyped)
 
@@ -25,9 +31,21 @@ module Datadog
 
         def integrations_change!: () -> (nil | untyped)
 
+        def client_configuration_change!: (untyped changes) -> (nil | untyped)
+
+        def add_count_metric: (untyped namespace, untyped name, untyped value, untyped tags) -> (nil | untyped)
+
+        def add_rate_metric: (untyped namespace, untyped name, untyped value, untyped tags) -> (nil | untyped)
+
+        def add_gauge_metric: (untyped namespace, untyped name, untyped value, untyped tags) -> (nil | untyped)
+
+        def add_distribution_metric: (untyped namespace, untyped name, untyped value, untyped tags) -> (nil | untyped)
+
         private
 
         def heartbeat!: () -> (nil | untyped)
+
+        def flush_metrics!: () -> (nil | untyped)
       end
     end
   end
