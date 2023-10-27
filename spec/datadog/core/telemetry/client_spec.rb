@@ -20,6 +20,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
+      client.metrics_worker.stop(true)
+      client.metrics_worker.join
     end
 
     context 'with default parameters' do
@@ -27,6 +29,11 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(true) }
       it { expect(client.emitter).to be(emitter) }
+
+      it 'set Metric::Rate interval value' do
+        expect(Datadog::Core::Telemetry::Metric::Rate).to receive(:'interval=').with(heartbeat_interval_seconds)
+        client
+      end
     end
 
     context 'when :enabled is false' do
@@ -34,6 +41,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(false) }
       it { expect(client.worker.enabled?).to be(false) }
+      it { expect(client.metrics_worker.enabled?).to be(false) }
     end
 
     context 'when enabled' do
@@ -42,6 +50,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(true) }
       it { expect(client.worker.enabled?).to be(true) }
+      it { expect(client.metrics_worker.enabled?).to be(true) }
     end
   end
 
@@ -49,10 +58,13 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
+      client.metrics_worker.stop(true)
+      client.metrics_worker.join
     end
 
     it { expect { client.disable! }.to change { client.enabled }.from(true).to(false) }
     it { expect { client.disable! }.to change { client.worker.enabled? }.from(true).to(false) }
+    it { expect { client.disable! }.to change { client.metrics_worker.enabled? }.from(true).to(false) }
   end
 
   describe '#started!' do
@@ -61,6 +73,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
+      client.metrics_worker.stop(true)
+      client.metrics_worker.join
     end
 
     context 'when disabled' do
@@ -127,6 +141,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
+      client.metrics_worker.stop(true)
+      client.metrics_worker.join
     end
 
     context 'when disabled' do
@@ -208,6 +224,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
+      client.metrics_worker.stop(true)
+      client.metrics_worker.join
     end
 
     context 'when disabled' do
@@ -248,6 +266,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
+      client.metrics_worker.stop(true)
+      client.metrics_worker.join
     end
 
     context 'when disabled' do
@@ -279,6 +299,76 @@ RSpec.describe Datadog::Core::Telemetry::Client do
         expect_in_fork do
           client.started!
           expect(emitter).to_not have_received(:request)
+        end
+      end
+    end
+  end
+
+  context 'metrics' do
+    [
+      [:add_count_metric, Datadog::Core::Telemetry::Metric::Count],
+      [:add_rate_metric, Datadog::Core::Telemetry::Metric::Rate],
+      [:add_gauge_metric, Datadog::Core::Telemetry::Metric::Gauge],
+      [:add_distribution_metric, Datadog::Core::Telemetry::Metric::Distribution],
+    ].each do |metric_method, metric_klass|
+      context 'when disabled' do
+        let(:enabled) { false }
+        it do
+          expect(client.send(metric_method, 'test_namespace', 'name', 1, {})).to be_nil
+        end
+      end
+
+      context 'when enabled' do
+        let(:enabled) { true }
+        it do
+          expect_any_instance_of(Datadog::Core::Telemetry::MetricQueue).to receive(:add_metric).with(
+            'test_namespace',
+            'name',
+            1,
+            {},
+            metric_klass
+          )
+          client.send(metric_method, 'test_namespace', 'name', 1, {})
+        end
+      end
+    end
+
+    describe '#flush_metrics!' do
+      after do
+        client.worker.stop(true)
+        client.worker.join
+        client.metrics_worker.stop(true)
+        client.metrics_worker.join
+      end
+
+      context 'when disabled' do
+        let(:enabled) { false }
+        it do
+          expect(client.send(:flush_metrics!)).to be_nil
+        end
+      end
+
+      context 'when enabled' do
+        let(:enabled) { true }
+        it 'send metrics to the emitter and reset the metric_queue' do
+          old_metric_queue = client.instance_variable_get(:@metric_queue)
+
+          client.add_distribution_metric('test_namespace', 'name', 1, {})
+          expected_payload = {
+            :namespace => 'test_namespace',
+            :series => [
+              {
+                :metric => 'name', :tags => [], :values => [1],
+                :type => 'distributions',
+                :common => true
+              }
+            ]
+          }
+          expect(emitter).to receive(:request).with('distributions', payload: expected_payload)
+          client.send(:flush_metrics!)
+
+          new_metric_queue = client.instance_variable_get(:@metric_queue)
+          expect(old_metric_queue).to_not eq new_metric_queue
         end
       end
     end

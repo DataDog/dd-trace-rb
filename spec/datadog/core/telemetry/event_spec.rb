@@ -14,11 +14,14 @@ RSpec.describe Datadog::Core::Telemetry::Event do
   end
 
   describe '#telemetry_request' do
-    subject(:telemetry_request) { event.telemetry_request(request_type: request_type, seq_id: seq_id, data: data) }
+    subject(:telemetry_request) do
+      event.telemetry_request(request_type: request_type, seq_id: seq_id, data: data, payload: payload)
+    end
 
     let(:request_type) { :'app-started' }
     let(:seq_id) { 1 }
     let(:data) { nil }
+    let(:payload) { nil }
 
     it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::TelemetryRequest) }
     it { expect(telemetry_request.api_version).to eql('v1') }
@@ -59,6 +62,26 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
         it 'passes data to the event object' do
           expect(telemetry_request.payload.to_h.to_json).to include('my-changes') & include('my-origin')
+        end
+      end
+
+      ['generate-metrics', 'distributions'].each do |request_type|
+        context request_type do
+          let(:request_type) { request_type }
+
+          context 'when payload is nil' do
+            let(:payload) { nil }
+
+            it 'raise ArgumentError' do
+              expect { telemetry_request }.to raise_error(ArgumentError)
+            end
+          end
+
+          context 'when payload is not nil' do
+            let(:payload) { { foo: :bar } }
+
+            it { expect(telemetry_request.payload).to eq({ foo: :bar }) }
+          end
         end
       end
 

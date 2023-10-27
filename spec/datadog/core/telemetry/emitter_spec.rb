@@ -84,8 +84,53 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
       it 'creates a telemetry event with data' do
         expect(Datadog::Core::Telemetry::Event).to receive(:new).and_return(event)
-        expect(event).to receive(:telemetry_request).with(request_type: request_type, seq_id: be_a(Integer), data: data)
+        expect(event).to receive(:telemetry_request).with(
+          request_type: request_type,
+          seq_id: be_a(Integer),
+          data: data,
+          payload: nil
+        )
         request
+      end
+    end
+
+    context 'with data and payload' do
+      subject(:request) { emitter.request(:'app-started', data: {}, payload: {}) }
+
+      it 'fails to send request' do
+        request
+        expect(Datadog.logger).to have_received(:debug) do |message|
+          expect(message).to include('Can not provide data and payload')
+        end
+      end
+    end
+
+    context 'metrics' do
+      let(:request_type) { 'generate-metrics' }
+      let(:event) { double('event') }
+      let(:payload) { {} }
+      subject(:request) { emitter.request(request_type, payload: payload) }
+
+      it 'creates a telemetry metric with payload' do
+        expect(Datadog::Core::Telemetry::Event).to receive(:new).and_return(event)
+        expect(event).to receive(:telemetry_request).with(
+          request_type: request_type,
+          seq_id: be_a(Integer),
+          data: nil,
+          payload: payload
+        )
+        request
+      end
+
+      context 'missing payload' do
+        let(:payload) { nil }
+
+        it 'fail to send metric evenet' do
+          request
+          expect(Datadog.logger).to have_received(:debug) do |message|
+            expect(message).to include('Unable to send telemetry request')
+          end
+        end
       end
     end
   end
