@@ -66,7 +66,7 @@ Gem::Specification.new do |spec|
 
   # Used by profiling (and possibly others in the future)
   # When updating the version here, please also update the version in `native_extension_helpers.rb` (and yes we have a test for it)
-  spec.add_dependency 'libdatadog', '~> 5.0.0.1.0'
+  spec.add_dependency 'libdatadog', '= 5.1.0.1.0.test1'
 
   # used for CI visibility product until the next major version
   spec.add_dependency 'datadog-ci', '~> 0.2.0'
