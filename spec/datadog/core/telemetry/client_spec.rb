@@ -27,8 +27,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
-      client.metrics_worker.stop(true)
-      client.metrics_worker.join
     end
 
     context 'with default parameters' do
@@ -45,31 +43,44 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       end
     end
 
-    context 'when :enabled is false' do
+    context 'when enabled and metric_enabled is false' do
       let(:enabled) { false }
+      let(:metrics_enabled) { false }
+
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(false) }
+      it { expect(client.metrics_enabled).to be(false) }
       it { expect(client.worker.enabled?).to be(false) }
     end
 
-    context 'when enabled' do
+    context 'when enabled and metrics enabled is true' do
       let(:enabled) { true }
+      let(:metrics_enabled) { true }
 
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(true) }
+      it { expect(client.metrics_enabled).to be(true) }
       it { expect(client.worker.enabled?).to be(true) }
     end
 
-    context 'when metrics is disabled' do
-      let(:metrics_enabled) { false }
-
-      it { expect(client.metrics_worker.enabled?).to be(false) }
-    end
-
-    context 'when metrics is enabled' do
+    context 'when enabled is false and metrics_enabled is true' do
+      let(:enabled) { false }
       let(:metrics_enabled) { true }
 
-      it { expect(client.metrics_worker.enabled?).to be(true) }
+      it { is_expected.to be_a_kind_of(described_class) }
+      it { expect(client.enabled).to be(false) }
+      it { expect(client.metrics_enabled).to be(true) }
+      it { expect(client.worker.enabled?).to be(true) }
+    end
+
+    context 'when enabled and metrcis_enabled is false' do
+      let(:enabled) { true }
+      let(:metrics_enabled) { false }
+
+      it { is_expected.to be_a_kind_of(described_class) }
+      it { expect(client.enabled).to be(true) }
+      it { expect(client.metrics_enabled).to be(false) }
+      it { expect(client.worker.enabled?).to be(true) }
     end
   end
 
@@ -77,13 +88,11 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
-      client.metrics_worker.stop(true)
-      client.metrics_worker.join
     end
 
     it { expect { client.disable! }.to change { client.enabled }.from(true).to(false) }
     it { expect { client.disable! }.to change { client.worker.enabled? }.from(true).to(false) }
-    it { expect { client.disable! }.to change { client.metrics_worker.enabled? }.from(true).to(false) }
+    it { expect { client.disable! }.to change { client.metrics_enabled }.from(true).to(false) }
   end
 
   describe '#started!' do
@@ -92,8 +101,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
-      client.metrics_worker.stop(true)
-      client.metrics_worker.join
     end
 
     context 'when disabled' do
@@ -160,8 +167,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
-      client.metrics_worker.stop(true)
-      client.metrics_worker.join
     end
 
     context 'when disabled' do
@@ -197,11 +202,14 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
   describe '#stop!' do
     subject(:stop!) { client.stop! }
-    let(:worker) { instance_double(Datadog::Core::Telemetry::Heartbeat) }
+    let(:worker) { instance_double(Datadog::Core::Telemetry::Worker) }
 
     before do
-      allow(Datadog::Core::Telemetry::Heartbeat).to receive(:new)
-        .with(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds).and_return(worker)
+      allow(Datadog::Core::Telemetry::Worker).to receive(:new)
+        .with(
+          enabled: enabled || metrics_enabled,
+          heartbeat_interval_seconds: heartbeat_interval_seconds
+        ).and_return(worker)
       allow(worker).to receive(:start)
       allow(worker).to receive(:stop)
     end
@@ -243,8 +251,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
-      client.metrics_worker.stop(true)
-      client.metrics_worker.join
     end
 
     context 'when disabled' do
@@ -285,8 +291,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     after do
       client.worker.stop(true)
       client.worker.join
-      client.metrics_worker.stop(true)
-      client.metrics_worker.join
     end
 
     context 'when disabled' do
@@ -356,8 +360,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       after do
         client.worker.stop(true)
         client.worker.join
-        client.metrics_worker.stop(true)
-        client.metrics_worker.join
       end
 
       context 'when disabled' do

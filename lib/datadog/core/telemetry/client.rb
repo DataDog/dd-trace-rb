@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
 require_relative 'emitter'
-require_relative 'heartbeat'
+require_relative 'worker'
 require_relative '../utils/forking'
 require_relative 'metric'
 require_relative 'metric_queue'
-require_relative 'metric_worker'
 
 module Datadog
   module Core
@@ -30,27 +29,23 @@ module Datadog
           @emitter = Emitter.new
           @stopped = false
           @unsupported = false
-          @worker = Telemetry::Heartbeat.new(enabled: @enabled, heartbeat_interval_seconds: heartbeat_interval_seconds) do
+          @worker = Telemetry::Worker.new(
+            enabled: @enabled || @metrics_enabled,
+            heartbeat_interval_seconds: heartbeat_interval_seconds
+          ) do
             heartbeat!
+            flush_metrics!
           end
 
           Metric::Rate.interval = heartbeat_interval_seconds
 
           @metric_queue = MetricQueue.new
-
-          @metrics_worker = Telemetry::MetricWorker.new(
-            enabled: @metrics_enabled,
-            heartbeat_interval_seconds: heartbeat_interval_seconds
-          ) do
-            flush_metrics!
-          end
         end
 
         def disable!
           @enabled = false
           @metrics_enabled = false
           @worker.enabled = false
-          @metrics_worker.enabled = false
         end
 
         def started!
@@ -77,7 +72,6 @@ module Datadog
           return if @stopped
 
           @worker.stop(true, 0)
-          @metrics_worker.stop(true, 0)
           @stopped = true
         end
 
