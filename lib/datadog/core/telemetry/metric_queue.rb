@@ -5,9 +5,8 @@ module Datadog
     module Telemetry
       # Stores all the metrics information by request_type during a time interval
       class MetricQueue
-        attr_reader :metrics
-
         def initialize
+          @mutex = Mutex.new
           @metrics = {
             'generate-metrics' => {},
             'distributions' => {},
@@ -15,16 +14,18 @@ module Datadog
         end
 
         def add_metric(namespace, name, value, tags, metric_klass)
-          namespace_space = @metrics[metric_klass.request_type][namespace] ||= {}
-          existing_metric = namespace_space[name]
+          @mutex.synchronize do
+            namespace_space = @metrics[metric_klass.request_type][namespace] ||= {}
+            existing_metric = namespace_space[name]
 
-          if existing_metric
-            existing_metric.update_value(value)
-            @metrics[metric_klass.request_type][namespace][name] = existing_metric
-          else
-            new_metric = metric_klass.new(name, tags)
-            new_metric.update_value(value)
-            @metrics[metric_klass.request_type][namespace][name] = new_metric
+            if existing_metric
+              existing_metric.update_value(value)
+              @metrics[metric_klass.request_type][namespace][name] = existing_metric
+            else
+              new_metric = metric_klass.new(name, tags)
+              new_metric.update_value(value)
+              @metrics[metric_klass.request_type][namespace][name] = new_metric
+            end
           end
         end
 
@@ -50,6 +51,13 @@ module Datadog
             end
           end
         end
+
+        private
+
+        # This accessor is here so we can access on the test.
+        # The metrics hash is private and should not be access outisde
+        # of the methods #add_metric and #build_metrics_payload
+        attr_reader :metrics
       end
     end
   end

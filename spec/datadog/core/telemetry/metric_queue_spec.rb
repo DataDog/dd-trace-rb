@@ -16,7 +16,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricQueue do
   describe '#add_metric' do
     context 'no previous metric' do
       it 'creates a new metric entry point and stores it' do
-        expect(metric_queue.metrics).to eq(empty_metrics_queue)
+        expect(metric_queue.send(:metrics)).to eq(empty_metrics_queue)
         expect(metric_klass).to receive(:new).with('test_metric_name', { foo: :bar }).and_call_original
         expect_any_instance_of(metric_klass).to receive(:update_value).with(1).and_call_original
         metric_queue.add_metric(
@@ -27,10 +27,10 @@ RSpec.describe Datadog::Core::Telemetry::MetricQueue do
           metric_klass
         )
 
-        expect(metric_queue.metrics[metric_klass.request_type]['test_namespace']).to_not be_nil
-        expect(metric_queue.metrics[metric_klass.request_type]['test_namespace']['test_metric_name']).to_not be_nil
+        expect(metric_queue.send(:metrics)[metric_klass.request_type]['test_namespace']).to_not be_nil
+        expect(metric_queue.send(:metrics)[metric_klass.request_type]['test_namespace']['test_metric_name']).to_not be_nil
 
-        metric_instace = metric_queue.metrics[metric_klass.request_type]['test_namespace']['test_metric_name']
+        metric_instace = metric_queue.send(:metrics)[metric_klass.request_type]['test_namespace']['test_metric_name']
         expect(metric_instace).to be_a(metric_klass)
       end
     end
@@ -56,7 +56,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricQueue do
           metric_klass
         )
 
-        metric_instace = metric_queue.metrics[metric_klass.request_type]['test_namespace']['test_metric_name']
+        metric_instace = metric_queue.send(:metrics)[metric_klass.request_type]['test_namespace']['test_metric_name']
         expect(metric_instace).to be_a(metric_klass)
       end
     end

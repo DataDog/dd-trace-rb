@@ -123,12 +123,16 @@ module Datadog
         def flush_metrics!
           return if !@metrics_enabled || forked?
 
+          # We store the current metric_queue in a local variable and assign a new metric queue
+          # so a paralallel thread can add metrics while we are still reporting the ones from
+          # local_metric_queue
+          local_metric_queue = @metric_queue
+          @metric_queue = MetricQueue.new
+
           # Send metrics
-          @metric_queue.build_metrics_payload do |metric_type, payload|
+          local_metric_queue.build_metrics_payload do |metric_type, payload|
             @emitter.request(metric_type, payload: payload)
           end
-
-          @metric_queue = MetricQueue.new
         end
       end
     end
