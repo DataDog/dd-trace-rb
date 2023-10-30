@@ -8,12 +8,13 @@ require 'rack'
 RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
   let(:body) { ['Ok'] }
   let(:content_type) { 'text/html' }
+  let(:headers) { { 'Content-Type' => content_type } }
 
   let(:response) do
     described_class.new(
       body,
       200,
-      { 'Content-Type' => content_type },
+      headers,
       scope: instance_double(Datadog::AppSec::Scope)
     )
   end
@@ -87,6 +88,14 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
 
       context 'non supported response type' do
         let(:content_type) { 'text/xml' }
+
+        it 'returns nil' do
+          expect(response.parsed_body).to be_nil
+        end
+      end
+
+      context 'without content-type header' do
+        let(:headers) { {} }
 
         it 'returns nil' do
           expect(response.parsed_body).to be_nil
