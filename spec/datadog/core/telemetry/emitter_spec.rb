@@ -100,7 +100,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
       it 'fails to send request' do
         request
         expect(Datadog.logger).to have_received(:debug) do |message|
-          expect(message).to include('Can not provide data and payload')
+          expect(message).to include('Cannot provide data and payload')
         end
       end
     end

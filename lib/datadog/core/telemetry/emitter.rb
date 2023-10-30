@@ -24,7 +24,7 @@ module Datadog
         # @param data [Object] arbitrary object to be passed to the respective `request_type` handler
         def request(request_type, data: nil, payload: nil)
           if payload && data
-            Datadog.logger.debug('Can not provide data and payload when generating temetry request')
+            Datadog.logger.debug('Cannot provide data and payload when generating telemetry request')
             return
           end
 
