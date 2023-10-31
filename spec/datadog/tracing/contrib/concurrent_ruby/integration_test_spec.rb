@@ -43,9 +43,13 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       # global threads that are never closed.
       #
       # This allows us to separate internal concurrent-ruby threads
-      # from ddtrace threads for leak detection.
+      # from ddtrace threads for leak detection. We need to create the maximum
+      # number of threads that will be created concurrently in a test, which in
+      # this case is 2.
       ThreadHelpers.with_leaky_thread_creation(:concurrent_ruby) do
-        Concurrent::Promises.future {}.value
+        Concurrent::Promises.future do
+          Concurrent::Promises.future {}.value
+        end.value
       end
     end
 
@@ -93,6 +97,43 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       it 'inner span parent should be included in outer span' do
         deferred_execution
         expect(inner_span.parent_id).to eq(outer_span.span_id)
+      end
+
+      context 'when there are multiple futures with inner spans that have the same parent' do
+        let(:second_inner_span) { spans.find { |s| s.name == 'second_inner_span' } }
+
+        subject(:multiple_deferred_executions) do
+          # use a barrier to ensure both threads are created before continuing
+          barrier = Concurrent::CyclicBarrier.new(2)
+
+          outer_span = tracer.trace('outer_span')
+          future_1 = Concurrent::Promises.future do
+            barrier.wait
+            tracer.trace('inner_span') do
+              barrier.wait
+            end
+          end
+
+          future_2 = Concurrent::Promises.future do
+            barrier.wait
+            tracer.trace('second_inner_span') do
+              barrier.wait
+            end
+          end
+
+          future_1.wait
+          future_2.wait
+          outer_span.finish
+        end
+
+        describe 'it correctly associates to the parent span' do
+          it 'both inner span parents should be included in same outer span' do
+            multiple_deferred_executions
+
+            expect(inner_span.parent_id).to eq(outer_span.span_id)
+            expect(second_inner_span.parent_id).to eq(outer_span.span_id)
+          end
+        end
       end
     end
   end
