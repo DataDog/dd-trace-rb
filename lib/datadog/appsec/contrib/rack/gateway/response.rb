@@ -66,7 +66,7 @@ module Datadog
 
             def json_content_type?
               content_type = headers['content-type']
-              VALID_JSON_TYPES.any? { |valid_type| content_type.include?(valid_type) }
+              VALID_JSON_TYPES.include?(content_type)
             end
           end
         end

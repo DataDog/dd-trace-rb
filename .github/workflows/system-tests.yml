@@ -171,6 +171,9 @@ jobs:
             app: rails70
             scenario: APPSEC_AUTO_EVENTS_EXTENDED
           - library: ruby
+            app: rails70
+            scenario: APPSEC_API_SECURITY
+          - library: ruby
             app: rack
             scenario: APPSEC_RULES_MONITORING_WITH_ERRORS
           - library: ruby
