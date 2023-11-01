@@ -1641,7 +1641,7 @@ redis.set 'foo', 'bar'
 |----------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `service_name` | `DD_TRACE_REDIS_SERVICE_NAME` | Name of application running the `redis` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `redis` |
 | `peer_service` | `DD_TRACE_REDIS_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
-| `command_args` | `DD_REDIS_COMMAND_ARGS`       | Show the command arguments (e.g. `key` in `GET key`) as resource name and tag                                                                                                             | true    |
+| `command_args` | `DD_REDIS_COMMAND_ARGS`       | Show the command arguments (for example, `key` in `GET key`) as resource name and tag. If `false`, only the command name is shown (for example, `GET`). | false |
 
 
 **Configuring trace settings per instance**

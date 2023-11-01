@@ -12,7 +12,7 @@ module Datadog
         # Tags handles generic common tags assignment.
         module Tags
           class << self
-            def set_common_tags(client, span, show_command_args)
+            def set_common_tags(client, span, raw_command)
               if datadog_configuration[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
@@ -42,7 +42,7 @@ module Datadog
 
               span.set_tag Ext::TAG_DATABASE_INDEX, client.db.to_s
               span.set_tag Ext::TAG_DB, client.db
-              span.set_tag Ext::TAG_RAW_COMMAND, span.resource if show_command_args
+              span.set_tag Ext::TAG_RAW_COMMAND, raw_command
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             end
