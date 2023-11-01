@@ -2,10 +2,10 @@
 
 module DDTrace
   module VERSION
-    MAJOR = 2
-    MINOR = 0
+    MAJOR = 1
+    MINOR = 15
     PATCH = 0
-    PRE = 'alpha1'
+    PRE = nil
     BUILD = nil
     # PRE and BUILD above are modified for dev gems during gem build GHA workflow
 
