@@ -1,0 +1,22 @@
+name: Documentation Lint
+on:
+  pull_request:
+#    paths:
+#      - 'docs/**/*.md'
+
+jobs:
+  prose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Run Vale
+        uses: errata-ai/vale-action@c99f2dfd2aeaedb3d4bb16f385841830b9164d31 # Matches https://github.com/DataDog/documentation/blob/master/.github/workflows/linting.yml version
+        with:
+          reporter: github-pr-check
+          fail_on_error: true
+          filter_mode: added
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
