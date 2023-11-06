@@ -113,5 +113,5 @@ begin
     end
   end
 rescue Exception => e
-  warn "[ddtrace] #{failure_prefix} #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
+  warn "[ddtrace] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
 end
