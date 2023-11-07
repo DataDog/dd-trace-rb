@@ -199,6 +199,8 @@ void commit_allocation(heap_recorder *heap_recorder, heap_stack *heap_stack, VAL
     return;
   }
 
+  fprintf(stderr, "Committed allocation of %lu (heap_record=%p, object_record=%p)\n", obj, heap_record, object_record);
+
   heap_record->num_tracked_objects++;
   heap_record->inuse_objects += weight;
 }
@@ -216,6 +218,8 @@ void commit_free(heap_recorder *heap_recorder, VALUE obj) {
   heap_record->num_tracked_objects--;
   heap_record->inuse_objects -= object_record->weight;
 
+  fprintf(stderr, "Committed free of %lu (heap_record=%p, object_record=%p)\n", obj, heap_record, object_record);
+
   object_record_free(object_record);
 }
 
@@ -223,6 +227,8 @@ static void flush_queue(heap_recorder *heap_recorder) {
   for (size_t i = 0; i < heap_recorder->queued_samples_len; i++) {
     sample *queued_sample = &heap_recorder->queued_samples[i];
     if (!queued_sample->skip) {
+      fprintf(stderr, "Flushing sample %p\n", queued_sample);
+
       if (queued_sample->free) {
         commit_free(heap_recorder, queued_sample->obj);
       } else {
@@ -236,7 +242,9 @@ static void flush_queue(heap_recorder *heap_recorder) {
 }
 
 static void enqueue_sample(heap_recorder *heap_recorder, sample new_sample) {
+  fprintf(stderr, "Enqueuing sample for %lu (weight=%u free=%i)\n", new_sample.obj, new_sample.weight, new_sample.free);
   if (heap_recorder->queued_samples_len >= MAX_QUEUE_LIMIT) {
+    fprintf(stderr, "Dropping sample on the floor.\n");
     return;
   }
 
@@ -265,6 +273,7 @@ static void enqueue_free(heap_recorder *heap_recorder, VALUE obj) {
 }
 
 void start_heap_allocation_recording(heap_recorder* heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *class_name) {
+  fprintf(stderr, "Started recording allocation of %lu with weight %u\n", new_obj, weight);
   partial_heap_recording *active_recording = &heap_recorder->active_recording;
   active_recording->obj = new_obj;
   active_recording->weight = weight;
@@ -435,6 +444,19 @@ void heap_stack_free(heap_stack *stack) {
   }
   ruby_xfree(stack->frames);
   ruby_xfree(stack);
+}
+
+void heap_stack_debug(const heap_stack *stack) {
+  fprintf(stderr, "stack {\n");
+  for (uint64_t i = 0; i < stack->frames_len; i++) {
+    heap_frame *frame = &stack->frames[i];
+    fprintf(stderr, "  frame {\n");
+    fprintf(stderr, "    name: '%s'\n", frame->name);
+    fprintf(stderr, "    filename: '%s'\n", frame->filename);
+    fprintf(stderr, "    line: %lli\n", frame->line);
+    fprintf(stderr, "  }\n");
+  }
+  fprintf(stderr, "}\n");
 }
 
 int heap_stack_cmp(heap_stack *st1, heap_stack *st2) {
