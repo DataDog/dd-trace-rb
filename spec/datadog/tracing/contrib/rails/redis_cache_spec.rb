@@ -83,7 +83,7 @@ MESSAGE
 
       expect(redis.name).to eq('redis.command')
       expect(redis.span_type).to eq('redis')
-      expect(redis.resource).to eq('GET custom-key')
+      expect(redis.resource).to eq('GET')
       expect(redis.get_tag('redis.raw_command')).to eq('GET custom-key')
       expect(redis.service).to eq('redis')
       # the following ensures span will be correctly displayed (parent/child of the same trace)
@@ -167,7 +167,7 @@ MESSAGE
 
       expect(redis.name).to eq('redis.command')
       expect(redis.span_type).to eq('redis')
-      expect(redis.resource).to match(/SET custom-key .*ActiveSupport.*/)
+      expect(redis.resource).to eq('SET')
       expect(redis.get_tag('redis.raw_command')).to match(/SET custom-key .*ActiveSupport.*/)
       expect(redis.service).to eq('redis')
       # the following ensures span will be correctly displayed (parent/child of the same trace)
@@ -196,7 +196,7 @@ MESSAGE
 
       expect(del.name).to eq('redis.command')
       expect(del.span_type).to eq('redis')
-      expect(del.resource).to eq('DEL custom-key')
+      expect(del.resource).to eq('DEL')
       expect(del.get_tag('redis.raw_command')).to eq('DEL custom-key')
       expect(del.service).to eq('redis')
       # the following ensures span will be correctly displayed (parent/child of the same trace)

@@ -10,7 +10,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
       Rack::MockRequest.env_for(
         'http://example.com:8080/?a=foo&a=bar&b=baz',
         {
-          'REQUEST_METHOD' => 'GET', 'REMOTE_ADDR' => '10.10.10.10', 'HTTP_CONTENT_TYPE' => 'text/html',
+          'REQUEST_METHOD' => 'GET', 'REMOTE_ADDR' => '10.10.10.10', 'CONTENT_TYPE' => 'text/html',
           'HTTP_COOKIE' => 'foo=bar', 'HTTP_USER_AGENT' => 'WebKit'
         }
       )
@@ -24,8 +24,13 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
   end
 
   describe '#headers' do
-    it 'returns the header information and strip the HTTP_ prefix' do
-      expected_headers = { 'content-type' => 'text/html', 'cookie' => 'foo=bar', 'user-agent' => 'WebKit' }
+    it 'returns the header information. Strip the HTTP_ prefix and append content-type and content-length information' do
+      expected_headers = {
+        'content-type' => 'text/html',
+        'cookie' => 'foo=bar',
+        'user-agent' => 'WebKit',
+        'content-length' => '0'
+      }
       expect(request.headers).to eq(expected_headers)
     end
   end

@@ -11,8 +11,8 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.15.0)
-      datadog-ci (~> 0.2.0)
+    ddtrace (2.0.0.alpha1)
+      datadog-ci (~> 0.3.0)
       debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 5.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -48,14 +48,15 @@ GEM
       rexml
     cri (2.15.11)
     dalli (3.2.4)
-    datadog-ci (0.2.0)
+    datadog-ci (0.3.0)
+      msgpack
     debase-ruby_core_source (3.2.2)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.5.0)
     extlz4 (0.3.3)
-    ffi (1.15.5)
+    ffi (1.16.3)
     google-protobuf (3.22.0)
     google-protobuf (3.22.0-x86_64-linux)
     googleapis-common-protos-types (1.5.0)
@@ -82,7 +83,7 @@ GEM
     mongo (2.14.1)
       bson (>= 4.8.2, < 5.0.0)
     mono_logger (1.1.1)
-    msgpack (1.6.1)
+    msgpack (1.7.2)
     multi_json (1.15.0)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)

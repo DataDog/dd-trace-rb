@@ -18,6 +18,12 @@ module Datadog
       def start: () -> void
 
       def shutdown!: () -> void
+
+      private
+
+      def stop_worker: () -> void
+      def stop_scheduler: () -> void
+      def component_failed: (:worker | :scheduler failed_component) -> void
     end
   end
 end

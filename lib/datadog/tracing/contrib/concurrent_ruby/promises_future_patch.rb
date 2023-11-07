@@ -7,11 +7,13 @@ module Datadog
     module Contrib
       module ConcurrentRuby
         # This patches the Future - to wrap executor service using ContextCompositeExecutorService
-        module FuturePatch
-          def ns_initialize(value, opts)
-            super(value, opts)
+        module PromisesFuturePatch
+          def future_on(default_executor, *args, &task)
+            unless default_executor.is_a?(ContextCompositeExecutorService)
+              default_executor = ContextCompositeExecutorService.new(default_executor)
+            end
 
-            @executor = ContextCompositeExecutorService.new(@executor)
+            super(default_executor, *args, &task)
           end
         end
       end
