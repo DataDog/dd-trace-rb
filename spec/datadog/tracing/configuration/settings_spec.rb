@@ -239,6 +239,43 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           end
         end
       end
+
+      describe '#propagation_extract_first' do
+        subject(:propagation_extract_first) { settings.tracing.distributed_tracing.propagation_extract_first }
+
+        let(:var_value) { nil }
+        let(:var_name) { 'DD_TRACE_PROPAGATION_EXTRACT_FIRST' }
+        it { is_expected.to be false }
+
+        context 'when DD_TRACE_PROPAGATION_EXTRACT_FIRST' do
+          context 'is not defined' do
+            let(:var_value) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          context 'is set to true' do
+            let(:var_value) { 'true' }
+
+            it { is_expected.to be true }
+          end
+
+          context 'is set to false' do
+            let(:var_value) { 'false' }
+
+            it { is_expected.to be false }
+          end
+        end
+
+        describe '#propagation_extract_first=' do
+          it 'updates the #propagation_extract_first setting' do
+            expect { settings.tracing.distributed_tracing.propagation_extract_first = true }
+              .to change { settings.tracing.distributed_tracing.propagation_extract_first }
+              .from(false)
+              .to(true)
+          end
+        end
+      end
     end
 
     describe '#enabled' do

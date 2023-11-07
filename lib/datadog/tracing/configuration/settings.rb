@@ -144,6 +144,17 @@ module Datadog
                     set_option(:propagation_inject_style, styles)
                   end
                 end
+
+                # Strictly stop at the first successfully serialized style.
+                # This prevents the tracer from enriching the extracted context with information from
+                # other valid propagations styles present in the request.
+                # @default `DD_TRACE_PROPAGATION_EXTRACT_FIRST` environment variable, otherwise `false`.
+                # @return [Boolean]
+                option :propagation_extract_first do |o|
+                  o.env Tracing::Configuration::Ext::Distributed::EXTRACT_FIRST
+                  o.default false
+                  o.type :bool
+                end
               end
 
               # Enable trace collection and span generation.
