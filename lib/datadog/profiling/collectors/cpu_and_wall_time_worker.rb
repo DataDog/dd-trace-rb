@@ -16,6 +16,7 @@ module Datadog
         def initialize(
           gc_profiling_enabled:,
           allocation_counting_enabled:,
+          heap_counting_enabled:,
           no_signals_workaround_enabled:,
           thread_context_collector:,
           idle_sampling_helper: IdleSamplingHelper.new,
@@ -35,6 +36,13 @@ module Datadog
               "Enabled experimental allocation profiling: allocation_sample_every=#{allocation_sample_every}. This is " \
               'experimental, not recommended, and will increase overhead!'
             )
+
+            if heap_counting_enabled
+              Datadog.logger.warn(
+                "Enabled experimental heap profiling: allocation_sample_every=#{allocation_sample_every}. This is " \
+                'experimental, not recommended, and will increase overhead!'
+              )
+            end
           end
 
           self.class._native_initialize(
@@ -43,6 +51,7 @@ module Datadog
             gc_profiling_enabled,
             idle_sampling_helper,
             allocation_counting_enabled,
+            heap_counting_enabled,
             no_signals_workaround_enabled,
             dynamic_sampling_rate_enabled,
             allocation_sample_every,

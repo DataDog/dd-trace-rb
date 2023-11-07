@@ -334,12 +334,23 @@ module Datadog
             #
             # @default `true` on Ruby 2.x and 3.1.4+, 3.2.3+ and 3.3.0+; `false` for Ruby 3.0 and unpatched Rubies.
             option :allocation_counting_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED'
               o.default do
                 RUBY_VERSION.start_with?('2.') ||
                   (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION >= '3.1.4') ||
                   (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION >= '3.2.3') ||
                   RUBY_VERSION >= '3.3.'
               end
+            end
+
+            # Can be used to enable/disable the Datadog::Profiling.heap_count feature.
+            #
+            # This feature is alpha and disabled by default
+            option :heap_counting_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED'
+              o.default false
             end
 
             # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.

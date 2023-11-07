@@ -1203,6 +1203,8 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     }
   }
 
+  record_obj_allocation(state->recorder_instance, new_object, sample_weight, optional_class_name);
+
   trigger_sample_for_thread(
     state,
     /* thread: */  current_thread,
@@ -1214,6 +1216,13 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     &ruby_vm_type,
     optional_class_name
   );
+}
+
+void thread_context_collector_sample_free(VALUE self_instance, VALUE freed_object) {
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  record_obj_free(state->recorder_instance, freed_object);
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.

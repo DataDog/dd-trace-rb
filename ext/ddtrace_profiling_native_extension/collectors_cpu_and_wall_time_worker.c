@@ -81,6 +81,7 @@ struct cpu_and_wall_time_worker_state {
 
   bool gc_profiling_enabled;
   bool allocation_counting_enabled;
+  bool heap_counting_enabled;
   bool no_signals_workaround_enabled;
   bool dynamic_sampling_rate_enabled;
   int allocation_sample_every; // Temporarily used for development/testing of allocation profiling
@@ -91,6 +92,7 @@ struct cpu_and_wall_time_worker_state {
   dynamic_sampling_rate_state dynamic_sampling_rate;
   VALUE gc_tracepoint; // Used to get gc start/finish information
   VALUE object_allocation_tracepoint; // Used to get allocation counts and allocation profiling
+  VALUE object_free_tracepoint; // Used to figure out live objects for heap profiling
 
   // These are mutable and used to signal things between the worker thread and other threads
 
@@ -150,6 +152,7 @@ static VALUE _native_initialize(
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
   VALUE allocation_counting_enabled,
+  VALUE heap_counting_enabled,
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE allocation_sample_every
@@ -186,9 +189,11 @@ static void reset_stats(struct cpu_and_wall_time_worker_state *state);
 static void sleep_for(uint64_t time_ns);
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
+static void on_freeobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
+static VALUE rescued_sample_free(VALUE tracepoint_data);
 
 // Note on sampler global state safety:
 //
@@ -226,7 +231,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 8);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 9);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -265,6 +270,7 @@ static VALUE _native_new(VALUE klass) {
 
   state->gc_profiling_enabled = false;
   state->allocation_counting_enabled = false;
+  state->heap_counting_enabled = false;
   state->no_signals_workaround_enabled = false;
   state->dynamic_sampling_rate_enabled = true;
   state->allocation_sample_every = 0;
@@ -274,6 +280,7 @@ static VALUE _native_new(VALUE klass) {
   dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
+  state->object_free_tracepoint = Qnil;
 
   atomic_init(&state->should_run, false);
   state->failure_exception = Qnil;
@@ -293,12 +300,14 @@ static VALUE _native_initialize(
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
   VALUE allocation_counting_enabled,
+  VALUE heap_counting_enabled,
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE allocation_sample_every
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
   ENFORCE_BOOLEAN(allocation_counting_enabled);
+  ENFORCE_BOOLEAN(heap_counting_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
   ENFORCE_TYPE(allocation_sample_every, T_FIXNUM);
@@ -308,6 +317,7 @@ static VALUE _native_initialize(
 
   state->gc_profiling_enabled = (gc_profiling_enabled == Qtrue);
   state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
+  state->heap_counting_enabled = state->allocation_counting_enabled && (heap_counting_enabled == Qtrue);
   state->no_signals_workaround_enabled = (no_signals_workaround_enabled == Qtrue);
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
   state->allocation_sample_every = NUM2INT(allocation_sample_every);
@@ -320,6 +330,7 @@ static VALUE _native_initialize(
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
   state->object_allocation_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_NEWOBJ, on_newobj_event, NULL /* unused */);
+  state->object_free_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_FREEOBJ, on_freeobj_event, NULL /* unused */);
 
   return Qtrue;
 }
@@ -335,6 +346,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->stop_thread);
   rb_gc_mark(state->gc_tracepoint);
   rb_gc_mark(state->object_allocation_tracepoint);
+  rb_gc_mark(state->object_free_tracepoint);
 }
 
 // Called in a background thread created in CpuAndWallTimeWorker#start
@@ -633,6 +645,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
   if (state->allocation_counting_enabled) rb_tracepoint_enable(state->object_allocation_tracepoint);
+  if (state->heap_counting_enabled) rb_tracepoint_enable(state->object_free_tracepoint);
 
   rb_thread_call_without_gvl(run_sampling_trigger_loop, state, interrupt_sampling_trigger_loop, state);
 
@@ -932,9 +945,28 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   state->during_sample = false;
 }
 
+static void on_freeobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+  // This should not happen in a normal situation because the tracepoint is always enabled after the instance is set
+  // and disabled before it is cleared, but just in case...
+  if (state == NULL) return;
+
+  // @ivoanjo: Strictly speaking, this is not needed because Ruby should not call the same tracepoint while a previous
+  // invocation is still pending, (e.g. it wouldn't call `on_newobj_event` while it's already running), but I decided
+  // to keep this here for consistency -- every call to the thread context (other than the special gc calls which are
+  // defined as not being able to allocate) sets this.
+  state->during_sample = true;
+
+  safely_call(rescued_sample_free, tracepoint_data, state->self_instance);
+
+  state->during_sample = false;
+}
+
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
   rb_tracepoint_disable(state->gc_tracepoint);
   rb_tracepoint_disable(state->object_allocation_tracepoint);
+  rb_tracepoint_disable(state->object_free_tracepoint);
 }
 
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
@@ -960,6 +992,21 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
   VALUE new_object = rb_tracearg_object(data);
 
   thread_context_collector_sample_allocation(state->thread_context_collector_instance, state->allocation_sample_every, new_object);
+
+  // Return a dummy VALUE because we're called from rb_rescue2 which requires it
+  return Qnil;
+}
+
+static VALUE rescued_sample_free(VALUE tracepoint_data) {
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+  // This should not happen in a normal situation because on_newobj_event already checked for this, but just in case...
+  if (state == NULL) return Qnil;
+
+  rb_trace_arg_t *data = rb_tracearg_from_tracepoint(tracepoint_data);
+  VALUE freed_object = rb_tracearg_object(data);
+
+  thread_context_collector_sample_free(state->thread_context_collector_instance, freed_object);
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;
