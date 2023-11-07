@@ -28,7 +28,6 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
             request_exception: action_dispatch_exception
           },
           tracing_context: {},
-          exception_controller?: false,
         }
       end
 
