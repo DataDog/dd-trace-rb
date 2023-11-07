@@ -6,7 +6,7 @@ RSpec.describe 'gem release process' do
       # It's easy to forget to ship new files, especially when a new paradigm is
       # introduced (e.g. introducing native files requires the inclusion `ext/`)
       it 'includes all important files' do
-        single_files_excluded = /
+        single_files_excluded = %r{
           ^
           (
             \.dockerignore
@@ -23,6 +23,8 @@ RSpec.describe 'gem release process' do
            |\.semgrepignore
            |\.simplecov
            |\.yardopts
+           |ext/\.gitignore
+           |ext/.*/.clang-format
            |Appraisals
            |CONTRIBUTING.md
            |Gemfile
@@ -34,7 +36,7 @@ RSpec.describe 'gem release process' do
            |shell\.nix
           )
           $
-        /x
+        }x
 
         directories_excluded = %r{
           ^(

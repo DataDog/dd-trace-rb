@@ -602,12 +602,60 @@ namespace :changelog do
   end
 end
 
-Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+native_exts = []
+
+native_exts << Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
   ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
 end
 
-Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+native_exts << Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
   ext.ext_dir = 'ext/ddtrace_profiling_loader'
+end
+
+NATIVE_CLEAN = ::Rake::FileList['ext/**/*.o', 'ext/**/*.bundle']
+namespace :native_dev do
+  def generate_ext_makefile(ext)
+    cmd = ext.make_makefile_cmd(Dir.pwd, ext.ext_dir, "#{ext.ext_dir}/#{ext.config_script}", nil)
+    puts cmd
+    chdir ext.ext_dir do
+      sh(*cmd)
+    end
+  end
+
+  def generate_ext_compile_commands(ext)
+    chdir ext.ext_dir do
+      sh('make clean; bear -- make; make clean')
+    end
+  end
+
+  compile_commands_tasks = native_exts.map do |ext|
+    makefile_task = file "#{ext.ext_dir}/Makefile" do
+      generate_ext_makefile(ext)
+    end
+
+    NATIVE_CLEAN << makefile_task.name
+    NATIVE_CLEAN << "#{ext.ext_dir}/extconf.h"
+    NATIVE_CLEAN << "#{ext.ext_dir}/mkmf.log"
+
+    compile_commands_task = file "#{ext.ext_dir}/compile_commands.json" => makefile_task do
+      generate_ext_compile_commands(ext)
+    end
+
+    NATIVE_CLEAN << compile_commands_task.name
+    compile_commands_task
+  end
+
+  desc 'Setup dev environment for native extensions.'
+  task setup: compile_commands_tasks do
+    puts 'Setting up native dev env'
+  end
+
+  desc 'Remove files generated for dev setup.'
+  task :clean do
+    Rake::Cleaner.cleanup_files(NATIVE_CLEAN)
+  end
+
+  CLEAN.concat(NATIVE_CLEAN)
 end
 
 desc 'Runs rubocop + main test suite'
