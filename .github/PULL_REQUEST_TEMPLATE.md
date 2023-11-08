@@ -8,7 +8,7 @@ run the test suite, write new integrations, and more.
 **2.0 Upgrade Guide notes**
 <!--
 (If this PR is for 1.x, please delete this section)
-A description that will into the https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md for this change.
+A public facing description that will go into the [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md) for this change.
 We already know what the PR does (from the PR title),
 but users should know either:
 * A migration path for this change. In other words, how to they continue using their application without behavior changes
