@@ -11,7 +11,7 @@ run the test suite, write new integrations, and more.
 A public facing description that will go into the [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md) for this change.
 We already know what the PR does (from the PR title),
 but users should know either:
-* A migration path for this change. In other words, how to they continue using their application without behavior changes
+* A migration path for this change. In other words, how to continue using their application without behavior changes
 in 2.0 (e.g. environment variable 'X' renamed to 'Y').
 * That there's no alternative; we completely dropped support for this feature.
 -->
