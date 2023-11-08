@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.16.1] - 2023-11-08
+
+### Fixed
+
+* Tracing: Fix `concurrent-ruby` future propagation without `active_trace` ([#3242][])
+* Tracing: Fix host injection error handling  ([#3240][])
+
 ## [1.16.0] - 2023-11-03
 
 **This release includes a security change for the Tracing Redis integration:**
@@ -2620,7 +2627,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.16.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.16.1...master
+[1.16.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.16.0...v1.16.1
 [1.16.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.14.0...v1.15.0
 [1.14.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.13.1...1.14.0
@@ -3831,6 +3839,8 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3223]: https://github.com/DataDog/dd-trace-rb/issues/3223
 [#3234]: https://github.com/DataDog/dd-trace-rb/issues/3234
 [#3235]: https://github.com/DataDog/dd-trace-rb/issues/3235
+[#3240]: https://github.com/DataDog/dd-trace-rb/issues/3240
+[#3242]: https://github.com/DataDog/dd-trace-rb/issues/3242
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
