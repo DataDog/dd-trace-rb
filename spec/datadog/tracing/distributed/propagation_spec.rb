@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/distributed/propagation'
 
-RSpec.describe Datadog::Tracing::Distributed::Propagation do
+RSpec.shared_examples 'Distributed tracing propagator' do
   subject(:propagator) { described_class.new(propagation_styles: propagation_styles) }
 
   let(:propagation_styles) do
@@ -387,4 +387,8 @@ RSpec.describe Datadog::Tracing::Distributed::Propagation do
       end
     end
   end
+end
+
+RSpec.describe Datadog::Tracing::Distributed::Propagation do
+  it_behaves_like 'Distributed tracing propagator'
 end
