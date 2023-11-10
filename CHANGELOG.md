@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.16.2] - 2023-11-10
+
+This release reverts a change to appsec response body parsing that was introduced in [1.16.0 ](https://github.com/DataDog/dd-trace-rb/releases/tag/v1.16.0) that may cause memory leaks.
+
+### Fixed
+*  Appsec: [Revert parse response body fix introduced in 1.16.0](https://github.com/DataDog/dd-trace-rb/pull/3153) ([#3252][])
+
 ## [1.16.1] - 2023-11-08
 
 ### Fixed
@@ -2627,7 +2634,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.16.1...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.16.2...master
+[1.16.2]: https://github.com/DataDog/dd-trace-rb/compare/v1.16.1...v1.16.2
 [1.16.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.16.0...v1.16.1
 [1.16.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.14.0...v1.15.0
@@ -3841,6 +3849,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3235]: https://github.com/DataDog/dd-trace-rb/issues/3235
 [#3240]: https://github.com/DataDog/dd-trace-rb/issues/3240
 [#3242]: https://github.com/DataDog/dd-trace-rb/issues/3242
+[#3252]: https://github.com/DataDog/dd-trace-rb/issues/3252
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
