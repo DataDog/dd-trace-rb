@@ -149,26 +149,27 @@ module Datadog
         # DEV: Because we want to sometimes freeze the values provided to `TraceDigest`, it's best
         # DEV: to let `#initialize` decide how to handle each field, instead of duplicating that logic here.
         TraceDigest.new(
-          span_id: span_id,
-          span_name: span_name,
-          span_resource: span_resource,
-          span_service: span_service,
-          span_type: span_type,
-          trace_distributed_tags: trace_distributed_tags,
-          trace_hostname: trace_hostname,
-          trace_id: trace_id,
-          trace_name: trace_name,
-          trace_origin: trace_origin,
-          trace_process_id: trace_process_id,
-          trace_resource: trace_resource,
-          trace_runtime_id: trace_runtime_id,
-          trace_sampling_priority: trace_sampling_priority,
-          trace_service: trace_service,
-          trace_distributed_id: trace_distributed_id,
-          trace_flags: trace_flags,
-          trace_state: trace_state,
-          trace_state_unknown_fields: trace_state_unknown_fields,
-          **field_value_pairs
+          **{
+            span_id: span_id,
+            span_name: span_name,
+            span_resource: span_resource,
+            span_service: span_service,
+            span_type: span_type,
+            trace_distributed_tags: trace_distributed_tags,
+            trace_hostname: trace_hostname,
+            trace_id: trace_id,
+            trace_name: trace_name,
+            trace_origin: trace_origin,
+            trace_process_id: trace_process_id,
+            trace_resource: trace_resource,
+            trace_runtime_id: trace_runtime_id,
+            trace_sampling_priority: trace_sampling_priority,
+            trace_service: trace_service,
+            trace_distributed_id: trace_distributed_id,
+            trace_flags: trace_flags,
+            trace_state: trace_state,
+            trace_state_unknown_fields: trace_state_unknown_fields,
+          }.merge!(field_value_pairs)
         )
       end
     end
