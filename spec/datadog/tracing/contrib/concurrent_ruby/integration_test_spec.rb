@@ -135,6 +135,18 @@ RSpec.describe 'ConcurrentRuby integration tests' do
           end
         end
       end
+
+      context 'when propagates without an active trace' do
+        it 'creates a root span' do
+          future = Concurrent::Promises.future do
+            tracer.trace('inner_span') {}
+          end
+
+          future.wait
+
+          expect(inner_span).to be_root_span
+        end
+      end
     end
   end
 

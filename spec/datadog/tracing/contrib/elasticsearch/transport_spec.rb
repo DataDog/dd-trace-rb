@@ -72,7 +72,15 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     end
 
     describe 'the handlers' do
-      subject(:handlers) { client.transport.connections.first.connection.builder.handlers }
+      subject(:handlers) do
+        connections = if client.transport.respond_to? :connections
+                        client.transport.connections
+                      else
+                        client.transport.transport.connections
+                      end
+
+        connections.first.connection.builder.handlers
+      end
 
       it { is_expected.to include(middleware) }
     end
@@ -194,6 +202,9 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
         context 'configured at the Elasticsearch client level' do
           before do
             skip('Configuration through client object is not possible in Elasticsearch >= 8.0.0') if version_greater_than_8
+
+            Datadog::Tracing::Contrib::Elasticsearch::Patcher::SELF_DEPRECATION_ONLY_ONCE
+              .send(:reset_ran_once_state_for_tests)
 
             Datadog.configure_onto(client, service_name: 'custom')
           end
