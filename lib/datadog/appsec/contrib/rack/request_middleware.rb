@@ -66,16 +66,6 @@ module Datadog
               request_return = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_rack if blocked_event
             end
 
-            if request_return[2].respond_to?(:to_ary)
-              # Following the Rack specification. The response body should only call :each once.
-              # Calling :to_ary returns an array with identical content as the produced when calling :each
-              # replacing request_return[2] with that new value allow us to safely operate on the response body.
-              # On Gateway::Response#parsed_body we might iterate over the reposne body using :each
-              # https://github.com/rack/rack/blob/main/SPEC.rdoc#enumerable-body-
-              consumed_body = request_return[2].to_ary
-              request_return[2] = consumed_body if consumed_body
-            end
-
             gateway_response = Gateway::Response.new(
               request_return[2],
               request_return[0],

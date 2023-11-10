@@ -10,7 +10,6 @@ module Datadog
             ADDRESSES = [
               'response.status',
               'response.headers',
-              'response.body',
             ].freeze
             private_constant :ADDRESSES
 
@@ -18,7 +17,6 @@ module Datadog
               catch(:block) do
                 op.publish('response.status', gateway_response.status)
                 op.publish('response.headers', gateway_response.headers)
-                op.publish('response.body', gateway_response.parsed_body)
 
                 nil
               end
@@ -31,15 +29,12 @@ module Datadog
                 response_status = values[0]
                 response_headers = values[1]
                 response_headers_no_cookies = response_headers.dup.tap { |h| h.delete('set-cookie') }
-                response_body = values[2]
 
                 waf_args = {
                   'server.response.status' => response_status.to_s,
                   'server.response.headers' => response_headers,
                   'server.response.headers.no_cookies' => response_headers_no_cookies,
                 }
-
-                waf_args['server.response.body'] = response_body if response_body
 
                 waf_timeout = Datadog.configuration.appsec.waf_timeout
                 result = waf_context.run(waf_args, waf_timeout)
