@@ -51,6 +51,11 @@ RSpec.describe 'ActionCable Rack override' do
     end
   end
 
+  after do
+    # while bundle exec appraisal jruby-9.3-rails5-mysql2 rake spec:action_cable[--seed=29737]; do echo 'more'; done
+    ActionCable.server.restart
+  end
+
   context 'on ActionCable connection request' do
     subject! { get '/cable' }
 
