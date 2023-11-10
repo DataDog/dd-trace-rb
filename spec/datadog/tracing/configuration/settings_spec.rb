@@ -74,12 +74,9 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             let(:var_value) { nil }
 
             it do
-              is_expected.to eq(
-                [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                ]
+              is_expected.to contain_exactly(
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT
               )
             end
           end
@@ -142,7 +139,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           context 'is not defined' do
             let(:var_value) { nil }
 
-            it { is_expected.to eq([Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG]) }
+            it do
+              is_expected.to contain_exactly(
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT
+              )
+            end
           end
 
           context 'is defined' do
@@ -214,27 +216,25 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             it { is_expected.to eq [] }
 
             it 'does not change propagation_extract_style' do
-              expect { propagation_style }.to_not change { propagation_extract_style }
-                .from(%w[Datadog b3multi b3])
+              expect { propagation_style }.to_not change { propagation_extract_style }.from(%w[Datadog tracecontext])
             end
 
             it 'does not change propagation_inject_style' do
-              expect { propagation_style }.to_not change { propagation_inject_style }.from(['Datadog'])
+              expect { propagation_style }.to_not change { propagation_inject_style }.from(%w[Datadog tracecontext])
             end
           end
 
           context 'is defined' do
-            let(:var_value) { 'Datadog,b3' }
+            let(:var_value) { 'b3multi,b3' }
 
-            it { is_expected.to contain_exactly('Datadog', 'b3') }
+            it { is_expected.to contain_exactly('b3multi', 'b3') }
 
             it 'sets propagation_extract_style' do
-              expect { propagation_style }.to change { propagation_extract_style }
-                .from(%w[Datadog b3multi b3]).to(%w[Datadog b3])
+              expect { propagation_style }.to change { propagation_extract_style }.to(%w[b3multi b3])
             end
 
             it 'sets propagation_inject_style' do
-              expect { propagation_style }.to change { propagation_inject_style }.from(['Datadog']).to(%w[Datadog b3])
+              expect { propagation_style }.to change { propagation_inject_style }.to(%w[b3multi b3])
             end
           end
         end
