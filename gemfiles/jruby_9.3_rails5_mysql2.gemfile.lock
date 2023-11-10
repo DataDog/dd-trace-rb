@@ -266,6 +266,7 @@ GEM
       webrick (~> 1.7.0)
 
 PLATFORMS
+  universal-java-1.8
   universal-java-11
 
 DEPENDENCIES
@@ -305,4 +306,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.26
+   2.3.20
