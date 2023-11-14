@@ -41,7 +41,7 @@ require 'support/tracer_helpers'
 
 require 'logger'
 
-require 'logger/period'
+# require 'logger/period'
 
 class Logger
   # Device used for logging messages.
