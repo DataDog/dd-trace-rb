@@ -49,7 +49,7 @@ module Datadog
             value = @attributes[key]
             span.set_tag(key, value)
 
-            span.service = value if key == 'service.name'
+            override_datadog_values(span, key, value)
           else
             span.clear_tag(key)
 
@@ -59,6 +59,15 @@ module Datadog
               span.service = Datadog.send(:components).tracer.default_service
             end
           end
+        end
+
+        # Some special attributes can override Datadog Span fields beyond tags and metrics.
+        def override_datadog_values(span, key, value)
+          span.name = value if key == 'operation.name'
+          span.resource = value if key == 'resource.name'
+          span.service = value if key == 'service.name'
+          span.type = value if key == 'span.type'
+          Datadog::Tracing::Analytics.set_sample_rate(span, value == 'true' ? 1 : 0) if key == 'analytics.event'
         end
 
         ::OpenTelemetry::SDK::Trace::Span.prepend(self)
