@@ -110,9 +110,6 @@ install-base-ruby-gems-arm64:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: on_success
   stage: package
-  needs:
-    - check-gem-presence
-    - install-base-ruby-gems
   script:
     - ruby pkg/install_ddtrace_deps.rb msgpack ffi ddtrace
   artifacts:
