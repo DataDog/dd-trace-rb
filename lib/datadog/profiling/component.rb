@@ -46,7 +46,8 @@ module Datadog
           cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
           # FIXME: Don't hardcode this
           alloc_samples_enabled: true,
-          heap_samples_enabled: true
+          heap_samples_enabled: true,
+          heap_size_enabled: true,
         )
         thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.new(
           recorder: recorder,

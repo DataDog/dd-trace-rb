@@ -155,13 +155,15 @@ static VALUE stack_recorder_class = Qnil;
 #define ALLOC_SAMPLES_VALUE_ID 3
 #define HEAP_SAMPLES_VALUE     {.type_ = VALUE_STRING("heap-live-samples"),     .unit = VALUE_STRING("count")}
 #define HEAP_SAMPLES_VALUE_ID 4
+#define HEAP_SIZE_VALUE     {.type_ = VALUE_STRING("heap-live-size"),     .unit = VALUE_STRING("bytes")}
+#define HEAP_SIZE_VALUE_ID 5
 
-static const ddog_prof_ValueType all_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, HEAP_SAMPLES_VALUE};
+static const ddog_prof_ValueType all_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, HEAP_SAMPLES_VALUE, HEAP_SIZE_VALUE};
 
 // This array MUST be kept in sync with all_value_types above and is intended to act as a "hashmap" between VALUE_ID and the position it
 // occupies on the all_value_types array.
 // E.g. all_value_types_positions[CPU_TIME_VALUE_ID] => 0, means that CPU_TIME_VALUE was declared at position 0 of all_value_types.
-static const uint8_t all_value_types_positions[] = {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, HEAP_SAMPLES_VALUE_ID};
+static const uint8_t all_value_types_positions[] = {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, HEAP_SAMPLES_VALUE_ID, HEAP_SIZE_VALUE_ID};
 
 #define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
 
@@ -205,7 +207,7 @@ static VALUE _native_new(VALUE klass);
 static void initialize_slot_concurrency_control(struct stack_recorder_state *state);
 static void initialize_profiles(struct stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types);
 static void stack_recorder_typed_data_free(void *data);
-static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE cpu_time_enabled, VALUE alloc_samples_enabled, VALUE heap_samples_enabled);
+static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE cpu_time_enabled, VALUE alloc_samples_enabled, VALUE heap_samples_enabled, VALUE heap_size_enabled);
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
 static VALUE ruby_time_from(ddog_Timespec ddprof_time);
 static void *call_serialize_without_gvl(void *call_args);
@@ -237,7 +239,7 @@ void stack_recorder_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
-  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 4);
+  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 5);
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
   rb_define_singleton_method(stack_recorder_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
@@ -330,7 +332,7 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   ruby_xfree(state);
 }
 
-static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE cpu_time_enabled, VALUE alloc_samples_enabled, VALUE heap_samples_enabled) {
+static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE cpu_time_enabled, VALUE alloc_samples_enabled, VALUE heap_samples_enabled, VALUE heap_size_enabled) {
   ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
   ENFORCE_BOOLEAN(heap_samples_enabled);
@@ -338,7 +340,7 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_insta
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  state->heap_recorder = heap_recorder_init();
+  state->heap_recorder = heap_recorder_init(heap_size_enabled == Qtrue);
 
   if (cpu_time_enabled == Qtrue && alloc_samples_enabled == Qtrue) return Qtrue; // Nothing to do, this is the default
 
@@ -380,6 +382,14 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_insta
   } else {
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_disabled_pos++;
   }
+
+  if (alloc_samples_enabled == Qtrue && heap_size_enabled == Qtrue) {
+    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SIZE_VALUE;
+    state->position_for[HEAP_SIZE_VALUE_ID] = next_enabled_pos++;
+  } else {
+    state->position_for[HEAP_SIZE_VALUE_ID] = next_disabled_pos++;
+  }
+
 
   ddog_prof_Profile_drop(&state->slot_one_profile);
   ddog_prof_Profile_drop(&state->slot_two_profile);
@@ -523,6 +533,7 @@ static void add_heap_sample_to_active_profile(stack_iteration_data stack_data, v
   uint8_t *position_for = context->state->position_for;
 
   metric_values[position_for[HEAP_SAMPLES_VALUE_ID]] = stack_data.inuse_objects;
+  metric_values[position_for[HEAP_SIZE_VALUE_ID]] = stack_data.inuse_size;
 
   ddog_prof_Profile_Result result = ddog_prof_Profile_add(
     context->profile,

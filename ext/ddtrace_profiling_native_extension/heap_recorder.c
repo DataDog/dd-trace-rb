@@ -5,6 +5,9 @@
 #include "ruby_helpers.h"
 #include <errno.h>
 
+// This is not part of public headers but is in a RUBY_SYMBOL_EXPORT block
+size_t rb_obj_memsize_of(VALUE obj);
+
 #define MAX_FRAMES_LIMIT 10000
 #define MAX_QUEUE_LIMIT 10000
 
@@ -70,6 +73,9 @@ typedef struct sample {
 const sample EmptySample = {0};
 
 struct heap_recorder {
+  // Config
+  bool enable_heap_size_profiling;
+
   // Map[heap_stack, heap_record]
   st_table *heap_records;
 
@@ -95,9 +101,10 @@ struct heap_recorder {
 // =================
 // Heap Recorder API
 // =================
-heap_recorder* heap_recorder_init(void) {
+heap_recorder* heap_recorder_init(bool enable_heap_size_profiling) {
   heap_recorder* recorder = ruby_xcalloc(1, sizeof(heap_recorder));
 
+  recorder->enable_heap_size_profiling = enable_heap_size_profiling;
   recorder->records_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
   recorder->heap_records = st_init_table(&st_hash_type_heap_stack);
   recorder->object_records = st_init_numtable();
@@ -140,12 +147,8 @@ typedef struct {
   heap_recorder *heap_recorder;
 } internal_iteration_data;
 
-static int st_heap_records_iterate(st_data_t key, st_data_t value, st_data_t extra) {
-  heap_stack *stack = (heap_stack*) key;
-  heap_record *record = (heap_record*) value;
-  internal_iteration_data *iteration_data = (internal_iteration_data*) extra;
-
-  ddog_prof_Location *locations = iteration_data->heap_recorder->reusable_locations;
+static ddog_prof_Slice_Location reusableLocationsFromStack(heap_recorder *heap_recorder, const heap_stack *stack) {
+  ddog_prof_Location *locations = heap_recorder->reusable_locations;
 
   for (uint64_t i = 0; i < stack->frames_len; i++) {
     heap_frame *frame = &stack->frames[i];
@@ -157,9 +160,35 @@ static int st_heap_records_iterate(st_data_t key, st_data_t value, st_data_t ext
     location->line = frame->line;
   }
 
-  stack_iteration_data stack_data;
-  stack_data.inuse_objects = record->inuse_objects;
-  stack_data.locations = (ddog_prof_Slice_Location) {.ptr = locations, .len = stack->frames_len};
+  return (ddog_prof_Slice_Location) {.ptr = locations, .len = stack->frames_len};
+}
+
+static int st_heap_records_iterate(st_data_t key, st_data_t value, st_data_t extra) {
+  heap_stack *stack = (heap_stack*) key;
+  heap_record *record = (heap_record*) value;
+  internal_iteration_data *iteration_data = (internal_iteration_data*) extra;
+
+  stack_iteration_data stack_data = {
+    .inuse_objects = record->inuse_objects,
+    .inuse_size = 0,
+    .locations = reusableLocationsFromStack(iteration_data->heap_recorder, stack),
+  };
+
+  iteration_data->for_each_callback(stack_data, iteration_data->for_each_callback_extra_arg);
+
+  return ST_CONTINUE;
+}
+
+static int st_object_records_iterate(st_data_t key, st_data_t value, st_data_t extra) {
+  VALUE obj = (VALUE) key;
+  object_record *record = (object_record*) value;
+  internal_iteration_data *iteration_data = (internal_iteration_data*) extra;
+
+  stack_iteration_data stack_data = {
+    .inuse_objects = record->weight,
+    .inuse_size = rb_obj_memsize_of(obj),
+    .locations = reusableLocationsFromStack(iteration_data->heap_recorder, record->heap_record->stack),
+  };
 
   iteration_data->for_each_callback(stack_data, iteration_data->for_each_callback_extra_arg);
 
@@ -172,7 +201,13 @@ void heap_recorder_iterate_stacks(heap_recorder *heap_recorder, void (*for_each_
   internal_iteration_data.for_each_callback = for_each_callback;
   internal_iteration_data.for_each_callback_extra_arg = for_each_callback_extra_arg;
   internal_iteration_data.heap_recorder = heap_recorder;
-  st_foreach(heap_recorder->heap_records, st_heap_records_iterate, (st_data_t) &internal_iteration_data);
+  if (heap_recorder->enable_heap_size_profiling) {
+    // To get an accurate object size, we need to query our tracked live objects so lets iterate over the object_records
+    st_foreach(heap_recorder->object_records, st_object_records_iterate, (st_data_t) &internal_iteration_data);
+  } else {
+    // If we're just reporting heap counts/samples, it's faster to iterate on the heap records
+    st_foreach(heap_recorder->heap_records, st_heap_records_iterate, (st_data_t) &internal_iteration_data);
+  }
   pthread_mutex_unlock(&heap_recorder->records_mutex);
 }
 
