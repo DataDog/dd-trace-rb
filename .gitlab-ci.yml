@@ -56,7 +56,7 @@ build-image-arm64:
    tags: [ "runner:docker-arm", "platform:arm64"]
    variables:
      ARCHITECTURE: arm64
-   
+
 promote-image:
   stage: manual-images
   when: manual
@@ -98,18 +98,10 @@ install-base-ruby-gems:
     paths:
       - pkg
 
-install-version-dependant-gems:
-  image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
+.install-version-dependant-gems:
   parallel:
     matrix:
       - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4"]
-        ARCHITECTURE: amd64
-        TAG: "runner:main"
-      - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4"]
-        ARCHITECTURE: arm64
-        TAG: "arch:arm64"
-  tags:
-    - $TAG
   rules:
     - if: $RUBY_PACKAGE_VERSION
       when: on_success
@@ -124,6 +116,23 @@ install-version-dependant-gems:
   artifacts:
     paths:
       - pkg
+
+install-version-dependant-gems-amd64:
+  extends: .install-version-dependant-gems
+  image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-amd64:current
+  tags: "runner:main"
+  needs:
+    - check-gem-presence
+    - install-base-ruby-gems-amd64
+
+install-version-dependant-gems-arm64:
+  extends: .install-version-dependant-gems
+  image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-arm64:current
+  tags: "arch:arm64"
+  needs:
+    - check-gem-presence
+    - install-base-ruby-gems-arm64
+
 
 check-gem-presence:
   image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-amd64:current
