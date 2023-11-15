@@ -147,8 +147,8 @@ package:
   extends: .package
   needs:
     - check-gem-presence
-    - install-version-dependant-gems
-    - install-base-ruby-gems
+    - install-version-dependant-gems-amd64
+    - install-base-ruby-gems-amd64
   rules:
     - if: $RUBY_PACKAGE_VERSION
       when: on_success
@@ -162,8 +162,8 @@ package-arm:
   extends: .package-arm
   needs:
     - check-gem-presence
-    - install-version-dependant-gems
-    - install-base-ruby-gems
+    - install-version-dependant-gems-arm64
+    - install-base-ruby-gems-arm64
   rules:
     - if: $RUBY_PACKAGE_VERSION
       when: on_success
