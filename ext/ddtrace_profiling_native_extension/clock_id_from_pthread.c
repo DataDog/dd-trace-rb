@@ -25,6 +25,9 @@ void self_test_clock_id(void) {
 // Safety: This function is assumed never to raise exceptions by callers
 thread_cpu_time_id thread_cpu_time_id_for(VALUE thread) {
   rb_nativethread_id_t thread_id = pthread_id_for(thread);
+
+  if (thread_id == 0) return (thread_cpu_time_id) {.valid = false};
+
   clockid_t clock_id;
 
   int error = pthread_getcpuclockid(thread_id, &clock_id);
