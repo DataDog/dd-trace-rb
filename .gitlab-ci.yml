@@ -93,12 +93,12 @@ promote-image:
 install-base-ruby-gems-amd64:
   extends: .install-base-ruby-gems
   image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-amd64:current
-  tags: "runner:main"
+  tags: [ "runner:main" ]
 
 install-base-ruby-gems-arm64:
   extends: .install-base-ruby-gems
   image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-arm64:current
-  tags: "arch:arm64"
+  tags: [ "arch:arm64" ]
 
 .install-version-dependant-gems:
   parallel:
@@ -119,7 +119,7 @@ install-base-ruby-gems-arm64:
 install-version-dependant-gems-amd64:
   extends: .install-version-dependant-gems
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-amd64:current
-  tags: "runner:main"
+  tags: [ "runner:main" ]
   needs:
     - check-gem-presence
     - install-base-ruby-gems-amd64
@@ -127,7 +127,7 @@ install-version-dependant-gems-amd64:
 install-version-dependant-gems-arm64:
   extends: .install-version-dependant-gems
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-arm64:current
-  tags: "arch:arm64"
+  tags: [ "arch:arm64" ]
   needs:
     - check-gem-presence
     - install-base-ruby-gems-arm64
