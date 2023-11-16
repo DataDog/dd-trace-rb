@@ -95,6 +95,12 @@ RSpec.shared_examples 'Datadog distributed format' do
       end
 
       context 'with trace_distributed_tags' do
+        shared_context 'with 128-bit trace_id generation disabled' do
+          before do
+            Datadog.configure { |c| c.tracing.trace_id_128_bit_generation_enabled = false }
+          end
+        end
+
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: Datadog::Tracing::Utils::TraceId.next_id,
@@ -103,6 +109,8 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
 
         context 'nil' do
+          include_context 'with 128-bit trace_id generation disabled'
+
           let(:tags) { nil }
           it do
             inject!
@@ -111,6 +119,8 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
 
         context '{}' do
+          include_context 'with 128-bit trace_id generation disabled'
+
           let(:tags) { {} }
           it do
             inject!
@@ -122,7 +132,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           let(:tags) { { key: 'value' } }
           it do
             inject!
-            expect(data).to include('x-datadog-tags' => 'key=value')
+            expect(data['x-datadog-tags']).to include('key=value')
           end
         end
 
@@ -130,7 +140,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           let(:tags) { { '_dd.p.dm' => '-1' } }
           it do
             inject!
-            expect(data).to include('x-datadog-tags' => '_dd.p.dm=-1')
+            expect(data['x-datadog-tags']).to include('_dd.p.dm=-1')
           end
         end
 
@@ -175,8 +185,8 @@ RSpec.shared_examples 'Datadog distributed format' do
             end
 
             context 'and no tags' do
+              include_context 'with 128-bit trace_id generation disabled'
               let(:tags) { {} }
-
               it 'does not set error for empty tags' do
                 expect(active_trace).to_not receive(:set_tag)
                 inject!
@@ -185,7 +195,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           end
 
           context 'with invalid tags' do
-            let(:tags) { 'not_a_tag_hash' }
+            let(:tags) { { 'key with=spaces' => 'value' } }
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'encoding_error')
