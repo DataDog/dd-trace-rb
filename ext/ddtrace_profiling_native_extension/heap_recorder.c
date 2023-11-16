@@ -186,7 +186,7 @@ static int st_object_records_iterate(st_data_t key, st_data_t value, st_data_t e
 
   stack_iteration_data stack_data = {
     .inuse_objects = record->weight,
-    .inuse_size = rb_obj_memsize_of(obj),
+    .inuse_size = rb_obj_memsize_of(obj) * record->weight,
     .locations = reusableLocationsFromStack(iteration_data->heap_recorder, record->heap_record->stack),
   };
 
