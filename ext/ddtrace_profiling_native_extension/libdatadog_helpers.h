@@ -9,6 +9,13 @@ inline static ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   return char_slice;
 }
 
+inline static ddog_CharSlice char_slice_from_c_string(char *string) {
+  return (ddog_CharSlice) {
+    .ptr = string,
+    .len = strlen(string),
+  };
+}
+
 inline static VALUE ruby_string_from_vec_u8(ddog_Vec_U8 string) {
   return rb_str_new((char *) string.ptr, string.len);
 }

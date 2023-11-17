@@ -49,18 +49,23 @@ typedef struct {
 static heap_record* heap_record_init(const heap_stack*);
 static void heap_record_free(heap_record*);
 
+static object_metadata object_metadata_init(ddog_CharSlice*, size_t);
+static void object_metadata_free(object_metadata);
+
 typedef struct {
   VALUE obj;
-  unsigned int weight;
   heap_record *heap_record;
+  unsigned int weight;
+  object_metadata metadata;
 } object_record;
-static object_record* object_record_init(VALUE, unsigned int, heap_record*);
+static object_record* object_record_init(VALUE, unsigned int, heap_record*, object_metadata);
 static void object_record_free(object_record*);
 
 typedef struct {
   VALUE obj;
   unsigned int weight;
-  ddog_CharSlice *class_name;
+  ddog_CharSlice *alloc_class;
+  size_t alloc_gen;
 } partial_heap_recording;
 
 typedef struct sample {
@@ -69,6 +74,7 @@ typedef struct sample {
   unsigned int weight;
   bool free;
   bool skip;
+  object_metadata metadata;
 } sample;
 const sample EmptySample = {0};
 
@@ -172,6 +178,7 @@ static int st_heap_records_iterate(st_data_t key, st_data_t value, st_data_t ext
     .inuse_objects = record->inuse_objects,
     .inuse_size = 0,
     .locations = reusableLocationsFromStack(iteration_data->heap_recorder, stack),
+    .metadata = NULL,
   };
 
   iteration_data->for_each_callback(stack_data, iteration_data->for_each_callback_extra_arg);
@@ -184,10 +191,20 @@ static int st_object_records_iterate(st_data_t key, st_data_t value, st_data_t e
   object_record *record = (object_record*) value;
   internal_iteration_data *iteration_data = (internal_iteration_data*) extra;
 
+  // FIXME: Uncomment the below block
+  /*
+  if (!rb_gc_is_ptr_to_obj(obj)) {
+    // obj is not valid anymore, lets clean this up
+    object_record_free(record);
+    return ST_DELETE;
+  }
+  */
+
   stack_iteration_data stack_data = {
     .inuse_objects = record->weight,
     .inuse_size = rb_obj_memsize_of(obj) * record->weight,
     .locations = reusableLocationsFromStack(iteration_data->heap_recorder, record->heap_record->stack),
+    .metadata = &record->metadata,
   };
 
   iteration_data->for_each_callback(stack_data, iteration_data->for_each_callback_extra_arg);
@@ -211,11 +228,13 @@ void heap_recorder_iterate_stacks(heap_recorder *heap_recorder, void (*for_each_
   pthread_mutex_unlock(&heap_recorder->records_mutex);
 }
 
-void commit_allocation(heap_recorder *heap_recorder, heap_stack *heap_stack, VALUE obj, unsigned int weight) {
+void commit_allocation(heap_recorder *heap_recorder, heap_stack *heap_stack, VALUE obj, unsigned int weight, object_metadata metadata) {
   heap_record *heap_record = NULL;
   if (!st_lookup(heap_recorder->heap_records, (st_data_t) heap_stack, (st_data_t*) &heap_record)) {
     heap_record = heap_record_init(heap_stack);
     if (st_insert(heap_recorder->heap_records, (st_data_t) heap_stack, (st_data_t) heap_record)) {
+      heap_record_free(heap_record);
+      object_metadata_free(metadata);
       rb_raise(rb_eRuntimeError, "Duplicate heap stack tracking: %p", heap_stack);
       return;
     };
@@ -226,7 +245,7 @@ void commit_allocation(heap_recorder *heap_recorder, heap_stack *heap_stack, VAL
     heap_stack_free(heap_stack);
   }
 
-  object_record *object_record = object_record_init(obj, weight, heap_record);
+  object_record *object_record = object_record_init(obj, weight, heap_record, metadata);
   if (st_insert(heap_recorder->object_records, (st_data_t) obj, (st_data_t) object_record) != 0) {
     // Object already tracked?
     object_record_free(object_record);
@@ -267,7 +286,7 @@ static void flush_queue(heap_recorder *heap_recorder) {
       if (queued_sample->free) {
         commit_free(heap_recorder, queued_sample->obj);
       } else {
-        commit_allocation(heap_recorder, queued_sample->stack, queued_sample->obj, queued_sample->weight);
+        commit_allocation(heap_recorder, queued_sample->stack, queued_sample->obj, queued_sample->weight, queued_sample->metadata);
       }
     }
 
@@ -287,13 +306,14 @@ static void enqueue_sample(heap_recorder *heap_recorder, sample new_sample) {
   heap_recorder->queued_samples_len++;
 }
 
-static void enqueue_allocation(heap_recorder *heap_recorder, heap_stack *heap_stack, VALUE obj, unsigned int weight) {
+static void enqueue_allocation(heap_recorder *heap_recorder, heap_stack *heap_stack, VALUE obj, unsigned int weight, object_metadata metadata) {
   enqueue_sample(heap_recorder, (sample) {
       .stack = heap_stack,
       .obj = obj,
       .weight = weight,
       .free = false,
       .skip = false,
+      .metadata = metadata,
   });
 }
 
@@ -304,6 +324,7 @@ static void enqueue_free(heap_recorder *heap_recorder, VALUE obj) {
       .weight = 0,
       .free = true,
       .skip = false,
+      .metadata = { 0 },
   });
 }
 
@@ -312,7 +333,8 @@ void start_heap_allocation_recording(heap_recorder* heap_recorder, VALUE new_obj
   partial_heap_recording *active_recording = &heap_recorder->active_recording;
   active_recording->obj = new_obj;
   active_recording->weight = weight;
-  active_recording->class_name = class_name;
+  active_recording->alloc_class = class_name;
+  active_recording->alloc_gen = rb_gc_count();
 }
 
 void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
@@ -327,6 +349,7 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
   }
 
   int weight = active_recording->weight;
+  object_metadata metadata = object_metadata_init(active_recording->alloc_class, active_recording->alloc_gen);
 
   // From now on, mark active recording as invalid so we can short-circuit at any point and
   // not end up with a still active recording. new_obj still holds the object for this recording
@@ -342,7 +365,7 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
     // We weren't able to get a lock, so enqueue this sample for later processing
     // and end early
     if (error == EBUSY) {
-      enqueue_allocation(heap_recorder, heap_stack, new_obj, weight);
+      enqueue_allocation(heap_recorder, heap_stack, new_obj, weight, metadata);
     } else {
       ENFORCE_SUCCESS_GVL(error)
     }
@@ -350,7 +373,7 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
   }
 
   // If we got this far, we got a write lock so we can commit the record
-  commit_allocation(heap_recorder, heap_stack, new_obj, weight);
+  commit_allocation(heap_recorder, heap_stack, new_obj, weight, metadata);
 
   pthread_mutex_unlock(&heap_recorder->records_mutex);
 }
@@ -408,18 +431,34 @@ void heap_record_free(heap_record *record) {
   ruby_xfree(record);
 }
 
+// ===================
+// Object Metadata API
+// ===================
+object_metadata object_metadata_init(ddog_CharSlice *alloc_class, size_t alloc_generation) {
+  object_metadata metadata;
+  metadata.alloc_class = ruby_strdup(alloc_class->ptr);
+  metadata.alloc_generation = alloc_generation;
+  return metadata;
+}
+
+void object_metadata_free(object_metadata metadata) {
+  ruby_xfree(metadata.alloc_class);
+}
+
 
 // =================
 // Object Record API
 // =================
-object_record* object_record_init(VALUE new_obj, unsigned int weight, heap_record *heap_record) {
+object_record* object_record_init(VALUE new_obj, unsigned int weight, heap_record *heap_record, object_metadata metadata) {
   object_record* record = ruby_xcalloc(1, sizeof(object_record));
   record->weight = weight;
   record->heap_record = heap_record;
+  record->metadata = metadata;
   return record;
 }
 
 void object_record_free(object_record *record) {
+  object_metadata_free(record->metadata);
   ruby_xfree(record);
 }
 

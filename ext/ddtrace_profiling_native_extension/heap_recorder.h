@@ -7,9 +7,15 @@
 typedef struct heap_recorder heap_recorder;
 
 typedef struct {
+  char *alloc_class;
+  size_t alloc_generation;
+} object_metadata;
+
+typedef struct {
   ddog_prof_Slice_Location locations;
   uint64_t inuse_objects;
   uint64_t inuse_size;
+  object_metadata *metadata;
 } stack_iteration_data;
 
 heap_recorder* heap_recorder_init(bool enable_heap_size_profiling);

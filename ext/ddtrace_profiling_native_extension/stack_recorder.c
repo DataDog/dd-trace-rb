@@ -520,6 +520,7 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
 typedef struct stack_iteration_context {
   struct stack_recorder_state *state;
   ddog_prof_Profile *profile;
+  size_t profile_gen;
 } stack_iteration_context;
 
 static void add_heap_sample_to_active_profile(stack_iteration_data stack_data, void *extra_arg) {
@@ -535,11 +536,31 @@ static void add_heap_sample_to_active_profile(stack_iteration_data stack_data, v
   metric_values[position_for[HEAP_SAMPLES_VALUE_ID]] = stack_data.inuse_objects;
   metric_values[position_for[HEAP_SIZE_VALUE_ID]] = stack_data.inuse_size;
 
+  object_metadata *metadata = stack_data.metadata;
+  ddog_prof_Label labels[2];
+  size_t num_labels = 0;
+
+  if (metadata != NULL) {
+    labels[0] = (ddog_prof_Label ){
+      .key = DDOG_CHARSLICE_C("alloc class"),
+      .str = char_slice_from_c_string(stack_data.metadata->alloc_class),
+    };
+    labels[1] = (ddog_prof_Label ){
+      .key = DDOG_CHARSLICE_C("gc gen age"),
+      .num = context->profile_gen - stack_data.metadata->alloc_generation,
+    };
+    num_labels = 2;
+  }
+
   ddog_prof_Profile_Result result = ddog_prof_Profile_add(
     context->profile,
     (ddog_prof_Sample) {
       .locations = stack_data.locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = context->state->enabled_values_count},
+      .labels = (ddog_prof_Slice_Label) {
+        .ptr = labels,
+        .len = num_labels,
+      }
     },
     0
   );
@@ -550,9 +571,11 @@ static void add_heap_sample_to_active_profile(stack_iteration_data stack_data, v
 }
 
 static void build_heap_profile(struct stack_recorder_state *state, ddog_prof_Profile *profile) {
-  stack_iteration_context iteration_context;
-  iteration_context.state = state;
-  iteration_context.profile = profile;
+  stack_iteration_context iteration_context = {
+    .state = state,
+    .profile = profile,
+    .profile_gen = rb_gc_count(),
+  };
   heap_recorder_iterate_stacks(state->heap_recorder, add_heap_sample_to_active_profile, (void*) &iteration_context);
 }
 
