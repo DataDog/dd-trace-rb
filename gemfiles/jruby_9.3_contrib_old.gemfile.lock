@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (2.0.0.alpha1)
+    ddtrace (1.16.2)
       datadog-ci (~> 0.3.0)
       debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 5.0.0.1.0)
@@ -45,14 +45,6 @@ GEM
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
-    elasticsearch (7.5.0)
-      elasticsearch-api (= 7.5.0)
-      elasticsearch-transport (= 7.5.0)
-    elasticsearch-api (7.5.0)
-      multi_json
-    elasticsearch-transport (7.5.0)
-      faraday (>= 0.14, < 1)
-      multi_json
     faraday (0.17.0)
       multipart-post (>= 1.2, < 3)
     faraday_middleware (0.12.2)
@@ -69,7 +61,6 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.0.0)
     msgpack (1.6.0-java)
-    multi_json (1.15.0)
     multipart-post (2.2.3)
     os (1.1.4)
     parallel (1.23.0)
@@ -175,7 +166,6 @@ DEPENDENCIES
   dalli (< 3.0.0)
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
-  elasticsearch (< 8.0.0)
   faraday (= 0.17)
   graphql (~> 1.12.0, < 2.0)
   json-schema (< 3)

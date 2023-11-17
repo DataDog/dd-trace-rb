@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (2.0.0.alpha1)
+    ddtrace (1.16.2)
       datadog-ci (~> 0.3.0)
       debase-ruby_core_source (= 3.2.2)
       libdatadog (~> 5.0.0.1.0)
@@ -50,14 +50,6 @@ GEM
     dogstatsd-ruby (5.6.1)
     domain_name (0.5.20190701)
       unf (>= 0.0.5, < 1.0.0)
-    elastic-transport (8.2.3)
-      faraday (< 3)
-      multi_json
-    elasticsearch (8.9.0)
-      elastic-transport (~> 8)
-      elasticsearch-api (= 8.9.0)
-    elasticsearch-api (8.9.0)
-      multi_json
     ethon (0.16.0)
       ffi (>= 1.15.0)
     excon (0.102.0)
@@ -101,7 +93,6 @@ GEM
       mime-types-data (~> 3.2015)
     mime-types-data (3.2023.0808)
     msgpack (1.7.2)
-    multi_json (1.15.0)
     netrc (0.11.0)
     os (1.1.4)
     parallel (1.23.0)
@@ -212,7 +203,6 @@ DEPENDENCIES
   concurrent-ruby
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
-  elasticsearch
   ethon
   excon
   extlz4 (~> 0.3, >= 0.3.3)

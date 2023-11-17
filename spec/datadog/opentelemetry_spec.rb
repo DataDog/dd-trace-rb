@@ -14,6 +14,7 @@ RSpec.describe Datadog::OpenTelemetry do
       Datadog.configure do |c|
         c.tracing.writer = writer_
         c.tracing.partial_flush.min_spans_threshold = 1 # Ensure tests flush spans quickly
+        c.tracing.distributed_tracing.propagation_style = ['Datadog'] # Ensure test has consistent propagation configuration
       end
 
       ::OpenTelemetry::SDK.configure do |c|

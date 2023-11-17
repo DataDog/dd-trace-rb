@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ConcurrentRuby
+        def future_on: (untyped default_executor, untyped args, untyped task) -> untyped
+      end
+    end
+  end
+end

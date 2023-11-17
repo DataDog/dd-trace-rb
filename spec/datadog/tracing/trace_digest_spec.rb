@@ -175,4 +175,20 @@ RSpec.describe Datadog::Tracing::TraceDigest do
       end
     end
   end
+
+  describe '#merge' do
+    let(:merge) { trace_digest.merge(args) }
+    let(:args) { { span_name: 'new span name' } }
+    let(:options) { { trace_name: 'trace name' } }
+
+    it 'overrides the provided field' do
+      expect(merge.span_name).to be_a_frozen_copy_of('new span name')
+    end
+
+    it 'does not modify non provided fields' do
+      expect(merge.trace_name).to eq('trace name')
+    end
+
+    it { is_expected.to be_frozen }
+  end
 end
