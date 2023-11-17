@@ -602,19 +602,19 @@ namespace :changelog do
   end
 end
 
-native_exts = []
+NATIVE_EXTS = [
+  Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
+  end,
 
-native_exts << Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-  ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
-end
-
-native_exts << Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-  ext.ext_dir = 'ext/ddtrace_profiling_loader'
-end
+  Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/ddtrace_profiling_loader'
+  end
+].freeze
 
 NATIVE_CLEAN = ::Rake::FileList[]
 namespace :native_dev do
-  compile_commands_tasks = native_exts.map do |ext|
+  compile_commands_tasks = NATIVE_EXTS.map do |ext|
     tmp_dir_dd_native_dev = "#{ext.tmp_dir}/dd_native_dev"
     directory tmp_dir_dd_native_dev
     NATIVE_CLEAN << tmp_dir_dd_native_dev
@@ -638,11 +638,6 @@ namespace :native_dev do
 
   desc 'Setup dev environment for native extensions.'
   task setup: compile_commands_tasks
-
-  desc 'Clean dev environment for native extensions.'
-  task :clean do
-    Rake::Cleaner.cleanup_files(NATIVE_CLEAN)
-  end
 
   CLEAN.concat(NATIVE_CLEAN)
 end
