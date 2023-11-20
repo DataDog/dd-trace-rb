@@ -79,6 +79,55 @@ RSpec.describe Datadog::OpenTelemetry do
               expect(span.get_metric('tag')).to eq(1)
             end
           end
+
+          context 'with reserved attributes' do
+            let(:attributes) { { attribute_name => attribute_value } }
+
+            context 'for operation.name' do
+              let(:attribute_name) { 'operation.name' }
+              let(:attribute_value) { 'Override.name' }
+
+              it 'overrides the respective Datadog span name' do
+                expect(span.name).to eq(attribute_value)
+              end
+            end
+
+            context 'for resource.name' do
+              let(:attribute_name) { 'resource.name' }
+              let(:attribute_value) { 'new.name' }
+
+              it 'overrides the respective Datadog span resource' do
+                expect(span.resource).to eq(attribute_value)
+              end
+            end
+
+            context 'for service.name' do
+              let(:attribute_name) { 'service.name' }
+              let(:attribute_value) { 'new.service.name' }
+
+              it 'overrides the respective Datadog span service' do
+                expect(span.service).to eq(attribute_value)
+              end
+            end
+
+            context 'for span.type' do
+              let(:attribute_name) { 'span.type' }
+              let(:attribute_value) { 'new.span.type' }
+
+              it 'overrides the respective Datadog span type' do
+                expect(span.type).to eq(attribute_value)
+              end
+            end
+
+            context 'for analytics.event' do
+              let(:attribute_name) { 'analytics.event' }
+              let(:attribute_value) { 'true' }
+
+              it 'overrides the respective Datadog span tag' do
+                expect(span.get_metric('_dd1.sr.eausr')).to eq(1)
+              end
+            end
+          end
         end
 
         context 'with start_timestamp' do
@@ -216,9 +265,11 @@ RSpec.describe Datadog::OpenTelemetry do
     end
 
     shared_context 'Span#set_attribute' do
-      subject(:set_attribute) { start_span.public_send(setter, 'key', 'value') }
+      subject(:set_attribute) { start_span.public_send(setter, attribute_name, attribute_value) }
       let(:start_span) { otel_tracer.start_span('start-span') }
       let(:active_span) { Datadog::Tracing.active_span }
+      let(:attribute_name) { 'key' }
+      let(:attribute_value) { 'value' }
 
       it 'sets Datadog tag' do
         start_span
@@ -228,6 +279,58 @@ RSpec.describe Datadog::OpenTelemetry do
         start_span.finish
 
         expect(span.get_tag('key')).to eq('value')
+      end
+
+      context 'with reserved attributes' do
+        before do
+          set_attribute
+          start_span.finish
+        end
+
+        context 'for operation.name' do
+          let(:attribute_name) { 'operation.name' }
+          let(:attribute_value) { 'Override.name' }
+
+          it 'overrides the respective Datadog span name' do
+            expect(span.name).to eq(attribute_value)
+          end
+        end
+
+        context 'for resource.name' do
+          let(:attribute_name) { 'resource.name' }
+          let(:attribute_value) { 'new.name' }
+
+          it 'overrides the respective Datadog span resource' do
+            expect(span.resource).to eq(attribute_value)
+          end
+        end
+
+        context 'for service.name' do
+          let(:attribute_name) { 'service.name' }
+          let(:attribute_value) { 'new.service.name' }
+
+          it 'overrides the respective Datadog span service' do
+            expect(span.service).to eq(attribute_value)
+          end
+        end
+
+        context 'for span.type' do
+          let(:attribute_name) { 'span.type' }
+          let(:attribute_value) { 'new.span.type' }
+
+          it 'overrides the respective Datadog span type' do
+            expect(span.type).to eq(attribute_value)
+          end
+        end
+
+        context 'for analytics.event' do
+          let(:attribute_name) { 'analytics.event' }
+          let(:attribute_value) { 'true' }
+
+          it 'overrides the respective Datadog span tag' do
+            expect(span.get_metric('_dd1.sr.eausr')).to eq(1)
+          end
+        end
       end
     end
 

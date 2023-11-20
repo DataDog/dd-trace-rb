@@ -76,21 +76,34 @@ module Datadog
         end
 
         def start_datadog_span(span)
-          tags = span.resource.attribute_enumerator.to_h
+          attributes = span.attributes.dup # Dup to allow modification of frozen Hash
 
-          kind = span.kind || 'internal'
-          tags[Tracing::Metadata::Ext::TAG_KIND] = kind
+          name, kwargs = span_arguments(span, attributes)
 
-          datadog_span = Tracing.trace(
-            span.name,
-            tags: tags,
-            start_time: ns_to_time(span.start_timestamp)
-          )
+          datadog_span = Tracing.trace(name, **kwargs)
 
           datadog_span.set_error([nil, span.status.description]) unless span.status.ok?
           datadog_span.set_tags(span.attributes)
 
           datadog_span
+        end
+
+        # Some special attributes can override Datadog Span fields
+        def span_arguments(span, attributes)
+          if attributes.key?('analytics.event')
+            attributes[Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE] =
+              attributes['analytics.event'] == 'true' ? 1 : 0
+          end
+          attributes[Tracing::Metadata::Ext::TAG_KIND] = span.kind || 'internal'
+
+          kwargs = { tags: attributes, start_time: ns_to_time(span.start_timestamp) }
+
+          name = attributes.key?('operation.name') ? attributes['operation.name'] : span.name
+          kwargs[:resource] = attributes['resource.name'] if attributes.key?('resource.name')
+          kwargs[:service] = attributes['service.name'] if attributes.key?('service.name')
+          kwargs[:type] = attributes['span.type'] if attributes.key?('span.type')
+
+          [name, kwargs]
         end
 
         # From nanoseconds, used by OpenTelemetry, to a {Time} object, used by the Datadog Tracer.
