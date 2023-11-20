@@ -175,7 +175,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
               {
                 'foo' => 'bar',
                 '_dd.p.dm' => '-1',
-                '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
+                '_dd.p.tid' => Datadog::Tracing::Utils::TraceId.to_high_order(trace_id).to_s(16),
               }
             )
           end

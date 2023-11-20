@@ -378,7 +378,7 @@ RSpec.describe 'OpenTracer context propagation' do
 
       it do
         expect(@origin_carrier).to include(
-          'x-datadog-trace-id' => origin_datadog_span.trace_id.to_s,
+          'x-datadog-trace-id' => Datadog::Tracing::Utils::TraceId.to_low_order(origin_datadog_span.trace_id).to_s,
           'x-datadog-parent-id' => origin_datadog_span.span_id.to_s,
           'x-datadog-sampling-priority' => '1',
           'x-datadog-origin' => 'synthetics',
@@ -388,7 +388,7 @@ RSpec.describe 'OpenTracer context propagation' do
 
       it do
         expect(@intermediate_carrier).to include(
-          'x-datadog-trace-id' => intermediate_datadog_span.trace_id.to_s,
+          'x-datadog-trace-id' => Datadog::Tracing::Utils::TraceId.to_low_order(intermediate_datadog_span.trace_id).to_s,
           'x-datadog-parent-id' => intermediate_datadog_span.span_id.to_s,
           'x-datadog-sampling-priority' => '1',
           'x-datadog-origin' => 'synthetics',
