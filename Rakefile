@@ -65,8 +65,8 @@ TEST_METADATA = {
     'relational_db' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
   },
   'elasticsearch' => {
-    'http'        => '✅ 2.1 / ✅ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
-    'contrib-old' => '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+    'elasticsearch-7' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'elasticsearch-8' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
   },
   'ethon' => {
     'http' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
@@ -602,58 +602,42 @@ namespace :changelog do
   end
 end
 
-native_exts = []
+NATIVE_EXTS = [
+  Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
+  end,
 
-native_exts << Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-  ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
-end
+  Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/ddtrace_profiling_loader'
+  end
+].freeze
 
-native_exts << Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-  ext.ext_dir = 'ext/ddtrace_profiling_loader'
-end
-
-NATIVE_CLEAN = ::Rake::FileList['ext/**/*.o', 'ext/**/*.bundle']
+NATIVE_CLEAN = ::Rake::FileList[]
 namespace :native_dev do
-  def generate_ext_makefile(ext)
-    cmd = ext.make_makefile_cmd(Dir.pwd, ext.ext_dir, "#{ext.ext_dir}/#{ext.config_script}", nil)
-    puts cmd
-    chdir ext.ext_dir do
-      sh(*cmd)
-    end
-  end
+  compile_commands_tasks = NATIVE_EXTS.map do |ext|
+    tmp_dir_dd_native_dev = "#{ext.tmp_dir}/dd_native_dev"
+    directory tmp_dir_dd_native_dev
+    NATIVE_CLEAN << tmp_dir_dd_native_dev
 
-  def generate_ext_compile_commands(ext)
-    chdir ext.ext_dir do
-      sh('make clean; bear -- make; make clean')
-    end
-  end
-
-  compile_commands_tasks = native_exts.map do |ext|
-    makefile_task = file "#{ext.ext_dir}/Makefile" do
-      generate_ext_makefile(ext)
-    end
-
-    NATIVE_CLEAN << makefile_task.name
-    NATIVE_CLEAN << "#{ext.ext_dir}/extconf.h"
-    NATIVE_CLEAN << "#{ext.ext_dir}/mkmf.log"
-
-    compile_commands_task = file "#{ext.ext_dir}/compile_commands.json" => makefile_task do
-      generate_ext_compile_commands(ext)
+    compile_commands_task = file "#{ext.ext_dir}/compile_commands.json" => [tmp_dir_dd_native_dev] do |t|
+      puts "Generating #{t.name}"
+      root_dir = Dir.pwd
+      cmd = ext.make_makefile_cmd(root_dir, tmp_dir_dd_native_dev, "#{ext.ext_dir}/#{ext.config_script}", nil)
+      abs_ext_dir = (Pathname.new(root_dir) + ext.ext_dir).realpath
+      chdir tmp_dir_dd_native_dev do
+        sh(*cmd)
+        sh('make clean; bear -- make; make clean')
+        cp('compile_commands.json', "#{abs_ext_dir}/compile_commands.json")
+      end
     end
 
     NATIVE_CLEAN << compile_commands_task.name
+
     compile_commands_task
   end
 
   desc 'Setup dev environment for native extensions.'
-  task setup: compile_commands_tasks do
-    puts 'Setting up native dev env'
-  end
-
-  desc 'Remove files generated for dev setup.'
-  task :clean do
-    Rake::Cleaner.cleanup_files(NATIVE_CLEAN)
-  end
+  task setup: compile_commands_tasks
 
   CLEAN.concat(NATIVE_CLEAN)
 end

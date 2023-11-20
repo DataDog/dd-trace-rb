@@ -23,6 +23,10 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
     let(:carrier) { instance_double(Datadog::OpenTracer::Carrier) }
 
     before do
+      Datadog.configure do |c|
+        c.tracing.distributed_tracing.propagation_style = ['Datadog']
+      end
+
       # Expect carrier to be set with Datadog trace properties
       expect(carrier).to receive(:[]=)
         .with('x-datadog-trace-id', trace_id.to_s)

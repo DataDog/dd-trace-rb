@@ -83,19 +83,40 @@ module Datadog
 
           extracted_trace_digest = nil
 
-          ::Datadog.configuration.tracing.distributed_tracing.propagation_extract_style.each do |style|
+          config = ::Datadog.configuration.tracing.distributed_tracing
+
+          config.propagation_extract_style.each do |style|
             propagator = @propagation_styles[style]
             next if propagator.nil?
 
             begin
-              extracted_trace_digest = propagator.extract(data)
+              if extracted_trace_digest
+                # Return if we are only inspecting the first valid style.
+                next if config.propagation_extract_first
+
+                # Continue parsing styles to find the W3C `tracestate` header, if present.
+                # `tracestate` must always be propagated, as it might contain pass-through data that we don't control.
+                # @see https://www.w3.org/TR/2021/REC-trace-context-1-20211123/#mutating-the-tracestate-field
+                next if style != Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT
+
+                if (tracecontext_digest = propagator.extract(data))
+                  # Only parse if it represent the same trace as the successfully extracted one
+                  next unless tracecontext_digest.trace_id == extracted_trace_digest.trace_id
+
+                  # Preserve the `tracestate`
+                  extracted_trace_digest = extracted_trace_digest.merge(
+                    trace_state: tracecontext_digest.trace_state,
+                    trace_state_unknown_fields: tracecontext_digest.trace_state_unknown_fields
+                  )
+                end
+              else
+                extracted_trace_digest = propagator.extract(data)
+              end
             rescue => e
               ::Datadog.logger.error(
                 "Error extracting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
               )
             end
-
-            break if extracted_trace_digest
           end
 
           extracted_trace_digest

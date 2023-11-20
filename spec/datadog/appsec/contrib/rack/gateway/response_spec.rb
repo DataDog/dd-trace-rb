@@ -8,12 +8,13 @@ require 'rack'
 RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
   let(:body) { ['Ok'] }
   let(:content_type) { 'text/html' }
+  let(:headers) { { 'Content-Type' => content_type } }
 
   let(:response) do
     described_class.new(
       body,
       200,
-      { 'Content-Type' => content_type },
+      headers,
       scope: instance_double(Datadog::AppSec::Scope)
     )
   end
@@ -39,82 +40,6 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
   describe '#response' do
     it 'returns a rack response object' do
       expect(response.response).to be_a(Rack::Response)
-    end
-  end
-
-  describe '#parsed_body' do
-    context 'json response' do
-      let(:content_type) { 'application/json' }
-
-      context 'when parse_response_body is disable' do
-        around do |example|
-          ClimateControl.modify('DD_API_SECURITY_PARSE_RESPONSE_BODY' => 'false') do
-            example.run
-          end
-        end
-
-        it 'returns a nil' do
-          expect(response.parsed_body).to be_nil
-        end
-      end
-
-      context 'when parse_response_body is enabled' do
-        context 'all body parts are strings' do
-          let(:body) { ['{ "f', 'oo":', ' "ba', 'r" }'] }
-
-          it 'returns a hash object' do
-            expect(response.parsed_body).to eq({ 'foo' => 'bar' })
-          end
-        end
-
-        context 'not all body parts are strings' do
-          let(:body_proc) { proc { ' "ba' } }
-          let(:body) { ['{ "f', 'oo":', body_proc, 'r" }'] }
-
-          it 'returns nil' do
-            expect(response.parsed_body).to be_nil
-          end
-        end
-
-        context 'fail to parse response body' do
-          let(:body) { [''] }
-
-          it 'returns nil' do
-            expect(response.parsed_body).to be_nil
-          end
-        end
-      end
-
-      context 'non supported response type' do
-        let(:content_type) { 'text/xml' }
-
-        it 'returns nil' do
-          expect(response.parsed_body).to be_nil
-        end
-      end
-
-      context 'with a body that is not an Array' do
-        let(:body) { proc { ' "ba' } }
-
-        it 'returns nil' do
-          expect(response.parsed_body).to be_nil
-        end
-      end
-
-      context 'with a body that inherits from Array' do
-        let(:my_body_class) do
-          Class.new(Array) do
-          end
-        end
-
-        let(:body) do
-          my_body_class.new
-        end
-
-        it 'returns nil' do
-          expect(response.parsed_body).to be_nil
-        end
-      end
     end
   end
 end

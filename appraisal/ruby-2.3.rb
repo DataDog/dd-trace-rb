@@ -150,6 +150,10 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
+appraise 'elasticsearch-7' do
+  gem 'elasticsearch', '~> 7'
+end
+
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'
   gem 'delayed_job'
@@ -220,7 +224,6 @@ end
 end
 
 appraise 'contrib-old' do
-  gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
   gem 'faraday', '0.17'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end

@@ -32,7 +32,7 @@ module Datadog
             option :command_args do |o|
               o.type :bool
               o.env Ext::ENV_COMMAND_ARGS
-              o.default true
+              o.default false
             end
 
             option :service_name do |o|
