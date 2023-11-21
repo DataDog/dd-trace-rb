@@ -362,7 +362,7 @@ RSpec.describe 'Faraday middleware' do
 
     it do
       expect(headers).to include(
-        'x-datadog-trace-id' => span.trace_id.to_s,
+        'x-datadog-trace-id' => low_order_trace_id(span.trace_id).to_s,
         'x-datadog-parent-id' => span.span_id.to_s
       )
     end
