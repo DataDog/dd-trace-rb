@@ -2024,6 +2024,29 @@ end
 LogJob.perform_async('login')
 ```
 
+### Trilogy
+
+The trilogy integration traces any SQL command sent through the `trilogy` gem.
+
+```ruby
+require 'trilogy'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.tracing.instrument :trilogy, **options
+end
+
+client = Trilogy.new(host: "localhost", username: "root")
+client.query("SELECT * FROM users WHERE group='x'")
+```
+
+`options` are the following keyword arguments:
+
+| Key                   | Env Var                        | Description                                                                                                                                                                                                                                                                                                                                                             | Default      |
+|-----------------------|---------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| `service_name`        | `DD_TRACE_TRILOGY_SERVICE_NAME` | Name of application running the `trilogy` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)  | `trilogy` |
+| `peer_service`        | `DD_TRACE_TRILOGY_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                         | `nil`     |
+
 ## Additional configuration
 
 To change the default behavior of `ddtrace`, you can use, in order of priority, with 1 being the highest:
