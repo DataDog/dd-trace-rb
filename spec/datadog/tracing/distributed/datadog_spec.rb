@@ -95,12 +95,6 @@ RSpec.shared_examples 'Datadog distributed format' do
       end
 
       context 'with trace_distributed_tags' do
-        shared_context 'with 128-bit trace_id generation disabled' do
-          before do
-            Datadog.configure { |c| c.tracing.trace_id_128_bit_generation_enabled = false }
-          end
-        end
-
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
             trace_id: Datadog::Tracing::Utils::TraceId.next_id,
@@ -109,7 +103,9 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
 
         context 'nil' do
-          include_context 'with 128-bit trace_id generation disabled'
+          before do
+            Datadog.configure { |c| c.tracing.trace_id_128_bit_generation_enabled = false }
+          end
 
           let(:tags) { nil }
           it do
@@ -119,7 +115,9 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
 
         context '{}' do
-          include_context 'with 128-bit trace_id generation disabled'
+          before do
+            Datadog.configure { |c| c.tracing.trace_id_128_bit_generation_enabled = false }
+          end
 
           let(:tags) { {} }
           it do
@@ -185,7 +183,9 @@ RSpec.shared_examples 'Datadog distributed format' do
             end
 
             context 'and no tags' do
-              include_context 'with 128-bit trace_id generation disabled'
+              before do
+                Datadog.configure { |c| c.tracing.trace_id_128_bit_generation_enabled = false }
+              end
               let(:tags) { {} }
               it 'does not set error for empty tags' do
                 expect(active_trace).to_not receive(:set_tag)

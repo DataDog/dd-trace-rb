@@ -447,8 +447,8 @@ RSpec.describe Datadog::OpenTelemetry do
             'x-datadog-parent-id' => Datadog::Tracing.active_span.id.to_s,
             'x-datadog-sampling-priority' => '1',
             'x-datadog-tags' => '_dd.p.dm=-0,_dd.p.tid=' +
-              Datadog::Tracing::Utils::TraceId.to_high_order(Datadog::Tracing.active_trace.id).to_s(16),
-            'x-datadog-trace-id' => Datadog::Tracing::Utils::TraceId.to_low_order(Datadog::Tracing.active_trace.id).to_s,
+              high_order_hex_trace_id(Datadog::Tracing.active_trace.id),
+            'x-datadog-trace-id' => low_order_trace_id(Datadog::Tracing.active_trace.id).to_s,
           }
         end
 
