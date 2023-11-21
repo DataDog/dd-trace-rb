@@ -33,7 +33,8 @@ module Datadog
           carrier[Tracing::Distributed::Datadog::ORIGIN_KEY] = digest.trace_origin
           carrier[Tracing::Distributed::Datadog::PARENT_ID_KEY] = digest.span_id
           carrier[Tracing::Distributed::Datadog::SAMPLING_PRIORITY_KEY] = digest.trace_sampling_priority
-          carrier[Tracing::Distributed::Datadog::TRACE_ID_KEY] = digest.trace_id
+          carrier[Tracing::Distributed::Datadog::TRACE_ID_KEY] =
+            Datadog::Tracing::Utils::TraceId.to_low_order(digest.trace_id)
 
           nil
         end

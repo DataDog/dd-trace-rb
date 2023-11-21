@@ -37,7 +37,9 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
       expect(carrier).to receive(:[]=)
         .with('x-datadog-origin', origin.to_s)
       expect(carrier).to receive(:[]=)
-        .with('x-datadog-tags', "_dd.p.key=value,_dd.p.dm=-1,_dd.p.tid=#{Datadog::Tracing::Utils::TraceId.to_high_order(trace_id).to_s(16)}")
+        .with('x-datadog-tags',
+          '_dd.p.key=value,_dd.p.dm=-1,_dd.p.tid=' +
+                    Datadog::Tracing::Utils::TraceId.to_high_order(trace_id).to_s(16))
 
       # Expect carrier to be set with OpenTracing baggage
       baggage.each do |key, value|
