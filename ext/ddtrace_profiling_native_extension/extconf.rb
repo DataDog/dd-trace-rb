@@ -120,7 +120,7 @@ add_compiler_flag '-Wold-style-definition'
 add_compiler_flag '-Wall'
 add_compiler_flag '-Wextra'
 
-if ENV['DEBUG']
+if ENV['DDTRACE_DEBUG']
   CONFIG['optflags'] = '-O0'
   CONFIG['debugflags'] = '-ggdb3'
 end

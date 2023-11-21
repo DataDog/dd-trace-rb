@@ -278,6 +278,8 @@ static VALUE _native_new(VALUE klass) {
 
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 
+  state->heap_recorder = heap_recorder_init();
+
   // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
 
   initialize_profiles(state, sample_types);
@@ -338,8 +340,6 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_insta
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  state->heap_recorder = heap_recorder_init();
-
   if (cpu_time_enabled == Qtrue && alloc_samples_enabled == Qtrue) return Qtrue; // Nothing to do, this is the default
 
   // When some sample types are disabled, we need to reconfigure libdatadog to record less types,
@@ -374,7 +374,7 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_insta
     state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_disabled_pos++;
   }
 
-  if (alloc_samples_enabled == Qtrue && heap_samples_enabled == Qtrue) {
+  if (heap_samples_enabled == Qtrue) {
     enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SAMPLES_VALUE;
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_enabled_pos++;
   } else {
@@ -397,6 +397,11 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   ddog_Timespec finish_timestamp = system_epoch_now_timespec();
   // Need to do this while still holding on to the Global VM Lock; see comments on method for why
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
+
+  // Flush any pending data in the heap recorder prior to doing the iteration during serialization
+  // This needs to happen while holding on to the Global VM Lock as flushing may do allocations,
+  // frees and complex hash table rebalancings.
+  heap_recorder_flush(state->heap_recorder);
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
@@ -460,6 +465,9 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   metric_values[position_for[ALLOC_SAMPLES_VALUE_ID]] = values.alloc_samples;
 
   if (values.alloc_samples != 0) {
+    // FIXME: Heap sampling is currently being done in 2 parts because the construction of locations is happening
+    //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
+    //        be fixed with some refactoring but for now this is a less impactful change.
     end_heap_allocation_recording(state->heap_recorder, locations);
   }
 
@@ -480,12 +488,15 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   }
 }
 
-void record_obj_allocation(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice *optional_class_name) {
+void track_obj_allocation(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
-  start_heap_allocation_recording(state->heap_recorder, new_object, sample_weight, optional_class_name);
+  start_heap_allocation_recording(state->heap_recorder, new_object, sample_weight);
 }
 
+// Safety: This function can get called while Ruby is doing garbage collection. While Ruby is doing garbage collection,
+// *NO ALLOCATION* is allowed. This function, and any it calls must never trigger memory or object allocation.
+// This includes exceptions and use of ruby_xcalloc (because xcalloc can trigger GC)!
 void record_obj_free(VALUE recorder_instance, VALUE freed_object) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
@@ -512,13 +523,9 @@ typedef struct stack_iteration_context {
   ddog_prof_Profile *profile;
 } stack_iteration_context;
 
-static void add_heap_sample_to_active_profile(stack_iteration_data stack_data, void *extra_arg) {
+static void add_heap_sample_to_active_profile_without_gvl(stack_iteration_data stack_data, void *extra_arg) {
   stack_iteration_context *context = (stack_iteration_context*) extra_arg;
 
-  // Note: We initialize this array to have ALL_VALUE_TYPES_COUNT but only tell libdatadog to use the first
-  // state->enabled_values_count values. This simplifies handling disabled value types -- we still put them on the
-  // array, but in _native_initialize we arrange so their position starts from state->enabled_values_count and thus
-  // libdatadog doesn't touch them.
   int64_t metric_values[ALL_VALUE_TYPES_COUNT] = {0};
   uint8_t *position_for = context->state->position_for;
 
@@ -534,15 +541,18 @@ static void add_heap_sample_to_active_profile(stack_iteration_data stack_data, v
   );
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    // NOTE: Can't use get_error_details_and_drop since it builds new ruby strings and we're outside the GVL
+    ddog_CharSlice errorMsg = ddog_Error_message(&result.err);
+    grab_gvl_and_raise(rb_eArgError, "Failed to record sample: %.*s", (int) errorMsg.len, errorMsg.ptr);
   }
 }
 
-static void build_heap_profile(struct stack_recorder_state *state, ddog_prof_Profile *profile) {
-  stack_iteration_context iteration_context;
-  iteration_context.state = state;
-  iteration_context.profile = profile;
-  heap_recorder_iterate_stacks(state->heap_recorder, add_heap_sample_to_active_profile, (void*) &iteration_context);
+static void build_heap_profile_without_gvl(struct stack_recorder_state *state, ddog_prof_Profile *profile) {
+  stack_iteration_context iteration_context = {
+    .state = state,
+    .profile = profile
+  };
+  heap_recorder_iterate_stacks_without_gvl(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context);
 }
 
 static void *call_serialize_without_gvl(void *call_args) {
@@ -552,7 +562,7 @@ static void *call_serialize_without_gvl(void *call_args) {
 
   // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
   // without needing to race with the active sampler
-  build_heap_profile(args->state, args->profile);
+  build_heap_profile_without_gvl(args->state, args->profile);
 
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);

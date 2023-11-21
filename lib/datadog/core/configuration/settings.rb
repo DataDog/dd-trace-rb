@@ -314,43 +314,51 @@ module Datadog
 
             # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
             #
-            # This feature is safe and enabled by default on Ruby 2.x, but has a few caveats on Ruby 3.x.
-            #
-            # Caveat 1 (severe):
-            # On Ruby versions 3.0 (all), 3.1.0 to 3.1.3, and 3.2.0 to 3.2.2 this is disabled by default because it
-            # can trigger a VM bug that causes a segmentation fault during garbage collection of Ractors
-            # (https://bugs.ruby-lang.org/issues/18464). We don't recommend using this feature on such Rubies.
-            # This bug is fixed on Ruby versions 3.1.4, 3.2.3 and 3.3.0.
-            #
-            # Caveat 2 (annoyance):
-            # On all known versions of Ruby 3.x, due to https://bugs.ruby-lang.org/issues/19112, when a ractor gets
-            # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
-            # Thus this feature is only usable if you're not using Ractors.
-            #
-            # Caveat 3 (severe):
-            # Ruby 3.2.0 to 3.2.2 have a bug in the newobj tracepoint (https://bugs.ruby-lang.org/issues/19482,
-            # https://github.com/ruby/ruby/pull/7464) so that's an extra reason why it's not safe on those Rubies.
-            # This bug is fixed on Ruby versions 3.2.3 and 3.3.0.
+            # This feature is safe and enabled by default only on Rubies where we haven't identified issues.
+            # Refer to {Datadog::Profiling::Ext::IS_ALLOC_SAMPLING_SUPPORTED} for the details.
             #
             # @default `true` on Ruby 2.x and 3.1.4+, 3.2.3+ and 3.3.0+; `false` for Ruby 3.0 and unpatched Rubies.
             option :allocation_counting_enabled do |o|
               o.type :bool
-              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED'
               o.default do
-                RUBY_VERSION.start_with?('2.') ||
-                  (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION >= '3.1.4') ||
-                  (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION >= '3.2.3') ||
-                  RUBY_VERSION >= '3.3.'
+                Profiling::Ext::IS_ALLOCATION_SAMPLING_SUPPORTED
               end
             end
 
-            # Can be used to enable/disable the Datadog::Profiling.heap_count feature.
+            # Can be used to enable/disable collection of allocation profiles.
             #
             # This feature is alpha and disabled by default
-            option :heap_counting_enabled do |o|
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED` environment variable as a boolean, otherwise `false`
+            option :experimental_allocation_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED'
+              o.default false
+            end
+
+            # Can be used to enable/disable the collection of heap profiles.
+            #
+            # This feature is alpha and disabled by default
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED` environment variable as a boolean, otherwise `false`
+            option :experimental_heap_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED'
               o.default false
+            end
+
+            # Can be used to configure the allocation sampling rate: a sample will be collected every x allocations.
+            #
+            # The lower the value, the more accuracy in allocation and heap tracking but the bigger the overhead. In
+            # particular, a value of 1 will sample ALL allocations.
+            #
+            # This feature is not supported in all Rubies. Refer to {Datadog::Profiling::Ext::IS_ALLOC_SAMPLING_SUPPORTED}
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE` environment variable, otherwise `50`.
+            option :experimental_allocation_sample_rate do |o|
+              o.type :int
+              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE'
+              o.default 50
             end
 
             # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.

@@ -18,8 +18,8 @@ class ProfilerSampleLoopBenchmark
   def create_profiler
     @recorder = Datadog::Profiling::StackRecorder.new(
       cpu_time_enabled: true,
-      alloc_samples_enabled: true,
-      heap_samples_enabled: true
+      alloc_samples_enabled: false,
+      heap_samples_enabled: false
     )
     @collector = Datadog::Profiling::Collectors::ThreadContext.new(
       recorder: @recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: false, timeline_enabled: false

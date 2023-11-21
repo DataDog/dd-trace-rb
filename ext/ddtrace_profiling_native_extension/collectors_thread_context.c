@@ -1203,7 +1203,7 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     }
   }
 
-  record_obj_allocation(state->recorder_instance, new_object, sample_weight, optional_class_name);
+  track_obj_allocation(state->recorder_instance, new_object, sample_weight);
 
   trigger_sample_for_thread(
     state,
@@ -1218,6 +1218,9 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
   );
 }
 
+// Safety: This function may get called while Ruby is doing garbage collection. While Ruby is doing garbage collection,
+// *NO ALLOCATION* is allowed. This function, and any it calls must never trigger memory or object allocation.
+// This includes exceptions and use of ruby_xcalloc (because xcalloc can trigger GC)!
 void thread_context_collector_sample_free(VALUE self_instance, VALUE freed_object) {
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
