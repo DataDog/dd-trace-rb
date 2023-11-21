@@ -76,6 +76,8 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             it do
               is_expected.to contain_exactly(
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT
               )
             end
@@ -216,7 +218,9 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             it { is_expected.to eq [] }
 
             it 'does not change propagation_extract_style' do
-              expect { propagation_style }.to_not change { propagation_extract_style }.from(%w[Datadog tracecontext])
+              expect { propagation_style }.to_not change { propagation_extract_style }.from(
+                %w[Datadog b3multi b3 tracecontext]
+              )
             end
 
             it 'does not change propagation_inject_style' do
