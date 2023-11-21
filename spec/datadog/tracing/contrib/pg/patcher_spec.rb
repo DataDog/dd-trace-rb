@@ -71,7 +71,7 @@ RSpec.describe 'PG::Connection patcher' do
           it 'does not generate spans' do
             result = exec
 
-            expect(result.values).to eq([["1"]])
+            expect(result.values).to eq([['1']])
             expect(spans).to be_empty
           end
         end
@@ -322,7 +322,7 @@ RSpec.describe 'PG::Connection patcher' do
           it 'does not generate spans' do
             result = exec_params
 
-            expect(result.values).to eq([["1"]])
+            expect(result.values).to eq([['1']])
             expect(spans).to be_empty
           end
         end
@@ -580,7 +580,7 @@ RSpec.describe 'PG::Connection patcher' do
           it 'does not generate spans' do
             result = exec_prepared
 
-            expect(result.values).to eq([["1"]])
+            expect(result.values).to eq([['1']])
             expect(spans).to be_empty
           end
         end
@@ -824,7 +824,7 @@ RSpec.describe 'PG::Connection patcher' do
           it 'does not generate spans' do
             result = async_exec
 
-            expect(result.values).to eq([["1"]])
+            expect(result.values).to eq([['1']])
             expect(spans).to be_empty
           end
         end
@@ -1085,7 +1085,7 @@ RSpec.describe 'PG::Connection patcher' do
           it 'does not generate spans' do
             result = async_exec_params
 
-            expect(result.values).to eq([["1"]])
+            expect(result.values).to eq([['1']])
             expect(spans).to be_empty
           end
         end
@@ -1342,7 +1342,7 @@ RSpec.describe 'PG::Connection patcher' do
           it 'does not generate spans' do
             result = async_exec_prepared
 
-            expect(result.values).to eq([["1"]])
+            expect(result.values).to eq([['1']])
             expect(spans).to be_empty
           end
         end
@@ -1593,7 +1593,7 @@ RSpec.describe 'PG::Connection patcher' do
           it 'does not generate spans' do
             result = sync_exec
 
-            expect(result.values).to eq([["1"]])
+            expect(result.values).to eq([['1']])
             expect(spans).to be_empty
           end
         end
@@ -1845,7 +1845,7 @@ RSpec.describe 'PG::Connection patcher' do
           it 'does not generate spans' do
             result = sync_exec_params
 
-            expect(result.values).to eq([["1"]])
+            expect(result.values).to eq([['1']])
             expect(spans).to be_empty
           end
         end
@@ -2098,7 +2098,7 @@ RSpec.describe 'PG::Connection patcher' do
           it 'does not generate spans' do
             result = sync_exec_prepared
 
-            expect(result.values).to eq([["1"]])
+            expect(result.values).to eq([['1']])
             expect(spans).to be_empty
           end
         end
