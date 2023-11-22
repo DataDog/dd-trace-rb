@@ -62,6 +62,9 @@ module Datadog
           # @see https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#get_otel__propagators
           PROPAGATION_STYLE_NONE = 'none'
 
+          # Strictly stop at the first successfully serialized style.
+          EXTRACT_FIRST = 'DD_TRACE_PROPAGATION_EXTRACT_FIRST'
+
           ENV_X_DATADOG_TAGS_MAX_LENGTH = 'DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH'
         end
 

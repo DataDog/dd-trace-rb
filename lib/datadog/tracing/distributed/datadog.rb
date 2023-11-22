@@ -49,7 +49,6 @@ module Datadog
           build_tags(digest).tap do |tags|
             inject_tags!(tags, data) unless tags.empty?
           end
-
           data
         end
 

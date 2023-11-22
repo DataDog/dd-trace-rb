@@ -228,28 +228,12 @@ RSpec.shared_examples 'Distributed tracing propagator' do
       end
 
       context 'datadog, and tracecontext header' do
-        let(:data) do
-          {
-            prepare_key['x-datadog-trace-id'] => '61185',
-            prepare_key['x-datadog-parent-id'] => '73456',
-            prepare_key['traceparent'] => '00-11111111111111110000000000000001-000000003ade68b1-01',
-          }
-        end
-
-        it do
-          expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
-          expect(trace_digest.span_id).to eq(73456)
-          expect(trace_digest.trace_id).to eq(61185)
-          expect(trace_digest.trace_sampling_priority).to be nil
-        end
-
-        context 'and sampling priority' do
+        context 'with trace_id not matching' do
           let(:data) do
             {
               prepare_key['x-datadog-trace-id'] => '61185',
               prepare_key['x-datadog-parent-id'] => '73456',
-              prepare_key['x-datadog-sampling-priority'] => '1',
-              prepare_key['traceparent'] => '00-00000000000000000000000000c0ffee-0000000000000bee-00',
+              prepare_key['traceparent'] => '00-11111111111111110000000000000001-000000003ade68b1-01',
             }
           end
 
@@ -257,27 +241,86 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
             expect(trace_digest.span_id).to eq(73456)
             expect(trace_digest.trace_id).to eq(61185)
-            expect(trace_digest.trace_sampling_priority).to eq(1)
+            expect(trace_digest.trace_sampling_priority).to be nil
           end
 
-          context 'with a failing propagator (Datadog)' do
-            let(:error) { StandardError.new('test_err').tap { |e| e.set_backtrace('caller:1') } }
-
-            before do
-              allow_any_instance_of(::Datadog::Tracing::Distributed::Datadog).to receive(:extract).and_raise(error)
-              allow(Datadog.logger).to receive(:error)
+          context 'and sampling priority' do
+            let(:data) do
+              {
+                prepare_key['x-datadog-trace-id'] => '61185',
+                prepare_key['x-datadog-parent-id'] => '73456',
+                prepare_key['x-datadog-sampling-priority'] => '1',
+                prepare_key['traceparent'] => '00-00000000000000000000000000c0ffee-0000000000000bee-00',
+              }
             end
 
-            it 'does not propagate error to caller' do
-              trace_digest
-              expect(Datadog.logger).to have_received(:error).with(/Cause: test_err Location: caller:1/)
-            end
-
-            it 'extracts values from non-failing propagator (tracecontext)' do
+            it do
               expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
-              expect(trace_digest.span_id).to eq(0xbee)
-              expect(trace_digest.trace_id).to eq(0xc0ffee)
-              expect(trace_digest.trace_sampling_priority).to eq(0)
+              expect(trace_digest.span_id).to eq(73456)
+              expect(trace_digest.trace_id).to eq(61185)
+              expect(trace_digest.trace_sampling_priority).to eq(1)
+            end
+
+            context 'with a failing propagator (Datadog)' do
+              let(:error) { StandardError.new('test_err').tap { |e| e.set_backtrace('caller:1') } }
+
+              before do
+                allow_any_instance_of(::Datadog::Tracing::Distributed::Datadog).to receive(:extract).and_raise(error)
+                allow(Datadog.logger).to receive(:error)
+              end
+
+              it 'does not propagate error to caller' do
+                trace_digest
+                expect(Datadog.logger).to have_received(:error).with(/Cause: test_err Location: caller:1/)
+              end
+
+              it 'extracts values from non-failing propagator (tracecontext)' do
+                expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
+                expect(trace_digest.span_id).to eq(0xbee)
+                expect(trace_digest.trace_id).to eq(0xc0ffee)
+                expect(trace_digest.trace_sampling_priority).to eq(0)
+              end
+            end
+          end
+
+          context 'and tracestate' do
+            let(:data) { super().merge(prepare_key['tracestate'] => 'dd=unknown_field;,other=vendor') }
+
+            it 'does not preserve tracestate' do
+              expect(trace_digest.trace_state).to be nil
+              expect(trace_digest.trace_state_unknown_fields).to be nil
+            end
+          end
+        end
+
+        context 'with a matching trace_id' do
+          let(:data) do
+            {
+              prepare_key['x-datadog-trace-id'] => '61185',
+              prepare_key['x-datadog-parent-id'] => '73456',
+              prepare_key['traceparent'] => '00-0000000000000000000000000000ef01-0000000000011ef0-01',
+            }
+          end
+
+          it 'does not parse tracecontext sampling priority' do
+            expect(trace_digest.trace_sampling_priority).to be nil
+          end
+
+          context 'and tracestate' do
+            let(:data) { super().merge(prepare_key['tracestate'] => 'dd=unknown_field;,other=vendor') }
+
+            it 'preserves tracestate' do
+              expect(trace_digest.trace_state).to eq('other=vendor')
+              expect(trace_digest.trace_state_unknown_fields).to eq('unknown_field;')
+            end
+
+            context 'with propagation_extract_first true' do
+              before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_extract_first = true } }
+
+              it 'does not preserve tracestate' do
+                expect(trace_digest.trace_state).to be nil
+                expect(trace_digest.trace_state_unknown_fields).to be nil
+              end
             end
           end
         end

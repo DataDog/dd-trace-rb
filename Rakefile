@@ -602,12 +602,44 @@ namespace :changelog do
   end
 end
 
-Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-  ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
-end
+NATIVE_EXTS = [
+  Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
+  end,
 
-Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-  ext.ext_dir = 'ext/ddtrace_profiling_loader'
+  Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/ddtrace_profiling_loader'
+  end
+].freeze
+
+NATIVE_CLEAN = ::Rake::FileList[]
+namespace :native_dev do
+  compile_commands_tasks = NATIVE_EXTS.map do |ext|
+    tmp_dir_dd_native_dev = "#{ext.tmp_dir}/dd_native_dev"
+    directory tmp_dir_dd_native_dev
+    NATIVE_CLEAN << tmp_dir_dd_native_dev
+
+    compile_commands_task = file "#{ext.ext_dir}/compile_commands.json" => [tmp_dir_dd_native_dev] do |t|
+      puts "Generating #{t.name}"
+      root_dir = Dir.pwd
+      cmd = ext.make_makefile_cmd(root_dir, tmp_dir_dd_native_dev, "#{ext.ext_dir}/#{ext.config_script}", nil)
+      abs_ext_dir = (Pathname.new(root_dir) + ext.ext_dir).realpath
+      chdir tmp_dir_dd_native_dev do
+        sh(*cmd)
+        sh('make clean; bear -- make; make clean')
+        cp('compile_commands.json', "#{abs_ext_dir}/compile_commands.json")
+      end
+    end
+
+    NATIVE_CLEAN << compile_commands_task.name
+
+    compile_commands_task
+  end
+
+  desc 'Setup dev environment for native extensions.'
+  task setup: compile_commands_tasks
+
+  CLEAN.concat(NATIVE_CLEAN)
 end
 
 desc 'Runs rubocop + main test suite'

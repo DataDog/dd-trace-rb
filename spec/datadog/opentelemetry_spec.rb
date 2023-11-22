@@ -622,18 +622,22 @@ RSpec.describe Datadog::OpenTelemetry do
       describe '#inject' do
         subject(:inject) { ::OpenTelemetry.propagation.inject(carrier) }
         let(:carrier) { {} }
+        def headers
+          {
+            'x-datadog-parent-id' => Datadog::Tracing.active_span.id.to_s,
+            'x-datadog-sampling-priority' => '1',
+            'x-datadog-tags' => '_dd.p.dm=-0,_dd.p.tid=' +
+              high_order_hex_trace_id(Datadog::Tracing.active_trace.id),
+            'x-datadog-trace-id' => low_order_trace_id(Datadog::Tracing.active_trace.id).to_s,
+          }
+        end
 
         context 'with an active span' do
           before { otel_tracer.start_span('existing-active-span') }
 
           it 'injects Datadog headers' do
             inject
-            expect(carrier).to eq(
-              'x-datadog-parent-id' => Datadog::Tracing.active_span.id.to_s,
-              'x-datadog-sampling-priority' => '1',
-              'x-datadog-tags' => '_dd.p.dm=-0',
-              'x-datadog-trace-id' => Datadog::Tracing.active_trace.id.to_s,
-            )
+            expect(carrier).to eq(headers)
           end
         end
 
@@ -642,12 +646,7 @@ RSpec.describe Datadog::OpenTelemetry do
 
           it 'injects Datadog headers' do
             inject
-            expect(carrier).to eq(
-              'x-datadog-parent-id' => Datadog::Tracing.active_span.id.to_s,
-              'x-datadog-sampling-priority' => '1',
-              'x-datadog-tags' => '_dd.p.dm=-0',
-              'x-datadog-trace-id' => Datadog::Tracing.active_trace.id.to_s,
-            )
+            expect(carrier).to eq(headers)
           end
         end
       end

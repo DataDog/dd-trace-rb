@@ -76,6 +76,8 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             it do
               is_expected.to contain_exactly(
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT
               )
             end
@@ -216,7 +218,9 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             it { is_expected.to eq [] }
 
             it 'does not change propagation_extract_style' do
-              expect { propagation_style }.to_not change { propagation_extract_style }.from(%w[Datadog tracecontext])
+              expect { propagation_style }.to_not change { propagation_extract_style }.from(
+                %w[Datadog b3multi b3 tracecontext]
+              )
             end
 
             it 'does not change propagation_inject_style' do
@@ -236,6 +240,43 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             it 'sets propagation_inject_style' do
               expect { propagation_style }.to change { propagation_inject_style }.to(%w[b3multi b3])
             end
+          end
+        end
+      end
+
+      describe '#propagation_extract_first' do
+        subject(:propagation_extract_first) { settings.tracing.distributed_tracing.propagation_extract_first }
+
+        let(:var_value) { nil }
+        let(:var_name) { 'DD_TRACE_PROPAGATION_EXTRACT_FIRST' }
+        it { is_expected.to be false }
+
+        context 'when DD_TRACE_PROPAGATION_EXTRACT_FIRST' do
+          context 'is not defined' do
+            let(:var_value) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          context 'is set to true' do
+            let(:var_value) { 'true' }
+
+            it { is_expected.to be true }
+          end
+
+          context 'is set to false' do
+            let(:var_value) { 'false' }
+
+            it { is_expected.to be false }
+          end
+        end
+
+        describe '#propagation_extract_first=' do
+          it 'updates the #propagation_extract_first setting' do
+            expect { settings.tracing.distributed_tracing.propagation_extract_first = true }
+              .to change { settings.tracing.distributed_tracing.propagation_extract_first }
+              .from(false)
+              .to(true)
           end
         end
       end
@@ -785,7 +826,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         context 'is not defined' do
           let(:env_var) { nil }
 
-          it { is_expected.to eq(false) }
+          it { is_expected.to eq(true) }
         end
 
         context 'is `true`' do
@@ -805,10 +846,10 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     describe '#trace_id_128_bit_generation_enabled=' do
       it 'updates the #trace_id_128_bit_generation_enabled setting' do
         expect do
-          settings.tracing.trace_id_128_bit_generation_enabled = true
+          settings.tracing.trace_id_128_bit_generation_enabled = false
         end.to change { settings.tracing.trace_id_128_bit_generation_enabled }
-          .from(false)
-          .to(true)
+          .from(true)
+          .to(false)
       end
     end
 
