@@ -7,9 +7,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   let(:numeric_labels) { [] }
   let(:cpu_time_enabled) { true }
   let(:alloc_samples_enabled) { true }
+  let(:heap_samples_enabled) { true }
 
   subject(:stack_recorder) do
-    described_class.new(cpu_time_enabled: cpu_time_enabled, alloc_samples_enabled: alloc_samples_enabled)
+    described_class.new(
+      cpu_time_enabled: cpu_time_enabled,
+      alloc_samples_enabled: alloc_samples_enabled,
+      heap_samples_enabled: heap_samples_enabled
+    )
   end
 
   # NOTE: A lot of libdatadog integration behaviors are tested in the Collectors::Stack specs, since we need actual
@@ -114,6 +119,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       context 'when all profile types are enabled' do
         let(:cpu_time_enabled) { true }
         let(:alloc_samples_enabled) { true }
+        let(:heap_samples_enabled) { true }
 
         it 'returns a pprof with the configured sample types' do
           expect(sample_types_from(decoded_profile)).to eq(
@@ -121,6 +127,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             'cpu-samples' => 'count',
             'wall-time' => 'nanoseconds',
             'alloc-samples' => 'count',
+            'heap-live-samples' => 'count',
           )
         end
       end
@@ -128,12 +135,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       context 'when cpu-time is disabled' do
         let(:cpu_time_enabled) { false }
         let(:alloc_samples_enabled) { true }
+        let(:heap_samples_enabled) { true }
 
         it 'returns a pprof without the cpu-type type' do
           expect(sample_types_from(decoded_profile)).to eq(
             'cpu-samples' => 'count',
             'wall-time' => 'nanoseconds',
             'alloc-samples' => 'count',
+            'heap-live-samples' => 'count',
           )
         end
       end
@@ -141,12 +150,29 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       context 'when alloc-samples is disabled' do
         let(:cpu_time_enabled) { true }
         let(:alloc_samples_enabled) { false }
+        let(:heap_samples_enabled) { true }
 
         it 'returns a pprof without the alloc-samples type' do
           expect(sample_types_from(decoded_profile)).to eq(
             'cpu-time' => 'nanoseconds',
             'cpu-samples' => 'count',
             'wall-time' => 'nanoseconds',
+            'heap-live-samples' => 'count',
+          )
+        end
+      end
+
+      context 'when heap-live-samples is disabled' do
+        let(:cpu_time_enabled) { true }
+        let(:alloc_samples_enabled) { true }
+        let(:heap_samples_enabled) { false }
+
+        it 'returns a pprof without the heap-live-samples type' do
+          expect(sample_types_from(decoded_profile)).to eq(
+            'cpu-time' => 'nanoseconds',
+            'cpu-samples' => 'count',
+            'wall-time' => 'nanoseconds',
+            'alloc-samples' => 'count',
           )
         end
       end
@@ -154,8 +180,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       context 'when all optional types are disabled' do
         let(:cpu_time_enabled) { false }
         let(:alloc_samples_enabled) { false }
+        let(:heap_samples_enabled) { false }
 
-        it 'returns a pprof with without the optional types' do
+        it 'returns a pprof without the optional types' do
           expect(sample_types_from(decoded_profile)).to eq(
             'cpu-samples' => 'count',
             'wall-time' => 'nanoseconds',
@@ -198,7 +225,13 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       it 'encodes the sample with the metrics provided' do
         expect(samples.first.values)
-          .to eq(:'cpu-time' => 123, :'cpu-samples' => 456, :'wall-time' => 789, :'alloc-samples' => 4242)
+          .to eq(
+            :'cpu-time' => 123,
+            :'cpu-samples' => 456,
+            :'wall-time' => 789,
+            :'alloc-samples' => 4242,
+            :'heap-live-samples' => 0
+          )
       end
 
       context 'when disabling an optional profile sample type' do
@@ -206,7 +239,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         it 'encodes the sample with the metrics provided, ignoring the disabled ones' do
           expect(samples.first.values)
-            .to eq(:'cpu-samples' => 456, :'wall-time' => 789, :'alloc-samples' => 4242)
+            .to eq(:'cpu-samples' => 456, :'wall-time' => 789, :'alloc-samples' => 4242, :'heap-live-samples' => 0)
         end
       end
 
@@ -299,6 +332,60 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               { :'local root span id' => 123, :'trace endpoint' => 'recorded-endpoint' }
           end
         ).to have(2).items
+      end
+    end
+
+    describe 'heap samples' do
+      let(:metric_values) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => 10 } }
+      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
+      let(:sample_rate) { 50 }
+
+      let(:a_string) { 'a beautiful string' }
+      let(:another_string) { 'a fearsome string' }
+      let(:an_array) { [1..10] }
+      let(:another_array) { [-10..-1] }
+      let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true } }
+      let(:another_hash) { { 'z' => -1, 'y' => '-2', 'x' => false } }
+
+      let(:allocated_objects) do
+        [a_string, another_string, an_array, another_array, a_hash, another_hash]
+      end
+
+      let(:freed_objects) do
+        ['this rando', another_string, 'that rando', 'another rando', another_array, another_hash]
+      end
+
+      let(:samples) { samples_from_pprof(encoded_pprof) }
+
+      before do
+        allocated_objects.each do |obj|
+          described_class::Testing._native_track_obj_allocation(stack_recorder, obj, sample_rate)
+          Datadog::Profiling::Collectors::Stack::Testing
+            ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+        end
+
+        freed_objects.each do |obj|
+          described_class::Testing._native_record_obj_free(stack_recorder, obj)
+        end
+      end
+
+      context 'when disabled' do
+        let(:heap_samples_enabled) { false }
+
+        it 'are ommitted from the profile' do
+          expect(samples.filter { |s| s.values.key?('heap-live-samples') }).to eq([])
+        end
+      end
+
+      context 'when enabled' do
+        let(:heap_samples_enabled) { true }
+
+        it 'are included in the profile' do
+          expect(samples.sum { |s| s.values['heap-live-samples'] || 0 }).to eq(
+            # FIXME: When we actually implement heap recorder we'll have to udpate this value
+            0
+          )
+        end
       end
     end
 

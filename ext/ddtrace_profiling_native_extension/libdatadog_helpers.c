@@ -40,3 +40,30 @@ ddog_CharSlice ruby_value_type_to_char_slice(enum ruby_value_type type) {
                   default: return DDOG_CHARSLICE_C("BUG: Unknown value for ruby_value_type");
   }
 }
+
+#define MAX_DDOG_ERR_MESSAGE_SIZE 128
+#define DDOG_ERR_MESSAGE_TRUNCATION_SUFFIX "..."
+
+void grab_gvl_and_raise_ddogerr_and_drop(const char *while_context, ddog_Error *error) {
+  char error_msg[MAX_DDOG_ERR_MESSAGE_SIZE];
+  ddog_CharSlice error_msg_slice = ddog_Error_message(error);
+  size_t copy_size = error_msg_slice.len;
+  // Account for extra null char for proper cstring
+  size_t error_msg_size = copy_size + 1;
+  bool truncated = false;
+  if (error_msg_size > MAX_DDOG_ERR_MESSAGE_SIZE) {
+    // if it seems like the error msg won't fit, lets truncate things by limiting
+    // the copy_size to MAX_SIZE minus the size of the truncation suffix
+    // (which already includes space for a terminating '\0' due to how sizeof works)
+    copy_size = MAX_DDOG_ERR_MESSAGE_SIZE - sizeof(DDOG_ERR_MESSAGE_TRUNCATION_SUFFIX);
+    error_msg_size = MAX_DDOG_ERR_MESSAGE_SIZE;
+    truncated = true;
+  }
+  strncpy(error_msg, error_msg_slice.ptr, copy_size);
+  if (truncated) {
+    strcpy(error_msg + copy_size, DDOG_ERR_MESSAGE_TRUNCATION_SUFFIX);
+  }
+  error_msg[error_msg_size - 1] = '\0';
+  ddog_Error_drop(error);
+  grab_gvl_and_raise(rb_eRuntimeError, "Libstreaming error while (%s): %s", while_context, error_msg);
+}

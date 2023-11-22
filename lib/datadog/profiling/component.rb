@@ -41,10 +41,14 @@ module Datadog
 
         no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
         timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
+        allocation_sample_every = get_allocation_sample_every(settings)
+        allocation_profiling_enabled = enable_allocation_profiling?(settings, allocation_sample_every)
+        heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled)
 
         recorder = Datadog::Profiling::StackRecorder.new(
           cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
-          alloc_samples_enabled: false, # Always disabled for now -- work in progress
+          alloc_samples_enabled: allocation_profiling_enabled,
+          heap_samples_enabled: heap_profiling_enabled,
         )
         thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.new(
           recorder: recorder,
@@ -58,7 +62,9 @@ module Datadog
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           thread_context_collector: thread_context_collector,
-          allocation_sample_every: 0,
+          allocation_sample_every: allocation_sample_every,
+          allocation_profiling_enabled: allocation_profiling_enabled,
+          heap_profiling_enabled: heap_profiling_enabled,
         )
 
         internal_metadata = {
@@ -108,6 +114,52 @@ module Datadog
         else
           false
         end
+      end
+
+      private_class_method def self.get_allocation_sample_every(settings)
+        allocation_sample_rate = settings.profiling.advanced.experimental_allocation_sample_rate
+
+        if allocation_sample_rate <= 0
+          raise("Allocation sample rate must be a positive integer. Was #{allocation_sample_rate}")
+        end
+
+        allocation_sample_rate
+      end
+
+      private_class_method def self.enable_allocation_profiling?(settings, allocation_sample_every)
+        allocation_profiling_enabled = settings.profiling.advanced.experimental_allocation_enabled
+
+        if allocation_profiling_enabled
+          Datadog.logger.warn(
+            "Enabled experimental allocation profiling: allocation_sample_rate=#{allocation_sample_every}. This is " \
+            'experimental, not recommended, and will increase overhead!'
+          )
+        end
+
+        if allocation_profiling_enabled && !Ext::IS_ALLOCATION_SAMPLING_SUPPORTED
+          Datadog.logger.warn(
+            "Current Ruby version (#{RUBY_VERSION}) does not officially support allocation profiling but it was " \
+            'requested. There may be unexpected problems during execution.'
+          )
+        end
+
+        allocation_profiling_enabled
+      end
+
+      private_class_method def self.enable_heap_profiling?(settings, allocation_profiling_enabled)
+        heap_profiling_enabled = settings.profiling.advanced.experimental_allocation_enabled
+
+        if heap_profiling_enabled && !allocation_profiling_enabled
+          raise('Heap profiling requires allocation profiling to be enabled')
+        end
+
+        if heap_profiling_enabled
+          Datadog.logger.warn(
+            'Enabled experimental heap profiling. This is experimental, not recommended, and will increase overhead!'
+          )
+        end
+
+        heap_profiling_enabled
       end
 
       private_class_method def self.no_signals_workaround_enabled?(settings) # rubocop:disable Metrics/MethodLength
