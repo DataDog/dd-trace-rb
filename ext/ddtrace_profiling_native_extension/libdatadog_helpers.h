@@ -24,6 +24,12 @@ inline static VALUE get_error_details_and_drop(ddog_Error *error) {
   return result;
 }
 
+// Utility function to be able to easily raise a ddog_Error outside the GVL.
+// The message will look like 'Libstreaming error while <while_context>: <error.msg>'
+NORETURN(
+  void grab_gvl_and_raise_ddogerr_and_drop(const char *while_context, ddog_Error *error);
+);
+
 // Used for pretty printing this Ruby enum. Returns "T_UNKNOWN_OR_MISSING_RUBY_VALUE_TYPE_ENTRY" for unknown elements.
 // In practice, there's a few types that the profiler will probably never encounter, but I've added all entries of
 // ruby_value_type that Ruby uses so that we can also use this for debugging.

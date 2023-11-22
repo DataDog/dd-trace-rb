@@ -22,18 +22,13 @@ module Datadog
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
-          allocation_sample_every: 0 # Currently only for testing; Setting this to > 0 can add a lot of overhead!
+          allocation_sample_every:,
+          allocation_profiling_enabled:,
+          heap_profiling_enabled:
         )
           unless dynamic_sampling_rate_enabled
             Datadog.logger.warn(
               'Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!'
-            )
-          end
-
-          if allocation_counting_enabled && allocation_sample_every > 0
-            Datadog.logger.warn(
-              "Enabled experimental allocation profiling: allocation_sample_every=#{allocation_sample_every}. This is " \
-              'experimental, not recommended, and will increase overhead!'
             )
           end
 
@@ -46,6 +41,8 @@ module Datadog
             no_signals_workaround_enabled,
             dynamic_sampling_rate_enabled,
             allocation_sample_every,
+            allocation_profiling_enabled,
+            heap_profiling_enabled,
           )
           @worker_thread = nil
           @failure_exception = nil
