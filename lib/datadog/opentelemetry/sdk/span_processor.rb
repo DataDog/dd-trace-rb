@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'trace/span'
+
 module Datadog
   module OpenTelemetry
     module SDK
@@ -90,18 +92,34 @@ module Datadog
 
         # Some special attributes can override Datadog Span fields
         def span_arguments(span, attributes)
-          if attributes.key?('analytics.event')
-            attributes[Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE] =
-              attributes['analytics.event'] == 'true' ? 1 : 0
+          if attributes.key?('analytics.event') && (analytics_event = attributes['analytics.event']).respond_to?(:casecmp)
+            attributes[Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE] = analytics_event.casecmp('true') == 0 ? 1 : 0
           end
           attributes[Tracing::Metadata::Ext::TAG_KIND] = span.kind || 'internal'
 
-          kwargs = { tags: attributes, start_time: ns_to_time(span.start_timestamp) }
+          kwargs = { start_time: ns_to_time(span.start_timestamp) }
 
-          name = attributes.key?('operation.name') ? attributes['operation.name'] : span.name
-          kwargs[:resource] = attributes['resource.name'] if attributes.key?('resource.name')
+          name = if attributes.key?('operation.name')
+                   attributes['operation.name']
+                 elsif (rich_name = Datadog::OpenTelemetry::Trace::Span.enrich_name(span.kind, attributes))
+                   rich_name.downcase
+                 else
+                   span.kind
+                 end
+
+          kwargs[:resource] = attributes.key?('resource.name') ? attributes['resource.name'] : span.name
           kwargs[:service] = attributes['service.name'] if attributes.key?('service.name')
           kwargs[:type] = attributes['span.type'] if attributes.key?('span.type')
+
+          attributes.reject! { |key, _| OpenTelemetry::Trace::Span::DATADOG_SPAN_ATTRIBUTE_OVERRIDES.include?(key) }
+
+          # DEV: There's no `flat_map!`; we have to split it into two operations
+          attributes = attributes.map do |key, value|
+            Datadog::OpenTelemetry::Trace::Span.serialize_attribute(key, value)
+          end
+          attributes.flatten!(1)
+
+          kwargs[:tags] = attributes
 
           [name, kwargs]
         end
