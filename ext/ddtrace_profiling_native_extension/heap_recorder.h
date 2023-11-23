@@ -8,6 +8,9 @@
 // All allocations observed by this recorder for which a corresponding free was
 // not yet observed are deemed as alive and can be iterated on to produce a
 // live heap profile.
+//
+// WARN: Unless otherwise stated the heap recorder APIs assume calls are done
+// under the GVL.
 typedef struct heap_recorder heap_recorder;
 
 // Extra data associated with each live object being tracked.
@@ -89,10 +92,10 @@ void heap_recorder_flush(heap_recorder *heap_recorder);
 // @param for_each_callback_extra_arg
 //   Optional (NULL if empty) extra data that should be passed to the
 //   callback function alongside the data for each live tracked object.
-//
-// NOTE: This function is designed to be called from restricted scopes (e.g. without GVL) and, as such,
-//       guarantees no heap mutations or raises.
+// @param with_gvl
+//   True if we're calling this while holding the GVL, false otherwise.
 void heap_recorder_for_each_live_object(
     heap_recorder *heap_recorder,
     void (*for_each_callback)(heap_recorder_iteration_data data, void* extra_arg),
-    void *for_each_callback_extra_arg);
+    void *for_each_callback_extra_arg,
+    bool with_gvl);

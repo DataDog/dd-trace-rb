@@ -7,7 +7,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   let(:numeric_labels) { [] }
   let(:cpu_time_enabled) { true }
   let(:alloc_samples_enabled) { true }
-  let(:heap_samples_enabled) { true }
+  # Disabling these by default since they require some extra setup and produce separate samples.
+  # Enabling this is tested in a particular context below.
+  let(:heap_samples_enabled) { false }
 
   subject(:stack_recorder) do
     described_class.new(
@@ -230,7 +232,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             :'cpu-samples' => 456,
             :'wall-time' => 789,
             :'alloc-samples' => 4242,
-            :'heap-live-samples' => 0
           )
       end
 
@@ -239,7 +240,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         it 'encodes the sample with the metrics provided, ignoring the disabled ones' do
           expect(samples.first.values)
-            .to eq(:'cpu-samples' => 456, :'wall-time' => 789, :'alloc-samples' => 4242, :'heap-live-samples' => 0)
+            .to eq(:'cpu-samples' => 456, :'wall-time' => 789, :'alloc-samples' => 4242)
         end
       end
 
@@ -336,7 +337,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
 
     describe 'heap samples' do
-      let(:metric_values) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => 10 } }
+      let(:metric_values1) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => 10 } }
+      let(:metric_values2) { { 'cpu-time' => 102, 'cpu-samples' => 2, 'wall-time' => 790, 'alloc-samples' => 11 } }
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
       let(:sample_rate) { 50 }
 
@@ -348,7 +350,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:another_hash) { { 'z' => -1, 'y' => '-2', 'x' => false } }
 
       let(:allocated_objects) do
-        [a_string, another_string, an_array, another_array, a_hash, another_hash]
+        [a_string, an_array, another_string, another_array, a_hash, another_hash]
       end
 
       let(:freed_objects) do
@@ -358,10 +360,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
       before do
-        allocated_objects.each do |obj|
+        allocated_objects.each_with_index do |obj, i|
+          # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
           described_class::Testing._native_track_obj_allocation(stack_recorder, obj, sample_rate)
-          Datadog::Profiling::Collectors::Stack::Testing
-            ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+          # ...and then pass data about the allocation stacktrace (with 2 distinct stacktraces)
+          if i.even?
+            Datadog::Profiling::Collectors::Stack::Testing
+              ._native_sample(Thread.current, stack_recorder, metric_values1, labels, numeric_labels, 400, false)
+          else
+            Datadog::Profiling::Collectors::Stack::Testing
+              ._native_sample(Thread.current, stack_recorder, metric_values2, labels, numeric_labels, 400, false)
+          end
         end
 
         freed_objects.each do |obj|
@@ -373,6 +382,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:heap_samples_enabled) { false }
 
         it 'are ommitted from the profile' do
+          # We sample from 2 distinct locations
+          expect(samples.size).to eq(2)
           expect(samples.filter { |s| s.values.key?('heap-live-samples') }).to eq([])
         end
       end
@@ -381,9 +392,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:heap_samples_enabled) { true }
 
         it 'are included in the profile' do
-          expect(samples.sum { |s| s.values['heap-live-samples'] || 0 }).to eq(
-            # FIXME: When we actually implement heap recorder we'll have to udpate this value
-            0
+          # pending 'heap_recorder implementation is currently missing'
+          pp(samples)
+          # We sample from 2 distinct locations but heap samples don't have the same
+          # labels as the others so they get duped.
+          expect(samples.size).to eq(4)
+
+          expect(samples.sum { |s| s.values[:'heap-live-samples'] || 0 }).to eq(
+            [a_string, an_array, a_hash].size * sample_rate
           )
         end
       end

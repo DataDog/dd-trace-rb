@@ -108,3 +108,13 @@ void raise_syserr(
     grab_gvl_and_raise_syserr(syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
   }
 }
+
+char* ruby_strndup(const char *str, size_t size) {
+  char *dup;
+
+  dup = xmalloc(size + 1);
+  memcpy(dup, str, size);
+  dup[size] = '\0';
+
+  return dup;
+}

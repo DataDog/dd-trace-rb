@@ -283,7 +283,9 @@ static VALUE _native_new(VALUE klass) {
 
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 
-  state->heap_recorder = heap_recorder_new();
+  // By default we won't initialize the heap recorder, only if we'll actually enable heap samples.
+  // (No point incurring the tracking cost only to drop that data on the floor)
+  state->heap_recorder = NULL;
 
   // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
 
@@ -333,7 +335,11 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   pthread_mutex_destroy(&state->slot_two_mutex);
   ddog_prof_Profile_drop(&state->slot_two_profile);
 
-  heap_recorder_free(state->heap_recorder);
+  if (state->heap_recorder != NULL) {
+    // We only initialize the heap recorder if we're collecting heap samples.
+    // If we initialized it, we need to free it...
+    heap_recorder_free(state->heap_recorder);
+  }
   ruby_xfree(state);
 }
 
@@ -344,6 +350,11 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_insta
 
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  if (heap_samples_enabled == Qtrue) {
+    // Initalize the recorder now that we have confirmation we want heap samples
+    state->heap_recorder = heap_recorder_new();
+  }
 
   if (cpu_time_enabled == Qtrue && alloc_samples_enabled == Qtrue && heap_samples_enabled == Qtrue) return Qtrue; // Nothing to do, this is the default
 
@@ -406,10 +417,12 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // Need to do this while still holding on to the Global VM Lock; see comments on method for why
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
-  // Flush any pending data in the heap recorder prior to doing the iteration during serialization
-  // This needs to happen while holding on to the Global VM Lock as flushing may require doing allocations,
-  // frees and complex hash table rebalancings.
-  heap_recorder_flush(state->heap_recorder);
+  if (state->heap_recorder != NULL) {
+    // Flush any pending data in the heap recorder prior to doing the iteration during serialization
+    // This needs to happen while holding on to the Global VM Lock as flushing may require doing allocations,
+    // frees and complex hash table rebalancings.
+    heap_recorder_flush(state->heap_recorder);
+  }
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
@@ -472,7 +485,9 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   metric_values[position_for[WALL_TIME_VALUE_ID]]     = values.wall_time_ns;
   metric_values[position_for[ALLOC_SAMPLES_VALUE_ID]] = values.alloc_samples;
 
-  if (values.alloc_samples != 0) {
+  if (values.alloc_samples != 0 && state->heap_recorder != NULL) {
+    // If we got an allocation sample and our heap recorder is initialized,
+    // end the heap allocation recording to commit the heap sample.
     // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
     //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
     //        be fixed with some refactoring but for now this leads to a less impactful change.
@@ -499,6 +514,10 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
 void track_obj_allocation(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+  if (state->heap_recorder == NULL) {
+    // we aren't gathering heap data so we can ignore this
+    return;
+  }
   // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
   //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
   //        be fixed with some refactoring but for now this leads to a less impactful change.
@@ -509,6 +528,10 @@ void track_obj_allocation(VALUE recorder_instance, VALUE new_object, unsigned in
 void record_obj_free(VALUE recorder_instance, VALUE freed_object) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+  if (state->heap_recorder == NULL) {
+    // we aren't gathering heap data so we can ignore this
+    return;
+  }
   record_heap_free(state->heap_recorder, freed_object);
 }
 
@@ -561,7 +584,7 @@ static void build_heap_profile_without_gvl(struct stack_recorder_state *state, d
     .state = state,
     .profile = profile
   };
-  heap_recorder_for_each_live_object(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context);
+  heap_recorder_for_each_live_object(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context, false);
 }
 
 static void *call_serialize_without_gvl(void *call_args) {
@@ -569,9 +592,11 @@ static void *call_serialize_without_gvl(void *call_args) {
 
   args->profile = serializer_flip_active_and_inactive_slots(args->state);
 
-  // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
-  // without needing to race with the active sampler
-  build_heap_profile_without_gvl(args->state, args->profile);
+  if (args->state->heap_recorder != NULL) {
+    // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
+    // without needing to race with the active sampler
+    build_heap_profile_without_gvl(args->state, args->profile);
+  }
 
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
