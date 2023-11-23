@@ -273,6 +273,10 @@ module Datadog
       def handle_interrupt_shutdown!
         logger = Datadog.logger
         shutdown_thread = Thread.new { shutdown! }
+        unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+          shutdown_thread.name = Datadog::Core::Configuration.name
+        end
+
         print_message_treshold_seconds = 0.2
 
         slow_shutdown = shutdown_thread.join(print_message_treshold_seconds).nil?
