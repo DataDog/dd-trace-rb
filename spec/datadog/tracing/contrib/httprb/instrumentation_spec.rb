@@ -233,8 +233,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
             expect(http_response.headers['x-datadog-parent-id']).to eq(span.span_id.to_s)
           end
 
-          it 'propogrates the trace id header' do
-            expect(http_response.headers['x-datadog-trace-id']).to eq(span.trace_id.to_s)
+          it 'propagates the trace id header' do
+            expect(http_response.headers['x-datadog-trace-id']).to eq(low_order_trace_id(span.trace_id).to_s)
           end
         end
 

@@ -76,6 +76,8 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             it do
               is_expected.to contain_exactly(
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT
               )
             end
@@ -216,7 +218,9 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             it { is_expected.to eq [] }
 
             it 'does not change propagation_extract_style' do
-              expect { propagation_style }.to_not change { propagation_extract_style }.from(%w[Datadog tracecontext])
+              expect { propagation_style }.to_not change { propagation_extract_style }.from(
+                %w[Datadog b3multi b3 tracecontext]
+              )
             end
 
             it 'does not change propagation_inject_style' do
@@ -822,7 +826,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         context 'is not defined' do
           let(:env_var) { nil }
 
-          it { is_expected.to eq(false) }
+          it { is_expected.to eq(true) }
         end
 
         context 'is `true`' do
@@ -842,10 +846,10 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     describe '#trace_id_128_bit_generation_enabled=' do
       it 'updates the #trace_id_128_bit_generation_enabled setting' do
         expect do
-          settings.tracing.trace_id_128_bit_generation_enabled = true
+          settings.tracing.trace_id_128_bit_generation_enabled = false
         end.to change { settings.tracing.trace_id_128_bit_generation_enabled }
-          .from(false)
-          .to(true)
+          .from(true)
+          .to(false)
       end
     end
 
