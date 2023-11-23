@@ -52,12 +52,17 @@ static VALUE _native_do_export(
 static void *call_exporter_without_gvl(void *call_args);
 static void interrupt_exporter_call(void *cancel_token);
 static VALUE ddtrace_version(void);
+static VALUE _native_crashtracker_init_full(DDTRACE_UNUSED VALUE _self, VALUE tags_as_array, VALUE exporter_configuration, VALUE path_to_receiver_binary);
 
 void http_transport_init(VALUE profiling_module) {
   http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
   rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 12);
+
+  VALUE crash_tracker_module = rb_define_module_under(profiling_module, "CrashTracker");
+
+  rb_define_singleton_method(crash_tracker_module, "_native_crashtracker_init_full", _native_crashtracker_init_full, 3);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -67,6 +72,35 @@ void http_transport_init(VALUE profiling_module) {
 
   library_version_string = ddtrace_version();
   rb_global_variable(&library_version_string);
+}
+
+static VALUE _native_crashtracker_init_full(DDTRACE_UNUSED VALUE _self, VALUE tags_as_array, VALUE exporter_configuration, VALUE path_to_receiver_binary) {
+  ENFORCE_TYPE(exporter_configuration, T_ARRAY);
+  ENFORCE_TYPE(tags_as_array, T_ARRAY);
+  ENFORCE_TYPE(path_to_receiver_binary, T_STRING);
+
+  // This needs to be called BEFORE convert_tags since it can raise an exception and thus cause the ddog_Vec_Tag
+  // to be leaked.
+  ddog_Endpoint endpoint = endpoint_from(exporter_configuration);
+
+  ddog_Vec_Tag tags = convert_tags(tags_as_array);
+
+  ddog_CharSlice library_name = DDOG_CHARSLICE_C("dd-trace-rb");
+  ddog_CharSlice library_version = char_slice_from_ruby_string(library_version_string);
+  ddog_CharSlice profiling_family = DDOG_CHARSLICE_C("ruby");
+  ddog_CharSlice receiver_binary = char_slice_from_ruby_string(path_to_receiver_binary);
+
+  ddog_prof_Profile_Result result =
+    ddog_prof_crashtracker_init_full(library_name, library_version, profiling_family, &tags, endpoint, receiver_binary);
+
+  // Clean up before potentially raising any exceptions
+  ddog_Vec_Tag_drop(tags);
+
+  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
+    rb_raise(rb_eRuntimeError, "Failed to initialize the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+
+  return Qtrue;
 }
 
 inline static ddog_ByteSlice byte_slice_from_ruby_string(VALUE string) {

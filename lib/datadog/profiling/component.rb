@@ -70,6 +70,8 @@ module Datadog
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
 
+        transport.start_crash_tracker
+
         Profiling::Profiler.new(worker: worker, scheduler: scheduler)
       end
 

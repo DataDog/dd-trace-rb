@@ -22,6 +22,14 @@ module Datadog
         raise(ArgumentError, "Failed to initialize transport: #{result}") if status == :error
       end
 
+      def start_crash_tracker(
+        tags: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a
+      )
+        path_to_receiver_binary = ENV.fetch('DD_PROFILING_EXPERIMENTAL_CRASH_TRACKER_PATH')
+        Datadog.logger.warn("Starting libdatadog crash tracker, using path DD_PROFILING_EXPERIMENTAL_CRASH_TRACKER_PATH=#{path_to_receiver_binary}")
+        Datadog::Profiling::CrashTracker._native_crashtracker_init_full(tags, @exporter_configuration, path_to_receiver_binary)
+      end
+
       def export(flush)
         status, result = do_export(
           exporter_configuration: @exporter_configuration,
