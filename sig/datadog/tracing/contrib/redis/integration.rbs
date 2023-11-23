@@ -25,6 +25,8 @@ module Datadog
 
           def self.redis_client_compatible?: () -> untyped
 
+          def self.redis_client_method: () -> untyped
+
           def new_configuration: () -> untyped
 
           def patcher: () -> untyped

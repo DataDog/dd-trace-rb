@@ -18,9 +18,10 @@ module Datadog
 
             # Instance method patch for redis instance
             module InstanceMethods
-              # `options` could be frozen
-              def initialize(options = {})
-                super(options.merge(redis_instance: self))
+              # we can't assume redis object is initialized after datadog is configured
+              def datadog_pin=(pin)
+                send(Integration.redis_client_method).instance_variable_set(:@redis_instance, self)
+                @datadog_pin = pin
               end
             end
           end
@@ -33,12 +34,6 @@ module Datadog
 
             # Instance method patch for redis client
             module InstanceMethods
-              def initialize(options = {})
-                @redis_instance = options.delete(:redis_instance)
-
-                super(options)
-              end
-
               private
 
               attr_reader :redis_instance
