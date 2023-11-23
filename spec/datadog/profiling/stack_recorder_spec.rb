@@ -391,8 +391,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it 'include the stack and sample counts for the objects still left alive' do
-          pending 'heap_recorder implementation is currently missing'
-
           # We sample from 2 distinct locations
           expect(heap_samples.size).to eq(2)
 

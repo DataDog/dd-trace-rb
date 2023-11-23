@@ -69,7 +69,10 @@ module ProfileHelpers
   end
 
   def samples_for_thread(samples, thread)
-    samples.select { |sample| object_id_from(sample.labels.fetch(:'thread id')) == thread.object_id }
+    samples.select do |sample|
+      thread_id = sample.labels.fetch(:'thread id', nil)
+      thread_id && object_id_from(thread_id) == thread.object_id
+    end
   end
 
   # We disable heap_sample collection by default in tests since it requires some extra mocking/
