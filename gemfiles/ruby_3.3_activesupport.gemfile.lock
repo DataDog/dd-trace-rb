@@ -230,7 +230,6 @@ GEM
       rubocop-capybara (~> 2.17)
     ruby-kafka (1.5.0)
       digest-crc
-    ruby-prof (1.6.3)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
     simplecov-cobertura (2.1.0)
@@ -292,7 +291,6 @@ DEPENDENCIES
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
   ruby-kafka (>= 0.7.10)
-  ruby-prof (~> 1.4)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)

@@ -372,26 +372,6 @@ orbs:
               root: .
               paths:
                 - coverage
-      benchmark:
-        <<: *test_job_default
-        docker:
-          - <<: *container_base
-          - *container_postgres
-          - *container_redis
-          - *container_testagent
-        steps:
-          - restore_cache:
-              keys:
-                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
-          - restore_cache:
-              keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
-          - run:
-              name: Run Benchmark
-              command: bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
-          - run:
-              name: Run Benchmark without ddtracer
-              command: rm -f lib/ddtrace.rb && bundle exec appraisal rails5-postgres-sidekiq ruby benchmarks/sidekiq_test.rb 2>&1 1> /dev/null | tee benchmark_results.csv
       lint:
         <<: *test_job_default
         steps:
@@ -659,11 +639,6 @@ workflows:
           name: test-2.3
           requires:
             - build-2.3
-      - orb/benchmark:
-          <<: *config-2_3
-          name: benchmark-2.3
-          requires:
-            - build-2.3
       - orb/build:
           <<: *config-2_4
           name: build-2.4
@@ -839,11 +814,6 @@ workflows:
       - orb/test:
           <<: *config-2_3
           name: test-2.3
-          requires:
-            - build-2.3
-      - orb/benchmark:
-          <<: *config-2_3
-          name: benchmark-2.3
           requires:
             - build-2.3
       - orb/build:

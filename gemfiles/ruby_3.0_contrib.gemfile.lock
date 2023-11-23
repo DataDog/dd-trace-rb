@@ -171,7 +171,6 @@ GEM
     rubocop-rspec (2.20.0)
       rubocop (~> 1.33)
       rubocop-capybara (~> 2.17)
-    ruby-prof (1.6.1)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
     semantic_logger (4.12.0)
@@ -260,7 +259,6 @@ DEPENDENCIES
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
-  ruby-prof (~> 1.4)
   semantic_logger (~> 4.0)
   sidekiq (~> 7)
   simplecov!
