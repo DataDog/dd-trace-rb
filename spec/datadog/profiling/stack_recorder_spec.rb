@@ -392,7 +392,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:heap_samples_enabled) { true }
 
         it 'are included in the profile' do
-          pending 'free handling is not implemented yet'
           # We sample from 2 distinct locations but heap samples don't have the same
           # labels as the others so they get duped.
           expect(samples.size).to eq(4)
