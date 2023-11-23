@@ -43,6 +43,7 @@ module Datadog
               end
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
+            @worker_thread.thread_variable_set(:fork_safe, true)
           end
 
           true

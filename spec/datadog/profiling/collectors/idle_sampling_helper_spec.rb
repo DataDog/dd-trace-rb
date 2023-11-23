@@ -26,6 +26,12 @@ RSpec.describe Datadog::Profiling::Collectors::IdleSamplingHelper do
       start
     end
 
+    it 'marks the new thread as fork-safe' do
+      start
+
+      expect(idle_sampling_helper.instance_variable_get(:@worker_thread).thread_variable_get(:fork_safe)).to be true
+    end
+
     it 'does not create a second thread if start is called again' do
       start
 

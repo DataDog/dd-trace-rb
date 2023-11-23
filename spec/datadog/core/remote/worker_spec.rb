@@ -60,6 +60,12 @@ RSpec.describe Datadog::Core::Remote::Worker do
         expect(Thread.list.map(&:name)).to include(described_class.to_s)
       end
     end
+
+    it 'marks the worker thread as fork-safe (to avoid fork-safety warnings in webservers)' do
+      worker.start
+
+      expect(worker.instance_variable_get(:@thr).thread_variable_get(:fork_safe)).to be true
+    end
   end
 
   describe '#stop' do

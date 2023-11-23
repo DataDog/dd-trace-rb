@@ -71,6 +71,12 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       expect(Thread.list.map(&:name)).to include(described_class.name)
     end
 
+    it 'marks the new thread as fork-safe' do
+      start
+
+      expect(cpu_and_wall_time_worker.instance_variable_get(:@worker_thread).thread_variable_get(:fork_safe)).to be true
+    end
+
     it 'does not create a second thread if start is called again' do
       start
 

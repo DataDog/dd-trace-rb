@@ -147,6 +147,7 @@ module Datadog
               # rubocop:enable Lint/RescueException
             end
             @worker.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+            @worker.thread_variable_set(:fork_safe, true)
 
             nil
           end

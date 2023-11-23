@@ -39,7 +39,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
     end
   end
 
-  describe 'thread naming' do
+  describe 'thread naming and fork-safety marker' do
     context 'on Ruby < 2.3' do
       before do
         skip 'Only applies to old Rubies' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
@@ -64,6 +64,12 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
 
         expect(worker.instance_variable_get(:@worker).name).to eq described_class.name
       end
+    end
+
+    it 'marks the worker thread as fork-safe (to avoid fork-safety warnings in webservers)' do
+      worker.start
+
+      expect(worker.instance_variable_get(:@worker).thread_variable_get(:fork_safe)).to be true
     end
   end
 
