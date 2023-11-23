@@ -5,6 +5,8 @@
 #include <errno.h>
 #include "collectors_stack.h"
 
+#define MAX_QUEUE_LIMIT 10000
+
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
   char *name;
@@ -101,6 +103,13 @@ typedef struct {
   live_object_data object_data;
 } partial_heap_recording;
 
+typedef struct {
+  // Has ownership of this, needs to clean-it-up if not transferred.
+  heap_record *heap_record;
+  long obj_id;
+  live_object_data object_data;
+} uncommitted_sample;
+
 struct heap_recorder {
   // Map[key: heap_record_key*, record: heap_record*]
   // NOTE: We always use heap_record_key.type == HEAP_STACK for storage but support lookups
@@ -116,6 +125,12 @@ struct heap_recorder {
   // Data for a heap recording that was started but not yet ended
   partial_heap_recording active_recording;
 
+  // Storage for queued samples built while samples are being taken but records_mutex is locked.
+  // These will be flushed back to record tables on the next sample execution that can take
+  // a write lock on heap_records (or explicitly via ::heap_recorder_flush)
+  uncommitted_sample *queued_samples;
+  size_t queued_samples_len;
+
   // Reusable location array, implementing a flyweight pattern for things like iteration.
   ddog_prof_Location *reusable_locations;
 };
@@ -127,6 +142,8 @@ static int st_object_record_entry_free_if_invalid(st_data_t, st_data_t, st_data_
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
 static void commit_allocation(heap_recorder*, heap_record*, long, live_object_data);
+static void flush_queue(heap_recorder*);
+static bool enqueue_allocation(heap_recorder*, heap_record*, long, live_object_data);
 
 // ==========================
 // Heap Recorder External API
@@ -149,6 +166,8 @@ heap_recorder* heap_recorder_new(void) {
                  // it as invalid/unset value.
     .object_data = {0},
   };
+  recorder->queued_samples = ruby_xcalloc(MAX_QUEUE_LIMIT, sizeof(uncommitted_sample));
+  recorder->queued_samples_len = 0;
 
   return recorder;
 }
@@ -166,6 +185,7 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
 
   pthread_mutex_destroy(&heap_recorder->records_mutex);
 
+  ruby_xfree(heap_recorder->queued_samples);
   ruby_xfree(heap_recorder->reusable_locations);
 
   ruby_xfree(heap_recorder);
@@ -243,11 +263,17 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
   int error = pthread_mutex_trylock(&heap_recorder->records_mutex);
   if (error == EBUSY) {
     // We weren't able to get a lock
-    // TODO: Add some queuing system so we can do something other than drop this data.
-    cleanup_heap_record_if_unused(heap_recorder, heap_record);
+    bool enqueued = enqueue_allocation(heap_recorder, heap_record, obj_id, active_recording->object_data);
+    if (!enqueued) {
+      cleanup_heap_record_if_unused(heap_recorder, heap_record);
+    }
     return;
   }
   if (error) ENFORCE_SUCCESS_GVL(error);
+
+  // We were able to get a lock to heap_records so lets flush any pending samples
+  // that might have been queued previously before adding this new one.
+  flush_queue(heap_recorder);
 
   // And then commit the new allocation.
   commit_allocation(heap_recorder, heap_record, obj_id, active_recording->object_data);
@@ -260,7 +286,10 @@ void heap_recorder_flush(heap_recorder *heap_recorder) {
     return;
   }
 
+  ENFORCE_SUCCESS_GVL(pthread_mutex_lock(&heap_recorder->records_mutex));
+  flush_queue(heap_recorder);
   st_foreach(heap_recorder->object_records, st_object_record_entry_free_if_invalid, (st_data_t) heap_recorder);
+  ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(&heap_recorder->records_mutex));
 }
 
 // Internal data we need while performing iteration over live objects.
@@ -311,6 +340,21 @@ void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locatio
   if (stack_hash != location_hash) {
     rb_raise(rb_eRuntimeError, "Heap record key hashes built from the same locations differ. stack_based_hash=%"PRI_VALUE_PREFIX"u location_based_hash=%"PRI_VALUE_PREFIX"u", stack_hash, location_hash);
   }
+}
+
+void heap_recorder_testonly_lock(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    rb_raise(rb_eRuntimeError, "Null heap recorder");
+  }
+  pthread_mutex_lock(&heap_recorder->records_mutex);
+}
+
+size_t heap_recorder_testonly_unlock(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    rb_raise(rb_eRuntimeError, "Null heap recorder");
+  }
+  pthread_mutex_unlock(&heap_recorder->records_mutex);
+  return heap_recorder->queued_samples_len;
 }
 
 // ==========================
@@ -483,6 +527,32 @@ static void cleanup_heap_record_if_unused(heap_recorder *heap_recorder, heap_rec
   };
   heap_record_key_free(deleted_key);
   heap_record_free(heap_record);
+}
+
+// WARN: Expects records_mutex to be held
+static void flush_queue(heap_recorder *heap_recorder) {
+  for (size_t i = 0; i < heap_recorder->queued_samples_len; i++) {
+    uncommitted_sample *queued_sample = &heap_recorder->queued_samples[i];
+    commit_allocation(heap_recorder, queued_sample->heap_record, queued_sample->obj_id, queued_sample->object_data);
+    *queued_sample = (uncommitted_sample) {0};
+  }
+  heap_recorder->queued_samples_len = 0;
+}
+
+// WARN: This can get called during Ruby GC. NO HEAP ALLOCATIONS OR EXCEPTIONS ARE ALLOWED.
+static bool enqueue_allocation(heap_recorder *heap_recorder, heap_record *heap_record, long obj_id, live_object_data object_data) {
+  if (heap_recorder->queued_samples_len >= MAX_QUEUE_LIMIT) {
+    // TODO: Some telemetry here?
+    return false;
+  }
+
+  heap_recorder->queued_samples[heap_recorder->queued_samples_len] = (uncommitted_sample) {
+    .heap_record = heap_record,
+    .obj_id = obj_id,
+    .object_data = object_data,
+  };
+  heap_recorder->queued_samples_len++;
+  return true;
 }
 
 // ===============

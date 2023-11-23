@@ -94,4 +94,12 @@ void heap_recorder_for_each_live_object(
 
 // v--- TEST-ONLY APIs ---v
 
+// Assert internal hashing logic is valid for the provided locations and its
+// corresponding internal representations in heap recorder.
 void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations);
+
+// Lock the heap recorder as if iterating through it
+void heap_recorder_testonly_lock(heap_recorder *heap_recorder);
+// Unlock the heap recorder as if iterating through it and return the number of
+// queued allocations sampled
+size_t heap_recorder_testonly_unlock(heap_recorder *heap_recorder);

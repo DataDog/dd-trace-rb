@@ -221,6 +221,8 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
 static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */);
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight);
 static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locations);
+static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -247,6 +249,10 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_record_endpoint", _native_record_endpoint, 3);
   rb_define_singleton_method(testing_module, "_native_track_object", _native_track_object, 3);
   rb_define_singleton_method(testing_module, "_native_check_heap_hashes", _native_check_heap_hashes, 1);
+  rb_define_singleton_method(testing_module, "_native_start_fake_slow_heap_serialization",
+      _native_start_fake_slow_heap_serialization, 1);
+  rb_define_singleton_method(testing_module, "_native_end_fake_slow_heap_serialization",
+      _native_end_fake_slow_heap_serialization, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -776,4 +782,24 @@ static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time 
   if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
   }
+}
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_testonly_lock(state->heap_recorder);
+
+  return Qnil;
+}
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  return ULONG2NUM(heap_recorder_testonly_unlock(state->heap_recorder));
 }
