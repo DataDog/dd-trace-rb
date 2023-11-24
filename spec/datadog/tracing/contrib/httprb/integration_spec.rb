@@ -73,4 +73,6 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Httprb::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

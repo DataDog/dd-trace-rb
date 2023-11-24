@@ -67,4 +67,6 @@ RSpec.describe Datadog::Tracing::Contrib::Qless::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Qless::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

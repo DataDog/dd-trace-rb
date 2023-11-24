@@ -73,4 +73,6 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::DelayedJob::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

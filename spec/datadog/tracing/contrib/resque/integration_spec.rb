@@ -78,4 +78,6 @@ RSpec.describe Datadog::Tracing::Contrib::Resque::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Resque::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end
