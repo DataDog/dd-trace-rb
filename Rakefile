@@ -500,9 +500,19 @@ namespace :spec do
     :sucker_punch,
     :suite
   ].each do |contrib|
+    # Test for each integration. These tests will pollute the environment (e.g. load gems, monkey-patch modules).
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/datadog/tracing/contrib/#{contrib}/**/*_spec.rb"
+      t.exclude_pattern = "spec/datadog/tracing/contrib/#{contrib}/integration_spec.rb"
+      t.rspec_opts = args.to_a.join(' ')
+    end
+
+    # Tests that have to run with an environment where the instrumented gem has
+    # not been loaded yet nor modules have been modified.
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new("#{contrib}_clean") do |t, args|
+      t.pattern = "spec/datadog/tracing/contrib/#{contrib}/integration_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
     end
   end
