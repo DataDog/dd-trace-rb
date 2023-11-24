@@ -33,13 +33,13 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
         define_singleton_method(:gems) do
           gems
         end
-        
+
         define_method(:patcher) do
           patcher
         end
       end
     end
-    
+
     let(:available) { true }
     let(:compatible) { true }
     let(:loaded) { true }
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             expect(integration).to receive(:patch).and_call_original
 
             configure
-            
+
             expect(integration.patcher.patch_successful).to be_falsey
           end
 
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               it_behaves_like 'patches immediately'
             end
 
-            context "and not loaded" do
+            context 'and not loaded' do
               let(:loaded) { false }
               it_behaves_like 'registers require monitor'
             end
@@ -255,8 +255,8 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           context 'when the integration doesn\'t exist' do
             it do
               expect { settings[:foobar] }.to raise_error(
-                                                Datadog::Tracing::Contrib::Extensions::Configuration::Settings::InvalidIntegrationError
-                                              )
+                Datadog::Tracing::Contrib::Extensions::Configuration::Settings::InvalidIntegrationError
+              )
             end
           end
 
@@ -368,8 +368,8 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               it do
                 expect(integration).to receive(:configure).with(:default, {}).and_call_original
                 expect { |b| settings.send(:instrument, integration_name, options, &b) }.to yield_with_args(
-                                                                                              a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings)
-                                                                                            )
+                  a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings)
+                )
               end
             end
           end

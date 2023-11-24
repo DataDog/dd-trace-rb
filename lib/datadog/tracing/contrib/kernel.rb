@@ -3,7 +3,10 @@
 module Datadog
   module Tracing
     module Contrib
+      # Modifies the behavior of the Ruby `Kernel` module
       module Kernel
+        # A patch to the global `require` that executes a callback
+        # when a gem is required for the first time.
         def require(name)
           # Returns `true` if file was loaded by this `super` operation.
           # If it was already loaded, returns `false`.
@@ -15,6 +18,7 @@ module Datadog
           just_loaded
         end
 
+        # Helper class to register callbacks for `require`.
         class Instance
           def initialize
             @on_require = {}
@@ -63,4 +67,3 @@ module Datadog
     end
   end
 end
-
