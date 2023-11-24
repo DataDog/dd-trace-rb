@@ -64,4 +64,3 @@ module Datadog
   end
 end
 
-# Datadog::Tracing::Contrib::Kernel.patch! # TODO: I think this stays here actually!

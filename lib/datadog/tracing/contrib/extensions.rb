@@ -68,8 +68,6 @@ module Datadog
             configuration = self.configuration.tracing
 
             if configuration.respond_to?(:integrations_pending_activation)
-              Datadog::Tracing::Contrib::Kernel.patch! # Only needs to run once
-
               ignore_integration_load_errors = if configuration.respond_to?(:ignore_integration_load_errors?)
                                                  configuration.ignore_integration_load_errors?
                                                else
@@ -78,10 +76,14 @@ module Datadog
 
               configuration.integrations_pending_activation.each do |integration|
                 patch_integration(integration, ignore_integration_load_errors) do
-                  # Do compatible gem exist in the current environment, but are not loaded yet?
+                  # Are the gems we are trying to instrument even present in the environment?
+                  # There's no point in monitoring for gem `require` if a gem not no available for loading.
                   if integration.class.available? && integration.class.compatible? && !integration.class.loaded?
-                    Datadog.logger.debug { "Gems '#{integration.gems.join(',')}' not loaded, monitoring loading." }
+                    Datadog.logger.debug { "Gems '#{integration.gems.join(',')}' not loaded, monitoring require." }
 
+                    Contrib::Kernel.patch! # Only executed once internally
+
+                    # Register the gem require monitor for this integration's gems
                     integration.gems.each do |gem|
                       Datadog::Tracing::Contrib::Kernel.on_require(gem) do
                         Datadog.logger.debug do
@@ -95,6 +97,10 @@ module Datadog
                     # Try to instrument one more time, in case another threaded loaded this
                     # integration's gems while we were registering the monitor.
                     if integration.class.loaded?
+                      Datadog.logger.debug do
+                        "Gems for integration '#{integration.name}' loaded concurrently, instrumenting it."
+                      end
+
                       patch_integration(integration, ignore_integration_load_errors)
                       next
                     end
@@ -118,10 +124,11 @@ module Datadog
             # integration.patch returns either true or a hash of details on why patching failed
             patch_results = integration.patch
 
+            # Patching succeeded
             return if patch_results == true
 
-            # Try to patch it with another approach. Do not report patching
-            # errors at this point, as we haven't given up yet.
+            # Try to patch it with another approach.
+            # Do not report patching errors here as we haven't given up yet.
             return yield if fallback
 
             # if patching failed, only log output if verbosity is unset
