@@ -18,13 +18,13 @@ module Datadog
           allocation_counting_enabled:,
           no_signals_workaround_enabled:,
           thread_context_collector:,
-          idle_sampling_helper: IdleSamplingHelper.new,
+          allocation_sample_every:,
+          allocation_profiling_enabled:,
+          heap_profiling_enabled:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
-          allocation_sample_every:,
-          allocation_profiling_enabled:,
-          heap_profiling_enabled:
+          idle_sampling_helper: IdleSamplingHelper.new
         )
           unless dynamic_sampling_rate_enabled
             Datadog.logger.warn(

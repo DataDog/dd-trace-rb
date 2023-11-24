@@ -45,18 +45,8 @@ module Datadog
         allocation_profiling_enabled = enable_allocation_profiling?(settings, allocation_sample_every)
         heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled)
 
-        recorder = Datadog::Profiling::StackRecorder.new(
-          cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
-          alloc_samples_enabled: allocation_profiling_enabled,
-          heap_samples_enabled: heap_profiling_enabled,
-        )
-        thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.new(
-          recorder: recorder,
-          max_frames: settings.profiling.advanced.max_frames,
-          tracer: optional_tracer,
-          endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
-          timeline_enabled: timeline_enabled,
-        )
+        recorder = build_recorder(allocation_profiling_enabled, heap_profiling_enabled)
+        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
         worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
           gc_profiling_enabled: enable_gc_profiling?(settings),
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
@@ -77,6 +67,24 @@ module Datadog
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
 
         Profiling::Profiler.new(worker: worker, scheduler: scheduler)
+      end
+
+      private_class_method def self.build_recorder(allocation_profiling_enabled, heap_profiling_enabled)
+        Datadog::Profiling::StackRecorder.new(
+          cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
+          alloc_samples_enabled: allocation_profiling_enabled,
+          heap_samples_enabled: heap_profiling_enabled,
+        )
+      end
+
+      private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
+        Datadog::Profiling::Collectors::ThreadContext.new(
+          recorder: recorder,
+          max_frames: settings.profiling.advanced.max_frames,
+          tracer: optional_tracer,
+          endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
+          timeline_enabled: timeline_enabled,
+        )
       end
 
       private_class_method def self.build_profiler_exporter(settings, recorder, internal_metadata:)

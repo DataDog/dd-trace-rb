@@ -50,6 +50,10 @@ void start_heap_allocation_recording(heap_recorder* heap_recorder, VALUE new_obj
   };
 }
 
+// TODO: Remove when things get implemented
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
   partial_heap_recording *active_recording = &heap_recorder->active_recording;
 
@@ -83,3 +87,5 @@ void heap_recorder_for_each_live_object(
   // TODO: Implement
 }
 
+// TODO: Remove when things get implemented
+#pragma GCC diagnostic pop
