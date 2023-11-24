@@ -169,6 +169,7 @@ DEPENDENCIES
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   elasticsearch (~> 8)
+  faraday
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
