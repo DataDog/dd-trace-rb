@@ -45,7 +45,6 @@ module Datadog
           def patcher
             ActionMailer::Patcher
           end
-
         end
       end
     end

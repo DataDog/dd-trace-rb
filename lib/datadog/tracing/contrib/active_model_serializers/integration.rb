@@ -40,7 +40,6 @@ module Datadog
           def patcher
             Patcher
           end
-
         end
       end
     end

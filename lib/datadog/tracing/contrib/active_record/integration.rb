@@ -51,7 +51,6 @@ module Datadog
           def resolver
             @resolver ||= Configuration::Resolver.new
           end
-
         end
       end
     end

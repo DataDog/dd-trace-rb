@@ -46,7 +46,6 @@ module Datadog
           def patcher
             ActiveSupport::Patcher
           end
-
         end
       end
     end

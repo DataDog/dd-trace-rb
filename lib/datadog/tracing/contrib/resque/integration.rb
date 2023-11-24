@@ -43,7 +43,6 @@ module Datadog
             # Globally-acccesible reference for pre-forking optimization
             attr_accessor :sync_writer
           end
-
         end
       end
     end

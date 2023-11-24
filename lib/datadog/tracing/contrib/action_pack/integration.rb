@@ -45,7 +45,6 @@ module Datadog
           def patcher
             ActionPack::Patcher
           end
-
         end
       end
     end

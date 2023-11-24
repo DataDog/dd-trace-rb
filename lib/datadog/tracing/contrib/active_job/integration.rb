@@ -45,7 +45,6 @@ module Datadog
           def patcher
             ActiveJob::Patcher
           end
-
         end
       end
     end

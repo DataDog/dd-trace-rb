@@ -43,7 +43,6 @@ module Datadog
           def resolver
             @resolver ||= Contrib::Configuration::Resolvers::PatternResolver.new
           end
-
         end
       end
     end

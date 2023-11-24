@@ -52,7 +52,6 @@ module Datadog
           def patcher
             ActionView::Patcher
           end
-
         end
       end
     end
