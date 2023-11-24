@@ -136,7 +136,7 @@ module Datadog
           )
         end
 
-        if allocation_profiling_enabled && !Ext::IS_ALLOCATION_SAMPLING_SUPPORTED
+        if allocation_profiling_enabled && !Ext.allocation_sampling_supported?
           Datadog.logger.warn(
             "Current Ruby version (#{RUBY_VERSION}) does not officially support allocation profiling but it was " \
             'requested. There may be unexpected problems during execution.'

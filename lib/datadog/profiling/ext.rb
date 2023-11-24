@@ -9,6 +9,8 @@ module Datadog
       ENV_AGENTLESS = 'DD_PROFILING_AGENTLESS'
       ENV_ENDPOINT_COLLECTION_ENABLED = 'DD_PROFILING_ENDPOINT_COLLECTION_ENABLED'
 
+      module_function
+
       # Allocation sampling is safe and supported on Ruby 2.x, but has a few caveats on Ruby 3.x.
       #
       # TL;DR: Supported on (2.x, 3.1.4+, 3.2.3+, and 3.3.0+).
@@ -28,10 +30,14 @@ module Datadog
       # Ruby 3.2.0 to 3.2.2 have a bug in the newobj tracepoint (https://bugs.ruby-lang.org/issues/19482,
       # https://github.com/ruby/ruby/pull/7464) so that's an extra reason why it's not safe on those Rubies.
       # This bug is fixed on Ruby versions 3.2.3 and 3.3.0.
-      IS_ALLOCATION_SAMPLING_SUPPORTED = RUBY_VERSION.start_with?('2.') ||
-        (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION >= '3.1.4') ||
-        (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION >= '3.2.3') ||
-        RUBY_VERSION >= '3.3.'
+      #
+      # NOTE: This is a function to facilitate testing via const_stubbing.
+      def allocation_sampling_supported?
+        RUBY_VERSION.start_with?('2.') ||
+          (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION >= '3.1.4') ||
+          (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION >= '3.2.3') ||
+          RUBY_VERSION >= '3.3.'
+      end
 
       module Transport
         module HTTP

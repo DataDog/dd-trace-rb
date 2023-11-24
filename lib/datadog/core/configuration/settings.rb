@@ -321,7 +321,7 @@ module Datadog
             option :allocation_counting_enabled do |o|
               o.type :bool
               o.default do
-                Profiling::Ext::IS_ALLOCATION_SAMPLING_SUPPORTED
+                Profiling::Ext.allocation_sampling_supported?
               end
             end
 
