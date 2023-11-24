@@ -61,6 +61,7 @@ RSpec.describe Datadog::Core::Remote::Worker do
       end
     end
 
+    # See https://github.com/puma/puma/blob/32e011ab9e029c757823efb068358ed255fb7ef4/lib/puma/cluster.rb#L353-L359
     it 'marks the worker thread as fork-safe (to avoid fork-safety warnings in webservers)' do
       worker.start
 

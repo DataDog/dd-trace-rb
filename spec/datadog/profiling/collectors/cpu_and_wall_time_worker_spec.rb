@@ -71,6 +71,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       expect(Thread.list.map(&:name)).to include(described_class.name)
     end
 
+    # See https://github.com/puma/puma/blob/32e011ab9e029c757823efb068358ed255fb7ef4/lib/puma/cluster.rb#L353-L359
     it 'marks the new thread as fork-safe' do
       start
 
