@@ -18,25 +18,12 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
         include Datadog::Tracing::Contrib::Integration
         include Datadog::Tracing::Contrib::Configurable
 
-        define_singleton_method(:available?) do
-          available
-        end
+        define_singleton_method(:available?) { available }
+        define_singleton_method(:compatible?) { compatible }
+        define_singleton_method(:loaded?) { loaded }
+        define_singleton_method(:gems) { gems }
 
-        define_singleton_method(:compatible?) do
-          compatible
-        end
-
-        define_singleton_method(:loaded?) do
-          loaded
-        end
-
-        define_singleton_method(:gems) do
-          gems
-        end
-
-        define_method(:patcher) do
-          patcher
-        end
+        define_method(:patcher) { patcher }
       end
     end
 
@@ -98,9 +85,21 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           end
 
           it 'register require monitor' do
+            allow(integration).to receive(:patch).and_call_original
+
             expect(Datadog::Tracing::Contrib::Kernel).to receive(:patch!)
-            expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 1')
-            expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 2')
+
+            expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 1') do |&block|
+              expect(integration).to have_received(:patch).once
+              block.call
+              expect(integration).to have_received(:patch).twice
+            end
+
+            expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 2') do |&block|
+              expect(integration).to have_received(:patch).twice
+              block.call
+              expect(integration).to have_received(:patch).thrice
+            end
             configure
           end
 
@@ -168,6 +167,29 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             context 'and not loaded' do
               let(:loaded) { false }
               it_behaves_like 'registers require monitor'
+
+              context 'but is loaded while we are registering the monitors' do
+                it 'register require monitor and also patches' do
+                  expect(Datadog::Tracing::Contrib::Kernel).to receive(:patch!) do
+                    # Load the gems!
+                    allow(integration.class).to receive(:loaded?).and_return(true)
+                  end
+
+                  expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).twice
+
+                  expect(integration).to receive(:configure).with(:default, any_args)
+                  expect(integration).to receive(:patch).and_call_original.twice
+
+                  configure
+
+                  expect(integration.patcher.patch_successful).to be_truthy
+                end
+
+                it 'sends a telemetry integrations change event' do
+                  expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
+                  configure
+                end
+              end
             end
           end
 
@@ -322,9 +344,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
 
           context 'for an integration that includes Datadog::Tracing::Contrib::Integration' do
             include_context 'registry with integration' do
-              let(:integration) do
-                integration_class.new(integration_name)
-              end
+              let(:integration) { registry[integration_name] }
 
               let(:integration_class) do
                 patcher_module

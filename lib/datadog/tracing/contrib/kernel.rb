@@ -32,7 +32,7 @@ module Datadog
             end
           rescue => e
             Datadog.logger.debug do
-              "Failed to execute callback for gem '#{name}': #{e.class.name} #{e.message} at #{Array(e.backtrace).join("\n")}"
+              "Callback failed for gem '#{name}': #{e.class.name} #{e.message} at #{Array(e.backtrace).join("\n")}"
             end
           end
 
