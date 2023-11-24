@@ -31,18 +31,17 @@ module Datadog
           #   a custom {Registerable} instrumentation
           # @see Datadog::Tracing::Contrib::Integration
           def register_as(name, registry: Contrib::REGISTRY, auto_patch: false, **options)
-            registry.add(name, new(name, gems: gems, **options), auto_patch)
+            registry.add(name, new(name, **options), auto_patch)
           end
         end
 
         # Instance methods for registerable behavior
         module InstanceMethods
           attr_reader \
-            :name, :gems
+            :name
 
-          def initialize(name, gems: [], **options)
+          def initialize(name, **options)
             @name = name
-            @gems = gems
           end
         end
       end

@@ -90,12 +90,20 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             expect(Datadog::Tracing::Contrib::Kernel).to receive(:patch!)
 
             expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 1') do |&block|
+              # Because we are forcing the block to be called to make assertions,
+              # the patcher will raise a warning because the gem is not loaded, which is what we expect.
+              expect(Datadog.logger).to receive(:warn).once
+
               expect(integration).to have_received(:patch).once
               block.call
               expect(integration).to have_received(:patch).twice
             end
 
             expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 2') do |&block|
+              # Because we are forcing the block to be called to make assertions,
+              # the patcher will raise a warning because the gem is not loaded, which is what we expect.
+              expect(Datadog.logger).to receive(:warn).once
+
               expect(integration).to have_received(:patch).twice
               block.call
               expect(integration).to have_received(:patch).thrice

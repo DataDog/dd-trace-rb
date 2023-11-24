@@ -79,12 +79,12 @@ module Datadog
                   # Are the gems we are trying to instrument even present in the environment?
                   # There's no point in monitoring for gem `require` if a gem not no available for loading.
                   if integration.class.available? && integration.class.compatible? && !integration.class.loaded?
-                    Datadog.logger.debug { "Gems '#{integration.gems.join(',')}' not loaded, monitoring require." }
+                    Datadog.logger.debug { "Gems '#{integration.class.gems.join(',')}' not loaded, monitoring require." }
 
                     Contrib::Kernel.patch! # Only executed once internally
 
                     # Register the gem require monitor for this integration's gems
-                    integration.gems.each do |gem|
+                    integration.class.gems.each do |gem|
                       Datadog::Tracing::Contrib::Kernel.on_require(gem) do
                         Datadog.logger.debug do
                           "Gem '#{gem}' loaded for integration '#{integration.name}', instrumenting it."
@@ -134,8 +134,7 @@ module Datadog
             # if patching failed, only log output if verbosity is unset
             # or if patching failure is due to compatibility or integration specific reasons
             return unless !ignore_integration_load_errors ||
-              ((patch_results[:available] && patch_results[:loaded]) &&
-                (!patch_results[:compatible] || !patch_results[:patchable]))
+              (patch_results[:available] && (!patch_results[:compatible] || !patch_results[:patchable]))
 
             desc = "Available?: #{patch_results[:available]}"
             desc += ", Loaded? #{patch_results[:loaded]}"
