@@ -12,6 +12,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('2.0.0')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :sucker_punch, auto_patch: true
+
           def self.gems
             ['sucker_punch']
           end
@@ -36,8 +39,6 @@ module Datadog
             Patcher
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :sucker_punch, auto_patch: true
         end
       end
     end

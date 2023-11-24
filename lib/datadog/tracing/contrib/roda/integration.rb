@@ -16,6 +16,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('2.0.0')
           MAXIMUM_VERSION = Gem::Version.new('4.0.0')
+
+          register_as :roda
+
           def self.gems
             ['roda']
           end
@@ -40,7 +43,6 @@ module Datadog
             Patcher
           end
 
-          register_as :roda
         end
       end
     end

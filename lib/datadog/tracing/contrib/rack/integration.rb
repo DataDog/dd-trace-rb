@@ -13,6 +13,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('1.1.0')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :rack, auto_patch: false
+
           def self.gems
             ['rack']
           end
@@ -43,8 +46,6 @@ module Datadog
             Patcher
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :rack, auto_patch: false
         end
       end
     end

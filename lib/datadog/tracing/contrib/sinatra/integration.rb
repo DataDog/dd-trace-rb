@@ -12,6 +12,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('1.4')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :sinatra
+
           def self.gems
             ['sinatra']
           end
@@ -36,8 +39,6 @@ module Datadog
             Patcher
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :sinatra
         end
       end
     end

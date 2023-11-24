@@ -13,6 +13,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('3.2')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :action_pack, auto_patch: false
+
           def self.gems
             ['actionpack']
           end
@@ -43,8 +46,6 @@ module Datadog
             ActionPack::Patcher
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :action_pack, auto_patch: false
         end
       end
     end

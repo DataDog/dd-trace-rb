@@ -12,6 +12,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('1.8')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :rest_client
+
           def self.gems
             ['rest-client']
           end
@@ -36,8 +39,6 @@ module Datadog
             Patcher
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :rest_client
         end
       end
     end

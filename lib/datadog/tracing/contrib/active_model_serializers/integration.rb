@@ -12,6 +12,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('0.9.0')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :active_model_serializers
+
           def self.gems
             ['active_model_serializers']
           end
@@ -38,8 +41,6 @@ module Datadog
             Patcher
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :active_model_serializers
         end
       end
     end

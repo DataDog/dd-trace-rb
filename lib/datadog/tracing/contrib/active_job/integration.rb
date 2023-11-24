@@ -13,6 +13,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('4.2')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :active_job, auto_patch: false
+
           def self.gems
             ['activejob']
           end
@@ -43,8 +46,6 @@ module Datadog
             ActiveJob::Patcher
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :active_job, auto_patch: false
         end
       end
     end

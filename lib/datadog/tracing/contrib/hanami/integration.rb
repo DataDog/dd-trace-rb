@@ -13,6 +13,8 @@ module Datadog
           MINIMUM_VERSION = Gem::Version.new('1.0.0')
           MAXIMUM_VERSION = Gem::Version.new('2.0.0')
 
+          register_as :hanami
+
           def self.gems
             ['hanami']
           end
@@ -38,7 +40,6 @@ module Datadog
             Patcher
           end
 
-          register_as :hanami
         end
       end
     end

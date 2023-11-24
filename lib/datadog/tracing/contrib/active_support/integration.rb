@@ -14,6 +14,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('3.2')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :active_support, auto_patch: false
+
           def self.gems
             ['activesupport']
           end
@@ -44,8 +47,6 @@ module Datadog
             ActiveSupport::Patcher
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :active_support, auto_patch: false
         end
       end
     end

@@ -13,6 +13,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('0.14.0')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :faraday, auto_patch: true
+
           def self.gems
             ['faraday']
           end
@@ -41,8 +44,6 @@ module Datadog
             @resolver ||= Contrib::Configuration::Resolvers::PatternResolver.new
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :faraday, auto_patch: true
         end
       end
     end

@@ -12,6 +12,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('3.2')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :redis, auto_patch: true
+
           # Support `Config#custom`
           # https://github.com/redis-rb/redis-client/blob/master/CHANGELOG.md#0110
           REDISCLIENT_MINIMUM_VERSION = Gem::Version.new('0.11.0')
@@ -73,8 +76,6 @@ module Datadog
             @resolver ||= Configuration::Resolver.new
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :redis, auto_patch: true
         end
       end
     end

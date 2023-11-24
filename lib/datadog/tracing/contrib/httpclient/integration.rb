@@ -13,6 +13,9 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('2.2.0')
 
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :httpclient
+
           def self.gems
             ['httpclient']
           end
@@ -41,8 +44,6 @@ module Datadog
             @resolver ||= Contrib::Configuration::Resolvers::PatternResolver.new
           end
 
-          # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :httpclient
         end
       end
     end
