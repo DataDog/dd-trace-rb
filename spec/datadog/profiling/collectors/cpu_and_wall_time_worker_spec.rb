@@ -513,22 +513,29 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       end
 
       it 'records live heap objects' do
-        pending "heap profiling isn't actually implemented just yet"
-
         stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
 
         start
 
-        test_num_allocated_object.times { CpuAndWallTimeWorkerSpec::TestStruct.new }
+        live_objects = Array.new(test_num_allocated_object)
+
+        test_num_allocated_object.times { |i| live_objects[i] = CpuAndWallTimeWorkerSpec::TestStruct.new }
         allocation_line = __LINE__ - 1
 
         cpu_and_wall_time_worker.stop
 
-        total_heap_sampled_for_test_struct = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-          .filter { |s| s.locations.first.lineno == allocation_line && s.locations.first.path == __FILE__ }
+        test_struct_new_location_matcher = lambda { |sample|
+          first_frame = sample.locations.first
+          first_frame.lineno == allocation_line && first_frame.path == __FILE__ && first_frame.base_label == 'new'
+        }
+
+        total_heap_sampled_for_test_struct = samples_from_pprof(recorder.serialize!)
+          .filter(&test_struct_new_location_matcher)
           .sum { |s| s.values[:'heap-live-samples'] }
 
-        expect(total_heap_sampled_for_test_struct).to eq test_num_allocated_object
+        # FIXME: When we have the allocated class label, tighten test_struct_new_location_matcher to prevent
+        #        matching against allocation class `(VM Internal, T_IMEMO)` which the +1 accounts for here
+        expect(total_heap_sampled_for_test_struct).to eq test_num_allocated_object + 1
       end
 
       context 'but allocation profiling is disabled' do

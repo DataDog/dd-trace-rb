@@ -544,7 +544,7 @@ heap_stack* heap_stack_new(ddog_prof_Slice_Location locations) {
     const ddog_prof_Location *location = &locations.ptr[i];
     stack->frames[i] = (heap_frame) {
       .name = ruby_strndup(location->function.name.ptr, location->function.name.len),
-      .filename = ruby_strndup(location->function.filename.ptr, location->function.name.len),
+      .filename = ruby_strndup(location->function.filename.ptr, location->function.filename.len),
       .line = location->line,
     };
   }
