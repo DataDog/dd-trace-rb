@@ -38,12 +38,15 @@ module Datadog
 
           data = AppSec::Processor::RuleLoader.load_data(
             ip_denylist: settings.appsec.ip_denylist,
-            user_id_denylist: settings.appsec.user_id_denylist
+            user_id_denylist: settings.appsec.user_id_denylist,
           )
+
+          exclusions = AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: settings.appsec.ip_passlist)
 
           ruleset = AppSec::Processor::RuleMerger.merge(
             rules: [rules],
             data: data,
+            exclusions: exclusions,
           )
 
           processor = Processor.new(ruleset: ruleset)

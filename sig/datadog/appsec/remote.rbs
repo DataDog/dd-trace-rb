@@ -7,6 +7,8 @@ module Datadog
       class NoRulesError < StandardError
       end
 
+      CAP_ASM_RESERVED_1: Integer
+
       CAP_ASM_ACTIVATION: Integer
 
       CAP_ASM_IP_BLOCKING: Integer
@@ -24,6 +26,8 @@ module Datadog
       CAP_ASM_CUSTOM_RULES: Integer
 
       CAP_ASM_CUSTOM_BLOCKING_RESPONSE: Integer
+
+      CAP_ASM_TRUSTED_IPS: Integer
 
       ASM_CAPABILITIES: Array[Integer]
 
