@@ -67,14 +67,9 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       wait_until_running
     end
 
+    @skip_cleanup = false
     after do
-      # If one of the tests makes cpu_and_wall_time_worker fail to initialize, it will fail again
-      # here in the after. We ignore the error if it is expected.
-      begin
-        cpu_and_wall_time_worker.stop
-      rescue => e
-        raise if !expected_worker_initialization_error || !e.is_a?(expected_worker_initialization_error)
-      end
+      cpu_and_wall_time_worker.stop unless @skip_cleanup
     end
 
     it 'creates a new thread' do
@@ -538,8 +533,9 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
       context 'but allocation profiling is disabled' do
         let(:allocation_profiling_enabled) { false }
-        let(:expected_worker_initialization_error) { ArgumentError }
         it 'raises an ArgumentError' do
+          # We don't want the after hook to execute cpu_and_wall_time_worker.stop otherwise it'll reraise the error
+          @skip_cleanup = true
           expect { cpu_and_wall_time_worker }.to raise_error(ArgumentError, /requires allocation profiling/)
         end
       end
