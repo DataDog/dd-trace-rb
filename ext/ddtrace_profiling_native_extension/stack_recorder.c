@@ -512,7 +512,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   }
 }
 
-void track_obj_allocation(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight) {
+void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
   if (state->heap_recorder == NULL) {
@@ -742,7 +742,7 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
 
 static VALUE _native_track_obj_allocation(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight) {
   ENFORCE_TYPE(weight, T_FIXNUM);
-  track_obj_allocation(recorder_instance, new_obj, NUM2UINT(weight));
+  track_object(recorder_instance, new_obj, NUM2UINT(weight));
   return Qtrue;
 }
 

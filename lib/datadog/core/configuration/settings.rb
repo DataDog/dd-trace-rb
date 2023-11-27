@@ -314,20 +314,26 @@ module Datadog
 
             # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
             #
-            # This feature is safe and enabled by default only on Rubies where we haven't identified issues.
-            # Refer to {Datadog::Profiling::Ext::IS_ALLOC_SAMPLING_SUPPORTED} for the details.
-            #
-            # @default `true` on Ruby 2.x and 3.1.4+, 3.2.3+ and 3.3.0+; `false` for Ruby 3.0 and unpatched Rubies.
+            # This feature is now controlled via {:experimental_allocation_enabled}
             option :allocation_counting_enabled do |o|
-              o.type :bool
-              o.default do
-                Profiling::Ext::IS_ALLOCATION_SAMPLING_SUPPORTED
+              o.after_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.allocation_counting_enabled setting has been deprecated for removal and no ' \
+                  'longer does anything. Please remove it from your Datadog.configure block. ' \
+                  'Allocation counting is now controlled by the `experimental_allocation_enabled` setting instead.'
+                )
               end
             end
 
             # Can be used to enable/disable collection of allocation profiles.
             #
             # This feature is alpha and disabled by default
+            #
+            # @warn This feature is not supported/safe in all Rubies. Details in {Datadog::Profiling::Component} but
+            #       in summary, this should be supported on Ruby 2.x, 3.1.4+, 3.2.3+ and 3.3.0+. Enabling it on
+            #       unsupported Rubies may result in unexpected behaviour, including crashes.
+            #
+            # @note Heap profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
             #
             # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_allocation_enabled do |o|
@@ -339,6 +345,9 @@ module Datadog
             # Can be used to enable/disable the collection of heap profiles.
             #
             # This feature is alpha and disabled by default
+            #
+            # @warn To enable heap profiling you are required to also enable allocation profiling.
+            # @note Heap profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
             #
             # @default `DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_heap_enabled do |o|

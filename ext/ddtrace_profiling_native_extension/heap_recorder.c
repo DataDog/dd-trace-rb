@@ -184,12 +184,6 @@ void heap_recorder_free(struct heap_recorder* recorder) {
   ruby_xfree(recorder);
 }
 
-typedef struct {
-  void (*for_each_callback)(heap_recorder_iteration_data stack_data, void *extra_arg);
-  void *for_each_callback_extra_arg;
-  heap_recorder *heap_recorder;
-} iteration_context;
-
 void start_heap_allocation_recording(heap_recorder* heap_recorder, VALUE new_obj, unsigned int weight) {
   heap_recorder->active_recording = (partial_heap_recording) {
     .obj = new_obj,
@@ -198,6 +192,10 @@ void start_heap_allocation_recording(heap_recorder* heap_recorder, VALUE new_obj
     },
   };
 }
+
+// TODO: Remove when things get implemented
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
   partial_heap_recording *active_recording = &heap_recorder->active_recording;
@@ -301,6 +299,16 @@ void heap_recorder_flush(heap_recorder *heap_recorder) {
   ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(&heap_recorder->records_mutex));
 }
 
+// Internal data we need while performing iteration over live objects.
+typedef struct {
+  // The callback we need to call for each object.
+  void (*for_each_callback)(heap_recorder_iteration_data stack_data, void *extra_arg);
+  // The extra arg to pass as the second parameter to the callback.
+  void *for_each_callback_extra_arg;
+  // A reference to the heap recorder so we can access extra stuff like reusable_locations.
+  heap_recorder *heap_recorder;
+} iteration_context;
+
 void heap_recorder_for_each_live_object(
     heap_recorder *heap_recorder,
     void (*for_each_callback)(heap_recorder_iteration_data stack_data, void *extra_arg),
@@ -359,11 +367,11 @@ static int st_object_records_iterate(st_data_t key, st_data_t value, st_data_t e
 
 // Struct holding data required for an update operation on heap_records
 typedef struct {
-  // [in] The stack this heap_record update operation is associated with
+  // [in] The new object record we want to add.
   // NOTE: Transfer of ownership is assumed, do not re-use it after call to ::update_object_record_entry
   object_record *new_object_record;
 
-  // [in] The heap recorder where the update is happening
+  // [in] The heap recorder where the update is happening.
   heap_recorder *heap_recorder;
 } object_record_update_data;
 
@@ -635,7 +643,7 @@ heap_stack* heap_stack_new(ddog_prof_Slice_Location locations) {
     const ddog_prof_Location *location = &locations.ptr[i];
     stack->frames[i] = (heap_frame) {
       .name = ruby_strndup(location->function.name.ptr, location->function.name.len),
-      .filename = ruby_strndup(location->function.filename.ptr, location->function.name.len),
+      .filename = ruby_strndup(location->function.filename.ptr, location->function.filename.len),
       .line = location->line,
     };
   }
