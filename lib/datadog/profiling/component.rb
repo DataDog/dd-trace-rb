@@ -171,12 +171,11 @@ module Datadog
           return true
         end
 
-        if defined?(::PhusionPassenger)
+        if (defined?(::PhusionPassenger) || Gem.loaded_specs['passenger']) && incompatible_passenger_version?
           Datadog.logger.warn(
-            'Enabling the profiling "no signals" workaround because the passenger web server is in use. ' \
-            'This is needed because passenger is currently incompatible with the normal working mode ' \
-            'of the profiler, as detailed in <https://github.com/DataDog/dd-trace-rb/issues/2976>. ' \
-            'Profiling data will have lower quality.'
+            'Enabling the profiling "no signals" workaround because an incompatible version of the passenger gem is ' \
+            'installed. Profiling data will have lower quality.' \
+            'To fix this, upgrade the passenger gem to version 6.0.19 or above.'
           )
           return true
         end
@@ -234,6 +233,15 @@ module Datadog
             "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
           )
 
+          true
+        end
+      end
+
+      # See https://github.com/datadog/dd-trace-rb/issues/2976 for details.
+      private_class_method def self.incompatible_passenger_version?
+        if Gem.loaded_specs['passenger']
+          Gem.loaded_specs['passenger'].version < Gem::Version.new('6.0.19')
+        else
           true
         end
       end
