@@ -13,7 +13,7 @@ PATH
   specs:
     ddtrace (1.17.0)
       datadog-ci (~> 0.4.0)
-      debase-ruby_core_source (= 3.2.2)
+      debase-ruby_core_source (= 3.2.3)
       libdatadog (~> 5.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -59,7 +59,7 @@ GEM
     cri (2.15.11)
     datadog-ci (0.4.0)
       msgpack
-    debase-ruby_core_source (3.2.2)
+    debase-ruby_core_source (3.2.3)
     delayed_job (4.1.11)
       activesupport (>= 3.0, < 8.0)
     delayed_job_active_record (4.1.7)
