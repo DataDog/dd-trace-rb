@@ -574,10 +574,6 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
         stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
 
-        # Warm this up to remove VM-related allocations
-        # TODO: Remove this when we can match on allocation class
-        CpuAndWallTimeWorkerSpec::TestStruct.new
-
         start
 
         live_objects = Array.new(test_num_allocated_object)
@@ -589,7 +585,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
         test_struct_heap_sample = lambda { |sample|
           first_frame = sample.locations.first
-          first_frame.lineno == allocation_line && first_frame.path == __FILE__ && first_frame.base_label == 'new' &&
+          first_frame.lineno == allocation_line &&
+            first_frame.path == __FILE__ &&
+            first_frame.base_label == 'new' &&
+            sample.labels[:'allocation class'] == 'CpuAndWallTimeWorkerSpec::TestStruct' &&
             (sample.values[:'heap-live-samples'] || 0) > 0
         }
 
