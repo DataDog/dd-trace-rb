@@ -58,9 +58,12 @@ static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
 }
 
 rb_nativethread_id_t pthread_id_for(VALUE thread) {
-  // struct rb_native_thread was introduced in Ruby 3.2 (preview2): https://github.com/ruby/ruby/pull/5836
+  // struct rb_native_thread was introduced in Ruby 3.2: https://github.com/ruby/ruby/pull/5836
   #ifndef NO_RB_NATIVE_THREAD
-    return thread_struct_from_object(thread)->nt->thread_id;
+    struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
+    // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
+    if (native_thread == NULL) return 0;
+    return native_thread->thread_id;
   #else
     return thread_struct_from_object(thread)->thread_id;
   #endif
@@ -113,15 +116,16 @@ bool is_current_thread_holding_the_gvl(void) {
 
     if (current_owner == NULL) return (current_gvl_owner) {.valid = false};
 
-    return (current_gvl_owner) {
-      .valid = true,
-      .owner =
-        #ifndef NO_RB_NATIVE_THREAD
-          current_owner->nt->thread_id
-        #else
-          current_owner->thread_id
-        #endif
-    };
+    #ifndef NO_RB_NATIVE_THREAD
+      struct rb_native_thread* current_owner_native_thread = current_owner->nt;
+
+      // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
+      if (current_owner_native_thread == NULL) return (current_gvl_owner) {.valid = false};
+
+      return (current_gvl_owner) {.valid = true, .owner = current_owner_native_thread->thread_id};
+    #else
+      return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+    #endif
   }
 #else
   current_gvl_owner gvl_owner(void) {
@@ -182,7 +186,9 @@ uint64_t native_thread_id_for(VALUE thread) {
   // The tid is only available on Ruby >= 3.1 + Linux (and FreeBSD). It's the same as `gettid()` aka the task id as seen in /proc
   #if !defined(NO_THREAD_TID) && defined(RB_THREAD_T_HAS_NATIVE_ID)
     #ifndef NO_RB_NATIVE_THREAD
-      return thread_struct_from_object(thread)->nt->tid;
+      struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
+      if (native_thread == NULL) rb_raise(rb_eRuntimeError, "BUG: rb_native_thread* is null. Is this Ruby running with RUBY_MN_THREADS=1?");
+      return native_thread->tid;
     #else
       return thread_struct_from_object(thread)->tid;
     #endif
@@ -810,4 +816,14 @@ VALUE invoke_location_for(VALUE thread, int *line_location) {
 
   *line_location = NUM2INT(rb_iseq_first_lineno(iseq));
   return rb_iseq_path(iseq);
+}
+
+void self_test_mn_enabled(void) {
+  #ifdef NO_MN_THREADS_AVAILABLE
+    return;
+  #else
+    if (ddtrace_get_ractor()->threads.sched.enable_mn_threads == true) {
+      rb_raise(rb_eRuntimeError, "Ruby VM is running with RUBY_MN_THREADS=1. This is not yet supported");
+    }
+  #endif
 }

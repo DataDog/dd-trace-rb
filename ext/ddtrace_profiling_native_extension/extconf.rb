@@ -134,6 +134,9 @@ if RUBY_PLATFORM.include?('linux')
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
 
+# On older Rubies, M:N threads were not available
+$defs << '-DNO_MN_THREADS_AVAILABLE' if RUBY_VERSION < '3.3'
+
 # On older Rubies, we did not need to include the ractor header (this was built into the MJIT header)
 $defs << '-DNO_RACTOR_HEADER_INCLUDE' if RUBY_VERSION < '3.3'
 
