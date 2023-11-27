@@ -15,7 +15,6 @@ module Datadog
 
         def initialize(
           gc_profiling_enabled:,
-          allocation_counting_enabled:,
           no_signals_workaround_enabled:,
           thread_context_collector:,
           allocation_sample_every:,
@@ -37,7 +36,6 @@ module Datadog
             thread_context_collector,
             gc_profiling_enabled,
             idle_sampling_helper,
-            allocation_counting_enabled,
             no_signals_workaround_enabled,
             dynamic_sampling_rate_enabled,
             allocation_sample_every,

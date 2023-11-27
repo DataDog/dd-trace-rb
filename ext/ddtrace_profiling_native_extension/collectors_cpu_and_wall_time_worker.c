@@ -80,7 +80,6 @@ struct cpu_and_wall_time_worker_state {
   // These are immutable after initialization
 
   bool gc_profiling_enabled;
-  bool allocation_counting_enabled;
   bool no_signals_workaround_enabled;
   bool dynamic_sampling_rate_enabled;
   int allocation_sample_every;
@@ -152,7 +151,6 @@ static VALUE _native_initialize(
   VALUE thread_context_collector_instance,
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
-  VALUE allocation_counting_enabled,
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE allocation_sample_every,
@@ -232,7 +230,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 10);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 9);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -270,7 +268,6 @@ static VALUE _native_new(VALUE klass) {
   // being leaked.
 
   state->gc_profiling_enabled = false;
-  state->allocation_counting_enabled = false;
   state->no_signals_workaround_enabled = false;
   state->dynamic_sampling_rate_enabled = true;
   state->allocation_sample_every = 0;
@@ -301,7 +298,6 @@ static VALUE _native_initialize(
   VALUE thread_context_collector_instance,
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
-  VALUE allocation_counting_enabled,
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE allocation_sample_every,
@@ -309,7 +305,6 @@ static VALUE _native_initialize(
   VALUE heap_profiling_enabled
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
-  ENFORCE_BOOLEAN(allocation_counting_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
   ENFORCE_TYPE(allocation_sample_every, T_FIXNUM);
@@ -320,7 +315,6 @@ static VALUE _native_initialize(
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   state->gc_profiling_enabled = (gc_profiling_enabled == Qtrue);
-  state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
   state->no_signals_workaround_enabled = (no_signals_workaround_enabled == Qtrue);
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
   state->allocation_sample_every = NUM2INT(allocation_sample_every);
@@ -653,7 +647,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   // because they may raise exceptions.
   install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
-  if (state->allocation_counting_enabled || state->allocation_profiling_enabled) rb_tracepoint_enable(state->object_allocation_tracepoint);
+  if (state->allocation_profiling_enabled) rb_tracepoint_enable(state->object_allocation_tracepoint);
   if (state->heap_profiling_enabled) rb_tracepoint_enable(state->object_free_tracepoint);
 
   rb_thread_call_without_gvl(run_sampling_trigger_loop, state, interrupt_sampling_trigger_loop, state);
@@ -910,9 +904,9 @@ static void sleep_for(uint64_t time_ns) {
 }
 
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
-  bool is_profiler_running = active_sampler_instance_state != NULL;
+  bool are_allocations_being_tracked = active_sampler_instance_state != NULL && active_sampler_instance_state->allocation_profiling_enabled;
 
-  return is_profiler_running ? ULL2NUM(allocation_count) : Qnil;
+  return are_allocations_being_tracked ? ULL2NUM(allocation_count) : Qnil;
 }
 
 // Implements memory-related profiling events. This function is called by Ruby via the `object_allocation_tracepoint`
@@ -942,7 +936,7 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
 
   // TODO: This is a placeholder sampling decision strategy. We plan to replace it with a better one soon (e.g. before
   // beta), and having something here allows us to test the rest of feature, sampling decision aside.
-  if (state->allocation_profiling_enabled && state->allocation_sample_every > 0 && ((allocation_count % state->allocation_sample_every) == 0)) {
+  if (((allocation_count % state->allocation_sample_every) == 0)) {
     // Rescue against any exceptions that happen during sampling
     safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
   }

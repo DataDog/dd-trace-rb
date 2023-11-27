@@ -7,8 +7,6 @@ module Datadog
       ENV_AGENTLESS: "DD_PROFILING_AGENTLESS"
       ENV_ENDPOINT_COLLECTION_ENABLED: "DD_PROFILING_ENDPOINT_COLLECTION_ENABLED"
 
-      def self.allocation_sampling_supported?: -> bool
-
       module Transport
         module HTTP
           FORM_FIELD_TAG_ENV: "env"
