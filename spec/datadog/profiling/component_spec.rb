@@ -76,10 +76,11 @@ RSpec.describe Datadog::Profiling::Component do
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
-            allocation_counting_enabled: anything,
             no_signals_workaround_enabled: :no_signals_result,
             thread_context_collector: instance_of(Datadog::Profiling::Collectors::ThreadContext),
-            allocation_sample_every: 0,
+            allocation_sample_every: kind_of(Integer),
+            allocation_profiling_enabled: false,
+            heap_profiling_enabled: false,
           )
 
           build_profiler_component
@@ -119,31 +120,143 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context 'when allocation_counting_enabled is enabled' do
+        context 'when allocation profiling is enabled' do
           before do
-            settings.profiling.advanced.allocation_counting_enabled = true
+            settings.profiling.advanced.experimental_allocation_enabled = true
+            stub_const('RUBY_VERSION', testing_version)
           end
 
-          it 'initializes a CpuAndWallTimeWorker collector with allocation_counting_enabled set to true' do
+          context 'on Ruby 2.x' do
+            let(:testing_version) { '2.3.0 ' }
+
+            it 'initializes a CpuAndWallTimeWorker with allocation_profiling set to true and warns' do
+              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+                allocation_profiling_enabled: true,
+              )
+
+              expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
+              expect(Datadog.logger).to_not receive(:warn).with(/Ractor/)
+
+              build_profiler_component
+            end
+          end
+
+          ['3.2.0', '3.2.1', '3.2.2'].each do |broken_ruby|
+            context "on a Ruby 3 version affected by https://bugs.ruby-lang.org/issues/19482 (#{broken_ruby})" do
+              let(:testing_version) { broken_ruby }
+
+              it 'raises an error about lack of support during initialization of a CpuAndWallTimeWorker' do
+                expect { build_profiler_component }.to raise_error(/not supported.+Please use/)
+              end
+            end
+          end
+
+          ['3.0.0', '3.1.0', '3.1.3'].each do |broken_ractors_ruby|
+            context "on a Ruby 3 version affected by https://bugs.ruby-lang.org/issues/18464 (#{broken_ractors_ruby})" do
+              let(:testing_version) { broken_ractors_ruby }
+
+              it 'initializes a CpuAndWallTimeWorker with allocation_profiling forcibly set to true and warns' do
+                expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+                  allocation_profiling_enabled: true,
+                )
+
+                expect(Datadog.logger).to receive(:warn).with(/Ractors.+crashes/)
+                expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
+
+                build_profiler_component
+              end
+            end
+          end
+
+          ['3.1.4', '3.2.3', '3.3.0'].each do |fixed_ruby|
+            context "on a Ruby 3 version where https://bugs.ruby-lang.org/issues/18464 is fixed (#{fixed_ruby})" do
+              let(:testing_version) { fixed_ruby }
+              it 'initializes a CpuAndWallTimeWorker with allocation_profiling forcibly set to true and warns' do
+                expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+                  allocation_profiling_enabled: true,
+                )
+
+                expect(Datadog.logger).to receive(:warn).with(/Ractors.+stopping/)
+                expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
+
+                build_profiler_component
+              end
+            end
+          end
+        end
+
+        context 'when allocation profiling is disabled' do
+          before do
+            settings.profiling.advanced.experimental_allocation_enabled = false
+          end
+
+          it 'initializes a CpuAndWallTimeWorker collector with allocation_profiling set to false' do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-              allocation_counting_enabled: true,
+              allocation_profiling_enabled: false,
             )
 
             build_profiler_component
           end
         end
 
-        context 'when allocation_counting_enabled is disabled' do
+        context 'when heap profiling is enabled' do
           before do
-            settings.profiling.advanced.allocation_counting_enabled = false
+            settings.profiling.advanced.experimental_heap_enabled = true
+            # Universally supported ruby version for allocation profiling, we don't want to test those
+            # edge cases here
+            stub_const('RUBY_VERSION', '2.7.2')
           end
 
-          it 'initializes a CpuAndWallTimeWorker collector with allocation_counting_enabled set to false' do
+          context 'and allocation profiling disabled' do
+            before do
+              settings.profiling.advanced.experimental_allocation_enabled = false
+            end
+
+            it 'raises an ArgumentError during CpuAndWallTimeWorker initialization' do
+              expect { build_profiler_component }.to raise_error(ArgumentError, /requires allocation profiling/)
+            end
+          end
+
+          context 'and allocation profiling enabled and supported' do
+            before do
+              settings.profiling.advanced.experimental_allocation_enabled = true
+            end
+
+            it 'initializes a CpuAndWallTimeWorker with heap_profiling set to true and warns' do
+              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+                allocation_profiling_enabled: true,
+              )
+
+              expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
+              expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
+
+              build_profiler_component
+            end
+          end
+        end
+
+        context 'when heap profiling is disabled' do
+          before do
+            settings.profiling.advanced.experimental_heap_enabled = false
+          end
+
+          it 'initializes a CpuAndWallTimeWorker collector with allocation_profiling set to false' do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-              allocation_counting_enabled: false,
+              heap_profiling_enabled: false,
             )
 
             build_profiler_component
+          end
+        end
+
+        describe '#allocation_counting_enabled=' do
+          it 'updates the #allocation_counting_enabled setting' do
+            settings.profiling.advanced.allocation_counting_enabled = true
+
+            expect { settings.profiling.advanced.allocation_counting_enabled = false }
+              .to change { settings.profiling.advanced.allocation_counting_enabled }
+              .from(true)
+              .to(false)
           end
         end
 
@@ -163,17 +276,20 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        it 'sets up the Exporter internal_metadata with no_signals_workaround_enabled and timeline_enabled settings' do
+        it 'sets up the Exporter internal_metadata with relevant settings' do
           allow(Datadog::Profiling::Collectors::ThreadContext).to receive(:new)
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
 
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
           expect(settings.profiling.advanced).to receive(:experimental_timeline_enabled).and_return(:timeline_result)
+          expect(settings.profiling.advanced).to receive(:experimental_allocation_sample_rate)
+            .and_return(123)
           expect(Datadog::Profiling::Exporter).to receive(:new).with(
             hash_including(
               internal_metadata: {
                 no_signals_workaround_enabled: :no_signals_result,
                 timeline_enabled: :timeline_result,
+                allocation_sample_every: 123,
               }
             )
           )
