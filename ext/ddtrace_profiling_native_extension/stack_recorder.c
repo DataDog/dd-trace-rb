@@ -571,6 +571,7 @@ static void add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
     (ddog_prof_Sample) {
       .locations = iteration_data.locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = context->state->enabled_values_count},
+      .labels = {0},
     },
     0
   );
