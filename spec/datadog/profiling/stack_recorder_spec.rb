@@ -384,7 +384,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         it 'are ommitted from the profile' do
           # We sample from 2 distinct locations
           expect(samples.size).to eq(2)
-          expect(samples.filter { |s| s.values.key?('heap-live-samples') }).to eq([])
+          expect(samples.select { |s| s.values.key?('heap-live-samples') }).to eq([])
         end
       end
 
