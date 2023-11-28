@@ -170,10 +170,6 @@ void start_heap_allocation_recording(heap_recorder* heap_recorder, VALUE new_obj
   };
 }
 
-// TODO: Remove when things get implemented
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
 void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
   partial_heap_recording *active_recording = &heap_recorder->active_recording;
 
@@ -227,6 +223,10 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
   ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(&heap_recorder->records_mutex));
 }
 
+// TODO: Remove when things get implemented
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 // WARN: This can get called during Ruby GC. NO HEAP ALLOCATIONS OR EXCEPTIONS ARE ALLOWED.
 void record_heap_free(heap_recorder *heap_recorder, VALUE obj) {
   object_record *object_record = NULL;
@@ -250,6 +250,8 @@ void record_heap_free(heap_recorder *heap_recorder, VALUE obj) {
 void heap_recorder_flush(heap_recorder *heap_recorder) {
   // TODO: Implement
 }
+
+#pragma GCC diagnostic pop
 
 // Internal data we need while performing iteration over live objects.
 typedef struct {
