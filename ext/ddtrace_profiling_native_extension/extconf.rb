@@ -71,8 +71,8 @@ Logging.message("[ddtrace] End of compiler information\n")
 
 # mkmf on modern Rubies actually has an append_cflags that does something similar
 # (see https://github.com/ruby/ruby/pull/5760), but as usual we need a bit more boilerplate to deal with legacy Rubies
-def add_compiler_flag(flag)
-  if try_cflags(flag)
+def add_compiler_flag(flag, skip_werror: false)
+  if try_cflags(flag, skip_werror ? {werror: false} : {})
     $CFLAGS << ' ' << flag
   else
     $stderr.puts("WARNING: '#{flag}' not accepted by compiler, skipping it")
@@ -103,7 +103,7 @@ add_compiler_flag '-Wno-declaration-after-statement'
 add_compiler_flag '-Werror-implicit-function-declaration'
 
 # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
-add_compiler_flag '-Wunused-parameter'
+add_compiler_flag '-Wunused-parameter', skip_werror: true
 
 # The native extension is not intended to expose any symbols/functions for other native libraries to use;
 # the sole exception being `Init_ddtrace_profiling_native_extension` which needs to be visible for Ruby to call it when
