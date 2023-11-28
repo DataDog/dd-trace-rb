@@ -525,7 +525,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
         cpu_and_wall_time_worker.stop
 
         total_heap_sampled_for_test_struct = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-          .filter { |s| s.locations.first.lineno == allocation_line && s.locations.first.path == __FILE__ }
+          .select { |s| s.locations.first.lineno == allocation_line && s.locations.first.path == __FILE__ }
           .sum { |s| s.values[:'heap-live-samples'] }
 
         expect(total_heap_sampled_for_test_struct).to eq test_num_allocated_object
