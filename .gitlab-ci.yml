@@ -73,7 +73,7 @@ install-base-ruby-gems:
   script:
     # This would install all dependencies
     - .gitlab/prepare_pkg_directory.sh
-    - ruby pkg/install_ddtrace_deps.rb debase-ruby_core_source libdatadog libddwaf datadog-ci msgpack ffi ddtrace
+    - ruby pkg/install_ddtrace_deps.rb debase-ruby_core_source libdatadog libddwaf msgpack ffi ddtrace
   artifacts:
     paths:
       - pkg

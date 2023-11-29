@@ -64,7 +64,6 @@ begin
     'debase-ruby_core_source',
     'libdatadog',
     'libddwaf',
-    'datadog-ci',
     'ddtrace'
   ].each do |gem|
     _, status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, "bundle show #{gem}")
