@@ -110,7 +110,6 @@ module Datadog
         private
 
         TARGET_OPTIONS = [
-          'ci.enabled',
           'logger.level',
           'profiling.advanced.code_provenance_enabled',
           'profiling.advanced.endpoint.collection.enabled',
@@ -145,6 +144,7 @@ module Datadog
             format_configuration_value(configuration.tracing.writer_options[:flush_interval])
           options['logger.instance'] = configuration.logger.instance.class.to_s
           options['appsec.enabled'] = configuration.dig('appsec', 'enabled') if configuration.respond_to?('appsec')
+          options['ci.enabled'] = configuration.dig('ci', 'enabled') if configuration.respond_to?('ci')
           options['tracing.opentelemetry.enabled'] = !defined?(Datadog::OpenTelemetry::LOADED).nil?
           options['tracing.opentracing.enabled'] = !defined?(Datadog::OpenTracer::LOADED).nil?
           options.compact!
