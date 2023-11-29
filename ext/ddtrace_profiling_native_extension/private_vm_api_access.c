@@ -827,3 +827,30 @@ void self_test_mn_enabled(void) {
     }
   #endif
 }
+
+// Taken from upstream imemo.h at commit 6ebcf25de2859b5b6402b7e8b181066c32d0e0bf (November 2023, master branch)
+// (See the Ruby project copyright and license above)
+// to enable calling rb_imemo_name
+//
+// Modifications:
+// * Added IMEMO_MASK define
+// * Changed return type to int to avoid having to define `enum imemo_type`
+static inline int ddtrace_imemo_type(VALUE imemo) {
+  // This mask is the same between Ruby 2.5 and 3.3-preview3. Furthermore, the intention of this method is to be used
+  // to call `rb_imemo_name` which correctly handles invalid numbers so even if the mask changes in the future, at most
+  // we'll get incorrect results (and never a VM crash)
+  #define IMEMO_MASK   0x0f
+  return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
+}
+
+// Safety: This function assumes the object passed in is of the imemo type. But in the worst case, you'll just get
+// a string that doesn't make any sense.
+#ifndef NO_IMEMO_NAME
+  const char *imemo_kind(VALUE imemo) {
+    return rb_imemo_name(ddtrace_imemo_type(imemo));
+  }
+#else
+  const char *imemo_kind(__attribute__((unused)) VALUE imemo) {
+    return NULL;
+  }
+#endif

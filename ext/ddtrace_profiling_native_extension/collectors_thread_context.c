@@ -1197,7 +1197,14 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
         class_name = ruby_value_type_to_class_name(type);
       }
     } else if (type == RUBY_T_IMEMO) {
-      class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
+      const char *imemo_string = imemo_kind(new_object);
+      if (imemo_string != NULL) {
+        char imemo_type[100];
+        snprintf(imemo_type, 100, "(VM Internal, T_IMEMO, %s)", imemo_string);
+        class_name = (ddog_CharSlice) {.ptr = imemo_type, .len = strlen(imemo_type)};
+      } else { // Ruby < 3
+        class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
+      }
     } else {
       class_name = ruby_vm_type; // For other weird internal things we just use the VM type
     }
