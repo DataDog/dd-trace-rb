@@ -19,7 +19,7 @@ module Datadog
           # post method runs the task within composited executor - in a different thread. The original arguments are
           # captured to be propagated to the composited executor post method
           def post(*args, &task)
-            digest = Tracing.active_trace && Tracing.active_trace.to_digest
+            digest = Tracing.active_trace&.to_digest
             executor = @composited_executor.is_a?(Symbol) ? Concurrent.executor(@composited_executor) : @composited_executor
 
             # Pass the original arguments to the composited executor, which
