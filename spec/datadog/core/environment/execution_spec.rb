@@ -3,6 +3,7 @@
 require 'spec_helper'
 
 require 'datadog/core/environment/execution'
+require 'open3'
 
 RSpec.describe Datadog::Core::Environment::Execution do
   around do |example|
