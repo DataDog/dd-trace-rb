@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'set'
+require 'open3'
 
 module Datadog
   module Core
