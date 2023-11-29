@@ -33,7 +33,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
 
       let(:original_spans) do
         spans.map do |span|
-          Hash[span.to_hash.map { |k, v| [k.to_s, v] }]
+          span.to_hash.transform_keys(&:to_s)
         end
       end
 
@@ -80,7 +80,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
 
       let(:original_spans) do
         spans.map do |span|
-          Hash[span.to_hash.map { |k, v| [k.to_s, v] }]
+          span.to_hash.transform_keys(&:to_s)
         end
       end
 

@@ -16,7 +16,7 @@ module Datadog
           register_as :resque, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['resque'] && Gem.loaded_specs['resque'].version
+            Gem.loaded_specs['resque']&.version
           end
 
           def self.loaded?

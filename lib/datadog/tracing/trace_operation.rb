@@ -149,11 +149,11 @@ module Datadog
       end
 
       def name
-        @name || (root_span && root_span.name)
+        @name || root_span&.name
       end
 
       def resource
-        @resource || (root_span && root_span.resource)
+        @resource || root_span&.resource
       end
 
       # Returns true if the resource has been explicitly set
@@ -164,7 +164,7 @@ module Datadog
       end
 
       def service
-        @service || (root_span && root_span.service)
+        @service || root_span&.service
       end
 
       def measure(
@@ -209,49 +209,48 @@ module Datadog
         tags: nil,
         type: nil
       )
-        begin
-          # Resolve span options:
-          # Parent, service name, etc.
-          # Add default options
-          trace_id = @id
-          parent = @active_span
 
-          # Use active span's span ID if available. Otherwise, the parent span ID.
-          # Necessary when this trace continues from another, e.g. distributed trace.
-          parent_id = parent ? parent.id : @parent_span_id || 0
+        # Resolve span options:
+        # Parent, service name, etc.
+        # Add default options
+        trace_id = @id
+        parent = @active_span
 
-          # Build events
-          events ||= SpanOperation::Events.new
+        # Use active span's span ID if available. Otherwise, the parent span ID.
+        # Necessary when this trace continues from another, e.g. distributed trace.
+        parent_id = parent ? parent.id : @parent_span_id || 0
 
-          # Before start: activate the span, publish events.
-          events.before_start.subscribe do |span_op|
-            start_span(span_op)
-          end
+        # Build events
+        events ||= SpanOperation::Events.new
 
-          # After finish: deactivate the span, record, publish events.
-          events.after_finish.subscribe do |span, span_op|
-            finish_span(span, span_op, parent)
-          end
-
-          # Build a new span operation
-          SpanOperation.new(
-            op_name,
-            events: events,
-            on_error: on_error,
-            parent_id: parent_id,
-            resource: resource || op_name,
-            service: service,
-            start_time: start_time,
-            tags: tags,
-            trace_id: trace_id,
-            type: type
-          )
-        rescue StandardError => e
-          Datadog.logger.debug { "Failed to build new span: #{e}" }
-
-          # Return dummy span
-          SpanOperation.new(op_name)
+        # Before start: activate the span, publish events.
+        events.before_start.subscribe do |span_op|
+          start_span(span_op)
         end
+
+        # After finish: deactivate the span, record, publish events.
+        events.after_finish.subscribe do |span, span_op|
+          finish_span(span, span_op, parent)
+        end
+
+        # Build a new span operation
+        SpanOperation.new(
+          op_name,
+          events: events,
+          on_error: on_error,
+          parent_id: parent_id,
+          resource: resource || op_name,
+          service: service,
+          start_time: start_time,
+          tags: tags,
+          trace_id: trace_id,
+          type: type
+        )
+      rescue StandardError => e
+        Datadog.logger.debug { "Failed to build new span: #{e}" }
+
+        # Return dummy span
+        SpanOperation.new(op_name)
       end
 
       # Returns a {TraceSegment} with all finished spans that can be flushed
@@ -277,7 +276,7 @@ module Datadog
       # Data should reflect the active state of the trace.
       def to_digest
         # Resolve current span ID
-        span_id = @active_span && @active_span.id
+        span_id = @active_span&.id
         span_id ||= @parent_span_id unless finished?
 
         TraceDigest.new(
@@ -306,22 +305,22 @@ module Datadog
       def fork_clone
         self.class.new(
           agent_sample_rate: @agent_sample_rate,
-          events: (@events && @events.dup),
-          hostname: (@hostname && @hostname.dup),
+          events: @events&.dup,
+          hostname: @hostname&.dup,
           id: @id,
           max_length: @max_length,
-          name: (name && name.dup),
-          origin: (@origin && @origin.dup),
-          parent_span_id: (@active_span && @active_span.id) || @parent_span_id,
+          name: name&.dup,
+          origin: @origin&.dup,
+          parent_span_id: @active_span&.id || @parent_span_id,
           rate_limiter_rate: @rate_limiter_rate,
-          resource: (resource && resource.dup),
+          resource: resource&.dup,
           rule_sample_rate: @rule_sample_rate,
           sample_rate: @sample_rate,
           sampled: @sampled,
           sampling_priority: @sampling_priority,
-          service: (service && service.dup),
-          trace_state: (@trace_state && @trace_state.dup),
-          trace_state_unknown_fields: (@trace_state_unknown_fields && @trace_state_unknown_fields.dup),
+          service: service&.dup,
+          trace_state: @trace_state&.dup,
+          trace_state_unknown_fields: @trace_state_unknown_fields&.dup,
           tags: meta.dup,
           metrics: metrics.dup
         )
@@ -399,41 +398,37 @@ module Datadog
       end
 
       def start_span(span_op)
-        begin
-          activate_span!(span_op)
+        activate_span!(span_op)
 
-          # Update active span count
-          @active_span_count += 1
+        # Update active span count
+        @active_span_count += 1
 
-          # Publish :span_before_start event
-          events.span_before_start.publish(span_op, self)
-        rescue StandardError => e
-          Datadog.logger.debug { "Error starting span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
-        end
+        # Publish :span_before_start event
+        events.span_before_start.publish(span_op, self)
+      rescue StandardError => e
+        Datadog.logger.debug { "Error starting span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
       end
 
       def finish_span(span, span_op, parent)
-        begin
-          # Save finished span & root span
-          @spans << span unless span.nil?
+        # Save finished span & root span
+        @spans << span unless span.nil?
 
-          # Deactivate the span, re-activate parent.
-          deactivate_span!(span_op)
+        # Deactivate the span, re-activate parent.
+        deactivate_span!(span_op)
 
-          # Set finished, to signal root span has completed.
-          @finished = true if span_op == root_span
+        # Set finished, to signal root span has completed.
+        @finished = true if span_op == root_span
 
-          # Update active span count
-          @active_span_count -= 1
+        # Update active span count
+        @active_span_count -= 1
 
-          # Publish :span_finished event
-          events.span_finished.publish(span, self)
+        # Publish :span_finished event
+        events.span_finished.publish(span, self)
 
-          # Publish :trace_finished event
-          events.trace_finished.publish(self) if finished?
-        rescue StandardError => e
-          Datadog.logger.debug { "Error finishing span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
-        end
+        # Publish :trace_finished event
+        events.trace_finished.publish(self) if finished?
+      rescue StandardError => e
+        Datadog.logger.debug { "Error finishing span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
       end
 
       # Track the root span
@@ -462,7 +457,7 @@ module Datadog
           service: service,
           tags: meta,
           metrics: metrics,
-          root_span_id: !partial ? root_span && root_span.id : nil,
+          root_span_id: !partial ? root_span&.id : nil,
           profiling_enabled: @profiling_enabled,
         )
       end

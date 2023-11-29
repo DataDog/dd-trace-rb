@@ -18,7 +18,7 @@ RSpec.describe 'OpenTracer context propagation' do
 
   describe 'via OpenTracing::FORMAT_TEXT_MAP' do
     def baggage_to_carrier_format(baggage)
-      baggage.map { |k, v| [Datadog::OpenTracer::TextMapPropagator::BAGGAGE_PREFIX + k, v] }.to_h
+      baggage.transform_keys { |k| Datadog::OpenTracer::TextMapPropagator::BAGGAGE_PREFIX + k }
     end
 
     context 'when sending' do
@@ -209,11 +209,11 @@ RSpec.describe 'OpenTracer context propagation' do
 
   describe 'via OpenTracing::FORMAT_RACK' do
     def carrier_to_rack_format(carrier)
-      carrier.map { |k, v| [RackSupport.header_to_rack(k), v] }.to_h
+      carrier.transform_keys { |k| RackSupport.header_to_rack(k) }
     end
 
     def baggage_to_carrier_format(baggage)
-      baggage.map { |k, v| [Datadog::OpenTracer::RackPropagator::BAGGAGE_PREFIX + k, v] }.to_h
+      baggage.transform_keys { |k| Datadog::OpenTracer::RackPropagator::BAGGAGE_PREFIX + k }
     end
 
     context 'when sending' do

@@ -17,7 +17,7 @@ module Datadog
           register_as :devise, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['devise'] && Gem.loaded_specs['devise'].version
+            Gem.loaded_specs['devise']&.version
           end
 
           def self.loaded?

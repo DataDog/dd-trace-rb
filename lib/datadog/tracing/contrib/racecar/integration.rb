@@ -16,7 +16,7 @@ module Datadog
           register_as :racecar, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['racecar'] && Gem.loaded_specs['racecar'].version
+            Gem.loaded_specs['racecar']&.version
           end
 
           def self.loaded?

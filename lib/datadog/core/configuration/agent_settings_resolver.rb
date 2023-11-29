@@ -206,9 +206,9 @@ module Datadog
         end
 
         def transport_options_settings
-          @transport_options_settings ||= begin
-            settings.tracing.transport_options if settings.respond_to?(:tracing) && settings.tracing
-          end
+          @transport_options_settings ||= if settings.respond_to?(:tracing) && settings.tracing
+                                            settings.tracing.transport_options
+                                          end
         end
 
         # We only use the default unix socket if it is already present.
@@ -286,7 +286,7 @@ module Datadog
         end
 
         def log_warning(message)
-          logger.warn(message) if logger
+          logger&.warn(message)
         end
 
         def http_scheme?(uri)
@@ -341,11 +341,9 @@ module Datadog
             begin
               transport_options_proc.call(TransportOptionsResolver.new(@transport_options))
             rescue NoMethodError => e
-              if logger
-                logger.debug do
-                  'Could not extract configuration from transport_options proc. ' \
-                  "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
-                end
+              logger&.debug do
+                'Could not extract configuration from transport_options proc. ' \
+                "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
               end
 
               # Reset the object; we shouldn't return the same one we passed into the proc as it may have

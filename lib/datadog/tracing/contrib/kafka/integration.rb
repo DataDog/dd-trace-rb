@@ -16,7 +16,7 @@ module Datadog
           register_as :kafka, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['ruby-kafka'] && Gem.loaded_specs['ruby-kafka'].version
+            Gem.loaded_specs['ruby-kafka']&.version
           end
 
           def self.loaded?

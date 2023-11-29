@@ -28,7 +28,7 @@ module Datadog
           gz = Zlib::GzipReader.new(sio, encoding: encoding)
           gz.read
         ensure
-          gz && gz.close
+          gz&.close
         end
       end
     end

@@ -69,10 +69,10 @@ module Datadog
 
           new = Processor.new(ruleset: ruleset)
 
-          if new && new.ready?
+          if new&.ready?
             old = @processor
             @processor = new
-            old.finalize if old
+            old&.finalize
           end
         end
       end
@@ -83,7 +83,7 @@ module Datadog
 
       def shutdown!
         @mutex.synchronize do
-          if processor && processor.ready?
+          if processor&.ready?
             processor.finalize
             @processor = nil
           end

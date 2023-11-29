@@ -3,9 +3,5 @@ module Datadog
     module BackportFrom25
       def self.string_delete_prefix: (::String string, ::String prefix) -> ::String
     end
-
-    module BackportFrom24
-      def self.dup: (Object value) -> Object
-    end
   end
 end

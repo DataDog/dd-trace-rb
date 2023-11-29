@@ -17,7 +17,7 @@ module Datadog
           register_as :dalli, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['dalli'] && Gem.loaded_specs['dalli'].version
+            Gem.loaded_specs['dalli']&.version
           end
 
           def self.loaded?

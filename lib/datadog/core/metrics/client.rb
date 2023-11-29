@@ -162,7 +162,7 @@ module Datadog
         end
 
         def close
-          @statsd.close if @statsd && @statsd.respond_to?(:close)
+          @statsd.close if @statsd.respond_to?(:close)
         end
 
         private
@@ -174,10 +174,8 @@ module Datadog
             defined?(Datadog::Statsd::VERSION) &&
               Datadog::Statsd::VERSION &&
               Gem::Version.new(Datadog::Statsd::VERSION)
-          ) || (
-            Gem.loaded_specs['dogstatsd-ruby'] &&
-              Gem.loaded_specs['dogstatsd-ruby'].version
-          )
+          ) ||
+            Gem.loaded_specs['dogstatsd-ruby']&.version
         end
 
         IGNORED_STATSD_ONLY_ONCE = Utils::OnlyOnce.new

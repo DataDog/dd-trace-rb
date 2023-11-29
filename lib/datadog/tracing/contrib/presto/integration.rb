@@ -16,7 +16,7 @@ module Datadog
           register_as :presto
 
           def self.version
-            Gem.loaded_specs['presto-client'] && Gem.loaded_specs['presto-client'].version
+            Gem.loaded_specs['presto-client']&.version
           end
 
           def self.loaded?

@@ -17,7 +17,7 @@ module Datadog
           register_as :httprb
 
           def self.version
-            Gem.loaded_specs['http'] && Gem.loaded_specs['http'].version
+            Gem.loaded_specs['http']&.version
           end
 
           def self.loaded?

@@ -65,55 +65,53 @@ module Datadog
               response = nil
 
               Tracing.trace(Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: service) do |span|
-                begin
-                  connection = transport.connections.first
-                  host = connection.host[:host] if connection
-                  port = connection.host[:port] if connection
+                connection = transport.connections.first
+                host = connection.host[:host] if connection
+                port = connection.host[:port] if connection
 
-                  if datadog_configuration[:peer_service]
-                    span.set_tag(
-                      Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                      datadog_configuration[:peer_service]
-                    )
-                  end
-
-                  # Tag original global service name if not used
-                  if span.service != Datadog.configuration.service
-                    span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-                  end
-
-                  span.span_type = Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
-
-                  span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-                  span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
-                  span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
-
-                  span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
-
-                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
-
-                  # Set analytics sample rate
-                  if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
-                    Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
-                  end
-
-                  span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_METHOD, method)
-                  tag_params(params, span)
-                  tag_body(body, span)
-                  span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_URL, url)
-                  span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host) if host
-                  span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port) if port
-
-                  quantized_url = Datadog::Tracing::Contrib::Elasticsearch::Quantize.format_url(url)
-                  span.resource = "#{method} #{quantized_url}"
-                  Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
-                rescue StandardError => e
-                  Datadog.logger.error(e.message)
-                ensure
-                  # the call is still executed
-                  response = super
-                  span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
+                if datadog_configuration[:peer_service]
+                  span.set_tag(
+                    Tracing::Metadata::Ext::TAG_PEER_SERVICE,
+                    datadog_configuration[:peer_service]
+                  )
                 end
+
+                # Tag original global service name if not used
+                if span.service != Datadog.configuration.service
+                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
+                end
+
+                span.span_type = Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
+
+                span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+
+                span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
+
+                span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
+
+                # Set analytics sample rate
+                if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+                  Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+                end
+
+                span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_METHOD, method)
+                tag_params(params, span)
+                tag_body(body, span)
+                span.set_tag(Datadog::Tracing::Contrib::Elasticsearch::Ext::TAG_URL, url)
+                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host) if host
+                span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port) if port
+
+                quantized_url = Datadog::Tracing::Contrib::Elasticsearch::Quantize.format_url(url)
+                span.resource = "#{method} #{quantized_url}"
+                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+              rescue StandardError => e
+                Datadog.logger.error(e.message)
+              ensure
+                # the call is still executed
+                response = super
+                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
               end
               response
             end

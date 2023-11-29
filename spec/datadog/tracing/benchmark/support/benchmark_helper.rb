@@ -273,7 +273,7 @@ RSpec.shared_context 'minimal agent' do
       # to read the response in time.
       # We instead delay closing the connection until the next
       # connection request comes in.
-      previous_conn.close if previous_conn
+      previous_conn&.close
       previous_conn = conn
     end
   end

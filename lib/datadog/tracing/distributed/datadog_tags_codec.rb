@@ -31,19 +31,17 @@ module Datadog
         # @return [String] serialized tags hash
         # @raise [EncodingError] if tags cannot be serialized to the `x-datadog-tags` format
         def self.encode(tags)
-          begin
-            tags.map do |raw_key, raw_value|
-              key = raw_key.to_s
-              value = raw_value.to_s
+          tags.map do |raw_key, raw_value|
+            key = raw_key.to_s
+            value = raw_value.to_s
 
-              raise EncodingError, "Invalid key `#{key}` for value `#{value}`" unless VALID_KEY_CHARS.match?(key)
-              raise EncodingError, "Invalid value `#{value}` for key `#{key}`" unless VALID_VALUE_CHARS.match?(value)
+            raise EncodingError, "Invalid key `#{key}` for value `#{value}`" unless VALID_KEY_CHARS.match?(key)
+            raise EncodingError, "Invalid value `#{value}` for key `#{key}`" unless VALID_VALUE_CHARS.match?(value)
 
-              "#{key}=#{value.strip}"
-            end.join(',')
-          rescue => e
-            raise EncodingError, "Error encoding tags `#{tags}`: `#{e}`"
-          end
+            "#{key}=#{value.strip}"
+          end.join(',')
+        rescue => e
+          raise EncodingError, "Error encoding tags `#{tags}`: `#{e}`"
         end
 
         # Deserializes a `x-datadog-tags`-formatted String into a {Hash<String,String>}.

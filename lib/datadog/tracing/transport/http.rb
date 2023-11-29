@@ -55,9 +55,7 @@ module Datadog
               transport.headers options[:headers] if options.key?(:headers)
             end
 
-            if agent_settings.deprecated_for_removal_transport_configuration_proc
-              agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
-            end
+            agent_settings.deprecated_for_removal_transport_configuration_proc&.call(transport)
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?

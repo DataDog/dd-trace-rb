@@ -15,7 +15,7 @@ module Datadog
               super()
               @body = body
               @status = status
-              @headers = headers.each_with_object({}) { |(k, v), h| h[k.downcase] = v }
+              @headers = headers.transform_keys(&:downcase)
               @scope = scope
             end
 

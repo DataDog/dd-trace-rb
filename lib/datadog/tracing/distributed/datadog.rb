@@ -170,7 +170,7 @@ module Datadog
 
         def set_tags_propagation_error(reason:)
           active_trace = Tracing.active_trace
-          active_trace.set_tag('_dd.propagation_error', reason) if active_trace
+          active_trace&.set_tag('_dd.propagation_error', reason)
           nil
         end
 

@@ -32,15 +32,13 @@ module Datadog
             return unless defined?(super)
 
             patch_only_once.run do
-              begin
-                super.tap do
-                  # Emit a metric
-                  Datadog.health_metrics.instrumentation_patched(1, tags: default_tags)
-                  @patch_successful = true
-                end
-              rescue StandardError => e
-                on_patch_error(e)
+              super.tap do
+                # Emit a metric
+                Datadog.health_metrics.instrumentation_patched(1, tags: default_tags)
+                @patch_successful = true
               end
+            rescue StandardError => e
+              on_patch_error(e)
             end
           end
 

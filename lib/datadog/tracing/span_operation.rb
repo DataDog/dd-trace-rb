@@ -335,7 +335,7 @@ module Datadog
       class Events
         include Tracing::Events
 
-        DEFAULT_ON_ERROR = proc { |span_op, error| span_op.set_error(error) unless span_op.nil? }
+        DEFAULT_ON_ERROR = proc { |span_op, error| span_op&.set_error(error) }
 
         attr_reader \
           :after_finish,
@@ -391,16 +391,14 @@ module Datadog
             original = @handler
 
             @handler = proc do |op, error|
-              begin
-                yield(op, error)
-              rescue StandardError => e
-                Datadog.logger.debug do
-                  "Custom on_error handler #{@handler} failed, using fallback behavior. \
+              yield(op, error)
+            rescue StandardError => e
+              Datadog.logger.debug do
+                "Custom on_error handler #{@handler} failed, using fallback behavior. \
                   Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
-                end
-
-                original.call(op, error) if original
               end
+
+              original&.call(op, error)
             end
           end
 

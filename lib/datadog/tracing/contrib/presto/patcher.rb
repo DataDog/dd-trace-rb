@@ -21,11 +21,9 @@ module Datadog
 
           def patch
             PATCH_ONLY_ONCE.run do
-              begin
-                ::Presto::Client::Client.include(Instrumentation::Client)
-              rescue StandardError => e
-                Datadog.logger.error("Unable to apply Presto integration: #{e}")
-              end
+              ::Presto::Client::Client.include(Instrumentation::Client)
+            rescue StandardError => e
+              Datadog.logger.error("Unable to apply Presto integration: #{e}")
             end
           end
         end

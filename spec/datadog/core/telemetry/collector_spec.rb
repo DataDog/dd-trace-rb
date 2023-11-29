@@ -133,7 +133,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
           end
         end
 
-        it { is_expected.to include(:DD_AGENT_HOST => dd_agent_host) }
+        it { is_expected.to include(DD_AGENT_HOST: dd_agent_host) }
       end
 
       context 'when no value set' do
@@ -144,7 +144,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
     context 'DD_AGENT_TRANSPORT' do
       context 'when no configuration variables set' do
-        it { is_expected.to include(:DD_AGENT_TRANSPORT => 'TCP') }
+        it { is_expected.to include(DD_AGENT_TRANSPORT: 'TCP') }
       end
 
       context 'when adapter is type :unix' do
@@ -152,9 +152,9 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
         before do
           allow(Datadog::Core::Configuration::AgentSettingsResolver)
-            .to receive(:call).and_return(double('agent settings', :adapter => adapter_type))
+            .to receive(:call).and_return(double('agent settings', adapter: adapter_type))
         end
-        it { is_expected.to include(:DD_AGENT_TRANSPORT => 'UDS') }
+        it { is_expected.to include(DD_AGENT_TRANSPORT: 'UDS') }
       end
     end
 
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       let(:dd_trace_sample_rate) { nil }
       context 'when set' do
         let(:dd_trace_sample_rate) { '0.2' }
-        it { is_expected.to include(:DD_TRACE_SAMPLE_RATE => '0.2') }
+        it { is_expected.to include(DD_TRACE_SAMPLE_RATE: '0.2') }
       end
 
       context 'when nil' do
@@ -188,12 +188,12 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       context 'when set to true' do
         let(:dd_trace_remove_integration_service_names_enabled) { 'true' }
-        it { is_expected.to include(:DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED => true) }
+        it { is_expected.to include(DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: true) }
       end
 
       context 'when nil defaults to false' do
         let(:dd_trace_remove_integration_service_names_enabled) { nil }
-        it { is_expected.to include(:DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED => false) }
+        it { is_expected.to include(DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: false) }
       end
     end
 
@@ -208,12 +208,12 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       context 'when set' do
         let(:dd_trace_peer_service_mapping) { 'key:value' }
-        it { is_expected.to include(:DD_TRACE_PEER_SERVICE_MAPPING => 'key:value') }
+        it { is_expected.to include(DD_TRACE_PEER_SERVICE_MAPPING: 'key:value') }
       end
 
       context 'when nil is blank' do
         let(:dd_trace_peer_service_mapping) { nil }
-        it { is_expected.to include(:DD_TRACE_PEER_SERVICE_MAPPING => '') }
+        it { is_expected.to include(DD_TRACE_PEER_SERVICE_MAPPING: '') }
       end
     end
   end

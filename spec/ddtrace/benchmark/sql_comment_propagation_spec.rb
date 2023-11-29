@@ -4,7 +4,7 @@ require 'benchmark/ips'
 require 'ddtrace'
 require 'mysql2'
 
-RSpec.describe 'SQL comment propagation', :order => :defined do
+RSpec.describe 'SQL comment propagation', order: :defined do
   before { skip('Benchmark results not currently captured in CI') if ENV.key?('CI') }
 
   describe 'with `mysql2' do

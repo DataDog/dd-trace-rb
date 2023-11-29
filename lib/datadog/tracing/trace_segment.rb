@@ -64,8 +64,8 @@ module Datadog
 
         # Does not make an effort to move metrics out of tags
         # The caller is expected to have done that
-        @meta = (tags && tags.dup) || {}
-        @metrics = (metrics && metrics.dup) || {}
+        @meta = tags&.dup || {}
+        @metrics = metrics&.dup || {}
 
         # Set well-known tags, defaulting to getting the values from tags
         @agent_sample_rate = agent_sample_rate || agent_sample_rate_tag

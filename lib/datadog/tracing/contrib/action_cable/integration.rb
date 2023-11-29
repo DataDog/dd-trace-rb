@@ -17,7 +17,7 @@ module Datadog
           register_as :action_cable, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['actioncable'] && Gem.loaded_specs['actioncable'].version
+            Gem.loaded_specs['actioncable']&.version
           end
 
           def self.loaded?

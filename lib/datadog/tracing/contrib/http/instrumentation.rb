@@ -60,9 +60,7 @@ module Datadog
                 annotate_span_with_response!(span, response, request_options)
 
                 # Invoke hook, if set.
-                unless Contrib::HTTP::Instrumentation.after_request.nil?
-                  Contrib::HTTP::Instrumentation.after_request.call(span, self, req, response)
-                end
+                Contrib::HTTP::Instrumentation.after_request&.call(span, self, req, response)
 
                 response
               end
@@ -108,7 +106,7 @@ module Datadog
             end
 
             def annotate_span_with_response!(span, response, request_options)
-              return unless response && response.code
+              return unless response&.code
 
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.code)
 

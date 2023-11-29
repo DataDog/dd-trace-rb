@@ -9,12 +9,12 @@ RSpec.describe Datadog::Tracing::Contrib::Kafka::Integration do
     subject(:version) { described_class.version }
 
     context 'when the "ruby-kafka" gem is loaded' do
-      include_context 'loaded gems', :'ruby-kafka' => described_class::MINIMUM_VERSION
+      include_context 'loaded gems', 'ruby-kafka': described_class::MINIMUM_VERSION
       it { is_expected.to be_a_kind_of(Gem::Version) }
     end
 
     context 'when "ruby-kafka" gem is not loaded' do
-      include_context 'loaded gems', :'ruby-kafka' => nil
+      include_context 'loaded gems', 'ruby-kafka': nil
       it { is_expected.to be nil }
     end
   end
@@ -64,18 +64,18 @@ RSpec.describe Datadog::Tracing::Contrib::Kafka::Integration do
 
     context 'when "ruby-kafka" gem is loaded with a version' do
       context 'that is less than the minimum' do
-        include_context 'loaded gems', :'ruby-kafka' => decrement_gem_version(described_class::MINIMUM_VERSION)
+        include_context 'loaded gems', 'ruby-kafka': decrement_gem_version(described_class::MINIMUM_VERSION)
         it { is_expected.to be false }
       end
 
       context 'that meets the minimum version' do
-        include_context 'loaded gems', :'ruby-kafka' => described_class::MINIMUM_VERSION
+        include_context 'loaded gems', 'ruby-kafka': described_class::MINIMUM_VERSION
         it { is_expected.to be true }
       end
     end
 
     context 'when gem is not loaded' do
-      include_context 'loaded gems', :'ruby-kafka' => nil
+      include_context 'loaded gems', 'ruby-kafka': nil
       it { is_expected.to be false }
     end
   end

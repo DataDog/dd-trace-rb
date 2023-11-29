@@ -284,11 +284,9 @@ RSpec.describe 'Faraday middleware' do
       let(:peer_service_source) { 'peer.hostname' }
 
       subject do
-        begin
-          client.get('/error')
-        rescue Faraday::ConnectionFailed
-          nil
-        end
+        client.get('/error')
+      rescue Faraday::ConnectionFailed
+        nil
       end
     end
   end

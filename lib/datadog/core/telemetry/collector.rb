@@ -219,7 +219,7 @@ module Datadog
         end
 
         def integration_version(integration)
-          integration.klass.class.version ? integration.klass.class.version.to_s : nil
+          integration.klass.class.version&.to_s
         end
 
         def patch_error(integration)

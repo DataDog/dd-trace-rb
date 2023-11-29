@@ -134,16 +134,15 @@ module Datadog
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
             @worker = ::Thread.new do
-              begin
-                yield
-              # rubocop:disable Lint/RescueException
-              rescue Exception => e
-                @error = e
-                Datadog.logger.debug(
-                  "Worker thread error. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
-                )
-                raise
-              end
+              yield
+            # rubocop:disable Lint/RescueException
+            rescue Exception => e
+              @error = e
+              Datadog.logger.debug(
+                "Worker thread error. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+              )
+              raise
+
               # rubocop:enable Lint/RescueException
             end
             @worker.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')

@@ -16,7 +16,7 @@ module Datadog
           register_as :qless, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['qless'] && Gem.loaded_specs['qless'].version
+            Gem.loaded_specs['qless']&.version
           end
 
           def self.loaded?

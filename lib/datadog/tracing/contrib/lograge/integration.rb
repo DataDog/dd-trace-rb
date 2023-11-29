@@ -16,7 +16,7 @@ module Datadog
           register_as :lograge
 
           def self.version
-            Gem.loaded_specs['lograge'] && Gem.loaded_specs['lograge'].version
+            Gem.loaded_specs['lograge']&.version
           end
 
           def self.loaded?

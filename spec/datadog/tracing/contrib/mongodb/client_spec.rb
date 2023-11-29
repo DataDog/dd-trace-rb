@@ -518,13 +518,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
         let(:drop_database?) { false }
 
         before do
-          begin
-            # Insert a document
-            client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])
-          rescue Mongo::Auth::Unauthorized
-            # Expect this to create an unauthorized error
-            nil
-          end
+          # Insert a document
+          client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])
+        rescue Mongo::Auth::Unauthorized
+          # Expect this to create an unauthorized error
+          nil
         end
 
         it 'produces spans for command and authentication' do

@@ -19,33 +19,5 @@ module Datadog
         end
       end
     end
-
-    # This module is used to provide features from Ruby 2.4+ to older Rubies
-    module BackportFrom24
-      if RUBY_VERSION < '2.4'
-        def self.dup(value)
-          case value
-          when NilClass, TrueClass, FalseClass, Numeric
-            value
-          else
-            value.dup
-          end
-        end
-      else
-        def self.dup(value)
-          value.dup
-        end
-      end
-
-      if ::Hash.method_defined?(:compact!)
-        def self.hash_compact!(hash)
-          hash.compact!
-        end
-      else
-        def self.hash_compact!(hash)
-          hash.reject! { |_key, value| value.nil? }
-        end
-      end
-    end
   end
 end

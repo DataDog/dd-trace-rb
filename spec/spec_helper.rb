@@ -147,7 +147,7 @@ RSpec.configure do |config|
           # Rails connection reaper
           backtrace.find { |b| b.include?('lib/active_record/connection_adapters/abstract/connection_pool.rb') } ||
           # Ruby JetBrains debugger
-          (t.class.name && t.class.name.include?('DebugThread')) ||
+          t.class.name&.include?('DebugThread') ||
           # Categorized as a known leaky thread
           !group_name.nil? ||
           # Internal TruffleRuby thread, defined in

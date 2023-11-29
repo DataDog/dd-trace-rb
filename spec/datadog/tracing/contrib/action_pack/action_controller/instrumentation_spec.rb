@@ -49,11 +49,9 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
 
       context 'with a 500 Server Error response' do
         let(:error) do
-          begin
-            raise 'Test error'
-          rescue StandardError => e
-            e
-          end
+          raise 'Test error'
+        rescue StandardError => e
+          e
         end
 
         let(:payload) do

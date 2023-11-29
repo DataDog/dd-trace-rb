@@ -122,10 +122,6 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
   end
 
   context 'Boolean' do
-    before do
-      skip 'TrueClass and FalseClass are not frozen by default on ruby 2.1' if RUBY_VERSION < '2.2'
-    end
-
     describe '.frozen_or_dup' do
       context 'when given a boolean' do
         it 'returns the original input' do

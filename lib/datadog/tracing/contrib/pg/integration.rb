@@ -16,7 +16,7 @@ module Datadog
           register_as :pg
 
           def self.version
-            Gem.loaded_specs['pg'] && Gem.loaded_specs['pg'].version
+            Gem.loaded_specs['pg']&.version
           end
 
           def self.loaded?

@@ -181,7 +181,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
           context 'and :service is given' do
             let(:options) { { child_of: parent, service: service } }
-            let(:service) { String.new }
+            let(:service) { +'' }
 
             it_behaves_like 'a child span operation'
 
@@ -1000,11 +1000,9 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
     context 'given an error' do
       let(:error) do
-        begin
-          raise message
-        rescue => e
-          e
-        end
+        raise message
+      rescue => e
+        e
       end
 
       let(:message) { 'Test error!' }

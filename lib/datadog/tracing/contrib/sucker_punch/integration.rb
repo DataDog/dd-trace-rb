@@ -16,7 +16,7 @@ module Datadog
           register_as :sucker_punch, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['sucker_punch'] && Gem.loaded_specs['sucker_punch'].version
+            Gem.loaded_specs['sucker_punch']&.version
           end
 
           def self.loaded?

@@ -19,7 +19,7 @@ module Datadog
 
             if responses
               err_data = EnvironmentCollector.collect_errors!(responses)
-              err_data.reject! { |_, v| v.nil? } # Remove empty values from hash output
+              err_data.compact! # Remove empty values from hash output
               log_error!('TRACING', 'Agent Error', err_data.to_json) unless err_data.empty?
             end
           end

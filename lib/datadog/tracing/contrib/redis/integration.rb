@@ -29,11 +29,11 @@ module Datadog
           end
 
           def self.redis_version
-            Gem.loaded_specs['redis'] && Gem.loaded_specs['redis'].version
+            Gem.loaded_specs['redis']&.version
           end
 
           def self.redis_client_version
-            Gem.loaded_specs['redis-client'] && Gem.loaded_specs['redis-client'].version
+            Gem.loaded_specs['redis-client']&.version
           end
 
           def self.loaded?

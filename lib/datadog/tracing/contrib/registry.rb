@@ -35,7 +35,7 @@ module Datadog
         def [](name)
           @mutex.synchronize do
             entry = @data[name]
-            entry.klass if entry
+            entry&.klass
           end
         end
 

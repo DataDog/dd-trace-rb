@@ -1,11 +1,6 @@
 require 'grpc'
 require 'spec/support/thread_helpers'
-
-if RUBY_VERSION < '2.3'
-  require_relative './gen/grpc-1.19.0/test_service_services_pb'
-else
-  require_relative './gen/test_service_services_pb'
-end
+require_relative './gen/test_service_services_pb'
 
 module GRPCHelper
   def run_request_reply(address = available_endpoint, client = nil)

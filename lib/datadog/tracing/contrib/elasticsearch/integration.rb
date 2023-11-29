@@ -18,10 +18,8 @@ module Datadog
           def self.version
             # elastic-transport gem for version >= 8.0.0
             # elasticsearch-transport gem for version < 8.0.0
-            Gem.loaded_specs['elastic-transport'] \
-              && Gem.loaded_specs['elastic-transport'].version || \
-              Gem.loaded_specs['elasticsearch-transport'] \
-                && Gem.loaded_specs['elasticsearch-transport'].version
+            Gem.loaded_specs['elastic-transport']&.version || \
+              Gem.loaded_specs['elasticsearch-transport']&.version
           end
 
           def self.loaded?

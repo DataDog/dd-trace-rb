@@ -62,13 +62,8 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
           - sinatra20
           - sinatra21
-          - rails32
-          - rails40
-          - rails41
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -118,13 +113,8 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
           - sinatra20
           - sinatra21
-          - rails32
-          - rails40
-          - rails41
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -253,13 +243,8 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
           - sinatra20
           - sinatra21
-          - rails32
-          - rails40
-          - rails41
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -298,13 +283,8 @@ jobs:
           - runner
           - agent
           - weblog-rack
-          - weblog-sinatra14
           - weblog-sinatra20
           - weblog-sinatra21
-          - weblog-rails32
-          - weblog-rails40
-          - weblog-rails41
-          - weblog-rails42
           - weblog-rails50
           - weblog-rails51
           - weblog-rails52

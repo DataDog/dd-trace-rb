@@ -23,17 +23,15 @@ module Datadog
         # @param request_type [String] the type of telemetry request to collect data for
         # @param data [Object] arbitrary object to be passed to the respective `request_type` handler
         def request(request_type, data: nil)
-          begin
-            request = Datadog::Core::Telemetry::Event.new.telemetry_request(
-              request_type: request_type,
-              seq_id: self.class.sequence.next,
-              data: data,
-            ).to_h
-            @http_transport.request(request_type: request_type.to_s, payload: request.to_json)
-          rescue StandardError => e
-            Datadog.logger.debug("Unable to send telemetry request for event `#{request_type}`: #{e}")
-            Telemetry::Http::InternalErrorResponse.new(e)
-          end
+          request = Datadog::Core::Telemetry::Event.new.telemetry_request(
+            request_type: request_type,
+            seq_id: self.class.sequence.next,
+            data: data,
+          ).to_h
+          @http_transport.request(request_type: request_type.to_s, payload: request.to_json)
+        rescue StandardError => e
+          Datadog.logger.debug("Unable to send telemetry request for event `#{request_type}`: #{e}")
+          Telemetry::Http::InternalErrorResponse.new(e)
         end
 
         # Initializes a Sequence object to track seq_id if not already initialized; else returns stored

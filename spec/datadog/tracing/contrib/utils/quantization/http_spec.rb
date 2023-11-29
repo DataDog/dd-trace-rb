@@ -524,44 +524,44 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
     # rubocop:disable Layout/LineLength
     value_matches = {
       'OpenSSH RSA private key' => <<~DUMMY,
-      -----BEGIN OPENSSH PRIVATE KEY-----
-      b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
-      NhAAAAAwEAAQAAAYEAsZH8CwhvSFt9sDfnW8rNST9akUwPUEZ/F52Xa+SK8+8hlwpD46+3
-      udRf7+930ZOBTp2kYx2q7YppbG+DaIGjTdXJZB5L60b4x8k8xgTP1oLphHXKNAMuB/wXci
-      cCzcPPIlBlTNx/d7Pqz+WvLuD7ZOB2ctZUlgI4OdmYWL91fnMkDY3x4jrh5NpQoZrUxNRZ
-      Sn3PKZMQeEJ8htxG0KxA80ZMpvDU5b2SGjr9NVXbJkV1rq4oCPQJ6oKAON3g9yalrMI8gp
-      Jkp51t4fvYgeG4Ea0iE9kAboKSB1TOKW5E+FK5aXFRHgM4mDTwuB+tZbl9Hdf6jp7WjBTL
-      bySrhv9yY/LdfTvp0k2va3vj80uUJvCf+8c2scTiKveA+xZxjxuSYnyeFmUVhdDw6bTl2y
-      WO9mLpm/sWiba/S5an0unyc1pAOvD0/2WhJOSYGjx4Zb1L5seSZZj+7tnhXGzR6R0B6CHy
-      Y15PCdxA145eUaehPSsQEQ96eOUofG+C6FUfGdPpAAAFgKX3mGal95hmAAAAB3NzaC1yc2
-      EAAAGBALGR/AsIb0hbfbA351vKzUk/WpFMD1BGfxedl2vkivPvIZcKQ+Ovt7nUX+/vd9GT
-      gU6dpGMdqu2KaWxvg2iBo03VyWQeS+tG+MfJPMYEz9aC6YR1yjQDLgf8F3InAs3DzyJQZU
-      zcf3ez6s/lry7g+2TgdnLWVJYCODnZmFi/dX5zJA2N8eI64eTaUKGa1MTUWUp9zymTEHhC
-      fIbcRtCsQPNGTKbw1OW9kho6/TVV2yZFda6uKAj0CeqCgDjd4PcmpazCPIKSZKedbeH72I
-      HhuBGtIhPZAG6CkgdUziluRPhSuWlxUR4DOJg08LgfrWW5fR3X+o6e1owUy28kq4b/cmPy
-      3X076dJNr2t74/NLlCbwn/vHNrHE4ir3gPsWcY8bkmJ8nhZlFYXQ8Om05dsljvZi6Zv7Fo
-      m2v0uWp9Lp8nNaQDrw9P9loSTkmBo8eGW9S+bHkmWY/u7Z4Vxs0ekdAegh8mNeTwncQNeO
-      XlGnoT0rEBEPenjlKHxvguhVHxnT6QAAAAMBAAEAAAGBAKXhABi2am6nuURzFNf1Hcy9OD
-      ffW7bcBEHlX9zUhNHXpANa/YynS/R25qBXjhDjwLnWHgjRYCnDUTSQ/6sS36EIg7fZbYZ+
-      qEzKOtGpERcM+GRbPOdVyRyAbM6gjsf1kXw2qksg+Jq0IjjQEdSzK2VTIpOokSAJNskj8m
-      OFh5b2rMlUvo9d/kQxhX1SDE1LKZai7HGkBpCxW28IO8cYAxy/oT+aXue3LdL/JCc86xpX
-      bNYfrxqeDt1Zx7pX255GJJPtuB3amp+PglRnPuSk91DlhpgBW7ZqHmPQR7LLV517vMhP4+
-      rTsoZaEBBI/S4hLHfeseMiPUD5wqidzrvjdk7+q35g+2hO61qiGgoglSDV2L9mjm2Lk4yg
-      7LbcYr9X8ckVbrJOTC5H9cuMRHygzQCR9rVNPrurwDMZ+JUYJtASEZitZ1lBxRAsouce+B
-      6ztuRhheXFWYhwdehaMHaUxvUrtO/Vvnv4FvtoGlXyQUcRVNmZCQu+rmtzPZkNqIqv4QAA
-      AMEAhrSKxvyqoKejFbBhLRkQyVZU6h1j/hrOzYjcsTd5IcCixA3R+q/ikmwP4HnyI8vdq6
-      Co5yY8nQ2YlnlmZ450wjEj6Rgh02/SUHV3JEl9ii7OUhsXmd3/FjX2SeVMFnpa7B1OWgST
-      lIH2d25qwyIWYCwN8es7MS4xi+boGRPKNI6v0PMxp8aK+5zwyRaNbmjt098VUE3zsBqyxX
-      oXym2ewZ10UUJzEkQ42HsFZAYdGVVr3oOLSzHixM3szR0USWkFAAAAwQDfslAAUCFc2GzC
-      t2fLP9GKTJn6t/m+q6yc7PSkgKaTfMVCouIwOQ02GShF+nXBfyhnwaRinOTqQ6eaOv6d0Z
-      prFI4mEeNdAcVQgFuYmnIs1a6hSTC5xNDa0IwSJeV0em+GKOdy/uwZPtjK41C1hKU+eyhz
-      QAr5wTuesEiympm7B9kfX3GkaK365A7so3qkjfI4KJ/OztIbvrE/I61HApQdgLZFBfIGen
-      Cmf9/y9CdT/CeMJ5Mdb3ZptPgo/qJh+IUAAADBAMs2dd1Yf4NtqV6V37MHT3wxNR9TgaQI
-      FYDS9xHS44tMyFZsKsJNv1MaU3q6005L5iopMjp5nevzZXiquK/u+EBeNjJoITssGl7EWc
-      eb74Rbv91GoKI++DcArG/fRVzLbnmDUy++LjBH+x6Z2fQ9WDRmvc8BD2OGPJpd433OJ7yo
-      mgbkEHHoCn9BfsRmX4UBZbUs/ft96m59q1TfzJv+OO3eZsNvum3fzEej+8O/sqPVqr8BEL
-      nN0N+h0y2dlTH9FQAAAAVkdW1teQECAwQ=
-      -----END OPENSSH PRIVATE KEY-----
+        -----BEGIN OPENSSH PRIVATE KEY-----
+        b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
+        NhAAAAAwEAAQAAAYEAsZH8CwhvSFt9sDfnW8rNST9akUwPUEZ/F52Xa+SK8+8hlwpD46+3
+        udRf7+930ZOBTp2kYx2q7YppbG+DaIGjTdXJZB5L60b4x8k8xgTP1oLphHXKNAMuB/wXci
+        cCzcPPIlBlTNx/d7Pqz+WvLuD7ZOB2ctZUlgI4OdmYWL91fnMkDY3x4jrh5NpQoZrUxNRZ
+        Sn3PKZMQeEJ8htxG0KxA80ZMpvDU5b2SGjr9NVXbJkV1rq4oCPQJ6oKAON3g9yalrMI8gp
+        Jkp51t4fvYgeG4Ea0iE9kAboKSB1TOKW5E+FK5aXFRHgM4mDTwuB+tZbl9Hdf6jp7WjBTL
+        bySrhv9yY/LdfTvp0k2va3vj80uUJvCf+8c2scTiKveA+xZxjxuSYnyeFmUVhdDw6bTl2y
+        WO9mLpm/sWiba/S5an0unyc1pAOvD0/2WhJOSYGjx4Zb1L5seSZZj+7tnhXGzR6R0B6CHy
+        Y15PCdxA145eUaehPSsQEQ96eOUofG+C6FUfGdPpAAAFgKX3mGal95hmAAAAB3NzaC1yc2
+        EAAAGBALGR/AsIb0hbfbA351vKzUk/WpFMD1BGfxedl2vkivPvIZcKQ+Ovt7nUX+/vd9GT
+        gU6dpGMdqu2KaWxvg2iBo03VyWQeS+tG+MfJPMYEz9aC6YR1yjQDLgf8F3InAs3DzyJQZU
+        zcf3ez6s/lry7g+2TgdnLWVJYCODnZmFi/dX5zJA2N8eI64eTaUKGa1MTUWUp9zymTEHhC
+        fIbcRtCsQPNGTKbw1OW9kho6/TVV2yZFda6uKAj0CeqCgDjd4PcmpazCPIKSZKedbeH72I
+        HhuBGtIhPZAG6CkgdUziluRPhSuWlxUR4DOJg08LgfrWW5fR3X+o6e1owUy28kq4b/cmPy
+        3X076dJNr2t74/NLlCbwn/vHNrHE4ir3gPsWcY8bkmJ8nhZlFYXQ8Om05dsljvZi6Zv7Fo
+        m2v0uWp9Lp8nNaQDrw9P9loSTkmBo8eGW9S+bHkmWY/u7Z4Vxs0ekdAegh8mNeTwncQNeO
+        XlGnoT0rEBEPenjlKHxvguhVHxnT6QAAAAMBAAEAAAGBAKXhABi2am6nuURzFNf1Hcy9OD
+        ffW7bcBEHlX9zUhNHXpANa/YynS/R25qBXjhDjwLnWHgjRYCnDUTSQ/6sS36EIg7fZbYZ+
+        qEzKOtGpERcM+GRbPOdVyRyAbM6gjsf1kXw2qksg+Jq0IjjQEdSzK2VTIpOokSAJNskj8m
+        OFh5b2rMlUvo9d/kQxhX1SDE1LKZai7HGkBpCxW28IO8cYAxy/oT+aXue3LdL/JCc86xpX
+        bNYfrxqeDt1Zx7pX255GJJPtuB3amp+PglRnPuSk91DlhpgBW7ZqHmPQR7LLV517vMhP4+
+        rTsoZaEBBI/S4hLHfeseMiPUD5wqidzrvjdk7+q35g+2hO61qiGgoglSDV2L9mjm2Lk4yg
+        7LbcYr9X8ckVbrJOTC5H9cuMRHygzQCR9rVNPrurwDMZ+JUYJtASEZitZ1lBxRAsouce+B
+        6ztuRhheXFWYhwdehaMHaUxvUrtO/Vvnv4FvtoGlXyQUcRVNmZCQu+rmtzPZkNqIqv4QAA
+        AMEAhrSKxvyqoKejFbBhLRkQyVZU6h1j/hrOzYjcsTd5IcCixA3R+q/ikmwP4HnyI8vdq6
+        Co5yY8nQ2YlnlmZ450wjEj6Rgh02/SUHV3JEl9ii7OUhsXmd3/FjX2SeVMFnpa7B1OWgST
+        lIH2d25qwyIWYCwN8es7MS4xi+boGRPKNI6v0PMxp8aK+5zwyRaNbmjt098VUE3zsBqyxX
+        oXym2ewZ10UUJzEkQ42HsFZAYdGVVr3oOLSzHixM3szR0USWkFAAAAwQDfslAAUCFc2GzC
+        t2fLP9GKTJn6t/m+q6yc7PSkgKaTfMVCouIwOQ02GShF+nXBfyhnwaRinOTqQ6eaOv6d0Z
+        prFI4mEeNdAcVQgFuYmnIs1a6hSTC5xNDa0IwSJeV0em+GKOdy/uwZPtjK41C1hKU+eyhz
+        QAr5wTuesEiympm7B9kfX3GkaK365A7so3qkjfI4KJ/OztIbvrE/I61HApQdgLZFBfIGen
+        Cmf9/y9CdT/CeMJ5Mdb3ZptPgo/qJh+IUAAADBAMs2dd1Yf4NtqV6V37MHT3wxNR9TgaQI
+        FYDS9xHS44tMyFZsKsJNv1MaU3q6005L5iopMjp5nevzZXiquK/u+EBeNjJoITssGl7EWc
+        eb74Rbv91GoKI++DcArG/fRVzLbnmDUy++LjBH+x6Z2fQ9WDRmvc8BD2OGPJpd433OJ7yo
+        mgbkEHHoCn9BfsRmX4UBZbUs/ft96m59q1TfzJv+OO3eZsNvum3fzEej+8O/sqPVqr8BEL
+        nN0N+h0y2dlTH9FQAAAAVkdW1teQECAwQ=
+        -----END OPENSSH PRIVATE KEY-----
       DUMMY
       'OpenSSH RSA public key' => 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxkfwLCG9IW32wN+dbys1JP1qRTA9QRn8XnZdr5Irz7yGXCkPjr7e51F/v73fRk4FOnaRjHartimlsb4NogaNN1clkHkvrRvjHyTzGBM/WgumEdco0Ay4H/BdyJwLNw88iUGVM3H93s+rP5a8u4Ptk4HZy1lSWAjg52ZhYv3V+cyQNjfHiOuHk2lChmtTE1FlKfc8pkxB4QnyG3EbQrEDzRkym8NTlvZIaOv01VdsmRXWurigI9AnqgoA43eD3JqWswjyCkmSnnW3h+9iB4bgRrSIT2QBugpIHVM4pbkT4UrlpcVEeAziYNPC4H61luX0d1/qOntaMFMtvJKuG/3Jj8t19O+nSTa9re+PzS5Qm8J/7xzaxxOIq94D7FnGPG5JifJ4WZRWF0PDptOXbJY72Yumb+xaJtr9LlqfS6fJzWkA68PT/ZaEk5JgaPHhlvUvmx5JlmP7u2eFcbNHpHQHoIfJjXk8J3EDXjl5Rp6E9KxARD3p45Sh8b4LoVR8Z0+k= dummy',
       'OpenSSH DSA public key' => 'ssh-dss AAAAB3NzaC1kc3MAAACBALLggHdugwXVQTPHPZh2WqMEkcx0q3EY3j3f31QAVb4GCZpE3up8Hl7rg+wM5OwL9RchtQ/OpI+xwa4McwBL0vj1VXjCx3a0jhMljFSKZtekRZznpJc++wEZmRbhuzesOzYjMk903xehqbNZiJVGq1xuo/BsIHX4+HVeNVyUiowXAAAAFQCe1bNGoXBrB8ig6+zCAhT7TCROOQAAAIA2K5vaYf1kMw9maY6UC7lNHNh+V3ffgOHguh0037598t9PbIqBPUQfwBnCGwMMskt1fsMnV5Drc4Bbhc91LdaGMYYaQnZzeiJgLxwO4dlPvt0UlFZTYpFEPfoguCDIOgQbFvHo926LaZnqNUiURM/iGH/UJ2kULOTDKjbI1pSi5AAAAIBY8bcba06SeH1hVh/UD/5akTLdonS/3rwB6ofUGAHFiS2LhahMHOaozKRgI2Wp/+NNRjxQs4vaE4ahU57jZ/sBDQ3OdwOULbZCQp6KaL+IM6OT5Xue2/bt0fUwn/T7hZ41GXv6HVfojB5MQG8rEpcYf1xBwbUkmWysw04gnjUR7w== dummy',

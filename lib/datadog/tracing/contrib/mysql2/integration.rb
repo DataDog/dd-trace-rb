@@ -16,7 +16,7 @@ module Datadog
           register_as :mysql2
 
           def self.version
-            Gem.loaded_specs['mysql2'] && Gem.loaded_specs['mysql2'].version
+            Gem.loaded_specs['mysql2']&.version
           end
 
           def self.loaded?

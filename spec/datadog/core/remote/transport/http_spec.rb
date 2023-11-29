@@ -66,9 +66,9 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response) }
 
       it { is_expected.to be_ok }
-      it { is_expected.to have_attributes(:version => '42') }
-      it { is_expected.to have_attributes(:endpoints => ['/info', '/v0/path']) }
-      it { is_expected.to have_attributes(:config => { max_request_bytes: '1234' }) }
+      it { is_expected.to have_attributes(version: '42') }
+      it { is_expected.to have_attributes(endpoints: ['/info', '/v0/path']) }
+      it { is_expected.to have_attributes(config: { max_request_bytes: '1234' }) }
     end
   end
 
@@ -197,9 +197,9 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { is_expected.to be_a(Datadog::Core::Remote::Transport::HTTP::Config::Response) }
 
       it { is_expected.to be_ok }
-      it { is_expected.to have_attributes(:roots => be_a(Array)) }
-      it { is_expected.to have_attributes(:targets => be_a(Hash)) }
-      it { is_expected.to have_attributes(:target_files => be_a(Array)) }
+      it { is_expected.to have_attributes(roots: be_a(Array)) }
+      it { is_expected.to have_attributes(targets: be_a(Hash)) }
+      it { is_expected.to have_attributes(target_files: be_a(Array)) }
 
       context 'with a network error' do
         it 'raises a transport error' do

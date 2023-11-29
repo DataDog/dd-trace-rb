@@ -310,16 +310,16 @@ RSpec.describe Datadog::Core::Remote::Client do
             .and_return(
               [
                 {
-                  :path => 'datadog/603646/ASM_DATA/blocked_ips/config',
-                  :content => StringIO.new(new_blocked_ips)
+                  path: 'datadog/603646/ASM_DATA/blocked_ips/config',
+                  content: StringIO.new(new_blocked_ips)
                 },
                 {
-                  :path => 'datadog/603646/ASM/exclusion_filters/config',
-                  :content => StringIO.new(exclusions)
+                  path: 'datadog/603646/ASM/exclusion_filters/config',
+                  content: StringIO.new(exclusions)
                 },
                 {
-                  :path => 'datadog/603646/ASM_DD/latest/config',
-                  :content => StringIO.new(rules_data)
+                  path: 'datadog/603646/ASM_DD/latest/config',
+                  content: StringIO.new(rules_data)
                 }
               ]
             )
@@ -485,12 +485,12 @@ RSpec.describe Datadog::Core::Remote::Client do
               state = repository.state
 
               expected_state = {
-                :root_version => state.root_version,
-                :targets_version => state.targets_version,
-                :config_states => state.config_states,
-                :has_error => state.has_error,
-                :error => state.error,
-                :backend_client_state => state.opaque_backend_state
+                root_version: state.root_version,
+                targets_version: state.targets_version,
+                config_states: state.config_states,
+                has_error: state.has_error,
+                error: state.error,
+                backend_client_state: state.opaque_backend_state
               }
 
               expect(client_payload[:state]).to eq(expected_state)
@@ -579,11 +579,11 @@ RSpec.describe Datadog::Core::Remote::Client do
                 expect(Datadog.configuration.remote).to receive(:service).and_return('foo').at_least(:once)
 
                 expected_client_tracer = {
-                  :runtime_id => Datadog::Core::Environment::Identity.id,
-                  :language => Datadog::Core::Environment::Identity.lang,
-                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version_semver2,
-                  :service => Datadog.configuration.remote.service,
-                  :env => Datadog.configuration.env,
+                  runtime_id: Datadog::Core::Environment::Identity.id,
+                  language: Datadog::Core::Environment::Identity.lang,
+                  tracer_version: Datadog::Core::Environment::Identity.tracer_version_semver2,
+                  service: Datadog.configuration.remote.service,
+                  env: Datadog.configuration.env,
                 }
 
                 expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
@@ -595,12 +595,12 @@ RSpec.describe Datadog::Core::Remote::Client do
                 expect(Datadog.configuration).to receive(:version).and_return('hello').at_least(:once)
 
                 expected_client_tracer = {
-                  :runtime_id => Datadog::Core::Environment::Identity.id,
-                  :language => Datadog::Core::Environment::Identity.lang,
-                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version_semver2,
-                  :service => Datadog.configuration.service,
-                  :env => Datadog.configuration.env,
-                  :app_version => Datadog.configuration.version,
+                  runtime_id: Datadog::Core::Environment::Identity.id,
+                  language: Datadog::Core::Environment::Identity.lang,
+                  tracer_version: Datadog::Core::Environment::Identity.tracer_version_semver2,
+                  service: Datadog.configuration.service,
+                  env: Datadog.configuration.env,
+                  app_version: Datadog.configuration.version,
                 }
 
                 expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
@@ -612,11 +612,11 @@ RSpec.describe Datadog::Core::Remote::Client do
                 expect(Datadog.configuration).to receive(:version).and_return(nil).at_least(:once)
 
                 expected_client_tracer = {
-                  :runtime_id => Datadog::Core::Environment::Identity.id,
-                  :language => Datadog::Core::Environment::Identity.lang,
-                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version_semver2,
-                  :service => Datadog.configuration.service,
-                  :env => Datadog.configuration.env,
+                  runtime_id: Datadog::Core::Environment::Identity.id,
+                  language: Datadog::Core::Environment::Identity.lang,
+                  tracer_version: Datadog::Core::Environment::Identity.tracer_version_semver2,
+                  service: Datadog.configuration.service,
+                  env: Datadog.configuration.env,
                 }
 
                 expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)

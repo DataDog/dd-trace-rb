@@ -23,7 +23,7 @@ module Datadog
           end
 
           # Inject Datadog trace properties
-          digest = if span_context.datadog_context && span_context.datadog_context.active_trace
+          digest = if span_context.datadog_context&.active_trace
                      span_context.datadog_context.active_trace.to_digest
                    else
                      span_context.datadog_trace_digest

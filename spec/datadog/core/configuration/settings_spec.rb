@@ -983,7 +983,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     context 'when given a Hash' do
       context 'with Symbol keys' do
-        let(:tags) { { :'custom-tag' => 'custom-value' } }
+        let(:tags) { { 'custom-tag': 'custom-value' } }
 
         before { set_tags }
 

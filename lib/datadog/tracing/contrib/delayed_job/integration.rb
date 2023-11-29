@@ -16,7 +16,7 @@ module Datadog
           register_as :delayed_job
 
           def self.version
-            Gem.loaded_specs['delayed_job'] && Gem.loaded_specs['delayed_job'].version
+            Gem.loaded_specs['delayed_job']&.version
           end
 
           def self.loaded?

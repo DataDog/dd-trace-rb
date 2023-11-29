@@ -17,7 +17,7 @@ module Datadog
           register_as :action_mailer, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['actionmailer'] && Gem.loaded_specs['actionmailer'].version
+            Gem.loaded_specs['actionmailer']&.version
           end
 
           def self.loaded?

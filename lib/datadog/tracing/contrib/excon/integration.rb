@@ -17,7 +17,7 @@ module Datadog
           register_as :excon
 
           def self.version
-            Gem.loaded_specs['excon'] && Gem.loaded_specs['excon'].version
+            Gem.loaded_specs['excon']&.version
           end
 
           def self.loaded?

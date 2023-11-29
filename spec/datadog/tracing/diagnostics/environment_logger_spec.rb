@@ -81,13 +81,11 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
 
     context 'under a REPL' do
       around do |example|
-        begin
-          original = $PROGRAM_NAME
-          $0 = 'irb'
-          example.run
-        ensure
-          $0 = original
-        end
+        original = $PROGRAM_NAME
+        $0 = 'irb'
+        example.run
+      ensure
+        $0 = original
       end
 
       context 'with default settings' do

@@ -35,25 +35,15 @@ module Datadog
             @service = pattern_to_regex(service_pattern)
           end
 
-          # {Regexp#match?} was added in Ruby 2.4, and it's measurably
-          # the least costly way to get a boolean result for a Regexp match.
-          # @see https://www.ruby-lang.org/en/news/2016/12/25/ruby-2-4-0-released/
-          if Regexp.method_defined?(:match?)
-            # Returns `true` if the span conforms to the configured patterns,
-            # `false` otherwise
-            #
-            # @param [SpanOperation] span
-            # @return [Boolean]
-            def match?(span)
-              # Matching is performed at the end of the lifecycle of a Span,
-              # thus both `name` and `service` are guaranteed to be not `nil`.
-              @name.match?(span.name) && @service.match?(span.service)
-            end
-          else
-            # DEV: Remove when support for Ruby 2.3 and older is removed.
-            def match?(span)
-              @name === span.name && @service === span.service
-            end
+          # Returns `true` if the span conforms to the configured patterns,
+          # `false` otherwise
+          #
+          # @param [SpanOperation] span
+          # @return [Boolean]
+          def match?(span)
+            # Matching is performed at the end of the lifecycle of a Span,
+            # thus both `name` and `service` are guaranteed to be not `nil`.
+            @name.match?(span.name) && @service.match?(span.service)
           end
 
           def ==(other)

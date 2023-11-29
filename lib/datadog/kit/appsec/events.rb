@@ -144,7 +144,7 @@ module Datadog
             end
 
             trace ||= Datadog::Tracing.active_trace
-            span ||=  trace && trace.active_span || Datadog::Tracing.active_span
+            span ||=  trace&.active_span || Datadog::Tracing.active_span
 
             unless trace && span
               Datadog.logger.debug(

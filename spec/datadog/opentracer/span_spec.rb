@@ -118,7 +118,7 @@ RSpec.describe Datadog::OpenTracer::Span do
     end
 
     context 'when given an \'error.object\'' do
-      let(:fields) { { :'error.object' => error_object } }
+      let(:fields) { { 'error.object': error_object } }
       let(:error_object) { instance_double(StandardError) }
 
       before { expect(datadog_span).to receive(:set_error).with(error_object) }

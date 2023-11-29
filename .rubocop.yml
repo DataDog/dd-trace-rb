@@ -193,46 +193,46 @@ Performance/StringInclude: # (new in 1.7)
 
 # Requires Ruby 2.2
 Style/HashSyntax:
-  Enabled: false
+  Enabled: true
 
 # Requires Ruby 2.3
 Layout/HeredocIndentation:
-  Enabled: false
+  Enabled: true
 
 # Requires Ruby 2.3
 Style/SafeNavigation:
-  Enabled: false
+  Enabled: true
 
 # Requires Ruby 2.3
 Performance/UnfreezeString:
-  Enabled: false
+  Enabled: true
 
 # Requires Ruby 2.4
 Style/HashTransformValues:
-  Enabled: false
-
-# Requires Ruby 2.4
-Style/CollectionCompact:
-  Enabled: false
+  Enabled: true
 
 # Requires Ruby 2.4
 Performance/RegexpMatch:
-  Enabled: false
+  Enabled: true
 
 # Requires Ruby 2.4
 Performance/Sum:
-  Enabled: false
+  Enabled: true
 
 # Requires Ruby 2.5
 Style/RedundantBegin:
-  Enabled: false
+  Enabled: true
 
 # Requires Ruby 2.5
 Style/HashTransformKeys:
-  Enabled: false
+  Enabled: true
 
 # Requires Ruby 2.6
 Style/SlicingWithRange:
+  Enabled: false
+
+# Requires Ruby 3.1
+Style/CollectionCompact:
   Enabled: false
 
 # Enforces negative/positive branching order,

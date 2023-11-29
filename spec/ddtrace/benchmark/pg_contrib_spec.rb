@@ -4,7 +4,7 @@ require 'benchmark'
 require 'ddtrace'
 require 'pg'
 
-RSpec.describe 'Pg Tracing Integration', :order => :defined do
+RSpec.describe 'Pg Tracing Integration', order: :defined do
   iterations = 1000
 
   let(:conn) do

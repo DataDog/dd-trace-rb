@@ -19,7 +19,7 @@ module Datadog
           register_as :active_record, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['activerecord'] && Gem.loaded_specs['activerecord'].version
+            Gem.loaded_specs['activerecord']&.version
           end
 
           def self.loaded?

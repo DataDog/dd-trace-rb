@@ -112,9 +112,6 @@ module Datadog
 
       attr_reader span: untyped
 
-      module RefineNil
-      end
-
       def build_span: () -> untyped
 
       def parent=: (untyped parent) -> untyped

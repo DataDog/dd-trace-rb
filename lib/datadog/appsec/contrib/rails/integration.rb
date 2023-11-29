@@ -16,7 +16,7 @@ module Datadog
           register_as :rails, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['railties'] && Gem.loaded_specs['railties'].version
+            Gem.loaded_specs['railties']&.version
           end
 
           def self.loaded?

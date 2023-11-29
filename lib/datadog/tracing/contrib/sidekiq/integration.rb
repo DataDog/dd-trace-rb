@@ -18,7 +18,7 @@ module Datadog
           register_as :sidekiq
 
           def self.version
-            Gem.loaded_specs['sidekiq'] && Gem.loaded_specs['sidekiq'].version
+            Gem.loaded_specs['sidekiq']&.version
           end
 
           def self.loaded?

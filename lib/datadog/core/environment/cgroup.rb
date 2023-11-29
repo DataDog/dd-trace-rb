@@ -21,20 +21,18 @@ module Datadog
 
         def descriptors(process = 'self')
           [].tap do |descriptors|
-            begin
-              filepath = "/proc/#{process}/cgroup"
+            filepath = "/proc/#{process}/cgroup"
 
-              if File.exist?(filepath)
-                File.foreach("/proc/#{process}/cgroup") do |line|
-                  line = line.strip
-                  descriptors << parse(line) unless line.empty?
-                end
+            if File.exist?(filepath)
+              File.foreach("/proc/#{process}/cgroup") do |line|
+                line = line.strip
+                descriptors << parse(line) unless line.empty?
               end
-            rescue StandardError => e
-              Datadog.logger.error(
-                "Error while parsing cgroup. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
-              )
             end
+          rescue StandardError => e
+            Datadog.logger.error(
+              "Error while parsing cgroup. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+            )
           end
         end
 

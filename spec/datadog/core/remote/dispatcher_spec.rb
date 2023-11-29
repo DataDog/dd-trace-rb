@@ -94,7 +94,7 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
   end
   let(:string_io_content) { StringIO.new(raw.to_json) }
   let(:content) do
-    Datadog::Core::Remote::Configuration::Content.parse({ :path => path.to_s, :content => string_io_content })
+    Datadog::Core::Remote::Configuration::Content.parse({ path: path.to_s, content: string_io_content })
   end
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 

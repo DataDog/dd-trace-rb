@@ -175,11 +175,9 @@ RSpec.describe Datadog::Tracing::Span do
 
     context 'given an error' do
       let(:error) do
-        begin
-          raise message
-        rescue => e
-          e
-        end
+        raise message
+      rescue => e
+        e
       end
 
       let(:message) { 'Test error!' }

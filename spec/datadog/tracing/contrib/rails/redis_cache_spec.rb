@@ -67,7 +67,7 @@ MESSAGE
 
   let(:cache) { Rails.cache }
 
-  after { cache && cache.clear }
+  after { cache&.clear }
 
   shared_examples 'reader method' do |method|
     subject(:read) { cache.public_send(method, key) }

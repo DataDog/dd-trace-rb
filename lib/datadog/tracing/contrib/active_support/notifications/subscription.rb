@@ -138,13 +138,11 @@ module Datadog
 
               def run(event, key, *args)
                 blocks_for(key).each do |callback|
-                  begin
-                    callback.call(event, key, *args)
-                  rescue StandardError => e
-                    Datadog.logger.debug(
-                      "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.class.name} #{e.message}"
-                    )
-                  end
+                  callback.call(event, key, *args)
+                rescue StandardError => e
+                  Datadog.logger.debug(
+                    "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.class.name} #{e.message}"
+                  )
                 end
               end
 

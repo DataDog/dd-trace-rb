@@ -157,7 +157,7 @@ module Datadog
         # @return [String,nil]
         option :env do |o|
           # DEV-2.0: Remove this conversion for symbol.
-          o.setter { |v| v.to_s if v }
+          o.setter { |v| v&.to_s }
 
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env Core::Environment::Ext::ENV_ENVIRONMENT
@@ -429,7 +429,7 @@ module Datadog
         # @return [String]
         option :service do |o|
           # DEV-2.0: Remove this conversion for symbol.
-          o.setter { |v| v.to_s if v }
+          o.setter { |v| v&.to_s }
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env Core::Environment::Ext::ENV_SERVICE
@@ -499,7 +499,7 @@ module Datadog
             raw_tags[Core::Environment::Ext::TAG_VERSION] = version_value unless version_value.nil?
 
             # Coerce keys to strings
-            string_tags = raw_tags.collect { |k, v| [k.to_s, v] }.to_h
+            string_tags = raw_tags.transform_keys(&:to_s)
 
             # Cross-populate tag values with other settings
             if env_value.nil? && string_tags.key?(Core::Environment::Ext::TAG_ENV)

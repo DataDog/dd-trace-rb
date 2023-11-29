@@ -124,17 +124,17 @@ module Datadog
         # and avoid tearing down parts still in use.
         def shutdown!(replacement = nil)
           # Shutdown remote configuration
-          remote.shutdown! if remote
+          remote&.shutdown!
 
           # Decommission AppSec
-          appsec.shutdown! if appsec
+          appsec&.shutdown!
 
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
           tracer.shutdown! unless replacement && tracer == replacement.tracer
 
           # Shutdown old profiler
-          profiler.shutdown! unless profiler.nil?
+          profiler&.shutdown!
 
           # Shutdown workers
           runtime_metrics.stop(true, close_metrics: false)

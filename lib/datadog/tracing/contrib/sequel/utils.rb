@@ -32,7 +32,7 @@ module Datadog
 
             def parse_opts(sql, opts, db_opts, dataset = nil)
               # Prepared statements don't provide their sql query in the +sql+ parameter.
-              if !sql.is_a?(String) && (dataset && dataset.respond_to?(:prepared_sql) &&
+              if !sql.is_a?(String) && (dataset.respond_to?(:prepared_sql) &&
                 (resolved_sql = dataset.prepared_sql))
                 # The dataset contains the resolved SQL query and prepared statement name.
                 prepared_name = dataset.prepared_statement_name

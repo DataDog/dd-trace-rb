@@ -64,7 +64,7 @@ module Datadog
               sample_rate: sample_rate,
             }
 
-            Core::BackportFrom24.hash_compact!(kwargs)
+            kwargs.compact!
 
             SimpleRule.new(**kwargs)
           end

@@ -34,7 +34,7 @@ module Datadog
         # but it's around 3x faster in our benchmark test
         # at `error_spec.rb`.
         def full_backtrace(ex)
-          backtrace = String.new
+          backtrace = +''
           backtrace_for(ex, backtrace)
 
           # Avoid circular causes

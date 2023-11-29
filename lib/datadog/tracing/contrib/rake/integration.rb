@@ -16,7 +16,7 @@ module Datadog
           register_as :rake
 
           def self.version
-            Gem.loaded_specs['rake'] && Gem.loaded_specs['rake'].version
+            Gem.loaded_specs['rake']&.version
           end
 
           def self.loaded?

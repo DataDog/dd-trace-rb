@@ -20,7 +20,7 @@ module Datadog
       def processor
         appsec_component = components.appsec
 
-        appsec_component.processor if appsec_component
+        appsec_component&.processor
       end
 
       def reconfigure(ruleset:, actions:)

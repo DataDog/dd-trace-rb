@@ -71,7 +71,7 @@ module Datadog
 
             return @app.call(env) if previous_request_span
 
-            Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
+            Datadog::Core::Remote.active_remote&.barrier(:once)
 
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
@@ -112,7 +112,7 @@ module Datadog
             # catch exceptions that may be raised in the middleware chain
             # Note: if a middleware catches an Exception without re raising,
             # the Exception cannot be recorded here.
-            request_span.set_error(e) unless request_span.nil?
+            request_span&.set_error(e)
             raise e
           ensure
             env[Ext::RACK_ENV_REQUEST_SPAN] = previous_request_span if previous_request_span
@@ -131,7 +131,7 @@ module Datadog
               request_span.finish
             end
 
-            frontend_span.finish if frontend_span
+            frontend_span&.finish
           end
           # rubocop:enable Lint/RescueException
 

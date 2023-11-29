@@ -16,7 +16,7 @@ module Datadog
           register_as :sinatra
 
           def self.version
-            Gem.loaded_specs['sinatra'] && Gem.loaded_specs['sinatra'].version
+            Gem.loaded_specs['sinatra']&.version
           end
 
           def self.loaded?

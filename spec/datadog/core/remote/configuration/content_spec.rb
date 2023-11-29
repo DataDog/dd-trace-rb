@@ -93,8 +93,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
   subject(:content_list) do
     described_class.parse(
       [{
-        :path => path.to_s,
-        :content => string_io_content
+        path: path.to_s,
+        content: string_io_content
       }]
     )
   end
@@ -111,8 +111,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
         expect do
           described_class.parse(
             [{
-              :path => 'invalid path',
-              :content => string_io_content
+              path: 'invalid path',
+              content: string_io_content
             }]
           )
         end.to raise_error(Datadog::Core::Remote::Configuration::Path::ParseError)
@@ -176,8 +176,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
     let(:updated_content) do
       Datadog::Core::Remote::Configuration::Content.parse(
         {
-          :path => path.to_s,
-          :content => updated_string_io
+          path: path.to_s,
+          content: updated_string_io
         }
       )
     end
@@ -228,8 +228,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
     subject(:content) do
       described_class.parse(
         {
-          :path => path.to_s,
-          :content => string_io_content
+          path: path.to_s,
+          content: string_io_content
         }
       )
     end
@@ -256,8 +256,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::ContentList do
         it 'stores the value in hashes' do
           expect(content.hashes).to eq(
             {
-              :sha256 => 'c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de',
-              :sha512 => '546b5325ec8559dda0b34f3e628e99c7b9d18eb59b23ec87f672b1ed8c4ac9ac'\
+              sha256: 'c8358ce9038693fb74ad8625e4c6c563bd2afb16b4412b2c8f7dba062e9e88de',
+              sha512: '546b5325ec8559dda0b34f3e628e99c7b9d18eb59b23ec87f672b1ed8c4ac9ac'\
                 '11ac6ffb15e6b4d71f5f343ec243d142db61aaf60f4a0410e39dc916c623cc82'
             }
           )

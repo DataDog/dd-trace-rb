@@ -80,7 +80,7 @@ module Datadog
               normalized = normalize_for_config(resolved_pattern)
 
               # Remove empty fields to allow for partial matching
-              normalized.reject! { |_, v| v.nil? }
+              normalized.compact!
 
               normalized
             rescue => e

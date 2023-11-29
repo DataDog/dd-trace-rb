@@ -141,16 +141,14 @@ RSpec.describe 'Roda instrumentation' do
           include_context 'Roda app with errors'
           subject(:response) { get '/accident' }
           it do
-            begin
-              expect(response.status).to eq(500)
-            rescue => e
-              expect(e.class.to_s).to eq('NameError')
-              expect(spans).to have(2).items
-              expect(spans[1].name).to eq('roda.request')
-              expect(spans[1].status).to eq(1)
-              expect(spans[1].service).to eq('rspec')
-              expect(spans[1].get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
-            end
+            expect(response.status).to eq(500)
+          rescue => e
+            expect(e.class.to_s).to eq('NameError')
+            expect(spans).to have(2).items
+            expect(spans[1].name).to eq('roda.request')
+            expect(spans[1].status).to eq(1)
+            expect(spans[1].service).to eq('rspec')
+            expect(spans[1].get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
           end
         end
       end

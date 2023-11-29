@@ -66,7 +66,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
-              if req.verb && req.verb.is_a?(String) || req.verb.is_a?(Symbol)
+              if req.verb.is_a?(String) || req.verb.is_a?(Symbol)
                 http_method = req.verb.to_s.upcase
                 span.resource = http_method
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method)
@@ -95,7 +95,7 @@ module Datadog
             end
 
             def annotate_span_with_response!(span, response, request_options)
-              return unless response && response.code
+              return unless response&.code
 
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.code)
 
@@ -127,7 +127,7 @@ module Datadog
             end
 
             def should_skip_distributed_tracing?(client_config)
-              return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
+              return !client_config[:distributed_tracing] if client_config&.key?(:distributed_tracing)
 
               !Datadog.configuration.tracing[:httprb][:distributed_tracing]
             end

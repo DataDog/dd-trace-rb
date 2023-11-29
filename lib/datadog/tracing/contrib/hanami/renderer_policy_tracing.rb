@@ -15,7 +15,7 @@ module Datadog
             #
             # For example in config/routes.rb:
             # get '/hello', to: ->(env) { [200, {}, ['Hello from Hanami!']] }
-            action_klass = (action && action.class) ||
+            action_klass = action&.class ||
               ::Hanami::Routing::Default::NullAction
 
             Tracing.trace(

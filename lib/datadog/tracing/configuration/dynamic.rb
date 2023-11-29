@@ -24,10 +24,8 @@ module Datadog
           def call(tracing_header_tags)
             # Modify the remote configuration value that it matches the
             # environment variable it configures.
-            if tracing_header_tags
-              tracing_header_tags.map! do |hash|
-                "#{hash['header']}:#{hash['tag_name']}"
-              end
+            tracing_header_tags&.map! do |hash|
+              "#{hash['header']}:#{hash['tag_name']}"
             end
 
             super(tracing_header_tags)

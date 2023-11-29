@@ -17,7 +17,7 @@ module Datadog
           register_as :httpclient
 
           def self.version
-            Gem.loaded_specs['httpclient'] && Gem.loaded_specs['httpclient'].version
+            Gem.loaded_specs['httpclient']&.version
           end
 
           def self.loaded?

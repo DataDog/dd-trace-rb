@@ -47,7 +47,7 @@ module Datadog
                      connection_from_id(connection_id)
                    end
 
-            if conn && conn.instance_variable_defined?(:@config)
+            if conn&.instance_variable_defined?(:@config)
               conn.instance_variable_get(:@config)
             else
               EMPTY_CONFIG

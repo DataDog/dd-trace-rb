@@ -193,7 +193,7 @@ module Datadog
       # @example
       #   tracer.set_tags('env' => 'prod', 'component' => 'core')
       def set_tags(tags)
-        string_tags = tags.collect { |k, v| [k.to_s, v] }.to_h
+        string_tags = tags.transform_keys(&:to_s)
         @tags = @tags.merge(string_tags)
       end
 
@@ -217,7 +217,7 @@ module Datadog
       # @return [nil] if no trace is active, and thus no span is active
       def active_span(key = nil)
         trace = active_trace(key)
-        trace.active_span if trace
+        trace&.active_span
       end
 
       # Information about the currently active trace.
@@ -229,7 +229,7 @@ module Datadog
       def active_correlation(key = nil)
         trace = active_trace(key)
         Correlation.identifier_from_digest(
-          trace && trace.to_digest
+          trace&.to_digest
         )
       end
 
@@ -295,7 +295,7 @@ module Datadog
       def shutdown!
         return unless @enabled
 
-        @writer.stop if @writer
+        @writer&.stop
       end
 
       private
@@ -467,12 +467,10 @@ module Datadog
 
       # Sample a span, tagging the trace as appropriate.
       def sample_trace(trace_op)
-        begin
-          @sampler.sample!(trace_op)
-        rescue StandardError => e
-          SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
-          end
+        @sampler.sample!(trace_op)
+      rescue StandardError => e
+        SAMPLE_TRACE_LOG_ONLY_ONCE.run do
+          Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
         end
       end
 
@@ -480,12 +478,10 @@ module Datadog
       private_constant :SAMPLE_TRACE_LOG_ONLY_ONCE
 
       def sample_span(trace_op, span)
-        begin
-          @span_sampler.sample!(trace_op, span)
-        rescue StandardError => e
-          SAMPLE_SPAN_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
-          end
+        @span_sampler.sample!(trace_op, span)
+      rescue StandardError => e
+        SAMPLE_SPAN_LOG_ONLY_ONCE.run do
+          Datadog.logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
         end
       end
 
@@ -494,13 +490,11 @@ module Datadog
 
       # Flush finished spans from the trace buffer, send them to writer.
       def flush_trace(trace_op)
-        begin
-          trace = @trace_flush.consume!(trace_op)
-          write(trace) if trace && !trace.empty?
-        rescue StandardError => e
-          FLUSH_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
-          end
+        trace = @trace_flush.consume!(trace_op)
+        write(trace) if trace && !trace.empty?
+      rescue StandardError => e
+        FLUSH_TRACE_LOG_ONLY_ONCE.run do
+          Datadog.logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
         end
       end
 

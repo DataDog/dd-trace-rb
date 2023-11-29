@@ -15,7 +15,7 @@ module Datadog
 
             def to_s
               @string ||= begin
-                ret = String.new
+                ret = +''
 
                 @hash.each do |key, value|
                   next if value.nil?

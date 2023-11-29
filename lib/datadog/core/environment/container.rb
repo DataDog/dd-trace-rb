@@ -35,52 +35,50 @@ module Datadog
 
         def descriptor
           @descriptor ||= Descriptor.new.tap do |descriptor|
-            begin
-              Cgroup.descriptors.each do |cgroup_descriptor|
-                # Parse container data from cgroup descriptor
-                path = cgroup_descriptor.path
-                next if path.nil?
+            Cgroup.descriptors.each do |cgroup_descriptor|
+              # Parse container data from cgroup descriptor
+              path = cgroup_descriptor.path
+              next if path.nil?
 
-                # Split path into parts
-                parts = path.split('/')
-                parts.shift # Remove leading empty part
+              # Split path into parts
+              parts = path.split('/')
+              parts.shift # Remove leading empty part
 
-                # Read info from path
-                next if parts.empty?
+              # Read info from path
+              next if parts.empty?
 
-                platform = parts[0][PLATFORM_REGEX, :platform]
-                container_id, task_uid = nil
+              platform = parts[0][PLATFORM_REGEX, :platform]
+              container_id, task_uid = nil
 
-                case parts.length
-                when 0..1
-                  next
-                when 2
-                  container_id = parts[-1][CONTAINER_REGEX, :container] \
-                                || parts[-1][FARGATE_14_CONTAINER_REGEX, :container]
+              case parts.length
+              when 0..1
+                next
+              when 2
+                container_id = parts[-1][CONTAINER_REGEX, :container] \
+                              || parts[-1][FARGATE_14_CONTAINER_REGEX, :container]
+              else
+                if (container_id = parts[-1][CONTAINER_REGEX, :container])
+                  task_uid = parts[-2][POD_REGEX, :pod] || parts[1][POD_REGEX, :pod]
                 else
-                  if (container_id = parts[-1][CONTAINER_REGEX, :container])
-                    task_uid = parts[-2][POD_REGEX, :pod] || parts[1][POD_REGEX, :pod]
-                  else
-                    container_id = parts[-1][FARGATE_14_CONTAINER_REGEX, :container]
-                  end
+                  container_id = parts[-1][FARGATE_14_CONTAINER_REGEX, :container]
                 end
-
-                # If container ID wasn't found, ignore.
-                # Path might describe a non-container environment.
-                next if container_id.nil?
-
-                descriptor.platform = platform
-                descriptor.container_id = container_id
-                descriptor.task_uid = task_uid
-
-                break
               end
-            rescue StandardError => e
-              Datadog.logger.error(
-                "Error while parsing container info. Cause: #{e.class.name} #{e.message} " \
-                "Location: #{Array(e.backtrace).first}"
-              )
+
+              # If container ID wasn't found, ignore.
+              # Path might describe a non-container environment.
+              next if container_id.nil?
+
+              descriptor.platform = platform
+              descriptor.container_id = container_id
+              descriptor.task_uid = task_uid
+
+              break
             end
+          rescue StandardError => e
+            Datadog.logger.error(
+              "Error while parsing container info. Cause: #{e.class.name} #{e.message} " \
+              "Location: #{Array(e.backtrace).first}"
+            )
           end
         end
       end

@@ -92,7 +92,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
   let(:string_io_content) { StringIO.new(raw.to_json) }
 
   let(:content) do
-    Datadog::Core::Remote::Configuration::Content.parse({ :path => path.to_s, :content => string_io_content })
+    Datadog::Core::Remote::Configuration::Content.parse({ path: path.to_s, content: string_io_content })
   end
 
   let(:new_content_string_io_content) { StringIO.new('hello world') }
@@ -100,8 +100,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
   let(:new_content) do
     Datadog::Core::Remote::Configuration::Content.parse(
       {
-        :path => path.to_s,
-        :content => new_content_string_io_content
+        path: path.to_s,
+        content: new_content_string_io_content
       }
     )
   end
@@ -185,8 +185,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         expect(repository.contents[path]).to eq(content)
 
         new_content = Datadog::Core::Remote::Configuration::Content.parse(
-          { :path => path.to_s,
-            :content => StringIO.new('hello world') }
+          { path: path.to_s,
+            content: StringIO.new('hello world') }
         )
 
         updated_changes = repository.transaction do |_repository, transaction|
@@ -208,8 +208,8 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         expect(repository.contents[path]).to eq(content)
         new_path = Datadog::Core::Remote::Configuration::Path.parse('employee/ASM/exclusion_filters/config')
         new_content = Datadog::Core::Remote::Configuration::Content.parse(
-          { :path => new_path.to_s,
-            :content => StringIO.new('hello world') }
+          { path: new_path.to_s,
+            content: StringIO.new('hello world') }
         )
 
         changes = repository.transaction do |_repository, transaction|
@@ -290,14 +290,14 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
         let(:expected_cached_target_files) do
           [
             {
-              :hashes => [
+              hashes: [
                 {
                   algorithm: :sha256,
                   hash: content.hexdigest(:sha256)
                 }
               ],
-              :length => 645,
-              :path => 'datadog/603646/ASM/exclusion_filters/config'
+              length: 645,
+              path: 'datadog/603646/ASM/exclusion_filters/config'
             }
           ]
         end
@@ -326,14 +326,14 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
 
             expected_updated_cached_target_files = [
               {
-                :hashes => [
+                hashes: [
                   {
                     algorithm: :sha256,
                     hash: new_content.hexdigest(:sha256)
                   }
                 ],
-                :length => new_content_string_io_content.length,
-                :path => 'datadog/603646/ASM/exclusion_filters/config'
+                length: new_content_string_io_content.length,
+                path: 'datadog/603646/ASM/exclusion_filters/config'
               }
             ]
 
@@ -370,7 +370,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
       context 'with changes' do
         let(:expected_config_states) do
           [
-            { :id => path.config_id, :product => path.product, :version => 1, apply_error: nil, apply_state: 1 }
+            { id: path.config_id, product: path.product, version: 1, apply_error: nil, apply_state: 1 }
           ]
         end
 
@@ -397,7 +397,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
             end
 
             expected_updated_config_states = [
-              { :id => path.config_id, :product => path.product, :version => 2, apply_error: nil, apply_state: 1 }
+              { id: path.config_id, product: path.product, version: 2, apply_error: nil, apply_state: 1 }
             ]
 
             expect(repository.state.config_states).to_not eq(expected_config_states)

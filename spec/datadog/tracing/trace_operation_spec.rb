@@ -2494,7 +2494,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           trace.measure('wait_inserts', resource: 'inventory', service: 'job-worker') do |wait_span|
             wait_span.set_tag('worker.count', workers.length)
-            workers && workers.each { |w| w.alive? && w.join }
+            workers&.each { |w| w.alive? && w.join }
           end
 
           trace.measure('update_log', resource: 'inventory', service: 'job-worker') do

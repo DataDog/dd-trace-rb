@@ -16,7 +16,7 @@ module Datadog
           register_as :grpc, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['grpc'] && Gem.loaded_specs['grpc'].version
+            Gem.loaded_specs['grpc']&.version
           end
 
           def self.loaded?

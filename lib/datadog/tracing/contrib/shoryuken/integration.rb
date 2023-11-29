@@ -17,7 +17,7 @@ module Datadog
           register_as :shoryuken
 
           def self.version
-            Gem.loaded_specs['shoryuken'] && Gem.loaded_specs['shoryuken'].version
+            Gem.loaded_specs['shoryuken']&.version
           end
 
           def self.loaded?

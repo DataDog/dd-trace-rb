@@ -16,7 +16,7 @@ module Datadog
           register_as :sequel, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['sequel'] && Gem.loaded_specs['sequel'].version
+            Gem.loaded_specs['sequel']&.version
           end
 
           def self.loaded?

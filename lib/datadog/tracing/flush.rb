@@ -59,7 +59,7 @@ module Datadog
       class Finished < Base
         # Are all spans finished?
         def flush?(trace_op)
-          trace_op && trace_op.finished?
+          trace_op&.finished?
         end
       end
 

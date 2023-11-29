@@ -278,7 +278,7 @@ RSpec.describe Datadog::Tracing::Correlation do
 
         RSpec::Matchers.define :be_serialized_nested_hash do |expected|
           match do |actual|
-            result = expected.each_with_object(String.new) do |(key, value), string|
+            result = expected.each_with_object(+'') do |(key, value), string|
               if value.is_a? Hash
                 value.each_pair { |k, v| string << "#{key}.#{k}=#{v} " unless v.empty? }
               else

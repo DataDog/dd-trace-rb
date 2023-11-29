@@ -156,12 +156,8 @@ module Datadog
         end
 
         def gzip(value)
-          sio = StringIO.new
           # For an in depth comparison of Zlib options check https://github.com/DataDog/dd-trace-rb/pull/3177#issuecomment-1747215473
-          gz = Zlib::GzipWriter.new(sio, Zlib::BEST_SPEED, Zlib::DEFAULT_STRATEGY)
-          gz.write(value)
-          gz.close
-          sio.string
+          Zlib.gzip(value, level: Zlib::BEST_SPEED, strategy: Zlib::DEFAULT_STRATEGY)
         end
       end
     end

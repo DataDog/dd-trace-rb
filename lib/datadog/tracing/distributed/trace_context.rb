@@ -50,7 +50,7 @@ module Datadog
               tags ||= {}
               tags[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER] = decision
             when :drop
-              tags.delete(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER) if tags
+              tags&.delete(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
             end
           end
 
@@ -141,22 +141,20 @@ module Datadog
 
         # @see https://www.w3.org/TR/trace-context/#tracestate-header
         def build_tracestate(digest)
-          tracestate = String.new('dd=')
+          tracestate = +'dd='
           tracestate << "s:#{digest.trace_sampling_priority};" if digest.trace_sampling_priority
           tracestate << "o:#{serialize_origin(digest.trace_origin)};" if digest.trace_origin
 
-          if digest.trace_distributed_tags
-            digest.trace_distributed_tags.each do |name, value|
-              tag = "t.#{serialize_tag_key(name)}:#{serialize_tag_value(value)};"
+          digest.trace_distributed_tags&.each do |name, value|
+            tag = "t.#{serialize_tag_key(name)}:#{serialize_tag_value(value)};"
 
-              # If tracestate size limit is exceed, drop the remaining data.
-              # String#bytesize is used because only ASCII characters are allowed.
-              #
-              # We add 1 to the limit because of the trailing comma, which will be removed before returning.
-              break if tracestate.bytesize + tag.bytesize > (TRACESTATE_VALUE_SIZE_LIMIT + 1)
+            # If tracestate size limit is exceed, drop the remaining data.
+            # String#bytesize is used because only ASCII characters are allowed.
+            #
+            # We add 1 to the limit because of the trailing comma, which will be removed before returning.
+            next if tracestate.bytesize + tag.bytesize > (TRACESTATE_VALUE_SIZE_LIMIT + 1)
 
-              tracestate << tag
-            end
+            tracestate << tag
           end
 
           tracestate << digest.trace_state_unknown_fields if digest.trace_state_unknown_fields
@@ -327,7 +325,7 @@ module Datadog
               tags ||= {}
               tags["#{Tracing::Metadata::Ext::Distributed::TAGS_PREFIX}#{key}"] = value
             else
-              unknown_fields ||= String.new
+              unknown_fields ||= +''
               unknown_fields << pair
               unknown_fields << ';'
             end

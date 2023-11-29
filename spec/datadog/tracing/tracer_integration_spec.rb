@@ -105,7 +105,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           tracer.trace('wait_inserts', resource: 'inventory') do |wait_span|
             wait_span.set_tag('worker.count', workers.length)
-            workers && workers.each(&:join)
+            workers&.each(&:join)
           end
 
           tracer.trace('update_log', resource: 'inventory') do
@@ -306,7 +306,7 @@ RSpec.describe Datadog::Tracing::Tracer do
     let(:trace) { Datadog::Tracing.continue_trace!(extract) }
     let(:inject) { {}.tap { |env| Datadog::Tracing::Propagation::HTTP.inject!(trace.to_digest, env) } }
 
-    let(:rack_headers) { headers.map { |k, v| [RackSupport.header_to_rack(k), v] }.to_h }
+    let(:rack_headers) { headers.transform_keys { |k| RackSupport.header_to_rack(k) } }
 
     after { Datadog::Tracing.continue_trace!(nil) }
 

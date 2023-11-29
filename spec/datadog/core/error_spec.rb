@@ -77,11 +77,9 @@ RSpec.describe Datadog::Core::Error do
         end
 
         let(:value) do
-          begin
-            clazz.new.call
-          rescue => e
-            puts e
-          end
+          clazz.new.call
+        rescue => e
+          puts e
         end
 
         it 'reports nested errors' do
@@ -113,19 +111,15 @@ RSpec.describe Datadog::Core::Error do
         end
 
         context 'that is reused' do
-          before { skip("This version of Ruby doesn't support setting exception cause") if RUBY_VERSION < '2.2.0' }
-
           let(:value) do
             begin
-              begin
-                raise 'first error'
-              rescue => e
-                raise 'second error' rescue ex2 = $ERROR_INFO
-                raise e, cause: ex2 # raises ArgumentError('circular causes') on Ruby >= 2.6
-              end
+              raise 'first error'
             rescue => e
-              e
+              raise 'second error' rescue ex2 = $ERROR_INFO
+              raise e, cause: ex2 # raises ArgumentError('circular causes') on Ruby >= 2.6
             end
+          rescue => e
+            e
           end
 
           it 'reports errors only once', if: (RUBY_VERSION < '2.6.0' || PlatformHelpers.truffleruby? || PlatformHelpers.jruby? && RUBY_ENGINE_VERSION >= '9.3.7.0') do # rubocop:disable Layout/LineLength

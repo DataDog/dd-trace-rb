@@ -120,7 +120,7 @@ class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
     YARD
 
     statement.block.last.each do |node|
-      parse_block(node, :namespace => generated_class)
+      parse_block(node, namespace: generated_class)
     end
   end
 end

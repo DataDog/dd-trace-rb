@@ -17,7 +17,7 @@ module Datadog
           register_as :ethon
 
           def self.version
-            Gem.loaded_specs['ethon'] && Gem.loaded_specs['ethon'].version
+            Gem.loaded_specs['ethon']&.version
           end
 
           def self.loaded?

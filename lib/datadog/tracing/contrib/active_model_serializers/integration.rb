@@ -16,8 +16,7 @@ module Datadog
           register_as :active_model_serializers
 
           def self.version
-            Gem.loaded_specs['active_model_serializers'] \
-              && Gem.loaded_specs['active_model_serializers'].version
+            Gem.loaded_specs['active_model_serializers']&.version
           end
 
           def self.loaded?

@@ -53,12 +53,10 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
       end
 
       @unix_server_thread = Thread.start do
-        begin
-          sock = server.accept
-          http.run(sock)
-        rescue => e
-          puts "UNIX server error!: #{e}"
-        end
+        sock = server.accept
+        http.run(sock)
+      rescue => e
+        puts "UNIX server error!: #{e}"
       end
 
       http_init_signal.pop

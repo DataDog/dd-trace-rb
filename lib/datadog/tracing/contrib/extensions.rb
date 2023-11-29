@@ -185,7 +185,7 @@ module Datadog
             # @return [Datadog::Tracing::Contrib::Configuration::Settings]
             def [](integration_name, key = :default)
               integration = fetch_integration(integration_name)
-              integration.resolve(key) unless integration.nil?
+              integration&.resolve(key)
             end
 
             # @!visibility private

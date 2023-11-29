@@ -17,7 +17,7 @@ module Datadog
           register_as :faraday, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['faraday'] && Gem.loaded_specs['faraday'].version
+            Gem.loaded_specs['faraday']&.version
           end
 
           def self.loaded?

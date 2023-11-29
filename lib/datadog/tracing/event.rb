@@ -57,13 +57,11 @@ module Datadog
 
       def publish(*args)
         subscriptions.each do |block|
-          begin
-            block.call(*args)
-          rescue StandardError => e
-            Datadog.logger.debug do
-              "Error while handling '#{name}' event with '#{block}': #{e.class.name} #{e.message} " \
-              "at #{Array(e.backtrace).first}"
-            end
+          block.call(*args)
+        rescue StandardError => e
+          Datadog.logger.debug do
+            "Error while handling '#{name}' event with '#{block}': #{e.class.name} #{e.message} " \
+            "at #{Array(e.backtrace).first}"
           end
         end
 

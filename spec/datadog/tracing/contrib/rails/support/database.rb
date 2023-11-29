@@ -14,19 +14,17 @@ module Datadog
                 activerecord-jdbcpostgresql-adapter
                 activerecord-jdbcmysql-adapter
               ].each do |adapter|
-                begin
-                  require adapter
+                require adapter
 
-                  if adapter == 'pg' || adapter.include?('postgres')
-                    connector = postgres_url
-                  elsif adapter.include?('mysql')
-                    connector = mysql_url
-                  end
-                rescue LoadError
-                  puts "#{adapter} gem not found, trying another connector"
-                else
-                  return connector
+                if adapter == 'pg' || adapter.include?('postgres')
+                  connector = postgres_url
+                elsif adapter.include?('mysql')
+                  connector = mysql_url
                 end
+              rescue LoadError
+                puts "#{adapter} gem not found, trying another connector"
+              else
+                return connector
               end
 
               raise 'No database adapter found!'
