@@ -396,9 +396,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # We sample from 2 distinct locations
           expect(heap_samples.size).to eq(2)
 
-          expect(heap_samples.sum { |s| s.values[:'heap-live-samples'] || 0 }).to eq(
-            [a_string, an_array, a_hash].size * sample_rate
-          )
+          sum_heap_samples = 0
+          heap_samples.each { |s| sum_heap_samples += s.values[:'heap-live-samples'] }
+          expect(sum_heap_samples).to eq([a_string, an_array, a_hash].size * sample_rate)
         end
 
         it 'do not corrupt/overwrite non-heap-samples' do
