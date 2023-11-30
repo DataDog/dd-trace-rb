@@ -20,6 +20,7 @@ RSpec.describe 'Rack integration tests' do
 
   let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
+  let(:appsec_ip_passlist) { [] }
   let(:appsec_ip_denylist) { [] }
   let(:appsec_user_id_denylist) { [] }
   let(:appsec_ruleset) { :recommended }
@@ -135,6 +136,7 @@ RSpec.describe 'Rack integration tests' do
       c.appsec.enabled = appsec_enabled
       c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.instrument :rack
+      c.appsec.ip_passlist = appsec_ip_passlist
       c.appsec.ip_denylist = appsec_ip_denylist
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
@@ -271,6 +273,30 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events', { blocking: true }
             it_behaves_like 'a trace with AppSec api security tags'
+
+            context 'and a passlist' do
+              let(:client_ip) { '1.2.3.4' }
+              let(:appsec_ip_passlist) { [client_ip] }
+              let(:headers) { { 'HTTP_X_FORWARDED_FOR' => client_ip } }
+
+              it_behaves_like 'normal with tracing disable'
+              it_behaves_like 'a GET 200 span'
+              it_behaves_like 'a trace with AppSec tags'
+              it_behaves_like 'a trace without AppSec events'
+              it_behaves_like 'a trace with AppSec api security tags'
+            end
+
+            context 'and a monitoring passlist' do
+              let(:client_ip) { '1.2.3.4' }
+              let(:appsec_ip_passlist) { { monitor: [client_ip] } }
+              let(:headers) { { 'HTTP_X_FORWARDED_FOR' => client_ip } }
+
+              it_behaves_like 'normal with tracing disable'
+              it_behaves_like 'a GET 200 span'
+              it_behaves_like 'a trace with AppSec tags'
+              it_behaves_like 'a trace with AppSec events'
+              it_behaves_like 'a trace with AppSec api security tags'
+            end
           end
         end
 

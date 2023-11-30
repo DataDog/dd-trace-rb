@@ -192,11 +192,11 @@ module Datadog
 
               # Enable 128 bit trace id generation.
               #
-              # @default `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` environment variable, otherwise `false`
+              # @default `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :trace_id_128_bit_generation_enabled do |o|
                 o.env Tracing::Configuration::Ext::ENV_TRACE_ID_128_BIT_GENERATION_ENABLED
-                o.default false
+                o.default true
                 o.type :bool
               end
 

@@ -56,7 +56,6 @@ else
   gem 'rspec_junit_formatter', '<= 0.4.1'
 end
 gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.4.0'
-gem 'ruby-prof', '~> 1.4' if RUBY_PLATFORM != 'java' && RUBY_VERSION >= '2.4.0'
 if RUBY_VERSION >= '2.5.0'
   # Merging branch coverage results does not work for old, unsupported rubies.
   # We have a fix up for review, https://github.com/simplecov-ruby/simplecov/pull/972,

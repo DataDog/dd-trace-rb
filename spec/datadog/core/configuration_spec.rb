@@ -599,7 +599,13 @@ RSpec.describe Datadog::Core::Configuration do
     describe '#handle_interrupt_shutdown!' do
       subject(:handle_interrupt_shutdown!) { test_class.send(:handle_interrupt_shutdown!) }
 
-      let(:fake_thread) { instance_double(Thread, 'fake thread') }
+      let(:fake_thread) do
+        instance_double(Thread, 'fake thread').tap do |it|
+          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
+            expect(it).to(receive(:name=).with('Datadog::Core::Configuration'))
+          end
+        end
+      end
 
       it 'calls #shutdown! in a background thread' do
         allow(fake_thread).to receive(:join).and_return(fake_thread)

@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.16.2)
+    ddtrace (1.17.0)
       datadog-ci (~> 0.4.0)
-      debase-ruby_core_source (= 3.2.2)
+      debase-ruby_core_source (= 3.2.3)
       libdatadog (~> 5.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -45,7 +45,7 @@ GEM
     cri (2.15.11)
     datadog-ci (0.4.0)
       msgpack
-    debase-ruby_core_source (3.2.2)
+    debase-ruby_core_source (3.2.3)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -149,7 +149,6 @@ GEM
     rubocop-rspec (2.20.0)
       rubocop (~> 1.33)
       rubocop-capybara (~> 2.17)
-    ruby-prof (1.6.3)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
     simplecov-cobertura (2.1.0)
@@ -202,7 +201,6 @@ DEPENDENCIES
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
-  ruby-prof (~> 1.4)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)

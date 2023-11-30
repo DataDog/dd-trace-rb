@@ -38,6 +38,7 @@ module Datadog
       def self.no_signals_workaround_enabled?: (untyped settings) -> bool
 
       def self.incompatible_libmysqlclient_version?: (untyped settings) -> bool
+      def self.incompatible_passenger_version?: () -> bool
     end
   end
 end

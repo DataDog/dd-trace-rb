@@ -49,3 +49,9 @@ bool ddtrace_rb_ractor_main_p(void);
 // This is what Ruby shows in `Thread#to_s`.
 // The file is returned directly, and the line is recorded onto *line_location.
 VALUE invoke_location_for(VALUE thread, int *line_location);
+
+// Check if RUBY_MN_THREADS is enabled (aka main Ractor is not doing 1:1 threads)
+void self_test_mn_enabled(void);
+
+// Provides more specific information on what kind an imemo is
+const char *imemo_kind(VALUE imemo);

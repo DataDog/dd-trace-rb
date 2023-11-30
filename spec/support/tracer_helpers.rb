@@ -112,4 +112,15 @@ module TracerHelpers
 
     without_warnings { Datadog.send(:reset!) }
   end
+
+  # Wraps call to Tracing::Utils::TraceId.to_low_order for better test readability
+  def low_order_trace_id(trace_id)
+    Datadog::Tracing::Utils::TraceId.to_low_order(trace_id)
+  end
+
+  # Wraps call to Tracing::Utils::TraceId.to_high_order and converts to hex
+  # for better test readability
+  def high_order_hex_trace_id(trace_id)
+    Datadog::Tracing::Utils::TraceId.to_high_order(trace_id).to_s(16)
+  end
 end

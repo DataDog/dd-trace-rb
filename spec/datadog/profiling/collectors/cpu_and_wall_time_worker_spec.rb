@@ -76,6 +76,13 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       expect(Thread.list.map(&:name)).to include(described_class.name)
     end
 
+    # See https://github.com/puma/puma/blob/32e011ab9e029c757823efb068358ed255fb7ef4/lib/puma/cluster.rb#L353-L359
+    it 'marks the new thread as fork-safe' do
+      start
+
+      expect(cpu_and_wall_time_worker.instance_variable_get(:@worker_thread).thread_variable_get(:fork_safe)).to be true
+    end
+
     it 'does not create a second thread if start is called again' do
       start
 
@@ -479,6 +486,56 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
           start
 
           expect(Time.new.strftime(String.new('Potato'))).to_not be nil
+        end
+      end
+
+      context 'T_IMEMO internal VM objects' do
+        let(:something_that_triggers_creation_of_imemo_objects) do
+          eval('proc { def self.foo; rand; end; foo }.call') # rubocop:disable Style/EvalWithLocation
+        end
+
+        context 'on Ruby 2.x' do
+          before { skip 'Behavior only applies on Ruby 2.x' unless RUBY_VERSION.start_with?('2.') }
+
+          it 'records internal VM objects, not including their specific kind' do
+            start
+
+            something_that_triggers_creation_of_imemo_objects
+
+            cpu_and_wall_time_worker.stop
+
+            imemo_samples =
+              samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
+                .select { |s| s.labels.fetch(:'allocation class', '') == '(VM Internal, T_IMEMO)' }
+
+            expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
+          end
+        end
+
+        context 'on Ruby 3.x' do
+          before { skip 'Behavior only applies on Ruby 3.x' if RUBY_VERSION.start_with?('2.') }
+
+          it 'records internal VM objects, including their specific kind' do
+            start
+
+            something_that_triggers_creation_of_imemo_objects
+
+            cpu_and_wall_time_worker.stop
+
+            imemo_samples =
+              samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
+                .select { |s| s.labels.fetch(:'allocation class', '').start_with?('(VM Internal, T_IMEMO') }
+
+            expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
+
+            # To avoid coupling too much on VM internals we check that at each of the found allocation classes are
+            # a known member of the imemo_type enum (even if we don't exactly match on which one)
+            expect(imemo_samples.map { |s| s.labels.fetch(:'allocation class') }).to all(
+              match(
+                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache)/
+              )
+            )
+          end
         end
       end
     end

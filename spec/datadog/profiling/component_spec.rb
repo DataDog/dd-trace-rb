@@ -600,7 +600,9 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context 'when running inside the passenger web server' do
+        context 'when running inside the passenger web server, even when gem is not available' do
+          include_context('loaded gems', passenger: nil, rugged: nil, mysql2: nil)
+
           before do
             stub_const('::PhusionPassenger', Module.new)
             allow(Datadog.logger).to receive(:warn)
@@ -615,8 +617,30 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
+        context 'when passenger gem is available' do
+          context 'on passenger >= 6.0.19' do
+            include_context('loaded gems', passenger: Gem::Version.new('6.0.19'), rugged: nil, mysql2: nil)
+
+            it { is_expected.to be false }
+          end
+
+          context 'on passenger < 6.0.19' do
+            include_context('loaded gems', passenger: Gem::Version.new('6.0.18'), rugged: nil, mysql2: nil)
+
+            before { allow(Datadog.logger).to receive(:warn) }
+
+            it { is_expected.to be true }
+
+            it 'logs a warning message mentioning that the no signals workaround is going to be used' do
+              expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+
+              no_signals_workaround_enabled?
+            end
+          end
+        end
+
         context 'when mysql2 / rugged gems + passenger are not available' do
-          include_context('loaded gems', mysql2: nil, rugged: nil)
+          include_context('loaded gems', passenger: nil, mysql2: nil, rugged: nil)
 
           it { is_expected.to be false }
         end

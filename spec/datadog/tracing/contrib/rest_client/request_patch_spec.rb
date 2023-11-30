@@ -300,7 +300,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
           request
 
           distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.span_id.to_s,
-                                          'X-Datadog-Trace-Id' => span.trace_id.to_s }
+                                          'X-Datadog-Trace-Id' => low_order_trace_id(span.trace_id).to_s }
 
           expect(a_request(:get, url).with(headers: distributed_tracing_headers)).to have_been_made
         end

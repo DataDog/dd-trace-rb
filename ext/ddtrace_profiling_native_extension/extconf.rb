@@ -81,10 +81,7 @@ end
 
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
-#
-# @ivoanjo TODO: 3.3.0-preview releases are causing issues in CI because `have_header('vm_core.h')` below triggers warnings;
-# I've chosen to disable `-Werror` for this Ruby version for now, and we can revisit this on a later 3.3 release.
-add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true' && !RUBY_DESCRIPTION.include?('3.3.0preview')
+add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true'
 
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase
@@ -103,7 +100,13 @@ add_compiler_flag '-Wno-declaration-after-statement'
 add_compiler_flag '-Werror-implicit-function-declaration'
 
 # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
-add_compiler_flag '-Wunused-parameter'
+#
+# @ivoanjo TODO: 3.3.0 development releases are causing issues because:
+# 1. We're enabling unused parameter warnings
+# 2. The VM headers trigger unused parameter warnings
+# 3. When we call `have_header` below, mkmf compiles the target code with `-Werror`, turning warnings into errors
+# For now, I've chosen to disable this warning for Ruby 3.3; we can revisit at a later 3.3 release.
+add_compiler_flag '-Wunused-parameter' unless RUBY_VERSION.start_with?('3.3.')
 
 # The native extension is not intended to expose any symbols/functions for other native libraries to use;
 # the sole exception being `Init_ddtrace_profiling_native_extension` which needs to be visible for Ruby to call it when
@@ -136,6 +139,9 @@ if RUBY_PLATFORM.include?('linux')
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
 
+# On older Rubies, M:N threads were not available
+$defs << '-DNO_MN_THREADS_AVAILABLE' if RUBY_VERSION < '3.3'
+
 # On older Rubies, we did not need to include the ractor header (this was built into the MJIT header)
 $defs << '-DNO_RACTOR_HEADER_INCLUDE' if RUBY_VERSION < '3.3'
 
@@ -162,6 +168,9 @@ $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
 
 # On older Rubies, there are no Ractors
 $defs << '-DNO_RACTORS' if RUBY_VERSION < '3'
+
+# On older Rubies, rb_imemo_name did not exist
+$defs << '-DNO_IMEMO_NAME' if RUBY_VERSION < '3'
 
 # On older Rubies, objects would not move
 $defs << '-DNO_T_MOVED' if RUBY_VERSION < '2.7'
