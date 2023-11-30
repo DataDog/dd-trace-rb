@@ -12,10 +12,10 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 |       |                            | 2.7     | Full                                 | Latest              |
 |       |                            | 2.6     | Full                                 | Latest              |
 |       |                            | 2.5     | Full                                 | Latest              |
-|       |                            | 2.4     | EOL since MM DDth, YYYY              | < 2.0.0             | [comment]: <> (# DEV-2.0: Update with release date)
-|       |                            | 2.3     | EOL since MM DDth, YYYY              | < 2.0.0             |
-|       |                            | 2.2     | EOL since MM DDth, YYYY              | < 2.0.0             |
-|       |                            | 2.1     | EOL since MM DDth, YYYY              | < 2.0.0             |
+|       |                            | 2.4     | EOL                                  | < 2.0.0             | [comment]: <> (# DEV-2.0: Update with release date)
+|       |                            | 2.3     | EOL                                  | < 2.0.0             |
+|       |                            | 2.2     | EOL                                  | < 2.0.0             |
+|       |                            | 2.1     | EOL                                  | < 2.0.0             |
 |       |                            | 2.0     | EOL since June 7th, 2021             | < 0.50.0            |
 |       |                            | 1.9.3   | EOL since August 6th, 2020           | < 0.27.0            |
 |       |                            | 1.9.1   | EOL since August 6th, 2020           | < 0.27.0            |
