@@ -61,8 +61,6 @@ module Datadog
                   o.default(
                     [
                       Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
                       Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
                     ]
                   )
