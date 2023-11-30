@@ -91,7 +91,7 @@ static VALUE _native_crashtracker_init_full(DDTRACE_UNUSED VALUE _self, VALUE ta
   ddog_CharSlice receiver_binary = char_slice_from_ruby_string(path_to_receiver_binary);
 
   ddog_prof_Profile_Result result =
-    ddog_prof_crashtracker_init_full(library_name, library_version, profiling_family, &tags, endpoint, receiver_binary);
+    ddog_prof_crashtracker_init(library_name, library_version, profiling_family, &tags, endpoint, receiver_binary, false, false);
 
   // Clean up before potentially raising any exceptions
   ddog_Vec_Tag_drop(tags);
