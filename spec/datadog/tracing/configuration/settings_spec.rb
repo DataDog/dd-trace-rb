@@ -95,19 +95,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
               )
             end
           end
-
-          context 'is set to deprecated style names' do
-            let(:var_value) { 'B3,B3 single header' }
-
-            it 'translates to new names' do
-              is_expected.to eq(
-                [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                ]
-              )
-            end
-          end
         end
 
         context 'with deprecated DD_PROPAGATION_STYLE_EXTRACT' do
@@ -156,19 +143,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                ]
-              )
-            end
-          end
-
-          context 'is set to deprecated style names' do
-            let(:var_value) { 'B3,B3 single header' }
-
-            it 'translates to new names' do
-              is_expected.to eq(
-                [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )

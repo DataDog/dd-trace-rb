@@ -35,12 +35,7 @@ module Datadog
           PROPAGATION_STYLE_DATADOG = 'Datadog'
 
           PROPAGATION_STYLE_B3_MULTI_HEADER = 'b3multi'
-          # @deprecated Use `b3multi` instead.
-          PROPAGATION_STYLE_B3 = 'B3'
-
           PROPAGATION_STYLE_B3_SINGLE_HEADER = 'b3'
-          # @deprecated Use `b3` instead.
-          PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD = 'B3 single header'
 
           # W3C Trace Context
           PROPAGATION_STYLE_TRACE_CONTEXT = 'tracecontext'

@@ -9,7 +9,6 @@ module Datadog
       # @public_api
       # rubocop:disable Metrics/AbcSize
       # rubocop:disable Metrics/BlockLength
-      # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Layout/LineLength
       module Settings
@@ -66,20 +65,6 @@ module Datadog
                       Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
                     ]
                   )
-                  o.after_set do |styles|
-                    # Modernize B3 options
-                    # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
-                    styles.map! do |style|
-                      case style
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                      else
-                        style
-                      end
-                    end
-                  end
                 end
 
                 # The data propagation styles the tracer will use to inject distributed tracing propagation
@@ -98,20 +83,6 @@ module Datadog
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
                   ]
-                  o.after_set do |styles|
-                    # Modernize B3 options
-                    # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
-                    styles.map! do |style|
-                      case style
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                      else
-                        style
-                      end
-                    end
-                  end
                 end
 
                 # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
@@ -128,19 +99,6 @@ module Datadog
                   o.default []
                   o.after_set do |styles|
                     next if styles.empty?
-
-                    # Modernize B3 options
-                    # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
-                    styles.map! do |style|
-                      case style
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                      else
-                        style
-                      end
-                    end
 
                     set_option(:propagation_extract_style, styles)
                     set_option(:propagation_inject_style, styles)
@@ -493,7 +451,6 @@ module Datadog
       end
       # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/BlockLength
-      # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/MethodLength
       # rubocop:enable Layout/LineLength
     end
