@@ -404,8 +404,16 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         it 'do not corrupt/overwrite non-heap-samples' do
           expect(non_heap_samples.size).to eq(2)
 
-          expect(non_heap_samples.sum { |s| s.values[:'cpu-time'] }).to be > 0
-          expect(non_heap_samples.sum { |s| s.values[:'alloc-samples'] }).to eq(@num_allocations * sample_rate)
+          sum_cpu_time = 0
+          sum_alloc_samples = 0
+
+          non_heap_samples.each do |s|
+            sum_cpu_time += s.values[:'cpu-time']
+            sum_alloc_samples += s.values[:'alloc-samples']
+          end
+
+          expect(sum_cpu_time).to be > 0
+          expect(sum_alloc_samples).to eq(@num_allocations * sample_rate)
         end
       end
     end
