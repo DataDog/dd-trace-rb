@@ -62,10 +62,9 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
+#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - sinatra20
           - sinatra21
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -115,10 +114,9 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
+#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - sinatra20
           - sinatra21
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -247,10 +245,9 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
+#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - sinatra20
           - sinatra21
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -289,10 +286,9 @@ jobs:
           - runner
           - agent
           - weblog-rack
-          - weblog-sinatra14
+#           - weblog-sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - weblog-sinatra20
           - weblog-sinatra21
-          - weblog-rails42
           - weblog-rails50
           - weblog-rails51
           - weblog-rails52
