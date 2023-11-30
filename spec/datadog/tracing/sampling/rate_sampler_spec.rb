@@ -27,6 +27,12 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
       context 'that is 0' do
         let(:sample_rate) { 0.0 }
 
+        it_behaves_like 'sampler with sample rate', 0.0
+      end
+
+      context 'that is 1' do
+        let(:sample_rate) { 1.0 }
+
         it_behaves_like 'sampler with sample rate', 1.0
       end
 
