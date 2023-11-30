@@ -66,23 +66,6 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 // WARN: It is illegal to call this without previously having called ::start_heap_allocation_recording.
 void end_heap_allocation_recording(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
 
-// Record a heap free on the heap recorder.
-//
-// Contrary to heap allocations, no sampling should be applied to frees. Missing a free event
-// risks negatively effecting the accuracy of the live state of tracked objects and thus the accuracy
-// of the resulting profiles.
-//
-// Two things can happen depending on the object:
-// * The object isn't being tracked: the operation is a no-op.
-// * The object is being tracked: it is marked as no longer alive and will not appear in the next
-//   iteration.
-//
-// @param obj The object that was freed.
-//
-// NOTE: This function is safe to be called during a Ruby GC as it guarantees no heap mutations
-//       during its execution.
-void record_heap_free(heap_recorder *heap_recorder, VALUE obj);
-
 // Flush any intermediate state that might be queued inside the heap recorder.
 //
 // NOTE: This should usually be called before iteration to ensure data is as little stale as possible.

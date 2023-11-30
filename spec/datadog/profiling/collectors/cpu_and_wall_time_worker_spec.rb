@@ -12,7 +12,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   let(:allocation_sample_every) { 50 }
   let(:allocation_profiling_enabled) { false }
   let(:heap_profiling_enabled) { false }
-  let(:recorder) { build_stack_recorder(heap_samples_enabled: true) }
+  let(:recorder) { build_stack_recorder(heap_samples_enabled: heap_profiling_enabled) }
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }
   let(:options) { {} }
@@ -24,7 +24,6 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       thread_context_collector: build_thread_context_collector(recorder),
       allocation_sample_every: allocation_sample_every,
       allocation_profiling_enabled: allocation_profiling_enabled,
-      heap_profiling_enabled: heap_profiling_enabled,
       **options
     )
   end
@@ -67,12 +66,8 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       wait_until_running
     end
 
-    before do
-      @skip_cleanup = false
-    end
-
     after do
-      cpu_and_wall_time_worker.stop unless @skip_cleanup
+      cpu_and_wall_time_worker.stop
     end
 
     it 'creates a new thread' do
@@ -532,21 +527,12 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
         expect(relevant_sample.values[':heap-live-samples']).to eq test_num_allocated_object
       end
-
-      context 'but allocation profiling is disabled' do
-        let(:allocation_profiling_enabled) { false }
-        it 'raises an ArgumentError' do
-          # We don't want the after hook to execute cpu_and_wall_time_worker.stop otherwise it'll reraise the error
-          @skip_cleanup = true
-          expect { cpu_and_wall_time_worker }.to raise_error(ArgumentError, /requires allocation profiling/)
-        end
-      end
     end
 
     context 'when heap profiling is disabled' do
-      let(:allocation_profiling_enabled) { false }
+      let(:heap_profiling_enabled) { false }
 
-      it 'does not record allocations' do
+      it 'does not record heap samples' do
         stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
 
         start
@@ -555,7 +541,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
         cpu_and_wall_time_worker.stop
 
-        expect(samples_from_pprof(recorder.serialize!).map(&:values)).to all(include(:'heap-live-samples' => 0))
+        expect(samples_from_pprof(recorder.serialize!).select { |s| s.values.key?(:'heap-live-samples') }).to be_empty
       end
     end
 
@@ -903,10 +889,11 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
     described_class.new(
       gc_profiling_enabled: gc_profiling_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
-      thread_context_collector: build_thread_context_collector(build_stack_recorder),
+      thread_context_collector: build_thread_context_collector(
+        build_stack_recorder(heap_samples_enabled: heap_profiling_enabled)
+      ),
       allocation_sample_every: allocation_sample_every,
       allocation_profiling_enabled: allocation_profiling_enabled,
-      heap_profiling_enabled: heap_profiling_enabled
     )
   end
 

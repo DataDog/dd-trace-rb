@@ -80,7 +80,6 @@ RSpec.describe Datadog::Profiling::Component do
             thread_context_collector: instance_of(Datadog::Profiling::Collectors::ThreadContext),
             allocation_sample_every: kind_of(Integer),
             allocation_profiling_enabled: false,
-            heap_profiling_enabled: false,
           )
 
           build_profiler_component
@@ -129,10 +128,13 @@ RSpec.describe Datadog::Profiling::Component do
           context 'on Ruby 2.x' do
             let(:testing_version) { '2.3.0 ' }
 
-            it 'initializes a CpuAndWallTimeWorker with allocation_profiling set to true and warns' do
+            it 'initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support and warns' do
               expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
                 allocation_profiling_enabled: true,
               )
+              expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                .with(hash_including(alloc_samples_enabled: true))
+                .and_call_original
 
               expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
               expect(Datadog.logger).to_not receive(:warn).with(/Ractor/)
@@ -145,10 +147,13 @@ RSpec.describe Datadog::Profiling::Component do
             context "on a Ruby 3 version affected by https://bugs.ruby-lang.org/issues/19482 (#{broken_ruby})" do
               let(:testing_version) { broken_ruby }
 
-              it 'initializes a CpuAndWallTimeWorker with allocation_profiling forcibly set to false and warns' do
+              it 'initializes a CpuAndWallTimeWorker and StackRecorder with allocation sampling force-disabled and warns' do
                 expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
                   allocation_profiling_enabled: false,
                 )
+                expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                  .with(hash_including(alloc_samples_enabled: false))
+                  .and_call_original
 
                 expect(Datadog.logger).to receive(:warn).with(/forcibly disabled/)
                 expect(Datadog.logger).to_not receive(:warn).with(/Ractor/)
@@ -163,10 +168,13 @@ RSpec.describe Datadog::Profiling::Component do
             context "on a Ruby 3 version affected by https://bugs.ruby-lang.org/issues/18464 (#{broken_ractors_ruby})" do
               let(:testing_version) { broken_ractors_ruby }
 
-              it 'initializes a CpuAndWallTimeWorker with allocation_profiling forcibly set to true and warns' do
+              it 'initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support and warns' do
                 expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
                   allocation_profiling_enabled: true,
                 )
+                expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                  .with(hash_including(alloc_samples_enabled: true))
+                  .and_call_original
 
                 expect(Datadog.logger).to receive(:warn).with(/Ractors.+crashes/)
                 expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
@@ -179,10 +187,13 @@ RSpec.describe Datadog::Profiling::Component do
           ['3.1.4', '3.2.3', '3.3.0'].each do |fixed_ruby|
             context "on a Ruby 3 version where https://bugs.ruby-lang.org/issues/18464 is fixed (#{fixed_ruby})" do
               let(:testing_version) { fixed_ruby }
-              it 'initializes a CpuAndWallTimeWorker with allocation_profiling forcibly set to true and warns' do
+              it 'initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support and warns' do
                 expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
                   allocation_profiling_enabled: true,
                 )
+                expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                  .with(hash_including(alloc_samples_enabled: true))
+                  .and_call_original
 
                 expect(Datadog.logger).to receive(:warn).with(/Ractors.+stopping/)
                 expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
@@ -198,10 +209,13 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.advanced.experimental_allocation_enabled = false
           end
 
-          it 'initializes a CpuAndWallTimeWorker collector with allocation_profiling set to false' do
+          it 'initializes CpuAndWallTimeWorker and StackRecorder without allocation sampling support' do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
               allocation_profiling_enabled: false,
             )
+            expect(Datadog::Profiling::StackRecorder).to receive(:new)
+              .with(hash_including(alloc_samples_enabled: false))
+              .and_call_original
 
             build_profiler_component
           end
@@ -220,7 +234,7 @@ RSpec.describe Datadog::Profiling::Component do
               settings.profiling.advanced.experimental_allocation_enabled = false
             end
 
-            it 'raises an ArgumentError during CpuAndWallTimeWorker initialization' do
+            it 'raises an ArgumentError during component initialization' do
               expect { build_profiler_component }.to raise_error(ArgumentError, /requires allocation profiling/)
             end
           end
@@ -230,10 +244,10 @@ RSpec.describe Datadog::Profiling::Component do
               settings.profiling.advanced.experimental_allocation_enabled = true
             end
 
-            it 'initializes a CpuAndWallTimeWorker with heap_profiling set to true and warns' do
-              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-                allocation_profiling_enabled: true,
-              )
+            it 'initializes StackRecorder with heap sampling support and warns' do
+              expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                .with(hash_including(heap_samples_enabled: true))
+                .and_call_original
 
               expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
               expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
@@ -248,10 +262,10 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.advanced.experimental_heap_enabled = false
           end
 
-          it 'initializes a CpuAndWallTimeWorker collector with allocation_profiling set to false' do
-            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-              heap_profiling_enabled: false,
-            )
+          it 'initializes StackRecorder without heap sampling support' do
+            expect(Datadog::Profiling::StackRecorder).to receive(:new)
+              .with(hash_including(heap_samples_enabled: false))
+              .and_call_original
 
             build_profiler_component
           end
@@ -290,13 +304,6 @@ RSpec.describe Datadog::Profiling::Component do
               }
             )
           )
-
-          build_profiler_component
-        end
-
-        it 'sets up the StackRecorder with alloc_samples_enabled: false' do
-          expect(Datadog::Profiling::StackRecorder)
-            .to receive(:new).with(hash_including(alloc_samples_enabled: false)).and_call_original
 
           build_profiler_component
         end

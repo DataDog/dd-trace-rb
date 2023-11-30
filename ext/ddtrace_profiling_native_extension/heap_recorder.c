@@ -88,15 +88,6 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
   // TODO: Implement
 }
 
-// WARN: This can get called during Ruby GC. NO HEAP ALLOCATIONS OR EXCEPTIONS ARE ALLOWED.
-void record_heap_free(heap_recorder *heap_recorder, VALUE obj) {
-  if (heap_recorder == NULL) {
-    return;
-  }
-
-  // TODO: Implement
-}
-
 void heap_recorder_flush(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
     return;

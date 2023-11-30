@@ -154,8 +154,7 @@ static VALUE _native_initialize(
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE allocation_sample_every,
-  VALUE allocation_profiling_enabled,
-  VALUE heap_profiling_enabled
+  VALUE allocation_profiling_enabled
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
@@ -189,7 +188,6 @@ static void reset_stats(struct cpu_and_wall_time_worker_state *state);
 static void sleep_for(uint64_t time_ns);
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
-static void on_freeobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
@@ -230,7 +228,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 9);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 8);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -301,15 +299,13 @@ static VALUE _native_initialize(
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE allocation_sample_every,
-  VALUE allocation_profiling_enabled,
-  VALUE heap_profiling_enabled
+  VALUE allocation_profiling_enabled
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
   ENFORCE_TYPE(allocation_sample_every, T_FIXNUM);
   ENFORCE_BOOLEAN(allocation_profiling_enabled);
-  ENFORCE_BOOLEAN(heap_profiling_enabled);
 
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
@@ -319,21 +315,15 @@ static VALUE _native_initialize(
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
   state->allocation_sample_every = NUM2INT(allocation_sample_every);
   state->allocation_profiling_enabled = (allocation_profiling_enabled == Qtrue);
-  state->heap_profiling_enabled = (heap_profiling_enabled == Qtrue);
 
   if (state->allocation_sample_every <= 0) {
     rb_raise(rb_eArgError, "Unexpected value for allocation_sample_every: %d. This value must be > 0.", state->allocation_sample_every);
-  }
-
-  if (state->heap_profiling_enabled && !state->allocation_profiling_enabled) {
-    rb_raise(rb_eArgError, "Heap profiling requires allocation profiling to be enabled but it isn't.");
   }
 
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
   state->object_allocation_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_NEWOBJ, on_newobj_event, NULL /* unused */);
-  state->object_free_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_FREEOBJ, on_freeobj_event, NULL /* unused */);
 
   return Qtrue;
 }
@@ -349,7 +339,6 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->stop_thread);
   rb_gc_mark(state->gc_tracepoint);
   rb_gc_mark(state->object_allocation_tracepoint);
-  rb_gc_mark(state->object_free_tracepoint);
 }
 
 // Called in a background thread created in CpuAndWallTimeWorker#start
@@ -648,7 +637,6 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
   if (state->allocation_profiling_enabled) rb_tracepoint_enable(state->object_allocation_tracepoint);
-  if (state->heap_profiling_enabled) rb_tracepoint_enable(state->object_free_tracepoint);
 
   rb_thread_call_without_gvl(run_sampling_trigger_loop, state, interrupt_sampling_trigger_loop, state);
 
@@ -932,6 +920,10 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
     return;
   }
 
+  // @ivoanjo: Strictly speaking, this is not needed because Ruby should not call the same tracepoint while a previous
+  // invocation is still pending, (e.g. it wouldn't call `on_newobj_event` while it's already running), but I decided
+  // to keep this here for consistency -- every call to the thread context (other than the special gc calls which are
+  // defined as not being able to allocate) sets this.
   state->during_sample = true;
 
   // TODO: This is a placeholder sampling decision strategy. We plan to replace it with a better one soon (e.g. before
@@ -944,30 +936,9 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   state->during_sample = false;
 }
 
-// Safety: This function may get called while Ruby is doing garbage collection. While Ruby is doing garbage collection,
-// *NO ALLOCATION* is allowed. This function, and any it calls must never trigger memory or object allocation.
-// This includes exceptions and use of ruby_xcalloc (because xcalloc can trigger GC)!
-static void on_freeobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
-  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
-
-  // This should not happen in a normal situation because the tracepoint is always enabled after the instance is set
-  // and disabled before it is cleared, but just in case...
-  if (state == NULL) return;
-
-  // NOTE: Because this is likely to be happening during GC, handling of this tracepoint does not do any allocation.
-  // We also do not want to lose any frees as that would affect the accuracy of our live heap tracking so we skip
-  // the typical `state->during_sample` dropping that other sampling tracepoints have.
-
-  rb_trace_arg_t *data = rb_tracearg_from_tracepoint(tracepoint_data);
-  VALUE freed_object = rb_tracearg_object(data);
-
-  thread_context_collector_sample_free(state->thread_context_collector_instance, freed_object);
-}
-
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
   rb_tracepoint_disable(state->gc_tracepoint);
   rb_tracepoint_disable(state->object_allocation_tracepoint);
-  rb_tracepoint_disable(state->object_free_tracepoint);
 }
 
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {

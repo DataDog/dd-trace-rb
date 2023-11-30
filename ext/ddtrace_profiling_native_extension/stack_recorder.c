@@ -222,7 +222,6 @@ static void serializer_set_start_timestamp_for_next_profile(struct stack_recorde
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
 static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */);
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight);
-static VALUE _native_record_obj_free(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE obj);
 
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -248,7 +247,6 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_record_endpoint", _native_record_endpoint, 3);
   rb_define_singleton_method(testing_module, "_native_track_object", _native_track_object, 3);
-  rb_define_singleton_method(testing_module, "_native_record_obj_free", _native_record_obj_free, 2);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -518,13 +516,6 @@ void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample
   start_heap_allocation_recording(state->heap_recorder, new_object, sample_weight);
 }
 
-// WARN: This can get called during Ruby GC. NO HEAP ALLOCATIONS OR EXCEPTIONS ARE ALLOWED.
-void record_obj_free(VALUE recorder_instance, VALUE freed_object) {
-  struct stack_recorder_state *state;
-  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
-  record_heap_free(state->heap_recorder, freed_object);
-}
-
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
@@ -750,11 +741,6 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight) {
   ENFORCE_TYPE(weight, T_FIXNUM);
   track_object(recorder_instance, new_obj, NUM2UINT(weight));
-  return Qtrue;
-}
-
-static VALUE _native_record_obj_free(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE obj) {
-  record_obj_free(recorder_instance, obj);
   return Qtrue;
 }
 

@@ -8,7 +8,6 @@ void thread_context_collector_sample(
   VALUE profiler_overhead_stack_thread
 );
 void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object);
-void thread_context_collector_sample_free(VALUE self_instance, VALUE freed_object);
 VALUE thread_context_collector_sample_after_gc(VALUE self_instance);
 void thread_context_collector_on_gc_start(VALUE self_instance);
 void thread_context_collector_on_gc_finish(VALUE self_instance);

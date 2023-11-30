@@ -53,7 +53,6 @@ module Datadog
           thread_context_collector: thread_context_collector,
           allocation_sample_every: allocation_sample_every,
           allocation_profiling_enabled: allocation_profiling_enabled,
-          heap_profiling_enabled: heap_profiling_enabled,
         )
 
         internal_metadata = {
