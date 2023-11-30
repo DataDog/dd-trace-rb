@@ -145,8 +145,16 @@ RSpec.describe Datadog::Profiling::Component do
             context "on a Ruby 3 version affected by https://bugs.ruby-lang.org/issues/19482 (#{broken_ruby})" do
               let(:testing_version) { broken_ruby }
 
-              it 'raises an error about lack of support during initialization of a CpuAndWallTimeWorker' do
-                expect { build_profiler_component }.to raise_error(/not supported.+Please use/)
+              it 'initializes a CpuAndWallTimeWorker with allocation_profiling forcibly set to false and warns' do
+                expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+                  allocation_profiling_enabled: false,
+                )
+
+                expect(Datadog.logger).to receive(:warn).with(/forcibly disabled/)
+                expect(Datadog.logger).to_not receive(:warn).with(/Ractor/)
+                expect(Datadog.logger).to_not receive(:warn).with(/experimental allocation profiling/)
+
+                build_profiler_component
               end
             end
           end
@@ -246,17 +254,6 @@ RSpec.describe Datadog::Profiling::Component do
             )
 
             build_profiler_component
-          end
-        end
-
-        describe '#allocation_counting_enabled=' do
-          it 'updates the #allocation_counting_enabled setting' do
-            settings.profiling.advanced.allocation_counting_enabled = true
-
-            expect { settings.profiling.advanced.allocation_counting_enabled = false }
-              .to change { settings.profiling.advanced.allocation_counting_enabled }
-              .from(true)
-              .to(false)
           end
         end
 

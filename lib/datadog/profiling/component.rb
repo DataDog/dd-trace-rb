@@ -147,7 +147,12 @@ module Datadog
         # https://github.com/ruby/ruby/pull/7464) that makes this crash in any configuration. This bug is
         # fixed on Ruby versions 3.2.3 and 3.3.0.
         if RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION < '3.2.3'
-          raise "Sorry, allocation profiling is not supported in #{RUBY_VERSION}. Please use 3.1.x, 3.2.3 or 3.3.0+"
+          Datadog.logger.warn(
+            'Allocation profiling is not supported in Ruby versions 3.2.0, 3.2.1 and 3.2.2 and will be forcibly '\
+            'disabled. This is due to a VM bug that can lead to crashes (https://bugs.ruby-lang.org/issues/19482). '\
+            'Other Ruby versions do not suffer from this issue.'
+          )
+          return false
         end
 
         # SEVERE - Only with Ractors
@@ -160,16 +165,17 @@ module Datadog
             (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION < '3.2.3')
           Datadog.logger.warn(
             "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling allocation profiling while using "\
-            'Ractors may cause unexpected issues, including crashes. This does not happen if Ractors are not used.'
+            'Ractors may cause unexpected issues, including crashes (https://bugs.ruby-lang.org/issues/18464). '\
+            'This does not happen if Ractors are not used.'
           )
         # ANNOYANCE - Only with Ractors
         # On all known versions of Ruby 3.x, due to https://bugs.ruby-lang.org/issues/19112, when a ractor gets
         # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
         elsif RUBY_VERSION.start_with?('3.')
           Datadog.logger.warn(
-            'In all known versions of Ruby 3.x, using Ractors may result in allocation profiling unexpectedly stopping. '\
-            'Note that this stop has no impact in your application stability or performance. This does not happen if ' \
-            'Ractors are not used.'
+            'In all known versions of Ruby 3.x, using Ractors may result in allocation profiling unexpectedly ' \
+            'stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your ' \
+            'application stability or performance. This does not happen if Ractors are not used.'
           )
         end
 

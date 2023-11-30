@@ -337,15 +337,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
 
     describe 'heap samples' do
-      let(:metric_values1) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => 10 } }
-      let(:metric_values2) { { 'cpu-time' => 102, 'cpu-samples' => 2, 'wall-time' => 790, 'alloc-samples' => 11 } }
-      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
       let(:sample_rate) { 50 }
+      let(:metric_values1) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => sample_rate } }
+      let(:metric_values2) { { 'cpu-time' => 102, 'cpu-samples' => 2, 'wall-time' => 790, 'alloc-samples' => sample_rate } }
+      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
       let(:a_string) { 'a beautiful string' }
       let(:another_string) { 'a fearsome string' }
-      let(:an_array) { [1..10] }
-      let(:another_array) { [-10..-1] }
+      let(:an_array) { (1..10).to_a }
+      let(:another_array) { (-10..-1).to_a }
       let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true } }
       let(:another_hash) { { 'z' => -1, 'y' => '-2', 'x' => false } }
 
@@ -362,7 +362,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       before do
         allocated_objects.each_with_index do |obj, i|
           # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
-          described_class::Testing._native_track_obj_allocation(stack_recorder, obj, sample_rate)
+          described_class::Testing._native_track_object(stack_recorder, obj, sample_rate)
           # ...and then pass data about the allocation stacktrace (with 2 distinct stacktraces)
           if i.even?
             Datadog::Profiling::Collectors::Stack::Testing
@@ -391,15 +391,30 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       context 'when enabled' do
         let(:heap_samples_enabled) { true }
 
+        let(:heap_samples) do
+          samples.select { |s| s.values[:'heap-live-samples'] > 0 }
+        end
+
+        let(:non_heap_samples) do
+          samples.select { |s| s.values[:'heap-live-samples'] == 0 }
+        end
+
         it 'are included in the profile' do
           pending 'heap_recorder implementation is currently missing'
-          # We sample from 2 distinct locations but heap samples don't have the same
-          # labels as the others so they get duped.
-          expect(samples.size).to eq(4)
 
-          expect(samples.sum { |s| s.values[:'heap-live-samples'] || 0 }).to eq(
+          # We sample from 2 distinct locations
+          expect(heap_samples.size).to eq(2)
+
+          expect(heap_samples.sum { |s| s.values[:'heap-live-samples'] || 0 }).to eq(
             [a_string, an_array, a_hash].size * sample_rate
           )
+        end
+
+        it 'do not corrupt/overwrite non-heap-samples' do
+          expect(non_heap_samples.size).to eq(2)
+
+          expect(non_heap_samples.sum { |s| s.values[:'cpu-time'] }).to be > 0
+          expect(non_heap_samples.sum { |s| s.values[:'alloc-samples'] }).to eq(allocated_objects.size * sample_rate)
         end
       end
     end

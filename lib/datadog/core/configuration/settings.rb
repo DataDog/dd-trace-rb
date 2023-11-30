@@ -333,7 +333,7 @@ module Datadog
             #       in summary, this should be supported on Ruby 2.x, 3.1.4+, 3.2.3+ and 3.3.0+. Enabling it on
             #       unsupported Rubies may result in unexpected behaviour, including crashes.
             #
-            # @note Heap profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
+            # @note Allocation profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
             #
             # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_allocation_enabled do |o|
@@ -360,8 +360,6 @@ module Datadog
             #
             # The lower the value, the more accuracy in allocation and heap tracking but the bigger the overhead. In
             # particular, a value of 1 will sample ALL allocations.
-            #
-            # This feature is not supported in all Rubies. Refer to {Datadog::Profiling::Ext::IS_ALLOC_SAMPLING_SUPPORTED}
             #
             # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE` environment variable, otherwise `50`.
             option :experimental_allocation_sample_rate do |o|

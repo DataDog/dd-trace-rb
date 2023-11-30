@@ -497,6 +497,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#allocation_counting_enabled=' do
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
+
+          settings.profiling.advanced.allocation_counting_enabled = false
+        end
+      end
+
       describe '#experimental_allocation_enabled' do
         subject(:experimental_allocation_enabled) { settings.profiling.advanced.experimental_allocation_enabled }
 

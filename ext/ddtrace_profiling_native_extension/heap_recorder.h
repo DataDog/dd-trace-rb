@@ -9,6 +9,9 @@
 // not yet observed are deemed as alive and can be iterated on to produce a
 // live heap profile.
 //
+// NOTE: All public APIs of heap_recorder support receiving a NULL heap_recorder
+//       in which case the behaviour will be a noop.
+//
 // WARN: Unless otherwise stated the heap recorder APIs assume calls are done
 // under the GVL.
 typedef struct heap_recorder heap_recorder;
@@ -37,6 +40,9 @@ heap_recorder* heap_recorder_new(void);
 
 // Free a previously initialized heap recorder.
 void heap_recorder_free(heap_recorder *heap_recorder);
+
+// Do any cleanup needed after forking.
+void heap_recorder_after_fork(heap_recorder *heap_recorder);
 
 // Start a heap allocation recording on the heap recorder for a new object.
 //
@@ -88,7 +94,8 @@ void heap_recorder_flush(heap_recorder *heap_recorder);
 //   A callback function that shall be called for each live object being tracked
 //   by the heap recorder. Alongside the iteration_data for each live object,
 //   a second argument will be forwarded with the contents of the optional
-//   for_each_callback_extra_arg.
+//   for_each_callback_extra_arg. Iteration will continue until the callback
+//   returns false or we run out of objects.
 // @param for_each_callback_extra_arg
 //   Optional (NULL if empty) extra data that should be passed to the
 //   callback function alongside the data for each live tracked object.
@@ -96,6 +103,6 @@ void heap_recorder_flush(heap_recorder *heap_recorder);
 //   True if we're calling this while holding the GVL, false otherwise.
 void heap_recorder_for_each_live_object(
     heap_recorder *heap_recorder,
-    void (*for_each_callback)(heap_recorder_iteration_data data, void* extra_arg),
+    bool (*for_each_callback)(heap_recorder_iteration_data data, void* extra_arg),
     void *for_each_callback_extra_arg,
     bool with_gvl);

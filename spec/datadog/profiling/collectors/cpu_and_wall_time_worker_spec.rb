@@ -12,7 +12,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   let(:allocation_sample_every) { 50 }
   let(:allocation_profiling_enabled) { false }
   let(:heap_profiling_enabled) { false }
-  let(:recorder) { build_stack_recorder(true) }
+  let(:recorder) { build_stack_recorder(heap_samples_enabled: true) }
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }
   let(:options) { {} }
@@ -67,7 +67,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       wait_until_running
     end
 
-    @skip_cleanup = false
+    before do
+      @skip_cleanup = false
+    end
+
     after do
       cpu_and_wall_time_worker.stop unless @skip_cleanup
     end
@@ -524,11 +527,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
         cpu_and_wall_time_worker.stop
 
-        total_heap_sampled_for_test_struct = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-          .select { |s| s.locations.first.lineno == allocation_line && s.locations.first.path == __FILE__ }
-          .sum { |s| s.values[:'heap-live-samples'] }
+        relevant_sample = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
+          .find { |s| s.locations.first.lineno == allocation_line && s.locations.first.path == __FILE__ }
 
-        expect(total_heap_sampled_for_test_struct).to eq test_num_allocated_object
+        expect(relevant_sample.values[':heap-live-samples']).to eq test_num_allocated_object
       end
 
       context 'but allocation profiling is disabled' do
@@ -807,17 +809,21 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       it { is_expected.to be nil }
     end
 
-    context 'when allocation profiling is enabled' do
-      let(:allocation_profiling_enabled) { true }
+    context 'when CpuAndWallTimeWorker has been started' do
+      before do
+        cpu_and_wall_time_worker.start
+        wait_until_running
+      end
 
-      context 'when CpuAndWallTimeWorker has been started' do
-        before do
-          cpu_and_wall_time_worker.start
-          wait_until_running
-        end
+      after do
+        cpu_and_wall_time_worker.stop
+      end
 
-        after do
-          cpu_and_wall_time_worker.stop
+      context 'when allocation profiling is enabled' do
+        let(:allocation_profiling_enabled) { true }
+
+        it 'always returns a >= 0 value' do
+          expect(described_class._native_allocation_count).to be >= 0
         end
 
         it 'returns the number of allocations between two calls of the method' do
@@ -870,19 +876,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
       context 'when allocation profiling is disabled' do
         let(:allocation_profiling_enabled) { false }
+        it 'always returns a nil value' do
+          100.times { Object.new }
 
-        it 'still returns nil after a bunch of allocations' do
-          # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
-          # it needs to
-          new_object = proc { Object.new }
-          1.times(&new_object)
-
-          before_allocations = described_class._native_allocation_count
-          100.times(&new_object)
-          after_allocations = described_class._native_allocation_count
-
-          expect(before_allocations).to be nil
-          expect(after_allocations).to be nil
+          expect(described_class._native_allocation_count).to be nil
         end
       end
     end

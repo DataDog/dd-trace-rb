@@ -221,7 +221,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
 static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec start_time);
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
 static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */);
-static VALUE _native_track_obj_allocation(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight);
+static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight);
 static VALUE _native_record_obj_free(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE obj);
 
 
@@ -247,7 +247,7 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_slot_one_mutex_locked?", _native_is_slot_one_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_record_endpoint", _native_record_endpoint, 3);
-  rb_define_singleton_method(testing_module, "_native_track_obj_allocation", _native_track_obj_allocation, 3);
+  rb_define_singleton_method(testing_module, "_native_track_object", _native_track_object, 3);
   rb_define_singleton_method(testing_module, "_native_record_obj_free", _native_record_obj_free, 2);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
@@ -283,6 +283,10 @@ static VALUE _native_new(VALUE klass) {
 
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 
+  // NOTE: We initialize this because we want a new recorder to be operational even without initialization and our
+  //       default is everything enabled. However, if during recording initialization it turns out we don't want
+  //       heap samples, we will free and reset heap_recorder to NULL, effectively disabling all behaviour specific
+  //       to heap profiling (all calls to heap_recorder_* with a NULL heap recorder are noops).
   state->heap_recorder = heap_recorder_new();
 
   // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
@@ -415,15 +419,9 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // Need to do this while still holding on to the Global VM Lock; see comments on method for why
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
-  if (state->heap_recorder != NULL) {
-    // Flush any pending data in the heap recorder prior to doing the iteration during serialization.
-    // This needs to happen while holding on to the GVL
-    // TODO: Can this deadlock with the sampler thread due to GVL or Ruby specific things?
-    // 1. Sampler is in the middle of recording a heap allocation.
-    // 2. Recorder gets scheduled and tries to acquire the lock, waiting if needed.
-    // 3. Are we guaranteed that the sampler can make progress?
-    heap_recorder_flush(state->heap_recorder);
-  }
+  // Flush any pending data in the heap recorder prior to doing the iteration during serialization.
+  // This needs to happen while holding on to the GVL
+  heap_recorder_flush(state->heap_recorder);
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
@@ -486,9 +484,8 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   metric_values[position_for[WALL_TIME_VALUE_ID]]     = values.wall_time_ns;
   metric_values[position_for[ALLOC_SAMPLES_VALUE_ID]] = values.alloc_samples;
 
-  if (values.alloc_samples != 0 && state->heap_recorder != NULL) {
-    // If we got an allocation sample and our heap recorder is initialized,
-    // end the heap allocation recording to commit the heap sample.
+  if (values.alloc_samples != 0) {
+    // If we got an allocation sample end the heap allocation recording to commit the heap sample.
     // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
     //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
     //        be fixed with some refactoring but for now this leads to a less impactful change.
@@ -515,10 +512,6 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
 void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
-  if (state->heap_recorder == NULL) {
-    // we aren't gathering heap data so we can ignore this
-    return;
-  }
   // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
   //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
   //        be fixed with some refactoring but for now this leads to a less impactful change.
@@ -529,10 +522,6 @@ void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample
 void record_obj_free(VALUE recorder_instance, VALUE freed_object) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
-  if (state->heap_recorder == NULL) {
-    // we aren't gathering heap data so we can ignore this
-    return;
-  }
   record_heap_free(state->heap_recorder, freed_object);
 }
 
@@ -551,14 +540,18 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
   }
 }
 
+#define MAX_LEN_HEAP_ITERATION_ERROR_MSG 256
+
 // Heap recorder iteration context allows us access to stack recorder state and profile being serialized
 // during iteration of heap recorder live objects.
 typedef struct heap_recorder_iteration_context {
   struct stack_recorder_state *state;
   ddog_prof_Profile *profile;
+  bool error;
+  char errorMsg[MAX_LEN_HEAP_ITERATION_ERROR_MSG];
 } heap_recorder_iteration_context;
 
-static void add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteration_data iteration_data, void *extra_arg) {
+static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteration_data iteration_data, void *extra_arg) {
   heap_recorder_iteration_context *context = (heap_recorder_iteration_context*) extra_arg;
 
   int64_t metric_values[ALL_VALUE_TYPES_COUNT] = {0};
@@ -577,16 +570,32 @@ static void add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   );
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    grab_gvl_and_raise_ddogerr_and_drop("recording heap sample", &result.err);
+    read_ddogerr_string_and_drop(&result.err, context->errorMsg, MAX_LEN_HEAP_ITERATION_ERROR_MSG);
+    context->error = true;
+    // By returning false we cancel the iteration
+    return false;
   }
+
+  // Keep on iterating to next item!
+  return true;
 }
 
 static void build_heap_profile_without_gvl(struct stack_recorder_state *state, ddog_prof_Profile *profile) {
   heap_recorder_iteration_context iteration_context = {
     .state = state,
-    .profile = profile
+    .profile = profile,
+    .error = false,
+    .errorMsg = {0},
   };
   heap_recorder_for_each_live_object(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context, false);
+  if (iteration_context.error) {
+    // We wait until we're out of the iteration to grab the gvl and raise. This is important because during
+    // iteration we first grab the records_mutex and raising requires grabbing the GVL. When sampling, we are
+    // in the opposite situation: we have the GVL and may need to grab the records_mutex for mutation. This
+    // different ordering can lead to deadlocks. By delaying the raise here until after we no longer hold
+    // records_mutex, we prevent this different-lock-acquisition-order situation.
+    grab_gvl_and_raise(rb_eRuntimeError, "Failure during heap profile building: %s", iteration_context.errorMsg);
+  }
 }
 
 static void *call_serialize_without_gvl(void *call_args) {
@@ -594,11 +603,9 @@ static void *call_serialize_without_gvl(void *call_args) {
 
   args->profile = serializer_flip_active_and_inactive_slots(args->state);
 
-  if (args->state->heap_recorder != NULL) {
-    // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
-    // without needing to race with the active sampler
-    build_heap_profile_without_gvl(args->state, args->profile);
-  }
+  // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
+  // without needing to race with the active sampler
+  build_heap_profile_without_gvl(args->state, args->profile);
 
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
@@ -721,8 +728,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
   reset_profile(&state->slot_one_profile, /* start_time: */ NULL);
   reset_profile(&state->slot_two_profile, /* start_time: */ NULL);
 
-  // After a fork, all tracked live objects should still be alive in the child process so we purposefully DON'T
-  // reset the heap recorder. The live heap it is tracking is still alive after all.
+  heap_recorder_after_fork(state->heap_recorder);
 
   return Qtrue;
 }
@@ -741,7 +747,7 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
   return Qtrue;
 }
 
-static VALUE _native_track_obj_allocation(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight) {
+static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight) {
   ENFORCE_TYPE(weight, T_FIXNUM);
   track_object(recorder_instance, new_obj, NUM2UINT(weight));
   return Qtrue;

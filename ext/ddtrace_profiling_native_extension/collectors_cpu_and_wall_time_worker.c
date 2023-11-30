@@ -936,7 +936,7 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
 
   // TODO: This is a placeholder sampling decision strategy. We plan to replace it with a better one soon (e.g. before
   // beta), and having something here allows us to test the rest of feature, sampling decision aside.
-  if (((allocation_count % state->allocation_sample_every) == 0)) {
+  if (allocation_count % state->allocation_sample_every == 0) {
     // Rescue against any exceptions that happen during sampling
     safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
   }
