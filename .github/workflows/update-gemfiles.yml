@@ -54,6 +54,8 @@ jobs:
               # Files that control gemfile generation
               - tasks/appraisal.rake
               - .github/workflows/update-gemfiles.yml
+              # The gem version is present in all lock files
+              - lib/ddtrace/version.rb
               # In case the generated files were updated manually or in a merge commit
               - appraisal/**
               - gemfiles/**

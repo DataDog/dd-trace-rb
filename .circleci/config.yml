@@ -450,26 +450,6 @@ orbs:
 
 job_configuration:
   # MRI
-  - &config-2_1
-    <<: *filters_all_branches_and_tags
-    ruby_version: 'ruby-2.1.10'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:2.1.10-dd
-    resource_class_to_use: medium+
-  - &config-2_2
-    <<: *filters_all_branches_and_tags
-    ruby_version: 'ruby-2.2.10'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:2.2.10-dd
-    resource_class_to_use: medium+
-  - &config-2_3
-    <<: *filters_all_branches_and_tags
-    ruby_version: 'ruby-2.3.8'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:2.3.8-dd
-    resource_class_to_use: medium+
-  - &config-2_4
-    <<: *filters_all_branches_and_tags
-    ruby_version: 'ruby-2.4.10'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:2.4.10-dd
-    resource_class_to_use: medium+
   - &config-2_5
     <<: *filters_all_branches_and_tags
     ruby_version: 'ruby-2.5.9'
@@ -533,10 +513,6 @@ workflows:
           <<: *config-2_7-small
           name: coverage
           requires:
-            - test-2.1
-            - test-2.2
-            - test-2.3
-            - test-2.4
             - test-2.5
             - test-2.6
             - test-2.7
@@ -556,26 +532,6 @@ workflows:
             branches:
               only: /bump_to_version_.*/
       # Integration
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.1
-          integration_apps: 'rack'
-          ruby_version: '2.1'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.2
-          integration_apps: 'rack'
-          ruby_version: '2.2'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.3
-          integration_apps: 'rack'
-          ruby_version: '2.3'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.4
-          integration_apps: 'rack'
-          ruby_version: '2.4'
-          <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:
           name: build_and_test_integration-2.5
           integration_apps: 'rack rails-five rails-six'
@@ -614,38 +570,6 @@ workflows:
       # ⬆️ **Note**: If add/remove test apps above, remember to also copy-paste the changes to the "edge" workflow further down the file.
       #
       # ADD NEW RUBIES HERE
-      - orb/build:
-          <<: *config-2_1
-          name: build-2.1
-      - orb/test:
-          <<: *config-2_1
-          name: test-2.1
-          requires:
-            - build-2.1
-      - orb/build:
-          <<: *config-2_2
-          name: build-2.2
-      - orb/test:
-          <<: *config-2_2
-          name: test-2.2
-          requires:
-            - build-2.2
-      - orb/build:
-          <<: *config-2_3
-          name: build-2.3
-      - orb/test:
-          <<: *config-2_3
-          name: test-2.3
-          requires:
-            - build-2.3
-      - orb/build:
-          <<: *config-2_4
-          name: build-2.4
-      - orb/test:
-          <<: *config-2_4
-          name: test-2.4
-          requires:
-            - build-2.4
       - orb/build:
           <<: *config-2_5
           name: build-2.5
@@ -733,26 +657,6 @@ workflows:
     jobs:
       # Integration
       - orb/build_and_test_integration:
-          name: build_and_test_integration-2.1
-          integration_apps: 'rack'
-          ruby_version: '2.1'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.2
-          integration_apps: 'rack'
-          ruby_version: '2.2'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.3
-          integration_apps: 'rack rails-five'
-          ruby_version: '2.3'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.4
-          integration_apps: 'rack rails-five'
-          ruby_version: '2.4'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
           name: build_and_test_integration-2.5
           integration_apps: 'rack rails-five rails-six'
           ruby_version: '2.5'
@@ -788,42 +692,6 @@ workflows:
           ruby_version: '3.3'
           <<: *filters_all_branches_and_tags
       # ADD NEW RUBIES HERE
-      - orb/build:
-          <<: *config-2_1
-          name: build-2.1
-          edge: true
-      - orb/test:
-          <<: *config-2_1
-          name: test-2.1
-          requires:
-            - build-2.1
-      - orb/build:
-          <<: *config-2_2
-          name: build-2.2
-          edge: true
-      - orb/test:
-          <<: *config-2_2
-          name: test-2.2
-          requires:
-            - build-2.2
-      - orb/build:
-          <<: *config-2_3
-          name: build-2.3
-          edge: true
-      - orb/test:
-          <<: *config-2_3
-          name: test-2.3
-          requires:
-            - build-2.3
-      - orb/build:
-          <<: *config-2_4
-          name: build-2.4
-          edge: true
-      - orb/test:
-          <<: *config-2_4
-          name: test-2.4
-          requires:
-            - build-2.4
       - orb/build:
           <<: *config-2_5
           name: build-2.5
