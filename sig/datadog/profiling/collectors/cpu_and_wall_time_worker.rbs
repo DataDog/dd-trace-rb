@@ -15,7 +15,6 @@ module Datadog
           ?dynamic_sampling_rate_enabled: bool,
           allocation_sample_every: Integer,
           allocation_profiling_enabled: bool,
-          heap_profiling_enabled: bool,
         ) -> void
 
         def self._native_initialize: (
@@ -27,7 +26,6 @@ module Datadog
           bool dynamic_sampling_rate_enabled,
           ::Integer allocation_sample_every,
           bool allocation_profiling_enabled,
-          bool heap_profiling_enabled,
         ) -> true
 
         def start: (?on_failure_proc: ::Proc?) -> bool?
