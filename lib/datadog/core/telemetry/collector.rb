@@ -123,7 +123,6 @@ module Datadog
           'tracing.log_injection',
           'tracing.partial_flush.enabled',
           'tracing.partial_flush.min_spans_threshold',
-          'tracing.priority_sampling',
           'tracing.report_hostname',
           'tracing.sampling.default_rate',
           'tracing.sampling.rate_limit'

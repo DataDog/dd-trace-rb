@@ -572,74 +572,18 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context 'with :priority_sampling' do
+      context 'with :sampler' do
         before do
           allow(settings.tracing)
-            .to receive(:priority_sampling)
-            .and_return(priority_sampling)
+            .to receive(:sampler)
+            .and_return(sampler)
         end
 
-        context 'enabled' do
-          let(:priority_sampling) { true }
+        let(:sampler) { double('sampler') }
 
-          it_behaves_like 'new tracer'
-
-          context 'with :sampler' do
-            before do
-              allow(settings.tracing)
-                .to receive(:sampler)
-                .and_return(sampler)
-            end
-
-            context 'that is a priority sampler' do
-              let(:sampler) { Datadog::Tracing::Sampling::PrioritySampler.new }
-
-              it_behaves_like 'new tracer' do
-                let(:options) { { sampler: sampler } }
-                it_behaves_like 'event publishing writer and priority sampler'
-              end
-            end
-
-            context 'that is not a priority sampler' do
-              let(:sampler) { double('sampler') }
-
-              context 'wraps sampler in a priority sampler' do
-                it_behaves_like 'new tracer' do
-                  let(:options) do
-                    { sampler: be_a(Datadog::Tracing::Sampling::PrioritySampler) & have_attributes(
-                      pre_sampler: sampler,
-                      priority_sampler: be_a(Datadog::Tracing::Sampling::RuleSampler)
-                    ) }
-                  end
-
-                  it_behaves_like 'event publishing writer and priority sampler'
-                end
-              end
-            end
-          end
-        end
-
-        context 'disabled' do
-          let(:priority_sampling) { false }
-
-          it_behaves_like 'new tracer' do
-            let(:options) { { sampler: be_a(Datadog::Tracing::Sampling::RuleSampler) } }
-          end
-
-          context 'with :sampler' do
-            before do
-              allow(settings.tracing)
-                .to receive(:sampler)
-                .and_return(sampler)
-            end
-
-            let(:sampler) { double('sampler') }
-
-            it_behaves_like 'new tracer' do
-              let(:options) { { sampler: sampler } }
-              it_behaves_like 'event publishing writer and priority sampler'
-            end
-          end
+        it_behaves_like 'new tracer' do
+          let(:options) { { sampler: sampler } }
+          it_behaves_like 'event publishing writer and priority sampler'
         end
       end
 

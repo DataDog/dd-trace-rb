@@ -227,12 +227,6 @@ module Datadog
                 option :min_spans_threshold, default: 500, type: :int
               end
 
-              # Enables {https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/#datadog-intelligent-retention-filter
-              # Datadog intelligent retention filter}.
-              # @default `true`
-              # @return [Boolean,nil]
-              option :priority_sampling
-
               option :report_hostname do |o|
                 o.env Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME
                 o.default false
