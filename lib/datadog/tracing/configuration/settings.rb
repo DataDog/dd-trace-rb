@@ -42,14 +42,14 @@ module Datadog
               #
               # @public_api
               settings :distributed_tracing do
-                # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
+                # An ordered, case-insensitive list of what data propagation styles the tracer will use to extract distributed tracing propagation
                 # data from incoming requests and messages.
                 #
                 # The tracer will try to find distributed headers in the order they are present in the list provided to this option.
                 # The first format to have valid data present will be used.
                 #
                 # @default `DD_TRACE_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
-                #   otherwise `['Datadog','b3multi','b3']`.
+                #   otherwise `['datadog','b3multi','b3']`.
                 # @return [Array<String>]
                 option :propagation_extract_style do |o|
                   o.type :array
@@ -60,14 +60,18 @@ module Datadog
                       Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
                     ]
                   )
+                  o.after_set do |styles|
+                    # Make values case-insensitive
+                    styles.map!(&:downcase)
+                  end
                 end
 
-                # The data propagation styles the tracer will use to inject distributed tracing propagation
+                # The case-insensitive list of the data propagation styles the tracer will use to inject distributed tracing propagation
                 # data into outgoing requests and messages.
                 #
                 # The tracer will inject data from all styles specified in this option.
                 #
-                # @default `DD_TRACE_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
+                # @default `DD_TRACE_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['datadog','tracecontext']`.
                 # @return [Array<String>]
                 option :propagation_inject_style do |o|
                   o.type :array
@@ -76,9 +80,13 @@ module Datadog
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
                   ]
+                  o.after_set do |styles|
+                    # Make values case-insensitive
+                    styles.map!(&:downcase)
+                  end
                 end
 
-                # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
+                # An ordered, case-insensitive list of what data propagation styles the tracer will use to extract distributed tracing propagation
                 # data from incoming requests and inject into outgoing requests.
                 #
                 # This configuration is the equivalent of configuring both {propagation_extract_style}
@@ -92,6 +100,9 @@ module Datadog
                   o.default []
                   o.after_set do |styles|
                     next if styles.empty?
+
+                    # Make values case-insensitive
+                    styles.map!(&:downcase)
 
                     set_option(:propagation_extract_style, styles)
                     set_option(:propagation_inject_style, styles)

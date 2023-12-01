@@ -7,7 +7,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
 
   let(:propagation_styles) do
     {
-      'Datadog' => Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class),
+      'datadog' => Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class),
       'tracecontext' => Datadog::Tracing::Distributed::TraceContext.new(fetcher: fetcher_class),
     }
   end

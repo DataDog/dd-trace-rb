@@ -54,7 +54,7 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
 
   context 'for Datadog' do
     it_behaves_like 'Datadog distributed format' do
-      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['Datadog'] } }
+      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['datadog'] } }
       let(:datadog) { propagation }
     end
   end
