@@ -25,6 +25,11 @@ module Datadog
               o.default false
             end
 
+            option :error_handler do |o|
+              o.type :proc
+              o.default_proc(&Tracing::SpanOperation::Events::DEFAULT_ON_ERROR)
+            end
+
             option :analytics_sample_rate do |o|
               o.type :float
               o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
