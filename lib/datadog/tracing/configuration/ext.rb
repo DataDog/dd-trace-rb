@@ -46,12 +46,8 @@ module Datadog
           ENV_PROPAGATION_STYLE = 'DD_TRACE_PROPAGATION_STYLE'
 
           ENV_PROPAGATION_STYLE_INJECT = 'DD_TRACE_PROPAGATION_STYLE_INJECT'
-          # @deprecated Use `DD_TRACE_PROPAGATION_STYLE_INJECT` instead.
-          ENV_PROPAGATION_STYLE_INJECT_OLD = 'DD_PROPAGATION_STYLE_INJECT'
 
           ENV_PROPAGATION_STYLE_EXTRACT = 'DD_TRACE_PROPAGATION_STYLE_EXTRACT'
-          # @deprecated Use `DD_TRACE_PROPAGATION_STYLE_EXTRACT` instead.
-          ENV_PROPAGATION_STYLE_EXTRACT_OLD = 'DD_PROPAGATION_STYLE_EXTRACT'
 
           # A no-op propagator. Compatible with OpenTelemetry's `none` propagator.
           # @see https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#get_otel__propagators
