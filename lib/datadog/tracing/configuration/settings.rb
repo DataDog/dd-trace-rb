@@ -53,10 +53,7 @@ module Datadog
                 # @return [Array<String>]
                 option :propagation_extract_style do |o|
                   o.type :array
-                  o.deprecated_env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT_OLD
                   o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT
-                  # DEV-2.0: Change default value to `tracecontext, Datadog`.
-                  # Look for all headers by default
                   o.default(
                     [
                       Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
@@ -76,9 +73,7 @@ module Datadog
                 # @return [Array<String>]
                 option :propagation_inject_style do |o|
                   o.type :array
-                  o.deprecated_env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD
                   o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT
-                  # DEV-2.0: Change default value to `tracecontext, Datadog`.
                   o.default [
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
