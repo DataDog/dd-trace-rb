@@ -549,7 +549,6 @@ target :ddtrace do
   ignore 'lib/datadog/tracing/distributed/datadog.rb'
   ignore 'lib/datadog/tracing/distributed/datadog_tags_codec.rb'
   ignore 'lib/datadog/tracing/distributed/fetcher.rb'
-  ignore 'lib/datadog/tracing/distributed/headers/ext.rb'
   ignore 'lib/datadog/tracing/distributed/helpers.rb'
   ignore 'lib/datadog/tracing/distributed/none.rb'
   ignore 'lib/datadog/tracing/distributed/propagation.rb'
