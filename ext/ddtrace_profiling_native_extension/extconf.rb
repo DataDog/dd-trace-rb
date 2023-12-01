@@ -264,9 +264,9 @@ else
 
         if headers_available
           # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
-          # This is added as late as possible because in some Rubies we support (e.g. 3.3), adding this flag before checking if
-          # internal VM headers are available causes those checks to fail because of this warning (and not because the headers
-          # are not available.)
+          # This is added as late as possible because in some Rubies we support (e.g. 3.3), adding this flag before
+          # checking if internal VM headers are available causes those checks to fail because of this warning (and not
+          # because the headers are not available.)
           add_compiler_flag '-Wunused-parameter'
         end
 
