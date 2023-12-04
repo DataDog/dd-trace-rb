@@ -36,13 +36,14 @@ static VALUE _native_sample(
   VALUE in_gc
 );
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
-static void record_placeholder_stack_in_native_code(
+static void record_placeholder_stack(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
   sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
+  int extra_frames_in_record_buffer,
+  ddog_prof_Function placeholder_stack
 );
 static void sample_thread_internal(
   VALUE thread,
@@ -218,13 +219,14 @@ static void sample_thread_internal(
   );
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
-    record_placeholder_stack_in_native_code(
+    record_placeholder_stack(
       buffer,
       recorder_instance,
       values,
       labels,
       record_buffer,
-      extra_frames_in_record_buffer
+      extra_frames_in_record_buffer,
+      (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("In native code")}
     );
     return;
   }
@@ -379,20 +381,16 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 //
 // To give customers visibility into these threads, rather than reporting an empty stack, we replace the empty stack
 // with one containing a placeholder frame, so that these threads are properly represented in the UX.
-static void record_placeholder_stack_in_native_code(
+static void record_placeholder_stack(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
   sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
+  int extra_frames_in_record_buffer,
+  ddog_prof_Function placeholder_stack
 ) {
-  ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
-  ddog_CharSlice function_filename = DDOG_CHARSLICE_C("In native code");
-  buffer->locations[0] = (ddog_prof_Location) {
-    .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
-    .line = 0
-  };
+  buffer->locations[0] = (ddog_prof_Location) {.function = placeholder_stack, .line = 0};
 
   record_sample(
     recorder_instance,
