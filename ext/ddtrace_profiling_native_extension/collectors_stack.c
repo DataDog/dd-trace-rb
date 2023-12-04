@@ -145,34 +145,26 @@ void sample_thread(
   sample_labels labels,
   sample_type type
 ) {
+  sampling_buffer *record_buffer = buffer;
+  int extra_frames_in_record_buffer = 0;
+
   // Samples thread into recorder
   if (type == SAMPLE_REGULAR) {
-    sampling_buffer *record_buffer = buffer;
-    int extra_frames_in_record_buffer = 0;
     sample_thread_internal(thread, buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
     return;
   }
 
   // Samples thread into recorder, including as a top frame in the stack a frame named "Garbage Collection"
   if (type == SAMPLE_IN_GC) {
-    ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
-    ddog_CharSlice function_filename = DDOG_CHARSLICE_C("Garbage Collection");
-    buffer->locations[0] = (ddog_prof_Location) {
-      .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
-      .line = 0
-    };
-    // To avoid changing sample_thread_internal, we just prepare a new buffer struct that uses the same underlying storage as the
-    // original buffer, but has capacity one less, so that we can keep the above Garbage Collection frame untouched.
-    sampling_buffer thread_in_gc_buffer = (struct sampling_buffer) {
-      .max_frames = buffer->max_frames - 1,
-      .stack_buffer = buffer->stack_buffer + 1,
-      .lines_buffer = buffer->lines_buffer + 1,
-      .is_ruby_frame = buffer->is_ruby_frame + 1,
-      .locations = buffer->locations + 1,
-    };
-    sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
-    int extra_frames_in_record_buffer = 1;
-    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
+    record_placeholder_stack(
+      buffer,
+      recorder_instance,
+      values,
+      labels,
+      record_buffer,
+      extra_frames_in_record_buffer,
+      (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("Garbage Collection")}
+    );
     return;
   }
 
