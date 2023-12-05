@@ -65,6 +65,17 @@ RSpec.describe 'PG::Connection patcher' do
           end
         end
 
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            result = exec
+
+            expect(result.values).to eq([['1']])
+            expect(spans).to be_empty
+          end
+        end
+
         context 'when the tracer is configured directly' do
           let(:service_name) { 'pg-override' }
 
@@ -174,6 +185,16 @@ RSpec.describe 'PG::Connection patcher' do
           before { tracer.enabled = false }
 
           it 'does not write spans' do
+            exec
+
+            expect(spans).to be_empty
+          end
+        end
+
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
             exec
 
             expect(spans).to be_empty
@@ -295,6 +316,17 @@ RSpec.describe 'PG::Connection patcher' do
           end
         end
 
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            result = exec_params
+
+            expect(result.values).to eq([['1']])
+            expect(spans).to be_empty
+          end
+        end
+
         context 'when the tracer is configured directly' do
           let(:service_name) { 'pg-override' }
 
@@ -406,6 +438,16 @@ RSpec.describe 'PG::Connection patcher' do
           before { tracer.enabled = false }
 
           it 'does not write spans' do
+            exec_params
+
+            expect(spans).to be_empty
+          end
+        end
+
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
             exec_params
 
             expect(spans).to be_empty
@@ -532,6 +574,17 @@ RSpec.describe 'PG::Connection patcher' do
           end
         end
 
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            result = exec_prepared
+
+            expect(result.values).to eq([['1']])
+            expect(spans).to be_empty
+          end
+        end
+
         context 'when the tracer is configured directly' do
           let(:service_override) { 'pg-override' }
 
@@ -637,6 +690,16 @@ RSpec.describe 'PG::Connection patcher' do
 
           it 'does not write spans' do
             exec_prepared
+            expect(spans).to be_empty
+          end
+        end
+
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            exec_prepared
+
             expect(spans).to be_empty
           end
         end
@@ -755,6 +818,17 @@ RSpec.describe 'PG::Connection patcher' do
           end
         end
 
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            result = async_exec
+
+            expect(result.values).to eq([['1']])
+            expect(spans).to be_empty
+          end
+        end
+
         context 'when the tracer is configured directly' do
           let(:service_name) { 'pg-override' }
 
@@ -865,6 +939,16 @@ RSpec.describe 'PG::Connection patcher' do
           before { tracer.enabled = false }
 
           it 'does not write spans' do
+            async_exec
+
+            expect(spans).to be_empty
+          end
+        end
+
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
             async_exec
 
             expect(spans).to be_empty
@@ -995,6 +1079,17 @@ RSpec.describe 'PG::Connection patcher' do
           end
         end
 
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            result = async_exec_params
+
+            expect(result.values).to eq([['1']])
+            expect(spans).to be_empty
+          end
+        end
+
         context 'when the tracer is configured directly' do
           let(:service_name) { 'pg-override' }
 
@@ -1111,6 +1206,16 @@ RSpec.describe 'PG::Connection patcher' do
           end
         end
 
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            async_exec_params
+
+            expect(spans).to be_empty
+          end
+        end
+
         context 'when the tracer is configured directly' do
           let(:service_name) { 'pg-override' }
 
@@ -1221,11 +1326,23 @@ RSpec.describe 'PG::Connection patcher' do
 
       context 'when without given block' do
         subject(:async_exec_prepared) { conn.async_exec_prepared('prepared select 1', [1]) }
+
         context 'when the tracer is disabled' do
           before { tracer.enabled = false }
 
           it 'does not write spans' do
             async_exec_prepared
+            expect(spans).to be_empty
+          end
+        end
+
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            result = async_exec_prepared
+
+            expect(result.values).to eq([['1']])
             expect(spans).to be_empty
           end
         end
@@ -1335,6 +1452,17 @@ RSpec.describe 'PG::Connection patcher' do
 
           it 'does not write spans' do
             async_exec_prepared
+
+            expect(spans).to be_empty
+          end
+        end
+
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            async_exec_prepared
+
             expect(spans).to be_empty
           end
         end
@@ -1459,6 +1587,17 @@ RSpec.describe 'PG::Connection patcher' do
           end
         end
 
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            result = sync_exec
+
+            expect(result.values).to eq([['1']])
+            expect(spans).to be_empty
+          end
+        end
+
         context 'when the tracer is configured directly' do
           let(:service_name) { 'pg-override' }
 
@@ -1567,6 +1706,16 @@ RSpec.describe 'PG::Connection patcher' do
           before { tracer.enabled = false }
 
           it 'does not write spans' do
+            sync_exec
+
+            expect(spans).to be_empty
+          end
+        end
+
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
             sync_exec
 
             expect(spans).to be_empty
@@ -1690,6 +1839,17 @@ RSpec.describe 'PG::Connection patcher' do
           end
         end
 
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            result = sync_exec_params
+
+            expect(result.values).to eq([['1']])
+            expect(spans).to be_empty
+          end
+        end
+
         context 'when the tracer is configured directly' do
           let(:service_name) { 'pg-override' }
 
@@ -1801,6 +1961,16 @@ RSpec.describe 'PG::Connection patcher' do
 
           it 'does not write spans' do
             sync_exec_params
+            expect(spans).to be_empty
+          end
+        end
+
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            sync_exec_params
+
             expect(spans).to be_empty
           end
         end
@@ -1922,6 +2092,17 @@ RSpec.describe 'PG::Connection patcher' do
           end
         end
 
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            result = sync_exec_prepared
+
+            expect(result.values).to eq([['1']])
+            expect(spans).to be_empty
+          end
+        end
+
         context 'when the tracer is configured directly' do
           let(:service_override) { 'pg-override' }
 
@@ -2026,6 +2207,16 @@ RSpec.describe 'PG::Connection patcher' do
 
           it 'does not write spans' do
             sync_exec_prepared
+            expect(spans).to be_empty
+          end
+        end
+
+        context 'when instrumentation is disabled' do
+          let(:configuration_options) { { enabled: false } }
+
+          it 'does not generate spans' do
+            sync_exec_prepared
+
             expect(spans).to be_empty
           end
         end
