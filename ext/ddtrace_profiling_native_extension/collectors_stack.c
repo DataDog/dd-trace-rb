@@ -36,6 +36,7 @@ static VALUE _native_sample(
   VALUE in_gc
 );
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
+static void record_placeholder_stack_in_native_code(sampling_buffer* buffer, VALUE recorder_instance, sample_values values, sample_labels labels);
 static void record_placeholder_stack(
   sampling_buffer* buffer,
   VALUE recorder_instance,
@@ -190,13 +191,7 @@ static void sample_thread_internal(
   );
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
-    record_placeholder_stack(
-      buffer,
-      recorder_instance,
-      values,
-      labels,
-      (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("In native code")}
-    );
+    record_placeholder_stack_in_native_code(buffer, recorder_instance, values, labels);
     return;
   }
 
@@ -350,6 +345,22 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 //
 // To give customers visibility into these threads, rather than reporting an empty stack, we replace the empty stack
 // with one containing a placeholder frame, so that these threads are properly represented in the UX.
+
+static void record_placeholder_stack_in_native_code(
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  sample_values values,
+  sample_labels labels
+) {
+  record_placeholder_stack(
+    buffer,
+    recorder_instance,
+    values,
+    labels,
+    (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("In native code")}
+  );
+}
+
 static void record_placeholder_stack(
   sampling_buffer* buffer,
   VALUE recorder_instance,
