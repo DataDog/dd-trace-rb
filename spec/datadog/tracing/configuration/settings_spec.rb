@@ -92,6 +92,19 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
                 ]
               )
             end
+
+            context 'with a mixed case value' do
+              let(:var_value) { 'B3Multi,B3' }
+
+              it 'parses in a case-insensitive manner' do
+                is_expected.to eq(
+                  [
+                    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
+                    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                  ]
+                )
+              end
+            end
           end
         end
       end
@@ -114,7 +127,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           end
 
           context 'is defined' do
-            let(:var_value) { 'Datadog,b3' }
+            let(:var_value) { 'datadog,b3' }
 
             it do
               is_expected.to eq(
@@ -123,6 +136,19 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
+            end
+
+            context 'with a mixed case value' do
+              let(:var_value) { 'Datadog,B3' }
+
+              it 'parses in a case-insensitive manner' do
+                is_expected.to eq(
+                  [
+                    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                  ]
+                )
+              end
             end
           end
         end
@@ -148,11 +174,11 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             it { is_expected.to eq [] }
 
             it 'does not change propagation_extract_style' do
-              expect { propagation_style }.to_not change { propagation_extract_style }.from(%w[Datadog tracecontext])
+              expect { propagation_style }.to_not change { propagation_extract_style }.from(%w[datadog tracecontext])
             end
 
             it 'does not change propagation_inject_style' do
-              expect { propagation_style }.to_not change { propagation_inject_style }.from(%w[Datadog tracecontext])
+              expect { propagation_style }.to_not change { propagation_inject_style }.from(%w[datadog tracecontext])
             end
           end
 
@@ -167,6 +193,14 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
             it 'sets propagation_inject_style' do
               expect { propagation_style }.to change { propagation_inject_style }.to(%w[b3multi b3])
+            end
+
+            context 'with a mixed case value' do
+              let(:var_value) { 'b3MULTI' }
+
+              it 'parses in a case-insensitive manner' do
+                expect { propagation_style }.to change { propagation_extract_style }.to(%w[b3multi])
+              end
             end
           end
         end

@@ -32,7 +32,7 @@ module Datadog
         # @public_api
         module Distributed
           # Custom Datadog format
-          PROPAGATION_STYLE_DATADOG = 'Datadog'
+          PROPAGATION_STYLE_DATADOG = 'datadog'
 
           PROPAGATION_STYLE_B3_MULTI_HEADER = 'b3multi'
           PROPAGATION_STYLE_B3_SINGLE_HEADER = 'b3'
