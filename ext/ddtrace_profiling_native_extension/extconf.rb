@@ -149,6 +149,9 @@ $defs << '-DNO_PRIMITIVE_POP' if RUBY_VERSION < '3.2'
 # On older Rubies, there was no tid member in the internal thread structure
 $defs << '-DNO_THREAD_TID' if RUBY_VERSION < '3.1'
 
+# On older Rubies, there was no jit_return member on the rb_control_frame_t struct
+$defs << '-DNO_JIT_RETURN' if RUBY_VERSION < '3.1'
+
 # On older Rubies, we need to use a backported version of this function. See private_vm_api_access.h for details.
 $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
 
