@@ -41,8 +41,6 @@ static void record_placeholder_stack(
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
-  sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer,
   ddog_prof_Function placeholder_stack
 );
 static void sample_thread_internal(
@@ -50,9 +48,7 @@ static void sample_thread_internal(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  sample_labels labels,
-  sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
+  sample_labels labels
 );
 
 void collectors_stack_init(VALUE profiling_module) {
@@ -145,24 +141,19 @@ void sample_thread(
   sample_labels labels,
   sample_type type
 ) {
-  sampling_buffer *record_buffer = buffer;
-  int extra_frames_in_record_buffer = 0;
-
   // Samples thread into recorder
   if (type == SAMPLE_REGULAR) {
-    sample_thread_internal(thread, buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
+    sample_thread_internal(thread, buffer, recorder_instance, values, labels);
     return;
   }
 
-  // Samples thread into recorder, including as a top frame in the stack a frame named "Garbage Collection"
+  // Skips sampling the stack -- records only a "Garbage Collection" frame and the values/labels
   if (type == SAMPLE_IN_GC) {
     record_placeholder_stack(
       buffer,
       recorder_instance,
       values,
       labels,
-      record_buffer,
-      extra_frames_in_record_buffer,
       (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("Garbage Collection")}
     );
     return;
@@ -182,24 +173,12 @@ void sample_thread(
 // * Should we move this into a different thread entirely?
 // * If we don't move it into a different thread, does releasing the GVL on a Ruby thread mean that we're introducing
 //   a new thread switch point where there previously was none?
-//
-// ---
-//
-// Why the weird extra record_buffer and extra_frames_in_record_buffer?
-// The answer is: to support both sample_thread() and sample_thread_in_gc().
-//
-// For sample_thread(), buffer == record_buffer and extra_frames_in_record_buffer == 0, so it's a no-op.
-// For sample_thread_in_gc(), the buffer is a special buffer that is the same as the record_buffer, but with every
-// pointer shifted forward extra_frames_in_record_buffer elements, so that the caller can actually inject those extra
-// frames, and this function doesn't have to care about it.
 static void sample_thread_internal(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  sample_labels labels,
-  sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
+  sample_labels labels
 ) {
   int captured_frames = ddtrace_rb_profile_frames(
     thread,
@@ -216,8 +195,6 @@ static void sample_thread_internal(
       recorder_instance,
       values,
       labels,
-      record_buffer,
-      extra_frames_in_record_buffer,
       (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("In native code")}
     );
     return;
@@ -326,7 +303,7 @@ static void sample_thread_internal(
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = captured_frames + extra_frames_in_record_buffer},
+    (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = captured_frames},
     values,
     labels
   );
@@ -378,15 +355,13 @@ static void record_placeholder_stack(
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
-  sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer,
   ddog_prof_Function placeholder_stack
 ) {
   buffer->locations[0] = (ddog_prof_Location) {.function = placeholder_stack, .line = 0};
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = 1 + extra_frames_in_record_buffer},
+    (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = 1},
     values,
     labels
   );
