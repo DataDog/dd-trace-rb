@@ -94,27 +94,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             end
           end
         end
-
-        context 'with deprecated DD_PROPAGATION_STYLE_EXTRACT' do
-          let(:var_name) { 'DD_PROPAGATION_STYLE_EXTRACT' }
-
-          context 'is defined' do
-            let(:var_value) { 'b3multi,b3' }
-
-            it do
-              expect(::Datadog::Core).to receive(:log_deprecation).with(no_args) do |&message_block|
-                expect(message_block.call).to match('DD_PROPAGATION_STYLE_EXTRACT environment variable is deprecated')
-              end
-
-              is_expected.to eq(
-                [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                ]
-              )
-            end
-          end
-        end
       end
 
       describe '#propagation_inject_style' do
@@ -138,27 +117,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             let(:var_value) { 'Datadog,b3' }
 
             it do
-              is_expected.to eq(
-                [
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                ]
-              )
-            end
-          end
-        end
-
-        context 'with deprecated DD_PROPAGATION_STYLE_INJECT' do
-          let(:var_name) { 'DD_PROPAGATION_STYLE_INJECT' }
-
-          context 'is defined' do
-            let(:var_value) { 'Datadog,b3' }
-
-            it do
-              expect(::Datadog::Core).to receive(:log_deprecation).with(no_args) do |&message_block|
-                expect(message_block.call).to match('DD_PROPAGATION_STYLE_INJECT environment variable is deprecated')
-              end
-
               is_expected.to eq(
                 [
                   Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
