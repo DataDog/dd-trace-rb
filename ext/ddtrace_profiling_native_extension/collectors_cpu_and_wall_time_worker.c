@@ -718,22 +718,8 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
     thread_context_collector_on_gc_start(state->thread_context_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
-    // Design: In an earlier iteration of this feature (see https://github.com/DataDog/dd-trace-rb/pull/2308) we
-    // actually had a single method to implement the behavior of both thread_context_collector_on_gc_finish
-    // and thread_context_collector_sample_after_gc (the latter is called via after_gc_from_postponed_job).
-    //
-    // Unfortunately, then we discovered the safety issue around no allocations, and thus decided to separate them -- so that
-    // the sampling could run outside the tight safety constraints of the garbage collection process.
-    //
-    // There is a downside: The sample is now taken very very shortly afterwards the GC finishes, and not immediately
-    // as the GC finishes, which means the stack captured may by affected by "skid", e.g. point slightly after where
-    // it should be pointing at.
-    // Alternatives to solve this would be to capture no stack for garbage collection (as we do for Java and .net);
-    // making the sampling process allocation-safe (very hard); or separate stack sampling from sample recording,
-    // e.g. enabling us to capture the stack in thread_context_collector_on_gc_finish and do the rest later
-    // (medium hard).
-
     thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
+
     // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc after if
     // fully finishes the garbage collection, so that one is allowed to do allocations and throw exceptions as usual.
     //
