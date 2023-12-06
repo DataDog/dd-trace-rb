@@ -871,18 +871,17 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
     it 'does not modify sampled?' do
       expect { reject! }
-        .to change { trace_op.sampled? }
-        .from(true).to(false)
+        .to_not change { trace_op.sampled? }
+        .from(true)
     end
 
     context 'when #sampled was true' do
       before { trace_op.sampled = true }
 
-      it 'sets sampled? to false' do
+      it 'does not change sampled?' do
         expect { reject! }
-          .to change { trace_op.sampled? }
+          .to_not change { trace_op.sampled? }
           .from(true)
-          .to(false)
       end
     end
 
