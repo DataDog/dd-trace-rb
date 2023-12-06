@@ -53,6 +53,8 @@ RSpec.describe Datadog::Profiling::Component do
       context 'when using the new CPU Profiling 2.0 profiler' do
         it 'initializes a ThreadContext collector' do
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
+          dummy_stack_recorder = instance_double(Datadog::Profiling::StackRecorder, 'dummy_stack_recorder')
+          allow(Datadog::Profiling::StackRecorder).to receive(:new).and_return(dummy_stack_recorder)
 
           expect(settings.profiling.advanced).to receive(:max_frames).and_return(:max_frames_config)
           expect(settings.profiling.advanced)
@@ -61,7 +63,7 @@ RSpec.describe Datadog::Profiling::Component do
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
 
           expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(
-            recorder: instance_of(Datadog::Profiling::StackRecorder),
+            recorder: dummy_stack_recorder,
             max_frames: :max_frames_config,
             tracer: tracer,
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
@@ -276,6 +278,28 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
+        context 'when timeline is enabled' do
+          before { settings.profiling.advanced.experimental_timeline_enabled = true }
+
+          it 'sets up the StackRecorder with timeline_enabled: true' do
+            expect(Datadog::Profiling::StackRecorder)
+              .to receive(:new).with(hash_including(timeline_enabled: true)).and_call_original
+
+            build_profiler_component
+          end
+        end
+
+        context 'when timeline is disabled' do
+          before { settings.profiling.advanced.experimental_timeline_enabled = false }
+
+          it 'sets up the StackRecorder with timeline_enabled: false' do
+            expect(Datadog::Profiling::StackRecorder)
+              .to receive(:new).with(hash_including(timeline_enabled: false)).and_call_original
+
+            build_profiler_component
+          end
+        end
+
         it 'sets up the Profiler with the CpuAndWallTimeWorker collector' do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),
@@ -295,11 +319,11 @@ RSpec.describe Datadog::Profiling::Component do
         it 'sets up the Exporter internal_metadata with relevant settings' do
           allow(Datadog::Profiling::Collectors::ThreadContext).to receive(:new)
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
+          allow(Datadog::Profiling::StackRecorder).to receive(:new)
 
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
           expect(settings.profiling.advanced).to receive(:experimental_timeline_enabled).and_return(:timeline_result)
-          expect(settings.profiling.advanced).to receive(:experimental_allocation_sample_rate)
-            .and_return(123)
+          expect(settings.profiling.advanced).to receive(:experimental_allocation_sample_rate).and_return(123)
           expect(Datadog::Profiling::Exporter).to receive(:new).with(
             hash_including(
               internal_metadata: {

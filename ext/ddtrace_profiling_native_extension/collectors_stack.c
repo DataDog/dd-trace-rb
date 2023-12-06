@@ -86,6 +86,7 @@ static VALUE _native_sample(
     .cpu_or_wall_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-samples"), zero)),
     .wall_time_ns  = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("wall-time"),     zero)),
     .alloc_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("alloc-samples"), zero)),
+    .timeline_wall_time_ns = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("timeline"), zero)),
   };
 
   long labels_count = RARRAY_LEN(labels_array) + RARRAY_LEN(numeric_labels_array);
