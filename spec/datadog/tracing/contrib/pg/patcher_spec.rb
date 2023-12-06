@@ -171,6 +171,17 @@ RSpec.describe 'PG::Connection patcher' do
           it_behaves_like 'configured peer service span', 'DD_TRACE_PG_PEER_SERVICE', error: PG::Error do
             let(:configuration_options) { {} }
           end
+
+          context 'when there is custom error handling' do
+            let(:configuration_options) { { error_handler: error_handler } }
+            let(:error_handler) { ->(_span, _error) { false } }
+
+            it 'calls the error handler' do
+              expect { exec }.to raise_error(PG::Error)
+              expect(spans.count).to eq(1)
+              expect(span).to_not have_error
+            end
+          end
         end
       end
 
