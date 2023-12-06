@@ -343,14 +343,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#advanced' do
-      describe '#max_events=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.max_events = 1234
-        end
-      end
-
       describe '#max_frames' do
         subject(:max_frames) { settings.profiling.advanced.max_frames }
 
@@ -435,30 +427,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.code_provenance_enabled }
             .from(true)
             .to(false)
-        end
-      end
-
-      describe '#force_enable_new_profiler=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.force_enable_new_profiler = true
-        end
-      end
-
-      describe '#legacy_transport_enabled=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.legacy_transport_enabled = true
-        end
-      end
-
-      describe '#force_enable_legacy_profiler=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.force_enable_legacy_profiler = true
         end
       end
 
