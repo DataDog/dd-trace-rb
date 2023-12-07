@@ -79,6 +79,8 @@ RSpec.describe Datadog::Profiling::Component do
             allocation_counting_enabled: anything,
             no_signals_workaround_enabled: :no_signals_result,
             thread_context_collector: instance_of(Datadog::Profiling::Collectors::ThreadContext),
+            dynamic_sampling_rate_overhead_target_percentage:
+              Datadog::Profiling::Ext::DEFAULT_DYNAMIC_SAMPLING_RATE_OVERHEAD_TARGET_PERCENTAGE,
             allocation_sample_every: 0,
           )
 

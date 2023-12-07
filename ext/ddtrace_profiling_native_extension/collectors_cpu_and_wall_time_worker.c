@@ -152,6 +152,7 @@ static VALUE _native_initialize(
   VALUE allocation_counting_enabled,
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
+  VALUE dynamic_sampling_rate_overhead_target_percentage,
   VALUE allocation_sample_every
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
@@ -226,7 +227,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 8);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 9);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -271,7 +272,8 @@ static VALUE _native_new(VALUE klass) {
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
-  dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
+  state->dynamic_sampling_rate.overhead_target_percentage = 0.0;
+  state->dynamic_sampling_rate.next_sample_after_monotonic_wall_time_ns = 0;
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
 
@@ -295,6 +297,7 @@ static VALUE _native_initialize(
   VALUE allocation_counting_enabled,
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
+  VALUE dynamic_sampling_rate_overhead_target_percentage,
   VALUE allocation_sample_every
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
@@ -302,6 +305,7 @@ static VALUE _native_initialize(
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
   ENFORCE_TYPE(allocation_sample_every, T_FIXNUM);
+  ENFORCE_TYPE(dynamic_sampling_rate_overhead_target_percentage, T_FLOAT);
 
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
@@ -310,6 +314,7 @@ static VALUE _native_initialize(
   state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
   state->no_signals_workaround_enabled = (no_signals_workaround_enabled == Qtrue);
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
+  dynamic_sampling_rate_init(&state->dynamic_sampling_rate, NUM2DBL(dynamic_sampling_rate_overhead_target_percentage));
   state->allocation_sample_every = NUM2INT(allocation_sample_every);
 
   if (state->allocation_sample_every < 0) {
