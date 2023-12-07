@@ -5,12 +5,11 @@ require_relative '../core/workers/polling'
 
 module Datadog
   module Profiling
-    # Periodically (every DEFAULT_INTERVAL_SECONDS) takes a profile from the `Exporter` and reports it using the
+    # Periodically (every interval, 60 seconds by default) takes a profile from the `Exporter` and reports it using the
     # configured transport. Runs on its own background thread.
     class Scheduler < Core::Worker
       include Core::Workers::Polling
 
-      DEFAULT_INTERVAL_SECONDS = 60
       MINIMUM_INTERVAL_SECONDS = 0
 
       # We sleep for at most this duration seconds before reporting data to avoid multi-process applications all
@@ -29,7 +28,7 @@ module Datadog
         exporter:,
         transport:,
         fork_policy: Core::Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
-        interval: DEFAULT_INTERVAL_SECONDS,
+        interval:, # seconds
         enabled: true
       )
         @exporter = exporter
@@ -115,8 +114,8 @@ module Datadog
         #
         # During PR review (https://github.com/DataDog/dd-trace-rb/pull/1807) we discussed the possible alternative of
         # just sleeping before starting the scheduler loop. We ended up not going with that option to avoid the first
-        # profile containing up to DEFAULT_INTERVAL_SECONDS + DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS instead of the
-        # usual DEFAULT_INTERVAL_SECONDS size.
+        # profile containing up to interval + DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS instead of the
+        # usual interval seconds.
         if run_loop?
           jitter_seconds = rand * DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS # floating point number between (0.0...maximum)
           sleep(jitter_seconds)
