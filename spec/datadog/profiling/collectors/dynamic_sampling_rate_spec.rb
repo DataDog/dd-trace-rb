@@ -3,7 +3,8 @@ require 'datadog/profiling/collectors/dynamic_sampling_rate'
 
 RSpec.describe Datadog::Profiling::Collectors::DynamicSamplingRate do
   before { skip_if_profiling_not_supported(self) }
-  let(:max_overhead_target) { Datadog::Profiling::Ext::DEFAULT_DYNAMIC_SAMPLING_RATE_OVERHEAD_TARGET_PERCENTAGE }
+
+  let(:max_overhead_target) { 2.0 }
 
   describe 'dynamic_sampling_rate_after_sample' do
     let(:current_monotonic_wall_time_ns) { 123 }

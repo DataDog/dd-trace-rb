@@ -637,6 +637,39 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(true)
         end
       end
+
+      describe '#overhead_target_percentage' do
+        subject(:timeout_seconds) { settings.profiling.advanced.overhead_target_percentage }
+
+        context 'when DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq(2.0) }
+          end
+
+          context 'is defined' do
+            let(:environment) { '1.23' }
+
+            it { is_expected.to eq(1.23) }
+          end
+        end
+      end
+
+      describe '#overhead_target_percentage=' do
+        it 'updates the #overhead_target_percentage setting' do
+          expect { settings.profiling.advanced.overhead_target_percentage = 4.56 }
+            .to change { settings.profiling.advanced.overhead_target_percentage }
+            .from(2.0)
+            .to(4.56)
+        end
+      end
     end
 
     describe '#upload' do
