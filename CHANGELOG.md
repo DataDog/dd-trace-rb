@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## [1.18.0] - 2023-12-07
+
+### Added
+
+* Tracing: Support lib injection for ARM64 architecture ([#3307][])
+* Tracing: Add `error_handler` for `pg` instrumentation ([#3303][])
+* Appsec: Enable "Trusted IPs", a.k.a passlist with optional monitoring ([#3229][])
+
+### Changed
+
+* Mark ddtrace threads as fork-safe ([#3279][])
+* Bump `datadog-ci` dependency to 0.5.0 ([#3308][])
+* Bump `debase-ruby_core_source` dependency to 3.2.3 ([#3284][])
+* Profiling: Disable profiler on Ruby 3.3 when running with RUBY_MN_THREADS=1 ([#3259][])
+* Profiling: Run without "no signals" workaround on passenger 6.0.19+ ([#3280][])
+
+### Fixed
+
+* Tracing: Fix `pg` instrumentation `enabled` settings ([#3271][])
+* Profiling: Fix potential crash by importing upstream `rb_profile_frames` fix ([#3289][])
+* Appsec: Call `devise` RegistrationsController block ([#3286][])
+
 ## [1.17.0] - 2023-11-22
 
 For W3C Trace Context, this release adds [`tracecontext`](https://www.w3.org/TR/trace-context/) to the default trace propagation extraction and injection styles. The new defaults are:
@@ -23,7 +45,7 @@ For CI Visibility, you can now manually create CI traces and spans with the [new
 ### Changed
 
 * Tracing: Set 128-bit trace_id to true by default ([#3266][])
-* Tracing: Default trace propagation styles to `Datadog,b3multi,b3,tracecontext` ([#3248][],#3267)
+* Tracing: Default trace propagation styles to `Datadog,b3multi,b3,tracecontext` ([#3248][],[#3267][])
 * Ci-App: Upgraded `datadog-ci` dependency to 0.4 ([#3270][])
 
 ## [1.16.2] - 2023-11-10
@@ -2658,7 +2680,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.17.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.18.0...master
+[1.18.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.17.0...v1.18.0
 [1.17.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.16.2...v1.17.0
 [1.16.2]: https://github.com/DataDog/dd-trace-rb/compare/v1.16.1...v1.16.2
 [1.16.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.16.0...v1.16.1
@@ -3870,6 +3893,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3206]: https://github.com/DataDog/dd-trace-rb/issues/3206
 [#3207]: https://github.com/DataDog/dd-trace-rb/issues/3207
 [#3223]: https://github.com/DataDog/dd-trace-rb/issues/3223
+[#3229]: https://github.com/DataDog/dd-trace-rb/issues/3229
 [#3234]: https://github.com/DataDog/dd-trace-rb/issues/3234
 [#3235]: https://github.com/DataDog/dd-trace-rb/issues/3235
 [#3240]: https://github.com/DataDog/dd-trace-rb/issues/3240
@@ -3877,11 +3901,21 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3248]: https://github.com/DataDog/dd-trace-rb/issues/3248
 [#3252]: https://github.com/DataDog/dd-trace-rb/issues/3252
 [#3255]: https://github.com/DataDog/dd-trace-rb/issues/3255
+[#3259]: https://github.com/DataDog/dd-trace-rb/issues/3259
 [#3262]: https://github.com/DataDog/dd-trace-rb/issues/3262
 [#3266]: https://github.com/DataDog/dd-trace-rb/issues/3266
 [#3267]: https://github.com/DataDog/dd-trace-rb/issues/3267
 [#3270]: https://github.com/DataDog/dd-trace-rb/issues/3270
+[#3271]: https://github.com/DataDog/dd-trace-rb/issues/3271
 [#3273]: https://github.com/DataDog/dd-trace-rb/issues/3273
+[#3279]: https://github.com/DataDog/dd-trace-rb/issues/3279
+[#3280]: https://github.com/DataDog/dd-trace-rb/issues/3280
+[#3284]: https://github.com/DataDog/dd-trace-rb/issues/3284
+[#3286]: https://github.com/DataDog/dd-trace-rb/issues/3286
+[#3289]: https://github.com/DataDog/dd-trace-rb/issues/3289
+[#3303]: https://github.com/DataDog/dd-trace-rb/issues/3303
+[#3307]: https://github.com/DataDog/dd-trace-rb/issues/3307
+[#3308]: https://github.com/DataDog/dd-trace-rb/issues/3308
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
