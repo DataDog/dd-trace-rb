@@ -70,7 +70,7 @@ module Datadog
 
         exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
-        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
+        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: flush_interval(settings))
 
         Profiling::Profiler.new(worker: worker, scheduler: scheduler)
       end
@@ -246,6 +246,15 @@ module Datadog
         else
           true
         end
+      end
+
+      private_class_method def self.flush_interval(settings)
+        # Historically, the hard-coded value for the dynamic sampling overhead was 2%, and
+        # the flush interval was 60 seconds. If the sampling overhead is reduced, we want to
+        # increase the flush interval, so that each pprof has the same amount of data in it.
+        adjust_factor = settings.profiling.advanced.dynamic_sampling_rate_overhead_target_percentage /
+          Datadog::Profiling::Ext::DEFAULT_DYNAMIC_SAMPLING_RATE_OVERHEAD_TARGET_PERCENTAGE
+        Datadog::Profiling::Scheduler::DEFAULT_INTERVAL_SECONDS / adjust_factor
       end
     end
   end
