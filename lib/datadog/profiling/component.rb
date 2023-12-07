@@ -41,6 +41,7 @@ module Datadog
 
         no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
         timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
+        overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage)
 
         recorder = Datadog::Profiling::StackRecorder.new(
           cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
@@ -58,7 +59,7 @@ module Datadog
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           thread_context_collector: thread_context_collector,
-          dynamic_sampling_rate_overhead_target_percentage: settings.profiling.advanced.overhead_target_percentage,
+          dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
           allocation_sample_every: 0,
         )
 
@@ -244,6 +245,19 @@ module Datadog
           Gem.loaded_specs['passenger'].version < Gem::Version.new('6.0.19')
         else
           true
+        end
+      end
+
+      private_class_method def self.valid_overhead_target(overhead_target_percentage)
+        if overhead_target_percentage > 0 && overhead_target_percentage <= 20
+          overhead_target_percentage
+        else
+          Datadog.logger.error(
+            'Ignoring invalid value for profiling overhead_target_percentage setting: ' \
+            "#{overhead_target_percentage.inspect}. Falling back to default value."
+          )
+
+          2.0
         end
       end
 
