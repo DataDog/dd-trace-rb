@@ -391,6 +391,21 @@ module Datadog
                 end
               end
             end
+
+            # Configures how much wall-time overhead the profiler targets. The profiler will dynamically adjust the
+            # interval between samples it takes so as to try and maintain the property that it spends no longer than
+            # this amount of wall-clock time profiling. For example, with the default value of 2%, the profiler will
+            # try and cause more than 1.2 seconds per minute of overhead. Decreasing this value will reduce the
+            # accuracy of the data collected.
+            #
+            # This value should be a percentage i.e. a number between 0 and 100, not 0 and 1.
+            #
+            # @default `DD_PROFILING_DYNAMIC_SAMPLING_RATE_OVERHEAD_TARGET_PERCENTAGE` as a float, otherwise 2.0
+            option :dynamic_sampling_rate_overhead_target_percentage do |o|
+              o.type :float
+              o.env Profiling::Ext::ENV_DYNAMIC_SAMPLING_RATE_OVERHEAD_TARGET_PERCENTAGE
+              o.default Profiling::Ext::DEFAULT_DYNAMIC_SAMPLING_RATE_OVERHEAD_TARGET_PERCENTAGE
+            end
           end
 
           # @public_api

@@ -58,6 +58,8 @@ module Datadog
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           thread_context_collector: thread_context_collector,
+          dynamic_sampling_rate_overhead_target_percentage:
+            settings.profiling.advanced.dynamic_sampling_rate_overhead_target_percentage,
           allocation_sample_every: 0,
         )
 
