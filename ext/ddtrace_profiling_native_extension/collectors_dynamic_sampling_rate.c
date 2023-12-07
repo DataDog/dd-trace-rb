@@ -19,7 +19,7 @@
 //
 // Instead of sampling at a fixed sample rate, the actual sampling rate should be decided by also observing the impact
 // that running the profiler is having. This protects against issues such as the profiler being deployed in very busy
-//machines or containers with unrealistic CPU restrictions.
+// machines or containers with unrealistic CPU restrictions.
 //
 // ### Implementation
 //
@@ -35,18 +35,25 @@
 // sample. If it's not, it will skip sampling.
 //
 // Finally, as an additional optimization, there's a `dynamic_sampling_rate_get_sleep()` which, given the current
-// wall-time, will return the time remaining (*there's an exception, check below) until the next sample.
+// wall-time, will return the time remaining (*there's an exception, check function) until the next sample.
 //
 // ---
 
+// This is the wall-time overhead we're targeting. E.g. we target to spend no more than 2%, or 1.2 seconds per minute,
+// taking profiling samples by default.
+#define DEFAULT_WALL_TIME_OVERHEAD_TARGET_PERCENTAGE 2.0 // %
 // See `dynamic_sampling_rate_get_sleep()` for details
 #define MAX_SLEEP_TIME_NS MILLIS_AS_NS(100)
 // See `dynamic_sampling_rate_after_sample()` for details
 #define MAX_TIME_UNTIL_NEXT_SAMPLE_NS SECONDS_AS_NS(10)
 
-void dynamic_sampling_rate_init(dynamic_sampling_rate_state *state, double overhead_target_percentage) {
-  state->overhead_target_percentage = overhead_target_percentage;
+void dynamic_sampling_rate_init(dynamic_sampling_rate_state *state) {
   atomic_init(&state->next_sample_after_monotonic_wall_time_ns, 0);
+  dynamic_sampling_rate_set_overhead_target_percentage(state, DEFAULT_WALL_TIME_OVERHEAD_TARGET_PERCENTAGE);
+}
+
+void dynamic_sampling_rate_set_overhead_target_percentage(dynamic_sampling_rate_state *state, double overhead_target_percentage) {
+  state->overhead_target_percentage = overhead_target_percentage;
 }
 
 void dynamic_sampling_rate_reset(dynamic_sampling_rate_state *state) {
@@ -110,7 +117,8 @@ VALUE _native_get_sleep(DDTRACE_UNUSED VALUE self, VALUE overhead_target_percent
   ENFORCE_TYPE(current_monotonic_wall_time_ns, T_FIXNUM);
 
   dynamic_sampling_rate_state state;
-  dynamic_sampling_rate_init(&state, NUM2DBL(overhead_target_percentage));
+  dynamic_sampling_rate_init(&state);
+  dynamic_sampling_rate_set_overhead_target_percentage(&state, NUM2DBL(overhead_target_percentage));
   atomic_store(&state.next_sample_after_monotonic_wall_time_ns, NUM2LONG(simulated_next_sample_after_monotonic_wall_time_ns));
 
   return ULL2NUM(dynamic_sampling_rate_get_sleep(&state, NUM2LONG(current_monotonic_wall_time_ns)));
@@ -121,7 +129,8 @@ VALUE _native_should_sample(DDTRACE_UNUSED VALUE self, VALUE overhead_target_per
   ENFORCE_TYPE(wall_time_ns_before_sample, T_FIXNUM);
 
   dynamic_sampling_rate_state state;
-  dynamic_sampling_rate_init(&state, NUM2DBL(overhead_target_percentage));
+  dynamic_sampling_rate_init(&state);
+  dynamic_sampling_rate_set_overhead_target_percentage(&state, NUM2DBL(overhead_target_percentage));
   atomic_store(&state.next_sample_after_monotonic_wall_time_ns, NUM2LONG(simulated_next_sample_after_monotonic_wall_time_ns));
 
   return dynamic_sampling_rate_should_sample(&state, NUM2LONG(wall_time_ns_before_sample)) ? Qtrue : Qfalse;
@@ -132,7 +141,8 @@ VALUE _native_after_sample(DDTRACE_UNUSED VALUE self, VALUE overhead_target_perc
   ENFORCE_TYPE(sampling_time_ns, T_FIXNUM);
 
   dynamic_sampling_rate_state state;
-  dynamic_sampling_rate_init(&state, NUM2DBL(overhead_target_percentage));
+  dynamic_sampling_rate_init(&state);
+  dynamic_sampling_rate_set_overhead_target_percentage(&state, NUM2DBL(overhead_target_percentage));
 
   dynamic_sampling_rate_after_sample(&state, NUM2LONG(wall_time_ns_after_sample), NUM2ULL(sampling_time_ns));
 

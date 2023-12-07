@@ -272,8 +272,7 @@ static VALUE _native_new(VALUE klass) {
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
-  state->dynamic_sampling_rate.overhead_target_percentage = 0.0;
-  state->dynamic_sampling_rate.next_sample_after_monotonic_wall_time_ns = 0;
+  dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
 
@@ -314,7 +313,7 @@ static VALUE _native_initialize(
   state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
   state->no_signals_workaround_enabled = (no_signals_workaround_enabled == Qtrue);
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
-  dynamic_sampling_rate_init(&state->dynamic_sampling_rate, NUM2DBL(dynamic_sampling_rate_overhead_target_percentage));
+  dynamic_sampling_rate_set_overhead_target_percentage(&state->dynamic_sampling_rate, NUM2DBL(dynamic_sampling_rate_overhead_target_percentage));
   state->allocation_sample_every = NUM2INT(allocation_sample_every);
 
   if (state->allocation_sample_every < 0) {
