@@ -58,8 +58,7 @@ module Datadog
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           thread_context_collector: thread_context_collector,
-          dynamic_sampling_rate_overhead_target_percentage:
-            settings.profiling.advanced.dynamic_sampling_rate_overhead_target_percentage,
+          dynamic_sampling_rate_overhead_target_percentage: settings.profiling.advanced.overhead_target_percentage,
           allocation_sample_every: 0,
         )
 
@@ -249,12 +248,8 @@ module Datadog
       end
 
       private_class_method def self.flush_interval(settings)
-        # Historically, the hard-coded value for the dynamic sampling overhead was 2%, and
-        # the flush interval was 60 seconds. If the sampling overhead is reduced, we want to
-        # increase the flush interval, so that each pprof has the same amount of data in it.
-        adjust_factor = settings.profiling.advanced.dynamic_sampling_rate_overhead_target_percentage /
-          Datadog::Profiling::Ext::DEFAULT_DYNAMIC_SAMPLING_RATE_OVERHEAD_TARGET_PERCENTAGE
-        Datadog::Profiling::Scheduler::DEFAULT_INTERVAL_SECONDS / adjust_factor
+        # TODO: Will refactor in a separate commit
+        Datadog::Profiling::Scheduler::DEFAULT_INTERVAL_SECONDS
       end
     end
   end
