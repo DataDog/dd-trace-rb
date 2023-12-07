@@ -408,6 +408,17 @@ module Datadog
               o.env 'DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE'
               o.default 2.0
             end
+
+            # Controls how often the profiler reports data, in seconds. Cannot be lower than 60 seconds.
+            #
+            # We do not recommend tweaking this value.
+            #
+            # @default `DD_PROFILING_UPLOAD_PERIOD` environment variable, otherwise 60
+            option :upload_period_seconds do |o|
+              o.type :int
+              o.env 'DD_PROFILING_UPLOAD_PERIOD'
+              o.default 60
+            end
           end
 
           # @public_api

@@ -241,6 +241,26 @@ RSpec.describe Datadog::Profiling::Component do
         build_profiler_component
       end
 
+      context 'when upload_period_seconds is below 60 seconds' do
+        before { settings.profiling.advanced.upload_period_seconds = 59 }
+
+        it 'ignores this setting and creates a scheduler with an interval of 60 seconds' do
+          expect(Datadog::Profiling::Scheduler).to receive(:new).with(a_hash_including(interval: 60))
+
+          build_profiler_component
+        end
+      end
+
+      context 'when upload_period_seconds is over 60 seconds' do
+        before { settings.profiling.advanced.upload_period_seconds = 61 }
+
+        it 'creates a scheduler with the given interval' do
+          expect(Datadog::Profiling::Scheduler).to receive(:new).with(a_hash_including(interval: 61))
+
+          build_profiler_component
+        end
+      end
+
       it 'initializes the exporter with a code provenance collector' do
         expect(Datadog::Profiling::Exporter).to receive(:new) do |code_provenance_collector:, **_|
           expect(code_provenance_collector).to be_a_kind_of(Datadog::Profiling::Collectors::CodeProvenance)
@@ -279,32 +299,6 @@ RSpec.describe Datadog::Profiling::Component do
             expect(transport).to be custom_transport
           end
 
-          build_profiler_component
-        end
-      end
-
-      context 'when dynamic_sampling_rate_overhead_target_percentage is the default' do
-        it 'sets the flush interval to the default' do
-          pending 'TODO'
-
-          expect(Datadog::Profiling::Scheduler).to receive(:new) do |interval:, **_|
-            expect(interval).to eql(Datadog::Profiling::Scheduler::DEFAULT_INTERVAL_SECONDS.to_f)
-          end
-          build_profiler_component
-        end
-      end
-
-      context 'when dynamic sampling rate is decreased' do
-        before do
-          settings.profiling.advanced.overhead_target_percentage = 1.0
-        end
-
-        it 'increases the flush interval' do
-          pending 'TODO'
-
-          expect(Datadog::Profiling::Scheduler).to receive(:new) do |interval:, **_|
-            expect(interval).to eql(Datadog::Profiling::Scheduler::DEFAULT_INTERVAL_SECONDS * 2.0)
-          end
           build_profiler_component
         end
       end
