@@ -75,6 +75,8 @@ RSpec.describe Datadog::Profiling::Component do
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
           expect(settings.profiling.advanced).to receive(:overhead_target_percentage)
             .and_return(:overhead_target_percentage_config)
+          expect(described_class).to receive(:valid_overhead_target)
+            .with(:overhead_target_percentage_config).and_return(:overhead_target_percentage_config)
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
@@ -305,6 +307,36 @@ RSpec.describe Datadog::Profiling::Component do
           end
           build_profiler_component
         end
+      end
+    end
+  end
+
+  describe '.valid_overhead_target' do
+    subject(:valid_overhead_target) { described_class.send(:valid_overhead_target, overhead_target_percentage) }
+
+    [0, 20.1].each do |invalid_value|
+      let(:overhead_target_percentage) { invalid_value }
+
+      context "when overhead_target_percentage is invalid value (#{invalid_value})" do
+        it 'logs an error' do
+          expect(Datadog.logger).to receive(:error).with(
+            /Ignoring invalid value for profiling overhead_target_percentage/
+          )
+
+          valid_overhead_target
+        end
+
+        it 'falls back to the default value' do
+          expect(valid_overhead_target).to be 2.0
+        end
+      end
+    end
+
+    context 'when overhead_target_percentage is valid' do
+      let(:overhead_target_percentage) { 1.5 }
+
+      it 'returns the value' do
+        expect(valid_overhead_target).to be 1.5
       end
     end
   end
