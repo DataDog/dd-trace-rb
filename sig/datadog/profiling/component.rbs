@@ -24,6 +24,7 @@ module Datadog
 
       def self.incompatible_libmysqlclient_version?: (untyped settings) -> bool
       def self.incompatible_passenger_version?: () -> bool
+      def self.flush_interval: (untyped settings) -> ::Numeric
     end
   end
 end

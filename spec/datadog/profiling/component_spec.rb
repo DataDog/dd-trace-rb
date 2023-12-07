@@ -279,6 +279,29 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
       end
+
+      context 'when dynamic_sampling_rate_overhead_target_percentage is the default' do
+        it 'sets the flush interval to the default' do
+          expect(Datadog::Profiling::Scheduler).to receive(:new) do |interval:, **_|
+            expect(interval).to eql(Datadog::Profiling::Scheduler::DEFAULT_INTERVAL_SECONDS.to_f)
+          end
+          build_profiler_component
+        end
+      end
+
+      context 'when dynamic sampling rate is decreased' do
+        before do
+          settings.profiling.advanced.dynamic_sampling_rate_overhead_target_percentage =
+            Datadog::Profiling::Ext::DEFAULT_DYNAMIC_SAMPLING_RATE_OVERHEAD_TARGET_PERCENTAGE / 2.0
+        end
+
+        it 'increases the flush interval' do
+          expect(Datadog::Profiling::Scheduler).to receive(:new) do |interval:, **_|
+            expect(interval).to eql(Datadog::Profiling::Scheduler::DEFAULT_INTERVAL_SECONDS * 2.0)
+          end
+          build_profiler_component
+        end
+      end
     end
   end
 

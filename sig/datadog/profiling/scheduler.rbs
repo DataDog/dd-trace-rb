@@ -3,11 +3,13 @@ module Datadog
     class Scheduler < Core::Worker
       include Core::Workers::Polling
 
+      DEFAULT_INTERVAL_SECONDS: Integer
+
       def initialize: (
         exporter: Datadog::Profiling::Exporter,
         transport: Datadog::Profiling::HttpTransport,
         ?fork_policy: untyped,
-        ?interval: ::Integer,
+        ?interval: ::Numeric,
         ?enabled: bool,
       ) -> void
 
