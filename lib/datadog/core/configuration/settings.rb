@@ -207,19 +207,6 @@ module Datadog
 
           # @public_api
           settings :advanced do
-            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
-            #
-            # This was used prior to the GA of the new CPU Profiling 2.0 profiler. The CPU Profiling 2.0 profiler does not
-            # use or need this setting and thus it doesn't do anything.
-            option :max_events do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.max_events setting has been deprecated for removal and no ' \
-                  'longer does anything. Please remove it from your Datadog.configure block.'
-                )
-              end
-            end
-
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
             # produced profiles. Increasing this may increase the overhead of profiling.
             #
@@ -249,45 +236,6 @@ module Datadog
             # Can be used to disable the gathering of names and versions of gems in use by the service, used to power
             # grouping and categorization of stack traces.
             option :code_provenance_enabled, default: true
-
-            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
-            #
-            # This was added as a temporary support option in case of issues with the new `Profiling::HttpTransport` class
-            # but we're now confident it's working nicely so we've removed the old code path.
-            option :legacy_transport_enabled do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.legacy_transport_enabled setting has been deprecated for removal and no ' \
-                  'longer does anything. Please remove it from your Datadog.configure block.'
-                )
-              end
-            end
-
-            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
-            #
-            # This was used prior to the GA of the new CPU Profiling 2.0 profiler. Using CPU Profiling 2.0 is now the
-            # default and this doesn't do anything.
-            option :force_enable_new_profiler do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.force_enable_new_profiler setting has been deprecated for removal and no ' \
-                  'longer does anything. Please remove it from your Datadog.configure block.'
-                )
-              end
-            end
-
-            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
-            #
-            # This was used prior to the GA of the new CPU Profiling 2.0 profiler. Using CPU Profiling 2.0 is now the
-            # default and this doesn't do anything.
-            option :force_enable_legacy_profiler do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal and no ' \
-                  'longer does anything. Please remove it from your Datadog.configure block.'
-                )
-              end
-            end
 
             # Forces enabling of profiling of time/resources spent in Garbage Collection.
             #
