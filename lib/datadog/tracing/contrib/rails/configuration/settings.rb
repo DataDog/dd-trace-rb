@@ -53,17 +53,6 @@ module Datadog
             option :request_queuing do |o|
               o.default false
             end
-            # DEV-2.0: Breaking changes for removal.
-            option :exception_controller do |o|
-              o.after_set do |value|
-                if value
-                  Datadog::Core.log_deprecation do
-                    'The error controller is now automatically detected. '\
-                    "Option `#{o.instance_variable_get(:@name)}` is no longer required and will be removed."
-                  end
-                end
-              end
-            end
 
             option :middleware, default: true, type: :bool
             option :middleware_names, default: false, type: :bool
