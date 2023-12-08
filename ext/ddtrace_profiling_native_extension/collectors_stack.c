@@ -37,13 +37,6 @@ static VALUE _native_sample(
 );
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(sampling_buffer* buffer, VALUE recorder_instance, sample_values values, sample_labels labels);
-static void record_placeholder_stack(
-  sampling_buffer* buffer,
-  VALUE recorder_instance,
-  sample_values values,
-  sample_labels labels,
-  ddog_prof_Function placeholder_stack
-);
 static void sample_thread_internal(
   VALUE thread,
   sampling_buffer* buffer,
@@ -121,14 +114,24 @@ static VALUE _native_sample(
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
-  sample_thread(
-    thread,
-    buffer,
-    recorder_instance,
-    values,
-    (sample_labels) {.labels = slice_labels, .state_label = state_label},
-    RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
-  );
+  if (in_gc == Qtrue) {
+    record_placeholder_stack(
+      buffer,
+      recorder_instance,
+      values,
+      (sample_labels) {.labels = slice_labels, .state_label = state_label},
+      (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("Garbage Collection")}
+    );
+  } else {
+    sample_thread(
+      thread,
+      buffer,
+      recorder_instance,
+      values,
+      (sample_labels) {.labels = slice_labels, .state_label = state_label},
+      SAMPLE_REGULAR
+    );
+  }
 
   sampling_buffer_free(buffer);
 
@@ -146,18 +149,6 @@ void sample_thread(
   // Samples thread into recorder
   if (type == SAMPLE_REGULAR) {
     sample_thread_internal(thread, buffer, recorder_instance, values, labels);
-    return;
-  }
-
-  // Skips sampling the stack -- records only a "Garbage Collection" frame and the values/labels
-  if (type == SAMPLE_IN_GC) {
-    record_placeholder_stack(
-      buffer,
-      recorder_instance,
-      values,
-      labels,
-      (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("Garbage Collection")}
-    );
     return;
   }
 
@@ -362,7 +353,7 @@ static void record_placeholder_stack_in_native_code(
   );
 }
 
-static void record_placeholder_stack(
+void record_placeholder_stack(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,

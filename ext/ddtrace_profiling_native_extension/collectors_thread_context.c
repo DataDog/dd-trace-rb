@@ -48,8 +48,8 @@
 // into the global gc_tracking structure, and further samples are not affected. (The `cpu_time_at_previous_sample_ns`
 // of the thread that did GC also gets adjusted to avoid double-accounting.)
 //
-// Finally, when `thread_context_collector_sample_after_gc` gets called, a sample gets recorded, using the special
-// `SAMPLE_IN_GC` sample type, which produces a stack with a placeholder `Garbage Collection` frame. This sample gets
+// Finally, when `thread_context_collector_sample_after_gc` gets called, a sample gets recorded with a stack having
+// a single placeholder `Garbage Collection` frame. This sample gets
 // assigned the cpu-time and wall-time that was recorded between calls to `on_gc_start` and `on_gc_finish`, as well
 // as metadata for the last GC.
 //
@@ -639,10 +639,9 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
     end_timestamp_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, state->gc_tracking.wall_time_at_previous_gc_ns);
   }
 
-  sample_thread(
-    /* thread: */ Qnil,
-    /* buffer: */ state->sampling_buffer,
-    /* recorder_instance: */ state->recorder_instance,
+  record_placeholder_stack(
+    state->sampling_buffer,
+    state->recorder_instance,
     (sample_values) {
       .cpu_time_ns = state->gc_tracking.accumulated_cpu_time_ns,
       .cpu_or_wall_samples = 1,
@@ -650,7 +649,7 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
       .timeline_wall_time_ns = state->gc_tracking.accumulated_wall_time_ns,
     },
     (sample_labels) {.labels = slice_labels, .state_label = NULL, .end_timestamp_ns = end_timestamp_ns},
-    SAMPLE_IN_GC
+    (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("Garbage Collection")}
   );
 
   state->gc_tracking.wall_time_at_last_flushed_gc_event_ns = state->gc_tracking.wall_time_at_previous_gc_ns;
