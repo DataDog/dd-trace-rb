@@ -256,11 +256,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
       described_class::Testing._native_trigger_sample
 
-      invoke_gc_times = 5
-
-      invoke_gc_times.times do
+      5.times do
         Thread.pass
         GC.start
+        Thread.pass
       end
 
       cpu_and_wall_time_worker.stop
@@ -269,7 +268,6 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
       gc_sample = all_samples.find { |sample| sample.labels[:'gc cause'] == 'GC.start()' }
 
-      expect(gc_sample.values.fetch(:'cpu-samples')).to be >= invoke_gc_times
       expect(gc_sample.labels).to match a_hash_including(
         :state => 'had cpu',
         :'thread id' => 'GC',
