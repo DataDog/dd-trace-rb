@@ -10,6 +10,7 @@ module Datadog
         private
 
         def self.denylist_data: (String id, Array[String] denylist) -> ::Hash[::String, untyped]
+        def self.passlist_exclusions: (Array[String] | Hash[Symbol, Array[String]] passlist) -> ::Array[::Hash[::String, untyped]]
       end
     end
   end

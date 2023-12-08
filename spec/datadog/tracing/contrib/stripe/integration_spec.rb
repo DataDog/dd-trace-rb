@@ -2,8 +2,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/stripe/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Stripe::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:stripe) }
 
   describe '.version' do

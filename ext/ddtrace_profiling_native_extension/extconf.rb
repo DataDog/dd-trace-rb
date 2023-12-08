@@ -81,10 +81,7 @@ end
 
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
-#
-# @ivoanjo TODO: Ruby 3.3.0-preview1 was causing issues in CI because `have_header('vm_core.h')` below triggers warnings;
-# I've chosen to disable `-Werror` for this Ruby version for now, and we can revisit this on a later 3.3 release.
-add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true' && !RUBY_DESCRIPTION.include?('3.3.0preview1')
+add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true'
 
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase
@@ -101,9 +98,6 @@ add_compiler_flag '-Wno-declaration-after-statement'
 # If we forget to include a Ruby header, the function call may still appear to work, but then
 # cause a segfault later. Let's ensure that never happens.
 add_compiler_flag '-Werror-implicit-function-declaration'
-
-# Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
-add_compiler_flag '-Wunused-parameter'
 
 # The native extension is not intended to expose any symbols/functions for other native libraries to use;
 # the sole exception being `Init_ddtrace_profiling_native_extension` which needs to be visible for Ruby to call it when
@@ -131,6 +125,9 @@ if RUBY_PLATFORM.include?('linux')
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
 
+# On older Rubies, M:N threads were not available
+$defs << '-DNO_MN_THREADS_AVAILABLE' if RUBY_VERSION < '3.3'
+
 # On older Rubies, we did not need to include the ractor header (this was built into the MJIT header)
 $defs << '-DNO_RACTOR_HEADER_INCLUDE' if RUBY_VERSION < '3.3'
 
@@ -146,14 +143,23 @@ $defs << '-DNO_RB_THREAD_SCHED' if RUBY_VERSION < '3.2'
 # On older Rubies, the first_lineno inside a location was a VALUE and not a int (https://github.com/ruby/ruby/pull/6430)
 $defs << '-DNO_INT_FIRST_LINENO' if RUBY_VERSION < '3.2'
 
+# On older Rubies, "pop" was not a primitive operation
+$defs << '-DNO_PRIMITIVE_POP' if RUBY_VERSION < '3.2'
+
 # On older Rubies, there was no tid member in the internal thread structure
 $defs << '-DNO_THREAD_TID' if RUBY_VERSION < '3.1'
+
+# On older Rubies, there was no jit_return member on the rb_control_frame_t struct
+$defs << '-DNO_JIT_RETURN' if RUBY_VERSION < '3.1'
 
 # On older Rubies, we need to use a backported version of this function. See private_vm_api_access.h for details.
 $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
 
 # On older Rubies, there are no Ractors
 $defs << '-DNO_RACTORS' if RUBY_VERSION < '3'
+
+# On older Rubies, rb_imemo_name did not exist
+$defs << '-DNO_IMEMO_NAME' if RUBY_VERSION < '3'
 
 # On older Rubies, objects would not move
 $defs << '-DNO_T_MOVED' if RUBY_VERSION < '2.7'
@@ -235,6 +241,10 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   # NOTE: This needs to come after all changes to $defs
   create_header
 
+  # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
+  # See the comment on the same flag below for why this is done last.
+  add_compiler_flag '-Wunused-parameter'
+
   create_makefile EXTENSION_NAME
 else
   # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
@@ -250,9 +260,20 @@ else
   Debase::RubyCoreSource
     .create_makefile_with_core(
       proc do
-        have_header('vm_core.h') &&
-        have_header('iseq.h') &&
-        (RUBY_VERSION < '3.3' || have_header('ractor_core.h'))
+        headers_available =
+          have_header('vm_core.h') &&
+          have_header('iseq.h') &&
+          (RUBY_VERSION < '3.3' || have_header('ractor_core.h'))
+
+        if headers_available
+          # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
+          # This is added as late as possible because in some Rubies we support (e.g. 3.3), adding this flag before
+          # checking if internal VM headers are available causes those checks to fail because of this warning (and not
+          # because the headers are not available.)
+          add_compiler_flag '-Wunused-parameter'
+        end
+
+        headers_available
       end,
       EXTENSION_NAME,
     )

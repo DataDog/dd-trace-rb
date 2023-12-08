@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/concurrent_ruby/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::ConcurrentRuby::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:concurrent_ruby) }
 
   describe '.version' do
@@ -24,16 +22,40 @@ RSpec.describe Datadog::Tracing::Contrib::ConcurrentRuby::Integration do
   describe '.loaded?' do
     subject(:loaded?) { described_class.loaded? }
 
-    context 'when Concurrent::Future is defined' do
-      before { stub_const('Concurrent::Future', Class.new) }
+    context 'when no Future is defined' do
+      before do
+        hide_const('Concurrent::Future')
+        hide_const('Concurrent::Promises::Future')
+      end
+
+      it { is_expected.to be false }
+    end
+
+    context 'when current Future is defined and deprecated Future is not defined' do
+      before do
+        hide_const('Concurrent::Future')
+        stub_const('Concurrent::Promises::Future', Class.new)
+      end
 
       it { is_expected.to be true }
     end
 
-    context 'when Concurrent::Future is not defined' do
-      before { hide_const('Concurrent::Future') }
+    context 'when both Future are defined' do
+      before do
+        stub_const('Concurrent::Future', Class.new)
+        stub_const('Concurrent::Promises::Future', Class.new)
+      end
 
-      it { is_expected.to be false }
+      it { is_expected.to be true }
+    end
+
+    context 'when current Future is not defined and deprecated Future is defined' do
+      before do
+        stub_const('Concurrent::Future', Class.new)
+        hide_const('Concurrent::Promises::Future')
+      end
+
+      it { is_expected.to be true }
     end
   end
 

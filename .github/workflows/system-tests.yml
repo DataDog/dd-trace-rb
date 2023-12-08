@@ -22,7 +22,7 @@ jobs:
     name: Build (${{ matrix.image }})
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
       - name: Pull released image
@@ -79,11 +79,11 @@ jobs:
     name: Build (${{ matrix.app }})
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
       - name: Checkout dd-trace-rb
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: 'binaries/dd-trace-rb'
       - name: Pull released image
@@ -171,6 +171,9 @@ jobs:
             app: rails70
             scenario: APPSEC_AUTO_EVENTS_EXTENDED
           - library: ruby
+            app: rails70
+            scenario: APPSEC_API_SECURITY
+          - library: ruby
             app: rack
             scenario: APPSEC_RULES_MONITORING_WITH_ERRORS
           - library: ruby
@@ -202,7 +205,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
       - name: Pull agent image
@@ -274,7 +277,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
       - name: Retrieve logs

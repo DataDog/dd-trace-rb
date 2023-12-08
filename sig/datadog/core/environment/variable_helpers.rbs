@@ -6,12 +6,6 @@ module Datadog
 
         def env_to_bool: (untyped var, ?untyped? default) -> untyped
 
-        def env_to_int: (untyped var, ?untyped? default) -> untyped
-
-        def env_to_float: (untyped var, ?untyped? default) -> untyped
-
-        def env_to_list: (untyped var, ?untyped default) -> untyped
-
         private
 
         def decode_array: (untyped var) -> untyped

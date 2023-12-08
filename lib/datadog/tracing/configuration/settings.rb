@@ -1,4 +1,5 @@
 require_relative '../../tracing/configuration/ext'
+require_relative '../../core/environment/variable_helpers'
 require_relative 'http'
 
 module Datadog
@@ -62,6 +63,7 @@ module Datadog
                       Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                       Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
                       Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
+                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
                     ]
                   )
                   o.after_set do |styles|
@@ -92,7 +94,10 @@ module Datadog
                   o.deprecated_env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD
                   o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT
                   # DEV-2.0: Change default value to `tracecontext, Datadog`.
-                  o.default [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG]
+                  o.default [
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
+                  ]
                   o.after_set do |styles|
                     # Modernize B3 options
                     # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
@@ -141,6 +146,17 @@ module Datadog
                     set_option(:propagation_inject_style, styles)
                   end
                 end
+
+                # Strictly stop at the first successfully serialized style.
+                # This prevents the tracer from enriching the extracted context with information from
+                # other valid propagations styles present in the request.
+                # @default `DD_TRACE_PROPAGATION_EXTRACT_FIRST` environment variable, otherwise `false`.
+                # @return [Boolean]
+                option :propagation_extract_first do |o|
+                  o.env Tracing::Configuration::Ext::Distributed::EXTRACT_FIRST
+                  o.default false
+                  o.type :bool
+                end
               end
 
               # Enable trace collection and span generation.
@@ -176,11 +192,11 @@ module Datadog
 
               # Enable 128 bit trace id generation.
               #
-              # @default `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` environment variable, otherwise `false`
+              # @default `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :trace_id_128_bit_generation_enabled do |o|
                 o.env Tracing::Configuration::Ext::ENV_TRACE_ID_128_BIT_GENERATION_ENABLED
-                o.default false
+                o.default true
                 o.type :bool
               end
 
@@ -371,6 +387,12 @@ module Datadog
                   o.env Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED
                 end
 
+                # Use async writer in test mode
+                option :async do |o|
+                  o.type :bool
+                  o.default false
+                end
+
                 option :trace_flush
 
                 option :writer_options do |o|
@@ -382,8 +404,8 @@ module Datadog
               # @see file:docs/GettingStarted.md#configuring-the-transport-layer Configuring the transport layer
               #
               # A {Proc} that configures a custom tracer transport.
-              # @yield Receives a {Datadog::Transport::HTTP} that can be modified with custom adapters and settings.
-              # @yieldparam [Datadog::Transport::HTTP] t transport to be configured.
+              # @yield Receives a {Datadog::Tracing::Transport::HTTP} that can be modified with custom adapters and settings.
+              # @yieldparam [Datadog::Tracing::Transport::HTTP] t transport to be configured.
               # @default `nil`
               # @return [Proc,nil]
               option :transport_options do |o|
@@ -425,7 +447,7 @@ module Datadog
                 option :enabled do |o|
                   o.type :bool
                   o.default do
-                    disabled = env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED)
+                    disabled = Core::Environment::VariableHelpers.env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED)
 
                     enabled = if disabled.nil?
                                 false
@@ -438,7 +460,7 @@ module Datadog
                               end
 
                     # ENABLED env var takes precedence over deprecated DISABLED
-                    env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_ENABLED, enabled)
+                    Core::Environment::VariableHelpers.env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_ENABLED, enabled)
                   end
                 end
 

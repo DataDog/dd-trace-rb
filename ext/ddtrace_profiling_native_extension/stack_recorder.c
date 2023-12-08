@@ -129,8 +129,6 @@
 static VALUE ok_symbol = Qnil; // :ok in Ruby
 static VALUE error_symbol = Qnil; // :error in Ruby
 
-static VALUE stack_recorder_class = Qnil;
-
 // Note: Please DO NOT use `VALUE_STRING` anywhere else, instead use `DDOG_CHARSLICE_C`.
 // `VALUE_STRING` is only needed because older versions of gcc (4.9.2, used in our Ruby 2.2 CI test images)
 // tripped when compiling `enabled_value_types` using `-std=gnu99` due to the extra cast that is included in
@@ -197,6 +195,7 @@ struct call_serialize_without_gvl_arguments {
 
 static VALUE _native_new(VALUE klass);
 static void initialize_slot_concurrency_control(struct stack_recorder_state *state);
+static void initialize_profiles(struct stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types);
 static void stack_recorder_typed_data_free(void *data);
 static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE cpu_time_enabled, VALUE alloc_samples_enabled);
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
@@ -216,7 +215,7 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
 static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */);
 
 void stack_recorder_init(VALUE profiling_module) {
-  stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
+  VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(stack_recorder_class, "Testing");
 
@@ -257,18 +256,25 @@ static const rb_data_type_t stack_recorder_typed_data = {
 static VALUE _native_new(VALUE klass) {
   struct stack_recorder_state *state = ruby_xcalloc(1, sizeof(struct stack_recorder_state));
 
+  // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
+  // being leaked.
+
   ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
 
   initialize_slot_concurrency_control(state);
   for (uint8_t i = 0; i < ALL_VALUE_TYPES_COUNT; i++) { state->position_for[i] = all_value_types_positions[i]; }
   state->enabled_values_count = ALL_VALUE_TYPES_COUNT;
 
+  // Note: At this point, slot_one_profile and slot_two_profile contain null pointers. Libdatadog validates pointers
+  // before using them so it's ok for us to go ahead and create the StackRecorder object.
+
+  VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
+
   // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
 
-  state->slot_one_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
-  state->slot_two_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+  initialize_profiles(state, sample_types);
 
-  return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
+  return stack_recorder;
 }
 
 static void initialize_slot_concurrency_control(struct stack_recorder_state *state) {
@@ -279,6 +285,28 @@ static void initialize_slot_concurrency_control(struct stack_recorder_state *sta
   ENFORCE_SUCCESS_GVL(pthread_mutex_lock(&state->slot_two_mutex));
 
   state->active_slot = 1;
+}
+
+static void initialize_profiles(struct stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types) {
+  ddog_prof_Profile_NewResult slot_one_profile_result =
+    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+
+  if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
+    rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
+  }
+
+  ddog_prof_Profile_NewResult slot_two_profile_result =
+    ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+
+  if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
+    // Uff! Though spot. We need to make sure to properly clean up the other profile as well first
+    ddog_prof_Profile_drop(&slot_one_profile_result.ok);
+    // And now we can raise...
+    rb_raise(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_error_details_and_drop(&slot_two_profile_result.err));
+  }
+
+  state->slot_one_profile = slot_one_profile_result.ok;
+  state->slot_two_profile = slot_two_profile_result.ok;
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -334,13 +362,11 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_insta
     state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_disabled_pos++;
   }
 
-  ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
-
   ddog_prof_Profile_drop(&state->slot_one_profile);
   ddog_prof_Profile_drop(&state->slot_two_profile);
 
-  state->slot_one_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
-  state->slot_two_profile = ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+  ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
+  initialize_profiles(state, sample_types);
 
   return Qtrue;
 }
@@ -387,9 +413,6 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
 
-  // This will raise on error
-  reset_profile(args.profile, /* start_time: */ NULL);
-
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
 }
 
@@ -399,7 +422,7 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   return rb_time_timespec_new(&time, utc);
 }
 
-void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, ddog_prof_Slice_Label labels) {
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -413,7 +436,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   uint8_t *position_for = state->position_for;
 
   metric_values[position_for[CPU_TIME_VALUE_ID]]      = values.cpu_time_ns;
-  metric_values[position_for[CPU_SAMPLES_VALUE_ID]]   = values.cpu_samples;
+  metric_values[position_for[CPU_SAMPLES_VALUE_ID]]   = values.cpu_or_wall_samples;
   metric_values[position_for[WALL_TIME_VALUE_ID]]     = values.wall_time_ns;
   metric_values[position_for[ALLOC_SAMPLES_VALUE_ID]] = values.alloc_samples;
 
@@ -422,8 +445,9 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     (ddog_prof_Sample) {
       .locations = locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
-      .labels = labels
-    }
+      .labels = labels.labels
+    },
+    labels.end_timestamp_ns
   );
 
   sampler_unlock_active_profile(active_slot);
@@ -452,7 +476,8 @@ static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
   args->profile = serializer_flip_active_and_inactive_slots(args->state);
-  args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */);
+  // Note: The profile gets reset by the serialize call
+  args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
   args->serialize_ran = true;
 
   return NULL; // Unused

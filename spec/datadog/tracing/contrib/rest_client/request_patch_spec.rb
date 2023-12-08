@@ -23,8 +23,8 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
       c.tracing.instrument :rest_client, configuration_options
     end
 
-    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.disable_net_connect! options }
-    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+    WebMock.disable_net_connect!(allow: agent_url)
+    WebMock.enable!(allow: agent_url)
   end
 
   around do |example|
@@ -300,7 +300,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
           request
 
           distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.span_id.to_s,
-                                          'X-Datadog-Trace-Id' => span.trace_id.to_s }
+                                          'X-Datadog-Trace-Id' => low_order_trace_id(span.trace_id).to_s }
 
           expect(a_request(:get, url).with(headers: distributed_tracing_headers)).to have_been_made
         end

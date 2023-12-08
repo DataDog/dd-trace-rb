@@ -2,8 +2,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/lograge/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Lograge::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:lograge) }
 
   describe '.version' do

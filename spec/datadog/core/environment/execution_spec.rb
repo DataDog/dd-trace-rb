@@ -39,15 +39,15 @@ RSpec.describe Datadog::Core::Environment::Execution do
         end
       end
 
-      let(:repl_script) do
+      let!(:repl_script) do
+        lib = File.expand_path('lib')
         <<-RUBY
           # Load the working directory version of `ddtrace`
-          lib = File.expand_path('lib', __dir__)
-          $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+          $LOAD_PATH.unshift("#{lib}") unless $LOAD_PATH.include?("#{lib}")
           require 'datadog/core/environment/execution'
 
           # Print actual value to STDERR, as STDOUT tends to have more noise in REPL sessions.
-          STDERR.print Datadog::Core::Environment::Execution.development?
+          STDERR.print "ACTUAL:\#{Datadog::Core::Environment::Execution.development?}"
         RUBY
       end
 
@@ -71,7 +71,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
             f.close
 
             out, = Open3.capture2e('pry', '-f', '--noprompt', f.path)
-            expect(out).to eq('true')
+            expect(out).to eq('ACTUAL:true')
           end
         end
       end
@@ -121,6 +121,69 @@ RSpec.describe Datadog::Core::Environment::Execution do
         it 'returns true' do
           _, err, = Open3.capture3('ruby', stdin_data: script)
           expect(err).to end_with('true')
+        end
+      end
+
+      context 'for Rails' do
+        context 'not loaded' do
+          it { is_expected.to eq(false) }
+        end
+
+        context 'with environment' do
+          before { stub_const('Rails', rails) }
+          let(:rails) { double('Rails', env: env) }
+
+          context 'development' do
+            let(:env) { 'development' }
+            it { is_expected.to eq(true) }
+          end
+
+          context 'test' do
+            let(:env) { 'test' }
+            it { is_expected.to eq(true) }
+          end
+
+          context 'production' do
+            let(:env) { 'production' }
+            it { is_expected.to eq(false) }
+          end
+        end
+      end
+
+      context 'for Cucumber' do
+        before do
+          unless PlatformHelpers.ci? || Gem.loaded_specs['cucumber']
+            skip('cucumber gem not present. In CI, this test is never skipped.')
+          end
+        end
+
+        let(:script) do
+          <<-'RUBY'
+            require 'bundler/inline'
+
+            gemfile(true) do
+              source 'https://rubygems.org'
+              gem 'cucumber', '>= 3'
+            end
+
+            load Gem.bin_path('cucumber', 'cucumber')
+          RUBY
+        end
+
+        it 'returns true' do
+          Dir.mktmpdir do |dir|
+            Dir.chdir(dir) do
+              FileUtils.mkdir_p('features/support')
+
+              # Add our script to `env.rb`, which is always run before any feature is executed.
+              File.write('features/support/env.rb', repl_script)
+
+              _, err = Bundler.with_clean_env do
+                Open3.capture3('ruby', stdin_data: script)
+              end
+              expect(err).to include('ACTUAL:true')
+            end
+          end
         end
       end
     end

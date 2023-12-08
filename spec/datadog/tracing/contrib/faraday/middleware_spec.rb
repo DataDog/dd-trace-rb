@@ -106,7 +106,7 @@ RSpec.describe 'Faraday middleware' do
       before do
         # We mock HTTP requests we we can't configure
         # the test adapter for the default connection
-        call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+        WebMock.enable!(allow: agent_url)
         stub_request(:get, /example.com/).to_return(status: 200)
       end
 
@@ -362,7 +362,7 @@ RSpec.describe 'Faraday middleware' do
 
     it do
       expect(headers).to include(
-        'x-datadog-trace-id' => span.trace_id.to_s,
+        'x-datadog-trace-id' => low_order_trace_id(span.trace_id).to_s,
         'x-datadog-parent-id' => span.span_id.to_s
       )
     end

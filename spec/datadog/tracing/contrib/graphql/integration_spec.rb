@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/graphql/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::GraphQL::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:graphql) }
 
   describe '.version' do

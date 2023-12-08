@@ -53,7 +53,7 @@ module Datadog
           @idle_sampling_helper = idle_sampling_helper
         end
 
-        def start
+        def start(on_failure_proc: nil)
           @start_stop_mutex.synchronize do
             return if @worker_thread && @worker_thread.alive?
 
@@ -74,19 +74,17 @@ module Datadog
                   'CpuAndWallTimeWorker thread error. ' \
                   "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
                 )
+                on_failure_proc&.call
               end
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
+            @worker_thread.thread_variable_set(:fork_safe, true)
           end
 
           true
         end
 
-        # TODO: Provided only for compatibility with the API for Collectors::OldStack used in the Profiler class.
-        # Can be removed once we remove OldStack.
-        def enabled=(_); end
-
-        def stop(*_unused)
+        def stop
           @start_stop_mutex.synchronize do
             Datadog.logger.debug('Requesting CpuAndWallTimeWorker thread shut down')
 

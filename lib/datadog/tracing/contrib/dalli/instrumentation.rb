@@ -50,8 +50,10 @@ module Datadog
 
                 span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
-                cmd = Quantize.format_command(op, args)
-                span.set_tag(Ext::TAG_COMMAND, cmd)
+                if datadog_configuration[:command_enabled]
+                  cmd = Quantize.format_command(op, args)
+                  span.set_tag(Ext::TAG_COMMAND, cmd)
+                end
 
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                 super

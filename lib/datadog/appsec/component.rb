@@ -3,6 +3,7 @@
 require_relative 'processor'
 require_relative 'processor/rule_merger'
 require_relative 'processor/rule_loader'
+require_relative 'processor/actions'
 
 module Datadog
   module AppSec
@@ -13,12 +14,12 @@ module Datadog
           return unless settings.respond_to?(:appsec) && settings.appsec.enabled
 
           processor = create_processor(settings)
+
           # We want to always instrument user events when AppSec is enabled.
           # There could be cases in which users use the DD_APPSEC_ENABLED Env variable to
           # enable AppSec, in that case, Devise is already instrumented.
           # In the case that users do not use DD_APPSEC_ENABLED, we have to instrument it,
           # hence the lines above.
-
           devise_integration = Datadog::AppSec::Contrib::Devise::Integration.new
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
@@ -31,14 +32,21 @@ module Datadog
           rules = AppSec::Processor::RuleLoader.load_rules(ruleset: settings.appsec.ruleset)
           return nil unless rules
 
+          actions = rules['actions']
+
+          AppSec::Processor::Actions.merge(actions) if actions
+
           data = AppSec::Processor::RuleLoader.load_data(
             ip_denylist: settings.appsec.ip_denylist,
-            user_id_denylist: settings.appsec.user_id_denylist
+            user_id_denylist: settings.appsec.user_id_denylist,
           )
+
+          exclusions = AppSec::Processor::RuleLoader.load_exclusions(ip_passlist: settings.appsec.ip_passlist)
 
           ruleset = AppSec::Processor::RuleMerger.merge(
             rules: [rules],
             data: data,
+            exclusions: exclusions,
           )
 
           processor = Processor.new(ruleset: ruleset)
@@ -55,8 +63,10 @@ module Datadog
         @mutex = Mutex.new
       end
 
-      def reconfigure(ruleset:)
+      def reconfigure(ruleset:, actions:)
         @mutex.synchronize do
+          AppSec::Processor::Actions.merge(actions)
+
           new = Processor.new(ruleset: ruleset)
 
           if new && new.ready?

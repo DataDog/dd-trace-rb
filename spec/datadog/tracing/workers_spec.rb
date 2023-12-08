@@ -39,7 +39,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
     end
   end
 
-  describe 'thread naming' do
+  describe 'thread naming and fork-safety marker' do
     context 'on Ruby < 2.3' do
       before do
         skip 'Only applies to old Rubies' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
@@ -65,11 +65,50 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
         expect(worker.instance_variable_get(:@worker).name).to eq described_class.name
       end
     end
+
+    # See https://github.com/puma/puma/blob/32e011ab9e029c757823efb068358ed255fb7ef4/lib/puma/cluster.rb#L353-L359
+    it 'marks the worker thread as fork-safe (to avoid fork-safety warnings in webservers)' do
+      worker.start
+
+      expect(worker.instance_variable_get(:@worker).thread_variable_get(:fork_safe)).to be true
+    end
   end
 
   describe '#start' do
     it 'returns nil' do
       expect(worker.start).to be nil
+    end
+  end
+
+  describe '#stop' do
+    before { skip if PlatformHelpers.jruby? } # DEV: this test causes jruby-9.2 to fail
+
+    it 'stops underlying thread with default timeout' do
+      expect_any_instance_of(Thread).to receive(:join).with(
+        Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT
+      ).and_call_original
+
+      worker.start
+      worker.stop
+    end
+
+    context 'with shutdown timeout configured' do
+      let(:worker) do
+        described_class.new(
+          transport: nil,
+          buffer_size: 100,
+          on_trace: task,
+          interval: 0.5,
+          shutdown_timeout: 1000
+        )
+      end
+
+      it 'stops underlying thread with configured timeout' do
+        expect_any_instance_of(Thread).to receive(:join).with(1000).and_call_original
+
+        worker.start
+        worker.stop
+      end
     end
   end
 end

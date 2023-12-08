@@ -1,9 +1,0 @@
-module Datadog
-  module Transport
-    class Request
-      attr_reader parcel: untyped
-
-      def initialize: (?untyped? parcel) -> void
-    end
-  end
-end

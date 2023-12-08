@@ -6,18 +6,22 @@ require 'datadog/appsec/scope'
 require 'rack'
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
+  let(:body) { ['Ok'] }
+  let(:content_type) { 'text/html' }
+  let(:headers) { { 'Content-Type' => content_type } }
+
   let(:response) do
     described_class.new(
-      'Ok',
+      body,
       200,
-      { 'Content-Type' => 'text/html' },
+      headers,
       scope: instance_double(Datadog::AppSec::Scope)
     )
   end
 
   describe '#body' do
     it 'returns the body' do
-      expect(response.body).to eq('Ok')
+      expect(response.body).to eq(['Ok'])
     end
   end
 

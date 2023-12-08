@@ -61,18 +61,29 @@ module Datadog
               end
             end
 
-            if request_response && request_response.any? { |action, _event| action == :block }
-              request_return = AppSec::Response.negotiate(env).to_rack
+            if request_response
+              blocked_event = request_response.find { |action, _options| action == :block }
+              request_return = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_rack if blocked_event
             end
 
             gateway_response = Gateway::Response.new(
               request_return[2],
               request_return[0],
               request_return[1],
-              scope: scope
+              scope: scope,
             )
 
             _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
+
+            result = scope.processor_context.extract_schema
+
+            if result
+              scope.processor_context.events << {
+                trace: scope.trace,
+                span: scope.service_entry_span,
+                waf_result: result,
+              }
+            end
 
             scope.processor_context.events.each do |e|
               e[:response] ||= gateway_response
@@ -81,8 +92,9 @@ module Datadog
 
             AppSec::Event.record(scope.service_entry_span, *scope.processor_context.events)
 
-            if response_response && response_response.any? { |action, _event| action == :block }
-              request_return = AppSec::Response.negotiate(env).to_rack
+            if response_response
+              blocked_event = response_response.find { |action, _options| action == :block }
+              request_return = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_rack if blocked_event
             end
 
             request_return

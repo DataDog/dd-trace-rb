@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../core/utils/duration'
+require_relative '../sample_rate'
 
 module Datadog
   module AppSec
@@ -51,6 +52,10 @@ module Datadog
               option :ruleset do |o|
                 o.env 'DD_APPSEC_RULES'
                 o.default :recommended
+              end
+
+              option :ip_passlist do |o|
+                o.default []
               end
 
               option :ip_denylist do |o|
@@ -166,6 +171,24 @@ module Datadog
                       )
                       'safe'
                     end
+                  end
+                end
+              end
+
+              settings :api_security do
+                option :enabled do |o|
+                  o.type :bool
+                  o.env 'DD_EXPERIMENTAL_API_SECURITY_ENABLED'
+                  o.default false
+                end
+
+                option :sample_rate do |o|
+                  o.type :float
+                  o.env 'DD_API_SECURITY_REQUEST_SAMPLE_RATE'
+                  o.default 0.1
+                  o.setter do |value|
+                    value = 1 if value > 1
+                    SampleRate.new(value)
                   end
                 end
               end

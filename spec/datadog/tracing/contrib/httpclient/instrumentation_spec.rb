@@ -231,7 +231,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
           end
 
           it 'propogrates the trace id header' do
-            expect(http_response.headers['X-Datadog-Trace-Id']).to eq(span.trace_id.to_s)
+            expect(http_response.headers['X-Datadog-Trace-Id']).to eq(low_order_trace_id(span.trace_id).to_s)
           end
         end
 

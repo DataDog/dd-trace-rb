@@ -86,6 +86,19 @@ module Datadog
             rescue StandardError => e
               Datadog.logger.debug("GRPC server trace failed: #{e}")
             end
+
+            def error_handler
+              self_handler = Datadog.configuration_for(self, :error_handler)
+              return self_handler if self_handler
+
+              unless datadog_configuration.using_default?(:server_error_handler)
+                return datadog_configuration[:server_error_handler]
+              end
+
+              # As a last resort, fallback to the deprecated error_handler
+              # configuration option.
+              datadog_configuration[:error_handler]
+            end
           end
         end
       end

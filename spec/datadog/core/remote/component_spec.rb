@@ -59,7 +59,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       let(:negotiation) { double }
 
       before do
-        expect(Datadog::Core::Transport::HTTP).to receive(:v7).and_return(transport_v7)
+        expect(Datadog::Core::Remote::Transport::HTTP).to receive(:v7).and_return(transport_v7)
         expect(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
         allow(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
 

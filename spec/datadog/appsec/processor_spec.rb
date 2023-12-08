@@ -127,7 +127,10 @@ RSpec.describe Datadog::AppSec::Processor do
 end
 
 RSpec.describe Datadog::AppSec::Processor::Context do
-  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended) }
+  let(:ruleset) do
+    rules = Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended)
+    Datadog::AppSec::Processor::RuleMerger.merge(rules: [rules])
+  end
 
   let(:input_safe) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Ruby' } } }
   let(:input_sqli) { { 'server.request.query' => { 'q' => '1 OR 1;' } } }
@@ -214,6 +217,80 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       matches.map(&:actions)
     end
 
+    context 'clear key with empty values' do
+      it 'removes nil values' do
+        input = {
+          'nil_value' => nil,
+          'string_value' => 'hello'
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          {
+            'string_value' => 'hello'
+          },
+          timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+
+      it 'do not removes boolean values' do
+        input = {
+          'false_value' => false,
+          'true_value' => true
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          input, timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+
+      it 'removes empty string values' do
+        input = {
+          'empty_string_value' => '',
+          'string_value' => 'hello'
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          {
+            'string_value' => 'hello'
+          },
+          timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+
+      it 'removes empty arrays values' do
+        input = {
+          'empty_array' => [],
+          'non_empty_array_value' => [1, 2],
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          {
+            'non_empty_array_value' => [1, 2]
+          },
+          timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+
+      it 'removes empty hash values' do
+        input = {
+          'empty_hash' => {},
+          'non_empty_hash_value' => { 'hello' => 'world' },
+        }
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          {
+            'non_empty_hash_value' => { 'hello' => 'world' }
+          },
+          timeout
+        ).and_call_original
+
+        context.run(input, timeout)
+      end
+    end
+
     context 'no attack' do
       let(:input) { input_safe }
 
@@ -289,6 +366,59 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       it { expect(matches).to have_attributes(count: 1) }
       it { expect(events).to have_attributes(count: 1) }
       it { expect(actions).to eq [['block']] }
+    end
+  end
+
+  describe '#extract_schema' do
+    context 'when extrct_schema? returns true' do
+      around do |example|
+        ClimateControl.modify(
+          'DD_EXPERIMENTAL_API_SECURITY_ENABLED' => 'true',
+          'DD_API_SECURITY_REQUEST_SAMPLE_RATE' => '1'
+        ) do
+          example.run
+        end
+      end
+
+      it 'calls the the WAF with the right arguments' do
+        input = {
+          'waf.context.processor' => {
+            'extract-schema' => true
+          }
+        }
+
+        dummy_code = 1
+        dummy_result = 2
+
+        expect(context.instance_variable_get(:@context)).to receive(:run).with(
+          input,
+          Datadog::AppSec::WAF::LibDDWAF::DDWAF_RUN_TIMEOUT
+        ).and_return([dummy_code, dummy_result])
+
+        expect(context.extract_schema).to eq dummy_result
+      end
+
+      it 'returns schema extraction information' do
+        input = { 'server.request.query' => { 'vin' => '4Y1SL65848Z411439' } }
+        context.run(input, timeout)
+
+        results = context.extract_schema
+        derivatives = results.derivatives
+        expect(derivatives).to_not be_empty
+        expect(derivatives['_dd.appsec.s.req.query']).to eq([{ 'vin' => [8, { 'category' => 'pii', 'type' => 'vin' }] }])
+      end
+    end
+
+    context 'when extrct_schema? returns false' do
+      around do |example|
+        ClimateControl.modify('DD_EXPERIMENTAL_API_SECURITY_ENABLED' => 'false') do
+          example.run
+        end
+      end
+
+      it 'returns nil' do
+        expect(context.extract_schema).to be_nil
+      end
     end
   end
 end

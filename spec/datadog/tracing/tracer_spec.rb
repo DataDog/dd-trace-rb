@@ -18,7 +18,7 @@ require 'datadog/tracing/utils'
 require 'datadog/tracing/writer'
 
 RSpec.describe Datadog::Tracing::Tracer do
-  let(:writer) { FauxWriter.new disable_test_agent: true }
+  let(:writer) { FauxWriter.new }
   let(:tracer_options) { {} }
 
   subject(:tracer) { described_class.new(writer: writer, **tracer_options) }
@@ -736,10 +736,10 @@ RSpec.describe Datadog::Tracing::Tracer do
           example.run
         end
       end
-
       it 'produces an Identifier with data' do
         is_expected.to be_a_kind_of(Datadog::Tracing::Correlation::Identifier)
-        expect(active_correlation.trace_id).to eq(span.trace_id)
+        expect(active_correlation.trace_id)
+          .to eq(low_order_trace_id(span.trace_id))
         expect(active_correlation.span_id).to eq(span.span_id)
       end
     end

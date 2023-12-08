@@ -80,7 +80,7 @@ RSpec.describe 'Redis instrumentation test' do
 
         # Select the designated database first
         expect(select_db_span).to be_a_redis_span.with(
-          resource: "SELECT #{test_database}",
+          resource: 'SELECT',
           service: 'multiplex-service',
           raw_command: "SELECT #{test_database}",
           host: test_host,
@@ -89,7 +89,7 @@ RSpec.describe 'Redis instrumentation test' do
         )
 
         expect(span).to be_a_redis_span.with(
-          resource: 'SET abc 123',
+          resource: 'SET',
           service: 'multiplex-service',
           raw_command: 'SET abc 123',
           host: test_host,
@@ -130,7 +130,7 @@ RSpec.describe 'Redis instrumentation test' do
 
         # Select the designated database first
         expect(select_db_span).to be_a_redis_span.with(
-          resource: "SELECT #{test_database}",
+          resource: 'SELECT',
           service: 'multiplex-service',
           raw_command: "SELECT #{test_database}",
           host: test_host,
@@ -139,7 +139,7 @@ RSpec.describe 'Redis instrumentation test' do
         )
 
         expect(span).to be_a_redis_span.with(
-          resource: 'SET abc 123',
+          resource: 'SET',
           service: 'multiplex-service',
           raw_command: 'SET abc 123',
           host: test_host,

@@ -58,9 +58,12 @@ static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
 }
 
 rb_nativethread_id_t pthread_id_for(VALUE thread) {
-  // struct rb_native_thread was introduced in Ruby 3.2 (preview2): https://github.com/ruby/ruby/pull/5836
+  // struct rb_native_thread was introduced in Ruby 3.2: https://github.com/ruby/ruby/pull/5836
   #ifndef NO_RB_NATIVE_THREAD
-    return thread_struct_from_object(thread)->nt->thread_id;
+    struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
+    // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
+    if (native_thread == NULL) return 0;
+    return native_thread->thread_id;
   #else
     return thread_struct_from_object(thread)->thread_id;
   #endif
@@ -82,6 +85,16 @@ bool is_current_thread_holding_the_gvl(void) {
   return owner.valid && pthread_equal(pthread_self(), owner.owner);
 }
 
+#ifdef HAVE_RUBY_RACTOR_H
+  static inline rb_ractor_t *ddtrace_get_ractor(void) {
+    #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY // Ruby >= 3.3
+      return thread_struct_from_object(rb_thread_current())->ractor;
+    #else
+      return GET_RACTOR();
+    #endif
+  }
+#endif
+
 #ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
   // NOTE: Reading the owner in this is a racy read, because we're not grabbing the lock that Ruby uses to protect it.
   //
@@ -94,24 +107,25 @@ bool is_current_thread_holding_the_gvl(void) {
   current_gvl_owner gvl_owner(void) {
     const rb_thread_t *current_owner =
       #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
-        GET_RACTOR()->threads.sched.running;
+        ddtrace_get_ractor()->threads.sched.running;
       #elif HAVE_RUBY_RACTOR_H
-        GET_RACTOR()->threads.gvl.owner;
+        ddtrace_get_ractor()->threads.gvl.owner;
       #else
         GET_VM()->gvl.owner;
       #endif
 
     if (current_owner == NULL) return (current_gvl_owner) {.valid = false};
 
-    return (current_gvl_owner) {
-      .valid = true,
-      .owner =
-        #ifndef NO_RB_NATIVE_THREAD
-          current_owner->nt->thread_id
-        #else
-          current_owner->thread_id
-        #endif
-    };
+    #ifndef NO_RB_NATIVE_THREAD
+      struct rb_native_thread* current_owner_native_thread = current_owner->nt;
+
+      // This can be NULL on Ruby 3.3 with MN threads (RUBY_MN_THREADS=1)
+      if (current_owner_native_thread == NULL) return (current_gvl_owner) {.valid = false};
+
+      return (current_gvl_owner) {.valid = true, .owner = current_owner_native_thread->thread_id};
+    #else
+      return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+    #endif
   }
 #else
   current_gvl_owner gvl_owner(void) {
@@ -172,7 +186,9 @@ uint64_t native_thread_id_for(VALUE thread) {
   // The tid is only available on Ruby >= 3.1 + Linux (and FreeBSD). It's the same as `gettid()` aka the task id as seen in /proc
   #if !defined(NO_THREAD_TID) && defined(RB_THREAD_T_HAS_NATIVE_ID)
     #ifndef NO_RB_NATIVE_THREAD
-      return thread_struct_from_object(thread)->nt->tid;
+      struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
+      if (native_thread == NULL) rb_raise(rb_eRuntimeError, "BUG: rb_native_thread* is null. Is this Ruby running with RUBY_MN_THREADS=1?");
+      return native_thread->tid;
     #else
       return thread_struct_from_object(thread)->tid;
     #endif
@@ -234,7 +250,7 @@ void ddtrace_thread_list(VALUE result_array) {
   // I suspect the design in `rb_ractor_thread_list` may be done that way to perhaps in the future expose it to be
   // called from a different Ractor, but I'm not sure...
   #ifdef HAVE_RUBY_RACTOR_H
-    rb_ractor_t *current_ractor = GET_RACTOR();
+    rb_ractor_t *current_ractor = ddtrace_get_ractor();
     ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
   #else
     rb_vm_t *vm =
@@ -397,6 +413,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   the `VALUE` returned by rb_profile_frames returns `(eval)` instead of the path of the file where the `eval`
 //   was called from.
 // * Imported fix from https://github.com/ruby/ruby/pull/7116 to avoid sampling threads that are still being created
+// * Imported fix from https://github.com/ruby/ruby/pull/8415 to avoid potential crash when using YJIT.
 //
 // What is rb_profile_frames?
 // `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
@@ -432,12 +449,15 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
     // support sampling any thread (including the current) passed as an argument
     rb_thread_t *th = thread_struct_from_object(thread);
-#ifndef USE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT // Modern Rubies
-    const rb_execution_context_t *ec = th->ec;
-#else // Ruby < 2.5
-    const rb_thread_t *ec = th;
-#endif
+    #ifndef USE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT // Modern Rubies
+      const rb_execution_context_t *ec = th->ec;
+    #else // Ruby < 2.5
+      const rb_thread_t *ec = th;
+    #endif
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+    #ifndef NO_JIT_RETURN
+      const rb_control_frame_t *top = cfp;
+    #endif
     const rb_callable_method_entry_t *cme;
 
     // Avoid sampling dead threads
@@ -512,7 +532,20 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
                 buff[i] = (VALUE)cfp->iseq;
             }
 
-            lines[i] = calc_lineno(cfp->iseq, cfp->pc);
+            // The topmost frame may not have an updated PC because the JIT
+            // may not have set one.  The JIT compiler will update the PC
+            // before entering a new function (so that `caller` will work),
+            // so only the topmost frame could possibly have an out of date PC
+            #ifndef NO_JIT_RETURN
+              if (cfp == top && cfp->jit_return) {
+                lines[i] = 0;
+              } else {
+                lines[i] = calc_lineno(cfp->iseq, cfp->pc);
+              }
+            #else // Ruby < 3.1
+              lines[i] = calc_lineno(cfp->iseq, cfp->pc);
+            #endif
+
             is_ruby_frame[i] = true;
             i++;
         }
@@ -736,15 +769,10 @@ check_method_entry(VALUE obj, int can_be_svar)
     // versions, so we need to do a bit more work.
     struct rb_ractor_struct *ruby_single_main_ractor = NULL;
 
-    // Taken from upstream ractor.c at commit a1b01e7701f9fc370f8dff777aad6d39a2c5a3e3 (May 2023, Ruby 3.3.0-preview1)
-    // to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
-    // Modifications:
-    // * None
-    bool rb_ractor_main_p_(void)
-    {
-        VM_ASSERT(rb_multi_ractor_p());
-        rb_execution_context_t *ec = GET_EC();
-        return rb_ec_ractor_ptr(ec) == rb_ec_vm_ptr(ec)->ractor.main_ractor;
+    // Alternative implementation of rb_ractor_main_p_ that avoids relying on non-public symbols
+    bool rb_ractor_main_p_(void) {
+      // We need to get the main ractor in a bit of a roundabout way, since Ruby >= 3.3 hid `GET_VM()`
+      return ddtrace_get_ractor() == thread_struct_from_object(rb_thread_current())->vm->ractor.main_ractor;
     }
   #else
     // Directly access Ruby internal fast path for detecting multiple Ractors.
@@ -806,3 +834,40 @@ VALUE invoke_location_for(VALUE thread, int *line_location) {
   *line_location = NUM2INT(rb_iseq_first_lineno(iseq));
   return rb_iseq_path(iseq);
 }
+
+void self_test_mn_enabled(void) {
+  #ifdef NO_MN_THREADS_AVAILABLE
+    return;
+  #else
+    if (ddtrace_get_ractor()->threads.sched.enable_mn_threads == true) {
+      rb_raise(rb_eRuntimeError, "Ruby VM is running with RUBY_MN_THREADS=1. This is not yet supported");
+    }
+  #endif
+}
+
+// Taken from upstream imemo.h at commit 6ebcf25de2859b5b6402b7e8b181066c32d0e0bf (November 2023, master branch)
+// (See the Ruby project copyright and license above)
+// to enable calling rb_imemo_name
+//
+// Modifications:
+// * Added IMEMO_MASK define
+// * Changed return type to int to avoid having to define `enum imemo_type`
+static inline int ddtrace_imemo_type(VALUE imemo) {
+  // This mask is the same between Ruby 2.5 and 3.3-preview3. Furthermore, the intention of this method is to be used
+  // to call `rb_imemo_name` which correctly handles invalid numbers so even if the mask changes in the future, at most
+  // we'll get incorrect results (and never a VM crash)
+  #define IMEMO_MASK   0x0f
+  return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
+}
+
+// Safety: This function assumes the object passed in is of the imemo type. But in the worst case, you'll just get
+// a string that doesn't make any sense.
+#ifndef NO_IMEMO_NAME
+  const char *imemo_kind(VALUE imemo) {
+    return rb_imemo_name(ddtrace_imemo_type(imemo));
+  }
+#else
+  const char *imemo_kind(__attribute__((unused)) VALUE imemo) {
+    return NULL;
+  }
+#endif

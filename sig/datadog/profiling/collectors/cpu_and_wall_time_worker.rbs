@@ -28,10 +28,9 @@ module Datadog
           ::Integer allocation_sample_every,
         ) -> true
 
-        def start: () -> bool?
-        def enabled=: (untyped) -> void
+        def start: (?on_failure_proc: ::Proc?) -> bool?
 
-        def stop: (*untyped _unused) -> void
+        def stop: () -> void
         def self._native_stop: (CpuAndWallTimeWorker self_instance, ::Thread worker_thread) -> true
 
         def reset_after_fork: () -> true

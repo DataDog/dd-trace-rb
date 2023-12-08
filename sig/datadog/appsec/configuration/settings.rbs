@@ -3,7 +3,6 @@ module Datadog
     module Configuration
       # Settings
       module Settings
-        extend Datadog::Core::Environment::VariableHelpers
         extend Datadog::Core::Configuration::Base::ClassMethods
         include Datadog::Core::Configuration::Base::InstanceMethods
         extend Datadog::Core::Configuration::Options::ClassMethods

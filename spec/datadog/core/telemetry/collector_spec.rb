@@ -9,7 +9,7 @@ require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/product'
-require 'ddtrace/transport/ext'
+require 'datadog/core/transport/ext'
 require 'datadog/profiling/profiler'
 
 require 'ddtrace'
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       end
 
       context 'when adapter is type :unix' do
-        let(:adapter_type) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
+        let(:adapter_type) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
 
         before do
           allow(Datadog::Core::Configuration::AgentSettingsResolver)
@@ -292,6 +292,14 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       end
 
       it { is_expected.to include('tracing.opentelemetry.enabled' => true) }
+    end
+
+    context 'when OpenTracing is enabled' do
+      before do
+        stub_const('Datadog::OpenTracer::LOADED', true)
+      end
+
+      it { is_expected.to include('tracing.opentracing.enabled' => true) }
     end
   end
 

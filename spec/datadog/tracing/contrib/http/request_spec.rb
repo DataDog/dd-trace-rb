@@ -13,7 +13,7 @@ require 'time'
 require 'json'
 
 RSpec.describe 'net/http requests' do
-  before { call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options } }
+  before { WebMock.enable!(allow: agent_url) }
 
   after do
     WebMock.reset!
@@ -267,7 +267,7 @@ RSpec.describe 'net/http requests' do
     end
 
     describe 'integration' do
-      let(:transport) { Datadog::Transport::HTTP.default }
+      let(:transport) { Datadog::Tracing::Transport::HTTP.default }
 
       it 'does not create a span for the transport request' do
         expect(Datadog::Tracing).to_not receive(:trace)
@@ -377,7 +377,7 @@ RSpec.describe 'net/http requests' do
         let(:distributed_tracing_headers) do
           {
             'x-datadog-parent-id' => span.span_id,
-            'x-datadog-trace-id' => span.trace_id,
+            'x-datadog-trace-id' => low_order_trace_id(span.trace_id),
             'x-datadog-sampling-priority' => sampling_priority
           }
         end
@@ -423,7 +423,7 @@ RSpec.describe 'net/http requests' do
         let(:distributed_tracing_headers) do
           {
             'x-datadog-parent-id' => span.span_id,
-            'x-datadog-trace-id' => span.trace_id,
+            'x-datadog-trace-id' => low_order_trace_id(span.trace_id),
             'x-datadog-sampling-priority' => sampling_priority
           }
         end
@@ -539,7 +539,7 @@ RSpec.describe 'net/http requests' do
 
   context 'when basic auth in url' do
     before do
-      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+      WebMock.enable!(allow: agent_url)
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 
@@ -557,7 +557,7 @@ RSpec.describe 'net/http requests' do
 
   context 'when query string in url' do
     before do
-      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+      WebMock.enable!(allow: agent_url)
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 

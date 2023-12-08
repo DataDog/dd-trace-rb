@@ -1,8 +1,11 @@
 require 'datadog/profiling/spec_helper'
-require 'datadog/profiling/collectors/cpu_and_wall_time_worker'
 
-RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
+RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   before { skip_if_profiling_not_supported(self) }
+
+  # This is needed because this class uses syntax that doesn't work on Ruby 2.1/2.2; we can undo this once dd-trace-rb
+  # drops support for these Rubies globally
+  let(:described_class) { Datadog::Profiling::Collectors::CpuAndWallTimeWorker }
 
   let(:recorder) { build_stack_recorder }
   let(:endpoint_collection_enabled) { true }
@@ -66,6 +69,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       expect(Thread.list.map(&:name)).to include(described_class.name)
+    end
+
+    # See https://github.com/puma/puma/blob/32e011ab9e029c757823efb068358ed255fb7ef4/lib/puma/cluster.rb#L353-L359
+    it 'marks the new thread as fork-safe' do
+      start
+
+      expect(cpu_and_wall_time_worker.instance_variable_get(:@worker_thread).thread_variable_get(:fork_safe)).to be true
     end
 
     it 'does not create a second thread if start is called again' do
@@ -403,13 +413,31 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             .map { |it| it.values.fetch(:'cpu-samples') }
             .reduce(:+)
 
+        # Since we're reading the stats AFTER the worker is stopped, we expect a consistent view, as otherwise we
+        # would have races (e.g. the stats could be changing as we're trying to read them, since it's on a background
+        # thread that doesn't hold the Global VM Lock while mutating some of these values)
         stats = cpu_and_wall_time_worker.stats
+        trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
 
         expect(sample_count).to be > 0
-        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:trigger_simulated_signal_delivery_attempts))
-        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:simulated_signal_delivery))
-        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:signal_handler_enqueued_sample))
-        expect(stats.fetch(:trigger_sample_attempts)).to eq(stats.fetch(:postponed_job_success))
+        expect(stats).to(
+          match(
+            a_hash_including(
+              trigger_simulated_signal_delivery_attempts: trigger_sample_attempts,
+              simulated_signal_delivery: trigger_sample_attempts,
+              signal_handler_enqueued_sample: trigger_sample_attempts,
+              # @ivoanjo: A flaky test run was reported for this assertion -- a case where `trigger_sample_attempts` was 1
+              # but `postponed_job_success` was 0 (on Ruby 2.6).
+              # See https://app.circleci.com/pipelines/github/DataDog/dd-trace-rb/11866/workflows/08660eeb-0746-4675-87fd-33d473a3f479/jobs/445903
+              # At the time, the test didn't print the full `stats` contents, so it's unclear to me if the test failed
+              # because the postponed job API returned something other than success, or if something else entirely happened.
+              # If/when it happens again, hopefully the extra debugging + this info helps out with the investigation.
+              postponed_job_success: trigger_sample_attempts,
+            )
+          ),
+          "**If you see this test flaking, please report it to @ivoanjo!**\n\n" \
+          "sample_count: #{sample_count}, samples: #{all_samples}"
+        )
       end
     end
 
@@ -458,6 +486,56 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           expect(Time.new.strftime(String.new('Potato'))).to_not be nil
         end
       end
+
+      context 'T_IMEMO internal VM objects' do
+        let(:something_that_triggers_creation_of_imemo_objects) do
+          eval('proc { def self.foo; rand; end; foo }.call') # rubocop:disable Style/EvalWithLocation
+        end
+
+        context 'on Ruby 2.x' do
+          before { skip 'Behavior only applies on Ruby 2.x' unless RUBY_VERSION.start_with?('2.') }
+
+          it 'records internal VM objects, not including their specific kind' do
+            start
+
+            something_that_triggers_creation_of_imemo_objects
+
+            cpu_and_wall_time_worker.stop
+
+            imemo_samples =
+              samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
+                .select { |s| s.labels.fetch(:'allocation class', '') == '(VM Internal, T_IMEMO)' }
+
+            expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
+          end
+        end
+
+        context 'on Ruby 3.x' do
+          before { skip 'Behavior only applies on Ruby 3.x' if RUBY_VERSION.start_with?('2.') }
+
+          it 'records internal VM objects, including their specific kind' do
+            start
+
+            something_that_triggers_creation_of_imemo_objects
+
+            cpu_and_wall_time_worker.stop
+
+            imemo_samples =
+              samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
+                .select { |s| s.labels.fetch(:'allocation class', '').start_with?('(VM Internal, T_IMEMO') }
+
+            expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
+
+            # To avoid coupling too much on VM internals we check that at each of the found allocation classes are
+            # a known member of the imemo_type enum (even if we don't exactly match on which one)
+            expect(imemo_samples.map { |s| s.labels.fetch(:'allocation class') }).to all(
+              match(
+                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache)/
+              )
+            )
+          end
+        end
+      end
     end
 
     context 'when allocation sampling is disabled' do
@@ -473,6 +551,52 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         cpu_and_wall_time_worker.stop
 
         expect(samples_from_pprof(recorder.serialize!).map(&:values)).to all(include(:'alloc-samples' => 0))
+      end
+    end
+
+    context 'Process::Waiter crash regression tests' do
+      # On Ruby 2.3 to 2.6, there's a crash when accessing instance variables of the `process_waiter_thread`,
+      # see https://bugs.ruby-lang.org/issues/17807 .
+      #
+      # In those Ruby versions, there's a very special subclass of `Thread` called `Process::Waiter` that causes VM
+      # crashes whenever something tries to read its instance or thread variables. This subclass of thread only
+      # shows up when the `Process.detach` API gets used.
+      #
+      # @ivoanjo: This affected the old profiler at some point (but never affected the new profiler), but I think
+      # it's useful to keep around so that we don't regress if we decide to start reading/writing some
+      # info to thread objects to implement some future feature.
+      it 'can sample an instance of Process::Waiter without crashing' do
+        forked_process = fork { sleep }
+        process_waiter_thread = Process.detach(forked_process)
+
+        start
+
+        all_samples = try_wait_until do
+          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+          samples if samples.any?
+        end
+
+        cpu_and_wall_time_worker.stop
+
+        sample = samples_for_thread(all_samples, process_waiter_thread).first
+
+        expect(sample.locations.first.path).to eq 'In native code'
+
+        Process.kill('TERM', forked_process)
+        process_waiter_thread.join
+      end
+    end
+
+    context 'when the _native_sampling_loop terminates with an exception' do
+      it 'calls the on_failure_proc' do
+        expect(described_class).to receive(:_native_sampling_loop).and_raise(StandardError.new('Simulated error'))
+        expect(Datadog.logger).to receive(:warn)
+
+        proc_called = Queue.new
+
+        cpu_and_wall_time_worker.start(on_failure_proc: proc { proc_called << true })
+
+        proc_called.pop
       end
     end
   end
@@ -603,12 +727,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       stop
 
       expect(inner_ran).to be true
-    end
-  end
-
-  describe '#enabled=' do
-    it 'does nothing (provided only for API compatibility)' do
-      cpu_and_wall_time_worker.enabled = true
     end
   end
 

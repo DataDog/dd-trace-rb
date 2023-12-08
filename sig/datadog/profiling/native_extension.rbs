@@ -3,8 +3,6 @@ module Datadog
     module NativeExtension
       def self.working?: () -> bool
       def self.native_working?: () -> bool
-      def self.clock_id_for: (Thread _) -> Integer?
-      def self.cpu_time_ns_for: (Thread thread) -> Integer?
     end
   end
 end

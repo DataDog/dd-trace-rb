@@ -59,14 +59,17 @@ Gem::Specification.new do |spec|
   # Used by the profiler native extension to support Ruby < 2.6 and > 3.2
   #
   # We decided to pin it at the latest available version and will manually bump the dependency as needed.
-  spec.add_dependency 'debase-ruby_core_source', '= 3.2.1'
+  spec.add_dependency 'debase-ruby_core_source', '= 3.2.3'
 
   # Used by appsec
-  spec.add_dependency 'libddwaf', '~> 1.11.0.0.0'
+  spec.add_dependency 'libddwaf', '~> 1.14.0.0.0'
 
   # Used by profiling (and possibly others in the future)
   # When updating the version here, please also update the version in `native_extension_helpers.rb` (and yes we have a test for it)
-  spec.add_dependency 'libdatadog', '~> 4.0.0.1.0'
+  spec.add_dependency 'libdatadog', '~> 5.0.0.1.0'
+
+  # used for CI visibility product until the next major version
+  spec.add_dependency 'datadog-ci', '~> 0.5.0'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb', 'ext/ddtrace_profiling_loader/extconf.rb']
 end

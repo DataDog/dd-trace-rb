@@ -36,7 +36,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       timeout_seconds: nil,
     )
   end
-  let(:adapter) { Datadog::Transport::Ext::HTTP::ADAPTER }
+  let(:adapter) { Datadog::Core::Transport::Ext::HTTP::ADAPTER }
   let(:uds_path) { nil }
   let(:ssl) { false }
   let(:hostname) { '192.168.0.1' }
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
 
       context 'when agent_settings requests a unix domain socket' do
-        let(:adapter) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
+        let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
         let(:uds_path) { '/var/run/datadog/apm.socket' }
 
         it 'picks the :agent working mode with unix domain stocket reporting' do
@@ -349,8 +349,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch('event'))
 
-        expect(event_data).to eq(
-          'attachments' => [pprof_file_name, code_provenance_file_name],
+        expect(event_data).to match(
+          'attachments' => contain_exactly(pprof_file_name, code_provenance_file_name),
           'tags_profiler' => 'tag_a:value_a,tag_b:value_b',
           'start' => start_timestamp,
           'end' => end_timestamp,
@@ -369,9 +369,9 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
-        require 'extlz4' # Lazily required, to avoid trying to load it on JRuby
-
-        expect(LZ4.decode(body.fetch(pprof_file_name))).to eq pprof_data
+        # The pprof data is compressed in the datadog serializer, nothing to do
+        expect(body.fetch(pprof_file_name)).to eq pprof_data
+        # This one needs to be compressed
         expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data
       end
     end
@@ -426,7 +426,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         server.listeners << unix_domain_socket
         server
       end
-      let(:adapter) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
+      let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
       let(:uds_path) { socket_path }
 
       after do

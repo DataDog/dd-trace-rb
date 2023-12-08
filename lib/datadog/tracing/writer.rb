@@ -2,7 +2,7 @@ require_relative 'event'
 require_relative 'runtime/metrics'
 require_relative 'workers'
 
-require_relative '../../ddtrace/transport/http'
+require_relative 'transport/http'
 
 module Datadog
   module Tracing
@@ -27,6 +27,8 @@ module Datadog
         @transport = options.fetch(:transport) do
           Transport::HTTP.default(**transport_options)
         end
+
+        @shutdown_timeout = options.fetch(:shutdown_timeout, Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT)
 
         # handles the thread creation after an eventual fork
         @mutex_after_fork = Mutex.new
@@ -72,7 +74,8 @@ module Datadog
           transport: @transport,
           buffer_size: @buff_size,
           on_trace: @trace_handler,
-          interval: @flush_interval
+          interval: @flush_interval,
+          shutdown_timeout: @shutdown_timeout
         )
 
         @worker.start

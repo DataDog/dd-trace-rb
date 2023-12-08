@@ -266,7 +266,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             span = datum[:datadog_span]
             headers = datum[:headers]
             expect(headers).to include(
-              'x-datadog-trace-id' => span.trace_id.to_s,
+              'x-datadog-trace-id' => low_order_trace_id(span.trace_id).to_s,
               'x-datadog-parent-id' => span.span_id.to_s
             )
 
@@ -399,7 +399,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
 
   context 'when basic auth in url' do
     before do
-      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+      WebMock.enable!(allow: agent_url)
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 
@@ -415,7 +415,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
 
   context 'when query string in url' do
     before do
-      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+      WebMock.enable!(allow: agent_url)
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 

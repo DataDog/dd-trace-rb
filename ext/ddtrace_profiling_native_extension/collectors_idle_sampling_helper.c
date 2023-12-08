@@ -78,6 +78,9 @@ static const rb_data_type_t idle_sampling_helper_typed_data = {
 static VALUE _native_new(VALUE klass) {
   struct idle_sampling_loop_state *state = ruby_xcalloc(1, sizeof(struct idle_sampling_loop_state));
 
+  // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
+  // being leaked.
+
   reset_state(state);
 
   return TypedData_Wrap_Struct(klass, &idle_sampling_helper_typed_data, state);

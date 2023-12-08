@@ -16,7 +16,6 @@ static ID agent_id; // id of :agent in Ruby
 
 static ID log_failure_to_process_tag_id; // id of :log_failure_to_process_tag in Ruby
 
-static VALUE http_transport_class = Qnil;
 static VALUE library_version_string = Qnil;
 
 struct call_exporter_without_gvl_arguments {
@@ -54,7 +53,7 @@ static void interrupt_exporter_call(void *cancel_token);
 static VALUE ddtrace_version(void);
 
 void http_transport_init(VALUE profiling_module) {
-  http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
+  VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
   rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 12);
@@ -180,6 +179,10 @@ static ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
 }
 
 static VALUE log_failure_to_process_tag(VALUE err_details) {
+  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+  VALUE profiling_module = rb_const_get(datadog_module, rb_intern("Profiling"));
+  VALUE http_transport_class = rb_const_get(profiling_module, rb_intern("HttpTransport"));
+
   return rb_funcall(http_transport_class, log_failure_to_process_tag_id, 1, err_details);
 }
 
@@ -201,7 +204,8 @@ static VALUE perform_export(
   ddog_prof_Exporter *exporter,
   ddog_Timespec start,
   ddog_Timespec finish,
-  ddog_prof_Exporter_Slice_File slice_files,
+  ddog_prof_Exporter_Slice_File files_to_compress_and_export,
+  ddog_prof_Exporter_Slice_File files_to_export_unmodified,
   ddog_Vec_Tag *additional_tags,
   ddog_CharSlice internal_metadata,
   uint64_t timeout_milliseconds
@@ -211,7 +215,8 @@ static VALUE perform_export(
     exporter,
     start,
     finish,
-    slice_files,
+    files_to_compress_and_export,
+    files_to_export_unmodified,
     additional_tags,
     endpoints_stats,
     &internal_metadata,
@@ -308,18 +313,23 @@ static VALUE _native_do_export(
   ddog_Timespec finish =
     {.seconds = NUM2LONG(finish_timespec_seconds), .nanoseconds = NUM2UINT(finish_timespec_nanoseconds)};
 
-  int files_to_report = 1 + (have_code_provenance ? 1 : 0);
-  ddog_prof_Exporter_File files[files_to_report];
-  ddog_prof_Exporter_Slice_File slice_files = {.ptr = files, .len = files_to_report};
+  int to_compress_length = have_code_provenance ? 1 : 0;
+  ddog_prof_Exporter_File to_compress[to_compress_length];
+  int already_compressed_length = 1; // pprof
+  ddog_prof_Exporter_File already_compressed[already_compressed_length];
 
-  files[0] = (ddog_prof_Exporter_File) {
+  ddog_prof_Exporter_Slice_File files_to_compress_and_export = {.ptr = to_compress, .len = to_compress_length};
+  ddog_prof_Exporter_Slice_File files_to_export_unmodified = {.ptr = already_compressed, .len = already_compressed_length};
+
+  already_compressed[0] = (ddog_prof_Exporter_File) {
     .name = char_slice_from_ruby_string(pprof_file_name),
-    .file = byte_slice_from_ruby_string(pprof_data)
+    .file = byte_slice_from_ruby_string(pprof_data),
   };
+
   if (have_code_provenance) {
-    files[1] = (ddog_prof_Exporter_File) {
+    to_compress[0] = (ddog_prof_Exporter_File) {
       .name = char_slice_from_ruby_string(code_provenance_file_name),
-      .file = byte_slice_from_ruby_string(code_provenance_data)
+      .file = byte_slice_from_ruby_string(code_provenance_data),
     };
   }
 
@@ -332,7 +342,16 @@ static VALUE _native_do_export(
   VALUE failure_tuple = handle_exporter_failure(exporter_result);
   if (!NIL_P(failure_tuple)) return failure_tuple;
 
-  return perform_export(exporter_result.ok, start, finish, slice_files, null_additional_tags, internal_metadata, timeout_milliseconds);
+  return perform_export(
+    exporter_result.ok,
+    start,
+    finish,
+    files_to_compress_and_export,
+    files_to_export_unmodified,
+    null_additional_tags,
+    internal_metadata,
+    timeout_milliseconds
+  );
 }
 
 static void *call_exporter_without_gvl(void *call_args) {

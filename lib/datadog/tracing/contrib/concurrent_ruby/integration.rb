@@ -20,7 +20,8 @@ module Datadog
           end
 
           def self.loaded?
-            !defined?(::Concurrent::Future).nil?
+            # Concurrent::Future is deprecated in favour of Concurrent::Promises::Future
+            !defined?(::Concurrent::Promises::Future).nil? || !defined?(::Concurrent::Future).nil?
           end
 
           def self.compatible?

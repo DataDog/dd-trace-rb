@@ -22,8 +22,15 @@ module Datadog
 
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
-          # this WAF::Context#run call is not thread safe as it mutates the context
-          # TODO: remove multiple assignment
+          input.reject! do |_, v|
+            case v
+            when TrueClass, FalseClass
+              false
+            else
+              v.nil? ? true : v.empty?
+            end
+          end
+
           _code, res = @context.run(input, timeout)
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
@@ -38,8 +45,29 @@ module Datadog
           @run_mutex.unlock
         end
 
+        def extract_schema
+          return unless extract_schema?
+
+          input = {
+            'waf.context.processor' => {
+              'extract-schema' => true
+            }
+          }
+
+          _code, res = @context.run(input, WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+
+          res
+        end
+
         def finalize
           @context.finalize
+        end
+
+        private
+
+        def extract_schema?
+          Datadog.configuration.appsec.api_security.enabled &&
+            Datadog.configuration.appsec.api_security.sample_rate.sample?
         end
       end
 

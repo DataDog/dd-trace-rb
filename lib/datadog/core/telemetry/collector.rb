@@ -11,7 +11,7 @@ require_relative 'v1/dependency'
 require_relative 'v1/host'
 require_relative 'v1/integration'
 require_relative 'v1/product'
-require_relative '../../../ddtrace/transport/ext'
+require_relative '../transport/ext'
 
 module Datadog
   module Core
@@ -146,6 +146,7 @@ module Datadog
           options['logger.instance'] = configuration.logger.instance.class.to_s
           options['appsec.enabled'] = configuration.dig('appsec', 'enabled') if configuration.respond_to?('appsec')
           options['tracing.opentelemetry.enabled'] = !defined?(Datadog::OpenTelemetry::LOADED).nil?
+          options['tracing.opentracing.enabled'] = !defined?(Datadog::OpenTracer::LOADED).nil?
           options.compact!
           options
         end
@@ -190,7 +191,7 @@ module Datadog
 
         def agent_transport
           adapter = Core::Configuration::AgentSettingsResolver.call(Datadog.configuration).adapter
-          if adapter == Datadog::Transport::Ext::UnixSocket::ADAPTER
+          if adapter == Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
             'UDS'
           else
             'TCP'

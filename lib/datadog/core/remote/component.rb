@@ -3,7 +3,7 @@
 require_relative 'worker'
 require_relative 'client/capabilities'
 require_relative 'client'
-require_relative '../transport/http'
+require_relative 'transport/http'
 require_relative '../remote'
 require_relative 'negotiation'
 
@@ -22,7 +22,7 @@ module Datadog
           transport_options[:agent_settings] = agent_settings if agent_settings
 
           negotiation = Negotiation.new(settings, agent_settings)
-          transport_v7 = Datadog::Core::Transport::HTTP.v7(**transport_options.dup)
+          transport_v7 = Datadog::Core::Remote::Transport::HTTP.v7(**transport_options.dup)
 
           @barrier = Barrier.new(BARRIER_TIMEOUT)
 

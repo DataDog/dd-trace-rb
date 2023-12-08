@@ -52,9 +52,11 @@ module Datadog
         def self.ddwaf_object_stringl_nc: (LibDDWAF::Object, ::String, ::Integer) -> ::FFI::Pointer
         def self.ddwaf_object_unsigned: (LibDDWAF::Object, ::Integer) -> ::FFI::Pointer
         def self.ddwaf_object_signed: (LibDDWAF::Object, ::Integer) -> ::FFI::Pointer
-        def self.ddwaf_object_unsigned_force: (LibDDWAF::Object, ::Integer) -> ::FFI::Pointer
-        def self.ddwaf_object_signed_force: (LibDDWAF::Object, ::Integer) -> ::FFI::Pointer
+        def self.ddwaf_object_string_from_unsigned: (LibDDWAF::Object, ::Integer) -> ::FFI::Pointer
+        def self.ddwaf_object_string_from_signed: (LibDDWAF::Object, ::Integer) -> ::FFI::Pointer
         def self.ddwaf_object_bool: (LibDDWAF::Object, bool) -> ::FFI::Pointer
+        def self.ddwaf_object_float: (LibDDWAF::Object, ::Float) -> ::FFI::Pointer
+        def self.ddwaf_object_null: (LibDDWAF::Object) -> ::FFI::Pointer
 
         def self.ddwaf_object_array: (LibDDWAF::Object) -> ::FFI::Pointer
         def self.ddwaf_object_array_add: (LibDDWAF::Object, LibDDWAF::Object) -> bool
@@ -75,6 +77,7 @@ module Datadog
         def self.ddwaf_object_get_signed: (LibDDWAF::Object, SizeTPtr) -> ::Integer
         def self.ddwaf_object_get_index: (LibDDWAF::Object, ::Integer) -> LibDDWAF::Object
         def self.ddwaf_object_get_bool: (LibDDWAF::Object) -> bool
+        def self.ddwaf_object_get_float: (LibDDWAF::Object) -> ::Float
 
         # freeers
 
@@ -93,15 +96,8 @@ module Datadog
           end
         end
 
-        class RuleSetInfo < ::FFI::Struct
-        end
-
-        RuleSetInfoNone: ::Datadog::AppSec::WAF::LibDDWAF::RuleSetInfo
-
-        def self.ddwaf_ruleset_info_free: (RuleSetInfo) -> void
-
-        def self.ddwaf_init: (top, Config, RuleSetInfo) -> ::FFI::Pointer
-        def self.ddwaf_update: (::FFI::Pointer, LibDDWAF::Object, RuleSetInfo) -> ::FFI::Pointer
+        def self.ddwaf_init: (top, Config, Object) -> ::FFI::Pointer
+        def self.ddwaf_update: (::FFI::Pointer, LibDDWAF::Object, LibDDWAF::Object) -> ::FFI::Pointer
         def self.ddwaf_destroy: (::FFI::Pointer) -> void
 
         def self.ddwaf_required_addresses: (::FFI::Pointer, UInt32Ptr) -> ::FFI::Pointer
@@ -115,9 +111,6 @@ module Datadog
 
         def self.ddwaf_context_init: (::FFI::Pointer) -> ::FFI::Pointer
         def self.ddwaf_context_destroy: (::FFI::Pointer) -> void
-
-        class ResultActions < ::FFI::Struct
-        end
 
         class Result < ::FFI::Struct
         end
@@ -149,9 +142,9 @@ module Datadog
 
       def self.version: () -> ::String
 
-      type data = String | Symbol | Integer | Float | TrueClass | FalseClass | Array[data] | Hash[String | Symbol, data] | nil
+      type data = String | Symbol | Integer | Float | TrueClass | FalseClass | Array[data] | Hash[(String | Symbol | nil), data] | nil
 
-      def self.ruby_to_object: (data val, ?max_container_size: ::Integer?, ?max_container_depth: ::Integer?, ?max_string_length: ::Integer?, ?coerce: bool?) -> ::Datadog::AppSec::WAF::LibDDWAF::Object
+      def self.ruby_to_object: (top val, ?max_container_size: ::Integer?, ?max_container_depth: ::Integer?, ?max_string_length: ::Integer?, ?coerce: bool?) -> ::Datadog::AppSec::WAF::LibDDWAF::Object
       def self.object_to_ruby: (::Datadog::AppSec::WAF::LibDDWAF::Object obj) -> data
 
       self.@logger: ::Logger
@@ -165,35 +158,34 @@ module Datadog
 
       class Handle
         attr_reader handle_obj: ::FFI::Pointer
-        attr_reader ruleset_info: Hash[Symbol, untyped]
+        attr_reader diagnostics: data
         attr_reader config: WAF::LibDDWAF::Config
 
         def initialize: (data rule, ?limits: ::Hash[::Symbol, ::Integer], ?obfuscator: ::Hash[::Symbol, ::String]) -> void
         def finalize: () -> untyped
         def required_addresses: () -> ::Array[::String]
-        def update: (untyped data) -> Handle
+        def merge: (untyped data) -> Handle?
 
         private
 
         @valid: bool
 
-        def new_from_handle: (::FFI::Pointer handle_object, Hash[Symbol, untyped] info, WAF::LibDDWAF::Config config) -> untyped
+        def new_from_handle: (::FFI::Pointer handle_object, data diagnostics, WAF::LibDDWAF::Config config) -> untyped
         def validate!: () -> void
         def invalidate!: () -> void
         def valid?: () -> (nil | bool)
         def valid!: () -> void
       end
 
-      type result_data = Array[untyped] | nil
-
       class Result
         attr_reader status: ::Symbol
-        attr_reader data: untyped
+        attr_reader events: data
         attr_reader total_runtime: ::Float
         attr_reader timeout: bool
-        attr_reader actions: ::Array[::String]
+        attr_reader actions: data
+        attr_reader derivatives: data
 
-        def initialize: (::Symbol, result_data, ::Float, bool, ::Array[::String]) -> void
+        def initialize: (::Symbol, data, ::Float, bool, data, data) -> void
       end
 
       class Context
