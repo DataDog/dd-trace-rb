@@ -720,8 +720,8 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
     bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
 
-    // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc after it
-    // fully finishes the garbage collection, so that one is allowed to do allocations and throw exceptions as usual.
+    // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc when the
+    // thread collector flags it's time to flush.
     if (should_flush) rb_postponed_job_register_one(0, after_gc_from_postponed_job, NULL);
   }
 }
