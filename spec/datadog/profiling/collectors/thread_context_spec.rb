@@ -733,7 +733,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               expect(gc_tracking.fetch(:accumulated_cpu_time_ns)).to be > 0
             end
 
-            it 'advances the cpu_time_at_previous_sample_ns for the sampled thread by the time spent in garbage collection' do
+            it 'advances the cpu_time_at_previous_sample_ns for the sampled thread by the time spent in GC' do
               cpu_time_at_previous_sample_ns_before =
                 per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
 
