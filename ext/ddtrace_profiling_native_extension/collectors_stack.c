@@ -115,12 +115,13 @@ static VALUE _native_sample(
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
   if (in_gc == Qtrue) {
+    ddog_CharSlice gc_placeholder = DDOG_CHARSLICE_C("Garbage Collection");
     record_placeholder_stack(
       buffer,
       recorder_instance,
       values,
       (sample_labels) {.labels = slice_labels, .state_label = state_label},
-      (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("Garbage Collection")}
+      (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = gc_placeholder}
     );
   } else {
     sample_thread(
@@ -326,12 +327,13 @@ static void record_placeholder_stack_in_native_code(
   sample_values values,
   sample_labels labels
 ) {
+  ddog_CharSlice in_native_code_placeholder = DDOG_CHARSLICE_C("In native code");
   record_placeholder_stack(
     buffer,
     recorder_instance,
     values,
     labels,
-    (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = DDOG_CHARSLICE_C("In native code")}
+    (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = in_native_code_placeholder}
   );
 }
 

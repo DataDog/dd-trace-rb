@@ -79,21 +79,25 @@ uint8_t gc_profiling_set_metadata(ddog_prof_Label *labels, int labels_length) {
   labels[label_pos++] = (ddog_prof_Label) {
     .key = DDOG_CHARSLICE_C("thread id"),
     .str = DDOG_CHARSLICE_C("GC"),
+    .num = 0, // This shouldn't be needed but the tracer-2.7 docker image ships a buggy gcc that complains about this
   };
 
   labels[label_pos++] = (ddog_prof_Label) {
     .key = DDOG_CHARSLICE_C("thread name"),
     .str = DDOG_CHARSLICE_C("Garbage Collection"),
+    .num = 0, // Workaround, same as above
   };
 
   labels[label_pos++] = (ddog_prof_Label) {
     .key = DDOG_CHARSLICE_C("state"),
     .str = DDOG_CHARSLICE_C("had cpu"),
+    .num = 0, // Workaround, same as above
   };
 
   labels[label_pos++] = (ddog_prof_Label) {
     .key = DDOG_CHARSLICE_C("event"),
     .str = DDOG_CHARSLICE_C("gc"),
+    .num = 0, // Workaround, same as above
   };
 
   VALUE major_by = rb_gc_latest_gc_info(major_by_sym);
