@@ -128,31 +128,13 @@ static VALUE _native_sample(
       buffer,
       recorder_instance,
       values,
-      (sample_labels) {.labels = slice_labels, .state_label = state_label},
-      SAMPLE_REGULAR
+      (sample_labels) {.labels = slice_labels, .state_label = state_label}
     );
   }
 
   sampling_buffer_free(buffer);
 
   return Qtrue;
-}
-
-void sample_thread(
-  VALUE thread,
-  sampling_buffer* buffer,
-  VALUE recorder_instance,
-  sample_values values,
-  sample_labels labels,
-  sample_type type
-) {
-  // Samples thread into recorder
-  if (type == SAMPLE_REGULAR) {
-    sample_thread_internal(thread, buffer, recorder_instance, values, labels);
-    return;
-  }
-
-  rb_raise(rb_eArgError, "Unexpected value for sample_type: %d", type);
 }
 
 #define CHARSLICE_EQUALS(must_be_a_literal, charslice) (strlen("" must_be_a_literal) == charslice.len && strncmp(must_be_a_literal, charslice.ptr, charslice.len) == 0)
@@ -166,7 +148,7 @@ void sample_thread(
 // * Should we move this into a different thread entirely?
 // * If we don't move it into a different thread, does releasing the GVL on a Ruby thread mean that we're introducing
 //   a new thread switch point where there previously was none?
-static void sample_thread_internal(
+void sample_thread(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,

@@ -190,7 +190,6 @@ static void trigger_sample_for_thread(
   VALUE stack_from_thread,
   struct per_thread_context *thread_context,
   sample_values values,
-  sample_type type,
   long current_monotonic_wall_time_ns,
   ddog_CharSlice *ruby_vm_type,
   ddog_CharSlice *class_name
@@ -496,7 +495,6 @@ void update_metrics_and_sample(
     stack_from_thread,
     thread_context,
     (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
-    SAMPLE_REGULAR,
     current_monotonic_wall_time_ns,
     NULL,
     NULL
@@ -667,7 +665,6 @@ static void trigger_sample_for_thread(
   VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
   sample_values values,
-  sample_type type,
   long current_monotonic_wall_time_ns,
   // These two labels are only used for allocation profiling; @ivoanjo: may want to refactor this at some point?
   ddog_CharSlice *ruby_vm_type,
@@ -790,8 +787,7 @@ static void trigger_sample_for_thread(
     state->sampling_buffer,
     state->recorder_instance,
     values,
-    (sample_labels) {.labels = slice_labels, .state_label = state_label, .end_timestamp_ns = end_timestamp_ns},
-    type
+    (sample_labels) {.labels = slice_labels, .state_label = state_label, .end_timestamp_ns = end_timestamp_ns}
   );
 }
 
@@ -1249,7 +1245,6 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     /* stack_from_thread: */ current_thread,
     get_or_create_context_for(current_thread, state),
     (sample_values) {.alloc_samples = sample_weight},
-    SAMPLE_REGULAR,
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,
     optional_class_name
