@@ -267,17 +267,19 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
       all_samples = samples_from_pprof(recorder.serialize!)
 
-      current_thread_gc_samples =
-        samples_for_thread(all_samples, Thread.current)
-          .select { |it| it.locations.first.path == 'Garbage Collection' }
+      gc_sample = all_samples.find { |sample| sample.labels[:'gc cause'] == 'GC.start()' }
 
-      # NOTE: In some cases, Ruby may actually call two GC's back-to-back without us having the possibility to take
-      # a sample. I don't expect this to happen for this test (that's what the `Thread.pass` above is trying to avoid)
-      # but if this spec turns out to be flaky, that is probably the issue, and that would mean we'd need to relax the
-      # check.
-      expect(
-        current_thread_gc_samples.inject(0) { |sum, sample| sum + sample.values.fetch(:'cpu-samples') }
-      ).to be >= invoke_gc_times
+      expect(gc_sample.values.fetch(:'cpu-samples')).to be >= invoke_gc_times
+      expect(gc_sample.labels).to match a_hash_including(
+        :state => 'had cpu',
+        :'thread id' => 'GC',
+        :'thread name' => 'Garbage Collection',
+        :event => 'gc',
+        :'gc reason' => 'requested (FORCE)',
+        :'gc cause' => 'GC.start()',
+        :'gc type' => 'major',
+      )
+      expect(gc_sample.locations.first.path).to eq 'Garbage Collection'
     end
 
     context 'when the background thread dies without cleaning up (after Ruby forks)' do
