@@ -226,7 +226,7 @@ And `options` are the following optional keyword arguments:
 | --------------- | ----------------------- | --- | --- |
 | `autostart`     | `Bool`                  | Whether the time measurement should be started automatically. If `false`, user must call `span.start`. | `true` |
 | `continue_from` | `Datadog::TraceDigest`  | Continues a trace that originated from another execution context. TraceDigest describes the continuation point. | `nil` |
-| `on_error`      | `Proc`                  | Overrides error handling behavior, when a span raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `on_error`      | `Proc`                  | Overrides error handling behavior, when a span raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `resource`      | `String`                | Name of the resource or action being operated on. Traces with the same resource value will be grouped together for the purpose of metrics (but still independently viewable.) Usually domain specific, such as a URL, query, request, etc. (e.g. `'Article#submit'`, `http://example.com/articles/list`.) | `name` of Span. |
 | `service`       | `String`                | The service name which this span belongs (e.g. `'my-web-service'`) | Tracer `default-service`, `$PROGRAM_NAME` or `'ruby'` |
 | `start_time`    | `Time`                  | When the span actually starts. Useful when tracing events that have already happened. | `Time.now` |
@@ -682,7 +682,7 @@ end
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Elasticsearch
 
@@ -1315,7 +1315,7 @@ end
 | `service_name`        | `DD_TRACE_PG_SERVICE_NAME` | Name of application running the `pg` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)                                                                                                                                                                                  | `pg`         |
 | `peer_service`        | `DD_TRACE_PG_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                    | `nil`        |
 | `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors from Postgres that are handled at the application level. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors from Postgres that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Presto
 
@@ -1741,7 +1741,7 @@ end
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Rest Client
 
@@ -1886,7 +1886,7 @@ end
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `tag_body` | Tag spans with the SQS message body `true` or `false` | `false` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Sidekiq
 
@@ -1987,7 +1987,7 @@ end
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Sneakers should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `tag_body` | Enable tagging of job message. `true` for on, `false` for off. | `false` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Stripe
 
