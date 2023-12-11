@@ -338,8 +338,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     describe 'heap samples' do
       let(:sample_rate) { 50 }
-      let(:metric_values1) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => sample_rate } }
-      let(:metric_values2) { { 'cpu-time' => 102, 'cpu-samples' => 2, 'wall-time' => 790, 'alloc-samples' => sample_rate } }
+      let(:metric_values) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => sample_rate } }
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
       let(:a_string) { 'a beautiful string' }
@@ -357,10 +356,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # ...and then pass data about the allocation stacktrace (with 2 distinct stacktraces)
           if i.even?
             Datadog::Profiling::Collectors::Stack::Testing
-              ._native_sample(Thread.current, stack_recorder, metric_values1, labels, numeric_labels, 400, false)
+              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
           else
             Datadog::Profiling::Collectors::Stack::Testing
-              ._native_sample(Thread.current, stack_recorder, metric_values2, labels, numeric_labels, 400, false)
+              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
           end
           @num_allocations += 1
         end
@@ -375,7 +374,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         it 'are ommitted from the profile' do
           # We sample from 2 distinct locations
           expect(samples.size).to eq(2)
-          expect(samples.select { |s| s.values.key?('heap-live-samples') }).to eq([])
+          expect(samples.select { |s| s.values.key?('heap-live-samples') }).to be_empty
         end
       end
 
@@ -390,7 +389,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           samples.select { |s| s.values[:'heap-live-samples'] == 0 }
         end
 
-        it 'are included in the profile' do
+        it 'include the stack and sample counts for the objects still left alive' do
           pending 'heap_recorder implementation is currently missing'
 
           # We sample from 2 distinct locations

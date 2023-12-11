@@ -333,11 +333,8 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   pthread_mutex_destroy(&state->slot_two_mutex);
   ddog_prof_Profile_drop(&state->slot_two_profile);
 
-  if (state->heap_recorder != NULL) {
-    // Heap recorder will only be initialized if we're actually collecting heap samples.
-    // If it is initialized we need to free it...
-    heap_recorder_free(state->heap_recorder);
-  }
+  heap_recorder_free(state->heap_recorder);
+
   ruby_xfree(state);
 }
 

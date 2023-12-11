@@ -84,7 +84,6 @@ struct cpu_and_wall_time_worker_state {
   bool dynamic_sampling_rate_enabled;
   int allocation_sample_every;
   bool allocation_profiling_enabled;
-  bool heap_profiling_enabled;
   VALUE self_instance;
   VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
@@ -270,7 +269,6 @@ static VALUE _native_new(VALUE klass) {
   state->dynamic_sampling_rate_enabled = true;
   state->allocation_sample_every = 0;
   state->allocation_profiling_enabled = false;
-  state->heap_profiling_enabled = false;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;

@@ -52,6 +52,10 @@ void heap_recorder_free(struct heap_recorder* recorder) {
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 void heap_recorder_after_fork(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return;
+  }
+
   // TODO: Implement
 }
 
@@ -96,7 +100,7 @@ void heap_recorder_flush(heap_recorder *heap_recorder) {
   // TODO: Implement
 }
 
-// WARN: If with_gvl = True, NO HEAP ALLOCATIONS, EXCEPTIONS or RUBY CALLS ARE ALLOWED.
+// WARN: If with_gvl = False, NO HEAP ALLOCATIONS, EXCEPTIONS or RUBY CALLS ARE ALLOWED.
 void heap_recorder_for_each_live_object(
     heap_recorder *heap_recorder,
     bool (*for_each_callback)(heap_recorder_iteration_data stack_data, void *extra_arg),
