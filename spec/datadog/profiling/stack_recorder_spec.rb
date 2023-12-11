@@ -358,8 +358,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             Datadog::Profiling::Collectors::Stack::Testing
               ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
           else
+            # 401 used instead of 400 here just to make the branches different and appease Rubocop
             Datadog::Profiling::Collectors::Stack::Testing
-              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 401, false)
           end
           @num_allocations += 1
         end
