@@ -99,15 +99,6 @@ add_compiler_flag '-Wno-declaration-after-statement'
 # cause a segfault later. Let's ensure that never happens.
 add_compiler_flag '-Werror-implicit-function-declaration'
 
-# Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
-#
-# @ivoanjo TODO: 3.3.0 development releases are causing issues because:
-# 1. We're enabling unused parameter warnings
-# 2. The VM headers trigger unused parameter warnings
-# 3. When we call `have_header` below, mkmf compiles the target code with `-Werror`, turning warnings into errors
-# For now, I've chosen to disable this warning for Ruby 3.3; we can revisit at a later 3.3 release.
-add_compiler_flag '-Wunused-parameter' unless RUBY_VERSION.start_with?('3.3.')
-
 # The native extension is not intended to expose any symbols/functions for other native libraries to use;
 # the sole exception being `Init_ddtrace_profiling_native_extension` which needs to be visible for Ruby to call it when
 # it `dlopen`s the library.
@@ -157,6 +148,9 @@ $defs << '-DNO_PRIMITIVE_POP' if RUBY_VERSION < '3.2'
 
 # On older Rubies, there was no tid member in the internal thread structure
 $defs << '-DNO_THREAD_TID' if RUBY_VERSION < '3.1'
+
+# On older Rubies, there was no jit_return member on the rb_control_frame_t struct
+$defs << '-DNO_JIT_RETURN' if RUBY_VERSION < '3.1'
 
 # On older Rubies, we need to use a backported version of this function. See private_vm_api_access.h for details.
 $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
@@ -247,6 +241,10 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   # NOTE: This needs to come after all changes to $defs
   create_header
 
+  # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
+  # See the comment on the same flag below for why this is done last.
+  add_compiler_flag '-Wunused-parameter'
+
   create_makefile EXTENSION_NAME
 else
   # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
@@ -262,9 +260,20 @@ else
   Debase::RubyCoreSource
     .create_makefile_with_core(
       proc do
-        have_header('vm_core.h') &&
-        have_header('iseq.h') &&
-        (RUBY_VERSION < '3.3' || have_header('ractor_core.h'))
+        headers_available =
+          have_header('vm_core.h') &&
+          have_header('iseq.h') &&
+          (RUBY_VERSION < '3.3' || have_header('ractor_core.h'))
+
+        if headers_available
+          # Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
+          # This is added as late as possible because in some Rubies we support (e.g. 3.3), adding this flag before
+          # checking if internal VM headers are available causes those checks to fail because of this warning (and not
+          # because the headers are not available.)
+          add_compiler_flag '-Wunused-parameter'
+        end
+
+        headers_available
       end,
       EXTENSION_NAME,
     )

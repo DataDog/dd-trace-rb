@@ -16,7 +16,6 @@ static ID agent_id; // id of :agent in Ruby
 
 static ID log_failure_to_process_tag_id; // id of :log_failure_to_process_tag in Ruby
 
-static VALUE http_transport_class = Qnil;
 static VALUE library_version_string = Qnil;
 
 struct call_exporter_without_gvl_arguments {
@@ -54,7 +53,7 @@ static void interrupt_exporter_call(void *cancel_token);
 static VALUE ddtrace_version(void);
 
 void http_transport_init(VALUE profiling_module) {
-  http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
+  VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
   rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 12);
@@ -180,6 +179,10 @@ static ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
 }
 
 static VALUE log_failure_to_process_tag(VALUE err_details) {
+  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+  VALUE profiling_module = rb_const_get(datadog_module, rb_intern("Profiling"));
+  VALUE http_transport_class = rb_const_get(profiling_module, rb_intern("HttpTransport"));
+
   return rb_funcall(http_transport_class, log_failure_to_process_tag_id, 1, err_details);
 }
 

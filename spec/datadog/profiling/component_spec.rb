@@ -73,12 +73,17 @@ RSpec.describe Datadog::Profiling::Component do
 
         it 'initializes a CpuAndWallTimeWorker collector' do
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
+          expect(settings.profiling.advanced).to receive(:overhead_target_percentage)
+            .and_return(:overhead_target_percentage_config)
+          expect(described_class).to receive(:valid_overhead_target)
+            .with(:overhead_target_percentage_config).and_return(:overhead_target_percentage_config)
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
             allocation_counting_enabled: anything,
             no_signals_workaround_enabled: :no_signals_result,
             thread_context_collector: instance_of(Datadog::Profiling::Collectors::ThreadContext),
+            dynamic_sampling_rate_overhead_target_percentage: :overhead_target_percentage_config,
             allocation_sample_every: 0,
           )
 
@@ -236,6 +241,26 @@ RSpec.describe Datadog::Profiling::Component do
         build_profiler_component
       end
 
+      context 'when upload_period_seconds is below 60 seconds' do
+        before { settings.profiling.advanced.upload_period_seconds = 59 }
+
+        it 'ignores this setting and creates a scheduler with an interval of 60 seconds' do
+          expect(Datadog::Profiling::Scheduler).to receive(:new).with(a_hash_including(interval: 60))
+
+          build_profiler_component
+        end
+      end
+
+      context 'when upload_period_seconds is over 60 seconds' do
+        before { settings.profiling.advanced.upload_period_seconds = 61 }
+
+        it 'creates a scheduler with the given interval' do
+          expect(Datadog::Profiling::Scheduler).to receive(:new).with(a_hash_including(interval: 61))
+
+          build_profiler_component
+        end
+      end
+
       it 'initializes the exporter with a code provenance collector' do
         expect(Datadog::Profiling::Exporter).to receive(:new) do |code_provenance_collector:, **_|
           expect(code_provenance_collector).to be_a_kind_of(Datadog::Profiling::Collectors::CodeProvenance)
@@ -276,6 +301,36 @@ RSpec.describe Datadog::Profiling::Component do
 
           build_profiler_component
         end
+      end
+    end
+  end
+
+  describe '.valid_overhead_target' do
+    subject(:valid_overhead_target) { described_class.send(:valid_overhead_target, overhead_target_percentage) }
+
+    [0, 20.1].each do |invalid_value|
+      let(:overhead_target_percentage) { invalid_value }
+
+      context "when overhead_target_percentage is invalid value (#{invalid_value})" do
+        it 'logs an error' do
+          expect(Datadog.logger).to receive(:error).with(
+            /Ignoring invalid value for profiling overhead_target_percentage/
+          )
+
+          valid_overhead_target
+        end
+
+        it 'falls back to the default value' do
+          expect(valid_overhead_target).to eq 2.0
+        end
+      end
+    end
+
+    context 'when overhead_target_percentage is valid' do
+      let(:overhead_target_percentage) { 1.5 }
+
+      it 'returns the value' do
+        expect(valid_overhead_target).to eq 1.5
       end
     end
   end

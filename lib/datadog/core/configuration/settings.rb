@@ -339,6 +339,34 @@ module Datadog
                 end
               end
             end
+
+            # Configures how much wall-time overhead the profiler targets. The profiler will dynamically adjust the
+            # interval between samples it takes so as to try and maintain the property that it spends no longer than
+            # this amount of wall-clock time profiling. For example, with the default value of 2%, the profiler will
+            # try and cause no more than 1.2 seconds per minute of overhead. Decreasing this value will reduce the
+            # accuracy of the data collected. Increasing will impact the application.
+            #
+            # We do not recommend tweaking this value.
+            #
+            # This value should be a percentage i.e. a number between 0 and 100, not 0 and 1.
+            #
+            # @default `DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE` as a float, otherwise 2.0
+            option :overhead_target_percentage do |o|
+              o.type :float
+              o.env 'DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE'
+              o.default 2.0
+            end
+
+            # Controls how often the profiler reports data, in seconds. Cannot be lower than 60 seconds.
+            #
+            # We do not recommend tweaking this value.
+            #
+            # @default `DD_PROFILING_UPLOAD_PERIOD` environment variable, otherwise 60
+            option :upload_period_seconds do |o|
+              o.type :int
+              o.env 'DD_PROFILING_UPLOAD_PERIOD'
+              o.default 60
+            end
           end
 
           # @public_api

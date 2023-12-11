@@ -605,6 +605,72 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(true)
         end
       end
+
+      describe '#overhead_target_percentage' do
+        subject(:timeout_seconds) { settings.profiling.advanced.overhead_target_percentage }
+
+        context 'when DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq(2.0) }
+          end
+
+          context 'is defined' do
+            let(:environment) { '1.23' }
+
+            it { is_expected.to eq(1.23) }
+          end
+        end
+      end
+
+      describe '#overhead_target_percentage=' do
+        it 'updates the #overhead_target_percentage setting' do
+          expect { settings.profiling.advanced.overhead_target_percentage = 4.56 }
+            .to change { settings.profiling.advanced.overhead_target_percentage }
+            .from(2.0)
+            .to(4.56)
+        end
+      end
+
+      describe '#upload_period_seconds' do
+        subject(:max_frames) { settings.profiling.advanced.upload_period_seconds }
+
+        context 'when DD_PROFILING_UPLOAD_PERIOD' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_UPLOAD_PERIOD' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq(60) }
+          end
+
+          context 'is defined' do
+            let(:environment) { '123' }
+
+            it { is_expected.to eq(123) }
+          end
+        end
+      end
+
+      describe '#upload_period_seconds=' do
+        it 'updates the #upload_period_seconds setting' do
+          expect { settings.profiling.advanced.upload_period_seconds = 90 }
+            .to change { settings.profiling.advanced.upload_period_seconds }
+            .from(60)
+            .to(90)
+        end
+      end
     end
 
     describe '#upload' do
