@@ -1,25 +1,104 @@
 # frozen_string_literal: true
 
+require 'active_support/notifications'
+
 raise unless RubyVM::YJIT.enabled?
 
 # High performance event emitter
 module RubyTelemetry
   class Channel
-    def publish(message, &block)
+    def initialize
+      @subscribers = []
     end
 
-    def publish(message, &block)
+    def publish(message=nil, &block)
+      @subscribers.each do |s|
+        s.call(message)
+      end
+    end
+
+    def safe_publishing(message=nil, &block)
+      @subscribers.each do |s|
+        s.call(message)
+      rescue => e
+        exceptions ||= []
+        exceptions << e
+      end
     end
 
     def subscribe(&block)
+      @subscribers << block
       return block
     end
 
     def subscribed?
+      @subscribers.empty?
     end
 
-    def unsubscribe(subscription) end
+    def unsubscribe(subscription)
+      @subscribers.delete(subscription)
+    end
   end
+
+  class EmtpyChannel < Channel
+    def publish(message=nil, &block)
+    end
+
+    def subscribed?
+      false
+    end
+  end
+
+  class OneChannel < Channel
+    def publish(message=nil, &block)
+      @subscriber.call
+    end
+
+    def subscribe(&block)
+      @subscriber = block
+      return block
+    end
+
+    def subscribed?
+      true
+    end
+  end
+end
+
+require 'benchmark/ips'
+require 'benchmark-memory'
+
+empty_channel = RubyTelemetry::EmtpyChannel.new
+
+ActiveSupport::Notifications.subscribe('one') {}
+one_channel = RubyTelemetry::Channel.new
+one_channel.subscribe{}
+
+one_channel_opt = RubyTelemetry::OneChannel.new
+one_channel_opt.subscribe{}
+
+ten_channel = RubyTelemetry::Channel.new
+10.times do
+  ActiveSupport::Notifications.subscribe('ten') {}
+  ten_channel.subscribe{}
+end
+
+Benchmark.ips do |x|
+  x.time = 5
+  x.warmup = 1
+
+  x.report('empty  as') { ActiveSupport::Notifications.publish('name', 'event') }
+  x.report('empty new') { empty_channel.publish('event') }
+
+  x.report('one  as') { ActiveSupport::Notifications.publish('one', 'event') }
+  x.report('one new') { one_channel.publish('one') }
+  x.report('one new safe') { one_channel.safe_publishing('one') }
+  x.report('one new opt') { one_channel_opt.publish('one') }
+
+  x.report('ten  as') { ActiveSupport::Notifications.publish('ten', 'event') }
+  x.report('ten new') { ten_channel.publish('ten') }
+
+  x.compare!
 end
 
 
@@ -75,3 +154,7 @@ end
 #
 #   x.compare!
 # end
+
+
+#            empty new: 15975168.9 i/s
+#          one new opt:  6825501.4 i/s - 2.34x  slower
