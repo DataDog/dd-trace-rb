@@ -92,7 +92,6 @@ struct cpu_and_wall_time_worker_state {
   dynamic_sampling_rate_state dynamic_sampling_rate;
   VALUE gc_tracepoint; // Used to get gc start/finish information
   VALUE object_allocation_tracepoint; // Used to get allocation counts and allocation profiling
-  VALUE object_free_tracepoint; // Used to figure out live objects for heap profiling
 
   // These are mutable and used to signal things between the worker thread and other threads
 
@@ -278,7 +277,6 @@ static VALUE _native_new(VALUE klass) {
   dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
-  state->object_free_tracepoint = Qnil;
 
   atomic_init(&state->should_run, false);
   state->failure_exception = Qnil;
