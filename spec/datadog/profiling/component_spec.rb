@@ -321,7 +321,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         it 'falls back to the default value' do
-          expect(valid_overhead_target).to be 2.0
+          expect(valid_overhead_target).to eq 2.0
         end
       end
     end
@@ -330,7 +330,7 @@ RSpec.describe Datadog::Profiling::Component do
       let(:overhead_target_percentage) { 1.5 }
 
       it 'returns the value' do
-        expect(valid_overhead_target).to be 1.5
+        expect(valid_overhead_target).to eq 1.5
       end
     end
   end
