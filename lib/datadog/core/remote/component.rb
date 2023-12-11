@@ -103,16 +103,23 @@ module Datadog
           def wait_once(timeout = nil)
             # TTAS (Test and Test-And-Set) optimisation
             # Since @once only ever goes from false to true, this is semantically valid
-            return if @once
+            return :pass if @once
 
             begin
               @mutex.lock
 
-              return if @once
+              return :pass if @once
 
               timeout ||= @timeout
 
-              @condition.wait(@mutex, timeout)
+              lifted = @condition.wait(@mutex, timeout)
+
+              if lifted
+                :lift
+              else
+                @once = true
+                :timeout
+              end
             ensure
               @mutex.unlock
             end

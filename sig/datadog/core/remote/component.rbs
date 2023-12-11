@@ -32,7 +32,7 @@ module Datadog
 
           def initialize: (?timeout_s? timeout) -> void
 
-          def wait_once: (?timeout_s? timeout) -> void
+          def wait_once: (?timeout_s? timeout) -> Symbol
           def lift: () -> void
         end
       end

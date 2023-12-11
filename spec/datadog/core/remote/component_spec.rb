@@ -202,7 +202,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
 end
 
 RSpec.describe Datadog::Core::Remote::Component::Barrier do
-  let(:delay) { 0.5 }
+  let(:delay) { 1.0 }
   let(:record) { [] }
   let(:timeout) { nil }
   let(:instance_timeout) { nil }
@@ -258,7 +258,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
         waiter_thread = Thread.new(record) do |record|
           waiter_thread_queue << :ready
           record << :wait
-          barrier.wait_once
+          expect(barrier.wait_once).to eq :lift
           record << :woke_up
         end
 
@@ -278,7 +278,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
     it 'blocks once' do
       record << :one
-      barrier.wait_once
+      expect(barrier.wait_once).to eq :lift
       record << :two
 
       expect(record).to eq [:one, :lift, :two]
@@ -286,9 +286,9 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
     it 'blocks only once' do
       record << :one
-      barrier.wait_once
+      expect(barrier.wait_once).to eq :lift
       record << :two
-      barrier.wait_once
+      expect(barrier.wait_once).to eq :pass
       record << :three
 
       expect(record).to eq [:one, :lift, :two, :three]
@@ -300,9 +300,9 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       context('shorter than lift') do
         it 'unblocks on timeout' do
           record << :one
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :timeout
           record << :two
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :pass
           record << :three
 
           expect(record).to eq [:one, :two, :three]
@@ -310,14 +310,13 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       end
 
       context('longer than lift') do
-        let(:delay) { 0.2 }
         let(:timeout) { delay * 2 }
 
         it 'unblocks before timeout' do
           record << :one
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :lift
           record << :two
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :pass
           record << :three
 
           expect(record).to eq [:one, :lift, :two, :three]
@@ -329,9 +328,9 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
         it 'prefers the local timeout' do
           record << :one
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :timeout
           record << :two
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :pass
           record << :three
 
           expect(record).to eq [:one, :two, :three]
@@ -344,9 +343,9 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
       it 'unblocks on timeout' do
         record << :one
-        barrier.wait_once
+        expect(barrier.wait_once).to eq :timeout
         record << :two
-        barrier.wait_once
+        expect(barrier.wait_once).to eq :pass
         record << :three
 
         expect(record).to eq [:one, :two, :three]
