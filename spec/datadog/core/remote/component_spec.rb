@@ -254,21 +254,19 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
     context 'with waiters' do
       it 'unblocks waiters' do
-        waiter_thread_queue = Queue.new
         waiter_thread = Thread.new(record) do |record|
-          waiter_thread_queue << :ready
-          record << :wait
+          record << :one
           expect(barrier.wait_once).to eq :lift
-          record << :woke_up
-        end
+          record << :two
+        end.run
 
-        waiter_thread_queue.pop # Wait for ready
+        sleep delay
 
-        record << :one
+        record << :lift
         barrier.lift
         waiter_thread.join
 
-        expect(record).to eq [:wait, :one, :woke_up]
+        expect(record).to eq [:one, :lift, :two]
       end
     end
   end
