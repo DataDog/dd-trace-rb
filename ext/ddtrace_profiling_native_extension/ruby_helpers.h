@@ -63,11 +63,11 @@ NORETURN(void raise_unexpected_type(
 
 #define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
 
-NORETURN(
+NOGVL_SAFE NORETURN(
   void grab_gvl_and_raise(VALUE exception_class, const char *format_string, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
-NORETURN(
+NOGVL_SAFE NORETURN(
   void grab_gvl_and_raise_syserr(int syserr_errno, const char *format_string, ...)
   __attribute__ ((format (printf, 2, 3)));
 );
@@ -79,7 +79,7 @@ NORETURN(
   { int result_syserr_errno = expression; if (RB_UNLIKELY(result_syserr_errno)) raise_syserr(result_syserr_errno, have_gvl, ADD_QUOTES(expression), __FILE__, __LINE__, __func__); }
 
 // Called by ENFORCE_SUCCESS_HELPER; should not be used directly
-NORETURN(void raise_syserr(
+NOGVL_SAFE NORETURN(void raise_syserr(
   int syserr_errno,
   bool have_gvl,
   const char *expression,

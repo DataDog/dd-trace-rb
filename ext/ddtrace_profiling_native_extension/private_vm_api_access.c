@@ -50,7 +50,7 @@
 //
 // Note that beyond returning the rb_thread_struct*, rb_check_typeddata() raises an exception
 // if the argument passed in is not actually a `Thread` instance.
-static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
+NOGVL_SAFE static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
   static const rb_data_type_t *thread_data_type = NULL;
   if (UNLIKELY(thread_data_type == NULL)) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
 
@@ -86,7 +86,7 @@ bool is_current_thread_holding_the_gvl(void) {
 }
 
 #ifdef HAVE_RUBY_RACTOR_H
-  static inline rb_ractor_t *ddtrace_get_ractor(void) {
+  NOGVL_SAFE static inline rb_ractor_t *ddtrace_get_ractor(void) {
     #ifndef USE_RACTOR_INTERNAL_APIS_DIRECTLY // Ruby >= 3.3
       return thread_struct_from_object(rb_thread_current())->ractor;
     #else

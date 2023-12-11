@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdbool.h>
+#include "helpers.h"
+#include "ruby.h"
 
 // The private_vm_api_access.c includes the RUBY_MJIT_HEADER which replaces and conflicts with any other Ruby headers;
 // so we use PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES to be able to include private_vm_api_access.h on that file
@@ -19,8 +21,8 @@ typedef struct {
 } current_gvl_owner;
 
 rb_nativethread_id_t pthread_id_for(VALUE thread);
-bool is_current_thread_holding_the_gvl(void);
-current_gvl_owner gvl_owner(void);
+GVL_GUARD bool is_current_thread_holding_the_gvl(void);
+NOGVL_SAFE current_gvl_owner gvl_owner(void);
 uint64_t native_thread_id_for(VALUE thread);
 ptrdiff_t stack_depth_for(VALUE thread);
 void ddtrace_thread_list(VALUE result_array);
