@@ -555,27 +555,29 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
   // how often this happens -- see on_gc_start.
   if (thread_context == NULL) return false;
 
-  if (thread_context->gc_tracking.cpu_time_at_start_ns == INVALID_TIME &&
-    thread_context->gc_tracking.wall_time_at_start_ns == INVALID_TIME) {
+  long cpu_time_at_start_ns = thread_context->gc_tracking.cpu_time_at_start_ns;
+  long wall_time_at_start_ns = thread_context->gc_tracking.wall_time_at_start_ns;
+
+  if (cpu_time_at_start_ns == INVALID_TIME && wall_time_at_start_ns == INVALID_TIME) {
     // If this happened, it means that on_gc_start was either never called for the thread OR it was called but no thread
     // context existed at the time. The former can be the result of a bug, but since we can't distinguish them, we just
     // do nothing.
     return false;
   }
 
-  // Here we record the wall-time second and in on_gc_start we record it first to try to avoid having wall-time be slightly < cpu-time
-  long cpu_time_at_finish_ns = cpu_time_now_ns(thread_context);
-  long wall_time_at_finish_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-
-  long gc_cpu_time_elapsed_ns = cpu_time_at_finish_ns - thread_context->gc_tracking.cpu_time_at_start_ns;
-  long gc_wall_time_elapsed_ns = wall_time_at_finish_ns - thread_context->gc_tracking.wall_time_at_start_ns;
-
   // Mark thread as no longer in GC
   thread_context->gc_tracking.cpu_time_at_start_ns = INVALID_TIME;
   thread_context->gc_tracking.wall_time_at_start_ns = INVALID_TIME;
 
+  // Here we record the wall-time second and in on_gc_start we record it first to try to avoid having wall-time be slightly < cpu-time
+  long cpu_time_at_finish_ns = cpu_time_now_ns(thread_context);
+  long wall_time_at_finish_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+
   // If our end timestamp is not OK, we bail out
   if (wall_time_at_finish_ns == 0) return false;
+
+  long gc_cpu_time_elapsed_ns = cpu_time_at_finish_ns - cpu_time_at_start_ns;
+  long gc_wall_time_elapsed_ns = wall_time_at_finish_ns - wall_time_at_start_ns;
 
   // Wall-time can go backwards if the system clock gets changed (and we observed spurious jumps back on macOS as well)
   // so let's ensure we don't get negative values for time deltas.
