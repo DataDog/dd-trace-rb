@@ -644,6 +644,11 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
     state->sampling_buffer,
     state->recorder_instance,
     (sample_values) {
+      // This event gets both a regular cpu/wall-time duration, as a normal cpu/wall-time sample would, as well as a
+      // timeline duration.
+      // This is done to enable two use-cases:
+      // * regular cpu/wall-time makes this event show up as a regular stack in the flamegraph
+      // * the timeline duration is used when the event shows up in the timeline
       .cpu_time_ns = state->gc_tracking.accumulated_cpu_time_ns,
       .cpu_or_wall_samples = 1,
       .wall_time_ns = state->gc_tracking.accumulated_wall_time_ns,
