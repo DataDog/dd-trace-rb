@@ -639,7 +639,6 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
     end_timestamp_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, state->gc_tracking.wall_time_at_previous_gc_ns);
   }
 
-  ddog_CharSlice gc_placeholder = DDOG_CHARSLICE_C("Garbage Collection");
   record_placeholder_stack(
     state->sampling_buffer,
     state->recorder_instance,
@@ -655,7 +654,7 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
       .timeline_wall_time_ns = state->gc_tracking.accumulated_wall_time_ns,
     },
     (sample_labels) {.labels = slice_labels, .state_label = NULL, .end_timestamp_ns = end_timestamp_ns},
-    (ddog_prof_Function) {.name = DDOG_CHARSLICE_C(""), .filename = gc_placeholder}
+    DDOG_CHARSLICE_C("Garbage Collection")
   );
 
   state->gc_tracking.wall_time_at_last_flushed_gc_event_ns = state->gc_tracking.wall_time_at_previous_gc_ns;
