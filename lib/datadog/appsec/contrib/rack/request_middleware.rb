@@ -26,7 +26,24 @@ module Datadog
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
-            Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
+            unless Datadog::Core::Remote.active_remote.nil?
+              barrier = nil
+
+              t = Datadog::Core::Utils::Time.measure do
+                barrier = Datadog::Core::Remote.active_remote.barrier(:once)
+              end
+
+              if barrier != :pass && (span = active_span) && !span.has_tag?('_dd.rc.boot.time')
+                span.set_tag('_dd.rc.boot.time', t)
+
+                if barrier == :timeout
+                  span.set_tag('_dd.rc.boot.timeout', true)
+                else
+                  # TODO: 'ready' should evolve into ensuring RC received a proper reply
+                  span.set_tag('_dd.rc.boot.ready', true)
+                end
+              end
+            end
 
             processor = nil
             ready = false

@@ -71,7 +71,13 @@ module Datadog
 
             return @app.call(env) if previous_request_span
 
-            Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
+            unless Datadog::Core::Remote.active_remote.nil?
+              barrier = nil
+
+              t = Datadog::Core::Utils::Time.measure do
+                barrier = Datadog::Core::Remote.active_remote.barrier(:once)
+              end
+            end
 
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
@@ -93,6 +99,18 @@ module Datadog
             request_span.resource = nil
             request_trace = Tracing.active_trace
             env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
+
+            unless Datadog::Core::Remote.active_remote.nil?
+              if barrier != :pass && (span = request_span)
+                span.set_tag('_dd.rc.boot.time', t)
+
+                if barrier == :timeout
+                  span.set_tag('_dd.rc.boot.timeout', true)
+                else
+                  span.set_tag('_dd.rc.boot.ready', true)
+                end
+              end
+            end
 
             # Copy the original env, before the rest of the stack executes.
             # Values may change; we want values before that happens.
