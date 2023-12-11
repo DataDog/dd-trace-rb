@@ -112,8 +112,7 @@ module Datadog
 
               timeout ||= @timeout
 
-              # rbs/core has a bug, timeout type is incorrectly ?Integer
-              @condition.wait(@mutex, _ = timeout)
+              @condition.wait(@mutex, timeout)
             ensure
               @mutex.unlock
             end
