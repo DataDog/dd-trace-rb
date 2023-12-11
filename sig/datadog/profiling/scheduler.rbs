@@ -7,7 +7,7 @@ module Datadog
         exporter: Datadog::Profiling::Exporter,
         transport: Datadog::Profiling::HttpTransport,
         ?fork_policy: untyped,
-        ?interval: ::Integer,
+        ?interval: ::Numeric,
         ?enabled: bool,
       ) -> void
 

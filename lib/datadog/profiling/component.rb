@@ -7,7 +7,7 @@ module Datadog
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
-      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:)
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
         require_relative '../profiling/diagnostics/environment_logger'
 
         Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
@@ -41,6 +41,8 @@ module Datadog
 
         no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
         timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
+        overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage)
+        upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
 
         recorder = Datadog::Profiling::StackRecorder.new(
           cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
@@ -58,6 +60,7 @@ module Datadog
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           thread_context_collector: thread_context_collector,
+          dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
           allocation_sample_every: 0,
         )
 
@@ -68,7 +71,7 @@ module Datadog
 
         exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
-        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
+        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
 
         Profiling::Profiler.new(worker: worker, scheduler: scheduler)
       end
@@ -243,6 +246,19 @@ module Datadog
           Gem.loaded_specs['passenger'].version < Gem::Version.new('6.0.19')
         else
           true
+        end
+      end
+
+      private_class_method def self.valid_overhead_target(overhead_target_percentage)
+        if overhead_target_percentage > 0 && overhead_target_percentage <= 20
+          overhead_target_percentage
+        else
+          Datadog.logger.error(
+            'Ignoring invalid value for profiling overhead_target_percentage setting: ' \
+            "#{overhead_target_percentage.inspect}. Falling back to default value."
+          )
+
+          2.0
         end
       end
     end
