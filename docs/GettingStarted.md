@@ -333,18 +333,7 @@ For a list of configuration options for the available integrations, refer to the
 
 #### CI Visibility
 
-For Datadog CI Visibility, library instrumentation can be activated and configured by using the following `Datadog.configure` API:
-
-```ruby
-Datadog.configure do |c|
-  # Activates and configures an integration
-  c.ci.instrument :integration_name, **options
-end
-```
-
-`options` are keyword arguments for integration-specific configuration.
-
-For a list of available integrations and their supported versions, see [Ruby CI Integration Compatibility][3]
+Checkout [Datadog's Ruby Library for instrumenting your test and continuous integration pipeline](https://github.com/DataDog/datadog-ci-rb)
 
 ### Action Cable
 
@@ -2705,4 +2694,3 @@ See [this issue](https://github.com/DataDog/dd-trace-rb/issues/3015) for a discu
 [header tags]: https://docs.datadoghq.com/tracing/configure_data_security/#applying-header-tags-to-root-spans
 [1]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby/
 [2]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby#integrations
-[3]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby#ci-visibility-integrations
