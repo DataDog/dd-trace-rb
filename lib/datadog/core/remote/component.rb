@@ -112,7 +112,16 @@ module Datadog
 
               timeout ||= @timeout
 
-              lifted = @condition.wait(@mutex, timeout)
+              # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
+              #   timeout and an integer otherwise
+              # - before Ruby 3.2, ConditionVariable returns itself
+              # so we have to rely on @once having been set
+              if RUBY_VERSION >= '3.2'
+                lifted = @condition.wait(@mutex, timeout)
+              else
+                @condition.wait(@mutex, timeout)
+                lifted = @once
+              end
 
               if lifted
                 :lift
