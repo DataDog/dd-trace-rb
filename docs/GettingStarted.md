@@ -1219,7 +1219,7 @@ client.query("SELECT * FROM users WHERE group='x'")
 | `service_name`        | `DD_TRACE_MYSQL2_SERVICE_NAME` | Name of application running the `mysql2` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)                                                                                                                                                                              | `mysql2`     |
 | `peer_service`        | `DD_TRACE_MYSQL2_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                    | `nil`        |
 | `comment_propagation` | `DD_DBM_PROPAGATION_MODE`      | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
-
+| `on_error` | | Custom error handler invoked when raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 ### Net/HTTP
 
 The Net/HTTP integration will trace any HTTP call using the standard lib Net::HTTP module.

@@ -50,6 +50,11 @@ module Datadog
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
             end
+
+            option :on_error do |o|
+              o.type :proc
+              o.default_proc(&Tracing::SpanOperation::Events::DEFAULT_ON_ERROR)
+            end
           end
         end
       end
