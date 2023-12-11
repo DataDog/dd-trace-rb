@@ -16,17 +16,19 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }
   let(:options) { {} }
-
-  subject(:cpu_and_wall_time_worker) do
-    described_class.new(
+  let(:worker_settings) do
+    {
       gc_profiling_enabled: gc_profiling_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
       thread_context_collector: build_thread_context_collector(recorder),
+      dynamic_sampling_rate_overhead_target_percentage: 2.0,
       allocation_sample_every: allocation_sample_every,
       allocation_profiling_enabled: allocation_profiling_enabled,
       **options
-    )
+    }
   end
+
+  subject(:cpu_and_wall_time_worker) { described_class.new(**worker_settings, **options) }
 
   describe '.new' do
     it 'creates the garbage collection tracepoint in the disabled state' do
@@ -943,15 +945,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   end
 
   def build_another_instance
-    described_class.new(
-      gc_profiling_enabled: gc_profiling_enabled,
-      no_signals_workaround_enabled: no_signals_workaround_enabled,
-      thread_context_collector: build_thread_context_collector(
-        build_stack_recorder(heap_samples_enabled: heap_profiling_enabled)
-      ),
-      allocation_sample_every: allocation_sample_every,
-      allocation_profiling_enabled: allocation_profiling_enabled,
-    )
+    described_class.new(**worker_settings)
   end
 
   def build_thread_context_collector(recorder)

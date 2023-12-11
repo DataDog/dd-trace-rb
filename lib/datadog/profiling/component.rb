@@ -45,12 +45,16 @@ module Datadog
         allocation_profiling_enabled = enable_allocation_profiling?(settings, allocation_sample_every)
         heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled)
 
+        overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage)
+        upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
+
         recorder = build_recorder(allocation_profiling_enabled, heap_profiling_enabled)
         thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
         worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
           gc_profiling_enabled: enable_gc_profiling?(settings),
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           thread_context_collector: thread_context_collector,
+          dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
           allocation_sample_every: allocation_sample_every,
           allocation_profiling_enabled: allocation_profiling_enabled,
         )
@@ -63,7 +67,7 @@ module Datadog
 
         exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
-        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
+        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
 
         Profiling::Profiler.new(worker: worker, scheduler: scheduler)
       end
@@ -335,6 +339,19 @@ module Datadog
           Gem.loaded_specs['passenger'].version < Gem::Version.new('6.0.19')
         else
           true
+        end
+      end
+
+      private_class_method def self.valid_overhead_target(overhead_target_percentage)
+        if overhead_target_percentage > 0 && overhead_target_percentage <= 20
+          overhead_target_percentage
+        else
+          Datadog.logger.error(
+            'Ignoring invalid value for profiling overhead_target_percentage setting: ' \
+            "#{overhead_target_percentage.inspect}. Falling back to default value."
+          )
+
+          2.0
         end
       end
     end

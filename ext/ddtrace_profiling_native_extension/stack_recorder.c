@@ -130,8 +130,6 @@
 static VALUE ok_symbol = Qnil; // :ok in Ruby
 static VALUE error_symbol = Qnil; // :error in Ruby
 
-static VALUE stack_recorder_class = Qnil;
-
 // Note: Please DO NOT use `VALUE_STRING` anywhere else, instead use `DDOG_CHARSLICE_C`.
 // `VALUE_STRING` is only needed because older versions of gcc (4.9.2, used in our Ruby 2.2 CI test images)
 // tripped when compiling `enabled_value_types` using `-std=gnu99` due to the extra cast that is included in
@@ -225,7 +223,7 @@ static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_ins
 
 
 void stack_recorder_init(VALUE profiling_module) {
-  stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
+  VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(stack_recorder_class, "Testing");
 

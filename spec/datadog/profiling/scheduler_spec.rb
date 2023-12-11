@@ -8,9 +8,10 @@ RSpec.describe 'Datadog::Profiling::Scheduler' do
   let(:described_class) { Datadog::Profiling::Scheduler }
   let(:exporter) { instance_double(Datadog::Profiling::Exporter) }
   let(:transport) { instance_double(Datadog::Profiling::HttpTransport) }
+  let(:interval) { 60 } # seconds
   let(:options) { {} }
 
-  subject(:scheduler) { described_class.new(exporter: exporter, transport: transport, **options) }
+  subject(:scheduler) { described_class.new(exporter: exporter, transport: transport, interval: interval, **options) }
 
   describe '.new' do
     describe 'default settings' do
@@ -147,7 +148,7 @@ RSpec.describe 'Datadog::Profiling::Scheduler' do
 
     it 'changes its wait interval after flushing' do
       expect(scheduler).to receive(:loop_wait_time=) do |value|
-        expected_interval = described_class.const_get(:DEFAULT_INTERVAL_SECONDS) - flush_time
+        expected_interval = interval - flush_time
         expect(value).to be <= expected_interval
       end
 

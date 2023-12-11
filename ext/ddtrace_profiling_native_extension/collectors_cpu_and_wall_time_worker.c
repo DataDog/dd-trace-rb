@@ -153,6 +153,7 @@ static VALUE _native_initialize(
   VALUE idle_sampling_helper_instance,
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
+  VALUE dynamic_sampling_rate_overhead_target_percentage,
   VALUE allocation_sample_every,
   VALUE allocation_profiling_enabled
 );
@@ -228,7 +229,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 8);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 9);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -298,6 +299,7 @@ static VALUE _native_initialize(
   VALUE idle_sampling_helper_instance,
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
+  VALUE dynamic_sampling_rate_overhead_target_percentage,
   VALUE allocation_sample_every,
   VALUE allocation_profiling_enabled
 ) {
@@ -305,6 +307,7 @@ static VALUE _native_initialize(
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
   ENFORCE_TYPE(allocation_sample_every, T_FIXNUM);
+  ENFORCE_TYPE(dynamic_sampling_rate_overhead_target_percentage, T_FLOAT);
   ENFORCE_BOOLEAN(allocation_profiling_enabled);
 
   struct cpu_and_wall_time_worker_state *state;
@@ -313,6 +316,7 @@ static VALUE _native_initialize(
   state->gc_profiling_enabled = (gc_profiling_enabled == Qtrue);
   state->no_signals_workaround_enabled = (no_signals_workaround_enabled == Qtrue);
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
+  dynamic_sampling_rate_set_overhead_target_percentage(&state->dynamic_sampling_rate, NUM2DBL(dynamic_sampling_rate_overhead_target_percentage));
   state->allocation_sample_every = NUM2INT(allocation_sample_every);
   state->allocation_profiling_enabled = (allocation_profiling_enabled == Qtrue);
 

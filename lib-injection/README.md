@@ -42,7 +42,7 @@ Currently, we support
 | Environment| version |
 |---|---|
 | Ruby  | `2.7`, `3.0`, `3.1`, `3.2`|
-| Arch  | `amd64` |
+| Arch  | `amd64`, `arm64` |
 | glibc |  2.28+ |
 
 In order to ship `ddtrace` and its dependencies as a pre-install package, we need a few tweaks in our build pipeline.

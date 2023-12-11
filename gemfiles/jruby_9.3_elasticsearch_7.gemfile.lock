@@ -11,8 +11,8 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.17.0)
-      datadog-ci (~> 0.4.0)
+    ddtrace (1.18.0)
+      datadog-ci (~> 0.5.0)
       debase-ruby_core_source (= 3.2.3)
       libdatadog (~> 5.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -39,7 +39,7 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
-    datadog-ci (0.4.0)
+    datadog-ci (0.5.0)
       msgpack
     debase-ruby_core_source (3.2.3)
     diff-lcs (1.5.0)
