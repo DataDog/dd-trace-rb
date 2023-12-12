@@ -52,8 +52,7 @@ module Datadog
             end
 
             option :on_error do |o|
-              o.type :proc
-              o.default_proc(&Tracing::SpanOperation::Events::DEFAULT_ON_ERROR)
+              o.type :proc, nilable: true
             end
           end
         end
