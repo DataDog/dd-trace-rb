@@ -534,7 +534,7 @@ typedef struct heap_recorder_iteration_context {
   struct stack_recorder_state *state;
   ddog_prof_Profile *profile;
   bool error;
-  char errorMsg[MAX_LEN_HEAP_ITERATION_ERROR_MSG];
+  char error_msg[MAX_LEN_HEAP_ITERATION_ERROR_MSG];
 } heap_recorder_iteration_context;
 
 static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteration_data iteration_data, void *extra_arg) {
@@ -556,7 +556,7 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   );
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    read_ddogerr_string_and_drop(&result.err, context->errorMsg, MAX_LEN_HEAP_ITERATION_ERROR_MSG);
+    read_ddogerr_string_and_drop(&result.err, context->error_msg, MAX_LEN_HEAP_ITERATION_ERROR_MSG);
     context->error = true;
     // By returning false we cancel the iteration
     return false;
@@ -571,7 +571,7 @@ static void build_heap_profile_without_gvl(struct stack_recorder_state *state, d
     .state = state,
     .profile = profile,
     .error = false,
-    .errorMsg = {0},
+    .error_msg = {0},
   };
   heap_recorder_for_each_live_object(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context, false);
   if (iteration_context.error) {
@@ -580,7 +580,7 @@ static void build_heap_profile_without_gvl(struct stack_recorder_state *state, d
     // in the opposite situation: we have the GVL and may need to grab the records_mutex for mutation. This
     // different ordering can lead to deadlocks. By delaying the raise here until after we no longer hold
     // records_mutex, we prevent this different-lock-acquisition-order situation.
-    grab_gvl_and_raise(rb_eRuntimeError, "Failure during heap profile building: %s", iteration_context.errorMsg);
+    grab_gvl_and_raise(rb_eRuntimeError, "Failure during heap profile building: %s", iteration_context.error_msg);
   }
 }
 

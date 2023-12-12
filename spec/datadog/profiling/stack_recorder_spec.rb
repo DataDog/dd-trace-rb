@@ -401,19 +401,25 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(sum_heap_samples).to eq([a_string, an_array, a_hash].size * sample_rate)
         end
 
-        it 'do not corrupt/overwrite non-heap-samples' do
+        it 'keeps on reporting accurate samples for other profile types' do
           expect(non_heap_samples.size).to eq(2)
 
-          sum_cpu_time = 0
-          sum_alloc_samples = 0
-
+          summed_values = {}
           non_heap_samples.each do |s|
-            sum_cpu_time += s.values[:'cpu-time']
-            sum_alloc_samples += s.values[:'alloc-samples']
+            s.values.each_pair do |k, v|
+              summed_values[k] = (summed_values[k] || 0) + v
+            end
           end
 
-          expect(sum_cpu_time).to be > 0
-          expect(sum_alloc_samples).to eq(@num_allocations * sample_rate)
+          # We use the same metric_values in all sample calls in before. So we'd expect
+          # the summed values to match `@num_allocations * metric_values[profile-type]`
+          # for each profile-type there in.
+          expected_summed_values = { :'heap-live-samples' => 0 }
+          metric_values.each_pair do |k, v|
+            expected_summed_values[k.to_sym] = v * @num_allocations
+          end
+
+          expect(summed_values).to eq(expected_summed_values)
         end
       end
     end
