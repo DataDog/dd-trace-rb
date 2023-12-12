@@ -46,7 +46,7 @@ RSpec.describe Datadog::Tracing::Correlation do
         expect(identifier).to have_attributes(
           env: default_env,
           service: default_service,
-          span_id: 0,
+          span_id: '0',
           span_name: nil,
           span_resource: nil,
           span_service: nil,
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Tracing::Correlation do
         expect(identifier).to have_attributes(
           env: default_env,
           service: default_service,
-          span_id: span_id,
+          span_id: span_id.to_s,
           span_name: span_name,
           span_resource: span_resource,
           span_service: span_service,
@@ -125,7 +125,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           expect(identifier).to have_attributes(
             env: default_env,
             service: default_service,
-            span_id: 0,
+            span_id: '0',
             span_name: nil,
             span_resource: nil,
             span_service: nil,
@@ -169,7 +169,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           expect(identifier).to have_attributes(
             env: env,
             service: service,
-            span_id: span_id,
+            span_id: span_id.to_s,
             span_name: span_name,
             span_resource: span_resource,
             span_service: span_service,

@@ -48,7 +48,7 @@ module Datadog
           # Dup and freeze strings so they aren't modified by reference.
           @env = Core::Utils::SafeDup.frozen_dup(env || Datadog.configuration.env)
           @service = Core::Utils::SafeDup.frozen_dup(service || Datadog.configuration.service)
-          @span_id = span_id || 0
+          @span_id = (span_id || 0).to_s
           @span_name = Core::Utils::SafeDup.frozen_dup(span_name)
           @span_resource = Core::Utils::SafeDup.frozen_dup(span_resource)
           @span_service = Core::Utils::SafeDup.frozen_dup(span_service)
