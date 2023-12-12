@@ -142,7 +142,6 @@ RSpec/UnspecifiedException:
 # Offense count: 24
 Style/ClassVars:
   Exclude:
-    - 'spec/datadog/tracing/contrib/rails/support/rails3.rb'
     - 'spec/datadog/tracing/contrib/rails/support/rails4.rb'
     - 'spec/datadog/tracing/contrib/rails/support/rails5.rb'
     - 'spec/datadog/tracing/contrib/rails/support/rails6.rb'
@@ -233,8 +232,6 @@ Style/FrozenStringLiteralComment:
     - 'lib/datadog/tracing/contrib/action_view/configuration/settings.rb'
     - 'lib/datadog/tracing/contrib/action_view/events/render_partial.rb'
     - 'lib/datadog/tracing/contrib/action_view/events/render_template.rb'
-    - 'lib/datadog/tracing/contrib/action_view/instrumentation/partial_renderer.rb'
-    - 'lib/datadog/tracing/contrib/action_view/instrumentation/template_renderer.rb'
     - 'lib/datadog/tracing/contrib/action_view/integration.rb'
     - 'lib/datadog/tracing/contrib/action_view/patcher.rb'
     - 'lib/datadog/tracing/contrib/action_view/utils.rb'
