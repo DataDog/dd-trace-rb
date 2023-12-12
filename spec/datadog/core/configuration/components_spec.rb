@@ -1070,18 +1070,24 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context 'is enabled' do
-        before do
-          skip 'Profiling not supported.' unless Datadog::Profiling.supported?
+        # Using a generic double rather than instance_double since if profiling is not supported by the
+        # current CI runner we won't even load the Datadog::Profiling::Profiler class.
+        let(:profiler) { double }
 
+        before do
           allow(settings.profiling)
             .to receive(:enabled)
             .and_return(true)
           allow(profiler_setup_task).to receive(:run)
+          expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
+            settings: settings,
+            agent_settings: agent_settings,
+            optional_tracer: anything,
+          ).and_return(profiler)
         end
 
         it do
-          expect(components.profiler)
-            .to receive(:start)
+          expect(profiler).to receive(:start)
 
           startup!
         end

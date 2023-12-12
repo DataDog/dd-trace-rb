@@ -556,7 +556,7 @@ namespace :spec do
     #       the non-ractor VM will never trigger the transition into multi-ractor mode.
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:main) do |t, args|
-      t.pattern = 'spec/datadog/profiling/**/*_spec.rb'
+      t.pattern = 'spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb'
       t.rspec_opts = [*args.to_a, '-t ~ractors'].join(' ')
     end
 
