@@ -7,20 +7,24 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   # drops support for these Rubies globally
   let(:described_class) { Datadog::Profiling::Collectors::CpuAndWallTimeWorker }
 
-  let(:recorder) { build_stack_recorder }
   let(:endpoint_collection_enabled) { true }
   let(:gc_profiling_enabled) { true }
-  let(:allocation_counting_enabled) { true }
+  let(:allocation_sample_every) { 50 }
+  let(:allocation_profiling_enabled) { false }
+  let(:heap_profiling_enabled) { false }
+  let(:recorder) { build_stack_recorder(heap_samples_enabled: heap_profiling_enabled) }
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }
   let(:options) { {} }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
-      allocation_counting_enabled: allocation_counting_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
       thread_context_collector: build_thread_context_collector(recorder),
       dynamic_sampling_rate_overhead_target_percentage: 2.0,
+      allocation_sample_every: allocation_sample_every,
+      allocation_profiling_enabled: allocation_profiling_enabled,
+      **options
     }
   end
 
@@ -57,6 +61,8 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   end
 
   describe '#start' do
+    let(:expected_worker_initialization_error) { nil }
+
     subject(:start) do
       cpu_and_wall_time_worker.start
       wait_until_running
@@ -442,17 +448,14 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       end
     end
 
-    context 'when allocation sampling is enabled' do
-      let(:options) { { allocation_sample_every: 1 } }
+    context 'when allocation profiling is enabled' do
+      let(:allocation_profiling_enabled) { true }
+      let(:test_num_allocated_object) { 123 }
+      # Sample all allocations to get easy-to-reason about numbers that are also not flaky in CI.
+      let(:allocation_sample_every) { 1 }
 
       before do
         allow(Datadog.logger).to receive(:warn)
-      end
-
-      it 'logs a warning message mentioning this is experimental' do
-        expect(Datadog.logger).to receive(:warn).with(/Enabled experimental allocation profiling/)
-
-        start
       end
 
       it 'records allocated objects' do
@@ -460,7 +463,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
         start
 
-        123.times { CpuAndWallTimeWorkerSpec::TestStruct.new }
+        test_num_allocated_object.times { CpuAndWallTimeWorkerSpec::TestStruct.new }
         allocation_line = __LINE__ - 1
 
         cpu_and_wall_time_worker.stop
@@ -469,7 +472,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
           samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
             .find { |s| s.labels[:'allocation class'] == 'CpuAndWallTimeWorkerSpec::TestStruct' }
 
-        expect(allocation_sample.values).to include(:'alloc-samples' => 123)
+        expect(allocation_sample.values).to include(:'alloc-samples' => test_num_allocated_object)
         expect(allocation_sample.locations.first.lineno).to eq allocation_line
       end
 
@@ -540,7 +543,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
     end
 
     context 'when allocation sampling is disabled' do
-      let(:options) { { allocation_sample_every: 0 } }
+      let(:allocation_profiling_enabled) { false }
 
       it 'does not record allocations' do
         stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
@@ -552,6 +555,52 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
         cpu_and_wall_time_worker.stop
 
         expect(samples_from_pprof(recorder.serialize!).map(&:values)).to all(include(:'alloc-samples' => 0))
+      end
+    end
+
+    context 'when heap profiling is enabled' do
+      let(:allocation_profiling_enabled) { true }
+      let(:heap_profiling_enabled) { true }
+      let(:test_num_allocated_object) { 123 }
+      # Sample all allocations to get easy-to-reason about numbers that are also not flaky in CI.
+      let(:allocation_sample_every) { 1 }
+
+      before do
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      it 'records live heap objects' do
+        pending "heap profiling isn't actually implemented just yet"
+
+        stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
+
+        start
+
+        test_num_allocated_object.times { CpuAndWallTimeWorkerSpec::TestStruct.new }
+        allocation_line = __LINE__ - 1
+
+        cpu_and_wall_time_worker.stop
+
+        relevant_sample = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
+          .find { |s| s.locations.first.lineno == allocation_line && s.locations.first.path == __FILE__ }
+
+        expect(relevant_sample.values[':heap-live-samples']).to eq test_num_allocated_object
+      end
+    end
+
+    context 'when heap profiling is disabled' do
+      let(:heap_profiling_enabled) { false }
+
+      it 'does not record heap samples' do
+        stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
+
+        start
+
+        123.times { CpuAndWallTimeWorkerSpec::TestStruct.new }
+
+        cpu_and_wall_time_worker.stop
+
+        expect(samples_from_pprof(recorder.serialize!).select { |s| s.values.key?(:'heap-live-samples') }).to be_empty
       end
     end
 
@@ -633,7 +682,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       # so this must be disabled when interacting with Ractors.
       let(:gc_profiling_enabled) { false }
       # ...same thing for the tracepoint for allocation counting/profiling :(
-      let(:allocation_counting_enabled) { false }
+      let(:allocation_profiling_enabled) { false }
 
       describe 'handle_sampling_signal' do
         include_examples 'does not trigger a sample',
@@ -815,51 +864,68 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
         cpu_and_wall_time_worker.stop
       end
 
-      it 'returns the number of allocations between two calls of the method' do
-        # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
-        # it needs to
-        new_object = proc { Object.new }
-        1.times(&new_object)
+      context 'when allocation profiling is enabled' do
+        let(:allocation_profiling_enabled) { true }
 
-        before_allocations = described_class._native_allocation_count
-        100.times(&new_object)
-        after_allocations = described_class._native_allocation_count
-
-        expect(after_allocations - before_allocations).to be 100
-      end
-
-      it 'returns different numbers of allocations for different threads' do
-        # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
-        # it needs to
-        new_object = proc { Object.new }
-        1.times(&new_object)
-
-        t1_can_run = Queue.new
-        t1_has_run = Queue.new
-        before_t1 = nil
-        after_t1 = nil
-
-        background_t1 = Thread.new do
-          before_t1 = described_class._native_allocation_count
-          t1_can_run.pop
-
-          100.times(&new_object)
-          after_t1 = described_class._native_allocation_count
-          t1_has_run << true
+        it 'always returns a >= 0 value' do
+          expect(described_class._native_allocation_count).to be >= 0
         end
 
-        before_allocations = described_class._native_allocation_count
-        t1_can_run << true
-        t1_has_run.pop
-        after_allocations = described_class._native_allocation_count
+        it 'returns the number of allocations between two calls of the method' do
+          # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
+          # it needs to
+          new_object = proc { Object.new }
+          1.times(&new_object)
 
-        background_t1.join
+          before_allocations = described_class._native_allocation_count
+          100.times(&new_object)
+          after_allocations = described_class._native_allocation_count
 
-        # This test checks that even though we observed 100 allocations in a background thread t1, the counters for
-        # the current thread were not affected by this change
+          expect(after_allocations - before_allocations).to be 100
+        end
 
-        expect(after_t1 - before_t1).to be 100
-        expect(after_allocations - before_allocations).to be < 10
+        it 'returns different numbers of allocations for different threads' do
+          # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
+          # it needs to
+          new_object = proc { Object.new }
+          1.times(&new_object)
+
+          t1_can_run = Queue.new
+          t1_has_run = Queue.new
+          before_t1 = nil
+          after_t1 = nil
+
+          background_t1 = Thread.new do
+            before_t1 = described_class._native_allocation_count
+            t1_can_run.pop
+
+            100.times(&new_object)
+            after_t1 = described_class._native_allocation_count
+            t1_has_run << true
+          end
+
+          before_allocations = described_class._native_allocation_count
+          t1_can_run << true
+          t1_has_run.pop
+          after_allocations = described_class._native_allocation_count
+
+          background_t1.join
+
+          # This test checks that even though we observed 100 allocations in a background thread t1, the counters for
+          # the current thread were not affected by this change
+
+          expect(after_t1 - before_t1).to be 100
+          expect(after_allocations - before_allocations).to be < 10
+        end
+      end
+
+      context 'when allocation profiling is disabled' do
+        let(:allocation_profiling_enabled) { false }
+        it 'always returns a nil value' do
+          100.times { Object.new }
+
+          expect(described_class._native_allocation_count).to be nil
+        end
       end
     end
   end

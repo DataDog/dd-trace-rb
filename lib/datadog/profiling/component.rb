@@ -7,7 +7,7 @@ module Datadog
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
-      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:)
         require_relative '../profiling/diagnostics/environment_logger'
 
         Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
@@ -41,32 +41,28 @@ module Datadog
 
         no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
         timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
+        allocation_sample_every = get_allocation_sample_every(settings)
+        allocation_profiling_enabled = enable_allocation_profiling?(settings, allocation_sample_every)
+        heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled)
+
         overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage)
         upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
 
-        recorder = Datadog::Profiling::StackRecorder.new(
-          cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
-          alloc_samples_enabled: false, # Always disabled for now -- work in progress
-        )
-        thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.new(
-          recorder: recorder,
-          max_frames: settings.profiling.advanced.max_frames,
-          tracer: optional_tracer,
-          endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
-          timeline_enabled: timeline_enabled,
-        )
+        recorder = build_recorder(allocation_profiling_enabled, heap_profiling_enabled)
+        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
         worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
           gc_profiling_enabled: enable_gc_profiling?(settings),
-          allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           thread_context_collector: thread_context_collector,
           dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
-          allocation_sample_every: 0,
+          allocation_sample_every: allocation_sample_every,
+          allocation_profiling_enabled: allocation_profiling_enabled,
         )
 
         internal_metadata = {
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           timeline_enabled: timeline_enabled,
+          allocation_sample_every: allocation_sample_every,
         }.freeze
 
         exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
@@ -74,6 +70,24 @@ module Datadog
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
 
         Profiling::Profiler.new(worker: worker, scheduler: scheduler)
+      end
+
+      private_class_method def self.build_recorder(allocation_profiling_enabled, heap_profiling_enabled)
+        Datadog::Profiling::StackRecorder.new(
+          cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
+          alloc_samples_enabled: allocation_profiling_enabled,
+          heap_samples_enabled: heap_profiling_enabled,
+        )
+      end
+
+      private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
+        Datadog::Profiling::Collectors::ThreadContext.new(
+          recorder: recorder,
+          max_frames: settings.profiling.advanced.max_frames,
+          tracer: optional_tracer,
+          endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
+          timeline_enabled: timeline_enabled,
+        )
       end
 
       private_class_method def self.build_profiler_exporter(settings, recorder, internal_metadata:)
@@ -111,6 +125,85 @@ module Datadog
         else
           false
         end
+      end
+
+      private_class_method def self.get_allocation_sample_every(settings)
+        allocation_sample_rate = settings.profiling.advanced.experimental_allocation_sample_rate
+
+        if allocation_sample_rate <= 0
+          raise ArgumentError, "Allocation sample rate must be a positive integer. Was #{allocation_sample_rate}"
+        end
+
+        allocation_sample_rate
+      end
+
+      private_class_method def self.enable_allocation_profiling?(settings, allocation_sample_every)
+        unless settings.profiling.advanced.experimental_allocation_enabled
+          # Allocation profiling disabled, short-circuit out
+          return false
+        end
+
+        # Allocation sampling is safe and supported on Ruby 2.x, but has a few caveats on Ruby 3.x.
+
+        # SEVERE - All configurations
+        # Ruby 3.2.0 to 3.2.2 have a bug in the newobj tracepoint (https://bugs.ruby-lang.org/issues/19482,
+        # https://github.com/ruby/ruby/pull/7464) that makes this crash in any configuration. This bug is
+        # fixed on Ruby versions 3.2.3 and 3.3.0.
+        if RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION < '3.2.3'
+          Datadog.logger.warn(
+            'Allocation profiling is not supported in Ruby versions 3.2.0, 3.2.1 and 3.2.2 and will be forcibly '\
+            'disabled. This is due to a VM bug that can lead to crashes (https://bugs.ruby-lang.org/issues/19482). '\
+            'Other Ruby versions do not suffer from this issue.'
+          )
+          return false
+        end
+
+        # SEVERE - Only with Ractors
+        # On Ruby versions 3.0 (all), 3.1.0 to 3.1.3, and 3.2.0 to 3.2.2 allocation profiling can trigger a VM bug
+        # that causes a segmentation fault during garbage collection of Ractors
+        # (https://bugs.ruby-lang.org/issues/18464). We don't recommend using this feature on such Rubies.
+        # This bug is fixed on Ruby versions 3.1.4, 3.2.3 and 3.3.0.
+        if RUBY_VERSION.start_with?('3.0.') ||
+            (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION < '3.1.4') ||
+            (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION < '3.2.3')
+          Datadog.logger.warn(
+            "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling allocation profiling while using "\
+            'Ractors may cause unexpected issues, including crashes (https://bugs.ruby-lang.org/issues/18464). '\
+            'This does not happen if Ractors are not used.'
+          )
+        # ANNOYANCE - Only with Ractors
+        # On all known versions of Ruby 3.x, due to https://bugs.ruby-lang.org/issues/19112, when a ractor gets
+        # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
+        elsif RUBY_VERSION.start_with?('3.')
+          Datadog.logger.warn(
+            'In all known versions of Ruby 3.x, using Ractors may result in allocation profiling unexpectedly ' \
+            'stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your ' \
+            'application stability or performance. This does not happen if Ractors are not used.'
+          )
+        end
+
+        Datadog.logger.warn(
+          "Enabled experimental allocation profiling: allocation_sample_rate=#{allocation_sample_every}. This is " \
+          'experimental, not recommended, and will increase overhead!'
+        )
+
+        true
+      end
+
+      private_class_method def self.enable_heap_profiling?(settings, allocation_profiling_enabled)
+        heap_profiling_enabled = settings.profiling.advanced.experimental_heap_enabled
+
+        if heap_profiling_enabled && !allocation_profiling_enabled
+          raise ArgumentError, 'Heap profiling requires allocation profiling to be enabled'
+        end
+
+        if heap_profiling_enabled
+          Datadog.logger.warn(
+            'Enabled experimental heap profiling. This is experimental, not recommended, and will increase overhead!'
+          )
+        end
+
+        heap_profiling_enabled
       end
 
       private_class_method def self.no_signals_workaround_enabled?(settings) # rubocop:disable Metrics/MethodLength

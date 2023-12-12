@@ -7,9 +7,16 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   let(:numeric_labels) { [] }
   let(:cpu_time_enabled) { true }
   let(:alloc_samples_enabled) { true }
+  # Disabling these by default since they require some extra setup and produce separate samples.
+  # Enabling this is tested in a particular context below.
+  let(:heap_samples_enabled) { false }
 
   subject(:stack_recorder) do
-    described_class.new(cpu_time_enabled: cpu_time_enabled, alloc_samples_enabled: alloc_samples_enabled)
+    described_class.new(
+      cpu_time_enabled: cpu_time_enabled,
+      alloc_samples_enabled: alloc_samples_enabled,
+      heap_samples_enabled: heap_samples_enabled
+    )
   end
 
   # NOTE: A lot of libdatadog integration behaviors are tested in the Collectors::Stack specs, since we need actual
@@ -114,6 +121,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       context 'when all profile types are enabled' do
         let(:cpu_time_enabled) { true }
         let(:alloc_samples_enabled) { true }
+        let(:heap_samples_enabled) { true }
 
         it 'returns a pprof with the configured sample types' do
           expect(sample_types_from(decoded_profile)).to eq(
@@ -121,6 +129,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             'cpu-samples' => 'count',
             'wall-time' => 'nanoseconds',
             'alloc-samples' => 'count',
+            'heap-live-samples' => 'count',
           )
         end
       end
@@ -128,12 +137,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       context 'when cpu-time is disabled' do
         let(:cpu_time_enabled) { false }
         let(:alloc_samples_enabled) { true }
+        let(:heap_samples_enabled) { true }
 
         it 'returns a pprof without the cpu-type type' do
           expect(sample_types_from(decoded_profile)).to eq(
             'cpu-samples' => 'count',
             'wall-time' => 'nanoseconds',
             'alloc-samples' => 'count',
+            'heap-live-samples' => 'count',
           )
         end
       end
@@ -141,12 +152,29 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       context 'when alloc-samples is disabled' do
         let(:cpu_time_enabled) { true }
         let(:alloc_samples_enabled) { false }
+        let(:heap_samples_enabled) { true }
 
         it 'returns a pprof without the alloc-samples type' do
           expect(sample_types_from(decoded_profile)).to eq(
             'cpu-time' => 'nanoseconds',
             'cpu-samples' => 'count',
             'wall-time' => 'nanoseconds',
+            'heap-live-samples' => 'count',
+          )
+        end
+      end
+
+      context 'when heap-live-samples is disabled' do
+        let(:cpu_time_enabled) { true }
+        let(:alloc_samples_enabled) { true }
+        let(:heap_samples_enabled) { false }
+
+        it 'returns a pprof without the heap-live-samples type' do
+          expect(sample_types_from(decoded_profile)).to eq(
+            'cpu-time' => 'nanoseconds',
+            'cpu-samples' => 'count',
+            'wall-time' => 'nanoseconds',
+            'alloc-samples' => 'count',
           )
         end
       end
@@ -154,8 +182,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       context 'when all optional types are disabled' do
         let(:cpu_time_enabled) { false }
         let(:alloc_samples_enabled) { false }
+        let(:heap_samples_enabled) { false }
 
-        it 'returns a pprof with without the optional types' do
+        it 'returns a pprof without the optional types' do
           expect(sample_types_from(decoded_profile)).to eq(
             'cpu-samples' => 'count',
             'wall-time' => 'nanoseconds',
@@ -198,7 +227,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       it 'encodes the sample with the metrics provided' do
         expect(samples.first.values)
-          .to eq(:'cpu-time' => 123, :'cpu-samples' => 456, :'wall-time' => 789, :'alloc-samples' => 4242)
+          .to eq(
+            :'cpu-time' => 123,
+            :'cpu-samples' => 456,
+            :'wall-time' => 789,
+            :'alloc-samples' => 4242,
+          )
       end
 
       context 'when disabling an optional profile sample type' do
@@ -299,6 +333,94 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               { :'local root span id' => 123, :'trace endpoint' => 'recorded-endpoint' }
           end
         ).to have(2).items
+      end
+    end
+
+    describe 'heap samples' do
+      let(:sample_rate) { 50 }
+      let(:metric_values) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => sample_rate } }
+      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
+
+      let(:a_string) { 'a beautiful string' }
+      let(:an_array) { [1..10] }
+      let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true } }
+
+      let(:samples) { samples_from_pprof(encoded_pprof) }
+
+      before do
+        allocations = [a_string, an_array, 'a fearsome string', [-10..-1], a_hash, { 'z' => -1, 'y' => '-2', 'x' => false }]
+        @num_allocations = 0
+        allocations.each_with_index do |obj, i|
+          # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
+          described_class::Testing._native_track_object(stack_recorder, obj, sample_rate)
+          # ...and then pass data about the allocation stacktrace (with 2 distinct stacktraces)
+          if i.even?
+            Datadog::Profiling::Collectors::Stack::Testing
+              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+          else
+            # 401 used instead of 400 here just to make the branches different and appease Rubocop
+            Datadog::Profiling::Collectors::Stack::Testing
+              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 401, false)
+          end
+          @num_allocations += 1
+        end
+
+        allocations.clear # The literals in the previous array are now dangling
+        GC.start # And this will clear them, leaving only the non-literals which are still pointed to by the lets
+      end
+
+      context 'when disabled' do
+        let(:heap_samples_enabled) { false }
+
+        it 'are ommitted from the profile' do
+          # We sample from 2 distinct locations
+          expect(samples.size).to eq(2)
+          expect(samples.select { |s| s.values.key?('heap-live-samples') }).to be_empty
+        end
+      end
+
+      context 'when enabled' do
+        let(:heap_samples_enabled) { true }
+
+        let(:heap_samples) do
+          samples.select { |s| s.values[:'heap-live-samples'] > 0 }
+        end
+
+        let(:non_heap_samples) do
+          samples.select { |s| s.values[:'heap-live-samples'] == 0 }
+        end
+
+        it 'include the stack and sample counts for the objects still left alive' do
+          pending 'heap_recorder implementation is currently missing'
+
+          # We sample from 2 distinct locations
+          expect(heap_samples.size).to eq(2)
+
+          sum_heap_samples = 0
+          heap_samples.each { |s| sum_heap_samples += s.values[:'heap-live-samples'] }
+          expect(sum_heap_samples).to eq([a_string, an_array, a_hash].size * sample_rate)
+        end
+
+        it 'keeps on reporting accurate samples for other profile types' do
+          expect(non_heap_samples.size).to eq(2)
+
+          summed_values = {}
+          non_heap_samples.each do |s|
+            s.values.each_pair do |k, v|
+              summed_values[k] = (summed_values[k] || 0) + v
+            end
+          end
+
+          # We use the same metric_values in all sample calls in before. So we'd expect
+          # the summed values to match `@num_allocations * metric_values[profile-type]`
+          # for each profile-type there in.
+          expected_summed_values = { :'heap-live-samples' => 0 }
+          metric_values.each_pair do |k, v|
+            expected_summed_values[k.to_sym] = v * @num_allocations
+          end
+
+          expect(summed_values).to eq(expected_summed_values)
+        end
       end
     end
 

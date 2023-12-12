@@ -1210,6 +1210,8 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     }
   }
 
+  track_object(state->recorder_instance, new_object, sample_weight);
+
   trigger_sample_for_thread(
     state,
     /* thread: */  current_thread,
