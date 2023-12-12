@@ -332,14 +332,6 @@ namespace :spec do
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
              :profiling]
 
-  task :compile_native_extensions do
-    # "bundle exec rake compile" currently only works on MRI Ruby on Linux
-    if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3.0')
-      Rake::Task[:clean].invoke
-      Rake::Task[:compile].invoke
-    end
-  end
-
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
@@ -347,8 +339,6 @@ namespace :spec do
                         ' spec/**/{auto_instrument,opentelemetry}_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
-  # Some of the profiling-related core config tests require native extensions to be built
-  Rake::Task[:main].enhance([:compile_native_extensions])
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
     t.pattern = 'spec/ddtrace/benchmark/**/*_spec.rb'
@@ -551,6 +541,14 @@ namespace :spec do
   namespace :profiling do
     task all: [:main, :ractors]
 
+    task :compile_native_extensions do
+      # "bundle exec rake compile" currently only works on MRI Ruby on Linux
+      if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3.0')
+        Rake::Task[:clean].invoke
+        Rake::Task[:compile].invoke
+      end
+    end
+
     # Datadog Profiling main specs without Ractor creation
     # NOTE: Ractor creation will transition the entire Ruby VM into multi-ractor mode. This cannot be undone
     #       and, as such, may introduce side-effects between tests and make them flaky depending on order of
@@ -568,6 +566,7 @@ namespace :spec do
       t.rspec_opts = [*args.to_a, '-t ractors'].join(' ')
     end
 
+    # Make sure each profiling test suite has a dependency on compiled native extensions
     Rake::Task[:all].prerequisite_tasks.each { |t| t.enhance([:compile_native_extensions]) }
   end
 

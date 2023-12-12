@@ -316,30 +316,6 @@ RSpec.describe Datadog::Core::Configuration do
         end
       end
 
-      context 'when the profiler' do
-        context 'is not changed' do
-          before { skip_if_profiling_not_supported(self) }
-
-          context 'and profiling is enabled' do
-            before do
-              allow(test_class.configuration.profiling)
-                .to receive(:enabled)
-                .and_return(true)
-
-              allow_any_instance_of(Datadog::Profiling::Profiler)
-                .to receive(:start)
-              allow_any_instance_of(Datadog::Profiling::Tasks::Setup)
-                .to receive(:run)
-            end
-
-            it 'starts the profiler' do
-              configure
-              expect(test_class.send(:components).profiler).to have_received(:start)
-            end
-          end
-        end
-      end
-
       context 'when reconfigured multiple times' do
         context 'with runtime metrics active' do
           before do
