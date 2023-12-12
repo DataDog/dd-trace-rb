@@ -51,7 +51,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           span_resource: nil,
           span_service: nil,
           span_type: nil,
-          trace_id: 0,
+          trace_id: '0',
           trace_name: nil,
           trace_resource: nil,
           trace_service: nil,
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           span_resource: span_resource,
           span_service: span_service,
           span_type: span_type,
-          trace_id: trace_id,
+          trace_id: trace_id.to_s,
           trace_name: trace_name,
           trace_resource: trace_resource,
           trace_service: trace_service,
@@ -130,7 +130,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             span_resource: nil,
             span_service: nil,
             span_type: nil,
-            trace_id: 0,
+            trace_id: '0',
             trace_name: nil,
             trace_resource: nil,
             trace_service: nil,
@@ -174,7 +174,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             span_resource: span_resource,
             span_service: span_service,
             span_type: span_type,
-            trace_id: trace_id,
+            trace_id: trace_id.to_s,
             trace_name: trace_name,
             trace_resource: trace_resource,
             trace_service: trace_service,
@@ -509,22 +509,22 @@ RSpec.describe Datadog::Tracing::Correlation do
           context 'when given 64 bit trace id' do
             it 'returns to lower 64 bits of trace id' do
               trace_id = 0xaaaaaaaaaaaaaaaa
-              expected_trace_id = 0xaaaaaaaaaaaaaaaa
 
               identifier = described_class.new(trace_id: trace_id)
 
-              expect(identifier.trace_id).to eq(expected_trace_id)
+              # `0xaaaaaaaaaaaaaaaa.to_s` => '12297829382473034410'
+              expect(identifier.trace_id).to eq('12297829382473034410')
             end
           end
 
           context 'when given 128 bit trace id' do
             it 'returns to lower 64 bits of trace id' do
               trace_id = 0xaaaaaaaaaaaaaaaaffffffffffffffff
-              expected_trace_id = 0xffffffffffffffff
 
               identifier = described_class.new(trace_id: trace_id)
 
-              expect(identifier.trace_id).to eq(expected_trace_id)
+              # `0xffffffffffffffff.to_s` => '18446744073709551615'
+              expect(identifier.trace_id).to eq('18446744073709551615')
             end
           end
         end
@@ -537,11 +537,11 @@ RSpec.describe Datadog::Tracing::Correlation do
           context 'when given 64 bit trace id' do
             it 'returns lower 64 bits of trace id' do
               trace_id = 0xaaaaaaaaaaaaaaaa
-              expected_trace_id = 0xaaaaaaaaaaaaaaaa
 
               identifier = described_class.new(trace_id: trace_id)
 
-              expect(identifier.trace_id).to eq(expected_trace_id)
+              # `0xaaaaaaaaaaaaaaaa.to_s` => '12297829382473034410'
+              expect(identifier.trace_id).to eq('12297829382473034410')
             end
           end
 
@@ -559,11 +559,11 @@ RSpec.describe Datadog::Tracing::Correlation do
         context 'when given > 64 bit trace id but high order is 0' do
           it 'returns to lower 64 bits of trace id' do
             trace_id = 0x00000000000000000aaaaaaaaaaaaaaaa
-            expected_trace_id = 0xaaaaaaaaaaaaaaaa
 
             identifier = described_class.new(trace_id: trace_id)
 
-            expect(identifier.trace_id).to eq(expected_trace_id)
+            # `0xaaaaaaaaaaaaaaaa.to_s` => '12297829382473034410'
+            expect(identifier.trace_id).to eq('12297829382473034410')
           end
         end
       end

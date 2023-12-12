@@ -90,13 +90,12 @@ module Datadog
           end
         end
 
-        # DEV-2.0: This public method was returning an Integer, but with 128 bit trace id it would return a String.
         def trace_id
           if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
               !Tracing::Utils::TraceId.to_high_order(@trace_id).zero?
             Kernel.format('%032x', @trace_id)
           else
-            Tracing::Utils::TraceId.to_low_order(@trace_id)
+            Tracing::Utils::TraceId.to_low_order(@trace_id).to_s
           end
         end
       end
