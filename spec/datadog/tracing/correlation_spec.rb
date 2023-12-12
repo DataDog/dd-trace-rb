@@ -26,7 +26,7 @@ RSpec.describe Datadog::Tracing::Correlation do
     let(:span_resource) { 'SELECT * FROM users;' }
     let(:span_service) { 'acme-mysql' }
     let(:span_type) { 'db' }
-    let(:trace_id) { Datadog::Tracing::Utils.next_id }
+    let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
     let(:trace_name) { 'rack.request' }
     let(:trace_resource) { 'GET /users' }
     let(:trace_service) { 'acme-api' }
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           span_resource: span_resource,
           span_service: span_service,
           span_type: span_type,
-          trace_id: trace_id.to_s,
+          trace_id: low_order_trace_id(trace_id).to_s,
           trace_name: trace_name,
           trace_resource: trace_resource,
           trace_service: trace_service,
@@ -174,7 +174,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             span_resource: span_resource,
             span_service: span_service,
             span_type: span_type,
-            trace_id: trace_id.to_s,
+            trace_id: low_order_trace_id(trace_id).to_s,
             trace_name: trace_name,
             trace_resource: trace_resource,
             trace_service: trace_service,
@@ -199,7 +199,7 @@ RSpec.describe Datadog::Tracing::Correlation do
 
     describe '#to_h' do
       context 'when given values' do
-        let(:trace_id) { Datadog::Tracing::Utils.next_id }
+        let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
         let(:span_id) { Datadog::Tracing::Utils.next_id }
 
         it 'returns a formatted hash' do
@@ -217,7 +217,7 @@ RSpec.describe Datadog::Tracing::Correlation do
                 env: 'dev',
                 service: 'acme-api',
                 version: '1.0',
-                trace_id: trace_id.to_s,
+                trace_id: low_order_trace_id(trace_id).to_s,
                 span_id: span_id.to_s
               },
               ddsource: 'ruby'
@@ -266,7 +266,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           )
         end
 
-        let(:trace_id) { Datadog::Tracing::Utils.next_id }
+        let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
         let(:span_id) { Datadog::Tracing::Utils.next_id }
         let(:env) { 'dev' }
         let(:service) { 'acme-api' }
