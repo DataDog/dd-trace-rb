@@ -204,7 +204,6 @@ GEM
       cri (~> 2.15.3)
     ruby-kafka (1.5.0)
       digest-crc
-    ruby-prof (1.4.3)
     ruby2_keywords (0.0.5)
     simplecov-cobertura (2.1.0)
       rexml
@@ -260,7 +259,6 @@ DEPENDENCIES
   rspec_junit_formatter (>= 0.5.1)
   rspec_n (~> 1.3)
   ruby-kafka (>= 0.7.10)
-  ruby-prof (~> 1.4)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)

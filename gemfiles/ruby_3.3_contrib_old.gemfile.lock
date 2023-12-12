@@ -160,7 +160,6 @@ GEM
     rubocop-rspec (2.20.0)
       rubocop (~> 1.33)
       rubocop-capybara (~> 2.17)
-    ruby-prof (1.6.3)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
     rusage (0.2.0)
@@ -232,7 +231,6 @@ DEPENDENCIES
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
-  ruby-prof (~> 1.4)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)
@@ -241,4 +239,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.26
+   2.3.27
