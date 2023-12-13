@@ -342,7 +342,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     describe 'heap samples' do
       let(:sample_rate) { 50 }
-      let(:metric_values) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => sample_rate } }
+      let(:metric_values) do
+        { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => sample_rate, 'timeline' => 42 }
+      end
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
       let(:a_string) { 'a beautiful string' }
