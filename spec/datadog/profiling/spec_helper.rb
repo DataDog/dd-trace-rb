@@ -65,7 +65,11 @@ module ProfileHelpers
   end
 
   def object_id_from(thread_id)
-    Integer(thread_id.match(/\d+ \((?<object_id>\d+)\)/)[:object_id])
+    if thread_id != 'GC'
+      Integer(thread_id.match(/\d+ \((?<object_id>\d+)\)/)[:object_id])
+    else
+      -1
+    end
   end
 
   def samples_for_thread(samples, thread)
