@@ -64,7 +64,7 @@ RSpec.describe 'Resque instrumentation' do
         expect(Resque::Failure.count).to eq(0)
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
-        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER)
+        expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER)
         expect(span.service).to eq(tracer.default_service)
         expect(span).to_not have_error
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('resque')
@@ -112,7 +112,7 @@ RSpec.describe 'Resque instrumentation' do
         expect(Resque::Failure.all['error']).to eq(error_message)
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
-        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER)
+        expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER)
         expect(span.service).to eq(tracer.default_service)
         expect(span).to have_error_message(error_message)
         expect(span).to have_error

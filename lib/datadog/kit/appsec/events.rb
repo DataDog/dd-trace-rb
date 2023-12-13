@@ -160,7 +160,7 @@ module Datadog
           end
 
           def check_trace_span_integrity(trace, span)
-            raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
+            raise ArgumentError, "span #{span.id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
           end
         end
       end

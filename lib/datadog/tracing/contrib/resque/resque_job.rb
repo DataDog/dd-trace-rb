@@ -36,7 +36,7 @@ module Datadog
 
             Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
               span.resource = args.first.is_a?(Hash) && args.first['job_class'] || name
-              span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
+              span.type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
 

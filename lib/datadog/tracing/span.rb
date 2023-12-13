@@ -34,11 +34,6 @@ module Datadog
       attr_writer \
         :duration
 
-      # For backwards compatiblity
-      # TODO: Deprecate and remove these.
-      alias :span_id :id
-      alias :span_type :type
-
       # Create a new span manually. Call the <tt>start()</tt> method to start the time
       # measurement and then <tt>stop()</tt> once the timing operation is over.
       #

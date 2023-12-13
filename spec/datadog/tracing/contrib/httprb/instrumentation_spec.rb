@@ -121,7 +121,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it 'is http type' do
-            expect(span.span_type).to eq('http')
+            expect(span.type).to eq('http')
           end
 
           it 'is named correctly' do
@@ -230,7 +230,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           let(:http_response) { response }
 
           it 'propagates the parent id header' do
-            expect(http_response.headers['x-datadog-parent-id']).to eq(span.span_id.to_s)
+            expect(http_response.headers['x-datadog-parent-id']).to eq(span.id.to_s)
           end
 
           it 'propagates the trace id header' do
@@ -243,7 +243,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           let(:http_response) { response }
 
           it 'does not propagate the parent id header' do
-            expect(http_response.headers['x-datadog-parent-id']).to_not eq(span.span_id.to_s)
+            expect(http_response.headers['x-datadog-parent-id']).to_not eq(span.id.to_s)
           end
 
           it 'does not propograte the trace id header' do

@@ -100,7 +100,7 @@ RSpec.describe 'Rails cache' do
       expect(spans).to have(2).items
       get, set = spans
       expect(get.name).to eq('rails.cache')
-      expect(get.span_type).to eq('cache')
+      expect(get.id).to eq('cache')
       expect(get.resource).to eq('GET')
       expect(get.service).to eq('rails-cache')
       expect(get.get_tag('rails.cache.backend')).to eq('file_store')
@@ -131,7 +131,7 @@ RSpec.describe 'Rails cache' do
       expect(spans).to have(1 + multi_keys.size).items
       get = spans[0]
       expect(get.name).to eq('rails.cache')
-      expect(get.span_type).to eq('cache')
+      expect(get.id).to eq('cache')
       expect(get.resource).to eq('MGET')
       expect(get.service).to eq('rails-cache')
       expect(get.get_tag('rails.cache.backend')).to eq('file_store')
@@ -159,7 +159,7 @@ RSpec.describe 'Rails cache' do
     it do
       write
       expect(span.name).to eq('rails.cache')
-      expect(span.span_type).to eq('cache')
+      expect(span.type).to eq('cache')
       expect(span.resource).to eq('SET')
       expect(span.service).to eq('rails-cache')
       expect(span.get_tag('rails.cache.backend')).to eq('file_store')
@@ -208,7 +208,7 @@ RSpec.describe 'Rails cache' do
       it do
         write_multi
         expect(span.name).to eq('rails.cache')
-        expect(span.span_type).to eq('cache')
+        expect(span.type).to eq('cache')
         expect(span.resource).to eq('MSET')
         expect(span.service).to eq('rails-cache')
         expect(span.get_tag('rails.cache.backend')).to eq('file_store')
@@ -267,7 +267,7 @@ RSpec.describe 'Rails cache' do
     it do
       delete
       expect(span.name).to eq('rails.cache')
-      expect(span.span_type).to eq('cache')
+      expect(span.type).to eq('cache')
       expect(span.resource).to eq('DELETE')
       expect(span.service).to eq('rails-cache')
       expect(span.get_tag('rails.cache.backend')).to eq('file_store')
@@ -292,7 +292,7 @@ RSpec.describe 'Rails cache' do
         expect { fetch }.to raise_error(StandardError)
 
         expect(span.name).to eq('rails.cache')
-        expect(span.span_type).to eq('cache')
+        expect(span.type).to eq('cache')
         expect(span.resource).to eq('GET')
         expect(span.service).to eq('rails-cache')
         expect(span.get_tag('rails.cache.backend')).to eq('file_store')
@@ -326,7 +326,7 @@ RSpec.describe 'Rails cache' do
         it do
           expect { fetch_multi }.to raise_error(StandardError)
           expect(span.name).to eq('rails.cache')
-          expect(span.span_type).to eq('cache')
+          expect(span.type).to eq('cache')
           expect(span.resource).to eq('MGET')
           expect(span.service).to eq('rails-cache')
           expect(span.get_tag('rails.cache.backend')).to eq('file_store')

@@ -31,7 +31,7 @@ module Datadog
             def process(span, event, _id, payload)
               super
 
-              span.span_type = span_type
+              span.type = span_type
               span.set_tag(Ext::TAG_ACTION, payload[:action])
               span.set_tag(Ext::TAG_MAILER, payload[:mailer])
 
