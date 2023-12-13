@@ -82,7 +82,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
         it { is_expected.to be true }
       end
 
-      context 'on a background Ractor' do
+      context 'on a background Ractor', :ractors => true do
         # @ivoanjo: When we initially added this test, our test suite kept deadlocking in CI in a later test (not on
         # this one).
         #
