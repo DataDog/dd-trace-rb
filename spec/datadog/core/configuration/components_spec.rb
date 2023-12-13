@@ -1072,7 +1072,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       context 'is enabled' do
         # Using a generic double rather than instance_double since if profiling is not supported by the
         # current CI runner we won't even load the Datadog::Profiling::Profiler class.
-        let(:profiler) { double }
+        let(:profiler) { instance_double('Datadog::Profiling::Profiler') }
 
         before do
           allow(settings.profiling)
