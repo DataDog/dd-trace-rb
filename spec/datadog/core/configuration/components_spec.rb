@@ -1078,7 +1078,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
           allow(settings.profiling)
             .to receive(:enabled)
             .and_return(true)
-          allow(profiler_setup_task).to receive(:run)
           expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
             settings: settings,
             agent_settings: agent_settings,
