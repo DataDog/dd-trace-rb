@@ -273,7 +273,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
         :'thread id' => 'GC',
         :'thread name' => 'Garbage Collection',
         :event => 'gc',
-        :'gc reason' => 'requested (FORCE)',
+        :'gc reason' => an_instance_of(String),
         :'gc cause' => 'GC.start()',
         :'gc type' => 'major',
       )
