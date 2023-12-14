@@ -3,14 +3,13 @@
 #include "ruby/st.h"
 #include "ruby_helpers.h"
 #include <errno.h>
-
-#define MAX_FRAMES_LIMIT 10000
+#include "collectors_stack.h"
 
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
   char *name;
   char *filename;
-  int64_t line;
+  int32_t line;
 } heap_frame;
 static st_index_t heap_frame_hash(heap_frame*, st_index_t seed);
 
@@ -21,12 +20,16 @@ static st_index_t heap_frame_hash(heap_frame*, st_index_t seed);
 // least the lifetime of the objects allocated therein, we would be
 // incurring a non-negligible memory overhead for little purpose.
 typedef struct {
-  uint64_t frames_len;
+  uint16_t frames_len;
   heap_frame frames[];
 } heap_stack;
 static heap_stack* heap_stack_new(ddog_prof_Slice_Location);
 static void heap_stack_free(heap_stack*);
 static st_index_t heap_stack_hash(heap_stack*, st_index_t);
+
+#if MAX_FRAMES_LIMIT > UINT16_MAX
+  #error Frames len type not compatible with MAX_FRAMES_LIMIT
+#endif
 
 enum heap_record_key_type {
   HEAP_STACK,
@@ -73,7 +76,7 @@ static st_index_t ddog_location_slice_hash(ddog_prof_Slice_Location, st_index_t 
 // objects sharing the same allocation location.
 typedef struct {
   // How many objects are currently tracked by the heap recorder for this heap record.
-  uint64_t num_tracked_objects;
+  uint32_t num_tracked_objects;
   // stack is owned by the associated record and gets cleaned up alongside it
   heap_stack *stack;
 } heap_record;
@@ -334,7 +337,7 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
 
   ddog_prof_Location *locations = context->heap_recorder->reusable_locations;
 
-  for (uint64_t i = 0; i < stack->frames_len; i++) {
+  for (uint16_t i = 0; i < stack->frames_len; i++) {
     const heap_frame *frame = &stack->frames[i];
     ddog_prof_Location *location = &locations[i];
     location->function.name.ptr = frame->name;
@@ -385,6 +388,9 @@ static void commit_allocation(heap_recorder *heap_recorder, heap_record *heap_re
   if (!st_update(heap_recorder->object_records, obj_id, update_object_record_entry, (st_data_t) &update_data)) {
     // We are sure there was no previous record for this id so let the heap record know there now is one
     // extra record associated with this stack.
+    if (heap_record->num_tracked_objects == UINT32_MAX) {
+      rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
+    }
     heap_record->num_tracked_objects++;
   };
 }
@@ -504,6 +510,13 @@ int heap_frame_cmp(heap_frame *f1, heap_frame *f2) {
   return strcmp(f1->filename, f2->filename);
 }
 
+// TODO: Research potential performance improvements around hashing stuff here
+//       once we have a benchmarking suite.
+//       Example: Each call to st_hash is calling murmur_finish and we may want
+//                to only finish once per structure, not per field?
+//       Example: There may be a more efficient hashing for line that is not the
+//                generic st_hash algorithm?
+
 // WARN: Must be kept in-sync with ::char_slice_hash
 st_index_t string_hash(char *str, st_index_t seed) {
   return st_hash(str, strlen(str), seed);
@@ -535,14 +548,23 @@ st_index_t ddog_location_hash(ddog_prof_Location location, st_index_t seed) {
 // Heap Stack API
 // ==============
 heap_stack* heap_stack_new(ddog_prof_Slice_Location locations) {
-  heap_stack *stack = ruby_xcalloc(1, sizeof(heap_stack) + locations.len * sizeof(heap_frame));
-  stack->frames_len = locations.len;
-  for (uint64_t i = 0; i < locations.len; i++) {
+  uint16_t frames_len = locations.len;
+  if (frames_len > MAX_FRAMES_LIMIT) {
+    // Ensure we never attempt to store a heap stack that goes over the MAX_FRAMES_LIMIT
+    // This should not be happening anyway since MAX_FRAMES_LIMIT should be shared with
+    // the stacktrace construction mechanism
+    frames_len = MAX_FRAMES_LIMIT;
+  }
+  heap_stack *stack = ruby_xcalloc(1, sizeof(heap_stack) + frames_len * sizeof(heap_frame));
+  stack->frames_len = frames_len;
+  for (uint16_t i = 0; i < stack->frames_len; i++) {
     const ddog_prof_Location *location = &locations.ptr[i];
     stack->frames[i] = (heap_frame) {
       .name = ruby_strndup(location->function.name.ptr, location->function.name.len),
       .filename = ruby_strndup(location->function.filename.ptr, location->function.filename.len),
-      .line = location->line,
+      // ddog_prof_Location is a int64_t. We don't expect to have to profile files with more than
+      // 2M lines so this cast should be fairly safe?
+      .line = (int32_t) location->line,
     };
   }
   return stack;

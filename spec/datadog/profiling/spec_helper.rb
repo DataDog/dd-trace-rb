@@ -70,7 +70,7 @@ module ProfileHelpers
 
   def samples_for_thread(samples, thread)
     samples.select do |sample|
-      thread_id = sample.labels.fetch(:'thread id', nil)
+      thread_id = sample.labels[:'thread id']
       thread_id && object_id_from(thread_id) == thread.object_id
     end
   end

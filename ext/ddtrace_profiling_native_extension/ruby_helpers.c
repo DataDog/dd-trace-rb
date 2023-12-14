@@ -4,6 +4,19 @@
 #include "ruby_helpers.h"
 #include "private_vm_api_access.h"
 
+// The following global variables are initialized at startup to save expensive lookups later.
+// They are not expected to be mutated outside of init.
+static VALUE module_object_space = Qnil;
+static ID _id2ref_id = Qnil;
+
+void ruby_helpers_init(void) {
+  rb_global_variable(&module_object_space);
+  rb_global_variable(&_id2ref_id);
+
+  module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
+  _id2ref_id = rb_intern("_id2ref");
+}
+
 void raise_unexpected_type(
   VALUE value,
   const char *value_name,
@@ -119,25 +132,12 @@ char* ruby_strndup(const char *str, size_t size) {
   return dup;
 }
 
-// Note on sampler global state safety:
-//
-// `module_object_space` is **GLOBAL** state. Be careful when accessing or modifying it.
-// In particular, it's important to only mutate them while holding the global VM lock, to ensure correctness.
-//
-// This global state is needed to memoize the ObjectSpace module so we can skip definition/lookup on each call
-// to _id2ref.
-static VALUE module_object_space = Qnil;
-
-VALUE _id2ref(VALUE obj_id) {
-  if (module_object_space == Qnil) {
-    module_object_space = rb_define_module("ObjectSpace");
-  }
-
+static VALUE _id2ref(VALUE obj_id) {
   // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
-  return rb_funcall(module_object_space, rb_intern("_id2ref"), 1, obj_id);
+  return rb_funcall(module_object_space, _id2ref_id, 1, obj_id);
 }
 
-VALUE _id2ref_failure(DDTRACE_UNUSED VALUE _unused1, DDTRACE_UNUSED VALUE _unused2) {
+static VALUE _id2ref_failure(DDTRACE_UNUSED VALUE _unused1, DDTRACE_UNUSED VALUE _unused2) {
   return Qfalse;
 }
 
@@ -146,13 +146,14 @@ VALUE _id2ref_failure(DDTRACE_UNUSED VALUE _unused1, DDTRACE_UNUSED VALUE _unuse
 // reference a valid object (in which case value is not changed).
 bool ruby_ref_from_id(VALUE obj_id, VALUE *value) {
   // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
-  // so we need to call it via rb_erscue2
+  // so we need to call it via rb_rescue2
+  // TODO: Benchmark rb_rescue2 vs rb_protect here
   VALUE result = rb_rescue2(
     _id2ref,
     obj_id,
     _id2ref_failure,
     Qnil,
-    rb_eRangeError, // rb_eRangeError is the erorr used to flag invalid ids
+    rb_eRangeError, // rb_eRangeError is the error used to flag invalid ids
     0 // Required by API to be the last argument
   );
 

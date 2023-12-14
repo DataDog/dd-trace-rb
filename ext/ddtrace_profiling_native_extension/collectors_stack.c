@@ -11,9 +11,6 @@
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
-#define MAX_FRAMES_LIMIT            10000
-#define MAX_FRAMES_LIMIT_AS_STRING "10000"
-
 static VALUE missing_string = Qnil;
 
 // Used as scratch space during sampling
