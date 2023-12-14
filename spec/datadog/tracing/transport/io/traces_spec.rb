@@ -128,7 +128,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
               compare_arrays(trace.spans, encoded_trace) do |span, encoded_span|
                 described_class::ENCODED_IDS.each do |id|
                   encoded_id = encoded_span[id.to_s].to_i(16)
-                  original_id = span.send(id)
+                  original_id = span.to_hash[id]
                   expect(encoded_id).to eq(original_id)
                 end
               end
