@@ -785,8 +785,8 @@ RSpec.describe Datadog::Tracing::Tracer do
           )
 
           expect(span).to have_attributes(
+            id: a_kind_of(Integer),
             parent_id: 0,
-            span_id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end
@@ -828,8 +828,8 @@ RSpec.describe Datadog::Tracing::Tracer do
           )
 
           expect(span).to have_attributes(
+            id: a_kind_of(Integer),
             parent_id: 0,
-            span_id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end
@@ -947,8 +947,8 @@ RSpec.describe Datadog::Tracing::Tracer do
           )
 
           expect(span).to have_attributes(
+            id: a_kind_of(Integer),
             parent_id: 0,
-            span_id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end

@@ -49,7 +49,7 @@ module Datadog
           module Encoder
             ENCODED_IDS = [
               :trace_id,
-              :id,
+              :span_id,
               :parent_id
             ].freeze
 
