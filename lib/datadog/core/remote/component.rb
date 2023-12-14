@@ -13,7 +13,7 @@ module Datadog
       # Configures the HTTP transport to communicate with the agent
       # to fetch and sync the remote configuration
       class Component
-        attr_reader :client
+        attr_reader :client, :healthy
 
         def initialize(settings, capabilities, agent_settings)
           transport_options = {}
@@ -25,11 +25,11 @@ module Datadog
           @barrier = Barrier.new(settings.remote.boot_timeout)
 
           @client = Client.new(transport_v7, capabilities)
-          healthy = false
+          @healthy = false
           Datadog.logger.debug { "new remote configuration client: #{@client.id}" }
 
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds) do
-            unless healthy || negotiation.endpoint?('/v0.7/config')
+            unless @healthy || negotiation.endpoint?('/v0.7/config')
               @barrier.lift
 
               next
@@ -37,7 +37,7 @@ module Datadog
 
             begin
               @client.sync
-              healthy ||= true
+              @healthy ||= true
             rescue Client::SyncError => e
               Datadog.logger.error do
                 "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
@@ -55,7 +55,7 @@ module Datadog
 
               # client state is unknown, state might be corrupted
               @client = Client.new(transport_v7, capabilities)
-              healthy = false
+              @healthy = false
               Datadog.logger.debug { "new remote configuration client: #{@client.id}" }
 
               # TODO: bail out if too many errors?

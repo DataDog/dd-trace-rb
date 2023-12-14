@@ -102,7 +102,11 @@ module Datadog
 
             unless Datadog::Core::Remote.active_remote.nil?
               if (span = request_span)
+                ready = Datadog::Core::Remote.active_remote.healthy
+                status = ready ? 'ready' : 'disconnected'
+
                 span.set_tag('_dd.rc.client_id', Datadog::Core::Remote.active_remote.client.id)
+                span.set_tag('_dd.rc.status', status)
 
                 if barrier != :pass
                   span.set_tag('_dd.rc.boot.time', t)
@@ -110,8 +114,7 @@ module Datadog
                   if barrier == :timeout
                     span.set_tag('_dd.rc.boot.timeout', true)
                   else
-                    # TODO: 'ready' should evolve into ensuring RC received a proper reply
-                    span.set_tag('_dd.rc.boot.ready', true)
+                    span.set_tag('_dd.rc.boot.ready', ready)
                   end
                 end
               end

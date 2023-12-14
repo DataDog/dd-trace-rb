@@ -95,6 +95,7 @@ RSpec.describe 'Rack integration tests' do
           expect(span).to_not have_tag('_dd.rc.boot.ready')
           expect(span).to_not have_tag('_dd.rc.boot.timeout')
           expect(span).to_not have_tag('_dd.rc.client_id')
+          expect(span).to_not have_tag('_dd.rc.status')
           expect(span).to be_root_span
         end
       end
@@ -133,6 +134,8 @@ RSpec.describe 'Rack integration tests' do
             expect(spans).to have(1).items
             expect(span).to have_tag('_dd.rc.client_id')
             expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+            expect(span).to have_tag('_dd.rc.status')
+            expect(span.get_tag('_dd.rc.status')).to eq 'ready'
           end
 
           context 'on second request' do
@@ -158,6 +161,8 @@ RSpec.describe 'Rack integration tests' do
               expect(spans).to have(2).items
               expect(last_span).to have_tag('_dd.rc.client_id')
               expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+              expect(last_span).to have_tag('_dd.rc.status')
+              expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
             end
           end
         end
@@ -187,6 +192,8 @@ RSpec.describe 'Rack integration tests' do
             expect(spans).to have(1).items
             expect(span).to have_tag('_dd.rc.client_id')
             expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+            expect(span).to have_tag('_dd.rc.status')
+            expect(span.get_tag('_dd.rc.status')).to eq 'ready'
           end
 
           context 'on second request' do
@@ -212,6 +219,8 @@ RSpec.describe 'Rack integration tests' do
               expect(spans).to have(2).items
               expect(last_span).to have_tag('_dd.rc.client_id')
               expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+              expect(last_span).to have_tag('_dd.rc.status')
+              expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
             end
           end
         end
@@ -242,6 +251,8 @@ RSpec.describe 'Rack integration tests' do
             expect(spans).to have(1).items
             expect(span).to have_tag('_dd.rc.client_id')
             expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+            expect(span).to have_tag('_dd.rc.status')
+            expect(span.get_tag('_dd.rc.status')).to eq 'disconnected'
           end
 
           context 'on second request' do
@@ -267,6 +278,8 @@ RSpec.describe 'Rack integration tests' do
               expect(spans).to have(2).items
               expect(last_span).to have_tag('_dd.rc.client_id')
               expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+              expect(last_span).to have_tag('_dd.rc.status')
+              expect(last_span.get_tag('_dd.rc.status')).to eq 'disconnected'
             end
           end
         end
