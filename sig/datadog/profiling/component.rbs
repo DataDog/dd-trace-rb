@@ -8,8 +8,9 @@ module Datadog
       ) -> Datadog::Profiling::Profiler?
 
       def self.build_recorder: (
-        bool allocation_profiling_enabled,
-        bool heap_profiling_enabled,
+        allocation_profiling_enabled: bool,
+        heap_profiling_enabled: bool,
+        timeline_enabled: bool,
       ) -> Datadog::Profiling::StackRecorder
 
       def self.build_thread_context_collector: (
