@@ -29,7 +29,7 @@ RSpec.describe 'tracing on the server connection' do
 
   shared_examples 'span data contents' do
     it { expect(span.name).to eq 'grpc.service' }
-    it { expect(span.span_type).to eq 'web' }
+    it { expect(span.type).to eq 'web' }
     it { expect(span.service).to eq 'rspec' }
     it { expect(span.resource).to eq 'my.server.endpoint' }
     it { expect(span.get_tag('error.stack')).to be_nil }

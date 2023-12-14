@@ -42,7 +42,7 @@ RSpec.describe 'Rails database' do
 
     it 'active record is properly traced' do
       expect(span.name).to eq("#{adapter_name}.query")
-      expect(span.span_type).to eq('sql')
+      expect(span.type).to eq('sql')
       expect(span.service).to eq(adapter_name)
       expect(span.get_tag('active_record.db.vendor')).to eq(adapter_name)
       expect(span.get_tag('active_record.db.name')).to eq(database_name)
@@ -81,7 +81,7 @@ RSpec.describe 'Rails database' do
 
         span, = spans
         expect(span.name).to eq('active_record.instantiation')
-        expect(span.span_type).to eq('custom')
+        expect(span.type).to eq('custom')
         # Because no parent, and doesn't belong to database service
         expect(span.service).to eq(tracer.default_service)
         expect(span.resource).to eq('Article')
@@ -109,7 +109,7 @@ RSpec.describe 'Rails database' do
           expect(parent_span.service).to eq('parent-service')
 
           expect(instantiation_span.name).to eq('active_record.instantiation')
-          expect(instantiation_span.span_type).to eq('custom')
+          expect(instantiation_span.type).to eq('custom')
           expect(instantiation_span.service).to eq(tracer.default_service) # Because within parent
           expect(instantiation_span.resource).to eq('Article')
           expect(instantiation_span.get_tag('active_record.instantiation.class_name')).to eq('Article')

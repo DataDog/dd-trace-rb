@@ -68,7 +68,7 @@ RSpec.describe 'tracing on the client connection' do
 
   shared_examples 'span data contents' do
     it { expect(span.name).to eq 'grpc.client' }
-    it { expect(span.span_type).to eq 'http' }
+    it { expect(span.type).to eq 'http' }
     it { expect(span.service).to eq 'rspec' }
     it { expect(span.resource).to eq 'ruby.test.testing.basic' }
     it { expect(span.get_tag('grpc.client.deadline')).to be_nil }

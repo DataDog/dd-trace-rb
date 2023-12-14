@@ -376,7 +376,7 @@ RSpec.describe 'net/http requests' do
         let(:sampling_priority) { 10 }
         let(:distributed_tracing_headers) do
           {
-            'x-datadog-parent-id' => span.span_id,
+            'x-datadog-parent-id' => span.id,
             'x-datadog-trace-id' => low_order_trace_id(span.trace_id),
             'x-datadog-sampling-priority' => sampling_priority
           }
@@ -422,7 +422,7 @@ RSpec.describe 'net/http requests' do
         let(:sampling_priority) { 10 }
         let(:distributed_tracing_headers) do
           {
-            'x-datadog-parent-id' => span.span_id,
+            'x-datadog-parent-id' => span.id,
             'x-datadog-trace-id' => low_order_trace_id(span.trace_id),
             'x-datadog-sampling-priority' => sampling_priority
           }
