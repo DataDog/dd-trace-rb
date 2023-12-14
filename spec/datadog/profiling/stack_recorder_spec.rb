@@ -551,4 +551,69 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       expect(stack_recorder.serialize.first).to be >= now
     end
   end
+
+  describe '#heap_recorder' do
+    context 'stack/location hashing' do
+      it 'works for empty stacks' do
+        described_class::Testing._native_check_heap_hashes([])
+      end
+
+      it 'works for single-frame stacks' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 123]
+          ]
+        )
+      end
+
+      it 'works for multi-frame stacks' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 123],
+            ['another name', 'anoter filename', 456],
+          ]
+        )
+      end
+
+      it 'works with empty names' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['', 'a filename', 123],
+          ]
+        )
+      end
+
+      it 'works with empty filenames' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', '', 123],
+          ]
+        )
+      end
+
+      it 'works with zero lines' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 0]
+          ]
+        )
+      end
+
+      it 'works with negative lines' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', -123]
+          ]
+        )
+      end
+
+      it 'works with biiiiiiig lines' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 4_000_000]
+          ]
+        )
+      end
+    end
+  end
 end

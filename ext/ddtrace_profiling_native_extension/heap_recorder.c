@@ -292,6 +292,27 @@ void heap_recorder_for_each_live_object(
   ENFORCE_SUCCESS_HELPER(pthread_mutex_unlock(&heap_recorder->records_mutex), with_gvl);
 }
 
+void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations) {
+  heap_stack *stack = heap_stack_new(locations);
+  heap_record_key stack_based_key = (heap_record_key) {
+    .type = HEAP_STACK,
+    .heap_stack = stack,
+  };
+  heap_record_key location_based_key = (heap_record_key) {
+    .type = LOCATION_SLICE,
+    .location_slice = &locations,
+  };
+
+  st_index_t stack_hash = heap_record_key_hash_st((st_data_t) &stack_based_key);
+  st_index_t location_hash = heap_record_key_hash_st((st_data_t) &location_based_key);
+
+  heap_stack_free(stack);
+
+  if (stack_hash != location_hash) {
+    rb_raise(rb_eRuntimeError, "Heap record key hashes built from the same locations differ. stack_based_hash=%"PRI_VALUE_PREFIX"u location_based_hash=%"PRI_VALUE_PREFIX"u", stack_hash, location_hash);
+  }
+}
+
 // ==========================
 // Heap Recorder Internal API
 // ==========================

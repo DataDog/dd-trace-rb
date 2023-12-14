@@ -91,3 +91,7 @@ void heap_recorder_for_each_live_object(
     bool (*for_each_callback)(heap_recorder_iteration_data data, void* extra_arg),
     void *for_each_callback_extra_arg,
     bool with_gvl);
+
+// v--- TEST-ONLY APIs ---v
+
+void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations);

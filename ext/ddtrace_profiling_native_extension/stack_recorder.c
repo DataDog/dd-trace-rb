@@ -220,6 +220,7 @@ static void serializer_set_start_timestamp_for_next_profile(struct stack_recorde
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
 static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */);
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight);
+static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locations);
 
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -245,6 +246,7 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_record_endpoint", _native_record_endpoint, 3);
   rb_define_singleton_method(testing_module, "_native_track_object", _native_track_object, 3);
+  rb_define_singleton_method(testing_module, "_native_check_heap_hashes", _native_check_heap_hashes, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -737,6 +739,36 @@ static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_ins
   ENFORCE_TYPE(weight, T_FIXNUM);
   track_object(recorder_instance, new_obj, NUM2UINT(weight));
   return Qtrue;
+}
+
+static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locations) {
+  ENFORCE_TYPE(locations, T_ARRAY);
+  size_t locations_len = rb_array_len(locations);
+  ddog_prof_Location *locations_arr = ruby_xcalloc(locations_len, sizeof(ddog_prof_Location));
+  for (size_t i = 0; i < locations_len; i++) {
+    VALUE location = rb_ary_entry(locations, i);
+    ENFORCE_TYPE(location, T_ARRAY);
+    VALUE name = rb_ary_entry(location, 0);
+    VALUE filename = rb_ary_entry(location, 1);
+    VALUE line = rb_ary_entry(location, 2);
+    ENFORCE_TYPE(name, T_STRING);
+    ENFORCE_TYPE(filename, T_STRING);
+    ENFORCE_TYPE(line, T_FIXNUM);
+    locations_arr[i] = (ddog_prof_Location) {
+      .line = line,
+        .function = (ddog_prof_Function) {
+          .name = char_slice_from_ruby_string(name),
+          .filename = char_slice_from_ruby_string(filename),
+        }
+    };
+  }
+  ddog_prof_Slice_Location ddog_locations = {
+    .len = locations_len,
+    .ptr = locations_arr,
+  };
+  heap_recorder_testonly_assert_hash_matches(ddog_locations);
+
+  return Qnil;
 }
 
 static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */) {
