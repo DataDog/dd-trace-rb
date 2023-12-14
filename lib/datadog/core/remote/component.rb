@@ -13,8 +13,6 @@ module Datadog
       # Configures the HTTP transport to communicate with the agent
       # to fetch and sync the remote configuration
       class Component
-        BARRIER_TIMEOUT = 1.0 # second
-
         attr_reader :client
 
         def initialize(settings, capabilities, agent_settings)
@@ -24,7 +22,7 @@ module Datadog
           negotiation = Negotiation.new(settings, agent_settings)
           transport_v7 = Datadog::Core::Remote::Transport::HTTP.v7(**transport_options.dup)
 
-          @barrier = Barrier.new(BARRIER_TIMEOUT)
+          @barrier = Barrier.new(settings.remote.boot_timeout)
 
           @client = Client.new(transport_v7, capabilities)
           healthy = false
