@@ -101,14 +101,18 @@ module Datadog
             env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
             unless Datadog::Core::Remote.active_remote.nil?
-              if barrier != :pass && (span = request_span)
-                span.set_tag('_dd.rc.boot.time', t)
+              if (span = request_span)
+                span.set_tag('_dd.rc.client_id', Datadog::Core::Remote.active_remote.client.id)
 
-                if barrier == :timeout
-                  span.set_tag('_dd.rc.boot.timeout', true)
-                else
-                  # TODO: 'ready' should evolve into ensuring RC received a proper reply
-                  span.set_tag('_dd.rc.boot.ready', true)
+                if barrier != :pass
+                  span.set_tag('_dd.rc.boot.time', t)
+
+                  if barrier == :timeout
+                    span.set_tag('_dd.rc.boot.timeout', true)
+                  else
+                    # TODO: 'ready' should evolve into ensuring RC received a proper reply
+                    span.set_tag('_dd.rc.boot.ready', true)
+                  end
                 end
               end
             end

@@ -59,6 +59,7 @@ RSpec.describe 'Rack integration tests' do
           allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
           allow(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
 
+          allow(client).to receive(:id).and_return(remote_client_id)
           allow(worker).to receive(:start).and_call_original
           allow(worker).to receive(:stop).and_call_original
 
@@ -79,6 +80,7 @@ RSpec.describe 'Rack integration tests' do
       end
 
       let(:remote_boot_timeout) { 1.0 }
+      let(:remote_client_id) { SecureRandom.uuid }
 
       let(:response) { get route }
 
@@ -86,12 +88,13 @@ RSpec.describe 'Rack integration tests' do
         let(:remote_enabled) { false }
         let(:route) { '/success/' }
 
-        it 'has no boot tags' do
+        it 'has no remote configuration tags' do
           expect(response).to be_ok
           expect(spans).to have(1).items
           expect(span).to_not have_tag('_dd.rc.boot.time')
           expect(span).to_not have_tag('_dd.rc.boot.ready')
           expect(span).to_not have_tag('_dd.rc.boot.timeout')
+          expect(span).to_not have_tag('_dd.rc.client_id')
           expect(span).to be_root_span
         end
       end
@@ -125,6 +128,13 @@ RSpec.describe 'Rack integration tests' do
             expect(span).to be_root_span
           end
 
+          it 'has remote configuration tags' do
+            expect(response).to be_ok
+            expect(spans).to have(1).items
+            expect(span).to have_tag('_dd.rc.client_id')
+            expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+          end
+
           context 'on second request' do
             let(:response) do
               get route
@@ -141,6 +151,13 @@ RSpec.describe 'Rack integration tests' do
               expect(last_span).to_not have_tag('_dd.rc.boot.ready')
               expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
               expect(last_span).to be_root_span
+            end
+
+            it 'has remote configuration tags' do
+              expect(response).to be_ok
+              expect(spans).to have(2).items
+              expect(last_span).to have_tag('_dd.rc.client_id')
+              expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
             end
           end
         end
@@ -165,6 +182,13 @@ RSpec.describe 'Rack integration tests' do
             expect(span).to be_root_span
           end
 
+          it 'has remote configuration tags' do
+            expect(response).to be_ok
+            expect(spans).to have(1).items
+            expect(span).to have_tag('_dd.rc.client_id')
+            expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+          end
+
           context 'on second request' do
             let(:response) do
               get route
@@ -181,6 +205,13 @@ RSpec.describe 'Rack integration tests' do
               expect(last_span).to_not have_tag('_dd.rc.boot.ready')
               expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
               expect(last_span).to be_root_span
+            end
+
+            it 'has remote configuration tags' do
+              expect(response).to be_ok
+              expect(spans).to have(2).items
+              expect(last_span).to have_tag('_dd.rc.client_id')
+              expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
             end
           end
         end
@@ -206,6 +237,13 @@ RSpec.describe 'Rack integration tests' do
             expect(span).to be_root_span
           end
 
+          it 'has remote configuration tags' do
+            expect(response).to be_ok
+            expect(spans).to have(1).items
+            expect(span).to have_tag('_dd.rc.client_id')
+            expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+          end
+
           context 'on second request' do
             let(:response) do
               get route
@@ -222,6 +260,13 @@ RSpec.describe 'Rack integration tests' do
               expect(last_span).to_not have_tag('_dd.rc.boot.ready')
               expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
               expect(last_span).to be_root_span
+            end
+
+            it 'has remote configuration tags' do
+              expect(response).to be_ok
+              expect(spans).to have(2).items
+              expect(last_span).to have_tag('_dd.rc.client_id')
+              expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
             end
           end
         end
