@@ -107,6 +107,7 @@ module Datadog
                 if barrier == :timeout
                   span.set_tag('_dd.rc.boot.timeout', true)
                 else
+                  # TODO: 'ready' should evolve into ensuring RC received a proper reply
                   span.set_tag('_dd.rc.boot.ready', true)
                 end
               end

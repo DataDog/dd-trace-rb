@@ -10,14 +10,22 @@ RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
 
   let(:rack_options) { {} }
+  let(:remote_enabled) { false }
 
   before do
-    Datadog.configure do |c|
-      c.tracing.instrument :rack, rack_options
+    unless remote_enabled
+      Datadog.configure do |c|
+        c.remote.enabled = false
+        c.tracing.instrument :rack, rack_options
+      end
     end
   end
 
-  after { Datadog.registry[:rack].reset_configuration! }
+  after do
+    Datadog.shutdown!
+    Datadog.configuration.reset!
+    Datadog.registry[:rack].reset_configuration!
+  end
 
   shared_examples 'a rack GET 200 span' do
     it do
@@ -42,6 +50,182 @@ RSpec.describe 'Rack integration tests' do
         use Datadog::Tracing::Contrib::Rack::TraceMiddleware
         instance_eval(&app_routes)
       end.to_app
+    end
+
+    context 'with remote configuration' do
+      before do
+        if remote_enabled
+          allow(Datadog::Core::Remote::Transport::HTTP).to receive(:v7).and_return(transport_v7)
+          allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
+          allow(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
+
+          allow(worker).to receive(:start).and_call_original
+          allow(worker).to receive(:stop).and_call_original
+
+          Datadog.configure do |c|
+            c.remote.enabled = remote_enabled
+            c.remote.boot_timeout = remote_boot_timeout
+            c.tracing.instrument :rack, rack_options
+          end
+        end
+      end
+
+      let(:routes) do
+        proc do
+          map '/success/' do
+            run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+          end
+        end
+      end
+
+      let(:remote_boot_timeout) { 1.0 }
+
+      let(:response) { get route }
+
+      context 'disabled' do
+        let(:remote_enabled) { false }
+        let(:route) { '/success/' }
+
+        it 'has no boot tags' do
+          expect(response).to be_ok
+          expect(spans).to have(1).items
+          expect(span).to_not have_tag('_dd.rc.boot.time')
+          expect(span).to_not have_tag('_dd.rc.boot.ready')
+          expect(span).to_not have_tag('_dd.rc.boot.timeout')
+          expect(span).to be_root_span
+        end
+      end
+
+      context 'enabled' do
+        let(:remote_enabled) { true }
+        let(:remote_boot_timeout) { 1.0 }
+        let(:route) { '/success/' }
+
+        let(:component) { Datadog::Core::Remote.active_remote }
+        let(:worker) { component.instance_eval { @worker } }
+        let(:client) { double('Client') }
+        let(:transport_v7) { double('Transport') }
+        let(:negotiation) { double('Negotiation') }
+
+        context 'and responding faster than timeout' do
+          before do
+            allow(negotiation).to receive(:endpoint?).and_return(true)
+            allow(worker).to receive(:call).and_call_original
+            allow(client).to receive(:sync).and_return(nil)
+          end
+
+          it 'has boot tags' do
+            expect(response).to be_ok
+            expect(spans).to have(1).items
+            expect(span).to have_tag('_dd.rc.boot.time')
+            expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
+            expect(span).to have_tag('_dd.rc.boot.ready')
+            expect(span.get_tag('_dd.rc.boot.ready')).to eq 'true'
+            expect(span).to_not have_tag('_dd.rc.boot.timeout')
+            expect(span).to be_root_span
+          end
+
+          context 'on second request' do
+            let(:response) do
+              get route
+              sleep(remote_boot_timeout + 1)
+              get route
+            end
+
+            let(:last_span) { spans.last }
+
+            it 'does not have boot tags' do
+              expect(response).to be_ok
+              expect(spans).to have(2).items
+              expect(last_span).to_not have_tag('_dd.rc.boot.time')
+              expect(last_span).to_not have_tag('_dd.rc.boot.ready')
+              expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+              expect(last_span).to be_root_span
+            end
+          end
+        end
+
+        context 'and responding slower than timeout' do
+          before do
+            allow(negotiation).to receive(:endpoint?).and_return(true)
+            allow(worker).to receive(:call).and_call_original
+            allow(client).to receive(:sync).and_return(nil)
+          end
+
+          let(:remote_boot_timeout) { 0.0 }
+
+          it 'has boot tags' do
+            expect(response).to be_ok
+            expect(spans).to have(1).items
+            expect(span).to have_tag('_dd.rc.boot.time')
+            expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
+            expect(span).to have_tag('_dd.rc.boot.timeout')
+            expect(span.get_tag('_dd.rc.boot.timeout')).to eq 'true'
+            expect(span).to_not have_tag('_dd.rc.boot.ready')
+            expect(span).to be_root_span
+          end
+
+          context 'on second request' do
+            let(:response) do
+              get route
+              sleep remote_boot_timeout
+              get route
+            end
+
+            let(:last_span) { spans.last }
+
+            it 'does not have boot tags' do
+              expect(response).to be_ok
+              expect(spans).to have(2).items
+              expect(last_span).to_not have_tag('_dd.rc.boot.time')
+              expect(last_span).to_not have_tag('_dd.rc.boot.ready')
+              expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+              expect(last_span).to be_root_span
+            end
+          end
+        end
+
+        context 'not responding' do
+          let(:exception) { Class.new(StandardError) }
+
+          before do
+            allow(negotiation).to receive(:endpoint?).and_return(true)
+            allow(worker).to receive(:call).and_call_original
+            allow(client).to receive(:sync).and_raise(exception, 'test')
+            allow(Datadog.logger).to receive(:error).and_return(nil)
+          end
+
+          it 'has boot tags' do
+            expect(response).to be_ok
+            expect(spans).to have(1).items
+            expect(span).to have_tag('_dd.rc.boot.time')
+            expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
+            expect(span).to_not have_tag('_dd.rc.boot.timeout')
+            expect(span).to have_tag('_dd.rc.boot.ready')
+            expect(span.get_tag('_dd.rc.boot.ready')).to eq 'false'
+            expect(span).to be_root_span
+          end
+
+          context 'on second request' do
+            let(:response) do
+              get route
+              sleep remote_boot_timeout
+              get route
+            end
+
+            let(:last_span) { spans.last }
+
+            it 'does not have boot tags' do
+              expect(response).to be_ok
+              expect(spans).to have(2).items
+              expect(last_span).to_not have_tag('_dd.rc.boot.time')
+              expect(last_span).to_not have_tag('_dd.rc.boot.ready')
+              expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+              expect(last_span).to be_root_span
+            end
+          end
+        end
+      end
     end
 
     context 'with no routes' do
