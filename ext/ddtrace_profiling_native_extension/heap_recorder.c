@@ -560,7 +560,10 @@ st_index_t char_slice_hash(ddog_CharSlice char_slice, st_index_t seed) {
 st_index_t ddog_location_hash(ddog_prof_Location location, st_index_t seed) {
   st_index_t hash = char_slice_hash(location.function.name, seed);
   hash = char_slice_hash(location.function.filename, hash);
-  hash = st_hash(&location.line, sizeof(location.line), hash);
+  // Convert ddog_prof line type to the same type we use for our heap_frames to
+  // ensure we have compatible hashes
+  int32_t line_as_int32 = (int32_t) location.line;
+  hash = st_hash(&line_as_int32, sizeof(line_as_int32), hash);
   return hash;
 }
 
