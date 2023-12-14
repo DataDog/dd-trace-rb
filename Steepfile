@@ -122,7 +122,6 @@ target :ddtrace do
   ignore 'lib/datadog/core/transport/http/env.rb'
   ignore 'lib/datadog/core/transport/http/response.rb'
   ignore 'lib/datadog/core/utils.rb'
-  ignore 'lib/datadog/core/utils/compression.rb'
   ignore 'lib/datadog/core/utils/forking.rb'
   ignore 'lib/datadog/core/utils/hash.rb' # Refinement module
   ignore 'lib/datadog/core/utils/network.rb'
