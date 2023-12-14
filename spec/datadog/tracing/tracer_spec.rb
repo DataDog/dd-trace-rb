@@ -112,7 +112,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           let(:span_type) { 'my-span_type' }
 
           it 'sets the span resource' do
-            expect(span.span_type).to eq(span_type)
+            expect(span.type).to eq(span_type)
           end
         end
 
@@ -740,7 +740,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         is_expected.to be_a_kind_of(Datadog::Tracing::Correlation::Identifier)
         expect(active_correlation.trace_id)
           .to eq(low_order_trace_id(span.trace_id))
-        expect(active_correlation.span_id).to eq(span.span_id)
+        expect(active_correlation.span_id).to eq(span.id)
       end
     end
 
@@ -786,7 +786,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(span).to have_attributes(
             parent_id: 0,
-            span_id: a_kind_of(Integer),
+            id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end
@@ -829,7 +829,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(span).to have_attributes(
             parent_id: 0,
-            span_id: a_kind_of(Integer),
+            id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end
@@ -948,7 +948,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(span).to have_attributes(
             parent_id: 0,
-            span_id: a_kind_of(Integer),
+            id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end

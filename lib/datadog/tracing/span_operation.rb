@@ -494,12 +494,6 @@ module Datadog
       def duration_nano
         (duration * 1e9).to_i
       end
-
-      # For backwards compatibility
-      # TODO: Deprecate and remove these in 2.0.
-      alias :span_id :id
-      alias :span_type :type
-      alias :span_type= :type=
     end
   end
 end
