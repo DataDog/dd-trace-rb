@@ -135,33 +135,6 @@ module Datadog
             Datadog::Core::Transport::Ext::HTTP::ADAPTER
           end
 
-          def default_hostname(logger: Datadog.logger)
-            logger.warn(
-              'Deprecated for removal: Using #default_hostname for configuration is deprecated and will ' \
-                'be removed on a future ddtrace release.'
-            )
-
-            DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS.hostname
-          end
-
-          def default_port(logger: Datadog.logger)
-            logger.warn(
-              'Deprecated for removal: Using #default_hostname for configuration is deprecated and will ' \
-                'be removed on a future ddtrace release.'
-            )
-
-            DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS.port
-          end
-
-          def default_url(logger: Datadog.logger)
-            logger.warn(
-              'Deprecated for removal: Using #default_url for configuration is deprecated and will ' \
-                'be removed on a future ddtrace release.'
-            )
-
-            nil
-          end
-
           # Add adapters to registry
           Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Net, Datadog::Core::Transport::Ext::HTTP::ADAPTER)
           Builder::REGISTRY.set(
