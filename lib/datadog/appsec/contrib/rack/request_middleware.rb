@@ -37,8 +37,10 @@ module Datadog
                 ready = Datadog::Core::Remote.active_remote.healthy
                 status = ready ? 'ready' : 'disconnected'
 
-                span.set_tag('_dd.rc.client_id', Datadog::Core::Remote.active_remote.client.id)
-                span.set_tag('_dd.rc.status', status)
+                unless span.has_tag?('_dd.rc.client_id')
+                  span.set_tag('_dd.rc.client_id', Datadog::Core::Remote.active_remote.client.id)
+                  span.set_tag('_dd.rc.status', status)
+                end
 
                 if barrier != :pass && !span.has_tag?('_dd.rc.boot.time')
                   span.set_tag('_dd.rc.boot.time', t)
