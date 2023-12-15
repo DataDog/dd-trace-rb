@@ -199,7 +199,7 @@ RSpec.describe 'Rack integration tests' do
           context 'on second request' do
             let(:response) do
               get route
-              sleep remote_boot_timeout
+              sleep(remote_boot_timeout + 1)
               get route
             end
 
@@ -258,7 +258,7 @@ RSpec.describe 'Rack integration tests' do
           context 'on second request' do
             let(:response) do
               get route
-              sleep remote_boot_timeout
+              sleep(remote_boot_timeout + 1)
               get route
             end
 
