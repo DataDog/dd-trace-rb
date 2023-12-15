@@ -196,7 +196,7 @@ module Datadog
 
         def coerce_env_var_int(value)
           # Strict integer parsing
-          Integer(value)
+          Integer(value, 10)
         rescue ArgumentError => e
           # Try also parsing as a whole floating point numbers
           begin

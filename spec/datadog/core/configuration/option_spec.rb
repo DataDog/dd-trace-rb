@@ -648,6 +648,13 @@ RSpec.describe Datadog::Core::Configuration::Option do
             expect(option.get).to eq 1234
           end
 
+          context 'with an octal number' do
+            let(:env_value) { '010' }
+            it 'parses in base 10' do
+              expect(option.get).to eq 10
+            end
+          end
+
           context 'with a whole float' do
             let(:env_value) { '10.0' }
             it 'coerce value' do
