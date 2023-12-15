@@ -126,7 +126,7 @@ static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Lo
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
 static int st_heap_record_entry_free(st_data_t, st_data_t, st_data_t);
 static int st_object_record_entry_free(st_data_t, st_data_t, st_data_t);
-static int st_object_record_entry_free_if_invalid(st_data_t, st_data_t, st_data_t);
+static int st_object_record_update(st_data_t, st_data_t, st_data_t);
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
@@ -260,7 +260,7 @@ void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
     rb_raise(rb_eRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
   }
 
-  st_foreach(heap_recorder->object_records, st_object_record_entry_free_if_invalid, (st_data_t) heap_recorder);
+  st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
 
   heap_recorder->object_records_snapshot = st_copy(heap_recorder->object_records);
   if (heap_recorder->object_records_snapshot == NULL) {
@@ -361,13 +361,15 @@ static int st_object_record_entry_free(DDTRACE_UNUSED st_data_t key, st_data_t v
   return ST_DELETE;
 }
 
-static int st_object_record_entry_free_if_invalid(st_data_t key, st_data_t value, st_data_t extra_arg) {
+static int st_object_record_update(st_data_t key, st_data_t value, st_data_t extra_arg) {
   long obj_id = (long) key;
   object_record *record = (object_record*) value;
   heap_recorder *recorder = (heap_recorder*) extra_arg;
 
-  if (!ruby_ref_from_id(LONG2NUM(obj_id), NULL)) {
-    // Id no longer associated with a valid ref. Need to clean things up!
+  VALUE ref;
+
+  if (!ruby_ref_from_id(LONG2NUM(obj_id), &ref)) {
+    // Id no longer associated with a valid ref. Need to delete this object record!
 
     // Starting with the associated heap record. There will now be one less tracked object pointing to it
     heap_record *heap_record = record->heap_record;
@@ -379,6 +381,9 @@ static int st_object_record_entry_free_if_invalid(st_data_t key, st_data_t value
     object_record_free(record);
     return ST_DELETE;
   }
+
+  // If we got this far, entry is still valid so lets update its size
+  record->object_data.size = ruby_obj_memsize_of(ref);
 
   return ST_CONTINUE;
 }
@@ -418,7 +423,7 @@ static int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value
   object_record *record = (object_record*) value;
 
   heap_frame top_frame = record->heap_record->stack->frames[0];
-  rb_str_catf(debug_str, "obj_id=%ld weight=%d location=%s:%d alloc_gen=%zu ", record->obj_id, record->object_data.weight, top_frame.filename, (int) top_frame.line, record->object_data.alloc_gen);
+  rb_str_catf(debug_str, "obj_id=%ld weight=%d size=%zu location=%s:%d alloc_gen=%zu ", record->obj_id, record->object_data.weight, record->object_data.size, top_frame.filename, (int) top_frame.line, record->object_data.alloc_gen);
 
   const char *class = record->object_data.class;
   if (class != NULL) {

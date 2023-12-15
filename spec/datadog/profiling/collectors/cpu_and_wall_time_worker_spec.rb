@@ -594,6 +594,8 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
           .find(&test_struct_heap_sample)
 
         expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object
+        # 40 is the size of a basic object and we have test_num_allocated_object of them
+        expect(relevant_sample.values[:'heap-live-size']).to eq test_num_allocated_object * 40
       end
     end
 

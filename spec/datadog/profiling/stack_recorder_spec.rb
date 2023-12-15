@@ -132,12 +132,13 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             'wall-time' => 'nanoseconds',
             'alloc-samples' => 'count',
             'heap-live-samples' => 'count',
+            'heap-live-size' => 'bytes',
             'timeline' => 'nanoseconds',
           }
         end
 
-        def profile_types_without(type)
-          all_profile_types.dup.tap { |it| it.delete(type) { raise 'Missing key' } }
+        def profile_types_without(*types)
+          all_profile_types.dup.tap { |it| it.delete_if { |k| types.include?(k) } }
         end
 
         context 'when all profile types are enabled' do
@@ -166,7 +167,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:heap_samples_enabled) { false }
 
           it 'returns a pprof without the heap-live-samples type' do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('heap-live-samples'))
+            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('heap-live-samples', 'heap-live-size'))
           end
         end
 
@@ -348,8 +349,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
       let(:a_string) { 'a beautiful string' }
-      let(:an_array) { (1..10).to_a }
-      let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true } }
+      let(:an_array) { (1..100).to_a.compact }
+      let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true, 'd' => Object.new } }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
@@ -409,6 +410,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # We sample from 2 distinct locations
           expect(samples.size).to eq(2)
           expect(samples.select { |s| s.values.key?('heap-live-samples') }).to be_empty
+          expect(samples.select { |s| s.values.key?('heap-live-size') }).to be_empty
         end
       end
 
@@ -429,6 +431,32 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           expect(heap_samples.map { |s| s.labels[:'allocation class'] }).to include('String', 'Array', 'Hash')
           expect(heap_samples.map(&:labels)).to all(match(hash_including(:'gc gen age' => be_a(Integer).and(be >= 0))))
+        end
+
+        it 'include accurate object sizes' do
+          string_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'String' }
+          expect(string_sample.values[:'heap-live-size']).to be_between(
+            # 18 UTF-8 characters at minimum.
+            (18 * 2) * sample_rate,
+            # Add some extra padding (per char and object-wide) for extra data.
+            (18 * 4 + 40) * sample_rate
+          )
+
+          array_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Array' }
+          expect(array_sample.values[:'heap-live-size']).to be_between(
+            # Basic object + 100 FIXNUMs (32 bits)
+            (40 + 100 * 4) * sample_rate,
+            # Basic object + 128 FIXNUMs (64 bits and round to nearest power of 2) and eventual extra data
+            (40 + 128 * 8 + 10) * sample_rate,
+          )
+
+          hash_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Hash' }
+          expect(hash_sample.values[:'heap-live-size']).to be_between(
+            # Basic object + 4 table entries + no bins
+            (40 + 4 * 16) * sample_rate,
+            # Add extra padding to hash itself as well as each entry and  8 bins
+            (80 + 4 * 32 + 8 * 16) * sample_rate,
+          )
         end
 
         it 'include accurate object ages' do
@@ -469,7 +497,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # We use the same metric_values in all sample calls in before. So we'd expect
           # the summed values to match `@num_allocations * metric_values[profile-type]`
           # for each profile-type there in.
-          expected_summed_values = { :'heap-live-samples' => 0 }
+          expected_summed_values = { :'heap-live-samples' => 0, :'heap-live-size' => 0, }
           metric_values.each_pair do |k, v|
             expected_summed_values[k.to_sym] = v * @num_allocations
           end

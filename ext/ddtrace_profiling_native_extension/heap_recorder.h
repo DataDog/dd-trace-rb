@@ -27,6 +27,9 @@ typedef struct live_object_data {
   //          could be seen as being representative of 50 objects.
   unsigned int weight;
 
+  // Size of this object on last flush/update.
+  size_t size;
+
   // The class of the object that we're tracking.
   // NOTE: This is optional and will be set to NULL if not set.
   char* class;

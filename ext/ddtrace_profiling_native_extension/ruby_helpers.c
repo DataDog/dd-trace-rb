@@ -166,3 +166,39 @@ bool ruby_ref_from_id(VALUE obj_id, VALUE *value) {
 
   return true;
 }
+
+// Not part of public headers but is externed from Ruby
+size_t rb_obj_memsize_of(VALUE obj);
+
+// Wrapper around rb_obj_memsize_of to avoid hitting crashing paths.
+size_t ruby_obj_memsize_of(VALUE obj) {
+  switch (BUILTIN_TYPE(obj)) {
+    case T_OBJECT:
+    case T_MODULE:
+    case T_CLASS:
+    case T_ICLASS:
+    case T_STRING:
+    case T_ARRAY:
+    case T_HASH:
+    case T_REGEXP:
+    case T_DATA:
+    case T_MATCH:
+    case T_FILE:
+    case T_RATIONAL:
+    case T_COMPLEX:
+    case T_IMEMO:
+    case T_FLOAT:
+    case T_SYMBOL:
+    case T_BIGNUM:
+    // case T_NODE: -> Throws exception in rb_obj_memsize_of
+    case T_STRUCT:
+    case T_ZOMBIE:
+    #ifndef NO_T_MOVED
+    case T_MOVED:
+    #endif
+      return rb_obj_memsize_of(obj);
+    default:
+      // Unsupported, return 0 instead of erroring like rb_obj_memsize_of likes doing
+      return 0;
+  }
+}
