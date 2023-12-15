@@ -75,7 +75,6 @@ MESSAGE
     before { cache.write(key, 50) }
 
     it do
-      raise "boom"
       expect(read).to eq(50)
 
       expect(spans).to have(4).items
