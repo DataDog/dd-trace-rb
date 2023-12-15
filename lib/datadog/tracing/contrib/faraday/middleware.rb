@@ -24,7 +24,9 @@ module Datadog
             # Do this once to reduce expensive regex calls.
             request_options = build_request_options!(env)
 
-            Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
+            on_error = datadog_configuration[:on_error]
+
+            Tracing.trace(Ext::SPAN_REQUEST, on_error: on_error) do |span, trace|
               annotate!(span, env, request_options)
               propagate!(trace, span, env) if request_options[:distributed_tracing] && Tracing.enabled?
               app.call(env).on_complete { |resp| handle_response(span, resp, request_options) }

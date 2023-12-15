@@ -279,6 +279,16 @@ RSpec.describe 'Faraday middleware' do
       expect(span.get_tag('span.kind')).to eq('client')
     end
 
+    context 'when there is custom error handling' do
+      subject!(:response) { client.get('not_found') }
+
+      let(:middleware_options) { { on_error: on_error } }
+      let(:on_error) { ->(_span, _error) {} }
+
+      it { expect(span).to_not have_error }
+      it { expect { subject }.to_not raise_error }
+    end
+
     it_behaves_like 'a peer service span' do
       let(:peer_service_val) { 'example.com' }
       let(:peer_service_source) { 'peer.hostname' }

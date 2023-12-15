@@ -38,6 +38,12 @@ module Datadog
               o.type :proc
               o.default_proc(&DEFAULT_ERROR_HANDLER)
             end
+
+            option :on_error do |o|
+              o.type :proc
+              o.default_proc(&Tracing::SpanOperation::Events::DEFAULT_ON_ERROR)
+            end
+
             option :split_by_domain, default: false, type: :bool
 
             option :service_name do |o|
