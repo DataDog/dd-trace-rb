@@ -153,17 +153,19 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 #define ALLOC_SAMPLES_VALUE_ID 3
 #define HEAP_SAMPLES_VALUE      {.type_ = VALUE_STRING("heap-live-samples"), .unit = VALUE_STRING("count")}
 #define HEAP_SAMPLES_VALUE_ID 4
+#define HEAP_SIZE_VALUE         {.type_ = VALUE_STRING("heap-live-size"),    .unit = VALUE_STRING("bytes")}
+#define HEAP_SIZE_VALUE_ID 5
 #define TIMELINE_VALUE          {.type_ = VALUE_STRING("timeline"),          .unit = VALUE_STRING("nanoseconds")}
-#define TIMELINE_VALUE_ID 5
+#define TIMELINE_VALUE_ID 6
 
 static const ddog_prof_ValueType all_value_types[] =
-  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, HEAP_SAMPLES_VALUE, TIMELINE_VALUE};
+  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, HEAP_SAMPLES_VALUE, HEAP_SIZE_VALUE, TIMELINE_VALUE};
 
 // This array MUST be kept in sync with all_value_types above and is intended to act as a "hashmap" between VALUE_ID and the position it
 // occupies on the all_value_types array.
 // E.g. all_value_types_positions[CPU_TIME_VALUE_ID] => 0, means that CPU_TIME_VALUE was declared at position 0 of all_value_types.
 static const uint8_t all_value_types_positions[] =
-  {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, HEAP_SAMPLES_VALUE_ID, TIMELINE_VALUE_ID};
+  {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, HEAP_SAMPLES_VALUE_ID, HEAP_SIZE_VALUE_ID, TIMELINE_VALUE_ID};
 
 #define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
 
@@ -379,7 +381,7 @@ static VALUE _native_initialize(
   uint8_t requested_values_count = ALL_VALUE_TYPES_COUNT -
     (cpu_time_enabled == Qtrue ? 0 : 1) -
     (alloc_samples_enabled == Qtrue? 0 : 1) -
-    (heap_samples_enabled == Qtrue ? 0 : 1) -
+    (heap_samples_enabled == Qtrue ? 0 : 2) -
     (timeline_enabled == Qtrue ? 0 : 1);
 
   if (requested_values_count == ALL_VALUE_TYPES_COUNT) return Qtrue; // Nothing to do, this is the default
@@ -419,8 +421,11 @@ static VALUE _native_initialize(
   if (heap_samples_enabled == Qtrue) {
     enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SAMPLES_VALUE;
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_enabled_pos++;
+    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SIZE_VALUE;
+    state->position_for[HEAP_SIZE_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_disabled_pos++;
+    state->position_for[HEAP_SIZE_VALUE_ID] = next_disabled_pos++;
 
     // Turns out heap sampling is disabled but we initialized everything in _native_new
     // assuming all samples were enabled. We need to deinitialize the heap recorder.
@@ -593,6 +598,7 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   uint8_t *position_for = context->state->position_for;
 
   metric_values[position_for[HEAP_SAMPLES_VALUE_ID]] = object_data->weight;
+  metric_values[position_for[HEAP_SIZE_VALUE_ID]] = object_data->size * object_data->weight;
 
   ddog_prof_Label labels[2];
   size_t label_offset = 0;
