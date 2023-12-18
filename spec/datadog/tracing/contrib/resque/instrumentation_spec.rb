@@ -124,12 +124,12 @@ RSpec.describe 'Resque instrumentation' do
       end
 
       context 'with custom error handler' do
-        let(:configuration_options) { super().merge(error_handler: error_handler) }
-        let(:error_handler) { proc { @error_handler_called = true } }
+        let(:configuration_options) { super().merge(on_error: on_error) }
+        let(:on_error) { proc { @error_handler = true } }
 
         it 'uses custom error handler' do
           perform_job(job_class)
-          expect(@error_handler_called).to be_truthy
+          expect(@error_handler).to be_truthy
         end
       end
     end

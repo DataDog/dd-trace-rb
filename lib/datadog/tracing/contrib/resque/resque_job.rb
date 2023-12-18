@@ -76,7 +76,7 @@ module Datadog
           end
 
           def span_options
-            { service: datadog_configuration[:service_name], on_error: datadog_configuration[:error_handler] }
+            { service: datadog_configuration[:service_name], on_error: datadog_configuration[:on_error] }
           end
 
           def datadog_configuration
