@@ -11,7 +11,6 @@ static ID _id2ref_id = Qnil;
 
 void ruby_helpers_init(void) {
   rb_global_variable(&module_object_space);
-  rb_global_variable(&_id2ref_id);
 
   module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
   _id2ref_id = rb_intern("_id2ref");

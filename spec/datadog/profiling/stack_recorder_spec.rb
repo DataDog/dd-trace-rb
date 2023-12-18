@@ -552,13 +552,13 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
   end
 
-  describe '#heap_recorder' do
-    context 'stack/location hashing' do
-      it 'works for empty stacks' do
+  describe 'Heap_recorder' do
+    context 'produces the same hash code for stack-based and location-based keys' do
+      it 'with empty stacks' do
         described_class::Testing._native_check_heap_hashes([])
       end
 
-      it 'works for single-frame stacks' do
+      it 'with single-frame stacks' do
         described_class::Testing._native_check_heap_hashes(
           [
             ['a name', 'a filename', 123]
@@ -566,7 +566,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
-      it 'works for multi-frame stacks' do
+      it 'with multi-frame stacks' do
         described_class::Testing._native_check_heap_hashes(
           [
             ['a name', 'a filename', 123],
@@ -575,7 +575,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
-      it 'works with empty names' do
+      it 'with empty names' do
         described_class::Testing._native_check_heap_hashes(
           [
             ['', 'a filename', 123],
@@ -583,7 +583,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
-      it 'works with empty filenames' do
+      it 'with empty filenames' do
         described_class::Testing._native_check_heap_hashes(
           [
             ['a name', '', 123],
@@ -591,7 +591,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
-      it 'works with zero lines' do
+      it 'with zero lines' do
         described_class::Testing._native_check_heap_hashes(
           [
             ['a name', 'a filename', 0]
@@ -599,7 +599,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
-      it 'works with negative lines' do
+      it 'with negative lines' do
         described_class::Testing._native_check_heap_hashes(
           [
             ['a name', 'a filename', -123]
@@ -607,7 +607,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
-      it 'works with biiiiiiig lines' do
+      it 'with biiiiiiig lines' do
         described_class::Testing._native_check_heap_hashes(
           [
             ['a name', 'a filename', 4_000_000]
