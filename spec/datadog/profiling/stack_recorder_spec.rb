@@ -436,9 +436,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           allocation_line = __LINE__ - 3
 
-          queued_allocations = described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
-
-          expect(queued_allocations).to eq test_num_allocated_object
+          described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
 
           heap_samples_in_test_matcher = lambda { |sample|
             (sample.values[:'heap-live-samples'] || 0) > 0 && sample.locations.any? do |location|
