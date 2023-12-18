@@ -19,7 +19,7 @@ module Datadog
 
           def initialize(options = {})
             @sidekiq_service = options[:service_name] || configuration[:service_name]
-            @error_handler = options[:error_handler] || configuration[:error_handler]
+            @on_error = options[:on_error] || configuration[:on_error]
           end
 
           # rubocop:disable Metrics/MethodLength
@@ -41,7 +41,7 @@ module Datadog
               Ext::SPAN_JOB,
               service: service,
               span_type: Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
-              on_error: @error_handler
+              on_error: @on_error
             ) do |span|
               span.resource = resource
 
