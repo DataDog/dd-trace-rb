@@ -102,6 +102,7 @@ module Datadog
 
             unless Datadog::Core::Remote.active_remote.nil?
               if (span = request_span)
+                # TODO: this is not thread-consistent
                 ready = Datadog::Core::Remote.active_remote.healthy
                 status = ready ? 'ready' : 'disconnected'
 

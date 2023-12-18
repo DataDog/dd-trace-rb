@@ -34,6 +34,7 @@ module Datadog
               end
 
               if (span = active_span)
+                # TODO: this is not thread-consistent
                 ready = Datadog::Core::Remote.active_remote.healthy
                 status = ready ? 'ready' : 'disconnected'
 
