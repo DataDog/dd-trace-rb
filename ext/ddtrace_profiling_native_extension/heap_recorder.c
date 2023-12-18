@@ -105,12 +105,16 @@ struct heap_recorder {
   // Map[key: heap_record_key*, record: heap_record*]
   // NOTE: We always use heap_record_key.type == HEAP_STACK for storage but support lookups
   // via heap_record_key.type == LOCATION_SLICE to allow for allocation-free fast-paths.
+  // NOTE: This table is currently only protected by the GVL since we never iterate on it
+  // outside the GVL.
   st_table *heap_records;
 
   // Map[obj_id: long, record: object_record*]
   st_table *object_records;
 
-  // Lock protecting writes to above record tables
+  // Lock protecting writes to object_records.
+  // NOTE: heap_records is currently not protected by this one since we do not iterate on
+  // heap records outside the GVL.
   pthread_mutex_t records_mutex;
 
   // Data for a heap recording that was started but not yet ended
