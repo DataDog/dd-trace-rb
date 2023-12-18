@@ -5,6 +5,8 @@ module Datadog
         ENV_ENABLED: ::String
 
         ENV_POLL_INTERVAL_SECONDS: ::String
+
+        ENV_BOOT_TIMEOUT_SECONDS: ::String
       end
     end
   end
