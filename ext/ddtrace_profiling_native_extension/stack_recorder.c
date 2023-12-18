@@ -750,7 +750,7 @@ static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_ins
 static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locations) {
   ENFORCE_TYPE(locations, T_ARRAY);
   size_t locations_len = rb_array_len(locations);
-  ddog_prof_Location *locations_arr = ruby_xcalloc(locations_len, sizeof(ddog_prof_Location));
+  ddog_prof_Location locations_arr[locations_len];
   for (size_t i = 0; i < locations_len; i++) {
     VALUE location = rb_ary_entry(locations, i);
     ENFORCE_TYPE(location, T_ARRAY);

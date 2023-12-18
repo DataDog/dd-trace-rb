@@ -114,12 +114,16 @@ struct heap_recorder {
   // Map[key: heap_record_key*, record: heap_record*]
   // NOTE: We always use heap_record_key.type == HEAP_STACK for storage but support lookups
   // via heap_record_key.type == LOCATION_SLICE to allow for allocation-free fast-paths.
+  // NOTE: This table is currently only protected by the GVL since we never iterate on it
+  // outside the GVL.
   st_table *heap_records;
 
   // Map[obj_id: long, record: object_record*]
   st_table *object_records;
 
-  // Lock protecting writes to above record tables
+  // Lock protecting writes to object_records.
+  // NOTE: heap_records is currently not protected by this one since we do not iterate on
+  // heap records outside the GVL.
   pthread_mutex_t records_mutex;
 
   // Data for a heap recording that was started but not yet ended
@@ -613,17 +617,17 @@ st_index_t string_hash(char *str, st_index_t seed) {
   return st_hash(str, strlen(str), seed);
 }
 
+// WARN: Must be kept in-sync with ::string_hash
+st_index_t char_slice_hash(ddog_CharSlice char_slice, st_index_t seed) {
+  return st_hash(char_slice.ptr, char_slice.len, seed);
+}
+
 // WARN: Must be kept in-sync with ::ddog_location_hash
 st_index_t heap_frame_hash(heap_frame *frame, st_index_t seed) {
   st_index_t hash = string_hash(frame->name, seed);
   hash = string_hash(frame->filename, hash);
   hash = st_hash(&frame->line, sizeof(frame->line), hash);
   return hash;
-}
-
-// WARN: Must be kept in-sync with ::string_hash
-st_index_t char_slice_hash(ddog_CharSlice char_slice, st_index_t seed) {
-  return st_hash(char_slice.ptr, char_slice.len, seed);
 }
 
 // WARN: Must be kept in-sync with ::heap_frame_hash
@@ -637,17 +641,16 @@ st_index_t ddog_location_hash(ddog_prof_Location location, st_index_t seed) {
   return hash;
 }
 
-
 // ==============
 // Heap Stack API
 // ==============
 heap_stack* heap_stack_new(ddog_prof_Slice_Location locations) {
   uint16_t frames_len = locations.len;
   if (frames_len > MAX_FRAMES_LIMIT) {
-    // Ensure we never attempt to store a heap stack that goes over the MAX_FRAMES_LIMIT
     // This should not be happening anyway since MAX_FRAMES_LIMIT should be shared with
-    // the stacktrace construction mechanism
-    frames_len = MAX_FRAMES_LIMIT;
+    // the stacktrace construction mechanism. If it happens, lets just raise. This should
+    // be safe since only allocate with the GVL anyway.
+    rb_raise(rb_eRuntimeError, "Found stack with more than %d frames (%d)", MAX_FRAMES_LIMIT, frames_len);
   }
   heap_stack *stack = ruby_xcalloc(1, sizeof(heap_stack) + frames_len * sizeof(heap_frame));
   stack->frames_len = frames_len;
@@ -671,19 +674,6 @@ void heap_stack_free(heap_stack *stack) {
     ruby_xfree(frame->filename);
   }
   ruby_xfree(stack);
-}
-
-int heap_stack_cmp(heap_stack *st1, heap_stack *st2) {
-  if (st1->frames_len != st2->frames_len) {
-    return (int) (st1->frames_len - st2->frames_len);
-  }
-  for (uint64_t i = 0; i < st1->frames_len; i++) {
-    int cmp = heap_frame_cmp(&st1->frames[i], &st2->frames[i]);
-    if (cmp != 0) {
-      return cmp;
-    }
-  }
-  return 0;
 }
 
 // WARN: Must be kept in-sync with ::ddog_location_slice_hash
