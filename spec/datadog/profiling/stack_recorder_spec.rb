@@ -347,7 +347,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
-      def sample_allocation(obj, _unused = 0)
+      def sample_allocation(obj)
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
         described_class::Testing._native_track_object(stack_recorder, obj, sample_rate)
         Datadog::Profiling::Collectors::Stack::Testing
@@ -359,11 +359,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
           # Sample allocations with 2 distinct stacktraces
-          # (the 2nd parameter is there only to avoid a rubocop issue with identical branches)
           if i.even?
-            sample_allocation(obj, 1)
-          else
-            sample_allocation(obj, 2)
+            sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
+          else # rubocop:disable Lint/DuplicateBranch
+            sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
           end
           @num_allocations += 1
         end
