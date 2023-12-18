@@ -168,11 +168,11 @@ RSpec.describe 'tracing on the client connection' do
       end
 
       context 'with an error handler' do
-        subject(:server) do
-          Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new { |c| c.error_handler = error_handler }
+        subject(:client) do
+          Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new { |c| c.on_error = on_error }
         end
 
-        let(:error_handler) do
+        let(:on_error) do
           ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from interceptor") }
         end
 
@@ -180,9 +180,9 @@ RSpec.describe 'tracing on the client connection' do
       end
 
       context 'with an error handler defined in the configuration options' do
-        let(:configuration_options) { { service_name: 'rspec', client_error_handler: error_handler } }
+        let(:configuration_options) { { on_error: on_error } }
 
-        let(:error_handler) do
+        let(:on_error) do
           ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from configuration") }
         end
 

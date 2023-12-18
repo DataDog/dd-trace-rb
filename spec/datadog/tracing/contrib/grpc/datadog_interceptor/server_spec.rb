@@ -94,10 +94,10 @@ RSpec.describe 'tracing on the server connection' do
 
       context 'with an error handler' do
         subject(:server) do
-          Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Server.new { |c| c.error_handler = error_handler }
+          Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Server.new { |c| c.on_error = on_error }
         end
 
-        let(:error_handler) do
+        let(:on_error) do
           ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from interceptor") }
         end
 
@@ -105,23 +105,13 @@ RSpec.describe 'tracing on the server connection' do
       end
 
       context 'with an error handler defined in the configuration_options' do
-        let(:configuration_options) { { service_name: 'rspec', server_error_handler: error_handler } }
+        let(:configuration_options) { { on_error: on_error } }
 
-        let(:error_handler) do
+        let(:on_error) do
           ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from configuration") }
         end
 
         it_behaves_like 'it handles the error', 'Got error test error, but ignored it from configuration'
-      end
-
-      context 'with an error handler defined with the deprecated error_handler option' do
-        let(:configuration_options) { { service_name: 'rspec', error_handler: error_handler } }
-
-        let(:error_handler) do
-          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from deprecated config") }
-        end
-
-        it_behaves_like 'it handles the error', 'Got error test error, but ignored it from deprecated config'
       end
     end
   end

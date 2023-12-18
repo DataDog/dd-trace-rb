@@ -973,11 +973,7 @@ client.my_endpoint(DemoMessage.new(contents: 'hello!'))
 | `service_name`        | `DD_TRACE_GRPC_SERVICE_NAME` | Name of application running the `grpc` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `grpc`                                                             |
 | `peer_service`        | `DD_TRACE_GRPC_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                     | `nil`                                                              |
 | `distributed_tracing` |                              | Enables [distributed tracing](#distributed-tracing)                                                                                                                                      | `true`                                                             |
-| `server_error_handler`       |                              | Custom error handler invoked when there is a server error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
-| `client_error_handler`       |                              | Custom error handler invoked when there is a client error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
-
-Deprecation notice:
-- `error_handler` will be removed. Use `server_error_handler` instead.
+| `on_error`       | | Custom error handler invoked when there is an error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
 
 **Configuring clients to use different settings**
 
