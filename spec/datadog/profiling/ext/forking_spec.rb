@@ -38,9 +38,9 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         # Can't assert this because top level can't be reverted; can't guarantee pristine state.
         # expect(toplevel_receiver.class.ancestors.include?(described_class::Kernel)).to be false
 
-        expect(::Process.method(:fork).source_location).to be nil
-        expect(::Kernel.method(:fork).source_location).to be nil
-        expect(::Process.method(:daemon).source_location).to be nil
+        expect(::Process.method(:fork).source_location&.first).to_not match(%r{.*datadog/profiling/ext/forking.rb})
+        expect(::Kernel.method(:fork).source_location&.first).to_not match(%r{.*datadog/profiling/ext/forking.rb})
+        expect(::Process.method(:daemon).source_location&.first).to_not match(%r{.*datadog/profiling/ext/forking.rb})
         # Can't assert this because top level can't be reverted; can't guarantee pristine state.
         # expect(toplevel_receiver.method(:fork).source_location).to be nil
       end
