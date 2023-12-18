@@ -74,7 +74,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
 
       it 'continues to capture spans gracefully under unexpected conditions' do
         expect { error_job_class.enqueue(**job_args) }.to raise_error(StandardError)
-        expect(spans).not_to be_empty
+
         expect(span.start_time).not_to be_nil
         expect(span.end_time).not_to be_nil
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_TYPE)).to eq('StandardError')
@@ -86,6 +86,19 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
         enqueue
 
         expect(span.get_tag('span.kind')).to eq('consumer')
+      end
+    end
+
+    context 'with error handler' do
+      let(:configuration_options) { { on_error: proc { @error_handler = true } } }
+
+      it 'continues to capture spans gracefully under unexpected conditions' do
+        expect { error_job_class.enqueue(**job_args) }.to raise_error(StandardError)
+        expect(span).not_to have_error
+        expect(@error_handler).to be_truthy
+        expect(span.start_time).not_to be_nil
+        expect(span.end_time).not_to be_nil
+        expect(span.get_tag('messaging.system')).to eq('que')
       end
     end
 

@@ -1392,7 +1392,7 @@ end
 | `enabled`       | `DD_TRACE_QUE_ENABLED`          | Defines whether Que should be traced. Useful for temporarily disabling tracing. `true` or `false`                                                                           | `true`                                                             |
 | `tag_args`      | `DD_TRACE_QUE_TAG_ARGS_ENABLED` | Enable tagging of a job's args field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
 | `tag_data`      | `DD_TRACE_QUE_TAG_DATA_ENABLED` | Enable tagging of a job's data field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
-| `error_handler` |                                 | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
+| `on_error` |                                 | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
 
 ### Racecar
 
