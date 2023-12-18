@@ -22,8 +22,6 @@ RSpec.describe 'Rack integration tests' do
   end
 
   after do
-    Datadog.shutdown!
-    Datadog.configuration.reset!
     Datadog.registry[:rack].reset_configuration!
   end
 
@@ -66,6 +64,7 @@ RSpec.describe 'Rack integration tests' do
           Datadog.configure do |c|
             c.remote.enabled = remote_enabled
             c.remote.boot_timeout = remote_boot_timeout
+            c.remote.poll_interval_seconds = remote_poll_interval_seconds
             c.tracing.instrument :rack, rack_options
           end
         end
@@ -80,6 +79,7 @@ RSpec.describe 'Rack integration tests' do
       end
 
       let(:remote_boot_timeout) { 1.0 }
+      let(:remote_poll_interval_seconds) { 100.0 }
       let(:remote_client_id) { SecureRandom.uuid }
 
       let(:response) { get route }
@@ -111,116 +111,158 @@ RSpec.describe 'Rack integration tests' do
         let(:transport_v7) { double('Transport') }
         let(:negotiation) { double('Negotiation') }
 
-        context 'and responding faster than timeout' do
+        context 'and responding' do
           before do
             allow(negotiation).to receive(:endpoint?).and_return(true)
             allow(worker).to receive(:call).and_call_original
-            allow(client).to receive(:sync).and_return(nil)
+            allow(client).to receive(:sync).and_invoke(remote_client_sync)
+
+            # force evaluation to prevent locking from concurrent thread
+            remote_client_sync_delay
           end
 
-          it 'has boot tags' do
-            expect(response).to be_ok
-            expect(spans).to have(1).items
-            expect(span).to have_tag('_dd.rc.boot.time')
-            expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
-            expect(span).to have_tag('_dd.rc.boot.ready')
-            expect(span.get_tag('_dd.rc.boot.ready')).to eq 'true'
-            expect(span).to_not have_tag('_dd.rc.boot.timeout')
-            expect(span).to be_root_span
-          end
+          let(:remote_client_sync) do
+            lambda do
+              sleep(remote_client_sync_delay) unless remote_client_sync_delay.nil?
 
-          it 'has remote configuration tags' do
-            expect(response).to be_ok
-            expect(spans).to have(1).items
-            expect(span).to have_tag('_dd.rc.client_id')
-            expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-            expect(span).to have_tag('_dd.rc.status')
-            expect(span.get_tag('_dd.rc.status')).to eq 'ready'
-          end
-
-          context 'on second request' do
-            let(:response) do
-              get route
-              sleep(remote_boot_timeout + 1)
-              get route
+              nil
             end
+          end
 
-            let(:last_span) { spans.last }
+          context 'faster than timeout' do
+            let(:remote_client_sync_delay) { 0.1 }
 
-            it 'does not have boot tags' do
+            it 'has boot tags' do
               expect(response).to be_ok
-              expect(spans).to have(2).items
-              expect(last_span).to_not have_tag('_dd.rc.boot.time')
-              expect(last_span).to_not have_tag('_dd.rc.boot.ready')
-              expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
-              expect(last_span).to be_root_span
+              expect(spans).to have(1).items
+              expect(span).to have_tag('_dd.rc.boot.time')
+              expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
+              expect(span).to have_tag('_dd.rc.boot.ready')
+              expect(span.get_tag('_dd.rc.boot.ready')).to eq 'true'
+              expect(span).to_not have_tag('_dd.rc.boot.timeout')
+              expect(span).to be_root_span
             end
 
             it 'has remote configuration tags' do
               expect(response).to be_ok
-              expect(spans).to have(2).items
-              expect(last_span).to have_tag('_dd.rc.client_id')
-              expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-              expect(last_span).to have_tag('_dd.rc.status')
-              expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
-            end
-          end
-        end
-
-        context 'and responding slower than timeout' do
-          before do
-            allow(negotiation).to receive(:endpoint?).and_return(true)
-            allow(worker).to receive(:call).and_call_original
-            allow(client).to receive(:sync).and_return(nil)
-          end
-
-          let(:remote_boot_timeout) { 0.0 }
-
-          it 'has boot tags' do
-            expect(response).to be_ok
-            expect(spans).to have(1).items
-            expect(span).to have_tag('_dd.rc.boot.time')
-            expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
-            expect(span).to have_tag('_dd.rc.boot.timeout')
-            expect(span.get_tag('_dd.rc.boot.timeout')).to eq 'true'
-            expect(span).to_not have_tag('_dd.rc.boot.ready')
-            expect(span).to be_root_span
-          end
-
-          it 'has remote configuration tags' do
-            expect(response).to be_ok
-            expect(spans).to have(1).items
-            expect(span).to have_tag('_dd.rc.client_id')
-            expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-            expect(span).to have_tag('_dd.rc.status')
-            expect(span.get_tag('_dd.rc.status')).to eq 'ready'
-          end
-
-          context 'on second request' do
-            let(:response) do
-              get route
-              sleep(remote_boot_timeout + 1)
-              get route
+              expect(spans).to have(1).items
+              expect(span).to have_tag('_dd.rc.client_id')
+              expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+              expect(span).to have_tag('_dd.rc.status')
+              expect(span.get_tag('_dd.rc.status')).to eq 'ready'
             end
 
-            let(:last_span) { spans.last }
+            context 'on second request' do
+              let(:remote_client_sync_delay) { remote_boot_timeout }
 
-            it 'does not have boot tags' do
+              let(:response) do
+                get route
+                sleep(2 * remote_client_sync_delay)
+                get route
+              end
+
+              let(:last_span) { spans.last }
+
+              it 'does not have boot tags' do
+                expect(response).to be_ok
+                expect(spans).to have(2).items
+                expect(last_span).to_not have_tag('_dd.rc.boot.time')
+                expect(last_span).to_not have_tag('_dd.rc.boot.ready')
+                expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+                expect(last_span).to be_root_span
+              end
+
+              it 'has remote configuration tags' do
+                expect(response).to be_ok
+                expect(spans).to have(2).items
+                expect(last_span).to have_tag('_dd.rc.client_id')
+                expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+                expect(last_span).to have_tag('_dd.rc.status')
+                expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
+              end
+            end
+          end
+
+          context 'and responding slower than timeout' do
+            let(:remote_client_sync_delay) { 2 * remote_boot_timeout }
+
+            it 'has boot tags' do
               expect(response).to be_ok
-              expect(spans).to have(2).items
-              expect(last_span).to_not have_tag('_dd.rc.boot.time')
-              expect(last_span).to_not have_tag('_dd.rc.boot.ready')
-              expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
-              expect(last_span).to be_root_span
+              expect(spans).to have(1).items
+              expect(span).to have_tag('_dd.rc.boot.time')
+              expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
+              expect(span).to have_tag('_dd.rc.boot.timeout')
+              expect(span.get_tag('_dd.rc.boot.timeout')).to eq 'true'
+              expect(span).to_not have_tag('_dd.rc.boot.ready')
+              expect(span).to be_root_span
             end
 
             it 'has remote configuration tags' do
               expect(response).to be_ok
-              expect(spans).to have(2).items
-              expect(last_span).to have_tag('_dd.rc.client_id')
-              expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
-              expect(last_span).to have_tag('_dd.rc.status')
-              expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
+              expect(spans).to have(1).items
+              expect(span).to have_tag('_dd.rc.client_id')
+              expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+              expect(span).to have_tag('_dd.rc.status')
+              expect(span.get_tag('_dd.rc.status')).to eq 'disconnected'
+            end
+
+            context 'on second request' do
+              context 'before sync' do
+                let(:response) do
+                  get route
+                  get route
+                end
+
+                let(:last_span) { spans.last }
+
+                it 'does not have boot tags' do
+                  expect(response).to be_ok
+                  expect(spans).to have(2).items
+                  expect(last_span).to_not have_tag('_dd.rc.boot.time')
+                  expect(last_span).to_not have_tag('_dd.rc.boot.ready')
+                  expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+                  expect(last_span).to be_root_span
+                end
+
+                it 'has remote configuration tags' do
+                  expect(response).to be_ok
+                  expect(spans).to have(2).items
+                  expect(last_span).to have_tag('_dd.rc.client_id')
+                  expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+                  expect(last_span).to have_tag('_dd.rc.status')
+                  expect(last_span.get_tag('_dd.rc.status')).to eq 'disconnected'
+                end
+              end
+
+              context 'after sync' do
+                let(:remote_client_sync_delay) { 2 * remote_boot_timeout }
+
+                let(:response) do
+                  get route
+                  sleep(2 * remote_client_sync_delay)
+                  get route
+                end
+
+                let(:last_span) { spans.last }
+
+                it 'does not have boot tags' do
+                  expect(response).to be_ok
+                  expect(spans).to have(2).items
+                  expect(last_span).to_not have_tag('_dd.rc.boot.time')
+                  expect(last_span).to_not have_tag('_dd.rc.boot.ready')
+                  expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+                  expect(last_span).to be_root_span
+                end
+
+                it 'has remote configuration tags' do
+                  expect(response).to be_ok
+                  expect(spans).to have(2).items
+                  expect(last_span).to have_tag('_dd.rc.client_id')
+                  expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+                  expect(last_span).to have_tag('_dd.rc.status')
+                  expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
+                end
+              end
             end
           end
         end
@@ -256,9 +298,11 @@ RSpec.describe 'Rack integration tests' do
           end
 
           context 'on second request' do
+            let(:remote_client_sync_delay) { remote_boot_timeout }
+
             let(:response) do
               get route
-              sleep(remote_boot_timeout + 1)
+              sleep(2 * remote_client_sync_delay)
               get route
             end
 
