@@ -419,7 +419,6 @@ static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *
   return ST_CONTINUE;
 }
 
-// WARN: Expects records_mutex to be held
 static void commit_allocation(heap_recorder *heap_recorder, heap_record *heap_record, long obj_id, live_object_data object_data) {
   // Update object_records
   object_record_update_data update_data = (object_record_update_data) {
