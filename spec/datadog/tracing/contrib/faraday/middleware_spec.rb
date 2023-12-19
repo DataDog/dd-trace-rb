@@ -279,14 +279,15 @@ RSpec.describe 'Faraday middleware' do
       expect(span.get_tag('span.kind')).to eq('client')
     end
 
-    context 'when there is custom error handling' do
-      subject!(:response) { client.get('not_found') }
+    context 'when given `on_error`' do
+      let(:configuration_options) { { on_error: proc { @error_handler_called = true } } }
 
-      let(:middleware_options) { { on_error: on_error } }
-      let(:on_error) { ->(_span, _error) {} }
+      it do
+        expect { response }.to raise_error(Faraday::ConnectionFailed)
 
-      it { expect(span).to_not have_error }
-      it { expect { subject }.to_not raise_error }
+        expect(span).not_to have_error
+        expect(@error_handler_called).to be_truthy
+      end
     end
 
     it_behaves_like 'a peer service span' do
