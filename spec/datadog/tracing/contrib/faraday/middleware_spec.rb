@@ -279,6 +279,17 @@ RSpec.describe 'Faraday middleware' do
       expect(span.get_tag('span.kind')).to eq('client')
     end
 
+    context 'when given `on_error`' do
+      let(:configuration_options) { { on_error: proc { @error_handler_called = true } } }
+
+      it do
+        expect { response }.to raise_error(Faraday::ConnectionFailed)
+
+        expect(span).not_to have_error
+        expect(@error_handler_called).to be_truthy
+      end
+    end
+
     it_behaves_like 'a peer service span' do
       let(:peer_service_val) { 'example.com' }
       let(:peer_service_source) { 'peer.hostname' }
@@ -294,26 +305,21 @@ RSpec.describe 'Faraday middleware' do
   end
 
   context 'when there is a client error' do
-    subject!(:response) { client.get('/not_found') }
+    it do
+      client.get('/not_found')
 
-    it { expect(span).to_not have_error }
+      expect(span).to have_error
+    end
 
-    it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
-    it_behaves_like 'configured peer service span', 'DD_TRACE_FARADAY_PEER_SERVICE'
-    it_behaves_like 'schema version span'
-  end
+    context 'when given from configuration options' do
+      let(:configuration_options) { { error_status_codes: 500...600 } }
 
-  context 'when there is custom error handling' do
-    subject!(:response) { client.get('not_found') }
+      it do
+        client.get('not_found')
 
-    let(:middleware_options) { { error_handler: custom_handler } }
-    let(:custom_handler) { ->(env) { (400...600).cover?(env[:status]) } }
-
-    it { expect(span).to have_error }
-
-    it_behaves_like 'environment service name', 'DD_TRACE_FARADAY_SERVICE_NAME'
-    it_behaves_like 'configured peer service span', 'DD_TRACE_FARADAY_PEER_SERVICE'
-    it_behaves_like 'schema version span'
+        expect(span).not_to have_error
+      end
+    end
   end
 
   context 'when split by domain' do
