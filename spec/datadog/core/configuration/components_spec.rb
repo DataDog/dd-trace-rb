@@ -96,7 +96,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       shared_examples_for 'new health metrics' do
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
-        let(:default_options) { { enabled: settings.diagnostics.health_metrics.enabled } }
+        let(:default_options) { { enabled: settings.health_metrics.enabled } }
         let(:options) { {} }
 
         before do
@@ -116,7 +116,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:enabled) { double('enabled') }
 
         before do
-          allow(settings.diagnostics.health_metrics)
+          allow(settings.health_metrics)
             .to receive(:enabled)
             .and_return(enabled)
         end
@@ -130,7 +130,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:statsd) { instance_double(Datadog::Statsd) }
 
         before do
-          allow(settings.diagnostics.health_metrics)
+          allow(settings.health_metrics)
             .to receive(:statsd)
             .and_return(statsd)
         end
