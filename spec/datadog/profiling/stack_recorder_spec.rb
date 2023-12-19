@@ -348,13 +348,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
       let(:a_string) { 'a beautiful string' }
-      let(:an_array) { [1..10] }
+      let(:an_array) { (1..10).to_a }
       let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true } }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
       before do
-        allocations = [a_string, an_array, 'a fearsome string', [-10..-1], a_hash, { 'z' => -1, 'y' => '-2', 'x' => false }]
+        allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
+                       { 'z' => -1, 'y' => '-2', 'x' => false }]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
           # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
@@ -397,8 +398,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it 'include the stack and sample counts for the objects still left alive' do
-          pending 'heap_recorder implementation is currently missing'
-
           # We sample from 2 distinct locations
           expect(heap_samples.size).to eq(2)
 
@@ -557,6 +556,71 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       reset_after_fork
 
       expect(stack_recorder.serialize.first).to be >= now
+    end
+  end
+
+  describe 'Heap_recorder' do
+    context 'produces the same hash code for stack-based and location-based keys' do
+      it 'with empty stacks' do
+        described_class::Testing._native_check_heap_hashes([])
+      end
+
+      it 'with single-frame stacks' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 123]
+          ]
+        )
+      end
+
+      it 'with multi-frame stacks' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 123],
+            ['another name', 'anoter filename', 456],
+          ]
+        )
+      end
+
+      it 'with empty names' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['', 'a filename', 123],
+          ]
+        )
+      end
+
+      it 'with empty filenames' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', '', 123],
+          ]
+        )
+      end
+
+      it 'with zero lines' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 0]
+          ]
+        )
+      end
+
+      it 'with negative lines' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', -123]
+          ]
+        )
+      end
+
+      it 'with biiiiiiig lines' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 4_000_000]
+          ]
+        )
+      end
     end
   end
 end

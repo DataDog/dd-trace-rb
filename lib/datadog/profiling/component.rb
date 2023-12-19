@@ -202,17 +202,26 @@ module Datadog
       private_class_method def self.enable_heap_profiling?(settings, allocation_profiling_enabled)
         heap_profiling_enabled = settings.profiling.advanced.experimental_heap_enabled
 
-        if heap_profiling_enabled && !allocation_profiling_enabled
-          raise ArgumentError, 'Heap profiling requires allocation profiling to be enabled'
-        end
+        return false unless heap_profiling_enabled
 
-        if heap_profiling_enabled
+        if RUBY_VERSION.start_with?('2.') && RUBY_VERSION < '2.7'
           Datadog.logger.warn(
-            'Enabled experimental heap profiling. This is experimental, not recommended, and will increase overhead!'
+            'Heap profiling currently relies on features introduced in Ruby 2.7 and will be forcibly disabled. '\
+            'Please upgrade to Ruby >= 2.7 in order to use this feature.'
           )
+          return false
         end
 
-        heap_profiling_enabled
+        unless allocation_profiling_enabled
+          raise ArgumentError,
+            'Heap profiling requires allocation profiling to be enabled'
+        end
+
+        Datadog.logger.warn(
+          'Enabled experimental heap profiling. This is experimental, not recommended, and will increase overhead!'
+        )
+
+        true
       end
 
       private_class_method def self.no_signals_workaround_enabled?(settings) # rubocop:disable Metrics/MethodLength

@@ -229,11 +229,26 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context 'when heap profiling is enabled' do
+          # Universally supported ruby version for allocation profiling by default
+          let(:testing_version) { '2.7.2' }
+
           before do
             settings.profiling.advanced.experimental_heap_enabled = true
-            # Universally supported ruby version for allocation profiling, we don't want to test those
-            # edge cases here
-            stub_const('RUBY_VERSION', '2.7.2')
+            stub_const('RUBY_VERSION', testing_version)
+          end
+
+          context 'on a Ruby older than 2.7' do
+            let(:testing_version) { '2.6' }
+
+            it 'initializes StackRecorder without heap sampling support and warns' do
+              expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                .with(hash_including(heap_samples_enabled: false))
+                .and_call_original
+
+              expect(Datadog.logger).to receive(:warn).with(/upgrade to Ruby >= 2.7/)
+
+              build_profiler_component
+            end
           end
 
           context 'and allocation profiling disabled' do

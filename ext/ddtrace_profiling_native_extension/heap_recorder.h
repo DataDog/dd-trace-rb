@@ -42,6 +42,7 @@ heap_recorder* heap_recorder_new(void);
 void heap_recorder_free(heap_recorder *heap_recorder);
 
 // Do any cleanup needed after forking.
+// WARN: Assumes this gets called before profiler is reinitialized on the fork
 void heap_recorder_after_fork(heap_recorder *heap_recorder);
 
 // Start a heap allocation recording on the heap recorder for a new object.
@@ -66,7 +67,8 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 // WARN: It is illegal to call this without previously having called ::start_heap_allocation_recording.
 void end_heap_allocation_recording(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
 
-// Flush any intermediate state that might be queued inside the heap recorder.
+// Flush any intermediate state that might be queued inside the heap recorder or updates certain
+// state to reflect the latest state of the VM.
 //
 // NOTE: This should usually be called before iteration to ensure data is as little stale as possible.
 void heap_recorder_flush(heap_recorder *heap_recorder);
@@ -89,3 +91,7 @@ void heap_recorder_for_each_live_object(
     bool (*for_each_callback)(heap_recorder_iteration_data data, void* extra_arg),
     void *for_each_callback_extra_arg,
     bool with_gvl);
+
+// v--- TEST-ONLY APIs ---v
+
+void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations);
