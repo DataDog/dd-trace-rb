@@ -48,7 +48,11 @@ module Datadog
         overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage)
         upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
 
-        recorder = build_recorder(allocation_profiling_enabled, heap_profiling_enabled)
+        recorder = build_recorder(
+          allocation_profiling_enabled: allocation_profiling_enabled,
+          heap_profiling_enabled: heap_profiling_enabled,
+          timeline_enabled: timeline_enabled,
+        )
         thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
         worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
           gc_profiling_enabled: enable_gc_profiling?(settings),
@@ -72,11 +76,16 @@ module Datadog
         Profiling::Profiler.new(worker: worker, scheduler: scheduler)
       end
 
-      private_class_method def self.build_recorder(allocation_profiling_enabled, heap_profiling_enabled)
+      private_class_method def self.build_recorder(
+        allocation_profiling_enabled:,
+        heap_profiling_enabled:,
+        timeline_enabled:
+      )
         Datadog::Profiling::StackRecorder.new(
           cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
           alloc_samples_enabled: allocation_profiling_enabled,
           heap_samples_enabled: heap_profiling_enabled,
+          timeline_enabled: timeline_enabled,
         )
       end
 

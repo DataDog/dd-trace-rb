@@ -65,7 +65,11 @@ module ProfileHelpers
   end
 
   def object_id_from(thread_id)
-    Integer(thread_id.match(/\d+ \((?<object_id>\d+)\)/)[:object_id])
+    if thread_id != 'GC'
+      Integer(thread_id.match(/\d+ \((?<object_id>\d+)\)/)[:object_id])
+    else
+      -1
+    end
   end
 
   def samples_for_thread(samples, thread)
@@ -77,11 +81,12 @@ module ProfileHelpers
 
   # We disable heap_sample collection by default in tests since it requires some extra mocking/
   # setup for it to properly work.
-  def build_stack_recorder(heap_samples_enabled: false)
+  def build_stack_recorder(heap_samples_enabled: false, timeline_enabled: false)
     Datadog::Profiling::StackRecorder.new(
       cpu_time_enabled: true,
       alloc_samples_enabled: true,
-      heap_samples_enabled: heap_samples_enabled
+      heap_samples_enabled: heap_samples_enabled,
+      timeline_enabled: timeline_enabled,
     )
   end
 end

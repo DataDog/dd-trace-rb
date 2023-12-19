@@ -8,6 +8,7 @@ typedef struct {
   int64_t wall_time_ns;
   uint32_t cpu_or_wall_samples;
   uint32_t alloc_samples;
+  int64_t timeline_wall_time_ns;
 } sample_values;
 
 typedef struct sample_labels {
