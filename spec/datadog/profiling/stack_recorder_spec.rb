@@ -348,7 +348,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
       before do
-        allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash, { 'z' => -1, 'y' => '-2', 'x' => false }]
+        allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
+                       { 'z' => -1, 'y' => '-2', 'x' => false }]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
           # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
