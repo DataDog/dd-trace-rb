@@ -73,7 +73,6 @@ void end_heap_allocation_recording(heap_recorder *heap_recorder, ddog_prof_Slice
 // WARN: This must be called strictly before iteration. Failing to do so will result in exceptions.
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder);
 
-
 // Optimize the heap recorder by cleaning up any data that might have been prepared specifically
 // for the purpose of iterating over the heap recorder data.
 //
