@@ -773,7 +773,8 @@ connection.get
 | `peer_service`        | `DD_TRACE_EXCON_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `distributed_tracing` |                               | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
 | `split_by_domain`     |                               | Uses the request domain as the service name when set to `true`.                                                                                                                           | `false` |
-| `error_handler`       |                               | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors.                    | `nil`   |
+| `on_error` | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `error_status_codes`  | `DD_TRACE_EXCON_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.| `400...600` |
 
 
 **Configuring connections to use different settings**
