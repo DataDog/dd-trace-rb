@@ -32,7 +32,11 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:|
   context 'default without settings' do
     subject { described_class.new }
 
-    it { expect(subject.error_status_codes).to eq(400...600) }
+    it { expect(subject.error_status_codes).to include 400 }
+    it { expect(subject.error_status_codes).to include 499 }
+    it { expect(subject.error_status_codes).to include 500 }
+    it { expect(subject.error_status_codes).to include 599 }
+    it { expect(subject.error_status_codes).not_to include 600 }
   end
 
   context 'when configured with environment variable' do
@@ -45,7 +49,11 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:|
         end
       end
 
-      it { expect(subject.error_status_codes).to eq(['500']) }
+      it { expect(subject.error_status_codes).not_to include 400 }
+      it { expect(subject.error_status_codes).not_to include 499 }
+      it { expect(subject.error_status_codes).to include 500 }
+      it { expect(subject.error_status_codes).not_to include 599 }
+      it { expect(subject.error_status_codes).not_to include 600 }
     end
 
     context 'when given a comma separated list' do
@@ -55,7 +63,11 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:|
         end
       end
 
-      it { expect(subject.error_status_codes).to eq(['400', '500']) }
+      it { expect(subject.error_status_codes).to include 400 }
+      it { expect(subject.error_status_codes).not_to include 499 }
+      it { expect(subject.error_status_codes).to include 500 }
+      it { expect(subject.error_status_codes).not_to include 599 }
+      it { expect(subject.error_status_codes).not_to include 600 }
     end
 
     context 'when given a comma separated list with space' do
@@ -65,7 +77,11 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:|
         end
       end
 
-      it { expect(subject.error_status_codes).to eq(['400', '500']) }
+      it { expect(subject.error_status_codes).to include 400 }
+      it { expect(subject.error_status_codes).not_to include 499 }
+      it { expect(subject.error_status_codes).to include 500 }
+      it { expect(subject.error_status_codes).not_to include 599 }
+      it { expect(subject.error_status_codes).not_to include 600 }
     end
   end
 end

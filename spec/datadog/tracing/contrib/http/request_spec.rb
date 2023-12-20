@@ -43,7 +43,7 @@ RSpec.describe 'net/http requests' do
     subject(:response) { client.get(path) }
     before { stub_request(:any, "#{uri}#{path}").to_return(status: status_code, body: '{}') }
 
-    include_examples 'with error status code configuration'
+    include_examples 'with error status code configuration', env: 'DD_TRACE_HTTP_ERROR_STATUS_CODES'
   end
 
   describe '#get' do

@@ -320,6 +320,20 @@ RSpec.describe 'Faraday middleware' do
         expect(span).not_to have_error
       end
     end
+
+    context 'when configured from env' do
+      around do |example|
+        ClimateControl.modify('DD_TRACE_FARADAY_ERROR_STATUS_CODES' => '500-600') do
+          example.run
+        end
+      end
+
+      it do
+        client.get('not_found')
+
+        expect(span).not_to have_error
+      end
+    end
   end
 
   context 'when split by domain' do

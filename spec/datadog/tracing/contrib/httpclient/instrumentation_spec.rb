@@ -319,7 +319,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
       let(:code) { status_code }
       before { response }
 
-      include_examples 'with error status code configuration'
+      include_examples 'with error status code configuration', env: 'DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES'
     end
 
     it_behaves_like 'instrumented request'
