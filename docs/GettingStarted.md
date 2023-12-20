@@ -636,7 +636,7 @@ end
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Elasticsearch
 
@@ -727,7 +727,8 @@ connection.get
 | `peer_service`        | `DD_TRACE_EXCON_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `distributed_tracing` |                               | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
 | `split_by_domain`     |                               | Uses the request domain as the service name when set to `true`.                                                                                                                           | `false` |
-| `error_handler`       |                               | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors.                    | `nil`   |
+| `on_error` | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `error_status_codes`  | `DD_TRACE_EXCON_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.| `400...600` |
 
 
 **Configuring connections to use different settings**
@@ -791,8 +792,8 @@ connection.get('/foo')
 | `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                        | `nil`     |
 | `distributed_tracing` |                                 | Enables [distributed tracing](#distributed-tracing)                                                                                                                                         | `true`    |
 | `split_by_domain`     |                                 | Uses the request domain as the service name when set to `true`.                                                                                                                             | `false`   |
-| `error_handler`       |                                 | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors.                      | `nil`     |
-
+| `on_error` | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `error_status_codes`  | `DD_TRACE_FARADAY_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.| `400...600` |
 
 ### Grape
 
@@ -927,11 +928,7 @@ client.my_endpoint(DemoMessage.new(contents: 'hello!'))
 | `service_name`        | `DD_TRACE_GRPC_SERVICE_NAME` | Name of application running the `grpc` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `grpc`                                                             |
 | `peer_service`        | `DD_TRACE_GRPC_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                     | `nil`                                                              |
 | `distributed_tracing` |                              | Enables [distributed tracing](#distributed-tracing)                                                                                                                                      | `true`                                                             |
-| `server_error_handler`       |                              | Custom error handler invoked when there is a server error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
-| `client_error_handler`       |                              | Custom error handler invoked when there is a client error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
-
-Deprecation notice:
-- `error_handler` will be removed. Use `server_error_handler` instead.
+| `on_error`       | | Custom error handler invoked when there is an error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
 
 **Configuring clients to use different settings**
 
@@ -1000,7 +997,7 @@ end
 | `peer_service`        | `DD_TRACE_HTTPRB_PEER_SERVICE`           | Name of external service the application connects to                                                                                                                                       | `nil`       |
 | `distributed_tracing` |                                          | Enables [distributed tracing](#distributed-tracing)                                                                                                                                        | `true`      |
 | `split_by_domain`     |                                          | Uses the request domain as the service name when set to `true`.                                                                                                                            | `false`     |
-| `error_status_codes`  | `DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                       | `400...600` |
+| `error_status_codes`  | `DD_TRACE_HTTPRB_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                       | `400...600` |
 
 
 ### httpclient
@@ -1245,7 +1242,7 @@ end
 | `service_name`        | `DD_TRACE_PG_SERVICE_NAME` | Name of application running the `pg` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)                                                                                                                                                                                  | `pg`         |
 | `peer_service`        | `DD_TRACE_PG_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                    | `nil`        |
 | `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
-| `error_handler` || Custom error handler invoked when raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors that are handled at application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when PG raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors from Postgres that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Presto
 
@@ -1322,7 +1319,7 @@ end
 | `enabled`       | `DD_TRACE_QUE_ENABLED`          | Defines whether Que should be traced. Useful for temporarily disabling tracing. `true` or `false`                                                                           | `true`                                                             |
 | `tag_args`      | `DD_TRACE_QUE_TAG_ARGS_ENABLED` | Enable tagging of a job's args field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
 | `tag_data`      | `DD_TRACE_QUE_TAG_DATA_ENABLED` | Enable tagging of a job's data field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
-| `error_handler` |                                 | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
+| `on_error` |                                 | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
 
 ### Racecar
 
@@ -1668,7 +1665,7 @@ end
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Rest Client
 
@@ -1789,7 +1786,7 @@ end
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `tag_body` | Tag spans with the SQS message body `true` or `false` | `false` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Sidekiq
 
@@ -1811,7 +1808,7 @@ end
 | --- | ----------- | ------- |
 | `distributed_tracing` | Enabling [distributed tracing](#distributed-tracing) creates a parent-child relationship between the `sidekiq.push` span and the `sidekiq.job` span. <br /><br />**Important**: *Enabling distributed_tracing for asynchronous processing can result in drastic changes in your trace graph. Such cases include long running jobs, retried jobs, and jobs scheduled in the far future. Make sure to inspect your traces after enabling this feature.* | `false` |
 | `tag_args` | Enable tagging of job arguments. `true` for on, `false` for off. | `false` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `quantize` | Hash containing options for quantization of job arguments. | `{}` |
 
 ### Sinatra
@@ -1890,7 +1887,7 @@ end
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Sneakers should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `tag_body` | Enable tagging of job message. `true` for on, `false` for off. | `false` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Stripe
 

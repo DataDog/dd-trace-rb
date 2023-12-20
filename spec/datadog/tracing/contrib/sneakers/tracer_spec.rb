@@ -121,7 +121,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sneakers::Tracer do
     end
 
     context 'with custom error handler' do
-      let(:configuration_options) { super().merge(error_handler: error_handler) }
+      let(:configuration_options) { super().merge(on_error: error_handler) }
       let(:error_handler) { proc { @error_handler_called = true } }
 
       let(:worker) { FailingMiddlewareWorker.new(queue, Concurrent::ImmediateExecutor.new) }

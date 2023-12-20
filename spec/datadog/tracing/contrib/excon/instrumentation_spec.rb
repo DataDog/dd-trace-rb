@@ -172,13 +172,21 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
   end
 
   context 'when the path is not found' do
-    subject!(:response) { connection.get(path: '/not_found') }
+    it do
+      connection.get(path: '/not_found')
 
-    it_behaves_like 'environment service name', 'DD_TRACE_EXCON_SERVICE_NAME'
-    it_behaves_like 'configured peer service span', 'DD_TRACE_EXCON_PEER_SERVICE'
-    it_behaves_like 'schema version span'
+      expect(request_span).to have_error
+    end
 
-    it { expect(request_span).to_not have_error }
+    context 'when given `error_status_codes`' do
+      let(:configuration_options) { { error_status_codes: 500...600 } }
+
+      it do
+        connection.get(path: '/not_found')
+
+        expect(request_span).not_to have_error
+      end
+    end
   end
 
   context 'when the request times out' do
@@ -194,6 +202,18 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       expect(request_span.get_tag('error.type')).to eq('Excon::Error::Timeout')
     end
 
+    context 'when given `on_error`' do
+      let(:configuration_options) { { on_error: proc { @error_handler_called = true } } }
+
+      it do
+        expect { subject }.to raise_error(Excon::Error::Timeout)
+        expect(request_span.finished?).to eq(true)
+        expect(request_span).not_to have_error
+
+        expect(@error_handler_called).to be_truthy
+      end
+    end
+
     context 'when the request is idempotent' do
       subject(:response) { connection.get(path: '/timeout', idempotent: true, retry_limit: 4) }
 
@@ -203,17 +223,6 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
         expect(all_request_spans.all?(&:finished?)).to eq(true)
       end
     end
-  end
-
-  context 'when there is custom error handling' do
-    subject!(:response) { connection.get(path: 'not_found') }
-
-    let(:configuration_options) { super().merge(error_handler: custom_handler) }
-    let(:custom_handler) { ->(env) { (400...600).cover?(env[:status]) } }
-
-    after { Datadog.configuration.tracing[:excon][:error_handler] = nil }
-
-    it { expect(request_span).to have_error }
   end
 
   context 'when split by domain' do

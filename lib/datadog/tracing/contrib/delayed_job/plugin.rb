@@ -19,7 +19,7 @@ module Datadog
               Ext::SPAN_JOB,
               service: configuration[:service_name],
               resource: job_name(job),
-              on_error: configuration[:error_handler]
+              on_error: configuration[:on_error]
             ) do |span|
               set_sample_rate(span)
 

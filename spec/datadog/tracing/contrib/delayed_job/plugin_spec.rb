@@ -93,8 +93,8 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
     end
 
     context 'when job fails' do
-      let(:configuration_options) { { error_handler: error_handler } }
-      let(:error_handler) { proc { @error_handler_called = true } }
+      let(:configuration_options) { { on_error: on_error } }
+      let(:on_error) { proc { @error_handler_called = true } }
 
       let(:sample_job_object) do
         stub_const(
