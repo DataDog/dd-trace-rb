@@ -333,18 +333,7 @@ For a list of configuration options for the available integrations, refer to the
 
 #### CI Visibility
 
-For Datadog CI Visibility, library instrumentation can be activated and configured by using the following `Datadog.configure` API:
-
-```ruby
-Datadog.configure do |c|
-  # Activates and configures an integration
-  c.ci.instrument :integration_name, **options
-end
-```
-
-`options` are keyword arguments for integration-specific configuration.
-
-For a list of available integrations and their supported versions, see [Ruby CI Integration Compatibility][3]
+Checkout [Datadog's Ruby Library for instrumenting your test and continuous integration pipeline](https://github.com/DataDog/datadog-ci-rb)
 
 ### Action Cable
 
@@ -601,41 +590,6 @@ Datadog::Tracing.trace('outer') do
   Concurrent::Future.execute { Datadog::Tracing.trace('inner') { } }.wait
 end
 ```
-
-### Cucumber
-
-Cucumber integration will trace all executions of scenarios and steps when using `cucumber` framework.
-
-To activate your integration, use the `Datadog.configure` method:
-
-```ruby
-require 'cucumber'
-require 'ddtrace'
-
-# Configure default Cucumber integration
-Datadog.configure do |c|
-  c.ci.instrument :cucumber, **options
-end
-
-# Example of how to attach tags from scenario to active span
-Around do |scenario, block|
-  active_span = Datadog.configuration[:cucumber][:tracer].active_span
-  unless active_span.nil?
-    scenario.tags.filter { |tag| tag.include? ':' }.each do |tag|
-      active_span.set_tag(*tag.name.split(':', 2))
-    end
-  end
-  block.call
-end
-```
-
-`options` are the following keyword arguments:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `enabled` | Defines whether Cucumber tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `cucumber` instrumentation. | `'cucumber'` |
-| `operation_name` | Operation name used for `cucumber` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'cucumber.test'` |
 
 ### Dalli
 
@@ -1111,30 +1065,6 @@ Datadog.configure do |c|
   c.tracing.instrument :kafka
 end
 ```
-
-### Minitest
-
-The Minitest integration will trace all executions of tests when using `minitest` test framework.
-
-To activate your integration, use the `Datadog.configure` method:
-
-```ruby
-require 'minitest'
-require 'ddtrace'
-
-# Configure default Minitest integration
-Datadog.configure do |c|
-  c.ci.instrument :minitest, **options
-end
-```
-
-`options` are the following keyword arguments:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `enabled` | Defines whether Minitest tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `minitest` instrumentation. | `'minitest'` |
-| `operation_name` | Operation name used for `minitest` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'minitest.test'` |
 
 ### MongoDB
 
@@ -1794,30 +1724,6 @@ end
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `service_name` | Service name for `roda` instrumentation. | `'nil'` |
-
-### RSpec
-
-RSpec integration will trace all executions of example groups and examples when using `rspec` test framework.
-
-To activate your integration, use the `Datadog.configure` method:
-
-```ruby
-require 'rspec'
-require 'ddtrace'
-
-# Configure default RSpec integration
-Datadog.configure do |c|
-  c.ci.instrument :rspec, **options
-end
-```
-
-`options` are the following keyword arguments:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `enabled` | Defines whether RSpec tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `rspec` instrumentation. | `'rspec'` |
-| `operation_name` | Operation name used for `rspec` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'rspec.example'` |
 
 ### Sequel
 
@@ -2789,4 +2695,3 @@ See [this issue](https://github.com/DataDog/dd-trace-rb/issues/3015) for a discu
 [header tags]: https://docs.datadoghq.com/tracing/configure_data_security/#applying-header-tags-to-root-spans
 [1]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby/
 [2]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby#integrations
-[3]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby#ci-visibility-integrations
