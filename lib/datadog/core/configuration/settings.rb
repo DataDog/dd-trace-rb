@@ -752,9 +752,9 @@ module Datadog
           # order to not block the application indefinitely a timeout is
           # enforced allowing requests to proceed with the local configuration.
           #
-          # @default `DD_RC_BOOT_TIMEOUT` environment variable, otherwise `1.0` seconds.
+          # @default `DD_REMOTE_CONFIG_BOOT_TIMEOUT` environment variable, otherwise `1.0` seconds.
           # @return [Float]
-          option :boot_timeout do |o|
+          option :boot_timeout_seconds do |o|
             o.env Core::Remote::Ext::ENV_BOOT_TIMEOUT_SECONDS
             o.type :float
             o.default 1.0

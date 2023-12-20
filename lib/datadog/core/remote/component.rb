@@ -22,7 +22,7 @@ module Datadog
           negotiation = Negotiation.new(settings, agent_settings)
           transport_v7 = Datadog::Core::Remote::Transport::HTTP.v7(**transport_options.dup)
 
-          @barrier = Barrier.new(settings.remote.boot_timeout)
+          @barrier = Barrier.new(settings.remote.boot_timeout_seconds)
 
           @client = Client.new(transport_v7, capabilities)
           @healthy = false

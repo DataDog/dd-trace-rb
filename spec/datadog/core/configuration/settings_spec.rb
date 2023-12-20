@@ -1621,6 +1621,39 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
+    describe '#boot_timeout_seconds' do
+      subject(:enabled) { settings.remote.boot_timeout_seconds }
+
+      context "when #{Datadog::Core::Remote::Ext::ENV_BOOT_TIMEOUT_SECONDS}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Remote::Ext::ENV_BOOT_TIMEOUT_SECONDS => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to eq 1.0 }
+        end
+
+        context 'is defined' do
+          let(:environment) { '2' }
+
+          it { is_expected.to eq 2.0 }
+        end
+      end
+    end
+
+    describe '#boot_timeout_seconds=' do
+      it 'updates the #boot_timeout_seconds setting' do
+        expect { settings.remote.boot_timeout_seconds = 2.0 }
+          .to change { settings.remote.boot_timeout_seconds }
+          .from(1.0)
+          .to(2.0)
+      end
+    end
+
     describe '#service' do
       subject(:service) { settings.remote.service }
 

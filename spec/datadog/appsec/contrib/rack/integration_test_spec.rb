@@ -205,7 +205,7 @@ RSpec.describe 'Rack integration tests' do
 
           Datadog.configure do |c|
             c.remote.enabled = remote_enabled
-            c.remote.boot_timeout = remote_boot_timeout
+            c.remote.boot_timeout_seconds = remote_boot_timeout
             c.remote.poll_interval_seconds = remote_poll_interval_seconds
 
             c.tracing.enabled = tracing_enabled
