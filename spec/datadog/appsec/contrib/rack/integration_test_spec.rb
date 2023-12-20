@@ -248,6 +248,16 @@ RSpec.describe 'Rack integration tests' do
           expect(span).to_not have_tag('_dd.rc.status')
           expect(span).to be_root_span
         end
+
+        context 'without tracing' do
+          let(:tracing_enabled) { false }
+          let(:route) { '/success/' }
+
+          it 'has no remote configuration tags' do
+            expect(response).to be_ok
+            expect(spans).to have(0).items
+          end
+        end
       end
 
       context 'enabled' do
@@ -302,6 +312,16 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('_dd.rc.status')).to eq 'ready'
             end
 
+            context 'without tracing' do
+              let(:tracing_enabled) { false }
+              let(:route) { '/success/' }
+
+              it 'has no remote configuration tags' do
+                expect(response).to be_ok
+                expect(spans).to have(0).items
+              end
+            end
+
             context 'on second request' do
               let(:remote_client_sync_delay) { remote_boot_timeout }
 
@@ -330,6 +350,16 @@ RSpec.describe 'Rack integration tests' do
                 expect(last_span).to have_tag('_dd.rc.status')
                 expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
               end
+
+              context 'without tracing' do
+                let(:tracing_enabled) { false }
+                let(:route) { '/success/' }
+
+                it 'has no remote configuration tags' do
+                  expect(response).to be_ok
+                  expect(spans).to have(0).items
+                end
+              end
             end
           end
 
@@ -354,6 +384,16 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
               expect(span).to have_tag('_dd.rc.status')
               expect(span.get_tag('_dd.rc.status')).to eq 'disconnected'
+            end
+
+            context 'without tracing' do
+              let(:tracing_enabled) { false }
+              let(:route) { '/success/' }
+
+              it 'has no remote configuration tags' do
+                expect(response).to be_ok
+                expect(spans).to have(0).items
+              end
             end
 
             context 'on second request' do
@@ -381,6 +421,16 @@ RSpec.describe 'Rack integration tests' do
                   expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
                   expect(last_span).to have_tag('_dd.rc.status')
                   expect(last_span.get_tag('_dd.rc.status')).to eq 'disconnected'
+                end
+
+                context 'without tracing' do
+                  let(:tracing_enabled) { false }
+                  let(:route) { '/success/' }
+
+                  it 'has no remote configuration tags' do
+                    expect(response).to be_ok
+                    expect(spans).to have(0).items
+                  end
                 end
               end
 
@@ -411,6 +461,16 @@ RSpec.describe 'Rack integration tests' do
                   expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
                   expect(last_span).to have_tag('_dd.rc.status')
                   expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
+                end
+
+                context 'without tracing' do
+                  let(:tracing_enabled) { false }
+                  let(:route) { '/success/' }
+
+                  it 'has no remote configuration tags' do
+                    expect(response).to be_ok
+                    expect(spans).to have(0).items
+                  end
                 end
               end
             end
@@ -447,6 +507,16 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('_dd.rc.status')).to eq 'disconnected'
           end
 
+          context 'without tracing' do
+            let(:tracing_enabled) { false }
+            let(:route) { '/success/' }
+
+            it 'has no remote configuration tags' do
+              expect(response).to be_ok
+              expect(spans).to have(0).items
+            end
+          end
+
           context 'on second request' do
             let(:remote_client_sync_delay) { remote_boot_timeout }
 
@@ -474,6 +544,16 @@ RSpec.describe 'Rack integration tests' do
               expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
               expect(last_span).to have_tag('_dd.rc.status')
               expect(last_span.get_tag('_dd.rc.status')).to eq 'disconnected'
+            end
+
+            context 'without tracing' do
+              let(:tracing_enabled) { false }
+              let(:route) { '/success/' }
+
+              it 'has no remote configuration tags' do
+                expect(response).to be_ok
+                expect(spans).to have(0).items
+              end
             end
           end
         end
