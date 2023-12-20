@@ -360,7 +360,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
       end
 
-      def do_starting_allocations
+      before do
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
                        { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
         @num_allocations = 0
@@ -374,25 +374,16 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           @num_allocations += 1
         end
 
-        # Do a thorough cleanup of the allocations array. We witnessed some flakiness
-        # with just a simple clear call which is why we added the map and put this all
-        # in the same function.
-        allocations.map! { nil }
-        allocations.clear
+        allocations.clear # The literals in the previous array are now dangling
+        GC.start # And this will clear them, leaving only the non-literals which are still pointed to by the lets
 
-        # At this point plus the return from this call, there should be no way for any
-        # object to still be considered alive in any way (for example, in some CPU register)
-        nil
-      end
-
-      before do
-        # Do a bunch of allocations, cleaning up references to all, except the objects kept
-        # alive by the lets. We could inline this but the extra call should hopefully help
-        # clear any unintentional references or remains in CPU registers and such.
-        do_starting_allocations
-        # This GC should collect those sampled allocations that are not being kept alive by
-        # the lets.
-        GC.start
+        # NOTE: We've witnessed CI flakiness where the last entry of allocations may still be alive
+        # after the previous GC. We've experimentally noticed this is no longer the case if
+        # we do a second GC.
+        # This might be an instance of the issues described in https://bugs.ruby-lang.org/issues/19460
+        # and https://bugs.ruby-lang.org/issues/19041. We didn't get to the bottom of the
+        # reason but it might be that some machine context/register ends up still pointing to
+        # that last entry and thus manages to get it marked in the first GC.
         GC.start
       end
 
@@ -421,11 +412,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # We sample from 2 distinct locations
           expect(heap_samples.size).to eq(2)
 
-          # FIXME: Remove, this is just for debugging purposes
-          described_class::Testing._native_debug_heap_recorder(stack_recorder)
-
           sum_heap_samples = 0
           heap_samples.each { |s| sum_heap_samples += s.values[:'heap-live-samples'] }
+
+          # FIXME: Remove, this is just for debugging purposes
+          described_class::Testing._native_debug_heap_recorder(stack_recorder) if sum_heap_samples != 150
+
           expect(sum_heap_samples).to eq([a_string, an_array, a_hash].size * sample_rate)
         end
 
