@@ -387,6 +387,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         GC.start
       end
 
+      after do |example|
+        # This is here to facilitate troubleshooting when this test fails. Otherwise
+        # it's very hard to understand what may be happening.
+        if example.exception
+          puts('Heap recorder debugging info:')
+          puts(described_class::Testing._native_debug_heap_recorder(stack_recorder))
+        end
+      end
+
       context 'when disabled' do
         let(:heap_samples_enabled) { false }
 
@@ -415,10 +424,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           sum_heap_samples = 0
           heap_samples.each { |s| sum_heap_samples += s.values[:'heap-live-samples'] }
 
-          # FIXME: Remove, this is just for debugging purposes
-          described_class::Testing._native_debug_heap_recorder(stack_recorder) if sum_heap_samples != 150
-
-          expect(sum_heap_samples).to eq([a_string, an_array, a_hash].size * sample_rate)
+          expect(sum_heap_samples).to(eq([a_string, an_array, a_hash].size * sample_rate))
         end
 
         it 'keeps on reporting accurate samples for other profile types' do

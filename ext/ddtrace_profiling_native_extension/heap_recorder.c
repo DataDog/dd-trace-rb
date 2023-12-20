@@ -136,6 +136,7 @@ static int st_heap_record_entry_free(st_data_t, st_data_t, st_data_t);
 static int st_object_record_entry_free(st_data_t, st_data_t, st_data_t);
 static int st_object_record_entry_free_if_invalid(st_data_t, st_data_t, st_data_t);
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
+static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
 static void commit_allocation(heap_recorder*, heap_record*, long, live_object_data);
 
@@ -333,22 +334,14 @@ void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locatio
   }
 }
 
-int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value, DDTRACE_UNUSED st_data_t extra) {
-  object_record *record = (object_record*) value;
-  VALUE ref;
-  if (!ruby_ref_from_id(LONG2NUM(record->obj_id), &ref)) {
-    return ST_CONTINUE;
+VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return rb_str_new2("NULL heap_recorder");
   }
 
-  heap_frame top_frame = record->heap_record->stack->frames[0];
-  VALUE str = rb_sprintf("obj_id=%ld weight=%d location=%s:%d object=%+"PRIsVALUE, record->obj_id, record->object_data.weight, top_frame.filename, (int) top_frame.line, ref);
-  fprintf(stderr, "%s\n", RSTRING_PTR(str));
-  return ST_CONTINUE;
-}
-
-void heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
-  fprintf(stderr, "object records:\n");
-  st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) NULL);
+  VALUE debug_str = rb_str_new2("object records:\n");
+  st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) debug_str);
+  return debug_str;
 }
 
 // ==========================
@@ -413,6 +406,26 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
   if (!context->for_each_callback(iteration_data, context->for_each_callback_extra_arg)) {
     return ST_STOP;
   }
+
+  return ST_CONTINUE;
+}
+
+static int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value, st_data_t extra) {
+  VALUE debug_str = (VALUE) extra;
+
+  object_record *record = (object_record*) value;
+
+  heap_frame top_frame = record->heap_record->stack->frames[0];
+  rb_str_catf(debug_str, "obj_id=%ld weight=%d location=%s:%d ", record->obj_id, record->object_data.weight, top_frame.filename, (int) top_frame.line);
+
+  VALUE ref;
+  if (!ruby_ref_from_id(LONG2NUM(record->obj_id), &ref)) {
+    rb_str_catf(debug_str, "object=<invalid>");
+  } else {
+    rb_str_catf(debug_str, "object=%+"PRIsVALUE, ref);
+  }
+
+  rb_str_catf(debug_str, "\n");
 
   return ST_CONTINUE;
 }

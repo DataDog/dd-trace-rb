@@ -107,4 +107,6 @@ bool heap_recorder_for_each_live_object(
 // corresponding internal representations in heap recorder.
 void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations);
 
-void heap_recorder_testonly_debug(heap_recorder *heap_recorder);
+// Returns a Ruby string with a representation of internal data helpful to
+// troubleshoot issues such as unexpected test failures.
+VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder);

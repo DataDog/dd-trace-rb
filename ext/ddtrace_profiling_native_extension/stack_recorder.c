@@ -850,7 +850,5 @@ static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recor
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  heap_recorder_testonly_debug(state->heap_recorder);
-
-  return Qnil;
+  return heap_recorder_testonly_debug(state->heap_recorder);
 }
