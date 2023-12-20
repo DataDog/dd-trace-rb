@@ -360,9 +360,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
       end
 
-      before do
+      def do_starting_allocations
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
-                       { 'z' => -1, 'y' => '-2', 'x' => false }]
+                       { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
           # Sample allocations with 2 distinct stacktraces
@@ -374,8 +374,26 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           @num_allocations += 1
         end
 
-        allocations.clear # The literals in the previous array are now dangling
-        GC.start # And this will clear them, leaving only the non-literals which are still pointed to by the lets
+        # Do a thorough cleanup of the allocations array. We witnessed some flakiness
+        # with just a simple clear call which is why we added the map and put this all
+        # in the same function.
+        allocations.map! { nil }
+        allocations.clear
+
+        # At this point plus the return from this call, there should be no way for any
+        # object to still be considered alive in any way (for example, in some CPU register)
+        nil
+      end
+
+      before do
+        # Do a bunch of allocations, cleaning up references to all, except the objects kept
+        # alive by the lets. We could inline this but the extra call should hopefully help
+        # clear any unintentional references or remains in CPU registers and such.
+        do_starting_allocations
+        # This GC should collect those sampled allocations that are not being kept alive by
+        # the lets.
+        GC.start
+        GC.start
       end
 
       context 'when disabled' do
