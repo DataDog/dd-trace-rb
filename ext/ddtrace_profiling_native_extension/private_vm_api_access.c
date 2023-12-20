@@ -413,6 +413,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   the `VALUE` returned by rb_profile_frames returns `(eval)` instead of the path of the file where the `eval`
 //   was called from.
 // * Imported fix from https://github.com/ruby/ruby/pull/7116 to avoid sampling threads that are still being created
+// * Imported fix from https://github.com/ruby/ruby/pull/8415 to avoid potential crash when using YJIT.
 //
 // What is rb_profile_frames?
 // `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
@@ -448,12 +449,15 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
     // support sampling any thread (including the current) passed as an argument
     rb_thread_t *th = thread_struct_from_object(thread);
-#ifndef USE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT // Modern Rubies
-    const rb_execution_context_t *ec = th->ec;
-#else // Ruby < 2.5
-    const rb_thread_t *ec = th;
-#endif
+    #ifndef USE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT // Modern Rubies
+      const rb_execution_context_t *ec = th->ec;
+    #else // Ruby < 2.5
+      const rb_thread_t *ec = th;
+    #endif
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+    #ifndef NO_JIT_RETURN
+      const rb_control_frame_t *top = cfp;
+    #endif
     const rb_callable_method_entry_t *cme;
 
     // Avoid sampling dead threads
@@ -528,7 +532,20 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
                 buff[i] = (VALUE)cfp->iseq;
             }
 
-            lines[i] = calc_lineno(cfp->iseq, cfp->pc);
+            // The topmost frame may not have an updated PC because the JIT
+            // may not have set one.  The JIT compiler will update the PC
+            // before entering a new function (so that `caller` will work),
+            // so only the topmost frame could possibly have an out of date PC
+            #ifndef NO_JIT_RETURN
+              if (cfp == top && cfp->jit_return) {
+                lines[i] = 0;
+              } else {
+                lines[i] = calc_lineno(cfp->iseq, cfp->pc);
+              }
+            #else // Ruby < 3.1
+              lines[i] = calc_lineno(cfp->iseq, cfp->pc);
+            #endif
+
             is_ruby_frame[i] = true;
             i++;
         }

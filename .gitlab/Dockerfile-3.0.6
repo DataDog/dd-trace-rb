@@ -1,6 +1,6 @@
 # This is copied from official Docker image, but compile Ruby with `--disable-shared` instead.
 
-FROM buildpack-deps:buster
+FROM registry.ddbuild.io/images/mirror/buildpack-deps:buster
 
 # skip installing gem documentation
 RUN set -eux; \

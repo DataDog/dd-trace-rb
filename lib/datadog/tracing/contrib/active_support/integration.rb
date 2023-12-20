@@ -2,6 +2,7 @@ require_relative '../integration'
 require_relative 'configuration/settings'
 require_relative 'patcher'
 require_relative 'cache/redis'
+require_relative '../rails/integration'
 require_relative '../rails/utils'
 
 module Datadog
@@ -12,7 +13,7 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('3.2')
+          MINIMUM_VERSION = Contrib::Rails::Ext::MINIMUM_VERSION
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :active_support, auto_patch: false

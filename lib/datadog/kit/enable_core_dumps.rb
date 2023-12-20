@@ -16,11 +16,13 @@ module Datadog
             '(Could not open /proc/sys/kernel/core_pattern)'
           end
 
+        enabled_status = "Maximum size: #{maximum_size} Output pattern: '#{core_pattern}'"
+
         if maximum_size <= 0
           Kernel.warn("[ddtrace] Could not enable core dumps on crash, maximum size is #{maximum_size} (disabled).")
           return
         elsif maximum_size == current_size
-          Kernel.warn('[ddtrace] Core dumps already enabled, nothing to do!')
+          Kernel.warn("[ddtrace] Core dumps already enabled, nothing to do. #{enabled_status}")
           return
         end
 
@@ -35,12 +37,9 @@ module Datadog
         end
 
         if current_size == 0
-          Kernel.warn("[ddtrace] Enabled core dumps. Maximum size: #{maximum_size} Output pattern: '#{core_pattern}'")
+          Kernel.warn("[ddtrace] Enabled core dumps. #{enabled_status}")
         else
-          Kernel.warn(
-            "[ddtrace] Raised core dump limit. Old size: #{current_size} " \
-            "Maximum size: #{maximum_size} Output pattern: '#{core_pattern}'"
-          )
+          Kernel.warn("[ddtrace] Raised core dump limit. Old size: #{current_size} #{enabled_status}")
         end
       end
     end

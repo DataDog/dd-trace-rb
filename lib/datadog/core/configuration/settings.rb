@@ -156,9 +156,7 @@ module Datadog
         # @default `DD_ENV` environment variable, otherwise `nil`
         # @return [String,nil]
         option :env do |o|
-          # DEV-2.0: Remove this conversion for symbol.
-          o.setter { |v| v.to_s if v }
-
+          o.type :string, nilable: true
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env Core::Environment::Ext::ENV_ENVIRONMENT
         end
@@ -262,32 +260,58 @@ module Datadog
 
             # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
             #
-            # This feature is safe and enabled by default on Ruby 2.x, but has a few caveats on Ruby 3.x.
-            #
-            # Caveat 1 (severe):
-            # On Ruby versions 3.0 (all), 3.1.0 to 3.1.3, and 3.2.0 to 3.2.2 this is disabled by default because it
-            # can trigger a VM bug that causes a segmentation fault during garbage collection of Ractors
-            # (https://bugs.ruby-lang.org/issues/18464). We don't recommend using this feature on such Rubies.
-            # This bug is fixed on Ruby versions 3.1.4, 3.2.3 and 3.3.0.
-            #
-            # Caveat 2 (annoyance):
-            # On all known versions of Ruby 3.x, due to https://bugs.ruby-lang.org/issues/19112, when a ractor gets
-            # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
-            # Thus this feature is only usable if you're not using Ractors.
-            #
-            # Caveat 3 (severe):
-            # Ruby 3.2.0 to 3.2.2 have a bug in the newobj tracepoint (https://bugs.ruby-lang.org/issues/19482,
-            # https://github.com/ruby/ruby/pull/7464) so that's an extra reason why it's not safe on those Rubies.
-            # This bug is fixed on Ruby versions 3.2.3 and 3.3.0.
-            #
-            # @default `true` on Ruby 2.x and 3.1.4+, 3.2.3+ and 3.3.0+; `false` for Ruby 3.0 and unpatched Rubies.
+            # This feature is now controlled via {:experimental_allocation_enabled}
             option :allocation_counting_enabled do |o|
-              o.default do
-                RUBY_VERSION.start_with?('2.') ||
-                  (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION >= '3.1.4') ||
-                  (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION >= '3.2.3') ||
-                  RUBY_VERSION >= '3.3.'
+              o.after_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.allocation_counting_enabled setting has been deprecated for removal and no ' \
+                  'longer does anything. Please remove it from your Datadog.configure block. ' \
+                  'Allocation counting is now controlled by the `experimental_allocation_enabled` setting instead.'
+                )
               end
+            end
+
+            # Can be used to enable/disable collection of allocation profiles.
+            #
+            # This feature is alpha and disabled by default
+            #
+            # @warn This feature is not supported/safe in all Rubies. Details in {Datadog::Profiling::Component} but
+            #       in summary, this should be supported on Ruby 2.x, 3.1.4+, 3.2.3+ and 3.3.0+. Enabling it on
+            #       unsupported Rubies may result in unexpected behaviour, including crashes.
+            #
+            # @note Allocation profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED` environment variable as a boolean, otherwise `false`
+            option :experimental_allocation_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED'
+              o.default false
+            end
+
+            # Can be used to enable/disable the collection of heap profiles.
+            #
+            # This feature is alpha and disabled by default
+            #
+            # @warn To enable heap profiling you are required to also enable allocation profiling.
+            # @note Heap profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED` environment variable as a boolean, otherwise `false`
+            option :experimental_heap_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED'
+              o.default false
+            end
+
+            # Can be used to configure the allocation sampling rate: a sample will be collected every x allocations.
+            #
+            # The lower the value, the more accuracy in allocation and heap tracking but the bigger the overhead. In
+            # particular, a value of 1 will sample ALL allocations.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE` environment variable, otherwise `50`.
+            option :experimental_allocation_sample_rate do |o|
+              o.type :int
+              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE'
+              o.default 50
             end
 
             # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.
@@ -339,6 +363,34 @@ module Datadog
                 end
               end
             end
+
+            # Configures how much wall-time overhead the profiler targets. The profiler will dynamically adjust the
+            # interval between samples it takes so as to try and maintain the property that it spends no longer than
+            # this amount of wall-clock time profiling. For example, with the default value of 2%, the profiler will
+            # try and cause no more than 1.2 seconds per minute of overhead. Decreasing this value will reduce the
+            # accuracy of the data collected. Increasing will impact the application.
+            #
+            # We do not recommend tweaking this value.
+            #
+            # This value should be a percentage i.e. a number between 0 and 100, not 0 and 1.
+            #
+            # @default `DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE` as a float, otherwise 2.0
+            option :overhead_target_percentage do |o|
+              o.type :float
+              o.env 'DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE'
+              o.default 2.0
+            end
+
+            # Controls how often the profiler reports data, in seconds. Cannot be lower than 60 seconds.
+            #
+            # We do not recommend tweaking this value.
+            #
+            # @default `DD_PROFILING_UPLOAD_PERIOD` environment variable, otherwise 60
+            option :upload_period_seconds do |o|
+              o.type :int
+              o.env 'DD_PROFILING_UPLOAD_PERIOD'
+              o.default 60
+            end
           end
 
           # @public_api
@@ -376,8 +428,7 @@ module Datadog
         # @default `DD_SERVICE` environment variable, otherwise the program name (e.g. `'ruby'`, `'rails'`, `'pry'`)
         # @return [String]
         option :service do |o|
-          # DEV-2.0: Remove this conversion for symbol.
-          o.setter { |v| v.to_s if v }
+          o.type :string, nilable: true
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env Core::Environment::Ext::ENV_SERVICE

@@ -11,7 +11,7 @@ module Datadog
         class Integration
           include Datadog::AppSec::Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('3.2.0')
+          MINIMUM_VERSION = Gem::Version.new('4')
 
           register_as :rails, auto_patch: false
 

@@ -227,14 +227,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       it { expect(settings.env).to eq(env) }
     end
 
-    context 'when given a symbol' do
-      let(:env) { :symbol }
-
-      before { set_env }
-
-      it { expect(settings.env).to eq('symbol') }
-    end
-
     context 'when given `nil`' do
       let(:env) { nil }
 
@@ -465,39 +457,116 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#allocation_counting_enabled' do
-        subject(:allocation_counting_enabled) { settings.profiling.advanced.allocation_counting_enabled }
+      describe '#allocation_counting_enabled=' do
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
 
-        before { stub_const('RUBY_VERSION', testing_version) }
-
-        context 'on Ruby 2.x' do
-          let(:testing_version) { '2.3.0 ' }
-          it { is_expected.to be true }
+          settings.profiling.advanced.allocation_counting_enabled = false
         end
+      end
 
-        ['3.0.0', '3.1.0', '3.1.3', '3.2.0', '3.2.2'].each do |broken_ruby|
-          context "on a Ruby 3 version affected by https://bugs.ruby-lang.org/issues/18464 (#{broken_ruby})" do
-            let(:testing_version) { broken_ruby }
+      describe '#experimental_allocation_enabled' do
+        subject(:experimental_allocation_enabled) { settings.profiling.advanced.experimental_allocation_enabled }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
             it { is_expected.to be false }
           end
-        end
 
-        ['3.1.4', '3.2.3', '3.3.0'].each do |fixed_ruby|
-          context "on a Ruby 3 version where https://bugs.ruby-lang.org/issues/18464 is fixed (#{fixed_ruby})" do
-            let(:testing_version) { fixed_ruby }
-            it { is_expected.to be true }
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
           end
         end
       end
 
-      describe '#allocation_counting_enabled=' do
-        it 'updates the #allocation_counting_enabled setting' do
-          settings.profiling.advanced.allocation_counting_enabled = true
+      describe '#experimental_allocation_enabled=' do
+        it 'updates the #experimental_allocation_enabled setting' do
+          expect { settings.profiling.advanced.experimental_allocation_enabled = true }
+            .to change { settings.profiling.advanced.experimental_allocation_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
 
-          expect { settings.profiling.advanced.allocation_counting_enabled = false }
-            .to change { settings.profiling.advanced.allocation_counting_enabled }
-            .from(true)
-            .to(false)
+      describe '#experimental_heap_enabled' do
+        subject(:experimental_heap_enabled) { settings.profiling.advanced.experimental_heap_enabled }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_heap_enabled=' do
+        it 'updates the #experimental_heap_enabled setting' do
+          expect { settings.profiling.advanced.experimental_heap_enabled = true }
+            .to change { settings.profiling.advanced.experimental_heap_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
+
+      describe '#experimental_allocation_sample_rate' do
+        subject(:experimental_allocation_sample_rate) { settings.profiling.advanced.experimental_allocation_sample_rate }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be 50 }
+          end
+
+          [100, 30.5].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value.to_i }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_allocation_sample_rate=' do
+        it 'updates the #experimental_allocation_sample_rate setting' do
+          expect { settings.profiling.advanced.experimental_allocation_sample_rate = 100 }
+            .to change { settings.profiling.advanced.experimental_allocation_sample_rate }
+            .from(50)
+            .to(100)
         end
       end
 
@@ -603,6 +672,72 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.experimental_timeline_enabled }
             .from(false)
             .to(true)
+        end
+      end
+
+      describe '#overhead_target_percentage' do
+        subject(:timeout_seconds) { settings.profiling.advanced.overhead_target_percentage }
+
+        context 'when DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq(2.0) }
+          end
+
+          context 'is defined' do
+            let(:environment) { '1.23' }
+
+            it { is_expected.to eq(1.23) }
+          end
+        end
+      end
+
+      describe '#overhead_target_percentage=' do
+        it 'updates the #overhead_target_percentage setting' do
+          expect { settings.profiling.advanced.overhead_target_percentage = 4.56 }
+            .to change { settings.profiling.advanced.overhead_target_percentage }
+            .from(2.0)
+            .to(4.56)
+        end
+      end
+
+      describe '#upload_period_seconds' do
+        subject(:max_frames) { settings.profiling.advanced.upload_period_seconds }
+
+        context 'when DD_PROFILING_UPLOAD_PERIOD' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_UPLOAD_PERIOD' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq(60) }
+          end
+
+          context 'is defined' do
+            let(:environment) { '123' }
+
+            it { is_expected.to eq(123) }
+          end
+        end
+      end
+
+      describe '#upload_period_seconds=' do
+        it 'updates the #upload_period_seconds setting' do
+          expect { settings.profiling.advanced.upload_period_seconds = 90 }
+            .to change { settings.profiling.advanced.upload_period_seconds }
+            .from(60)
+            .to(90)
         end
       end
     end
@@ -771,14 +906,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       before { set_service }
 
       it { expect(settings.service).to eq(service) }
-    end
-
-    context 'when given a symbol' do
-      let(:service) { :symbol }
-
-      before { set_service }
-
-      it { expect(settings.service).to eq('symbol') }
     end
 
     context 'when given `nil`' do
