@@ -106,3 +106,5 @@ bool heap_recorder_for_each_live_object(
 // Assert internal hashing logic is valid for the provided locations and its
 // corresponding internal representations in heap recorder.
 void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations);
+
+void heap_recorder_testonly_debug(heap_recorder *heap_recorder);
