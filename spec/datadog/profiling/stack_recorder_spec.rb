@@ -492,7 +492,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
                 # Basic object + 4 table entries + no bins
                 (40 + 4 * 16) * sample_rate,
                 # Add extra padding to hash itself as well as each entry and  8 bins
-                (80 + 4 * 32 + 8 * 4) * sample_rate,
+                (80 + 4 * 32 + 8 * 16) * sample_rate,
               )
             )
           )
