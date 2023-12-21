@@ -12,6 +12,8 @@ module Datadog
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_RAILS_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_RAILS_ANALYTICS_SAMPLE_RATE'
           ENV_DISABLE = 'DISABLE_DATADOG_RAILS'
+          SPAN_ROUTE = 'rails.route'
+          TAG_ROUTE_PATH = 'rails.route.path'
         end
       end
     end
