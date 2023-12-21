@@ -82,8 +82,12 @@ void end_heap_allocation_recording(heap_recorder *heap_recorder, ddog_prof_Slice
 // Update the heap recorder to reflect the latest state of the VM and prepare internal structures
 // for efficient iteration.
 //
+// @param update_sizes
+//   True if we should re-calculate live object sizes ahead of the next iteration. If false,
+//   the previous sizes will be used (or 0 if we never updated them before).
+//
 // WARN: This must be called strictly before iteration. Failing to do so will result in exceptions.
-void heap_recorder_prepare_iteration(heap_recorder *heap_recorder);
+void heap_recorder_prepare_iteration(heap_recorder *heap_recorder, bool update_sizes);
 
 // Optimize the heap recorder by cleaning up any data that might have been prepared specifically
 // for the purpose of iterating over the heap recorder data.

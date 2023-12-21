@@ -10,6 +10,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   # Disabling these by default since they require some extra setup and produce separate samples.
   # Enabling this is tested in a particular context below.
   let(:heap_samples_enabled) { false }
+  let(:heap_size_enabled) { false }
   let(:timeline_enabled) { true }
 
   subject(:stack_recorder) do
@@ -17,6 +18,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       cpu_time_enabled: cpu_time_enabled,
       alloc_samples_enabled: alloc_samples_enabled,
       heap_samples_enabled: heap_samples_enabled,
+      heap_size_enabled: heap_size_enabled,
       timeline_enabled: timeline_enabled,
     )
   end
@@ -124,6 +126,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:cpu_time_enabled) { true }
         let(:alloc_samples_enabled) { true }
         let(:heap_samples_enabled) { true }
+        let(:heap_size_enabled) { true }
         let(:timeline_enabled) { true }
         let(:all_profile_types) do
           {
@@ -137,8 +140,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           }
         end
 
-        def profile_types_without(*types)
-          all_profile_types.dup.tap { |it| it.delete_if { |k| types.include?(k) } }
+        def profile_types_without(type)
+          all_profile_types.dup.tap { |it| it.delete(type) { raise 'Missing key' } }
         end
 
         context 'when all profile types are enabled' do
@@ -167,7 +170,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:heap_samples_enabled) { false }
 
           it 'returns a pprof without the heap-live-samples type' do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('heap-live-samples', 'heap-live-size'))
+            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('heap-live-samples'))
+          end
+        end
+
+        context 'when heap-live-size is disabled' do
+          let(:heap_size_enabled) { false }
+
+          it 'returns a pprof without the heap-live-size type' do
+            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('heap-live-size'))
           end
         end
 
@@ -183,6 +194,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:cpu_time_enabled) { false }
           let(:alloc_samples_enabled) { false }
           let(:heap_samples_enabled) { false }
+          let(:heap_size_enabled) { false }
           let(:timeline_enabled) { false }
 
           it 'returns a pprof without the optional types' do
@@ -341,7 +353,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
-    describe 'heap samples' do
+    describe 'heap samples and sizes' do
       let(:sample_rate) { 50 }
       let(:metric_values) do
         { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => sample_rate, 'timeline' => 42 }
@@ -407,6 +419,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       context 'when disabled' do
         let(:heap_samples_enabled) { false }
+        let(:heap_size_enabled) { false }
 
         it 'are ommitted from the profile' do
           # We sample from 2 distinct locations
@@ -418,6 +431,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       context 'when enabled' do
         let(:heap_samples_enabled) { true }
+        let(:heap_size_enabled) { true }
 
         let(:heap_samples) do
           samples.select { |s| s.values[:'heap-live-samples'] > 0 }

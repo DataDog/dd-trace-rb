@@ -247,7 +247,15 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
   commit_allocation(heap_recorder, heap_record, partial_object_record);
 }
 
-void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
+typedef struct {
+  // A reference to the heap recorder so we can access extra stuff to cleanup unused records.
+  heap_recorder *heap_recorder;
+
+  // Whether we should update object sizes as part of the update iteration or not.
+  bool update_sizes;
+} prepare_iteration_context;
+
+void heap_recorder_prepare_iteration(heap_recorder *heap_recorder, bool update_sizes) {
   if (heap_recorder == NULL) {
     return;
   }
@@ -257,7 +265,11 @@ void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
     rb_raise(rb_eRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
   }
 
-  st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
+  prepare_iteration_context context = (prepare_iteration_context) {
+    .heap_recorder = heap_recorder,
+    .update_sizes = update_sizes,
+  };
+  st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) &context);
 
   heap_recorder->object_records_snapshot = st_copy(heap_recorder->object_records);
   if (heap_recorder->object_records_snapshot == NULL) {
@@ -361,7 +373,7 @@ static int st_object_record_entry_free(DDTRACE_UNUSED st_data_t key, st_data_t v
 static int st_object_record_update(st_data_t key, st_data_t value, st_data_t extra_arg) {
   long obj_id = (long) key;
   object_record *record = (object_record*) value;
-  heap_recorder *recorder = (heap_recorder*) extra_arg;
+  prepare_iteration_context *context = (prepare_iteration_context*) extra_arg;
 
   VALUE ref;
 
@@ -373,14 +385,18 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
     heap_record->num_tracked_objects--;
 
     // One less object using this heap record, it may have become unused...
-    cleanup_heap_record_if_unused(recorder, heap_record);
+    cleanup_heap_record_if_unused(context->heap_recorder, heap_record);
 
     object_record_free(record);
     return ST_DELETE;
   }
 
-  // If we got this far, entry is still valid so lets update its size
-  record->object_data.size = ruby_obj_memsize_of(ref);
+  // If we got this far, entry is still valid
+
+  if (context->update_sizes) {
+    // if we were asked to update sizes, do so...
+    record->object_data.size = ruby_obj_memsize_of(ref);
+  }
 
   return ST_CONTINUE;
 }
