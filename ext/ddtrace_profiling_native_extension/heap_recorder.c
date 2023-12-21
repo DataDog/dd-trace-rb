@@ -105,17 +105,24 @@ struct heap_recorder {
   // Map[key: heap_record_key*, record: heap_record*]
   // NOTE: We always use heap_record_key.type == HEAP_STACK for storage but support lookups
   // via heap_record_key.type == LOCATION_SLICE to allow for allocation-free fast-paths.
-  // NOTE: This table is currently only protected by the GVL since we never iterate on it
+  // NOTE: This table is currently only protected by the GVL since we never interact with it
   // outside the GVL.
+  // NOTE: This table has ownership of both its heap_record_keys and heap_records.
   st_table *heap_records;
 
   // Map[obj_id: long, record: object_record*]
+  // NOTE: This table is currently only protected by the GVL since we never interact with it
+  // outside the GVL.
+  // NOTE: This table has ownership of its object_records. The keys are longs and so are
+  // passed as values.
   st_table *object_records;
 
-  // Lock protecting writes to object_records.
-  // NOTE: heap_records is currently not protected by this one since we do not iterate on
-  // heap records outside the GVL.
-  pthread_mutex_t records_mutex;
+  // Map[obj_id: long, record: object_record*]
+  // NOTE: This is a snapshot of object_records built ahead of a iteration. Outside of an
+  // iteration context, this table will be NULL. During an iteration, there will be no
+  // mutation of the data so iteration can occur without acquiring a lock.
+  // NOTE: Contrary to object_records, this table has no ownership of its data.
+  st_table *object_records_snapshot;
 
   // Data for a heap recording that was started but not yet ended
   partial_heap_recording active_recording;
@@ -129,6 +136,7 @@ static int st_heap_record_entry_free(st_data_t, st_data_t, st_data_t);
 static int st_object_record_entry_free(st_data_t, st_data_t, st_data_t);
 static int st_object_record_entry_free_if_invalid(st_data_t, st_data_t, st_data_t);
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
+static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
 static void commit_allocation(heap_recorder*, heap_record*, long, live_object_data);
 
@@ -144,9 +152,9 @@ static void commit_allocation(heap_recorder*, heap_record*, long, live_object_da
 heap_recorder* heap_recorder_new(void) {
   heap_recorder *recorder = ruby_xcalloc(1, sizeof(heap_recorder));
 
-  recorder->records_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
   recorder->heap_records = st_init_table(&st_hash_type_heap_record_key);
   recorder->object_records = st_init_numtable();
+  recorder->object_records_snapshot = NULL;
   recorder->reusable_locations = ruby_xcalloc(MAX_FRAMES_LIMIT, sizeof(ddog_prof_Location));
   recorder->active_recording = (partial_heap_recording) {
     .obj_id = 0, // 0 is actually the obj_id of false, but we'll never track that one in heap so we use
@@ -162,15 +170,17 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
     return;
   }
 
+  if (heap_recorder->object_records_snapshot != NULL) {
+    // if there's an unfinished iteration, clean it up now
+    // before we clean up any other state it might depend on
+    heap_recorder_finish_iteration(heap_recorder);
+  }
+
   st_foreach(heap_recorder->object_records, st_object_record_entry_free, 0);
   st_free_table(heap_recorder->object_records);
 
   st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, 0);
   st_free_table(heap_recorder->heap_records);
-
-  pthread_mutex_destroy(&heap_recorder->records_mutex);
-
-  ruby_xfree(heap_recorder->reusable_locations);
 
   ruby_xfree(heap_recorder);
 }
@@ -187,21 +197,14 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   // This means anything the heap recorder is tracking will still be alive after the fork and
   // should thus be kept. Because this heap recorder implementation does not rely on free
   // tracepoints to track liveness, any frees that happen until we fully reinitialize, will
-  // simply be noticed on next heap_recorder_flush.
+  // simply be noticed on next heap_recorder_prepare_iteration.
   //
   // There is one small caveat though: fork only preserves one thread and in a Ruby app, that
   // will be the thread holding on to the GVL. Since we support iteration on the heap recorder
-  // outside of the GVL (which implies acquiring the records_mutex lock), this means the child
-  // process may be in this weird state of having a records_mutex lock stuck in a locked
-  // state and that state having been caused by a thread that no longer exists.
-  //
-  // We can't blindly unlock records_mutex from the thread calling heap_recorder_after_fork
-  // as unlocking mutexes a thread doesn't own is undefined behaviour. What we can do is
-  // create a new lock and start using it from now on-forward. This is fine because at this
-  // point in the fork-handling logic, all tracepoints are disabled and no-one should be
-  // iterating on the recorder state so there are no writers/readers that may race with
-  // this reinitialization.
-  heap_recorder->records_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+  // outside of the GVL, any state specific to that interaction may be incosistent after fork
+  // (e.g. an acquired lock for thread safety). Iteration operates on object_records_snapshot
+  // though and that one will be updated on next heap_recorder_prepare_iteration so there's
+  // nothing for us to do here.
 }
 
 void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight) {
@@ -239,32 +242,42 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
   // not end up with a still active recording. new_obj still holds the object for this recording
   active_recording->obj_id = 0;
 
-  // NOTE: This is the only path where we lookup/mutate the heap_records hash. Since this
-  //       runs under the GVL, we can afford to interact with heap_records without getting
-  //       the lock below.
   heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
-
-  int error = pthread_mutex_trylock(&heap_recorder->records_mutex);
-  if (error == EBUSY) {
-    // We weren't able to get a lock
-    // TODO: Add some queuing system so we can do something other than drop this data.
-    cleanup_heap_record_if_unused(heap_recorder, heap_record);
-    return;
-  }
-  if (error) ENFORCE_SUCCESS_GVL(error);
 
   // And then commit the new allocation.
   commit_allocation(heap_recorder, heap_record, obj_id, active_recording->object_data);
-
-  ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(&heap_recorder->records_mutex));
 }
 
-void heap_recorder_flush(heap_recorder *heap_recorder) {
+void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
     return;
   }
 
+  if (heap_recorder->object_records_snapshot != NULL) {
+    // we could trivially handle this but we raise to highlight and catch unexpected usages.
+    rb_raise(rb_eRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
+  }
+
   st_foreach(heap_recorder->object_records, st_object_record_entry_free_if_invalid, (st_data_t) heap_recorder);
+
+  heap_recorder->object_records_snapshot = st_copy(heap_recorder->object_records);
+  if (heap_recorder->object_records_snapshot == NULL) {
+    rb_raise(rb_eRuntimeError, "Failed to create heap snapshot.");
+  }
+}
+
+void heap_recorder_finish_iteration(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return;
+  }
+
+  if (heap_recorder->object_records_snapshot == NULL) {
+    // we could trivially handle this but we raise to highlight and catch unexpected usages.
+    rb_raise(rb_eRuntimeError, "Heap recorder iteration finished without having been prepared.");
+  }
+
+  st_free_table(heap_recorder->object_records_snapshot);
+  heap_recorder->object_records_snapshot = NULL;
 }
 
 // Internal data we need while performing iteration over live objects.
@@ -277,23 +290,27 @@ typedef struct {
   heap_recorder *heap_recorder;
 } iteration_context;
 
-// WARN: If with_gvl = False, NO HEAP ALLOCATIONS, EXCEPTIONS or RUBY CALLS ARE ALLOWED.
-void heap_recorder_for_each_live_object(
+// WARN: Assume iterations can run without the GVL for performance reasons. Do not raise, allocate or
+// do NoGVL-unsafe interactions with the Ruby runtime. Any such interactions should be done during
+// heap_recorder_prepare_iteration or heap_recorder_finish_iteration.
+bool heap_recorder_for_each_live_object(
     heap_recorder *heap_recorder,
     bool (*for_each_callback)(heap_recorder_iteration_data stack_data, void *extra_arg),
-    void *for_each_callback_extra_arg,
-    bool with_gvl) {
+    void *for_each_callback_extra_arg) {
   if (heap_recorder == NULL) {
-    return;
+    return true;
   }
 
-  ENFORCE_SUCCESS_HELPER(pthread_mutex_lock(&heap_recorder->records_mutex), with_gvl);
+  if (heap_recorder->object_records_snapshot == NULL) {
+    return false;
+  }
+
   iteration_context context;
   context.for_each_callback = for_each_callback;
   context.for_each_callback_extra_arg = for_each_callback_extra_arg;
   context.heap_recorder = heap_recorder;
-  st_foreach(heap_recorder->object_records, st_object_records_iterate, (st_data_t) &context);
-  ENFORCE_SUCCESS_HELPER(pthread_mutex_unlock(&heap_recorder->records_mutex), with_gvl);
+  st_foreach(heap_recorder->object_records_snapshot, st_object_records_iterate, (st_data_t) &context);
+  return true;
 }
 
 void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations) {
@@ -315,6 +332,16 @@ void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locatio
   if (stack_hash != location_hash) {
     rb_raise(rb_eRuntimeError, "Heap record key hashes built from the same locations differ. stack_based_hash=%"PRI_VALUE_PREFIX"u location_based_hash=%"PRI_VALUE_PREFIX"u", stack_hash, location_hash);
   }
+}
+
+VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return rb_str_new2("NULL heap_recorder");
+  }
+
+  VALUE debug_str = rb_str_new2("object records:\n");
+  st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) debug_str);
+  return debug_str;
 }
 
 // ==========================
@@ -383,6 +410,26 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
   return ST_CONTINUE;
 }
 
+static int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value, st_data_t extra) {
+  VALUE debug_str = (VALUE) extra;
+
+  object_record *record = (object_record*) value;
+
+  heap_frame top_frame = record->heap_record->stack->frames[0];
+  rb_str_catf(debug_str, "obj_id=%ld weight=%d location=%s:%d ", record->obj_id, record->object_data.weight, top_frame.filename, (int) top_frame.line);
+
+  VALUE ref;
+  if (!ruby_ref_from_id(LONG2NUM(record->obj_id), &ref)) {
+    rb_str_catf(debug_str, "object=<invalid>");
+  } else {
+    rb_str_catf(debug_str, "object=%+"PRIsVALUE, ref);
+  }
+
+  rb_str_catf(debug_str, "\n");
+
+  return ST_CONTINUE;
+}
+
 // Struct holding data required for an update operation on heap_records
 typedef struct {
   // [in] The new object record we want to add.
@@ -403,7 +450,6 @@ static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *
   return ST_CONTINUE;
 }
 
-// WARN: Expects records_mutex to be held
 static void commit_allocation(heap_recorder *heap_recorder, heap_record *heap_record, long obj_id, live_object_data object_data) {
   // Update object_records
   object_record_update_data update_data = (object_record_update_data) {

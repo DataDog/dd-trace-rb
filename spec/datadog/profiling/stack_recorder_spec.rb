@@ -353,27 +353,47 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
+      def sample_allocation(obj)
+        # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
+        described_class::Testing._native_track_object(stack_recorder, obj, sample_rate)
+        Datadog::Profiling::Collectors::Stack::Testing
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+      end
+
       before do
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
-                       { 'z' => -1, 'y' => '-2', 'x' => false }]
+                       { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
-          # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
-          described_class::Testing._native_track_object(stack_recorder, obj, sample_rate)
-          # ...and then pass data about the allocation stacktrace (with 2 distinct stacktraces)
+          # Sample allocations with 2 distinct stacktraces
           if i.even?
-            Datadog::Profiling::Collectors::Stack::Testing
-              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
-          else
-            # 401 used instead of 400 here just to make the branches different and appease Rubocop
-            Datadog::Profiling::Collectors::Stack::Testing
-              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 401, false)
+            sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
+          else # rubocop:disable Lint/DuplicateBranch
+            sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
           end
           @num_allocations += 1
         end
 
         allocations.clear # The literals in the previous array are now dangling
         GC.start # And this will clear them, leaving only the non-literals which are still pointed to by the lets
+
+        # NOTE: We've witnessed CI flakiness where the last entry of allocations may still be alive
+        # after the previous GC. We've experimentally noticed this is no longer the case if
+        # we do a second GC.
+        # This might be an instance of the issues described in https://bugs.ruby-lang.org/issues/19460
+        # and https://bugs.ruby-lang.org/issues/19041. We didn't get to the bottom of the
+        # reason but it might be that some machine context/register ends up still pointing to
+        # that last entry and thus manages to get it marked in the first GC.
+        GC.start
+      end
+
+      after do |example|
+        # This is here to facilitate troubleshooting when this test fails. Otherwise
+        # it's very hard to understand what may be happening.
+        if example.exception
+          puts('Heap recorder debugging info:')
+          puts(described_class::Testing._native_debug_heap_recorder(stack_recorder))
+        end
       end
 
       context 'when disabled' do
@@ -403,7 +423,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           sum_heap_samples = 0
           heap_samples.each { |s| sum_heap_samples += s.values[:'heap-live-samples'] }
-          expect(sum_heap_samples).to eq([a_string, an_array, a_hash].size * sample_rate)
+
+          expect(sum_heap_samples).to(eq([a_string, an_array, a_hash].size * sample_rate))
         end
 
         it 'keeps on reporting accurate samples for other profile types' do
@@ -425,6 +446,32 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
 
           expect(summed_values).to eq(expected_summed_values)
+        end
+
+        it "aren't lost when they happen concurrently with a long serialization" do
+          described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
+
+          test_num_allocated_object = 123
+          live_objects = Array.new(test_num_allocated_object)
+
+          test_num_allocated_object.times do |i|
+            live_objects[i] = "this is string number #{i}"
+            sample_allocation(live_objects[i])
+          end
+
+          allocation_line = __LINE__ - 3
+
+          described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
+
+          heap_samples_in_test_matcher = lambda { |sample|
+            (sample.values[:'heap-live-samples'] || 0) > 0 && sample.locations.any? do |location|
+              location.lineno == allocation_line && location.path == __FILE__
+            end
+          }
+
+          relevant_sample = heap_samples.find(&heap_samples_in_test_matcher)
+          expect(relevant_sample).not_to be nil
+          expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object * sample_rate
         end
       end
     end

@@ -232,6 +232,9 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
 static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */);
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight);
 static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locations);
+static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -258,6 +261,12 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_record_endpoint", _native_record_endpoint, 3);
   rb_define_singleton_method(testing_module, "_native_track_object", _native_track_object, 3);
   rb_define_singleton_method(testing_module, "_native_check_heap_hashes", _native_check_heap_hashes, 1);
+  rb_define_singleton_method(testing_module, "_native_start_fake_slow_heap_serialization",
+      _native_start_fake_slow_heap_serialization, 1);
+  rb_define_singleton_method(testing_module, "_native_end_fake_slow_heap_serialization",
+      _native_end_fake_slow_heap_serialization, 1);
+  rb_define_singleton_method(testing_module, "_native_debug_heap_recorder",
+      _native_debug_heap_recorder, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -443,9 +452,9 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // Need to do this while still holding on to the Global VM Lock; see comments on method for why
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
-  // Flush any pending data in the heap recorder prior to doing the iteration during serialization.
-  // This needs to happen while holding on to the GVL
-  heap_recorder_flush(state->heap_recorder);
+  // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
+  // happen while holding on to the GVL.
+  heap_recorder_prepare_iteration(state->heap_recorder);
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
@@ -464,6 +473,9 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
     // interruptions and thus does not raise exceptions after running our code.
     rb_thread_call_without_gvl2(call_serialize_without_gvl, &args, NULL /* No interruption function needed in this case */, NULL /* Not needed */);
   }
+
+  // Cleanup after heap recorder iteration. This needs to happen while holding on to the GVL.
+  heap_recorder_finish_iteration(state->heap_recorder);
 
   ddog_prof_Profile_SerializeResult serialized_profile = args.result;
 
@@ -605,13 +617,15 @@ static void build_heap_profile_without_gvl(struct stack_recorder_state *state, d
     .error = false,
     .error_msg = {0},
   };
-  heap_recorder_for_each_live_object(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context, false);
-  if (iteration_context.error) {
-    // We wait until we're out of the iteration to grab the gvl and raise. This is important because during
-    // iteration we first grab the records_mutex and raising requires grabbing the GVL. When sampling, we are
-    // in the opposite situation: we have the GVL and may need to grab the records_mutex for mutation. This
-    // different ordering can lead to deadlocks. By delaying the raise here until after we no longer hold
-    // records_mutex, we prevent this different-lock-acquisition-order situation.
+  bool iterated = heap_recorder_for_each_live_object(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context);
+  // We wait until we're out of the iteration to grab the gvl and raise. This is important because during
+  // iteration we may potentially acquire locks in the heap recorder and we could reach a deadlock if the
+  // same locks are acquired by the heap recorder while holding the gvl (since we'd be operating on the
+  // same locks but acquiring them in different order).
+  if (!iterated) {
+    grab_gvl_and_raise(rb_eRuntimeError, "Failure during heap profile building: iteration cancelled");
+  }
+  else if (iteration_context.error) {
     grab_gvl_and_raise(rb_eRuntimeError, "Failure during heap profile building: %s", iteration_context.error_msg);
   }
 }
@@ -806,4 +820,35 @@ static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time 
   if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
   }
+}
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_prepare_iteration(state->heap_recorder);
+
+  return Qnil;
+}
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_finish_iteration(state->heap_recorder);
+
+  return Qnil;
+}
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  return heap_recorder_testonly_debug(state->heap_recorder);
 }

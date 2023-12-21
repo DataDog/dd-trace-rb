@@ -34,13 +34,6 @@ static VALUE _native_sample(
 );
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(sampling_buffer* buffer, VALUE recorder_instance, sample_values values, sample_labels labels);
-static void sample_thread_internal(
-  VALUE thread,
-  sampling_buffer* buffer,
-  VALUE recorder_instance,
-  sample_values values,
-  sample_labels labels
-);
 
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
