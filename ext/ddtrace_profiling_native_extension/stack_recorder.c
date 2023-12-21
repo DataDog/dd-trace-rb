@@ -184,6 +184,7 @@ struct stack_recorder_state {
 
   uint8_t position_for[ALL_VALUE_TYPES_COUNT];
   uint8_t enabled_values_count;
+  bool heap_size_enabled;
 };
 
 // Used to return a pair of values from sampler_lock_active_profile()
@@ -216,6 +217,7 @@ static VALUE _native_initialize(
   VALUE cpu_time_enabled,
   VALUE alloc_samples_enabled,
   VALUE heap_samples_enabled,
+  VALUE heap_sizes_enabled,
   VALUE timeline_enabled
 );
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
@@ -255,7 +257,7 @@ void stack_recorder_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
-  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 5);
+  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 6);
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
   rb_define_singleton_method(stack_recorder_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
@@ -309,6 +311,7 @@ static VALUE _native_new(VALUE klass) {
   //       heap samples, we will free and reset heap_recorder to NULL, effectively disabling all behaviour specific
   //       to heap profiling (all calls to heap_recorder_* with a NULL heap recorder are noops).
   state->heap_recorder = heap_recorder_new();
+  state->heap_size_enabled = true;
 
   // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
 
@@ -369,11 +372,13 @@ static VALUE _native_initialize(
   VALUE cpu_time_enabled,
   VALUE alloc_samples_enabled,
   VALUE heap_samples_enabled,
+  VALUE heap_size_enabled,
   VALUE timeline_enabled
 ) {
   ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
   ENFORCE_BOOLEAN(heap_samples_enabled);
+  ENFORCE_BOOLEAN(heap_size_enabled);
   ENFORCE_BOOLEAN(timeline_enabled);
 
   struct stack_recorder_state *state;
@@ -382,7 +387,8 @@ static VALUE _native_initialize(
   uint8_t requested_values_count = ALL_VALUE_TYPES_COUNT -
     (cpu_time_enabled == Qtrue ? 0 : 1) -
     (alloc_samples_enabled == Qtrue? 0 : 1) -
-    (heap_samples_enabled == Qtrue ? 0 : 2) -
+    (heap_samples_enabled == Qtrue ? 0 : 1) -
+    (heap_size_enabled == Qtrue ? 0 : 1) -
     (timeline_enabled == Qtrue ? 0 : 1);
 
   if (requested_values_count == ALL_VALUE_TYPES_COUNT) return Qtrue; // Nothing to do, this is the default
@@ -422,12 +428,20 @@ static VALUE _native_initialize(
   if (heap_samples_enabled == Qtrue) {
     enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SAMPLES_VALUE;
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_enabled_pos++;
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SIZE_VALUE;
-    state->position_for[HEAP_SIZE_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_disabled_pos++;
-    state->position_for[HEAP_SIZE_VALUE_ID] = next_disabled_pos++;
+  }
 
+  if (heap_size_enabled == Qtrue) {
+    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SIZE_VALUE;
+    state->position_for[HEAP_SIZE_VALUE_ID] = next_enabled_pos++;
+    state->heap_size_enabled = true;
+  } else {
+    state->position_for[HEAP_SIZE_VALUE_ID] = next_disabled_pos++;
+    state->heap_size_enabled = false;
+  }
+
+  if (heap_samples_enabled == Qfalse && heap_size_enabled == Qfalse) {
     // Turns out heap sampling is disabled but we initialized everything in _native_new
     // assuming all samples were enabled. We need to deinitialize the heap recorder.
     heap_recorder_free(state->heap_recorder);
@@ -460,7 +474,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
   // happen while holding on to the GVL.
-  heap_recorder_prepare_iteration(state->heap_recorder);
+  heap_recorder_prepare_iteration(state->heap_recorder, state->heap_size_enabled);
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
@@ -868,7 +882,7 @@ static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _se
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  heap_recorder_prepare_iteration(state->heap_recorder);
+  heap_recorder_prepare_iteration(state->heap_recorder, false);
 
   return Qnil;
 }
