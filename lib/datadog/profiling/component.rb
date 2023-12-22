@@ -213,6 +213,17 @@ module Datadog
           return false
         end
 
+        if RUBY_VERSION < '3.1'
+          Datadog.logger.warn(
+            "Current Ruby version (#{RUBY_VERSION}) supports forced object recycling which has a bug that the " \
+            'heap profiler is forced to work around to remain accurate. This workaround should be safe and ' \
+            'should even partially fix a runtime memory leak around object id mapping. Details about the workaround ' \
+            "can be found in https://github.com/DataDog/dd-trace-rb/pull/3360. If you're not comfortable with this, " \
+            'disable heap profiler or upgrade to Ruby >= 3.1 where forced object recycling was completely' \
+            'removed (https://bugs.ruby-lang.org/issues/18290).'
+          )
+        end
+
         unless allocation_profiling_enabled
           raise ArgumentError,
             'Heap profiling requires allocation profiling to be enabled'

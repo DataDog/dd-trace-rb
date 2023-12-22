@@ -545,6 +545,42 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect(heap_sample.values[:'heap-live-samples']).to eq(sample_rate * heap_sample_every)
           end
         end
+
+        it 'act on implicit frees from rb_gc_force_recycle' do
+          skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3.1'
+
+          test_num_recycled_object = 60000
+
+          # We'll start by allocating strings that we'll sample for heap profiling then force recycle them.
+          test_num_recycled_object.times do |i|
+            object_to_be_recycled = "this is recycled string number #{i}"
+            sample_allocation(object_to_be_recycled)
+            described_class::Testing._native_gc_force_recycle(object_to_be_recycled)
+          end
+
+          allocation_line = __LINE__ - 4
+
+          test_num_non_recycled_object = 60000
+          live_objects = Array.new(test_num_non_recycled_object)
+
+          # We'll then allocate a whole lot of other strings and hope that at least some of them re-use
+          # the force-recycled slots rather than constantly asking for new ones.
+          test_num_non_recycled_object.times do |i|
+            live_objects[i] = "this is non-recycled string number #{i}"
+          end
+
+          # If we act on implicit frees, then we assume that even though some of the sampled objects
+          # ended up being re-used by non-recycled strings, we were able to detect this re-use and
+          # discard those tracked heap samples, ending with no matching recycled samples at all.
+          heap_samples_in_test_matcher = lambda { |sample|
+            (sample.values[:'heap-live-samples'] || 0) > 0 && sample.locations.any? do |location|
+              location.lineno == allocation_line && location.path == __FILE__
+            end
+          }
+
+          relevant_sample = heap_samples.find(&heap_samples_in_test_matcher)
+          expect(relevant_sample).to be nil
+        end
       end
     end
 

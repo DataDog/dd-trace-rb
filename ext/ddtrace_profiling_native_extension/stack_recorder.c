@@ -240,6 +240,7 @@ static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locatio
 static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj);
 
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -272,6 +273,8 @@ void stack_recorder_init(VALUE profiling_module) {
       _native_end_fake_slow_heap_serialization, 1);
   rb_define_singleton_method(testing_module, "_native_debug_heap_recorder",
       _native_debug_heap_recorder, 1);
+  rb_define_singleton_method(testing_module, "_native_gc_force_recycle",
+      _native_gc_force_recycle, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -908,3 +911,14 @@ static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recor
 
   return heap_recorder_testonly_debug(state->heap_recorder);
 }
+
+#pragma GCC diagnostic push
+// rb_gc_force_recycle was deprecated in latest versions of Ruby and is a noop.
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  rb_gc_force_recycle(obj);
+  return Qnil;
+}
+#pragma GCC diagnostic pop
