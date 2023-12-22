@@ -92,6 +92,7 @@ typedef struct {
 } object_record;
 static object_record* object_record_new(long, heap_record*, live_object_data);
 static void object_record_free(object_record*);
+static VALUE object_record_inspect(object_record*);
 
 struct heap_recorder {
   // Map[key: heap_record_key*, record: heap_record*]
@@ -435,22 +436,7 @@ static int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value
 
   object_record *record = (object_record*) value;
 
-  heap_frame top_frame = record->heap_record->stack->frames[0];
-  rb_str_catf(debug_str, "obj_id=%ld weight=%d size=%zu location=%s:%d alloc_gen=%zu ", record->obj_id, record->object_data.weight, record->object_data.size, top_frame.filename, (int) top_frame.line, record->object_data.alloc_gen);
-
-  const char *class = record->object_data.class;
-  if (class != NULL) {
-    rb_str_catf(debug_str, "class=%s ", class);
-  }
-
-  VALUE ref;
-  if (!ruby_ref_from_id(LONG2NUM(record->obj_id), &ref)) {
-    rb_str_catf(debug_str, "object=<invalid>");
-  } else {
-    rb_str_catf(debug_str, "object=%+"PRIsVALUE, ref);
-  }
-
-  rb_str_catf(debug_str, "\n");
+  rb_str_catf(debug_str, "%"PRIsVALUE"\n", object_record_inspect(record));
 
   return ST_CONTINUE;
 }
@@ -468,7 +454,11 @@ typedef struct {
 static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *value, st_data_t data, int existing) {
   object_record_update_data *update_data = (object_record_update_data*) data;
   if (existing) {
-    rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with the same id");
+    object_record *existing_record = (object_record*) (*value);
+    VALUE existing_inspect = object_record_inspect(existing_record);
+    VALUE new_inspect = object_record_inspect(update_data->new_object_record);
+    rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
+        "the same id.\nprevious=%"PRIsVALUE"\nnew=%"PRIsVALUE"\n", existing_inspect, new_inspect);
   }
   // Always carry on with the update, we want the new record to be there at the end
   (*value) = (st_data_t) update_data->new_object_record;
@@ -595,6 +585,32 @@ void object_record_free(object_record *record) {
     ruby_xfree(record->object_data.class);
   }
   ruby_xfree(record);
+}
+
+VALUE object_record_inspect(object_record *record) {
+  heap_frame top_frame = record->heap_record->stack->frames[0];
+  VALUE inspect = rb_sprintf("obj_id=%ld weight=%d size=%zu location=%s:%d alloc_gen=%zu ",
+      record->obj_id, record->object_data.weight, record->object_data.size, top_frame.filename,
+      (int) top_frame.line, record->object_data.alloc_gen);
+
+  const char *class = record->object_data.class;
+  if (class != NULL) {
+    rb_str_catf(inspect, "class=%s ", class);
+  }
+
+  VALUE ref;
+  if (!ruby_ref_from_id(LONG2NUM(record->obj_id), &ref)) {
+    rb_str_catf(inspect, "object=<invalid>");
+  } else {
+    VALUE ruby_inspect = ruby_safe_inspect(ref);
+    if (ruby_inspect != Qnil) {
+      rb_str_catf(inspect, "object=%"PRIsVALUE, ruby_inspect);
+    } else {
+      rb_str_catf(inspect, "object=%s", ruby_value_type_to_string(rb_type(ref)));
+    }
+  }
+
+  return inspect;
 }
 
 // ==============
