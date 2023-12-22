@@ -8,12 +8,16 @@
 // They are not expected to be mutated outside of init.
 static VALUE module_object_space = Qnil;
 static ID _id2ref_id = Qnil;
+static ID _inspect_id = Qnil;
+static ID _to_s_id = Qnil;
 
 void ruby_helpers_init(void) {
   rb_global_variable(&module_object_space);
 
   module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
   _id2ref_id = rb_intern("_id2ref");
+  _inspect_id = rb_intern("inspect");
+  _to_s_id = rb_intern("to_s");
 }
 
 void raise_unexpected_type(
@@ -208,5 +212,31 @@ size_t ruby_obj_memsize_of(VALUE obj) {
     default:
       // Unsupported, return 0 instead of erroring like rb_obj_memsize_of likes doing
       return 0;
+  }
+}
+
+VALUE ruby_safe_inspect(VALUE obj) {
+  switch(rb_type(obj)) {
+    case T_DATA:
+    case T_IMEMO:
+    #ifndef NO_T_MOVED
+    case T_MOVED:
+    #endif
+    case T_NIL:
+    case T_NODE:
+    case T_NONE:
+    case T_UNDEF:
+    case T_ZOMBIE:
+      return Qnil;
+    default:
+      break;
+  }
+
+  if (rb_respond_to(obj, _inspect_id)) {
+    return rb_sprintf("%+"PRIsVALUE, obj);
+  } else if (rb_respond_to(obj, _to_s_id)) {
+    return rb_sprintf("%"PRIsVALUE, obj);
+  } else {
+    return Qnil;
   }
 }
