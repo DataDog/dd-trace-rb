@@ -125,6 +125,7 @@ struct heap_recorder {
 };
 static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
+static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, object_record *record);
 static int st_heap_record_entry_free(st_data_t, st_data_t, st_data_t);
 static int st_object_record_entry_free(st_data_t, st_data_t, st_data_t);
 static int st_object_record_update(st_data_t, st_data_t, st_data_t);
@@ -383,15 +384,7 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
 
   if (!ruby_ref_from_id(LONG2NUM(obj_id), &ref)) {
     // Id no longer associated with a valid ref. Need to delete this object record!
-
-    // Starting with the associated heap record. There will now be one less tracked object pointing to it
-    heap_record *heap_record = record->heap_record;
-    heap_record->num_tracked_objects--;
-
-    // One less object using this heap record, it may have become unused...
-    cleanup_heap_record_if_unused(context->heap_recorder, heap_record);
-
-    object_record_free(record);
+    on_committed_object_record_cleanup(context->heap_recorder, record);
     return ST_DELETE;
   }
 
@@ -458,10 +451,20 @@ static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *
   object_record_update_data *update_data = (object_record_update_data*) data;
   if (existing) {
     object_record *existing_record = (object_record*) (*value);
-    VALUE existing_inspect = object_record_inspect(existing_record);
-    VALUE new_inspect = object_record_inspect(update_data->new_object_record);
-    rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
-        "the same id.\nprevious=%"PRIsVALUE"\nnew=%"PRIsVALUE"\n", existing_inspect, new_inspect);
+    #ifdef HAVE_WORKING_RB_GC_FORCE_RECYCLE
+      // In this case, it's possible for an object id to be re-used. This is not great since we only
+      // look at a small amount of allocation samples which means we may have live object records
+      // being attributed to the wrong stack/labels.
+      // In this particular case, though, we saw the re-used allocation so prefer the new object_record
+      // and cleanup the old one.
+      on_committed_object_record_cleanup(update_data->heap_recorder, existing_record);
+    #else
+      // This is not supposed to happen, raising...
+      VALUE existing_inspect = object_record_inspect(existing_record);
+      VALUE new_inspect = object_record_inspect(update_data->new_object_record);
+      rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
+          "the same id.\nprevious=%"PRIsVALUE"\nnew=%"PRIsVALUE"\n", existing_inspect, new_inspect);
+    #endif
   }
   // Always carry on with the update, we want the new record to be there at the end
   (*value) = (st_data_t) update_data->new_object_record;
@@ -471,20 +474,17 @@ static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *
 static void commit_allocation(heap_recorder *heap_recorder, heap_record *heap_record, object_record *object_record) {
   // Link the object record with the corresponding heap record.
   object_record->heap_record = heap_record;
+  if (heap_record->num_tracked_objects == UINT32_MAX) {
+    rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
+  }
+  heap_record->num_tracked_objects++;
 
   // Update object_records
   object_record_update_data update_data = (object_record_update_data) {
     .heap_recorder = heap_recorder,
     .new_object_record = object_record,
   };
-  if (!st_update(heap_recorder->object_records, object_record->obj_id, update_object_record_entry, (st_data_t) &update_data)) {
-    // We are sure there was no previous record for this id so let the heap record know there now is one
-    // extra record associated with this stack.
-    if (heap_record->num_tracked_objects == UINT32_MAX) {
-      rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
-    }
-    heap_record->num_tracked_objects++;
-  };
+  st_update(heap_recorder->object_records, object_record->obj_id, update_object_record_entry, (st_data_t) &update_data);
 }
 
 // Struct holding data required for an update operation on heap_records
@@ -554,6 +554,17 @@ static void cleanup_heap_record_if_unused(heap_recorder *heap_recorder, heap_rec
   };
   heap_record_key_free(deleted_key);
   heap_record_free(heap_record);
+}
+
+static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, object_record *record) {
+  // Starting with the associated heap record. There will now be one less tracked object pointing to it
+  heap_record *heap_record = record->heap_record;
+  heap_record->num_tracked_objects--;
+
+  // One less object using this heap record, it may have become unused...
+  cleanup_heap_record_if_unused(heap_recorder, heap_record);
+
+  object_record_free(record);
 }
 
 // ===============

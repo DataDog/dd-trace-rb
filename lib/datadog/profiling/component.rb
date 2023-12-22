@@ -213,6 +213,14 @@ module Datadog
           return false
         end
 
+        if RUBY_VERSION.start_with?('3.') && RUBY_VERSION < '3.1'
+          Datadog.logger.warn(
+            "Current Ruby version (#{RUBY_VERSION}) supports forced object recycling which may affect the "\
+            'accuracy of heap profiling data. Please update to Ruby >= 3.1 where this feature was removed '\
+            '(https://bugs.ruby-lang.org/issues/18290) to improve heap profiling quality.'
+          )
+        end
+
         unless allocation_profiling_enabled
           raise ArgumentError,
             'Heap profiling requires allocation profiling to be enabled'

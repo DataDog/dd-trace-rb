@@ -192,6 +192,12 @@ if RUBY_VERSION < '2.4'
   $defs << '-DUSE_LEGACY_RB_VM_FRAME_METHOD_ENTRY'
 end
 
+# On older Rubies, rb_gc_force_recycle allowed to free objects in a way that
+# would be invisible to free tracepoints, finalizers and without cleaning
+# obj_to_id_tbl mappings. This leads to potential invisible object re-use
+# to our heap profiler.
+$defs << '-DHAVE_WORKING_RB_GC_FORCE_RECYCLE' if RUBY_VERSION < '3.1'
+
 # If we got here, libdatadog is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
 Logging.message("[ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
