@@ -16,4 +16,12 @@ RSpec.describe 'Profiling benchmarks', if: (RUBY_VERSION >= '2.4.0') do
   describe 'profiler_http_transport' do
     it('runs without raising errors') { expect_in_fork { load './benchmarks/profiler_http_transport.rb' } }
   end
+
+  describe 'profiler_heap_sampling' do
+    it('runs without raising errors') { expect_in_fork { load './benchmarks/profiler_heap_sampling.rb' } }
+  end
+
+  describe 'profiler_heap_serialization' do
+    it('runs without raising errors') { expect_in_fork { load './benchmarks/profiler_heap_serialization.rb' } }
+  end
 end

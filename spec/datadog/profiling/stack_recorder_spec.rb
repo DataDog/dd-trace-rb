@@ -522,7 +522,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "aren't lost when they happen concurrently with a long serialization" do
-          described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
+          described_class::Testing._native_prepare_heap_serialization(stack_recorder)
 
           test_num_allocated_object = 123
           live_objects = Array.new(test_num_allocated_object)
@@ -534,7 +534,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           allocation_line = __LINE__ - 3
 
-          described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
+          described_class::Testing._native_finish_heap_serialization(stack_recorder)
 
           heap_samples_in_test_matcher = lambda { |sample|
             (sample.values[:'heap-live-samples'] || 0) > 0 && sample.locations.any? do |location|

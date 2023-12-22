@@ -238,8 +238,8 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
 static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */);
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight, VALUE alloc_class);
 static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locations);
-static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
-static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_prepare_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_finish_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 
 
@@ -267,10 +267,10 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_record_endpoint", _native_record_endpoint, 3);
   rb_define_singleton_method(testing_module, "_native_track_object", _native_track_object, 4);
   rb_define_singleton_method(testing_module, "_native_check_heap_hashes", _native_check_heap_hashes, 1);
-  rb_define_singleton_method(testing_module, "_native_start_fake_slow_heap_serialization",
-      _native_start_fake_slow_heap_serialization, 1);
-  rb_define_singleton_method(testing_module, "_native_end_fake_slow_heap_serialization",
-      _native_end_fake_slow_heap_serialization, 1);
+  rb_define_singleton_method(testing_module, "_native_prepare_heap_serialization",
+      _native_prepare_heap_serialization, 1);
+  rb_define_singleton_method(testing_module, "_native_finish_heap_serialization",
+      _native_finish_heap_serialization, 1);
   rb_define_singleton_method(testing_module, "_native_debug_heap_recorder",
       _native_debug_heap_recorder, 1);
 
@@ -883,7 +883,7 @@ static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time 
 
 // This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+static VALUE _native_prepare_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -894,7 +894,7 @@ static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _se
 
 // This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+static VALUE _native_finish_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
