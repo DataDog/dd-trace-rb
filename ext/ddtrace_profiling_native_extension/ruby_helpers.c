@@ -172,7 +172,7 @@ size_t rb_obj_memsize_of(VALUE obj);
 
 // Wrapper around rb_obj_memsize_of to avoid hitting crashing paths.
 size_t ruby_obj_memsize_of(VALUE obj) {
-  switch (BUILTIN_TYPE(obj)) {
+  switch (rb_type(obj)) {
     case T_OBJECT:
     case T_MODULE:
     case T_CLASS:
