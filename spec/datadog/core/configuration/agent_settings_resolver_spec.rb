@@ -108,26 +108,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'when a custom hostname is specified via code using "tracing.transport_options =" (positional args variant)' do
-      before do
-        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, 'custom-hostname') }
-      end
-
-      it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
-      end
-    end
-
-    context 'when a custom hostname is specified via code using "tracing.transport_options =" (keyword args variant)' do
-      before do
-        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, hostname: 'custom-hostname') }
-      end
-
-      it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
-      end
-    end
-
     describe 'priority' do
       let(:with_transport_options) { nil }
       let(:with_agent_host) { nil }
@@ -151,23 +131,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         end
         (ddtrace_settings.agent.host = with_agent_host) if with_agent_host
         (ddtrace_settings.agent.port = with_agent_port) if with_agent_port
-      end
-
-      context 'when tracing.transport_options, agent.host, DD_TRACE_AGENT_URL, DD_AGENT_HOST are provided' do
-        let(:with_transport_options) { 'custom-hostname-1' }
-        let(:with_agent_host) { 'custom-hostname-2' }
-        let(:with_trace_agent_url) { 'custom-hostname-3' }
-        let(:with_environment_agent_host) { 'custom-hostname-4' }
-
-        it 'prioritizes the tracing.transport_options' do
-          expect(resolver).to have_attributes(hostname: 'custom-hostname-1')
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Configuration mismatch/)
-
-          resolver
-        end
       end
 
       context 'when agent.host, DD_TRACE_AGENT_URL, DD_AGENT_HOST are provided' do
@@ -426,40 +389,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'when a custom port is specified via code using "tracing.transport_options =" (positional args variant)' do
-      before do
-        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, nil, 1234) }
-      end
-
-      it 'contacts the agent using the http adapter, using the custom port' do
-        expect(resolver).to have_attributes(**settings, port: 1234)
-      end
-
-      it_behaves_like "parsing of port when it's not an integer" do
-        before do
-          port = port_value_to_parse
-          ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, nil, port) }
-        end
-      end
-    end
-
-    context 'when a custom port is specified via code using "tracing.transport_options =" (keyword args variant)' do
-      before do
-        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, port: 1234) }
-      end
-
-      it 'contacts the agent using the http adapter, using the custom port' do
-        expect(resolver).to have_attributes(**settings, port: 1234)
-      end
-
-      it_behaves_like "parsing of port when it's not an integer" do
-        before do
-          port = port_value_to_parse
-          ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, port: port) }
-        end
-      end
-    end
-
     describe 'priority' do
       let(:with_agent_port) { nil }
       let(:with_trace_agent_url) { nil }
@@ -605,7 +534,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         expect(resolver).to have_attributes(
           **settings,
           ssl: false,
-          hostname: 'custom-hostname',
           port: 1234,
           timeout_seconds: 42,
         )
@@ -620,7 +548,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
           expect(resolver).to have_attributes(
             **settings,
             ssl: true,
-            hostname: 'custom-hostname',
             port: 1234,
             timeout_seconds: 42,
           )
