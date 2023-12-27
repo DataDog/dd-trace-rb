@@ -18,6 +18,18 @@ require 'ddtrace/version'
 RSpec.describe Datadog::Core::Telemetry::Collector do
   let(:dummy_class) { Class.new { extend(Datadog::Core::Telemetry::Collector) } }
 
+  before do
+    # We don't care about details of profiling initialization (which requires
+    # interacting with native extension) in this suite. This initialization is
+    # tested in other suites. Thus, mock it to nil throughout.
+    # NOTE: We could have used a double but that leads to messy configuration
+    # lifecycle as we'd need to do a full reconfiguration in an `after` block
+    # (which would require extra allow/expect for unrelated things). The global
+    # reset with `around` happens already outside of a test context where it is
+    # forbidden to interact with doubles (and thus we can't call shutdown! on it)
+    allow(Datadog::Profiling::Component).to receive(:build_profiler_component).and_return(nil)
+  end
+
   describe '#application' do
     subject(:application) { dummy_class.application }
     let(:env_service) { 'default-service' }
@@ -98,7 +110,6 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         require 'datadog/appsec'
 
         before do
-          allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start) if PlatformHelpers.mri?
           Datadog.configure do |c|
             c.profiling.enabled = true
             c.appsec.enabled = true
@@ -262,7 +273,6 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     context 'when profiling is enabled' do
       before do
         stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
-        allow_any_instance_of(Datadog::Profiling::Profiler).to receive(:start)
         Datadog.configure do |c|
           c.profiling.enabled = true
         end
