@@ -65,6 +65,9 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ROUTE)
 
+                # TEMP REMOVE ONCE SENT TO RACK #
+                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, datadog_route)
+
                 trace.resource = span.resource
 
                 sinatra_request_span = Sinatra::Env.datadog_span(env)

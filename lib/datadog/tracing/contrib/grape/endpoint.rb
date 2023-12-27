@@ -101,6 +101,9 @@ module Datadog
 
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request_method)
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
+
+                # TEMP REMOVE ONCE SENT TO RACK // ENSURE APPLICATION ROOT IS PREPENDED IN RACK VIA URL#
+                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, extract_root(endpoint.env['REQUEST_URI'], path))
               ensure
                 span.start(start)
                 span.finish(finish)
@@ -192,6 +195,11 @@ module Datadog
 
             private
 
+            def extract_root(url, path)
+              parts = path.split('/').reject(&:empty?)
+              root = url.slice(0, url.index(parts.first))
+              parts.join('/').prepend(root)
+            end
             def api_view(api)
               # If the API inherits from Grape::API in version >= 1.2.0
               # then the API will be an instance and the name must be derived from the base.
