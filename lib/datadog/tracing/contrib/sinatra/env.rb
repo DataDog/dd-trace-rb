@@ -21,7 +21,6 @@ module Datadog
 
           def route_path(env, use_script_names: Datadog.configuration.tracing[:sinatra][:resource_script_names])
             return unless env['sinatra.route']
-
             _, path = env['sinatra.route'].split(' ', 2)
             if use_script_names
               env['SCRIPT_NAME'].to_s + path

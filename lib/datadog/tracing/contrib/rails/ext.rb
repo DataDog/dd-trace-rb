@@ -14,6 +14,8 @@ module Datadog
           ENV_DISABLE = 'DISABLE_DATADOG_RAILS'
           SPAN_ROUTE = 'rails.route'
           TAG_ROUTE_PATH = 'rails.route.path'
+          TAG_COMPONENT = 'rails'
+          TAG_OPERATION_ROUTING = 'routing'
         end
       end
     end
