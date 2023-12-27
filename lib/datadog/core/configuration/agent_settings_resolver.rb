@@ -127,10 +127,6 @@ module Datadog
 
           @configured_port = pick_from(
             try_parsing_as_integer(
-              friendly_name: "'c.tracing.transport_options'",
-              value: transport_options.port,
-            ),
-            try_parsing_as_integer(
               friendly_name: '"c.agent.port"',
               value: settings.agent.port,
             ),
@@ -370,7 +366,7 @@ module Datadog
         private_constant :DetectedConfiguration
 
         # Used to contain information extracted from the transport_options proc (see #transport_options above)
-        TransportOptions = Struct.new(:adapter, :port, :timeout_seconds, :ssl, :uds_path)
+        TransportOptions = Struct.new(:adapter, :timeout_seconds, :ssl, :uds_path)
         private_constant :TransportOptions
 
         # Used to extract information from the transport_options proc (see #transport_options above)
@@ -383,7 +379,6 @@ module Datadog
             case kind_or_custom_adapter
             when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
               @transport_options.adapter = Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-              @transport_options.port = args[1] || kwargs[:port]
               @transport_options.timeout_seconds = kwargs[:timeout]
               @transport_options.ssl = kwargs[:ssl]
             when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER

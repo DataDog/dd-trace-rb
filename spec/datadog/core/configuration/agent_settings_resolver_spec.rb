@@ -527,14 +527,13 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
     context 'when the proc requests the :net_http adapter' do
       let(:transport_options) do
-        proc { |t| t.adapter(:net_http, hostname: 'custom-hostname', port: 1234, timeout: 42, ssl: false) }
+        proc { |t| t.adapter(:net_http, hostname: 'custom-hostname', timeout: 42, ssl: false) }
       end
 
       it 'contacts the agent using the http adapter, using the requested configuration' do
         expect(resolver).to have_attributes(
           **settings,
           ssl: false,
-          port: 1234,
           timeout_seconds: 42,
         )
       end
@@ -548,7 +547,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
           expect(resolver).to have_attributes(
             **settings,
             ssl: true,
-            port: 1234,
             timeout_seconds: 42,
           )
         end
