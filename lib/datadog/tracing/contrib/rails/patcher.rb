@@ -11,6 +11,7 @@ module Datadog
   module Tracing
     module Contrib
       module Rails
+        # Patcher to begin span on Rails routing
         module RoutingRouteSetPatch
           def call(*)
             result = nil
@@ -21,7 +22,9 @@ module Datadog
               Ext::SPAN_ROUTE,
               service: configuration[:service_name],
               span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
-            ) do |span, trace|
+            ) do |span|
+              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ROUTING)
               result = super
             end
 
@@ -29,6 +32,7 @@ module Datadog
           end
         end
 
+        # Patcher to trace rails routing done by JourneyRouter
         module JourneyRouterPatch
           def find_routes(*)
             result = super
@@ -36,14 +40,10 @@ module Datadog
             if (span = Datadog::Tracing.active_span)
               datadog_route = result.first[2].path.spec.to_s
 
-              span.resource = "#{datadog_route}"
+              span.resource = datadog_route.to_s
 
               # TEMP REMOVE ONCE SENT TO RACK #
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, datadog_route)
-
-              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ROUTING)
-
             end
 
             result

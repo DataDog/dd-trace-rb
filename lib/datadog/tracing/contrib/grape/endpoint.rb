@@ -200,6 +200,7 @@ module Datadog
               root = url.slice(0, url.index(parts.first))
               parts.join('/').prepend(root)
             end
+
             def api_view(api)
               # If the API inherits from Grape::API in version >= 1.2.0
               # then the API will be an instance and the name must be derived from the base.
