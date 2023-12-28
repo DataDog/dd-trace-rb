@@ -456,6 +456,165 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
   end
 
+  describe 'ssl' do
+    context 'When agent.use_ssl is set' do
+      before do
+        ddtrace_settings.agent.use_ssl = agent_use_ssl
+      end
+
+      context 'when agent.use_ssl is true' do
+        let(:agent_use_ssl) { true }
+
+        it 'contacts the agent using ssl' do
+          expect(resolver).to have_attributes(ssl: true)
+        end
+      end
+
+      context 'when agent.use_ssl is false' do
+        let(:agent_use_ssl) { false }
+
+        it 'contacts the agent without ssl' do
+          expect(resolver).to have_attributes(ssl: false)
+        end
+      end
+    end
+
+    context 'When DD_AGENT_USE_SSL is set' do
+      let(:environment) {  { 'DD_AGENT_USE_SSL' => use_ssl_value } }
+
+      context 'when set to true' do
+        let(:use_ssl_value) { 'true' }
+
+        it 'contacts the agent using ssl' do
+          expect(resolver).to have_attributes(ssl: true)
+        end
+      end
+
+      context 'when set to false' do
+        let(:use_ssl_value) { 'false' }
+
+        it 'contacts the agent without ssl' do
+          expect(resolver).to have_attributes(ssl: false)
+        end
+      end
+
+      context 'when set to nil' do
+        let(:use_ssl_value) { nil }
+
+        it 'contacts the agent without ssl' do
+          expect(resolver).to have_attributes(ssl: false)
+        end
+      end
+
+      context 'when set to an invalid string ' do
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        let(:use_ssl_value) { 'foo' }
+
+        it 'contacts the agent without ssl' do
+          expect(resolver).to have_attributes(ssl: false)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+      end
+    end
+
+    context 'when DD_TRACE_AGENT_URL is set' do
+      let(:environment) { { 'DD_TRACE_AGENT_URL' => "#{trace_agent_url_protocol}://custom-hostname:1234" } }
+
+      context 'when set to https' do
+        let(:trace_agent_url_protocol) { 'https' }
+
+        it 'contacts the agent using ssl' do
+          expect(resolver).to have_attributes(ssl: true)
+        end
+      end
+
+      context 'when http is specified' do
+        let(:trace_agent_url_protocol) { 'http' }
+
+        it 'contacts the agent without ssl' do
+          expect(resolver).to have_attributes(ssl: false)
+        end
+      end
+    end
+
+    describe 'priority' do
+      let(:environment) do
+        environment = {}
+        (environment['DD_TRACE_AGENT_URL'] = "#{trace_agent_url_protocol}://agent_hostname:1234") if with_trace_agent_url
+        (environment['DD_AGENT_USE_SSL'] = with_environment_agent_use_ssl_value.to_s) if with_environment_agent_use_ssl
+
+        environment
+      end
+
+      before do
+        allow(logger).to receive(:warn)
+        (ddtrace_settings.agent.use_ssl = with_agent_use_ssl) if with_agent_use_ssl
+      end
+
+      context 'when agent.use_ssl, DD_TRACE_AGENT_URL, DD_AGENT_USE_SSL are provided' do
+        let(:with_agent_use_ssl) { true }
+        let(:with_trace_agent_url) { true }
+        let(:trace_agent_url_protocol) { 'http' }
+        let(:with_environment_agent_use_ssl) { true }
+        let(:with_environment_agent_use_ssl_value) { false }
+
+        it 'prioritizes the agent.use_ssl' do
+          expect(resolver).to have_attributes(ssl: true)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      context 'DD_TRACE_AGENT_URL, DD_AGENT_USE_SSL are provided' do
+        let(:with_agent_use_ssl) { false }
+        let(:with_trace_agent_url) { true }
+        let(:trace_agent_url_protocol) { 'https' }
+        let(:with_environment_agent_use_ssl) { true }
+        let(:with_environment_agent_use_ssl_value) { false }
+
+        it 'prioritizes the DD_TRACE_AGENT_URL' do
+          expect(resolver).to have_attributes(ssl: true)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      context 'Only DD_AGENT_USE_SSL is provided' do
+        let(:with_agent_use_ssl) { false }
+        let(:with_trace_agent_url) { false }
+        let(:trace_agent_url_protocol) { 'http' }
+        let(:with_environment_agent_use_ssl) { true }
+        let(:with_environment_agent_use_ssl_value) { true }
+
+        it 'prioritizes the DD_AGENT_USE_SSL' do
+          expect(resolver).to have_attributes(ssl: true)
+        end
+
+        it 'does not log any warning' do
+          expect(logger).to_not receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+    end
+  end
+
   context 'when a custom url is specified via environment variable' do
     let(:environment) { { 'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234' } }
 
@@ -536,20 +695,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
           ssl: false,
           timeout_seconds: 42,
         )
-      end
-
-      context 'with ssl' do
-        let(:transport_options) do
-          proc { |t| t.adapter(:net_http, hostname: 'custom-hostname', port: 1234, timeout: 42, ssl: true) }
-        end
-
-        it 'contacts the agent using the http adapter, using the requested configuration' do
-          expect(resolver).to have_attributes(
-            **settings,
-            ssl: true,
-            timeout_seconds: 42,
-          )
-        end
       end
 
       context 'when the proc tries to set any other option' do

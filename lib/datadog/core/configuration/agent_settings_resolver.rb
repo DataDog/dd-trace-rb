@@ -141,6 +141,46 @@ module Datadog
           )
         end
 
+        def configured_ssl
+          return @configured_ssl if defined?(@configured_ssl)
+
+          @configured_ssl = pick_from(
+            DetectedConfiguration.new(
+              friendly_name: '"c.agent.use_ssl"',
+              value: settings.agent.use_ssl,
+            ),
+            DetectedConfiguration.new(
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
+              value: parsed_url_ssl?,
+            ),
+            try_parsing_as_boolean(
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_USE_SSL} environment variable",
+              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_USE_SSL],
+            )
+          )
+        end
+
+        def parsed_url_ssl?
+          return nil if parsed_url.nil?
+
+          parsed_url.scheme == 'https'
+        end
+
+        def try_parsing_as_boolean(value:, friendly_name:)
+          unless value.nil?
+            if value == 'true'
+              value = true
+            elsif value == 'false'
+              value = false
+            else
+              log_warning("Invalid value for #{friendly_name} (#{value.inspect}). Ignoring this configuration.")
+              value = nil
+            end
+          end
+
+          DetectedConfiguration.new(friendly_name: friendly_name, value: value)
+        end
+
         def try_parsing_as_integer(value:, friendly_name:)
           value =
             begin
@@ -155,8 +195,11 @@ module Datadog
         end
 
         def ssl?
-          transport_options.ssl ||
-            (!parsed_url.nil? && parsed_url.scheme == 'https')
+          if should_use_uds?
+            false
+          else
+            configured_ssl || Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_USE_SSL
+          end
         end
 
         def hostname
@@ -366,7 +409,7 @@ module Datadog
         private_constant :DetectedConfiguration
 
         # Used to contain information extracted from the transport_options proc (see #transport_options above)
-        TransportOptions = Struct.new(:adapter, :timeout_seconds, :ssl, :uds_path)
+        TransportOptions = Struct.new(:adapter, :timeout_seconds, :uds_path)
         private_constant :TransportOptions
 
         # Used to extract information from the transport_options proc (see #transport_options above)
@@ -380,7 +423,6 @@ module Datadog
             when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
               @transport_options.adapter = Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
               @transport_options.timeout_seconds = kwargs[:timeout]
-              @transport_options.ssl = kwargs[:ssl]
             when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
               @transport_options.adapter = Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
               @transport_options.uds_path = args[0] || kwargs[:uds_path]

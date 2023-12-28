@@ -61,6 +61,13 @@ module Datadog
           # @return [String,nil]
           option :port
 
+          # Agent APM SSL.
+          # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
+          # @default `DD_AGENT_USE_SSL` environment variable, otherwise `false`
+          # Only applies to http connections.
+          # @return [String,nil]
+          option :use_ssl
+
           # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
           # @public_api
