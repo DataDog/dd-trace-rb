@@ -10,6 +10,8 @@ module Datadog
       def self.build_recorder: (
         allocation_profiling_enabled: bool,
         heap_profiling_enabled: bool,
+        heap_size_profiling_enabled: bool,
+        heap_sample_every: ::Integer,
         timeline_enabled: bool,
       ) -> Datadog::Profiling::StackRecorder
 
@@ -34,7 +36,9 @@ module Datadog
       def self.enable_gc_profiling?: (untyped settings) -> bool
       def self.get_allocation_sample_every: (untyped settings) -> ::Integer
       def self.enable_allocation_profiling?: (untyped settings, ::Integer allocation_sample_every) -> bool
-      def self.enable_heap_profiling?: (untyped settings, bool allocation_profiling_enabled) -> bool
+      def self.get_heap_sample_every: (untyped settings) -> ::Integer
+      def self.enable_heap_profiling?: (untyped settings, bool allocation_profiling_enabled, ::Integer heap_sample_every) -> bool
+      def self.enable_heap_size_profiling?: (untyped settings, bool heap_profiling_enabled) -> bool
 
       def self.no_signals_workaround_enabled?: (untyped settings) -> bool
 

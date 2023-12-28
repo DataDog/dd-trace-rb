@@ -8,6 +8,7 @@ module Datadog
         alloc_samples_enabled: bool,
         heap_samples_enabled: bool,
         heap_size_enabled: bool,
+        heap_sample_every: Integer,
         timeline_enabled: bool,
       ) -> void
 
@@ -17,6 +18,7 @@ module Datadog
         bool alloc_samples_enabled,
         bool heap_samples_enabled,
         bool heap_size_enabled,
+        Integer heap_sample_every,
         bool timeline_enabled,
       ) -> true
 
