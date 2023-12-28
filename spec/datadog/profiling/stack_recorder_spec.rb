@@ -11,6 +11,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   # Enabling this is tested in a particular context below.
   let(:heap_samples_enabled) { false }
   let(:heap_size_enabled) { false }
+  let(:heap_sample_every) { 1 }
   let(:timeline_enabled) { true }
 
   subject(:stack_recorder) do
@@ -19,6 +20,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       alloc_samples_enabled: alloc_samples_enabled,
       heap_samples_enabled: heap_samples_enabled,
       heap_size_enabled: heap_size_enabled,
+      heap_sample_every: heap_sample_every,
       timeline_enabled: timeline_enabled,
     )
   end
@@ -543,6 +545,20 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           relevant_sample = heap_samples.find(&heap_samples_in_test_matcher)
           expect(relevant_sample).not_to be nil
           expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object * sample_rate
+        end
+
+        context 'with custom heap sample rate configuration' do
+          let(:heap_sample_every) { 2 }
+
+          it 'only keeps track of some allocations' do
+            # By only sampling every 2nd allocation we only track the odd objects which means our array
+            # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
+            expect(heap_samples.size).to eq(1)
+
+            heap_sample = heap_samples.first
+            expect(heap_sample.labels[:'allocation class']).to eq('Array')
+            expect(heap_sample.values[:'heap-live-samples']).to eq(sample_rate * heap_sample_every)
+          end
         end
       end
     end

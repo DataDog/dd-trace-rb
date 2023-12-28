@@ -53,6 +53,21 @@ heap_recorder* heap_recorder_new(void);
 // Free a previously initialized heap recorder.
 void heap_recorder_free(heap_recorder *heap_recorder);
 
+// Set sample rate used by this heap recorder.
+//
+// Controls how many recordings will be ignored before committing a heap allocation and
+// the weight of the committed heap allocation.
+//
+// A value of 1 will effectively track all objects that are passed through
+// start/end_heap_allocation_recording pairs. A value of 10 will only track every 10th
+// object passed through such calls and its effective weight for the purposes of heap
+// profiling will be multiplied by 10.
+//
+// NOTE: Default is 1, i.e., track all heap allocation recordings.
+//
+// WARN: Non-positive values will lead to an exception being thrown.
+void heap_recorder_set_sample_rate(heap_recorder *heap_recorder, int sample_rate);
+
 // Do any cleanup needed after forking.
 // WARN: Assumes this gets called before profiler is reinitialized on the fork
 void heap_recorder_after_fork(heap_recorder *heap_recorder);

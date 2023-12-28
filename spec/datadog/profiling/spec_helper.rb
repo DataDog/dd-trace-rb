@@ -81,12 +81,16 @@ module ProfileHelpers
 
   # We disable heap_sample collection by default in tests since it requires some extra mocking/
   # setup for it to properly work.
-  def build_stack_recorder(heap_samples_enabled: false, heap_size_enabled: false, timeline_enabled: false)
+  def build_stack_recorder(
+    heap_samples_enabled: false, heap_size_enabled: false, heap_sample_every: 1,
+    timeline_enabled: false
+  )
     Datadog::Profiling::StackRecorder.new(
       cpu_time_enabled: true,
       alloc_samples_enabled: true,
       heap_samples_enabled: heap_samples_enabled,
       heap_size_enabled: heap_size_enabled,
+      heap_sample_every: heap_sample_every,
       timeline_enabled: timeline_enabled,
     )
   end

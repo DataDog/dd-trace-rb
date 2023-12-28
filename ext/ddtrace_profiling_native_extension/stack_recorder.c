@@ -218,6 +218,7 @@ static VALUE _native_initialize(
   VALUE alloc_samples_enabled,
   VALUE heap_samples_enabled,
   VALUE heap_sizes_enabled,
+  VALUE heap_sample_every,
   VALUE timeline_enabled
 );
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
@@ -257,7 +258,7 @@ void stack_recorder_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
-  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 6);
+  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 7);
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
   rb_define_singleton_method(stack_recorder_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
@@ -373,16 +374,20 @@ static VALUE _native_initialize(
   VALUE alloc_samples_enabled,
   VALUE heap_samples_enabled,
   VALUE heap_size_enabled,
+  VALUE heap_sample_every,
   VALUE timeline_enabled
 ) {
   ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
   ENFORCE_BOOLEAN(heap_samples_enabled);
   ENFORCE_BOOLEAN(heap_size_enabled);
+  ENFORCE_TYPE(heap_sample_every, T_FIXNUM);
   ENFORCE_BOOLEAN(timeline_enabled);
 
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_set_sample_rate(state->heap_recorder, NUM2INT(heap_sample_every));
 
   uint8_t requested_values_count = ALL_VALUE_TYPES_COUNT -
     (cpu_time_enabled == Qtrue ? 0 : 1) -
