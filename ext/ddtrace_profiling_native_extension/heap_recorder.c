@@ -93,6 +93,7 @@ typedef struct {
 static object_record* object_record_new(long, heap_record*, live_object_data);
 static void object_record_free(object_record*);
 static VALUE object_record_inspect(object_record*);
+static object_record SKIPPED_RECORD = {0};
 
 struct heap_recorder {
   // Map[key: heap_record_key*, record: heap_record*]
@@ -122,6 +123,10 @@ struct heap_recorder {
 
   // Reusable location array, implementing a flyweight pattern for things like iteration.
   ddog_prof_Location *reusable_locations;
+
+  // Sampling controls
+  uint sample_rate;
+  uint num_recordings_skipped;
 };
 static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
@@ -151,6 +156,7 @@ heap_recorder* heap_recorder_new(void) {
   recorder->object_records_snapshot = NULL;
   recorder->reusable_locations = ruby_xcalloc(MAX_FRAMES_LIMIT, sizeof(ddog_prof_Location));
   recorder->partial_object_record = NULL;
+  recorder->sample_rate = 1; // By default do no sampling
 
   return recorder;
 }
@@ -184,6 +190,19 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
   ruby_xfree(heap_recorder);
 }
 
+void heap_recorder_set_sample_rate(heap_recorder *heap_recorder, int sample_rate) {
+  if (heap_recorder == NULL) {
+    return;
+  }
+
+  if (sample_rate < 0) {
+    rb_raise(rb_eArgError, "Heap sample rate must be a positive integer value but was %d", sample_rate);
+  }
+
+  heap_recorder->sample_rate = sample_rate;
+  heap_recorder->num_recordings_skipped = 0;
+}
+
 // WARN: Assumes this gets called before profiler is reinitialized on the fork
 void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
@@ -211,6 +230,14 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     return;
   }
 
+  if (heap_recorder->num_recordings_skipped + 1 < heap_recorder->sample_rate) {
+    heap_recorder->partial_object_record = &SKIPPED_RECORD;
+    heap_recorder->num_recordings_skipped++;
+    return;
+  }
+
+  heap_recorder->num_recordings_skipped = 0;
+
   VALUE ruby_obj_id = rb_obj_id(new_obj);
   if (!FIXNUM_P(ruby_obj_id)) {
     rb_raise(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
@@ -221,7 +248,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   }
 
   heap_recorder->partial_object_record = object_record_new(FIX2LONG(ruby_obj_id), NULL, (live_object_data) {
-    .weight =  weight,
+    .weight =  weight * heap_recorder->sample_rate,
     .class = alloc_class != NULL ? string_from_char_slice(*alloc_class) : NULL,
     .alloc_gen = rb_gc_count(),
   });
@@ -238,10 +265,14 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
     // Recording ended without having been started?
     rb_raise(rb_eRuntimeError, "Ended a heap recording that was not started");
   }
-
   // From now on, mark active recording as invalid so we can short-circuit at any point and
   // not end up with a still active recording. partial_object_record still holds the object for this recording
   heap_recorder->partial_object_record = NULL;
+
+  if (partial_object_record == &SKIPPED_RECORD) {
+    // special marker when we decided to skip due to sampling
+    return;
+  }
 
   heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
 

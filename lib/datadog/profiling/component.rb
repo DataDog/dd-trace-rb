@@ -7,7 +7,7 @@ module Datadog
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
-      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:)
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
         require_relative '../profiling/diagnostics/environment_logger'
 
         Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
@@ -43,7 +43,9 @@ module Datadog
         timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
         allocation_sample_every = get_allocation_sample_every(settings)
         allocation_profiling_enabled = enable_allocation_profiling?(settings, allocation_sample_every)
-        heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled)
+        heap_sample_every = get_heap_sample_every(settings)
+        heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled, heap_sample_every)
+        heap_size_profiling_enabled = enable_heap_size_profiling?(settings, heap_profiling_enabled)
 
         overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage)
         upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
@@ -51,6 +53,8 @@ module Datadog
         recorder = build_recorder(
           allocation_profiling_enabled: allocation_profiling_enabled,
           heap_profiling_enabled: heap_profiling_enabled,
+          heap_size_profiling_enabled: heap_size_profiling_enabled,
+          heap_sample_every: heap_sample_every,
           timeline_enabled: timeline_enabled,
         )
         thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
@@ -67,6 +71,7 @@ module Datadog
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           timeline_enabled: timeline_enabled,
           allocation_sample_every: allocation_sample_every,
+          heap_sample_every: heap_sample_every,
         }.freeze
 
         exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
@@ -79,13 +84,16 @@ module Datadog
       private_class_method def self.build_recorder(
         allocation_profiling_enabled:,
         heap_profiling_enabled:,
+        heap_size_profiling_enabled:,
+        heap_sample_every:,
         timeline_enabled:
       )
         Datadog::Profiling::StackRecorder.new(
           cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
           alloc_samples_enabled: allocation_profiling_enabled,
           heap_samples_enabled: heap_profiling_enabled,
-          heap_size_enabled: heap_profiling_enabled,
+          heap_size_enabled: heap_size_profiling_enabled,
+          heap_sample_every: heap_sample_every,
           timeline_enabled: timeline_enabled,
         )
       end
@@ -147,6 +155,14 @@ module Datadog
         allocation_sample_rate
       end
 
+      private_class_method def self.get_heap_sample_every(settings)
+        heap_sample_rate = settings.profiling.advanced.experimental_heap_sample_rate
+
+        raise ArgumentError, "Heap sample rate must be a positive integer. Was #{heap_sample_rate}" if heap_sample_rate <= 0
+
+        heap_sample_rate
+      end
+
       private_class_method def self.enable_allocation_profiling?(settings, allocation_sample_every)
         unless settings.profiling.advanced.experimental_allocation_enabled
           # Allocation profiling disabled, short-circuit out
@@ -200,7 +216,7 @@ module Datadog
         true
       end
 
-      private_class_method def self.enable_heap_profiling?(settings, allocation_profiling_enabled)
+      private_class_method def self.enable_heap_profiling?(settings, allocation_profiling_enabled, heap_sample_rate)
         heap_profiling_enabled = settings.profiling.advanced.experimental_heap_enabled
 
         return false unless heap_profiling_enabled
@@ -227,7 +243,20 @@ module Datadog
         end
 
         Datadog.logger.warn(
-          'Enabled experimental heap profiling. This is experimental, not recommended, and will increase overhead!'
+          "Enabled experimental heap profiling: heap_sample_rate=#{heap_sample_rate}. This is experimental, not " \
+          'recommended, and will increase overhead!'
+        )
+
+        true
+      end
+
+      private_class_method def self.enable_heap_size_profiling?(settings, heap_profiling_enabled)
+        heap_size_profiling_enabled = settings.profiling.advanced.experimental_heap_size_enabled
+
+        return false unless heap_profiling_enabled && heap_size_profiling_enabled
+
+        Datadog.logger.warn(
+          'Enabled experimental heap size profiling. This is experimental, not recommended, and will increase overhead!'
         )
 
         true
