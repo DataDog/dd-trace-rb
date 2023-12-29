@@ -74,6 +74,13 @@ module Datadog
           # @return [Integer,nil]
           option :timeout_seconds
 
+          # Agent unix domain socket path.
+          # @default `DD_AGENT_UDS_PATH` environment variable, otherwise '/var/run/datadog/apm.socket'
+          # Agent connects via HTTP by default, but will use UDS if this is set or if unix scheme defined in
+          # DD_TRACE_AGENT_URL.
+          # @return [String,nil]
+          option :uds_path
+
           # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
           # @public_api

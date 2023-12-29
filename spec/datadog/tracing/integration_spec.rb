@@ -154,9 +154,7 @@ RSpec.describe 'Tracer integration tests' do
         skip("Can't share docker volume to access unix socket in CircleCI currently") if PlatformHelpers.ci?
 
         Datadog.configure do |c|
-          c.tracing.transport_options = proc { |t|
-            t.adapter :unix, ENV['TEST_DDAGENT_UNIX_SOCKET']
-          }
+          c.agent.uds_path = ENV['TEST_DDAGENT_UNIX_SOCKET']
         end
       end
 

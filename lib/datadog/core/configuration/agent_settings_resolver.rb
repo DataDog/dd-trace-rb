@@ -67,13 +67,14 @@ module Datadog
 
         def call
           # A transport_options proc configured for unix domain socket overrides most of the logic on this file
+          # TODO: EK - REMOVE THIS?
           if transport_options.adapter == Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
             return AgentSettings.new(
               adapter: Datadog::Core::Transport::Ext::UnixSocket::ADAPTER,
               ssl: false,
               hostname: nil,
               port: nil,
-              uds_path: transport_options.uds_path,
+              uds_path: uds_path,
               timeout_seconds: timeout_seconds,
               deprecated_for_removal_transport_configuration_proc: nil,
             )
@@ -176,6 +177,25 @@ module Datadog
           )
         end
 
+        def configured_uds_path
+          return @configured_uds_path if defined?(@configured_uds_path)
+
+          @configured_uds_path = pick_from(
+            DetectedConfiguration.new(
+              friendly_name: "'c.agent.uds_path'",
+              value: settings.agent.uds_path
+            ),
+            DetectedConfiguration.new(
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
+              value: parsed_url_uds_path
+            ),
+            DetectedConfiguration.new(
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_UDS_PATH} environment variable",
+              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_UDS_PATH]
+            )
+          )
+        end
+
         def parsed_url_ssl?
           return nil if parsed_url.nil?
 
@@ -236,22 +256,25 @@ module Datadog
           end
         end
 
+        def parsed_url_uds_path
+          # return nil unless !mixed_http_and_uds? && parsed_url && unix_scheme?(parsed_url)
+          return nil unless parsed_url && unix_scheme?(parsed_url)
+
+          path = parsed_url.to_s
+          # Some versions of the built-in uri gem leave the original url untouched, and others remove the //, so this
+          # supports both
+          if path.start_with?('unix://')
+            path.sub('unix://', '')
+          else
+            path.sub('unix:', '')
+          end
+        end
+
         # Unix socket path in the file system
         def uds_path
-          if mixed_http_and_uds?
-            nil
-          elsif parsed_url && unix_scheme?(parsed_url)
-            path = parsed_url.to_s
-            # Some versions of the built-in uri gem leave the original url untouched, and others remove the //, so this
-            # supports both
-            if path.start_with?('unix://')
-              path.sub('unix://', '')
-            else
-              path.sub('unix:', '')
-            end
-          else
-            uds_fallback
-          end
+          return nil unless should_use_uds?
+
+          configured_uds_path || uds_fallback
         end
 
         # In transport_options, we try to invoke the transport_options proc and get its configuration. In case that
@@ -286,7 +309,7 @@ module Datadog
         end
 
         def can_use_uds?
-          parsed_url && unix_scheme?(parsed_url) ||
+          !configured_uds_path.nil? ||
             # If no agent settings have been provided, we try to connect using a local unix socket.
             # We only do so if the socket is present when `ddtrace` runs.
             !uds_fallback.nil?
@@ -429,7 +452,7 @@ module Datadog
         private_constant :DetectedConfiguration
 
         # Used to contain information extracted from the transport_options proc (see #transport_options above)
-        TransportOptions = Struct.new(:adapter, :uds_path)
+        TransportOptions = Struct.new(:adapter)
         private_constant :TransportOptions
 
         # Used to extract information from the transport_options proc (see #transport_options above)
@@ -444,7 +467,6 @@ module Datadog
               @transport_options.adapter = Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
             when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
               @transport_options.adapter = Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
-              @transport_options.uds_path = args[0] || kwargs[:uds_path]
             end
 
             nil

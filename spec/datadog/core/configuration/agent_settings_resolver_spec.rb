@@ -8,7 +8,10 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     {
       'DD_AGENT_HOST' => nil,
       'DD_TRACE_AGENT_PORT' => nil,
-      'DD_TRACE_AGENT_URL' => nil
+      'DD_TRACE_AGENT_URL' => nil,
+      'DD_AGENT_USE_SSL' => nil,
+      'DD_AGENT_TIMEOUT_SECONDS' => nil,
+      'DD_AGENT_UDS_PATH' => nil
     }
   end
   let(:environment) { {} }
@@ -803,6 +806,105 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         expect(logger).to receive(:warn).with(/Invalid URI scheme/)
 
         resolver
+      end
+    end
+  end
+
+  describe 'uds_path' do
+    let(:hostname) { nil }
+    let(:port) { nil }
+    let(:timeout_seconds) { 1 }
+    let(:adapter) { :unix }
+
+    context 'when a custom path is specified via the DD_AGENT_UDS_PATH environment variable' do
+      let(:environment) { { 'DD_AGENT_UDS_PATH' => '/var/some/where.socket' } }
+
+      it 'contacts the agent using the unix adapter, using the custom path' do
+        expect(resolver).to have_attributes(**settings, uds_path: '/var/some/where.socket')
+      end
+    end
+
+    context 'when a custom path is specified via code using "agent.uds_path ="' do
+      before do
+        ddtrace_settings.agent.uds_path = '/var/code/custom.socket'
+      end
+
+      it 'contacts the agent using the unix adapter, using the custom path' do
+        expect(resolver).to have_attributes(**settings, uds_path: '/var/code/custom.socket')
+      end
+    end
+
+    context 'when a custom path is specified via the DD_TRACE_AGENT_URL environment variable' do
+      let(:environment) { { 'DD_TRACE_AGENT_URL' => "unix:///var/uri.socket" } }
+
+      it 'contacts the agent using the unix adapter, using the custom path' do
+        expect(resolver).to have_attributes(**settings, uds_path: '/var/uri.socket')
+      end
+    end
+
+    describe 'priority' do
+      let(:with_agent_uds_path) { nil }
+      let(:with_trace_agent_url) { nil }
+      let(:with_environment_agent_uds_path) { nil }
+      let(:environment) do
+        environment = {}
+
+        (environment['DD_TRACE_AGENT_URL'] = "unix://#{with_trace_agent_url}") if with_trace_agent_url
+        (environment['DD_AGENT_UDS_PATH'] = with_environment_agent_uds_path) if with_environment_agent_uds_path
+
+        environment
+      end
+
+      before do
+        allow(logger).to receive(:warn)
+        (ddtrace_settings.agent.uds_path = with_agent_uds_path) if with_agent_uds_path
+      end
+
+      context 'when agent.uds_path, DD_TRACE_AGENT_URL, DD_AGENT_UDS_PATH are provided' do
+        let(:with_agent_uds_path) { '/var/uds/path.socket' }
+        let(:with_trace_agent_url) { 'var/trace/agent.socket' }
+        let(:with_environment_agent_uds_path) { '/var/env/path.socket' }
+
+        it 'prioritizes the agent.uds_path' do
+          expect(resolver).to have_attributes(uds_path: '/var/uds/path.socket')
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      context 'when DD_TRACE_AGENT_URL, DD_AGENT_UDS_PATH are provided' do
+        let(:with_trace_agent_url) { '/var/trace/agent.socket' }
+        let(:with_environment_agent_uds_path) { '/var/env/path.socket' }
+
+        it 'prioritizes the DD_TRACE_AGENT_URL' do
+          expect(resolver).to have_attributes(uds_path: '/var/trace/agent.socket')
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      # This somewhat duplicates some of the testing above, but it's still helpful to validate that the test is correct
+      # (otherwise it may pass due to bugs, not due to right priority being used)
+      context 'when only DD_AGENT_UDS_PATH is provided' do
+        let(:with_environment_agent_uds_path) { '/var/env/path.socket' }
+
+        it 'uses the DD_AGENT_UDS_PATH' do
+          expect(resolver).to have_attributes(uds_path: '/var/env/path.socket')
+        end
+
+        it 'does not log any warning' do
+          expect(logger).to_not receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
       end
     end
   end
