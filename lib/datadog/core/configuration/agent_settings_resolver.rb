@@ -16,7 +16,6 @@ module Datadog
       #
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
-      # DEV-2.0: The deprecated_for_removal_transport_configuration_proc should be removed.
       class AgentSettingsResolver
         AgentSettings = \
           Struct.new(
@@ -26,7 +25,6 @@ module Datadog
             :port,
             :uds_path,
             :timeout_seconds,
-            :deprecated_for_removal_transport_configuration_proc,
           ) do
             def initialize(
               adapter:,
@@ -34,8 +32,7 @@ module Datadog
               hostname:,
               port:,
               uds_path:,
-              timeout_seconds:,
-              deprecated_for_removal_transport_configuration_proc:
+              timeout_seconds:
             )
               super(
                 adapter,
@@ -43,8 +40,7 @@ module Datadog
                 hostname,
                 port,
                 uds_path,
-                timeout_seconds,
-                deprecated_for_removal_transport_configuration_proc
+                timeout_seconds
               )
               freeze
             end
@@ -66,20 +62,6 @@ module Datadog
         end
 
         def call
-          # A transport_options proc configured for unix domain socket overrides most of the logic on this file
-          # TODO: EK - REMOVE THIS?
-          if transport_options.adapter == Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
-            return AgentSettings.new(
-              adapter: Datadog::Core::Transport::Ext::UnixSocket::ADAPTER,
-              ssl: false,
-              hostname: nil,
-              port: nil,
-              uds_path: uds_path,
-              timeout_seconds: timeout_seconds,
-              deprecated_for_removal_transport_configuration_proc: nil,
-            )
-          end
-
           AgentSettings.new(
             adapter: adapter,
             ssl: ssl?,
@@ -87,12 +69,6 @@ module Datadog
             port: port,
             uds_path: uds_path,
             timeout_seconds: timeout_seconds,
-            # NOTE: When provided, the deprecated_for_removal_transport_configuration_proc can override all
-            # values above (ssl, hostname, port, timeout), or even make them irrelevant (by using an unix socket or
-            # enabling test mode instead).
-            # That is the main reason why it is deprecated -- it's an opaque function that may set a bunch of settings
-            # that we know nothing of until we actually call it.
-            deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
           )
         end
 
@@ -277,18 +253,6 @@ module Datadog
           configured_uds_path || uds_fallback
         end
 
-        # In transport_options, we try to invoke the transport_options proc and get its configuration. In case that
-        # doesn't work, we include the proc directly in the agent settings result.
-        def deprecated_for_removal_transport_configuration_proc
-          transport_options_settings if transport_options_settings.is_a?(Proc) && transport_options.adapter.nil?
-        end
-
-        def transport_options_settings
-          @transport_options_settings ||= begin
-            settings.tracing.transport_options if settings.respond_to?(:tracing) && settings.tracing
-          end
-        end
-
         # We only use the default unix socket if it is already present.
         # This is by design, as we still want to use the default host:port if no unix socket is present.
         def uds_fallback
@@ -297,7 +261,6 @@ module Datadog
           @uds_fallback =
             if configured_hostname.nil? &&
                 configured_port.nil? &&
-                deprecated_for_removal_transport_configuration_proc.nil? &&
                 File.exist?(Datadog::Core::Configuration::Ext::Agent::UnixSocket::DEFAULT_PATH)
 
               Datadog::Core::Configuration::Ext::Agent::UnixSocket::DEFAULT_PATH
@@ -404,37 +367,6 @@ module Datadog
           @mixed_http_and_uds
         end
 
-        # The settings.tracing.transport_options allows users to have full control over the settings used to
-        # communicate with the agent. In the general case, we can't extract the configuration from this proc, but
-        # in the specific case of the http and unix socket adapters we can, and we use this method together with the
-        # `TransportOptionsResolver` to call the proc and extract its information.
-        def transport_options
-          return @transport_options if defined?(@transport_options)
-
-          transport_options_proc = transport_options_settings
-
-          @transport_options = TransportOptions.new
-
-          if transport_options_proc.is_a?(Proc)
-            begin
-              transport_options_proc.call(TransportOptionsResolver.new(@transport_options))
-            rescue NoMethodError => e
-              if logger
-                logger.debug do
-                  'Could not extract configuration from transport_options proc. ' \
-                  "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
-                end
-              end
-
-              # Reset the object; we shouldn't return the same one we passed into the proc as it may have
-              # some partial configuration and we want all-or-nothing.
-              @transport_options = TransportOptions.new
-            end
-          end
-
-          @transport_options.freeze
-        end
-
         # Represents a given configuration value and where we got it from
         class DetectedConfiguration
           attr_reader :friendly_name, :value
@@ -450,28 +382,6 @@ module Datadog
           end
         end
         private_constant :DetectedConfiguration
-
-        # Used to contain information extracted from the transport_options proc (see #transport_options above)
-        TransportOptions = Struct.new(:adapter)
-        private_constant :TransportOptions
-
-        # Used to extract information from the transport_options proc (see #transport_options above)
-        class TransportOptionsResolver
-          def initialize(transport_options)
-            @transport_options = transport_options
-          end
-
-          def adapter(kind_or_custom_adapter, *args, **kwargs)
-            case kind_or_custom_adapter
-            when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-              @transport_options.adapter = Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-            when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
-              @transport_options.adapter = Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
-            end
-
-            nil
-          end
-        end
       end
     end
   end

@@ -89,12 +89,6 @@ module Datadog
             "Unsupported transport configuration for profiling: Adapter #{agent_settings.adapter} " \
                         ' is not supported'
         end
-
-        if agent_settings.deprecated_for_removal_transport_configuration_proc
-          Datadog.logger.warn(
-            'Ignoring custom c.tracing.transport_options setting as the profiler does not support it.'
-          )
-        end
       end
 
       def agentless?(site, api_key)

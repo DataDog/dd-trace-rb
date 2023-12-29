@@ -34,7 +34,6 @@ class ProfilerHttpTransportBenchmark
         ssl: false,
         hostname: '127.0.0.1',
         port: @port,
-        deprecated_for_removal_transport_configuration_proc: nil,
         timeout_seconds: nil,
       ),
       site: nil,
