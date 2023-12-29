@@ -55,7 +55,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
         is_expected.to have_attributes(
           hostname: hostname,
           port: port,
-          timeout: Datadog::Core::Transport::HTTP::Adapters::Net::DEFAULT_TIMEOUT,
+          timeout: Datadog::Core::Transport::Ext::HTTP::DEFAULT_TIMEOUT_SECONDS,
           ssl: false
         )
       end

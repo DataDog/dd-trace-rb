@@ -22,7 +22,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       hostname: hostname,
       port: port,
       uds_path: uds_path,
-      timeout_seconds: nil,
+      timeout_seconds: timeout_seconds,
       deprecated_for_removal_transport_configuration_proc: nil,
     }
   end
@@ -31,6 +31,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   let(:hostname) { '127.0.0.1' }
   let(:port) { 8126 }
   let(:uds_path) { nil }
+  let(:timeout_seconds) { 30 }
 
   before do
     # Environment does not have existing unix socket for the base testing case
@@ -68,6 +69,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       let(:uds_path) { '/var/run/datadog/apm.socket' }
       let(:hostname) { nil }
       let(:port) { nil }
+      let(:timeout_seconds) { 1 }
 
       it 'configures the agent to connect to unix:///var/run/datadog/apm.socket' do
         expect(resolver).to have_attributes(
@@ -456,6 +458,142 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
   end
 
+  describe 'timeout' do
+    shared_examples_for "parsing of timeout when it's not an integer" do
+      context 'when the timeout is specified as a string instead of a number' do
+        let(:timeout_value_to_parse) { '777' }
+
+        it 'contacts the agent using the http adapter, using the custom timeout' do
+          expect(resolver).to have_attributes(**settings, timeout_seconds: 777)
+        end
+      end
+
+      context 'when the timeout is an invalid string value' do
+        let(:timeout_value_to_parse) { 'timeout' }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+
+      context 'when the timeout is an invalid object' do
+        let(:timeout_value_to_parse) { Object.new }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+    end
+
+    context 'when a custom timeout is specified via the DD_AGENT_TIMEOUT_SECONDS environment variable' do
+      let(:environment) { { 'DD_AGENT_TIMEOUT_SECONDS' => '798' } }
+
+      it 'contacts the agent using the http adapter, using the custom timeout' do
+        expect(resolver).to have_attributes(**settings, timeout_seconds: 798)
+      end
+
+      context 'when the custom timeout is invalid' do
+        let(:environment) { { 'DD_AGENT_TIMEOUT_SECONDS' => 'this-is-an-invalid-timeout' } }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+    end
+
+    context 'when a custom timeout is specified via code using "agent.timeout_seconds = "' do
+      before do
+        ddtrace_settings.agent.timeout_seconds = 111
+      end
+
+      it 'contacts the agent using the http adapter, using the custom timeout' do
+        expect(resolver).to have_attributes(**settings, timeout_seconds: 111)
+      end
+
+      it_behaves_like "parsing of timeout when it's not an integer" do
+        before do
+          ddtrace_settings.agent.timeout_seconds = timeout_value_to_parse
+        end
+      end
+    end
+
+    describe 'priority' do
+      let(:with_agent_timeout) { nil }
+      let(:with_env_agent_timeout) { nil }
+      let(:environment) do
+        environment = {}
+
+        (environment['DD_AGENT_TIMEOUT_SECONDS'] = with_env_agent_timeout.to_s) if with_env_agent_timeout
+
+        environment
+      end
+
+      before do
+        allow(logger).to receive(:warn)
+        (ddtrace_settings.agent.timeout_seconds = with_agent_timeout) if with_agent_timeout
+      end
+
+      context 'when all of agent.timeout_seconds, DD_AGENT_TIMEOUT_SECONDS are provided' do
+        let(:with_agent_timeout) { 17 }
+        let(:with_env_agent_timeout) { 39 }
+
+        it 'prioritizes the agent.timeout_seconds' do
+          expect(resolver).to have_attributes(timeout_seconds: 17)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      context 'when only DD_AGENT_TIMEOUT_SECONDS is provided' do
+        let(:with_env_agent_timeout) { 9 }
+
+        it 'uses the DD_AGENT_TIMEOUT_SECONDS' do
+          expect(resolver).to have_attributes(timeout_seconds: 9)
+        end
+
+        it 'does not log any warning' do
+          expect(logger).to_not receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+    end
+  end
+
   describe 'ssl' do
     context 'When agent.use_ssl is set' do
       before do
@@ -637,6 +775,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
     context 'when the uri scheme is unix' do
       let(:environment) { { 'DD_TRACE_AGENT_URL' => 'unix:///path/to/apm.socket' } }
+      let(:timeout_seconds) { 1 }
 
       it 'contacts the agent via a unix domain socket' do
         expect(resolver).to have_attributes(
@@ -664,107 +803,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         expect(logger).to receive(:warn).with(/Invalid URI scheme/)
 
         resolver
-      end
-    end
-  end
-
-  context 'when a proc is configured in tracer.transport_options' do
-    before do
-      ddtrace_settings.tracing.transport_options = transport_options
-    end
-
-    context 'when the proc does not configure the :net_http or :unix adapters' do
-      let(:transport_options) { proc {} }
-
-      it 'includes the given proc in the resolved settings as the deprecated_for_removal_transport_configuration_proc' do
-        expect(resolver).to have_attributes(
-          **settings,
-          deprecated_for_removal_transport_configuration_proc: transport_options
-        )
-      end
-    end
-
-    context 'when the proc requests the :net_http adapter' do
-      let(:transport_options) do
-        proc { |t| t.adapter(:net_http, hostname: 'custom-hostname', timeout: 42, ssl: false) }
-      end
-
-      it 'contacts the agent using the http adapter, using the requested configuration' do
-        expect(resolver).to have_attributes(
-          **settings,
-          ssl: false,
-          timeout_seconds: 42,
-        )
-      end
-
-      context 'when the proc tries to set any other option' do
-        let(:transport_options) do
-          proc do |t|
-            t.adapter(:net_http, hostname: 'custom-hostname', port: 1234, timeout: 42, ssl: true)
-            t.another_option = 2
-          end
-        end
-
-        before do
-          allow(logger).to receive(:debug)
-        end
-
-        it 'includes the given proc in the resolved settings as the ' \
-        'deprecated_for_removal_transport_configuration_proc and falls back to the defaults' do
-          expect(resolver).to have_attributes(
-            **settings,
-            deprecated_for_removal_transport_configuration_proc: transport_options
-          )
-        end
-
-        it 'logs a debug message' do
-          expect(logger).to receive(:debug)
-
-          resolver
-        end
-      end
-    end
-
-    context 'when the proc requests the :unix adapter' do
-      let(:transport_options) do
-        proc { |t| t.adapter(:unix, uds_path: '/custom/uds/path') }
-      end
-
-      it 'configures the agent to connect via a unix domain socket' do
-        expect(resolver).to have_attributes(
-          **settings,
-          adapter: :unix,
-          uds_path: '/custom/uds/path',
-          hostname: nil,
-          port: nil,
-        )
-      end
-
-      context 'when the proc tries to set any other option' do
-        let(:transport_options) do
-          proc do |t|
-            t.adapter(:unix, uds_path: '/custom/uds/path')
-            t.another_option = 2
-          end
-        end
-
-        before do
-          allow(logger).to receive(:debug)
-        end
-
-        it 'includes the given proc in the resolved settings as the ' \
-          'deprecated_for_removal_transport_configuration_proc and falls back to the defaults' do
-            expect(resolver).to have_attributes(
-              **settings,
-              deprecated_for_removal_transport_configuration_proc: transport_options
-            )
-          end
-
-        it 'logs a debug message' do
-          expect(logger).to receive(:debug)
-
-          resolver
-        end
       end
     end
   end

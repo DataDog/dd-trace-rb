@@ -113,7 +113,7 @@ module Datadog
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
-              value: parsed_http_url && parsed_http_url.hostname
+              value: parsed_http_url&.hostname
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST} environment variable",
@@ -132,7 +132,7 @@ module Datadog
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
-              value: parsed_http_url && parsed_http_url.port,
+              value: parsed_http_url&.port,
             ),
             try_parsing_as_integer(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT} environment variable",
@@ -156,6 +156,22 @@ module Datadog
             try_parsing_as_boolean(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_USE_SSL} environment variable",
               value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_USE_SSL],
+            )
+          )
+        end
+
+        def configured_timeout_seconds
+          return @configured_timeout_seconds if defined?(@configured_timeout_seconds)
+
+          @configured_timeout_seconds = pick_from(
+            try_parsing_as_integer(
+              friendly_name: '"c.agent.timeout_seconds"',
+              value: settings.agent.timeout_seconds,
+            ),
+            try_parsing_as_integer(
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} "\
+                'environment variable',
+              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS],
             )
           )
         end
@@ -210,6 +226,16 @@ module Datadog
           configured_port || (should_use_uds? ? nil : Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_PORT)
         end
 
+        def timeout_seconds
+          return configured_timeout_seconds unless configured_timeout_seconds.nil?
+
+          if should_use_uds?
+            Datadog::Core::Configuration::Ext::Agent::UnixSocket::DEFAULT_TIMEOUT_SECONDS
+          else
+            Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_TIMEOUT_SECONDS
+          end
+        end
+
         # Unix socket path in the file system
         def uds_path
           if mixed_http_and_uds?
@@ -226,12 +252,6 @@ module Datadog
           else
             uds_fallback
           end
-        end
-
-        # Defaults to +nil+, letting the adapter choose what default
-        # works best in their case.
-        def timeout_seconds
-          transport_options.timeout_seconds
         end
 
         # In transport_options, we try to invoke the transport_options proc and get its configuration. In case that
@@ -409,7 +429,7 @@ module Datadog
         private_constant :DetectedConfiguration
 
         # Used to contain information extracted from the transport_options proc (see #transport_options above)
-        TransportOptions = Struct.new(:adapter, :timeout_seconds, :uds_path)
+        TransportOptions = Struct.new(:adapter, :uds_path)
         private_constant :TransportOptions
 
         # Used to extract information from the transport_options proc (see #transport_options above)
@@ -422,7 +442,6 @@ module Datadog
             case kind_or_custom_adapter
             when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
               @transport_options.adapter = Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-              @transport_options.timeout_seconds = kwargs[:timeout]
             when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
               @transport_options.adapter = Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
               @transport_options.uds_path = args[0] || kwargs[:uds_path]

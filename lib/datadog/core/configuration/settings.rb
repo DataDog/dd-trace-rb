@@ -65,8 +65,14 @@ module Datadog
           # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
           # @default `DD_AGENT_USE_SSL` environment variable, otherwise `false`
           # Only applies to http connections.
-          # @return [String,nil]
+          # @return [Boolean,nil]
           option :use_ssl
+
+          # Agent APM Timeout.
+          # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
+          # @default `DD_AGENT_TIMEOUT_SECONDS` environment variable, otherwise `30` for http, '1' for UDS
+          # @return [Integer,nil]
+          option :timeout_seconds
 
           # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
