@@ -130,6 +130,9 @@ if RUBY_PLATFORM.include?('linux')
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
 
+# On older Rubies, rb_postponed_job_preregister/rb_postponed_job_trigger did not exist
+$defs << '-DNO_POSTPONED_TRIGGER' if RUBY_VERSION < '3.3'
+
 # On older Rubies, M:N threads were not available
 $defs << '-DNO_MN_THREADS_AVAILABLE' if RUBY_VERSION < '3.3'
 
