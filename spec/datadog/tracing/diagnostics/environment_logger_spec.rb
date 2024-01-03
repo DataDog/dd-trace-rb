@@ -171,7 +171,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           environment['DD_AGENT_HOST'] = nil
           environment['DD_TRACE_AGENT_PORT'] = nil
           environment['DD_TRACE_AGENT_URL'] = nil
-          environment['DD_AGENT_UDS_PATH'] = '/tmp/trace.sock'
+          environment['DD_TRACE_AGENT_UDS_PATH'] = '/tmp/trace.sock'
 
           environment
         end
