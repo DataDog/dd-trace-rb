@@ -620,6 +620,23 @@ RSpec.describe Datadog::Profiling::Component do
               end
             end
 
+            # See comments on looks_like_mariadb? for details on how this matching works
+            context "when mysql2 gem is linked to mariadb's version of libmysqlclient" do
+              before do
+                fake_client = double('Fake Mysql2::Client')
+                stub_const('Mysql2::Client', fake_client)
+                expect(fake_client).to receive(:info).and_return({ version: '4.9.99', header_version: '10.0.0' })
+              end
+
+              it { is_expected.to be false }
+
+              it 'does not log any warning message' do
+                expect(Datadog.logger).to_not receive(:warn)
+
+                no_signals_workaround_enabled?
+              end
+            end
+
             context 'when mysql2 gem is using a version of libmysqlclient < 8.0.0' do
               before do
                 fake_client = double('Fake Mysql2::Client')
