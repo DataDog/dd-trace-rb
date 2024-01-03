@@ -2472,14 +2472,13 @@ See [Additional Configuration](#additional-configuration) for more details.
 
 #### Using the Net::HTTP adapter
 
-The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default transport adapter.
+The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default transport adapter. Use of `Net::HTTP` is
+implied by setting hostname and port.
 
 ```ruby
 Datadog.configure do |c|
-  c.tracing.transport_options = proc { |t|
-    # Hostname, port, and additional options. :timeout is in seconds.
-    t.adapter :net_http, '127.0.0.1', 8126, timeout: 30
-  }
+  c.agent.host = '127.0.0.1'
+  c.agent.port = 8126
 end
 ```
 
@@ -2491,41 +2490,20 @@ To use, first configure your trace Agent to listen by Unix socket, then configur
 
 ```ruby
 Datadog.configure do |c|
-  c.tracing.transport_options = proc { |t|
-    # Provide local path to trace Agent Unix socket
-    t.adapter :unix, '/tmp/ddagent/trace.sock'
-  }
+  # Provide local path to trace Agent Unix socket
+  c.agent.uds_path = '/tmp/ddagent/trace.sock'
 end
 ```
+Note: You cannot mix UDS and TCP configurations. If you set `c.agent.uds_path`, you must not set `c.agent.host` or `c.agent.port`.
 
 #### Using the transport test adapter
 
-The `Test` adapter is a no-op transport that can optionally buffer requests. For use in test suites or other non-production environments.
+The `Test` adapter is a no-op transport that can optionally buffer requests. For use in test suites or other
+non-production environments. It is configured by setting c.tracing.test_mode.enabled to true.
 
 ```ruby
 Datadog.configure do |c|
-  c.tracing.transport_options = proc { |t|
-    # Set transport to no-op mode. Does not retain traces.
-    t.adapter :test
-
-    # Alternatively, you can provide a buffer to examine trace output.
-    # The buffer must respond to '<<'.
-    t.adapter :test, []
-  }
-end
-```
-
-#### Using a custom transport adapter
-
-Custom adapters can be configured with:
-
-```ruby
-Datadog.configure do |c|
-  c.tracing.transport_options = proc { |t|
-    # Initialize and pass an instance of the adapter
-    custom_adapter = CustomAdapter.new
-    t.adapter custom_adapter
-  }
+  c.tracing.test_mode.enabled = true
 end
 ```
 
