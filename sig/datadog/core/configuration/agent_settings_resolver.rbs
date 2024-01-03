@@ -3,7 +3,7 @@ module Datadog
     module Configuration
       class AgentSettingsResolver
         class AgentSettings < ::Struct[untyped]
-          def initialize: (adapter: untyped, ssl: untyped, hostname: untyped, port: untyped, uds_path: untyped, timeout_seconds: untyped, deprecated_for_removal_transport_configuration_proc: untyped) -> void
+          def initialize: (adapter: untyped, ssl: untyped, hostname: untyped, port: untyped, uds_path: untyped, timeout_seconds: untyped) -> void
           def merge: (**::Hash[untyped, untyped] member_values) -> AgentSettingsResolver
 
           attr_reader adapter: untyped
@@ -32,9 +32,17 @@ module Datadog
 
         def configured_port: () -> untyped
 
+        def configured_ssl: () -> untyped
+
+        def configured_timeout_seconds: () -> untyped
+
+        def configured_uds_path: () -> untyped
+
         def try_parsing_as_integer: (value: untyped, friendly_name: untyped) -> untyped
 
-        def ssl?: () -> untyped
+        def try_parsing_as_boolean: (value: untyped, friendly_name: untyped) -> untyped
+
+        def ssl?: () -> bool
 
         def hostname: () -> untyped
 
@@ -48,7 +56,15 @@ module Datadog
 
         def should_use_uds_fallback?: () -> untyped
 
+        def should_use_uds?: () -> bool
+
+        def can_use_uds?: () -> bool
+
         def parsed_url: () -> untyped
+
+        def parsed_url_ssl?: () -> untyped
+
+        def parsed_url_uds_path: () -> untyped
 
         def pick_from: (*untyped configurations_in_priority_order) -> untyped
 

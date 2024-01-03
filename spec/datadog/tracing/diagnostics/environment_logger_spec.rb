@@ -7,7 +7,6 @@ require 'datadog/tracing/transport/io'
 RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
   around { |example| ClimateControl.modify(environment) { example.run } }
 
-
   subject(:env_logger) { described_class }
 
   # Reading DD_AGENT_HOST allows this to work in CI

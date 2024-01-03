@@ -834,7 +834,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
 
     context 'when a custom path is specified via the DD_TRACE_AGENT_URL environment variable' do
-      let(:environment) { { 'DD_TRACE_AGENT_URL' => "unix:///var/uri.socket" } }
+      let(:environment) { { 'DD_TRACE_AGENT_URL' => 'unix:///var/uri.socket' } }
 
       it 'contacts the agent using the unix adapter, using the custom path' do
         expect(resolver).to have_attributes(**settings, uds_path: '/var/uri.socket')
