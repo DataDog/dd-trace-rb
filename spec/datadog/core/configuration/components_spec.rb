@@ -11,7 +11,7 @@ require 'datadog/core/telemetry/client'
 require 'datadog/core/runtime/metrics'
 require 'datadog/core/workers/runtime_metrics'
 require 'datadog/statsd'
-require 'datadog/tracing/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/tracing/flush'
 require 'datadog/tracing/sampling/all_sampler'
 require 'datadog/tracing/sampling/priority_sampler'
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .and_return(logger)
 
       expect(described_class).to receive(:build_tracer)
-        .with(settings, logger: logger)
+        .with(settings, agent_settings, logger: logger)
         .and_return(tracer)
 
       expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
@@ -382,7 +382,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_tracer' do
-    subject(:build_tracer) { described_class.build_tracer(settings, logger: logger) }
+    subject(:build_tracer) { described_class.build_tracer(settings, agent_settings, logger: logger) }
 
     context 'given an instance' do
       let(:instance) { instance_double(Datadog::Tracing::Tracer) }
@@ -448,10 +448,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
           allow(Datadog::Tracing::Writer).to receive(:new)
             .with(agent_settings: agent_settings, **writer_options)
             .and_return(writer)
-
-          expect(Datadog::Tracing::Configuration::AgentSettingsResolver).to receive(:call)
-            .with(settings, logger: logger)
-            .and_return(agent_settings)
         end
 
         after do
