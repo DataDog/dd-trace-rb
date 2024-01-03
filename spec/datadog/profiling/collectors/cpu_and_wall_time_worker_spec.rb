@@ -570,8 +570,6 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       end
 
       it 'records live heap objects' do
-        skip('FIXME: Unblock CI -- flaky on Ruby 3.3') if RUBY_VERSION.start_with?('3.3.')
-
         stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
 
         start

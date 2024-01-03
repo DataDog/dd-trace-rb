@@ -426,8 +426,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it 'include the stack and sample counts for the objects still left alive' do
-          skip('FIXME: Unblock CI -- flaky on Ruby 3.3') if RUBY_VERSION.start_with?('3.3.')
-
           # There should be 3 different allocation class labels so we expect 3 different heap samples
           expect(heap_samples.size).to eq(3)
 
@@ -518,8 +516,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "aren't lost when they happen concurrently with a long serialization" do
-          skip('FIXME: Unblock CI -- flaky on Ruby 3.3') if RUBY_VERSION.start_with?('3.3.')
-
           described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
           test_num_allocated_object = 123
