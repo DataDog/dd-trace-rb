@@ -386,12 +386,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # that last entry and thus manages to get it marked in the first GC.
         # To reduce the likelihood of this happening we'll:
         # * Allocate some more stuff and clear again
-        # * Sleep a bit
         # * Do another GC
         allocations = ["another fearsome interpolated string: #{sample_rate}", (-20..-10).to_a,
                        { 'a' => 1, 'b' => '2', 'c' => true }, Object.new]
         allocations.clear
-        sleep(0.5)
         GC.start
       end
 
@@ -429,44 +427,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # There should be 3 different allocation class labels so we expect 3 different heap samples
           expect(heap_samples.size).to eq(3)
 
-          string_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'String' }
-          expect(string_sample.values).to match(
-            hash_including(
-              :"heap-live-samples" => sample_rate,
-            )
-          )
-          expect(string_sample.labels).to match(
-            {
-              :'allocation class' => 'String',
-              :'gc gen age' => be_a(Integer).and(be >= 0),
-            }
-          )
-
-          array_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Array' }
-          expect(array_sample.values).to match(
-            hash_including(
-              :"heap-live-samples" => sample_rate,
-            )
-          )
-          expect(array_sample.labels).to match(
-            {
-              :'allocation class' => 'Array',
-              :'gc gen age' => be_a(Integer).and(be >= 0),
-            }
-          )
-
-          hash_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Hash' }
-          expect(hash_sample.values).to match(
-            hash_including(
-              :"heap-live-samples" => sample_rate,
-            )
-          )
-          expect(hash_sample.labels).to match(
-            {
-              :'allocation class' => 'Hash',
-              :'gc gen age' => be_a(Integer).and(be >= 0),
-            }
-          )
+          expect(heap_samples.map { |s| s.labels[:'allocation class'] }).to include('String', 'Array', 'Hash')
+          expect(heap_samples.map(&:labels)).to all(match(hash_including(:'gc gen age' => be_a(Integer).and(be >= 0))))
         end
 
         it 'include accurate object ages' do

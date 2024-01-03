@@ -200,8 +200,11 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   // will be the thread holding on to the GVL. Since we support iteration on the heap recorder
   // outside of the GVL, any state specific to that interaction may be incosistent after fork
   // (e.g. an acquired lock for thread safety). Iteration operates on object_records_snapshot
-  // though and that one will be updated on next heap_recorder_prepare_iteration so there's
-  // nothing for us to do here.
+  // though and that one will be updated on next heap_recorder_prepare_iteration so we really
+  // only need to finish any iteration that might have been left unfinished.
+  if (heap_recorder->object_records_snapshot != NULL) {
+    heap_recorder_finish_iteration(heap_recorder);
+  }
 }
 
 void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *alloc_class) {
