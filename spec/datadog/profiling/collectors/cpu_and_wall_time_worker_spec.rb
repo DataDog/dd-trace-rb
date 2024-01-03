@@ -570,13 +570,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       end
 
       it 'records live heap objects' do
-        skip('FIXME: Unblock CI -- flaky on Ruby 3.3') if RUBY_VERSION.start_with?('3.3.')
-
         stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
-
-        # Warm this up to remove VM-related allocations
-        # TODO: Remove this when we can match on allocation class
-        CpuAndWallTimeWorkerSpec::TestStruct.new
 
         start
 
@@ -589,7 +583,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
         test_struct_heap_sample = lambda { |sample|
           first_frame = sample.locations.first
-          first_frame.lineno == allocation_line && first_frame.path == __FILE__ && first_frame.base_label == 'new' &&
+          first_frame.lineno == allocation_line &&
+            first_frame.path == __FILE__ &&
+            first_frame.base_label == 'new' &&
+            sample.labels[:'allocation class'] == 'CpuAndWallTimeWorkerSpec::TestStruct' &&
             (sample.values[:'heap-live-samples'] || 0) > 0
         }
 

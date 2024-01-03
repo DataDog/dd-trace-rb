@@ -4,6 +4,7 @@
 #include "ruby_helpers.h"
 #include <errno.h>
 #include "collectors_stack.h"
+#include "libdatadog_helpers.h"
 
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
@@ -92,15 +93,6 @@ typedef struct {
 static object_record* object_record_new(long, heap_record*, live_object_data);
 static void object_record_free(object_record*);
 
-// Allows storing data passed to ::start_heap_allocation_recording to make it accessible to
-// ::end_heap_allocation_recording.
-//
-// obj_id != 0 flags this struct as holding a valid partial heap recording.
-typedef struct {
-  long obj_id;
-  live_object_data object_data;
-} partial_heap_recording;
-
 struct heap_recorder {
   // Map[key: heap_record_key*, record: heap_record*]
   // NOTE: We always use heap_record_key.type == HEAP_STACK for storage but support lookups
@@ -125,7 +117,7 @@ struct heap_recorder {
   st_table *object_records_snapshot;
 
   // Data for a heap recording that was started but not yet ended
-  partial_heap_recording active_recording;
+  object_record *partial_object_record;
 
   // Reusable location array, implementing a flyweight pattern for things like iteration.
   ddog_prof_Location *reusable_locations;
@@ -138,7 +130,7 @@ static int st_object_record_entry_free_if_invalid(st_data_t, st_data_t, st_data_
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
-static void commit_allocation(heap_recorder*, heap_record*, long, live_object_data);
+static void commit_allocation(heap_recorder*, heap_record*, object_record*);
 
 // ==========================
 // Heap Recorder External API
@@ -156,11 +148,7 @@ heap_recorder* heap_recorder_new(void) {
   recorder->object_records = st_init_numtable();
   recorder->object_records_snapshot = NULL;
   recorder->reusable_locations = ruby_xcalloc(MAX_FRAMES_LIMIT, sizeof(ddog_prof_Location));
-  recorder->active_recording = (partial_heap_recording) {
-    .obj_id = 0, // 0 is actually the obj_id of false, but we'll never track that one in heap so we use
-                 // it as invalid/unset value.
-    .object_data = {0},
-  };
+  recorder->partial_object_record = NULL;
 
   return recorder;
 }
@@ -176,11 +164,20 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
     heap_recorder_finish_iteration(heap_recorder);
   }
 
+  // Clean-up all object records
   st_foreach(heap_recorder->object_records, st_object_record_entry_free, 0);
   st_free_table(heap_recorder->object_records);
 
+  // Clean-up all heap records (this includes those only referred to by queued_samples)
   st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, 0);
   st_free_table(heap_recorder->heap_records);
+
+  if (heap_recorder->partial_object_record != NULL) {
+    // If there's a partial object record, clean it up as well
+    object_record_free(heap_recorder->partial_object_record);
+  }
+
+  ruby_xfree(heap_recorder->reusable_locations);
 
   ruby_xfree(heap_recorder);
 }
@@ -203,11 +200,14 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   // will be the thread holding on to the GVL. Since we support iteration on the heap recorder
   // outside of the GVL, any state specific to that interaction may be incosistent after fork
   // (e.g. an acquired lock for thread safety). Iteration operates on object_records_snapshot
-  // though and that one will be updated on next heap_recorder_prepare_iteration so there's
-  // nothing for us to do here.
+  // though and that one will be updated on next heap_recorder_prepare_iteration so we really
+  // only need to finish any iteration that might have been left unfinished.
+  if (heap_recorder->object_records_snapshot != NULL) {
+    heap_recorder_finish_iteration(heap_recorder);
+  }
 }
 
-void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight) {
+void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *alloc_class) {
   if (heap_recorder == NULL) {
     return;
   }
@@ -217,12 +217,15 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     rb_raise(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
   }
 
-  heap_recorder->active_recording = (partial_heap_recording) {
-    .obj_id = FIX2LONG(ruby_obj_id),
-    .object_data = (live_object_data) {
-      .weight = weight,
-    },
-  };
+  if (heap_recorder->partial_object_record != NULL) {
+    rb_raise(rb_eRuntimeError, "Detected consecutive heap allocation recording starts without end.");
+  }
+
+  heap_recorder->partial_object_record = object_record_new(FIX2LONG(ruby_obj_id), NULL, (live_object_data) {
+    .weight =  weight,
+    .class = alloc_class != NULL ? string_from_char_slice(*alloc_class) : NULL,
+    .alloc_gen = rb_gc_count(),
+  });
 }
 
 void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
@@ -230,22 +233,21 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
     return;
   }
 
-  partial_heap_recording *active_recording = &heap_recorder->active_recording;
+  object_record *partial_object_record = heap_recorder->partial_object_record;
 
-  long obj_id = active_recording->obj_id;
-  if (obj_id == 0) {
+  if (partial_object_record == NULL) {
     // Recording ended without having been started?
     rb_raise(rb_eRuntimeError, "Ended a heap recording that was not started");
   }
 
   // From now on, mark active recording as invalid so we can short-circuit at any point and
-  // not end up with a still active recording. new_obj still holds the object for this recording
-  active_recording->obj_id = 0;
+  // not end up with a still active recording. partial_object_record still holds the object for this recording
+  heap_recorder->partial_object_record = NULL;
 
   heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
 
   // And then commit the new allocation.
-  commit_allocation(heap_recorder, heap_record, obj_id, active_recording->object_data);
+  commit_allocation(heap_recorder, heap_record, partial_object_record);
 }
 
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
@@ -416,7 +418,12 @@ static int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value
   object_record *record = (object_record*) value;
 
   heap_frame top_frame = record->heap_record->stack->frames[0];
-  rb_str_catf(debug_str, "obj_id=%ld weight=%d location=%s:%d ", record->obj_id, record->object_data.weight, top_frame.filename, (int) top_frame.line);
+  rb_str_catf(debug_str, "obj_id=%ld weight=%d location=%s:%d alloc_gen=%zu ", record->obj_id, record->object_data.weight, top_frame.filename, (int) top_frame.line, record->object_data.alloc_gen);
+
+  const char *class = record->object_data.class;
+  if (class != NULL) {
+    rb_str_catf(debug_str, "class=%s ", class);
+  }
 
   VALUE ref;
   if (!ruby_ref_from_id(LONG2NUM(record->obj_id), &ref)) {
@@ -450,13 +457,16 @@ static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *
   return ST_CONTINUE;
 }
 
-static void commit_allocation(heap_recorder *heap_recorder, heap_record *heap_record, long obj_id, live_object_data object_data) {
+static void commit_allocation(heap_recorder *heap_recorder, heap_record *heap_record, object_record *object_record) {
+  // Link the object record with the corresponding heap record.
+  object_record->heap_record = heap_record;
+
   // Update object_records
   object_record_update_data update_data = (object_record_update_data) {
     .heap_recorder = heap_recorder,
-    .new_object_record = object_record_new(obj_id, heap_record, object_data),
+    .new_object_record = object_record,
   };
-  if (!st_update(heap_recorder->object_records, obj_id, update_object_record_entry, (st_data_t) &update_data)) {
+  if (!st_update(heap_recorder->object_records, object_record->obj_id, update_object_record_entry, (st_data_t) &update_data)) {
     // We are sure there was no previous record for this id so let the heap record know there now is one
     // extra record associated with this stack.
     if (heap_record->num_tracked_objects == UINT32_MAX) {
@@ -563,6 +573,9 @@ object_record* object_record_new(long obj_id, heap_record *heap_record, live_obj
 }
 
 void object_record_free(object_record *record) {
+  if (record->object_data.class != NULL) {
+    ruby_xfree(record->object_data.class);
+  }
   ruby_xfree(record);
 }
 
@@ -633,8 +646,8 @@ heap_stack* heap_stack_new(ddog_prof_Slice_Location locations) {
   for (uint16_t i = 0; i < stack->frames_len; i++) {
     const ddog_prof_Location *location = &locations.ptr[i];
     stack->frames[i] = (heap_frame) {
-      .name = ruby_strndup(location->function.name.ptr, location->function.name.len),
-      .filename = ruby_strndup(location->function.filename.ptr, location->function.filename.len),
+      .name = string_from_char_slice(location->function.name),
+      .filename = string_from_char_slice(location->function.filename),
       // ddog_prof_Location is a int64_t. We don't expect to have to profile files with more than
       // 2M lines so this cast should be fairly safe?
       .line = (int32_t) location->line,

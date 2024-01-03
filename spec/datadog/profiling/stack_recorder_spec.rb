@@ -355,7 +355,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       def sample_allocation(obj)
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
-        described_class::Testing._native_track_object(stack_recorder, obj, sample_rate)
+        described_class::Testing._native_track_object(stack_recorder, obj, sample_rate, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
       end
@@ -372,18 +372,24 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
           end
           @num_allocations += 1
+          GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
         end
 
         allocations.clear # The literals in the previous array are now dangling
         GC.start # And this will clear them, leaving only the non-literals which are still pointed to by the lets
 
-        # NOTE: We've witnessed CI flakiness where the last entry of allocations may still be alive
-        # after the previous GC. We've experimentally noticed this is no longer the case if
-        # we do a second GC.
+        # NOTE: We've witnessed CI flakiness where some no longer referenced allocations may still be seen as alive
+        # after the previous GC.
         # This might be an instance of the issues described in https://bugs.ruby-lang.org/issues/19460
         # and https://bugs.ruby-lang.org/issues/19041. We didn't get to the bottom of the
         # reason but it might be that some machine context/register ends up still pointing to
         # that last entry and thus manages to get it marked in the first GC.
+        # To reduce the likelihood of this happening we'll:
+        # * Allocate some more stuff and clear again
+        # * Do another GC
+        allocations = ["another fearsome interpolated string: #{sample_rate}", (-20..-10).to_a,
+                       { 'a' => 1, 'b' => '2', 'c' => true }, Object.new]
+        allocations.clear
         GC.start
       end
 
@@ -418,15 +424,36 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it 'include the stack and sample counts for the objects still left alive' do
-          skip('FIXME: Unblock CI -- flaky on Ruby 3.3') if RUBY_VERSION.start_with?('3.3.')
+          # There should be 3 different allocation class labels so we expect 3 different heap samples
+          expect(heap_samples.size).to eq(3)
 
-          # We sample from 2 distinct locations
-          expect(heap_samples.size).to eq(2)
+          expect(heap_samples.map { |s| s.labels[:'allocation class'] }).to include('String', 'Array', 'Hash')
+          expect(heap_samples.map(&:labels)).to all(match(hash_including(:'gc gen age' => be_a(Integer).and(be >= 0))))
+        end
 
-          sum_heap_samples = 0
-          heap_samples.each { |s| sum_heap_samples += s.values[:'heap-live-samples'] }
+        it 'include accurate object ages' do
+          string_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'String' }
+          string_age = string_sample.labels[:'gc gen age']
 
-          expect(sum_heap_samples).to(eq([a_string, an_array, a_hash].size * sample_rate))
+          array_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Array' }
+          array_age = array_sample.labels[:'gc gen age']
+
+          hash_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Hash' }
+          hash_age = hash_sample.labels[:'gc gen age']
+
+          unique_sorted_ages = [string_age, array_age, hash_age].uniq.sort
+          # Expect all ages to be different and to be in the reverse order of allocation
+          # Last to allocate => Lower age
+          expect(unique_sorted_ages).to match([hash_age, array_age, string_age])
+
+          # Validate that the age of the newest object makes sense.
+          # * We force a GC after each allocation and the hash sample should correspond to
+          #   the 5th allocation in 7 (which means we expect at least 3 GC after all allocations
+          #   are done)
+          # * We forced 1 extra GC at the end of our before (+1)
+          # * This test isn't memory intensive otherwise so lets give us an extra margin of 1 GC to account for any
+          #   GC out of our control
+          expect(hash_age).to be_between(4, 5)
         end
 
         it 'keeps on reporting accurate samples for other profile types' do
@@ -451,8 +478,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "aren't lost when they happen concurrently with a long serialization" do
-          skip('FIXME: Unblock CI -- flaky on Ruby 3.3') if RUBY_VERSION.start_with?('3.3.')
-
           described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
           test_num_allocated_object = 123

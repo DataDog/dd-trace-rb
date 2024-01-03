@@ -26,6 +26,15 @@ typedef struct live_object_data {
   // Example: If we were sampling every 50 objects, then each sampled object
   //          could be seen as being representative of 50 objects.
   unsigned int weight;
+
+  // The class of the object that we're tracking.
+  // NOTE: This is optional and will be set to NULL if not set.
+  char* class;
+
+  // The GC allocation gen in which we saw this object being allocated.
+  //
+  // This enables us to calculate the age of this object in terms of GC executions.
+  size_t alloc_gen;
 } live_object_data;
 
 // Data that is made available to iterators of heap recorder data for each live object
@@ -56,7 +65,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder);
 //   The sampling weight of this object.
 //
 // WARN: It needs to be paired with a ::end_heap_allocation_recording call.
-void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight);
+void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *alloc_class);
 
 // End a previously started heap allocation recording on the heap recorder.
 //
