@@ -39,6 +39,47 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:|
     it { expect(subject.error_status_codes).not_to include 600 }
   end
 
+  context 'when given error_status_codes' do
+    context 'when given a single value' do
+      subject { described_class.new(error_status_codes: 500) }
+
+      it { expect(subject.error_status_codes).not_to include 400 }
+      it { expect(subject.error_status_codes).not_to include 499 }
+      it { expect(subject.error_status_codes).to include 500 }
+      it { expect(subject.error_status_codes).not_to include 599 }
+      it { expect(subject.error_status_codes).not_to include 600 }
+    end
+
+    context 'when given an array of integers' do
+      subject { described_class.new(error_status_codes: [400, 500]) }
+
+      it { expect(subject.error_status_codes).to include 400 }
+      it { expect(subject.error_status_codes).not_to include 499 }
+      it { expect(subject.error_status_codes).to include 500 }
+      it { expect(subject.error_status_codes).not_to include 599 }
+      it { expect(subject.error_status_codes).not_to include 600 }
+    end
+
+    context 'when given a range' do
+      subject { described_class.new(error_status_codes: 500..600) }
+
+      it { expect(subject.error_status_codes).not_to include 400 }
+      it { expect(subject.error_status_codes).not_to include 499 }
+      it { expect(subject.error_status_codes).to include 500 }
+      it { expect(subject.error_status_codes).to include 599 }
+      it { expect(subject.error_status_codes).to include 600 }
+    end
+
+    context 'when given an array of integer and range' do
+      subject { described_class.new(error_status_codes: [400, 500..600]) }
+
+      it { expect(subject.error_status_codes).to include 400 }
+      it { expect(subject.error_status_codes).not_to include 499 }
+      it { expect(subject.error_status_codes).to include 500 }
+      it { expect(subject.error_status_codes).to include 599 }
+      it { expect(subject.error_status_codes).to include 600 }
+    end
+
   context 'when configured with environment variable' do
     subject { described_class.new }
 
@@ -82,6 +123,20 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:|
       it { expect(subject.error_status_codes).to include 500 }
       it { expect(subject.error_status_codes).not_to include 599 }
       it { expect(subject.error_status_codes).not_to include 600 }
+    end
+
+    context 'when given a comma separated list with range' do
+      around do |example|
+        ClimateControl.modify(env => '400,500-600') do
+          example.run
+        end
+      end
+
+      it { expect(subject.error_status_codes).to include 400 }
+      it { expect(subject.error_status_codes).not_to include 499 }
+      it { expect(subject.error_status_codes).to include 500 }
+      it { expect(subject.error_status_codes).to include 599 }
+      it { expect(subject.error_status_codes).to include 600 }
     end
   end
 end
