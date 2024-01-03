@@ -664,23 +664,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
-    describe '#transport_options' do
-      subject(:transport_options) { settings.tracing.transport_options }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#transport_options=' do
-      let(:config_proc) { proc { |t| t.adapter :test } }
-
-      it 'updates the #transport_options setting' do
-        expect { settings.tracing.transport_options = config_proc }
-          .to change { settings.tracing.transport_options }
-          .from(nil)
-          .to(config_proc)
-      end
-    end
-
     describe '#writer' do
       subject(:writer) { settings.tracing.writer }
 

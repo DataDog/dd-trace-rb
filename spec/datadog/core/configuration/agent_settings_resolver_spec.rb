@@ -129,10 +129,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       before do
         allow(logger).to receive(:warn)
-        if with_transport_options
-          ddtrace_settings.tracing.transport_options =
-            proc { |t| t.adapter(:net_http, hostname: with_transport_options) }
-        end
         (ddtrace_settings.agent.host = with_agent_host) if with_agent_host
         (ddtrace_settings.agent.port = with_agent_port) if with_agent_port
       end
