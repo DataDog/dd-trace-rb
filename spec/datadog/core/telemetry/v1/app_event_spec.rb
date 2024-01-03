@@ -10,6 +10,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
       additional_payload: additional_payload,
       configuration: configuration,
       dependencies: dependencies,
+      install_signature: install_signature,
       integrations: integrations,
     )
   end
@@ -17,6 +18,13 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
   let(:additional_payload) { [{ name: 'logger.level', value: 1 }] }
   let(:configuration) { [{ name: 'DD_TRACE_DEBUG', value: false }] }
   let(:dependencies) { [Datadog::Core::Telemetry::V1::Dependency.new(name: 'pg')] }
+  let(:install_signature) do
+    Datadog::Core::Telemetry::V1::InstallSignature.new(
+      install_id: '123',
+      install_type: 'docker',
+      install_time: '1703188212'
+    )
+  end
   let(:integrations) { [Datadog::Core::Telemetry::V1::Integration.new(name: 'pg', enabled: true)] }
 
   it do
@@ -24,6 +32,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
       additional_payload: additional_payload,
       configuration: configuration,
       dependencies: dependencies,
+      install_signature: install_signature,
       integrations: integrations,
     )
   end
@@ -98,6 +107,24 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
       end
     end
 
+    context 'when :install_signature' do
+      context 'is nil' do
+        let(:install_signature) { nil }
+        it { is_expected.to be_a_kind_of(described_class) }
+      end
+
+      context 'is InstallSignature' do
+        let(:integrations) do
+          Datadog::Core::Telemetry::V1::InstallSignature.new(
+            install_id: '123',
+            install_type: 'docker',
+            install_time: '1703188212'
+          )
+        end
+        it { is_expected.to be_a_kind_of(described_class) }
+      end
+    end
+
     context 'when :integrations' do
       context 'is nil' do
         let(:integrations) { nil }
@@ -129,6 +156,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
       let(:additional_payload) { nil }
       let(:configuration) { nil }
       let(:dependencies) { nil }
+      let(:install_signature) { nil }
       let(:integrations) { nil }
 
       it do
@@ -140,6 +168,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
       let(:additional_payload) { nil }
       let(:configuration) { nil }
       let(:dependencies) { nil }
+      let(:install_signature) { nil }
       let(:integrations) { [Datadog::Core::Telemetry::V1::Integration.new(name: 'pg', enabled: true)] }
 
       it do
@@ -153,6 +182,13 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
       let(:additional_payload) { { 'tracing.enabled' => true, 'profiling.enabled' => false } }
       let(:configuration) { { DD_AGENT_HOST: 'localhost', DD_TRACE_SAMPLE_RATE: '1' } }
       let(:dependencies) { [Datadog::Core::Telemetry::V1::Dependency.new(name: 'pg')] }
+      let(:install_signature) do
+        Datadog::Core::Telemetry::V1::InstallSignature.new(
+          install_id: '123',
+          install_type: 'docker',
+          install_time: '1703188212'
+        )
+      end
       let(:integrations) { [Datadog::Core::Telemetry::V1::Integration.new(name: 'pg', enabled: true)] }
 
       it do
@@ -162,6 +198,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
           configuration: [{ name: 'DD_AGENT_HOST', value: 'localhost' },
                           { name: 'DD_TRACE_SAMPLE_RATE', value: '1' }],
           dependencies: [{ name: 'pg' }],
+          install_signature: { install_id: '123', install_type: 'docker', install_time: '1703188212' },
           integrations: [{ enabled: true, name: 'pg' }]
         )
       end

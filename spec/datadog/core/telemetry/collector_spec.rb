@@ -326,6 +326,77 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Host) }
   end
 
+  describe '#install_signature' do
+    subject(:install_signature) { dummy_class.install_signature }
+
+    it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::InstallSignature) }
+
+    describe ':install_id' do
+      subject(:install_id) { install_signature.install_id }
+
+      context 'when DD_INSTRUMENTATION_INSTALL_ID not set' do
+        it('is nil when unset') { is_expected.to be_nil }
+      end
+
+      context 'when DD_INSTRUMENTATION_INSTALL_ID set' do
+        let(:install_id) { '68e75c48-57ca-4a12-adfc-575c4b05fcbe' }
+
+        before do
+          Datadog.configure do |c|
+            c.telemetry.install_id = install_id
+          end
+        end
+        after do
+          Datadog.configuration.reset!
+        end
+
+        it { is_expected.to eql(install_id) }
+      end
+    end
+
+    describe ':install_type' do
+      subject(:install_type) { install_signature.install_type }
+
+      context 'when DD_INSTRUMENTATION_INSTALL_TYPE not set' do
+        it('is nil when unset') { is_expected.to be_nil }
+      end
+
+      context 'when DD_INSTRUMENTATION_INSTALL_TYPE set' do
+        before do
+          Datadog.configure do |c|
+            c.telemetry.install_type = install_type
+          end
+        end
+        after do
+          Datadog.configuration.reset!
+        end
+
+        it { is_expected.to eql(install_type) }
+      end
+    end
+
+    describe ':install_time' do
+      subject(:install_time) { install_signature.install_time }
+
+      context 'when DD_INSTRUMENTATION_INSTALL_TIME not set' do
+        it('is nil when unset') { is_expected.to be_nil }
+      end
+
+      context 'when DD_INSTRUMENTATION_INSTALL_TIME set' do
+        before do
+          Datadog.configure do |c|
+            c.telemetry.install_time = install_time
+          end
+        end
+        after do
+          Datadog.configuration.reset!
+        end
+
+        it { is_expected.to eql(install_time) }
+      end
+    end
+  end
+
   describe '#integrations' do
     subject(:integrations) { dummy_class.integrations }
 

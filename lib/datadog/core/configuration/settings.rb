@@ -646,6 +646,42 @@ module Datadog
             o.env Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL
             o.default 60.0
           end
+
+          # The install id of the application.
+          #
+          # This method is used internally, by library injection.
+          #
+          # @default `DD_INSTRUMENTATION_INSTALL_ID` environment variable, otherwise `nil`.
+          # @return [String,nil]
+          # @!visibility private
+          option :install_id do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_INSTALL_ID
+          end
+
+          # The install type of the application.
+          #
+          # This method is used internally, by library injection.
+          #
+          # @default `DD_INSTRUMENTATION_INSTALL_TYPE` environment variable, otherwise `nil`.
+          # @return [String,nil]
+          # @!visibility private
+          option :install_type do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_INSTALL_TYPE
+          end
+
+          # The install time of the application.
+          #
+          # This method is used internally, by library injection.
+          #
+          # @default `DD_INSTRUMENTATION_INSTALL_TIME` environment variable, otherwise `nil`.
+          # @return [String,nil]
+          # @!visibility private
+          option :install_time do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_INSTALL_TIME
+          end
         end
 
         # Remote configuration

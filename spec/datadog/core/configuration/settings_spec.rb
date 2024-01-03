@@ -1379,6 +1379,99 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.telemetry.heartbeat_interval_seconds }.from(1.1).to(2.2)
       end
     end
+
+    describe '#install_id' do
+      subject(:install_id) { settings.telemetry.install_id }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_ID' }
+
+      context 'when DD_INSTRUMENTATION_INSTALL_ID' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to eq nil }
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { '68e75c48-57ca-4a12-adfc-575c4b05fcbe' }
+
+          it { is_expected.to eq '68e75c48-57ca-4a12-adfc-575c4b05fcbe' }
+        end
+      end
+    end
+
+    describe '#install_id=' do
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_ID' }
+      let(:env_var_value) { '68e75c48-57ca-4a12-adfc-575c4b05fcbe' }
+
+      it 'updates the #install_id setting' do
+        expect { settings.telemetry.install_id = 'abc123' }
+          .to change { settings.telemetry.install_id }
+          .from('68e75c48-57ca-4a12-adfc-575c4b05fcbe')
+          .to('abc123')
+      end
+    end
+
+    describe '#install_type' do
+      subject(:install_id) { settings.telemetry.install_type }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_TYPE' }
+
+      context 'when DD_INSTRUMENTATION_INSTALL_TYPE' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to eq nil }
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { 'k8s_single_step' }
+
+          it { is_expected.to eq 'k8s_single_step' }
+        end
+      end
+    end
+
+    describe '#install_type=' do
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_TYPE' }
+      let(:env_var_value) { 'k8s_single_step' }
+
+      it 'updates the #install_type setting' do
+        expect { settings.telemetry.install_type = 'abc123' }
+          .to change { settings.telemetry.install_type }
+          .from('k8s_single_step')
+          .to('abc123')
+      end
+    end
+
+    describe '#install_time' do
+      subject(:install_id) { settings.telemetry.install_time }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_TIME' }
+
+      context 'when DD_INSTRUMENTATION_INSTALL_TIME' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to eq nil }
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { '1703188212' }
+
+          it { is_expected.to eq '1703188212' }
+        end
+      end
+    end
+
+    describe '#install_time=' do
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_TIME' }
+      let(:env_var_value) { '1703188212' }
+
+      it 'updates the #install_time setting' do
+        expect { settings.telemetry.install_time = 'abc123' }
+          .to change { settings.telemetry.install_time }
+          .from('1703188212')
+          .to('abc123')
+      end
+    end
   end
 
   describe '#remote' do
