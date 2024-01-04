@@ -348,31 +348,58 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
       let(:a_string) { 'a beautiful string' }
-      let(:an_array) { [1..10] }
+      let(:an_array) { (1..10).to_a }
       let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true } }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
+      def sample_allocation(obj)
+        # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
+        described_class::Testing._native_track_object(stack_recorder, obj, sample_rate, obj.class.name)
+        Datadog::Profiling::Collectors::Stack::Testing
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+      end
+
       before do
-        allocations = [a_string, an_array, 'a fearsome string', [-10..-1], a_hash, { 'z' => -1, 'y' => '-2', 'x' => false }]
+        allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
+                       { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
-          # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
-          described_class::Testing._native_track_object(stack_recorder, obj, sample_rate)
-          # ...and then pass data about the allocation stacktrace (with 2 distinct stacktraces)
+          # Sample allocations with 2 distinct stacktraces
           if i.even?
-            Datadog::Profiling::Collectors::Stack::Testing
-              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
-          else
-            # 401 used instead of 400 here just to make the branches different and appease Rubocop
-            Datadog::Profiling::Collectors::Stack::Testing
-              ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 401, false)
+            sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
+          else # rubocop:disable Lint/DuplicateBranch
+            sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
           end
           @num_allocations += 1
+          GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
         end
 
         allocations.clear # The literals in the previous array are now dangling
         GC.start # And this will clear them, leaving only the non-literals which are still pointed to by the lets
+
+        # NOTE: We've witnessed CI flakiness where some no longer referenced allocations may still be seen as alive
+        # after the previous GC.
+        # This might be an instance of the issues described in https://bugs.ruby-lang.org/issues/19460
+        # and https://bugs.ruby-lang.org/issues/19041. We didn't get to the bottom of the
+        # reason but it might be that some machine context/register ends up still pointing to
+        # that last entry and thus manages to get it marked in the first GC.
+        # To reduce the likelihood of this happening we'll:
+        # * Allocate some more stuff and clear again
+        # * Do another GC
+        allocations = ["another fearsome interpolated string: #{sample_rate}", (-20..-10).to_a,
+                       { 'a' => 1, 'b' => '2', 'c' => true }, Object.new]
+        allocations.clear
+        GC.start
+      end
+
+      after do |example|
+        # This is here to facilitate troubleshooting when this test fails. Otherwise
+        # it's very hard to understand what may be happening.
+        if example.exception
+          puts('Heap recorder debugging info:')
+          puts(described_class::Testing._native_debug_heap_recorder(stack_recorder))
+        end
       end
 
       context 'when disabled' do
@@ -397,14 +424,36 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it 'include the stack and sample counts for the objects still left alive' do
-          pending 'heap_recorder implementation is currently missing'
+          # There should be 3 different allocation class labels so we expect 3 different heap samples
+          expect(heap_samples.size).to eq(3)
 
-          # We sample from 2 distinct locations
-          expect(heap_samples.size).to eq(2)
+          expect(heap_samples.map { |s| s.labels[:'allocation class'] }).to include('String', 'Array', 'Hash')
+          expect(heap_samples.map(&:labels)).to all(match(hash_including(:'gc gen age' => be_a(Integer).and(be >= 0))))
+        end
 
-          sum_heap_samples = 0
-          heap_samples.each { |s| sum_heap_samples += s.values[:'heap-live-samples'] }
-          expect(sum_heap_samples).to eq([a_string, an_array, a_hash].size * sample_rate)
+        it 'include accurate object ages' do
+          string_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'String' }
+          string_age = string_sample.labels[:'gc gen age']
+
+          array_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Array' }
+          array_age = array_sample.labels[:'gc gen age']
+
+          hash_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Hash' }
+          hash_age = hash_sample.labels[:'gc gen age']
+
+          unique_sorted_ages = [string_age, array_age, hash_age].uniq.sort
+          # Expect all ages to be different and to be in the reverse order of allocation
+          # Last to allocate => Lower age
+          expect(unique_sorted_ages).to match([hash_age, array_age, string_age])
+
+          # Validate that the age of the newest object makes sense.
+          # * We force a GC after each allocation and the hash sample should correspond to
+          #   the 5th allocation in 7 (which means we expect at least 3 GC after all allocations
+          #   are done)
+          # * We forced 1 extra GC at the end of our before (+1)
+          # * This test isn't memory intensive otherwise so lets give us an extra margin of 1 GC to account for any
+          #   GC out of our control
+          expect(hash_age).to be_between(4, 5)
         end
 
         it 'keeps on reporting accurate samples for other profile types' do
@@ -426,6 +475,32 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
 
           expect(summed_values).to eq(expected_summed_values)
+        end
+
+        it "aren't lost when they happen concurrently with a long serialization" do
+          described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
+
+          test_num_allocated_object = 123
+          live_objects = Array.new(test_num_allocated_object)
+
+          test_num_allocated_object.times do |i|
+            live_objects[i] = "this is string number #{i}"
+            sample_allocation(live_objects[i])
+          end
+
+          allocation_line = __LINE__ - 3
+
+          described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
+
+          heap_samples_in_test_matcher = lambda { |sample|
+            (sample.values[:'heap-live-samples'] || 0) > 0 && sample.locations.any? do |location|
+              location.lineno == allocation_line && location.path == __FILE__
+            end
+          }
+
+          relevant_sample = heap_samples.find(&heap_samples_in_test_matcher)
+          expect(relevant_sample).not_to be nil
+          expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object * sample_rate
         end
       end
     end
@@ -557,6 +632,71 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       reset_after_fork
 
       expect(stack_recorder.serialize.first).to be >= now
+    end
+  end
+
+  describe 'Heap_recorder' do
+    context 'produces the same hash code for stack-based and location-based keys' do
+      it 'with empty stacks' do
+        described_class::Testing._native_check_heap_hashes([])
+      end
+
+      it 'with single-frame stacks' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 123]
+          ]
+        )
+      end
+
+      it 'with multi-frame stacks' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 123],
+            ['another name', 'anoter filename', 456],
+          ]
+        )
+      end
+
+      it 'with empty names' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['', 'a filename', 123],
+          ]
+        )
+      end
+
+      it 'with empty filenames' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', '', 123],
+          ]
+        )
+      end
+
+      it 'with zero lines' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 0]
+          ]
+        )
+      end
+
+      it 'with negative lines' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', -123]
+          ]
+        )
+      end
+
+      it 'with biiiiiiig lines' do
+        described_class::Testing._native_check_heap_hashes(
+          [
+            ['a name', 'a filename', 4_000_000]
+          ]
+        )
+      end
     end
   end
 end

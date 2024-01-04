@@ -34,3 +34,9 @@ size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capa
 // ruby_value_type that Ruby uses so that we can also use this for debugging.
 const char *ruby_value_type_to_string(enum ruby_value_type type);
 ddog_CharSlice ruby_value_type_to_char_slice(enum ruby_value_type type);
+
+// Returns a dynamically allocated string from the provided char slice.
+// WARN: The returned string must be explicitly freed with ruby_xfree.
+inline static char* string_from_char_slice(ddog_CharSlice slice) {
+  return ruby_strndup(slice.ptr, slice.len);
+}

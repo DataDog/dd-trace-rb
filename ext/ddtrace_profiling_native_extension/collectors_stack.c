@@ -11,9 +11,6 @@
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
-#define MAX_FRAMES_LIMIT            10000
-#define MAX_FRAMES_LIMIT_AS_STRING "10000"
-
 static VALUE missing_string = Qnil;
 
 // Used as scratch space during sampling
@@ -37,13 +34,6 @@ static VALUE _native_sample(
 );
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(sampling_buffer* buffer, VALUE recorder_instance, sample_values values, sample_labels labels);
-static void sample_thread_internal(
-  VALUE thread,
-  sampling_buffer* buffer,
-  VALUE recorder_instance,
-  sample_values values,
-  sample_labels labels
-);
 
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
