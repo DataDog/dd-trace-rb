@@ -10,6 +10,7 @@ module Datadog
           ENV_ENABLED = 'DD_TRACE_GRAPE_ENABLED'
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_GRAPE_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_GRAPE_ANALYTICS_SAMPLE_RATE'
+          ENV_ERROR_STATUS_CODES = 'DD_TRACE_GRAPE_ERROR_STATUS_CODES'
           SPAN_ENDPOINT_RENDER = 'grape.endpoint_render'
           SPAN_ENDPOINT_RUN = 'grape.endpoint_run'
           SPAN_ENDPOINT_RUN_FILTERS = 'grape.endpoint_run_filters'

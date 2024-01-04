@@ -259,92 +259,24 @@ RSpec.describe 'Grape instrumentation' do
 
         it 'handles exceptions' do
           expect(response.body).to eq('405 Not Allowed')
-          expect(spans.length).to eq(1)
-          expect(spans[0].name).to eq('grape.endpoint_run')
-          expect(spans[0].status).to eq(1)
-          expect(spans[0].get_tag('error.stack')).to_not be_nil
-          expect(spans[0].get_tag('error.type')).to_not be_nil
-          expect(spans[0].get_tag('error.message')).to_not be_nil,
-            "DEV: 🚧 Flaky test! Please send the maintainers a link for this CI failure. Thank you! 🚧\n" \
-            "response=#{response.inspect}\n" \
-            "spans=#{spans.inspect}\n"
-          expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
-          expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          expect(span.name).to eq('grape.endpoint_run')
+          expect(span).to_not have_error
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run')
         end
 
         context 'and error_responses' do
           subject(:response) { post '/base/hard_failure' }
 
-          let(:configuration_options) { { error_statuses: '300-399,,xxx-xxx,1111,400-499' } }
+          let(:configuration_options) { { error_status_codes: [400...600] } }
 
           it 'handles exceptions' do
             expect(response.body).to eq('405 Not Allowed')
-            expect(spans.length).to eq(1)
-            expect(spans[0].name).to eq('grape.endpoint_run')
-            expect(spans[0].status).to eq(1)
-            expect(spans[0].get_tag('error.stack')).to_not be_nil
-            expect(spans[0].get_tag('error.type')).to_not be_nil
-            expect(spans[0].get_tag('error.message')).to_not be_nil
-            expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
-            expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-              .to eq('endpoint_run')
-          end
-        end
-
-        context 'and error_responses with arrays' do
-          subject(:response) { post '/base/hard_failure' }
-
-          let(:configuration_options) { { error_statuses: ['300-399', 'xxx-xxx', 1111, 405] } }
-
-          it 'handles exceptions' do
-            expect(response.body).to eq('405 Not Allowed')
-            expect(spans.length).to eq(1)
-            expect(spans[0].name).to eq('grape.endpoint_run')
-            expect(spans[0].status).to eq(1)
-            expect(spans[0].get_tag('error.stack')).to_not be_nil
-            expect(spans[0].get_tag('error.type')).to_not be_nil
-            expect(spans[0].get_tag('error.message')).to_not be_nil
-            expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
-            expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-              .to eq('endpoint_run')
-          end
-        end
-
-        context 'and error_responses with arrays that dont contain exception status' do
-          subject(:response) { post '/base/hard_failure' }
-
-          let(:configuration_options) { { error_statuses: ['300-399', 'xxx-xxx', 1111, 406] } }
-
-          it 'handles exceptions' do
-            expect(response.body).to eq('405 Not Allowed')
-            expect(spans.length).to eq(1)
-            expect(spans[0].name).to eq('grape.endpoint_run')
-            expect(spans[0]).to_not have_error
-            expect(spans[0].get_tag('error.stack')).to be_nil
-            expect(spans[0].get_tag('error.type')).to be_nil
-            expect(spans[0].get_tag('error.message')).to be_nil
-            expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
-            expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-              .to eq('endpoint_run')
-          end
-        end
-
-        context 'defaults to >=500 when provided invalid config' do
-          subject(:response) { post '/base/hard_failure' }
-
-          let(:configuration_options) { { error_statuses: 'xxx-499' } }
-
-          it 'handles exceptions' do
-            expect(response.body).to eq('405 Not Allowed')
-            expect(spans.length).to eq(1)
-            expect(spans[0].name).to eq('grape.endpoint_run')
-            expect(spans[0].status).to eq(0)
-            expect(spans[0].get_tag('error.stack')).to be_nil
-            expect(spans[0].get_tag('error.type')).to be_nil
-            expect(spans[0].get_tag('error.message')).to be_nil
-            expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
-            expect(spans[0].get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+            expect(span.name).to eq('grape.endpoint_run')
+            expect(span).to have_error
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
           end
         end
@@ -753,16 +685,13 @@ RSpec.describe 'Grape instrumentation' do
 
       it 'does not impact the Rack integration that must work as usual' do
         expect(subject.status).to eq(404)
-        expect(spans.length).to eq(1)
 
-        rack_span = spans[0]
-
-        expect(rack_span.name).to eq('rack.request')
-        expect(rack_span.span_type).to eq('web')
-        expect(rack_span.service).to eq(tracer.default_service)
-        expect(rack_span.resource).to eq('GET 404')
-        expect(rack_span).to_not have_error
-        expect(rack_span).to be_root_span
+        expect(span.name).to eq('rack.request')
+        expect(span.span_type).to eq('web')
+        expect(span.service).to eq(tracer.default_service)
+        expect(span.resource).to eq('GET 404')
+        expect(span).to_not have_error
+        expect(span).to be_root_span
       end
     end
 
