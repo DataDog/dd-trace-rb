@@ -2498,8 +2498,8 @@ Note: You cannot mix UDS and TCP configurations. If you set `c.agent.uds_path`, 
 
 #### Using the transport test adapter
 
-The `Test` adapter is a no-op transport that can optionally buffer requests. For use in test suites or other
-non-production environments. It is configured by setting c.tracing.test_mode.enabled to true.
+The `Test` adapter is a no-op transport that can optionally buffer requests in test suites or other
+non-production environments. It is configured by setting `c.tracing.test_mode.enabled` to true.
 
 ```ruby
 Datadog.configure do |c|
