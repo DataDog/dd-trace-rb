@@ -2473,7 +2473,7 @@ See [Additional Configuration](#additional-configuration) for more details.
 #### Using the Net::HTTP adapter
 
 The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default transport adapter. Use of `Net::HTTP` is
-implied by setting hostname and port.
+implied by setting the host name and port.
 
 ```ruby
 Datadog.configure do |c|
