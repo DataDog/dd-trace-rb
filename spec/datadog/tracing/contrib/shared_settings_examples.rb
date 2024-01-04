@@ -79,6 +79,7 @@ RSpec.shared_examples_for 'with error_status_codes setting' do |env:|
       it { expect(subject.error_status_codes).to include 599 }
       it { expect(subject.error_status_codes).to include 600 }
     end
+  end
 
   context 'when configured with environment variable' do
     subject { described_class.new }
