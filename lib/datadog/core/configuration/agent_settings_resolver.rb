@@ -129,10 +129,6 @@ module Datadog
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
               value: parsed_url_ssl?,
-            ),
-            try_parsing_as_boolean(
-              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_USE_SSL} environment variable",
-              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_USE_SSL],
             )
           )
         end
@@ -164,10 +160,6 @@ module Datadog
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
               value: parsed_url_uds_path
-            ),
-            DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_UDS_PATH} environment variable",
-              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_UDS_PATH]
             )
           )
         end

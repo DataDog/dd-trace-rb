@@ -9,9 +9,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       'DD_AGENT_HOST' => nil,
       'DD_TRACE_AGENT_PORT' => nil,
       'DD_TRACE_AGENT_URL' => nil,
-      'DD_TRACE_AGENT_USE_SSL' => nil,
       'DD_TRACE_AGENT_TIMEOUT_SECONDS' => nil,
-      'DD_TRACE_AGENT_UDS_PATH' => nil
     }
   end
   let(:environment) { {} }
@@ -615,52 +613,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'When DD_TRACE_AGENT_USE_SSL is set' do
-      let(:environment) {  { 'DD_TRACE_AGENT_USE_SSL' => use_ssl_value } }
-
-      context 'when set to true' do
-        let(:use_ssl_value) { 'true' }
-
-        it 'contacts the agent using ssl' do
-          expect(resolver).to have_attributes(ssl: true)
-        end
-      end
-
-      context 'when set to false' do
-        let(:use_ssl_value) { 'false' }
-
-        it 'contacts the agent without ssl' do
-          expect(resolver).to have_attributes(ssl: false)
-        end
-      end
-
-      context 'when set to nil' do
-        let(:use_ssl_value) { nil }
-
-        it 'contacts the agent without ssl' do
-          expect(resolver).to have_attributes(ssl: false)
-        end
-      end
-
-      context 'when set to an invalid string ' do
-        before do
-          allow(logger).to receive(:warn)
-        end
-
-        let(:use_ssl_value) { 'foo' }
-
-        it 'contacts the agent without ssl' do
-          expect(resolver).to have_attributes(ssl: false)
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Invalid value/)
-
-          resolver
-        end
-      end
-    end
-
     context 'when DD_TRACE_AGENT_URL is set' do
       let(:environment) { { 'DD_TRACE_AGENT_URL' => "#{trace_agent_url_protocol}://custom-hostname:1234" } }
 
@@ -685,7 +637,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       let(:environment) do
         environment = {}
         (environment['DD_TRACE_AGENT_URL'] = "#{trace_agent_url_protocol}://agent_hostname:1234") if with_trace_agent_url
-        (environment['DD_TRACE_AGENT_USE_SSL'] = with_environment_agent_use_ssl_value.to_s) if with_environment_agent_use_ssl
 
         environment
       end
@@ -695,11 +646,10 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         (ddtrace_settings.agent.use_ssl = with_agent_use_ssl) if with_agent_use_ssl
       end
 
-      context 'when agent.use_ssl, DD_TRACE_AGENT_URL, DD_TRACE_AGENT_USE_SSL are provided' do
+      context 'when agent.use_ssl, DD_TRACE_AGENT_URL are provided' do
         let(:with_agent_use_ssl) { true }
         let(:with_trace_agent_url) { true }
         let(:trace_agent_url_protocol) { 'http' }
-        let(:with_environment_agent_use_ssl) { true }
         let(:with_environment_agent_use_ssl_value) { false }
 
         it 'prioritizes the agent.use_ssl' do
@@ -713,32 +663,12 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         end
       end
 
-      context 'DD_TRACE_AGENT_URL, DD_TRACE_AGENT_USE_SSL are provided' do
+      context 'Only DD_TRACE_AGENT_URL is provided' do
         let(:with_agent_use_ssl) { false }
         let(:with_trace_agent_url) { true }
         let(:trace_agent_url_protocol) { 'https' }
-        let(:with_environment_agent_use_ssl) { true }
-        let(:with_environment_agent_use_ssl_value) { false }
 
-        it 'prioritizes the DD_TRACE_AGENT_URL' do
-          expect(resolver).to have_attributes(ssl: true)
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Configuration mismatch/)
-
-          resolver
-        end
-      end
-
-      context 'Only DD_TRACE_AGENT_USE_SSL is provided' do
-        let(:with_agent_use_ssl) { false }
-        let(:with_trace_agent_url) { false }
-        let(:trace_agent_url_protocol) { 'http' }
-        let(:with_environment_agent_use_ssl) { true }
-        let(:with_environment_agent_use_ssl_value) { true }
-
-        it 'prioritizes the DD_TRACE_AGENT_USE_SSL' do
+        it 'prioritizes the DD_TRACE_URL' do
           expect(resolver).to have_attributes(ssl: true)
         end
 
@@ -811,14 +741,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     let(:timeout_seconds) { 1 }
     let(:adapter) { :unix }
 
-    context 'when a custom path is specified via the DD_TRACE_AGENT_UDS_PATH environment variable' do
-      let(:environment) { { 'DD_TRACE_AGENT_UDS_PATH' => '/var/some/where.socket' } }
-
-      it 'contacts the agent using the unix adapter, using the custom path' do
-        expect(resolver).to have_attributes(**settings, uds_path: '/var/some/where.socket')
-      end
-    end
-
     context 'when a custom path is specified via code using "agent.uds_path ="' do
       before do
         ddtrace_settings.agent.uds_path = '/var/code/custom.socket'
@@ -840,12 +762,10 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     describe 'priority' do
       let(:with_agent_uds_path) { nil }
       let(:with_trace_agent_url) { nil }
-      let(:with_environment_agent_uds_path) { nil }
       let(:environment) do
         environment = {}
 
         (environment['DD_TRACE_AGENT_URL'] = "unix://#{with_trace_agent_url}") if with_trace_agent_url
-        (environment['DD_TRACE_AGENT_UDS_PATH'] = with_environment_agent_uds_path) if with_environment_agent_uds_path
 
         environment
       end
@@ -855,10 +775,9 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         (ddtrace_settings.agent.uds_path = with_agent_uds_path) if with_agent_uds_path
       end
 
-      context 'when agent.uds_path, DD_TRACE_AGENT_URL, DD_TRACE_AGENT_UDS_PATH are provided' do
+      context 'when agent.uds_path, DD_TRACE_AGENT_URL are provided' do
         let(:with_agent_uds_path) { '/var/uds/path.socket' }
         let(:with_trace_agent_url) { 'var/trace/agent.socket' }
-        let(:with_environment_agent_uds_path) { '/var/env/path.socket' }
 
         it 'prioritizes the agent.uds_path' do
           expect(resolver).to have_attributes(uds_path: '/var/uds/path.socket')
@@ -871,28 +790,13 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         end
       end
 
-      context 'when DD_TRACE_AGENT_URL, DD_TRACE_AGENT_UDS_PATH are provided' do
-        let(:with_trace_agent_url) { '/var/trace/agent.socket' }
-        let(:with_environment_agent_uds_path) { '/var/env/path.socket' }
-
-        it 'prioritizes the DD_TRACE_AGENT_URL' do
-          expect(resolver).to have_attributes(uds_path: '/var/trace/agent.socket')
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Configuration mismatch/)
-
-          resolver
-        end
-      end
-
       # This somewhat duplicates some of the testing above, but it's still helpful to validate that the test is correct
       # (otherwise it may pass due to bugs, not due to right priority being used)
-      context 'when only DD_TRACE_AGENT_UDS_PATH is provided' do
-        let(:with_environment_agent_uds_path) { '/var/env/path.socket' }
+      context 'when only DD_TRACE_AGENT_URL is provided' do
+        let(:with_trace_agent_url) { '/var/trace/agent.socket' }
 
-        it 'uses the DD_TRACE_AGENT_UDS_PATH' do
-          expect(resolver).to have_attributes(uds_path: '/var/env/path.socket')
+        it 'uses the DD_TRACE_AGENT_URL_PATH' do
+          expect(resolver).to have_attributes(uds_path: '/var/trace/agent.socket')
         end
 
         it 'does not log any warning' do

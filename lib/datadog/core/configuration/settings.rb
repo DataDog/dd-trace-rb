@@ -63,7 +63,7 @@ module Datadog
 
           # Agent APM SSL.
           # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
-          # @default `DD_TRACE_AGENT_USE_SSL` environment variable, otherwise `false`
+          # @default defined as part of `DD_TRACE_AGENT_URL` environment variable, otherwise `false`
           # Only applies to http connections.
           # @return [Boolean,nil]
           option :use_ssl
@@ -75,7 +75,7 @@ module Datadog
           option :timeout_seconds
 
           # Agent unix domain socket path.
-          # @default `DD_TRACE_AGENT_UDS_PATH` environment variable, otherwise '/var/run/datadog/apm.socket'
+          # @default defined in `DD_TRACE_AGENT_URL` environment variable, otherwise '/var/run/datadog/apm.socket'
           # Agent connects via HTTP by default, but will use UDS if this is set or if unix scheme defined in
           # DD_TRACE_AGENT_URL.
           # @return [String,nil]
