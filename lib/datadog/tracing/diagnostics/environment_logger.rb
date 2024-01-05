@@ -40,7 +40,6 @@ module Datadog
               sampling_rules: sampling_rules,
               integrations_loaded: integrations_loaded,
               partial_flushing_enabled: partial_flushing_enabled,
-              priority_sampling_enabled: priority_sampling_enabled,
               **instrumented_integrations_settings
             }
           end
@@ -127,11 +126,6 @@ module Datadog
           # @return [Boolean, nil] partial flushing enabled in configuration
           def partial_flushing_enabled
             !!Datadog.configuration.tracing.partial_flush.enabled
-          end
-
-          # @return [Boolean, nil] priority sampling enabled in configuration
-          def priority_sampling_enabled
-            !!Datadog.configuration.tracing.priority_sampling
           end
 
           private
