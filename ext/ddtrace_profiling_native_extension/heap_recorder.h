@@ -27,6 +27,9 @@ typedef struct live_object_data {
   //          could be seen as being representative of 50 objects.
   unsigned int weight;
 
+  // Size of this object on last flush/update.
+  size_t size;
+
   // The class of the object that we're tracking.
   // NOTE: This is optional and will be set to NULL if not set.
   char* class;
@@ -35,6 +38,11 @@ typedef struct live_object_data {
   //
   // This enables us to calculate the age of this object in terms of GC executions.
   size_t alloc_gen;
+
+  // Whether this object was previously seen as being frozen. If this is the case,
+  // we'll skip any further size updates since frozen objects are supposed to be
+  // immutable.
+  bool is_frozen;
 } live_object_data;
 
 // Data that is made available to iterators of heap recorder data for each live object
@@ -49,6 +57,17 @@ heap_recorder* heap_recorder_new(void);
 
 // Free a previously initialized heap recorder.
 void heap_recorder_free(heap_recorder *heap_recorder);
+
+// Sets whether this heap recorder should keep track of sizes or not.
+//
+// If set to true, the heap recorder will attempt to determine the approximate sizes of
+// tracked objects and wield them during iteration.
+// If set to false, sizes returned during iteration should not be used/relied on (they
+// may be 0 or the last determined size before disabling the tracking of sizes).
+//
+// NOTE: Default is true, i.e., it will attempt to determine approximate sizes of tracked
+// objects.
+void heap_recorder_set_size_enabled(heap_recorder *heap_recorder, bool size_enabled);
 
 // Do any cleanup needed after forking.
 // WARN: Assumes this gets called before profiler is reinitialized on the fork

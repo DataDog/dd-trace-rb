@@ -10,6 +10,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   # Disabling these by default since they require some extra setup and produce separate samples.
   # Enabling this is tested in a particular context below.
   let(:heap_samples_enabled) { false }
+  let(:heap_size_enabled) { false }
   let(:timeline_enabled) { true }
 
   subject(:stack_recorder) do
@@ -17,6 +18,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       cpu_time_enabled: cpu_time_enabled,
       alloc_samples_enabled: alloc_samples_enabled,
       heap_samples_enabled: heap_samples_enabled,
+      heap_size_enabled: heap_size_enabled,
       timeline_enabled: timeline_enabled,
     )
   end
@@ -124,6 +126,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:cpu_time_enabled) { true }
         let(:alloc_samples_enabled) { true }
         let(:heap_samples_enabled) { true }
+        let(:heap_size_enabled) { true }
         let(:timeline_enabled) { true }
         let(:all_profile_types) do
           {
@@ -132,6 +135,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             'wall-time' => 'nanoseconds',
             'alloc-samples' => 'count',
             'heap-live-samples' => 'count',
+            'heap-live-size' => 'bytes',
             'timeline' => 'nanoseconds',
           }
         end
@@ -170,6 +174,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
         end
 
+        context 'when heap-live-size is disabled' do
+          let(:heap_size_enabled) { false }
+
+          it 'returns a pprof without the heap-live-size type' do
+            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('heap-live-size'))
+          end
+        end
+
         context 'when timeline is disabled' do
           let(:timeline_enabled) { false }
 
@@ -182,6 +194,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:cpu_time_enabled) { false }
           let(:alloc_samples_enabled) { false }
           let(:heap_samples_enabled) { false }
+          let(:heap_size_enabled) { false }
           let(:timeline_enabled) { false }
 
           it 'returns a pprof without the optional types' do
@@ -340,7 +353,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
-    describe 'heap samples' do
+    describe 'heap samples and sizes' do
       let(:sample_rate) { 50 }
       let(:metric_values) do
         { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => sample_rate, 'timeline' => 42 }
@@ -348,8 +361,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
       let(:a_string) { 'a beautiful string' }
-      let(:an_array) { (1..10).to_a }
-      let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true } }
+      let(:an_array) { (1..100).to_a.compact }
+      let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true, 'd' => Object.new } }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
@@ -404,16 +417,19 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       context 'when disabled' do
         let(:heap_samples_enabled) { false }
+        let(:heap_size_enabled) { false }
 
         it 'are ommitted from the profile' do
           # We sample from 2 distinct locations
           expect(samples.size).to eq(2)
           expect(samples.select { |s| s.values.key?('heap-live-samples') }).to be_empty
+          expect(samples.select { |s| s.values.key?('heap-live-size') }).to be_empty
         end
       end
 
       context 'when enabled' do
         let(:heap_samples_enabled) { true }
+        let(:heap_size_enabled) { true }
 
         let(:heap_samples) do
           samples.select { |s| s.values[:'heap-live-samples'] > 0 }
@@ -429,6 +445,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           expect(heap_samples.map { |s| s.labels[:'allocation class'] }).to include('String', 'Array', 'Hash')
           expect(heap_samples.map(&:labels)).to all(match(hash_including(:'gc gen age' => be_a(Integer).and(be >= 0))))
+        end
+
+        it 'include accurate object sizes' do
+          string_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'String' }
+          expect(string_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
+
+          array_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Array' }
+          expect(array_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(an_array) * sample_rate)
+
+          hash_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Hash' }
+          expect(hash_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
         end
 
         it 'include accurate object ages' do
@@ -469,7 +496,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # We use the same metric_values in all sample calls in before. So we'd expect
           # the summed values to match `@num_allocations * metric_values[profile-type]`
           # for each profile-type there in.
-          expected_summed_values = { :'heap-live-samples' => 0 }
+          expected_summed_values = { :'heap-live-samples' => 0, :'heap-live-size' => 0, }
           metric_values.each_pair do |k, v|
             expected_summed_values[k.to_sym] = v * @num_allocations
           end

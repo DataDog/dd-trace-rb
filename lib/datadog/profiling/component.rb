@@ -85,6 +85,7 @@ module Datadog
           cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
           alloc_samples_enabled: allocation_profiling_enabled,
           heap_samples_enabled: heap_profiling_enabled,
+          heap_size_enabled: heap_profiling_enabled,
           timeline_enabled: timeline_enabled,
         )
       end
