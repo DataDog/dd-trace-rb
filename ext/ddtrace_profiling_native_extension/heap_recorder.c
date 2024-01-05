@@ -160,7 +160,7 @@ heap_recorder* heap_recorder_new(void) {
   recorder->reusable_locations = ruby_xcalloc(MAX_FRAMES_LIMIT, sizeof(ddog_prof_Location));
   recorder->partial_object_record = NULL;
   recorder->size_enabled = true;
-  recorder->sample_rate = 1; // By default do no sampling
+  recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
 
   return recorder;
 }
@@ -207,7 +207,7 @@ void heap_recorder_set_sample_rate(heap_recorder *heap_recorder, int sample_rate
     return;
   }
 
-  if (sample_rate < 0) {
+  if (sample_rate <= 0) {
     rb_raise(rb_eArgError, "Heap sample rate must be a positive integer value but was %d", sample_rate);
   }
 
@@ -635,8 +635,8 @@ VALUE object_record_inspect(object_record *record) {
   if (class != NULL) {
     rb_str_catf(inspect, "class=%s ", class);
   }
-
   VALUE ref;
+
   if (!ruby_ref_from_id(LONG2NUM(record->obj_id), &ref)) {
     rb_str_catf(inspect, "object=<invalid>");
   } else {

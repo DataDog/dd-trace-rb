@@ -333,8 +333,6 @@ module Datadog
             #       in summary, this should be supported on Ruby 2.x, 3.1.4+, 3.2.3+ and 3.3.0+. Enabling it on
             #       unsupported Rubies may result in unexpected behaviour, including crashes.
             #
-            # @note Allocation profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
-            #
             # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_allocation_enabled do |o|
               o.type :bool
@@ -347,7 +345,6 @@ module Datadog
             # This feature is alpha and disabled by default
             #
             # @warn To enable heap profiling you are required to also enable allocation profiling.
-            # @note Heap profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
             #
             # @default `DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_heap_enabled do |o|
@@ -361,7 +358,6 @@ module Datadog
             # This feature is alpha and enabled by default when heap profiling is enabled.
             #
             # @warn To enable heap size profiling you are required to also enable allocation and heap profiling.
-            # @note Heap profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
             #
             # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise
             # whatever the value of DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED is.

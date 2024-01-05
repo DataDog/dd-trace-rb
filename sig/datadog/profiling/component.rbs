@@ -7,14 +7,6 @@ module Datadog
         optional_tracer: Datadog::Tracing::Tracer?,
       ) -> Datadog::Profiling::Profiler?
 
-      def self.build_recorder: (
-        allocation_profiling_enabled: bool,
-        heap_profiling_enabled: bool,
-        heap_size_profiling_enabled: bool,
-        heap_sample_every: ::Integer,
-        timeline_enabled: bool,
-      ) -> Datadog::Profiling::StackRecorder
-
       def self.build_thread_context_collector: (
         untyped settings,
         Datadog::Profiling::StackRecorder recorder,

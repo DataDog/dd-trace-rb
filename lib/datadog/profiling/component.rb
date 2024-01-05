@@ -50,10 +50,11 @@ module Datadog
         overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage)
         upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
 
-        recorder = build_recorder(
-          allocation_profiling_enabled: allocation_profiling_enabled,
-          heap_profiling_enabled: heap_profiling_enabled,
-          heap_size_profiling_enabled: heap_size_profiling_enabled,
+        recorder = Datadog::Profiling::StackRecorder.new(
+          cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
+          alloc_samples_enabled: allocation_profiling_enabled,
+          heap_samples_enabled: heap_profiling_enabled,
+          heap_size_enabled: heap_size_profiling_enabled,
           heap_sample_every: heap_sample_every,
           timeline_enabled: timeline_enabled,
         )
@@ -79,23 +80,6 @@ module Datadog
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
 
         Profiling::Profiler.new(worker: worker, scheduler: scheduler)
-      end
-
-      private_class_method def self.build_recorder(
-        allocation_profiling_enabled:,
-        heap_profiling_enabled:,
-        heap_size_profiling_enabled:,
-        heap_sample_every:,
-        timeline_enabled:
-      )
-        Datadog::Profiling::StackRecorder.new(
-          cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
-          alloc_samples_enabled: allocation_profiling_enabled,
-          heap_samples_enabled: heap_profiling_enabled,
-          heap_size_enabled: heap_size_profiling_enabled,
-          heap_sample_every: heap_sample_every,
-          timeline_enabled: timeline_enabled,
-        )
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
