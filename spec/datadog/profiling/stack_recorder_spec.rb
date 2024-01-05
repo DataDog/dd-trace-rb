@@ -449,28 +449,13 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         it 'include accurate object sizes' do
           string_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'String' }
-          expect(string_sample.values[:'heap-live-size']).to be_between(
-            # 18 UTF-8 characters at minimum.
-            (18 * 2) * sample_rate,
-            # Add some extra padding (per char and object-wide) for extra data.
-            (18 * 4 + 40) * sample_rate
-          )
+          expect(string_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
 
           array_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Array' }
-          expect(array_sample.values[:'heap-live-size']).to be_between(
-            # Basic object + 100 FIXNUMs (32 bits)
-            (40 + 100 * 4) * sample_rate,
-            # Basic object + 128 FIXNUMs (64 bits and round to nearest power of 2) and eventual extra data
-            (40 + 128 * 8 + 10) * sample_rate,
-          )
+          expect(array_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(an_array) * sample_rate)
 
           hash_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Hash' }
-          expect(hash_sample.values[:'heap-live-size']).to be_between(
-            # Basic object + 4 table entries + no bins
-            (40 + 4 * 16) * sample_rate,
-            # Add extra padding to hash itself as well as each entry and  8 bins
-            (80 + 4 * 32 + 8 * 16) * sample_rate,
-          )
+          expect(hash_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
         end
 
         it 'include accurate object ages' do

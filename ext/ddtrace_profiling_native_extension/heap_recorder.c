@@ -94,6 +94,10 @@ static object_record* object_record_new(long, heap_record*, live_object_data);
 static void object_record_free(object_record*);
 
 struct heap_recorder {
+  // Config
+  // Whether the recorder should try to determine approximate sizes for tracked objects.
+  bool size_enabled;
+
   // Map[key: heap_record_key*, record: heap_record*]
   // NOTE: We always use heap_record_key.type == HEAP_STACK for storage but support lookups
   // via heap_record_key.type == LOCATION_SLICE to allow for allocation-free fast-paths.
@@ -149,6 +153,7 @@ heap_recorder* heap_recorder_new(void) {
   recorder->object_records_snapshot = NULL;
   recorder->reusable_locations = ruby_xcalloc(MAX_FRAMES_LIMIT, sizeof(ddog_prof_Location));
   recorder->partial_object_record = NULL;
+  recorder->size_enabled = true;
 
   return recorder;
 }
@@ -180,6 +185,10 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
   ruby_xfree(heap_recorder->reusable_locations);
 
   ruby_xfree(heap_recorder);
+}
+
+void heap_recorder_set_size_enabled(heap_recorder *heap_recorder, bool size_enabled) {
+  heap_recorder->size_enabled = size_enabled;
 }
 
 // WARN: Assumes this gets called before profiler is reinitialized on the fork
@@ -250,15 +259,7 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
   commit_allocation(heap_recorder, heap_record, partial_object_record);
 }
 
-typedef struct {
-  // A reference to the heap recorder so we can access extra stuff to cleanup unused records.
-  heap_recorder *heap_recorder;
-
-  // Whether we should update object sizes as part of the update iteration or not.
-  bool update_sizes;
-} prepare_iteration_context;
-
-void heap_recorder_prepare_iteration(heap_recorder *heap_recorder, bool update_sizes) {
+void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
     return;
   }
@@ -268,11 +269,7 @@ void heap_recorder_prepare_iteration(heap_recorder *heap_recorder, bool update_s
     rb_raise(rb_eRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
   }
 
-  prepare_iteration_context context = (prepare_iteration_context) {
-    .heap_recorder = heap_recorder,
-    .update_sizes = update_sizes,
-  };
-  st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) &context);
+  st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
 
   heap_recorder->object_records_snapshot = st_copy(heap_recorder->object_records);
   if (heap_recorder->object_records_snapshot == NULL) {
@@ -376,7 +373,7 @@ static int st_object_record_entry_free(DDTRACE_UNUSED st_data_t key, st_data_t v
 static int st_object_record_update(st_data_t key, st_data_t value, st_data_t extra_arg) {
   long obj_id = (long) key;
   object_record *record = (object_record*) value;
-  prepare_iteration_context *context = (prepare_iteration_context*) extra_arg;
+  heap_recorder *recorder = (heap_recorder*) extra_arg;
 
   VALUE ref;
 
@@ -388,7 +385,7 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
     heap_record->num_tracked_objects--;
 
     // One less object using this heap record, it may have become unused...
-    cleanup_heap_record_if_unused(context->heap_recorder, heap_record);
+    cleanup_heap_record_if_unused(recorder, heap_record);
 
     object_record_free(record);
     return ST_DELETE;
@@ -396,9 +393,12 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
 
   // If we got this far, entry is still valid
 
-  if (context->update_sizes) {
-    // if we were asked to update sizes, do so...
+  if (recorder->size_enabled && !record->object_data.is_frozen) {
+    // if we were asked to update sizes and this object was not already seen as being frozen,
+    // update size again.
     record->object_data.size = ruby_obj_memsize_of(ref);
+    // Check if it's now frozen so we skip a size update next time
+    record->object_data.is_frozen = RB_OBJ_FROZEN(ref);
   }
 
   return ST_CONTINUE;

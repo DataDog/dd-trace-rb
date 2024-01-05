@@ -38,6 +38,11 @@ typedef struct live_object_data {
   //
   // This enables us to calculate the age of this object in terms of GC executions.
   size_t alloc_gen;
+
+  // Whether this object was previously seen as being frozen. If this is the case,
+  // we'll skip any further size updates since frozen objects are supposed to be
+  // immutable.
+  bool is_frozen;
 } live_object_data;
 
 // Data that is made available to iterators of heap recorder data for each live object
@@ -52,6 +57,17 @@ heap_recorder* heap_recorder_new(void);
 
 // Free a previously initialized heap recorder.
 void heap_recorder_free(heap_recorder *heap_recorder);
+
+// Sets whether this heap recorder should keep track of sizes or not.
+//
+// If set to true, the heap recorder will attempt to determine the approximate sizes of
+// tracked objects and wield them during iteration.
+// If set to false, sizes returned during iteration should not be used/relied on (they
+// may be 0 or the last determined size before disabling the tracking of sizes).
+//
+// NOTE: Default is true, i.e., it will attempt to determine approximate sizes of tracked
+// objects.
+void heap_recorder_set_size_enabled(heap_recorder *heap_recorder, bool size_enabled);
 
 // Do any cleanup needed after forking.
 // WARN: Assumes this gets called before profiler is reinitialized on the fork
@@ -82,12 +98,8 @@ void end_heap_allocation_recording(heap_recorder *heap_recorder, ddog_prof_Slice
 // Update the heap recorder to reflect the latest state of the VM and prepare internal structures
 // for efficient iteration.
 //
-// @param update_sizes
-//   True if we should re-calculate live object sizes ahead of the next iteration. If false,
-//   the previous sizes will be used (or 0 if we never updated them before).
-//
 // WARN: This must be called strictly before iteration. Failing to do so will result in exceptions.
-void heap_recorder_prepare_iteration(heap_recorder *heap_recorder, bool update_sizes);
+void heap_recorder_prepare_iteration(heap_recorder *heap_recorder);
 
 // Optimize the heap recorder by cleaning up any data that might have been prepared specifically
 // for the purpose of iterating over the heap recorder data.

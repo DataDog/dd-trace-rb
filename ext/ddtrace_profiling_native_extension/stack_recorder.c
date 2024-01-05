@@ -184,7 +184,6 @@ struct stack_recorder_state {
 
   uint8_t position_for[ALL_VALUE_TYPES_COUNT];
   uint8_t enabled_values_count;
-  bool heap_size_enabled;
 };
 
 // Used to return a pair of values from sampler_lock_active_profile()
@@ -217,7 +216,7 @@ static VALUE _native_initialize(
   VALUE cpu_time_enabled,
   VALUE alloc_samples_enabled,
   VALUE heap_samples_enabled,
-  VALUE heap_sizes_enabled,
+  VALUE heap_size_enabled,
   VALUE timeline_enabled
 );
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
@@ -311,7 +310,6 @@ static VALUE _native_new(VALUE klass) {
   //       heap samples, we will free and reset heap_recorder to NULL, effectively disabling all behaviour specific
   //       to heap profiling (all calls to heap_recorder_* with a NULL heap recorder are noops).
   state->heap_recorder = heap_recorder_new();
-  state->heap_size_enabled = true;
 
   // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
 
@@ -435,11 +433,10 @@ static VALUE _native_initialize(
   if (heap_size_enabled == Qtrue) {
     enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SIZE_VALUE;
     state->position_for[HEAP_SIZE_VALUE_ID] = next_enabled_pos++;
-    state->heap_size_enabled = true;
   } else {
     state->position_for[HEAP_SIZE_VALUE_ID] = next_disabled_pos++;
-    state->heap_size_enabled = false;
   }
+  heap_recorder_set_size_enabled(state->heap_recorder, heap_size_enabled);
 
   if (heap_samples_enabled == Qfalse && heap_size_enabled == Qfalse) {
     // Turns out heap sampling is disabled but we initialized everything in _native_new
@@ -474,7 +471,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
   // happen while holding on to the GVL.
-  heap_recorder_prepare_iteration(state->heap_recorder, state->heap_size_enabled);
+  heap_recorder_prepare_iteration(state->heap_recorder);
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
@@ -882,7 +879,7 @@ static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _se
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  heap_recorder_prepare_iteration(state->heap_recorder, false);
+  heap_recorder_prepare_iteration(state->heap_recorder);
 
   return Qnil;
 }
