@@ -229,11 +229,26 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context 'when heap profiling is enabled' do
+          # Universally supported ruby version for allocation profiling by default
+          let(:testing_version) { '2.7.2' }
+
           before do
             settings.profiling.advanced.experimental_heap_enabled = true
-            # Universally supported ruby version for allocation profiling, we don't want to test those
-            # edge cases here
-            stub_const('RUBY_VERSION', '2.7.2')
+            stub_const('RUBY_VERSION', testing_version)
+          end
+
+          context 'on a Ruby older than 2.7' do
+            let(:testing_version) { '2.6' }
+
+            it 'initializes StackRecorder without heap sampling support and warns' do
+              expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                .with(hash_including(heap_samples_enabled: false))
+                .and_call_original
+
+              expect(Datadog.logger).to receive(:warn).with(/upgrade to Ruby >= 2.7/)
+
+              build_profiler_component
+            end
           end
 
           context 'and allocation profiling disabled' do
@@ -600,6 +615,23 @@ RSpec.describe Datadog::Profiling::Component do
 
               it 'logs a warning including the error details' do
                 expect(Datadog.logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
+
+                no_signals_workaround_enabled?
+              end
+            end
+
+            # See comments on looks_like_mariadb? for details on how this matching works
+            context "when mysql2 gem is linked to mariadb's version of libmysqlclient" do
+              before do
+                fake_client = double('Fake Mysql2::Client')
+                stub_const('Mysql2::Client', fake_client)
+                expect(fake_client).to receive(:info).and_return({ version: '4.9.99', header_version: '10.0.0' })
+              end
+
+              it { is_expected.to be false }
+
+              it 'does not log any warning message' do
+                expect(Datadog.logger).to_not receive(:warn)
 
                 no_signals_workaround_enabled?
               end

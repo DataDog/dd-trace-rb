@@ -5,6 +5,10 @@
 
 #include "helpers.h"
 
+// Initialize internal data needed by some ruby helpers. Should be called during start, before any actual
+// usage of ruby helpers.
+void ruby_helpers_init(void);
+
 // Processes any pending interruptions, including exceptions to be raised.
 // If there's an exception to be raised, it raises it. In that case, this function does not return.
 static inline VALUE process_pending_interruptions(DDTRACE_UNUSED VALUE _) {
@@ -87,3 +91,23 @@ NORETURN(void raise_syserr(
   int line,
   const char *function_name
 ));
+
+// Alternative to ruby_strdup that takes a size argument.
+// Similar to C's strndup but slightly less smart as size is expected to
+// be smaller or equal to the real size of str (minus null termination if it
+// exists).
+// A new string will be returned with size+1 bytes and last byte set to '\0'.
+// The returned string must be freed explicitly.
+//
+// WARN: Cannot be used during GC or outside the GVL.
+char* ruby_strndup(const char *str, size_t size);
+
+// Native wrapper to get an object ref from an id. Returns true on success and
+// writes the ref to the value pointer parameter if !NULL. False if id doesn't
+// reference a valid object (in which case value is not changed).
+bool ruby_ref_from_id(size_t id, VALUE *value);
+
+// Native wrapper to get the approximate/estimated current size of the passed
+// object.
+size_t ruby_obj_memsize_of(VALUE obj);
+

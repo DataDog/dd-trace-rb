@@ -75,6 +75,13 @@
 //
 // ---
 
+#ifndef NO_POSTPONED_TRIGGER
+  // Used to call the rb_postponed_job_trigger from Ruby 3.3+. These get initialized in
+  // `collectors_cpu_and_wall_time_worker_init` below and always get reused after that.
+  static rb_postponed_job_handle_t sample_from_postponed_job_handle;
+  static rb_postponed_job_handle_t after_gc_from_postponed_job_handle;
+#endif
+
 // Contains state for a single CpuAndWallTimeWorker instance
 struct cpu_and_wall_time_worker_state {
   // These are immutable after initialization
@@ -211,6 +218,16 @@ __thread uint64_t allocation_count = 0;
 
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
+
+  #ifndef NO_POSTPONED_TRIGGER
+    int unused_flags = 0;
+    sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
+    after_gc_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gc_from_postponed_job, NULL);
+
+    if (sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID || after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID) {
+      rb_raise(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
+    }
+  #endif
 
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   VALUE collectors_cpu_and_wall_time_worker_class = rb_define_class_under(collectors_module, "CpuAndWallTimeWorker", rb_cObject);
@@ -476,20 +493,25 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 
   // Note: If we ever want to get rid of rb_postponed_job_register_one, remember not to clobber Ruby exceptions, as
   // this function does this helpful job for us now -- https://github.com/ruby/ruby/commit/a98e343d39c4d7bf1e2190b076720f32d9f298b3.
-  int result = rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
+  #ifndef NO_POSTPONED_TRIGGER // Ruby 3.3+
+    rb_postponed_job_trigger(sample_from_postponed_job_handle);
+    state->stats.postponed_job_success++; // Always succeeds
+  #else
+    int result = rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
 
-  // Officially, the result of rb_postponed_job_register_one is documented as being opaque, but in practice it does not
-  // seem to have changed between Ruby 2.3 and 3.2, and so we track it as a debugging mechanism
-  switch (result) {
-    case 0:
-      state->stats.postponed_job_full++; break;
-    case 1:
-      state->stats.postponed_job_success++; break;
-    case 2:
-      state->stats.postponed_job_skipped_already_existed++; break;
-    default:
-      state->stats.postponed_job_unknown_result++;
-  }
+    // Officially, the result of rb_postponed_job_register_one is documented as being opaque, but in practice it does not
+    // seem to have changed between Ruby 2.3 and 3.2, and so we track it as a debugging mechanism
+    switch (result) {
+      case 0:
+        state->stats.postponed_job_full++; break;
+      case 1:
+        state->stats.postponed_job_success++; break;
+      case 2:
+        state->stats.postponed_job_skipped_already_existed++; break;
+      default:
+        state->stats.postponed_job_unknown_result++;
+    }
+  #endif
 }
 
 // The actual sampling trigger loop always runs **without** the global vm lock.
@@ -722,7 +744,13 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
 
     // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc when the
     // thread collector flags it's time to flush.
-    if (should_flush) rb_postponed_job_register_one(0, after_gc_from_postponed_job, NULL);
+    if (should_flush) {
+      #ifndef NO_POSTPONED_TRIGGER // Ruby 3.3+
+        rb_postponed_job_trigger(after_gc_from_postponed_job_handle);
+      #else
+        rb_postponed_job_register_one(0, after_gc_from_postponed_job, NULL);
+      #endif
+    }
   }
 }
 

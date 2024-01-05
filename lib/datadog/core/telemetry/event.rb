@@ -60,7 +60,8 @@ module Datadog
             dependencies: dependencies,
             integrations: integrations,
             configuration: configurations,
-            additional_payload: additional_payload
+            additional_payload: additional_payload,
+            install_signature: install_signature
           )
         end
 

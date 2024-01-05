@@ -471,6 +471,11 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     // it from https://github.com/ruby/ruby/pull/7116 in a "just in case" kind of mindset.
     if (cfp == NULL) return 0;
 
+    // As of this writing, we don't support profiling with MN enabled, and this only happens in that mode, but as we
+    // probably want to experiment with it in the future, I've decided to import https://github.com/ruby/ruby/pull/9310
+    // here.
+    if (ec == NULL) return 0;
+
     // Fix: Skip dummy frame that shows up in main thread.
     //
     // According to a comment in `backtrace_each` (`vm_backtrace.c`), there's two dummy frames that we should ignore

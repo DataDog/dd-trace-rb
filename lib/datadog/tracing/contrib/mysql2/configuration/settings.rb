@@ -50,6 +50,10 @@ module Datadog
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
             end
+
+            option :on_error do |o|
+              o.type :proc, nilable: true
+            end
           end
         end
       end
