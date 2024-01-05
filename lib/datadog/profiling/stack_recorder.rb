@@ -4,7 +4,10 @@ module Datadog
     # Note that `record_sample` is only accessible from native code.
     # Methods prefixed with _native_ are implemented in `stack_recorder.c`
     class StackRecorder
-      def initialize(cpu_time_enabled:, alloc_samples_enabled:, heap_samples_enabled:, timeline_enabled:)
+      def initialize(
+        cpu_time_enabled:, alloc_samples_enabled:, heap_samples_enabled:, heap_size_enabled:,
+        timeline_enabled:
+      )
         # This mutex works in addition to the fancy C-level mutexes we have in the native side (see the docs there).
         # It prevents multiple Ruby threads calling serialize at the same time -- something like
         # `10.times { Thread.new { stack_recorder.serialize } }`.
@@ -18,6 +21,7 @@ module Datadog
           cpu_time_enabled,
           alloc_samples_enabled,
           heap_samples_enabled,
+          heap_size_enabled,
           timeline_enabled,
         )
       end
