@@ -16,7 +16,7 @@ module Datadog
   module Tracing
     module Contrib
       module Rack
-        module ProxyTraceMiddleware
+        module TraceProxyMiddleware
           module_function
 
           def call(env, configuration)

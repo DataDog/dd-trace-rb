@@ -11,7 +11,7 @@ require_relative 'ext'
 require_relative 'header_collection'
 require_relative 'header_tagging'
 require_relative 'request_queue'
-require_relative 'proxy_trace_middleware'
+require_relative 'trace_proxy_middleware'
 
 module Datadog
   module Tracing
@@ -44,7 +44,7 @@ module Datadog
               Tracing.continue_trace!(trace_digest)
             end
 
-            ProxyTraceMiddleware.call(env, configuration) do
+            TraceProxyMiddleware.call(env, configuration) do
               trace_options = { span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
               trace_options[:service] = configuration[:service_name] if configuration[:service_name]
 
