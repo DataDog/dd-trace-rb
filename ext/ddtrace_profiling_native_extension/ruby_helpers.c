@@ -8,12 +8,16 @@
 // They are not expected to be mutated outside of init.
 static VALUE module_object_space = Qnil;
 static ID _id2ref_id = Qnil;
+static ID inspect_id = Qnil;
+static ID to_s_id = Qnil;
 
 void ruby_helpers_init(void) {
   rb_global_variable(&module_object_space);
 
   module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
   _id2ref_id = rb_intern("_id2ref");
+  inspect_id = rb_intern("inspect");
+  to_s_id = rb_intern("to_s");
 }
 
 void raise_unexpected_type(
@@ -208,5 +212,46 @@ size_t ruby_obj_memsize_of(VALUE obj) {
     default:
       // Unsupported, return 0 instead of erroring like rb_obj_memsize_of likes doing
       return 0;
+  }
+}
+
+// Inspired by rb_class_of but without actually returning classes or potentially doing assertions
+static bool ruby_is_obj_with_class(VALUE obj) {
+  if (!RB_SPECIAL_CONST_P(obj)) {
+    return true;
+  }
+  if (obj == RUBY_Qfalse) {
+    return true;
+  }
+  else if (obj == RUBY_Qnil) {
+    return true;
+  }
+  else if (obj == RUBY_Qtrue) {
+    return true;
+  }
+  else if (RB_FIXNUM_P(obj)) {
+    return true;
+  }
+  else if (RB_STATIC_SYM_P(obj)) {
+    return true;
+  }
+  else if (RB_FLONUM_P(obj)) {
+    return true;
+  }
+
+  return false;
+}
+
+VALUE ruby_safe_inspect(VALUE obj) {
+  if (!ruby_is_obj_with_class(obj)) {
+    return rb_str_new_cstr("(Not an object)");
+  }
+
+  if (rb_respond_to(obj, inspect_id)) {
+    return rb_sprintf("%+"PRIsVALUE, obj);
+  } else if (rb_respond_to(obj, to_s_id)) {
+    return rb_sprintf("%"PRIsVALUE, obj);
+  } else {
+    return rb_str_new_cstr("(Not inspectable)");
   }
 }

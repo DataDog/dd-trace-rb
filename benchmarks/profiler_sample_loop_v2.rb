@@ -21,6 +21,7 @@ class ProfilerSampleLoopBenchmark
       alloc_samples_enabled: false,
       heap_samples_enabled: false,
       heap_size_enabled: false,
+      heap_sample_every: 1,
       timeline_enabled: false,
     )
     @collector = Datadog::Profiling::Collectors::ThreadContext.new(
@@ -42,8 +43,11 @@ class ProfilerSampleLoopBenchmark
 
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_sample_loop_v2'))
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      x.config(
+        **benchmark_time,
+        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_sample_loop_v2')
+      )
 
       x.report("stack collector #{ENV['CONFIG']}") do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
@@ -58,7 +62,9 @@ class ProfilerSampleLoopBenchmark
 
   def run_forever
     while true
-      1000.times { Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD) }
+      1000.times do
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
+      end
       @recorder.serialize
       print '.'
     end

@@ -7,12 +7,6 @@ module Datadog
         optional_tracer: Datadog::Tracing::Tracer?,
       ) -> Datadog::Profiling::Profiler?
 
-      def self.build_recorder: (
-        allocation_profiling_enabled: bool,
-        heap_profiling_enabled: bool,
-        timeline_enabled: bool,
-      ) -> Datadog::Profiling::StackRecorder
-
       def self.build_thread_context_collector: (
         untyped settings,
         Datadog::Profiling::StackRecorder recorder,
@@ -34,7 +28,9 @@ module Datadog
       def self.enable_gc_profiling?: (untyped settings) -> bool
       def self.get_allocation_sample_every: (untyped settings) -> ::Integer
       def self.enable_allocation_profiling?: (untyped settings, ::Integer allocation_sample_every) -> bool
-      def self.enable_heap_profiling?: (untyped settings, bool allocation_profiling_enabled) -> bool
+      def self.get_heap_sample_every: (untyped settings) -> ::Integer
+      def self.enable_heap_profiling?: (untyped settings, bool allocation_profiling_enabled, ::Integer heap_sample_every) -> bool
+      def self.enable_heap_size_profiling?: (untyped settings, bool heap_profiling_enabled) -> bool
 
       def self.no_signals_workaround_enabled?: (untyped settings) -> bool
 
