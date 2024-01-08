@@ -441,6 +441,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           samples.select { |s| s.values[:'heap-live-samples'] == 0 }
         end
 
+        before do
+          skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
+        end
+
         it 'include the stack and sample counts for the objects still left alive' do
           # There should be 3 different allocation class labels so we expect 3 different heap samples
           expect(heap_samples.size).to eq(3)
@@ -572,7 +576,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               # Instead of doing this one at a time which would be slow given id2ref will
               # raise on failure, allocate a ton of objects each time, increasing the
               # probability of getting a hit on each iteration
-              10000.times { obj = Object.new }
+              1000.times { obj = Object.new }
               begin
                 return ObjectSpace._id2ref(obj_id)
               rescue RangeError # rubocop:disable Lint/SuppressedException
