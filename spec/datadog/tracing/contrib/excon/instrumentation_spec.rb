@@ -187,6 +187,20 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
         expect(request_span).not_to have_error
       end
     end
+
+    context 'when configured from env' do
+      around do |example|
+        ClimateControl.modify('DD_TRACE_EXCON_ERROR_STATUS_CODES' => '500-600') do
+          example.run
+        end
+      end
+
+      it do
+        connection.get(path: '/not_found')
+
+        expect(span).not_to have_error
+      end
+    end
   end
 
   context 'when the request times out' do
