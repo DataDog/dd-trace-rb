@@ -244,7 +244,7 @@ static bool ruby_is_obj_with_class(VALUE obj) {
 
 VALUE ruby_safe_inspect(VALUE obj) {
   if (!ruby_is_obj_with_class(obj)) {
-    return Qnil;
+    return rb_str_new_cstr("(Not an object)");
   }
 
   if (rb_respond_to(obj, inspect_id)) {
@@ -252,6 +252,6 @@ VALUE ruby_safe_inspect(VALUE obj) {
   } else if (rb_respond_to(obj, to_s_id)) {
     return rb_sprintf("%"PRIsVALUE, obj);
   } else {
-    return Qnil;
+    return rb_str_new_cstr("(Not inspectable)");
   }
 }
