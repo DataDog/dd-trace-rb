@@ -194,9 +194,11 @@ end
 
 # On older Rubies, rb_gc_force_recycle allowed to free objects in a way that
 # would be invisible to free tracepoints, finalizers and without cleaning
-# obj_to_id_tbl mappings. This leads to potential invisible object re-use
-# to our heap profiler.
+# obj_to_id_tbl mappings.
 $defs << '-DHAVE_WORKING_RB_GC_FORCE_RECYCLE' if RUBY_VERSION < '3.1'
+
+# On older Rubies, there was no RUBY_SEEN_OBJ_ID flag
+$defs << '-DNO_SEEN_OBJ_ID_FLAG' if RUBY_VERSION < '2.7'
 
 # If we got here, libdatadog is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"

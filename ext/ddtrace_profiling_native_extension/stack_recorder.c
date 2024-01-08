@@ -241,6 +241,7 @@ static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _se
 static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj);
+static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj);
 
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -275,6 +276,8 @@ void stack_recorder_init(VALUE profiling_module) {
       _native_debug_heap_recorder, 1);
   rb_define_singleton_method(testing_module, "_native_gc_force_recycle",
       _native_gc_force_recycle, 1);
+  rb_define_singleton_method(testing_module, "_native_has_seen_id_flag",
+      _native_has_seen_id_flag, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -922,3 +925,17 @@ static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj) {
   return Qnil;
 }
 #pragma GCC diagnostic pop
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  #ifndef NO_SEEN_OBJ_ID_FLAG
+    if (RB_FL_TEST(obj, RUBY_FL_SEEN_OBJ_ID)) {
+      return Qtrue;
+    } else {
+      return Qfalse;
+    }
+  #else
+    return Qfalse;
+  #endif
+}

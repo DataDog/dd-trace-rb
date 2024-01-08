@@ -214,13 +214,13 @@ module Datadog
         end
 
         if RUBY_VERSION < '3.1'
-          Datadog.logger.warn(
+          Datadog.logger.debug(
             "Current Ruby version (#{RUBY_VERSION}) supports forced object recycling which has a bug that the " \
-            'heap profiler is forced to work around to remain accurate. This workaround should be safe and ' \
-            'should even partially fix a runtime memory leak around object id mapping. Details about the workaround ' \
-            "can be found in https://github.com/DataDog/dd-trace-rb/pull/3360. If you're not comfortable with this, " \
-            'disable heap profiler or upgrade to Ruby >= 3.1 where forced object recycling was completely' \
-            'removed (https://bugs.ruby-lang.org/issues/18290).'
+            'heap profiler is forced to work around to remain accurate. This workaround requires force-setting '\
+            "the SEEN_OBJ_ID flag on objects that should have it but don't. Full details can be found in " \
+            'https://github.com/DataDog/dd-trace-rb/pull/3360. This workaround should be safe but can be ' \
+            'bypassed by disabling the heap profiler or upgrading to Ruby >= 3.1 where forced object recycling ' \
+            'was completely removed (https://bugs.ruby-lang.org/issues/18290).'
           )
         end
 

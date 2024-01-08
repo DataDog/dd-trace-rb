@@ -300,7 +300,7 @@ RSpec.describe Datadog::Profiling::Component do
             context 'on a Ruby older than 3.1' do
               let(:testing_version) { '2.7' }
 
-              it 'initializes StackRecorder with heap sampling support but warns' do
+              it 'initializes StackRecorder with heap sampling support but shows warning and debug messages' do
                 expect(Datadog::Profiling::StackRecorder).to receive(:new)
                   .with(hash_including(heap_samples_enabled: true))
                   .and_call_original
@@ -308,7 +308,7 @@ RSpec.describe Datadog::Profiling::Component do
                 expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
                 expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
                 expect(Datadog.logger).to receive(:warn).with(/experimental heap size profiling/)
-                expect(Datadog.logger).to receive(:warn).with(/forced object recycling.+upgrade to Ruby >= 3.1/)
+                expect(Datadog.logger).to receive(:debug).with(/forced object recycling.+upgrading to Ruby >= 3.1/)
 
                 build_profiler_component
               end
