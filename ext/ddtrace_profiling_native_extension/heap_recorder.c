@@ -496,7 +496,7 @@ static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *
     VALUE existing_inspect = object_record_inspect(existing_record);
     VALUE new_inspect = object_record_inspect(update_data->new_object_record);
     rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
-        "the same id.\nprevious=%"PRIsVALUE"\nnew=%"PRIsVALUE"\n", existing_inspect, new_inspect);
+        "the same id. previous=%"PRIsVALUE" new=%"PRIsVALUE, existing_inspect, new_inspect);
   }
   // Always carry on with the update, we want the new record to be there at the end
   (*value) = (st_data_t) update_data->new_object_record;
