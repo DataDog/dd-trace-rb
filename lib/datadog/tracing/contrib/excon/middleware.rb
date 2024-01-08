@@ -2,7 +2,7 @@ require 'excon'
 
 require_relative '../../../core'
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../http_annotation_helper'
@@ -177,7 +177,7 @@ module Datadog
           end
 
           def propagate!(trace, span, datum)
-            Tracing::Propagation::HTTP.inject!(trace, datum[:headers])
+            Contrib::HTTP.inject(trace, datum[:headers])
           end
 
           def build_request_options!(datum)

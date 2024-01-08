@@ -4,15 +4,15 @@ require 'datadog/tracing/distributed/b3_single'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'B3 Single distributed format' do
-  subject(:b3_single) { described_class.new(fetcher: fetcher_class) }
-  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+  let(:propagation_inject_style) { ['b3'] }
+  let(:propagation_extract_style) { ['b3'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   let(:b3_single_header) { 'b3' }
 
   describe '#inject!' do
-    subject!(:inject!) { b3_single.inject!(digest, data) }
+    subject!(:inject!) { propagation.inject!(digest, data) }
     let(:data) { {} }
 
     context 'with nil digest' do
@@ -79,7 +79,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
   end
 
   describe '#extract' do
-    subject(:extract) { b3_single.extract(data) }
+    subject(:extract) { propagation.extract(data) }
     let(:digest) { extract }
 
     let(:data) { {} }
@@ -166,5 +166,8 @@ RSpec.shared_examples 'B3 Single distributed format' do
 end
 
 RSpec.describe Datadog::Tracing::Distributed::B3Single do
+  subject(:propagation) { described_class.new(fetcher: fetcher_class) }
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
   it_behaves_like 'B3 Single distributed format'
 end

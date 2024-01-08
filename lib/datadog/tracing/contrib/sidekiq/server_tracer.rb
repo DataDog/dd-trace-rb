@@ -28,7 +28,7 @@ module Datadog
             resource = job_resource(job)
 
             if configuration[:distributed_tracing]
-              trace_digest = propagation.extract(job)
+              trace_digest = Sidekiq.extract(job)
               Datadog::Tracing.continue_trace!(trace_digest)
             end
 
@@ -83,10 +83,6 @@ module Datadog
           end
 
           private
-
-          def propagation
-            @propagation ||= Contrib::Sidekiq::Distributed::Propagation.new
-          end
 
           def quantize_args(quantize, args)
             quantize_options = quantize && quantize[:args]

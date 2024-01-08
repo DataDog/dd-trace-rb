@@ -45,6 +45,7 @@ module Datadog
       #
       # @return [Datadog::Core::Configuration::Settings]
       # @!attribute [r] configuration
+
       # @public_api
       def configuration
         @configuration ||= Settings.new

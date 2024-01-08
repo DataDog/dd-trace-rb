@@ -49,7 +49,7 @@ module Datadog
             private
 
             def set_distributed_context!(metadata)
-              Tracing.continue_trace!(Distributed::Propagation::INSTANCE.extract(metadata))
+              Tracing.continue_trace!(GRPC.extract(metadata))
             rescue StandardError => e
               Datadog.logger.debug(
                 "unable to propagate GRPC metadata to context: #{e}"

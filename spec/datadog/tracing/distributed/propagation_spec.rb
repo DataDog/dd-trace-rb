@@ -1,9 +1,19 @@
 require 'spec_helper'
 
 require 'datadog/tracing/distributed/propagation'
+require 'datadog/tracing/distributed/datadog'
+require 'datadog/tracing/distributed/trace_context'
+require 'datadog/tracing/distributed/fetcher'
 
 RSpec.shared_examples 'Distributed tracing propagator' do
-  subject(:propagator) { described_class.new(propagation_styles: propagation_styles) }
+  subject(:propagator) do
+    described_class.new(
+      propagation_styles: propagation_styles,
+      propagation_inject_style: propagation_inject_style,
+      propagation_extract_style: propagation_extract_style,
+      propagation_extract_first: propagation_extract_first
+    )
+  end
 
   let(:propagation_styles) do
     {
@@ -12,6 +22,10 @@ RSpec.shared_examples 'Distributed tracing propagator' do
     }
   end
   let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
+  let(:propagation_inject_style) { ['datadog', 'tracecontext'] }
+  let(:propagation_extract_style) { ['datadog', 'tracecontext'] }
+  let(:propagation_extract_first) { false }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
@@ -95,11 +109,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
 
       it_behaves_like 'trace injection' do
         context 'with no styles configured' do
-          before do
-            Datadog.configure do |c|
-              c.tracing.distributed_tracing.propagation_inject_style = []
-            end
-          end
+          let(:propagation_inject_style) { [] }
 
           it { is_expected.to eq(false) }
 
@@ -315,7 +325,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             end
 
             context 'with propagation_extract_first true' do
-              before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_extract_first = true } }
+              let(:propagation_extract_first) { true }
 
               it 'does not preserve tracestate' do
                 expect(trace_digest.trace_state).to be nil

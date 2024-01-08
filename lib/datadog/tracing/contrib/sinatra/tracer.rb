@@ -2,7 +2,7 @@ require 'sinatra/base'
 
 require_relative '../../../core/utils/only_once'
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative 'env'
 require_relative 'ext'

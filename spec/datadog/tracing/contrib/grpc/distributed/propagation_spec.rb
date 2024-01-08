@@ -9,7 +9,17 @@ require_relative '../../../distributed/propagation_spec'
 require_relative '../../../distributed/trace_context_spec'
 
 RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
-  subject(:propagation) { described_class.new }
+  subject(:propagation) do
+    described_class.new(
+      propagation_inject_style: propagation_inject_style,
+      propagation_extract_style: propagation_extract_style,
+      propagation_extract_first: propagation_extract_first
+    )
+  end
+
+  let(:propagation_inject_style) { ['datadog', 'tracecontext'] }
+  let(:propagation_extract_style) { ['datadog', 'tracecontext'] }
+  let(:propagation_extract_first) { false }
 
   it_behaves_like 'Distributed tracing propagator' do
     subject(:propagator) { propagation }

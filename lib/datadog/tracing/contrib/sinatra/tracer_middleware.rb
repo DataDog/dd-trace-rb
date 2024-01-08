@@ -18,15 +18,9 @@ module Datadog
             @app_instance = opt[:app_instance]
           end
 
-          # rubocop:disable Metrics/AbcSize
           # rubocop:disable Metrics/MethodLength
           def call(env)
-            # Set the trace context (e.g. distributed tracing)
-            if configuration[:distributed_tracing] && Tracing.active_trace.nil?
-              original_trace = Tracing::Propagation::HTTP.extract(env)
-              Tracing.continue_trace!(original_trace)
-            end
-
+            # Find out if this is Sinatra within Sinatra
             return @app.call(env) if Sinatra::Env.datadog_span(env)
 
             Tracing.trace(
@@ -93,7 +87,6 @@ module Datadog
               end
             end
           end
-          # rubocop:enable Metrics/AbcSize
           # rubocop:enable Metrics/MethodLength
 
           private

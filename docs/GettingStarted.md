@@ -2282,21 +2282,21 @@ For more details on how to activate distributed tracing for integrations, see th
 
 **Using the HTTP propagator**
 
-To make the process of propagating this metadata easier, you can use the `Datadog::Tracing::Propagation::HTTP` module.
+To make the process of propagating this metadata easier, you can use the `Datadog::Tracing::Contrib::HTTP` module.
 
 On the client:
 
 ```ruby
 Datadog::Tracing.trace('web.call') do |span, trace|
   # Inject trace headers into request headers (`env` must be a Hash)
-  Datadog::Tracing::Propagation::HTTP.inject!(trace.to_digest, env)
+  Datadog::Tracing::Contrib::HTTP.inject(trace.to_digest, env)
 end
 ```
 
 On the server:
 
 ```ruby
-trace_digest = Datadog::Tracing::Propagation::HTTP.extract(request.env)
+trace_digest = Datadog::Tracing::Contrib::HTTP.extract(request.env)
 
 Datadog::Tracing.trace('web.work', continue_from: trace_digest) do |span|
   # Do web work...

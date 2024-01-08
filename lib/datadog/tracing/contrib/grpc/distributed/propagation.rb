@@ -16,7 +16,11 @@ module Datadog
           # Extracts and injects propagation through gRPC metadata.
           # @see https://github.com/grpc/grpc-go/blob/v1.50.1/Documentation/grpc-metadata.md
           class Propagation < Tracing::Distributed::Propagation
-            def initialize
+            def initialize(
+              propagation_inject_style:,
+              propagation_extract_style:,
+              propagation_extract_first:
+            )
               super(
                 propagation_styles: {
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER =>
@@ -28,12 +32,12 @@ module Datadog
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT =>
                     Tracing::Distributed::TraceContext.new(fetcher: Fetcher),
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_NONE => Tracing::Distributed::None.new
-                })
+                },
+                propagation_inject_style: propagation_inject_style,
+                propagation_extract_style: propagation_extract_style,
+                propagation_extract_first: propagation_extract_first
+              )
             end
-
-            # DEV: Singleton kept until a larger refactor is performed.
-            # DEV: See {Datadog::Tracing::Distributed::Propagation#initialize} for more information.
-            INSTANCE = Propagation.new
           end
         end
       end
