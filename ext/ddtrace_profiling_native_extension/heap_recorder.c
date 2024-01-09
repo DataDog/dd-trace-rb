@@ -6,6 +6,8 @@
 #include "collectors_stack.h"
 #include "libdatadog_helpers.h"
 
+#define CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND (defined(HAVE_WORKING_RB_GC_FORCE_RECYCLE) && ! defined(NO_SEEN_OBJ_ID_FLAG))
+
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
   char *name;
@@ -276,7 +278,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 
   bool did_recycle_workaround = false;
 
-  #if defined(HAVE_WORKING_RB_GC_FORCE_RECYCLE) && ! defined(NO_SEEN_OBJ_ID_FLAG)
+  #if CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
     // If we are in a ruby version that has a working rb_gc_force_recycle implementation,
     // its usage may lead to an object being re-used outside of the typical GC cycle.
     //
@@ -470,7 +472,7 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
 
   // If we got this far, then we found a valid live object for the tracked id.
 
-  #if defined(HAVE_WORKING_RB_GC_FORCE_RECYCLE) && ! defined(NO_SEEN_OBJ_ID_FLAG)
+  #if CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
     // If we are in a ruby version that has a working rb_gc_force_recycle implementation,
     // its usage may lead to an object being re-used outside of the typical GC cycle.
     //
