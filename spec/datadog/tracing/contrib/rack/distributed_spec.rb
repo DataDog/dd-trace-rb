@@ -111,7 +111,7 @@ RSpec.describe 'Rack integration distributed tracing' do
 
             expect(rack_span.name).to eq('rack.request')
             expect(rack_span.trace_id).to eq(trace_id)
-            expect(rack_span.parent_id).to eq(server_queue_span.span_id)
+            expect(rack_span.parent_id).to eq(server_queue_span.id)
           end
         end
 
@@ -140,11 +140,11 @@ RSpec.describe 'Rack integration distributed tracing' do
 
             expect(server_queue_span.name).to eq('http.proxy.queue')
             expect(server_queue_span.trace_id).to eq(trace_id)
-            expect(server_queue_span.parent_id).to eq(server_request_span.span_id)
+            expect(server_queue_span.parent_id).to eq(server_request_span.id)
 
             expect(rack_span.name).to eq('rack.request')
             expect(rack_span.trace_id).to eq(trace_id)
-            expect(rack_span.parent_id).to eq(server_request_span.span_id)
+            expect(rack_span.parent_id).to eq(server_request_span.id)
           end
         end
       end

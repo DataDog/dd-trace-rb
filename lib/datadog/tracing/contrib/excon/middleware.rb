@@ -112,7 +112,7 @@ module Datadog
           def annotate!(span, datum)
             span.resource = datum[:method].to_s.upcase
             span.service = service_name(datum[:host], @options)
-            span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+            span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
             if @options[:peer_service]
               span.set_tag(

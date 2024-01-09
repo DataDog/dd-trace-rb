@@ -34,11 +34,6 @@ module Datadog
       attr_writer \
         :duration
 
-      # For backwards compatiblity
-      # TODO: Deprecate and remove these.
-      alias :span_id :id
-      alias :span_type :type
-
       # Create a new span manually. Call the <tt>start()</tt> method to start the time
       # measurement and then <tt>stop()</tt> once the timing operation is over.
       #
@@ -49,7 +44,6 @@ module Datadog
       # * +parent_id+: the identifier of the parent span
       # * +trace_id+: the identifier of the root span for this trace
       # * +service_entry+: whether it is a service entry span.
-      # TODO: Remove span_type
       def initialize(
         name,
         duration: nil,
@@ -60,10 +54,9 @@ module Datadog
         parent_id: 0,
         resource: name,
         service: nil,
-        span_type: nil,
         start_time: nil,
         status: 0,
-        type: span_type,
+        type: nil,
         trace_id: nil,
         service_entry: nil
       )

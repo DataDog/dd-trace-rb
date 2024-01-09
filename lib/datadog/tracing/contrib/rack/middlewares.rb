@@ -84,7 +84,7 @@ module Datadog
             # (i.e. Apache, nginx) if the header is properly set
             frontend_span = compute_queue_time(env)
 
-            trace_options = { span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
+            trace_options = { type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
             trace_options[:service] = configuration[:service_name] if configuration[:service_name]
 
             # start a new request span and attach it to the current Rack environment;
@@ -250,7 +250,7 @@ module Datadog
           def trace_http_server(span_name, start_time:)
             Tracing.trace(
               span_name,
-              span_type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
+              type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
               start_time: start_time,
               service: configuration[:web_service_name]
             )

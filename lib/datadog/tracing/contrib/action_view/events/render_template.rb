@@ -27,7 +27,7 @@ module Datadog
 
             def process(span, _event, _id, payload)
               span.service = configuration[:service_name] if configuration[:service_name]
-              span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
+              span.type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_TEMPLATE)
