@@ -155,8 +155,8 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
 end
 
 TRACER_VERSIONS = [
-  '2.5',
-  '2.6',
+  # '2.5',
+  # '2.6',
   '2.7',
   '3.0',
   '3.1',

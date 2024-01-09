@@ -57,7 +57,6 @@ GEM
       faraday (>= 0.7.4, < 1.0)
     ffi (1.16.3)
     google-protobuf (3.23.1)
-    graphql (1.12.24)
     hashdiff (1.0.1)
     hitimes (1.3.1)
     json (2.6.3)
@@ -209,7 +208,6 @@ DEPENDENCIES
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
-  graphql (~> 1.12.0, < 2.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
@@ -239,4 +237,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.27
+   2.3.26
