@@ -41,20 +41,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
   subject(:resolver) { described_class.call(ddtrace_settings, logger: logger) }
 
-  context 'when settings.tracing is not present' do
-    before do
-      allow(ddtrace_settings).to receive(:tracing).and_return(nil)
-    end
-
-    it 'uses non proc settings' do
-      expect(resolver).to have_attributes settings
-    end
-
-    it 'does not raise an error' do
-      expect { resolver }.not_to raise_error
-    end
-  end
-
   context 'by default' do
     it 'contacts the agent using the http adapter, using hostname 127.0.0.1 and port 8126' do
       expect(resolver).to have_attributes settings

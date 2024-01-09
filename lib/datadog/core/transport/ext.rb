@@ -9,11 +9,6 @@ module Datadog
     module Transport
       module Ext
         module HTTP
-          ADAPTER = Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-          DEFAULT_HOST = Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
-          DEFAULT_PORT = Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_PORT
-          DEFAULT_TIMEOUT_SECONDS = Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_TIMEOUT_SECONDS
-
           HEADER_CONTAINER_ID = 'Datadog-Container-ID'
           HEADER_DD_API_KEY = 'DD-API-KEY'
           # Tells agent that `_dd.top_level` metrics have been set by the tracer.

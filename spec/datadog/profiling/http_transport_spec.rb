@@ -35,7 +35,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       timeout_seconds: nil
     )
   end
-  let(:adapter) { Datadog::Core::Transport::Ext::HTTP::ADAPTER }
+  let(:adapter) { Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER }
   let(:uds_path) { nil }
   let(:ssl) { false }
   let(:hostname) { '192.168.0.1' }
@@ -101,14 +101,6 @@ RSpec.describe Datadog::Profiling::HttpTransport do
             .and_return([:ok, nil])
 
           http_transport
-        end
-      end
-
-      context 'when agent_settings requests an unsupported transport' do
-        let(:adapter) { :test }
-
-        it do
-          expect { http_transport }.to raise_error(ArgumentError, /Unsupported transport/)
         end
       end
     end

@@ -17,34 +17,20 @@ module Datadog
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
       class AgentSettingsResolver
-        AgentSettings = \
-          Struct.new(
-            :adapter,
-            :ssl,
-            :hostname,
-            :port,
-            :uds_path,
-            :timeout_seconds,
-          ) do
-            def initialize(
-              adapter:,
-              ssl:,
-              hostname:,
-              port:,
-              uds_path:,
-              timeout_seconds:
-            )
-              super(
-                adapter,
-                ssl,
-                hostname,
-                port,
-                uds_path,
-                timeout_seconds
-              )
-              freeze
-            end
+        AgentSettings = Struct.new(
+          :adapter,
+          :ssl,
+          :hostname,
+          :port,
+          :uds_path,
+          :timeout_seconds,
+          keyword_init: true
+        ) do
+          def initialize(*)
+            super
+            freeze
           end
+        end
 
         def self.call(settings, logger: Datadog.logger)
           new(settings, logger: logger).send(:call)
@@ -74,9 +60,9 @@ module Datadog
 
         def adapter
           if should_use_uds?
-            Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
+            Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
           else
-            Datadog::Core::Transport::Ext::HTTP::ADAPTER
+            Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
           end
         end
 
@@ -170,21 +156,6 @@ module Datadog
           parsed_url.scheme == 'https'
         end
 
-        def try_parsing_as_boolean(value:, friendly_name:)
-          unless value.nil?
-            if value == 'true'
-              value = true
-            elsif value == 'false'
-              value = false
-            else
-              log_warning("Invalid value for #{friendly_name} (#{value.inspect}). Ignoring this configuration.")
-              value = nil
-            end
-          end
-
-          DetectedConfiguration.new(friendly_name: friendly_name, value: value)
-        end
-
         def try_parsing_as_integer(value:, friendly_name:)
           value =
             begin
@@ -225,7 +196,6 @@ module Datadog
         end
 
         def parsed_url_uds_path
-          # return nil unless !mixed_http_and_uds? && parsed_url && unix_scheme?(parsed_url)
           return nil unless parsed_url && unix_scheme?(parsed_url)
 
           path = parsed_url.to_s

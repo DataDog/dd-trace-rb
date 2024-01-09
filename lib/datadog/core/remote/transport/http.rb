@@ -124,18 +124,21 @@ module Datadog
           end
 
           def default_adapter
-            Datadog::Core::Transport::Ext::HTTP::ADAPTER
+            Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
           end
 
           # Add adapters to registry
-          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Net, Datadog::Core::Transport::Ext::HTTP::ADAPTER)
+          Builder::REGISTRY.set(
+            Datadog::Core::Transport::HTTP::Adapters::Net,
+            Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
+          )
           Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::Test,
             Datadog::Core::Transport::Ext::Test::ADAPTER
           )
           Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
-            Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
+            Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
           )
         end
       end
