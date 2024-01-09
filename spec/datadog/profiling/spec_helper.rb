@@ -5,7 +5,17 @@ if Datadog::Profiling.supported?
 end
 
 module ProfileHelpers
-  Sample = Struct.new(:locations, :values, :labels) # rubocop:disable Lint/StructNewOverride
+  Sample = Struct.new(:locations, :values, :labels) do |_sample_class| # rubocop:disable Lint/StructNewOverride
+    def value?(type)
+      (values[type] || 0) > 0
+    end
+
+    def has_location?(path:, line:)
+      locations.any? do |location|
+        location.path == path && location.lineno == line
+      end
+    end
+  end
   Frame = Struct.new(:base_label, :path, :lineno)
 
   def skip_if_profiling_not_supported(testcase)

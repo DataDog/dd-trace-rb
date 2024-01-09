@@ -230,7 +230,7 @@ RSpec.describe Datadog::Profiling::Component do
 
         context 'when heap profiling is enabled' do
           # Universally supported ruby version for allocation profiling by default
-          let(:testing_version) { '2.7.2' }
+          let(:testing_version) { '3.3.0' }
 
           before do
             settings.profiling.advanced.experimental_heap_enabled = true
@@ -271,6 +271,7 @@ RSpec.describe Datadog::Profiling::Component do
                 .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
                 .and_call_original
 
+              expect(Datadog.logger).to receive(:warn).with(/Ractors.+stopping/)
               expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
               expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
               expect(Datadog.logger).to receive(:warn).with(/experimental heap size profiling/)
@@ -291,6 +292,23 @@ RSpec.describe Datadog::Profiling::Component do
                 expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
                 expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
                 expect(Datadog.logger).not_to receive(:warn).with(/experimental heap size profiling/)
+
+                build_profiler_component
+              end
+            end
+
+            context 'on a Ruby older than 3.1' do
+              let(:testing_version) { '2.7' }
+
+              it 'initializes StackRecorder with heap sampling support but shows warning and debug messages' do
+                expect(Datadog::Profiling::StackRecorder).to receive(:new)
+                  .with(hash_including(heap_samples_enabled: true))
+                  .and_call_original
+
+                expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
+                expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
+                expect(Datadog.logger).to receive(:warn).with(/experimental heap size profiling/)
+                expect(Datadog.logger).to receive(:debug).with(/forced object recycling.+upgrading to Ruby >= 3.1/)
 
                 build_profiler_component
               end

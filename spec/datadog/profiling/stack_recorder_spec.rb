@@ -434,11 +434,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:heap_size_enabled) { true }
 
         let(:heap_samples) do
-          samples.select { |s| s.values[:'heap-live-samples'] > 0 }
+          samples.select { |s| s.value?(:'heap-live-samples') }
         end
 
         let(:non_heap_samples) do
-          samples.select { |s| s.values[:'heap-live-samples'] == 0 }
+          samples.reject { |s| s.value?(:'heap-live-samples') }
+        end
+
+        before do
+          skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
         end
 
         it 'include the stack and sample counts for the objects still left alive' do
@@ -517,17 +521,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             sample_allocation(live_objects[i])
           end
 
-          allocation_line = __LINE__ - 3
+          sample_line = __LINE__ - 3
 
           described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
 
-          heap_samples_in_test_matcher = lambda { |sample|
-            (sample.values[:'heap-live-samples'] || 0) > 0 && sample.locations.any? do |location|
-              location.lineno == allocation_line && location.path == __FILE__
-            end
-          }
-
-          relevant_sample = heap_samples.find(&heap_samples_in_test_matcher)
+          relevant_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
           expect(relevant_sample).not_to be nil
           expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object * sample_rate
         end
@@ -543,6 +541,98 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             heap_sample = heap_samples.first
             expect(heap_sample.labels[:'allocation class']).to eq('Array')
             expect(heap_sample.values[:'heap-live-samples']).to eq(sample_rate * heap_sample_every)
+          end
+        end
+
+        context 'on Rubies supporting rb_gc_force_recycle' do
+          before do
+            skip 'rb_gc_force_recycle is a no-op in current Ruby version' if RUBY_VERSION >= '3.1'
+            @recycled_sample_allocation_line = 0
+          end
+
+          def has_seen_id_flag(obj)
+            described_class::Testing._native_has_seen_id_flag(obj)
+          end
+
+          def create_obj_in_recycled_slot(should_sample_original: false)
+            obj = Object.new
+            sample_allocation(obj) if should_sample_original
+            @recycled_sample_allocation_line = __LINE__ - 1
+
+            # Get the id of the object we're about to recycle
+            obj_id = obj.object_id
+
+            # Force recycle the given object
+            described_class::Testing._native_gc_force_recycle(obj)
+
+            # Repeatedly allocate objects until we find one that resolves to the same id
+            loop do
+              # Instead of doing this one at a time which would be slow given id2ref will
+              # raise on failure, allocate a ton of objects each time, increasing the
+              # probability of getting a hit on each iteration
+              1000.times { obj = Object.new }
+              begin
+                return ObjectSpace._id2ref(obj_id)
+              rescue RangeError # rubocop:disable Lint/SuppressedException
+              end
+            end
+          end
+
+          it 'enforces seen id flag on objects on recycled slots that get sampled' do
+            recycled_obj = create_obj_in_recycled_slot
+
+            expect(has_seen_id_flag(recycled_obj)).to be false
+
+            sample_allocation(recycled_obj)
+
+            expect(has_seen_id_flag(recycled_obj)).to be true
+          end
+
+          it 'enforces seen id flag on untracked objects that replace tracked recycled objects' do
+            recycled_obj = create_obj_in_recycled_slot(should_sample_original: true)
+
+            expect(has_seen_id_flag(recycled_obj)).to be false
+
+            serialize
+
+            expect(has_seen_id_flag(recycled_obj)).to be true
+          end
+
+          it 'correctly handles lifecycle of objects on recycled slots that get sampled' do
+            recycled_obj = create_obj_in_recycled_slot
+
+            sample_allocation(recycled_obj)
+            sample_line = __LINE__ - 1
+
+            recycled_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
+            expect(recycled_sample).not_to be nil
+          end
+
+          it 'supports allocation samples with duplicate ids due to force recycling' do
+            recycled_obj = create_obj_in_recycled_slot(should_sample_original: true)
+
+            expect { sample_allocation(recycled_obj) }.not_to raise_error
+          end
+
+          it 'raises on allocation samples with duplicate ids that are not due to force recycling' do
+            obj = Object.new
+
+            sample_allocation(obj)
+
+            expect { sample_allocation(obj) }.to raise_error(/supposed to be unique/)
+          end
+
+          it 'can detect implicit frees due to slot recycling' do
+            live_objects = []
+            live_objects << create_obj_in_recycled_slot(should_sample_original: true)
+
+            # If we act on implicit frees, then we assume that even though there's a live object
+            # in the same slot as the original one we were tracking, we'll be able to detect this
+            # recycling, clean up that record and not include it in the final heap samples
+            relevant_sample = heap_samples.find do |s|
+              s.has_location?(path: __FILE__, line: @recycled_sample_allocation_line)
+            end
+            expect(relevant_sample).to be nil
           end
         end
       end

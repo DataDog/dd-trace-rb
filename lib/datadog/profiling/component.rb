@@ -213,6 +213,17 @@ module Datadog
           return false
         end
 
+        if RUBY_VERSION < '3.1'
+          Datadog.logger.debug(
+            "Current Ruby version (#{RUBY_VERSION}) supports forced object recycling which has a bug that the " \
+            'heap profiler is forced to work around to remain accurate. This workaround requires force-setting '\
+            "the SEEN_OBJ_ID flag on objects that should have it but don't. Full details can be found in " \
+            'https://github.com/DataDog/dd-trace-rb/pull/3360. This workaround should be safe but can be ' \
+            'bypassed by disabling the heap profiler or upgrading to Ruby >= 3.1 where forced object recycling ' \
+            'was completely removed (https://bugs.ruby-lang.org/issues/18290).'
+          )
+        end
+
         unless allocation_profiling_enabled
           raise ArgumentError,
             'Heap profiling requires allocation profiling to be enabled'
