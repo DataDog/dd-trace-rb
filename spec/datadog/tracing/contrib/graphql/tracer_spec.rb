@@ -77,7 +77,12 @@ RSpec.describe 'GraphQL patcher' do
 
           valid_operations << 'authorized'
 
-          expect(spans).to have(11).items
+          # Since 2.2,  new Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
+          if Gem::Version.new(GraphQL::VERSION) > Gem::Version.new('2.2')
+            expect(spans).to have(10).items
+          else
+            expect(spans).to have(11).items
+          end
         end
 
         # Expect root span to be 'execute.graphql'
