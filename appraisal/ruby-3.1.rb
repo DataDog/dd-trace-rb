@@ -118,12 +118,15 @@ appraise 'contrib' do
   gem 'que', '>= 1.0.0'
 end
 
-{
-  1 => '1.12.4',
-  2 => '2.0.17'
-}.each do |n, v|
-  appraise "graphql-#{n}" do
-    gem 'graphql', "= #{v}"
+[
+  '1.12',
+  '1.13',
+  '2.0',
+  '2.1',
+  '2.2'
+].each do |v|
+  appraise "graphql-#{v}" do
+    gem 'graphql', "~> #{v}.0"
   end
 end
 
