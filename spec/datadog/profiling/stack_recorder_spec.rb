@@ -434,11 +434,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:heap_size_enabled) { true }
 
         let(:heap_samples) do
-          samples.select { |s| s.values[:'heap-live-samples'] > 0 }
+          samples.select { |s| s.value?(:'heap-live-samples') }
         end
 
         let(:non_heap_samples) do
-          samples.select { |s| s.values[:'heap-live-samples'] == 0 }
+          samples.reject { |s| s.value?(:'heap-live-samples') }
         end
 
         before do
@@ -525,13 +525,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
 
-          heap_samples_in_test_matcher = lambda { |sample|
-            (sample.values[:'heap-live-samples'] || 0) > 0 && sample.locations.any? do |location|
-              location.lineno == sample_line && location.path == __FILE__
-            end
-          }
-
-          relevant_sample = heap_samples.find(&heap_samples_in_test_matcher)
+          relevant_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
           expect(relevant_sample).not_to be nil
           expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object * sample_rate
         end
@@ -610,13 +604,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             sample_allocation(recycled_obj)
             sample_line = __LINE__ - 1
 
-            recycled_heap_sample_matcher = lambda { |sample|
-              (sample.values[:'heap-live-samples'] || 0) > 0 && sample.locations.any? do |location|
-                location.lineno == sample_line && location.path == __FILE__
-              end
-            }
-
-            recycled_sample = heap_samples.find(&recycled_heap_sample_matcher)
+            recycled_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
             expect(recycled_sample).not_to be nil
           end
 
@@ -641,13 +629,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             # If we act on implicit frees, then we assume that even though there's a live object
             # in the same slot as the original one we were tracking, we'll be able to detect this
             # recycling, clean up that record and not include it in the final heap samples
-            heap_samples_in_test_matcher = lambda { |sample|
-              (sample.values[:'heap-live-samples'] || 0) > 0 && sample.locations.any? do |location|
-                location.lineno == @recycled_sample_allocation_line && location.path == __FILE__
-              end
-            }
-
-            relevant_sample = heap_samples.find(&heap_samples_in_test_matcher)
+            relevant_sample = heap_samples.find do |s|
+              s.has_location?(path: __FILE__, line: @recycled_sample_allocation_line)
+            end
             expect(relevant_sample).to be nil
           end
         end
