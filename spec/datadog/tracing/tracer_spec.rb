@@ -108,7 +108,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
 
         context 'span_type:' do
-          let(:options) { { span_type: span_type } }
+          let(:options) { { type: span_type } }
           let(:span_type) { 'my-span_type' }
 
           it 'sets the span resource' do

@@ -20,7 +20,7 @@ module Datadog
               formatter = GRPC::Formatting::FullMethodStringFormatter.new(keywords[:method])
 
               options = {
-                span_type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
+                type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
                 service: service_name, # Maintain client-side service name configuration
                 resource: formatter.resource_name,
                 on_error: on_error

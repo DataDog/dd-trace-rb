@@ -21,7 +21,7 @@ module Datadog
               formatter = GRPC::Formatting::MethodObjectFormatter.new(keywords[:method])
 
               options = {
-                span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
+                type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
                 service: service_name, # TODO: Remove server-side service name configuration
                 resource: formatter.resource_name,
                 on_error: on_error
