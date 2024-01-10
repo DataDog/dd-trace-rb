@@ -109,7 +109,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/success')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq('example.com')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(80)
-      expect(request_span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND)
+      expect(request_span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to_not have_error
 
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('excon')
@@ -156,7 +156,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq('example.com')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(80)
       expect(request_span.get_tag('span.kind')).to eq('client')
-      expect(request_span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND)
+      expect(request_span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to have_error
       expect(request_span).to have_error_type('Error 500')
       expect(request_span).to have_error_message('Boom!')
@@ -185,6 +185,20 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
         connection.get(path: '/not_found')
 
         expect(request_span).not_to have_error
+      end
+    end
+
+    context 'when configured from env' do
+      around do |example|
+        ClimateControl.modify('DD_TRACE_EXCON_ERROR_STATUS_CODES' => '500-600') do
+          example.run
+        end
+      end
+
+      it do
+        connection.get(path: '/not_found')
+
+        expect(span).not_to have_error
       end
     end
   end
@@ -276,7 +290,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             headers = datum[:headers]
             expect(headers).to include(
               'x-datadog-trace-id' => low_order_trace_id(span.trace_id).to_s,
-              'x-datadog-parent-id' => span.span_id.to_s
+              'x-datadog-parent-id' => span.id.to_s
             )
 
             expect(headers).to include(

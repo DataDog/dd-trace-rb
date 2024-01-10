@@ -166,3 +166,47 @@ bool ruby_ref_from_id(VALUE obj_id, VALUE *value) {
 
   return true;
 }
+
+// Not part of public headers but is externed from Ruby
+size_t rb_obj_memsize_of(VALUE obj);
+
+// Wrapper around rb_obj_memsize_of to avoid hitting crashing paths.
+//
+// The crashing paths are due to calls to rb_bug so should hopefully
+// be situations that can't happen. But given that rb_obj_memsize_of
+// isn't fully public (it's externed but not part of public headers)
+// there is a possibility that it is just assumed that whoever calls
+// it, will do proper checking for those cases. We want to be cautious
+// so we'll assume that's the case and will skip over known crashing
+// paths in this wrapper.
+size_t ruby_obj_memsize_of(VALUE obj) {
+  switch (rb_type(obj)) {
+    case T_OBJECT:
+    case T_MODULE:
+    case T_CLASS:
+    case T_ICLASS:
+    case T_STRING:
+    case T_ARRAY:
+    case T_HASH:
+    case T_REGEXP:
+    case T_DATA:
+    case T_MATCH:
+    case T_FILE:
+    case T_RATIONAL:
+    case T_COMPLEX:
+    case T_IMEMO:
+    case T_FLOAT:
+    case T_SYMBOL:
+    case T_BIGNUM:
+    // case T_NODE: -> Crashes the vm in rb_obj_memsize_of
+    case T_STRUCT:
+    case T_ZOMBIE:
+    #ifndef NO_T_MOVED
+    case T_MOVED:
+    #endif
+      return rb_obj_memsize_of(obj);
+    default:
+      // Unsupported, return 0 instead of erroring like rb_obj_memsize_of likes doing
+      return 0;
+  }
+}

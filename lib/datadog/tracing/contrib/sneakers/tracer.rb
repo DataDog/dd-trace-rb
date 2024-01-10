@@ -17,7 +17,7 @@ module Datadog
           def call(deserialized_msg, delivery_info, metadata, handler)
             trace_options = {
               service: configuration[:service_name],
-              span_type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
+              type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
               on_error: configuration[:on_error]
             }
 

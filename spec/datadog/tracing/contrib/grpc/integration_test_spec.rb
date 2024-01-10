@@ -49,7 +49,7 @@ RSpec.describe 'gRPC integration test' do
 
     specify do
       expect(child_span.trace_id).to eq parent_span.trace_id
-      expect(child_span.parent_id).to eq parent_span.span_id
+      expect(child_span.parent_id).to eq parent_span.id
     end
 
     it_behaves_like 'a peer service span' do

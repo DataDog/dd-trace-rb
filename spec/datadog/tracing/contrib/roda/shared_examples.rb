@@ -76,7 +76,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         instrumented_method
         expect(spans).to have(1).items
         expect(span.parent_id).to be 0
-        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+        expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
         expect(span.resource).to eq('GET 200')
@@ -94,7 +94,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         instrumented_method
         expect(spans).to have(1).items
         expect(span.parent_id).to be 0
-        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+        expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.resource).to eq('GET 404')
         expect(span.name).to eq('roda.request')
         expect(span.status).to eq(0)
@@ -111,7 +111,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         instrumented_method
         expect(spans).to have(1).items
         expect(span.parent_id).to be 0
-        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+        expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.resource).to eq('GET 500')
         expect(span.name).to eq('roda.request')
         expect(span.status).to eq(1)
@@ -131,7 +131,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         instrumented_method
         expect(spans).to have(1).items
         expect(span.parent_id).to be 0
-        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+        expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
         expect(span.resource).to eq('GET 200')
@@ -148,7 +148,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         instrumented_method
         expect(spans).to have(1).items
         expect(span.parent_id).to be 0
-        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+        expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
         expect(span.resource).to eq('PUT 200')
@@ -170,7 +170,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         instrumented_method
         expect(spans).to have(1).items
         expect(span.parent_id).to be 0
-        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+        expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
         expect(span.resource).to eq('GET 200')
@@ -186,7 +186,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         instrumented_method
         expect(spans).to have(1).items
         expect(span.parent_id).to be 0
-        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+        expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
         expect(span.resource).to eq('GET 200')
@@ -202,7 +202,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         instrumented_method
         expect(spans).to have(1).items
         expect(span.parent_id).to be 0
-        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+        expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
         expect(span.resource).to eq('GET 200')

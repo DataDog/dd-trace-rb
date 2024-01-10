@@ -153,17 +153,19 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 #define ALLOC_SAMPLES_VALUE_ID 3
 #define HEAP_SAMPLES_VALUE      {.type_ = VALUE_STRING("heap-live-samples"), .unit = VALUE_STRING("count")}
 #define HEAP_SAMPLES_VALUE_ID 4
+#define HEAP_SIZE_VALUE         {.type_ = VALUE_STRING("heap-live-size"),    .unit = VALUE_STRING("bytes")}
+#define HEAP_SIZE_VALUE_ID 5
 #define TIMELINE_VALUE          {.type_ = VALUE_STRING("timeline"),          .unit = VALUE_STRING("nanoseconds")}
-#define TIMELINE_VALUE_ID 5
+#define TIMELINE_VALUE_ID 6
 
 static const ddog_prof_ValueType all_value_types[] =
-  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, HEAP_SAMPLES_VALUE, TIMELINE_VALUE};
+  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, HEAP_SAMPLES_VALUE, HEAP_SIZE_VALUE, TIMELINE_VALUE};
 
 // This array MUST be kept in sync with all_value_types above and is intended to act as a "hashmap" between VALUE_ID and the position it
 // occupies on the all_value_types array.
 // E.g. all_value_types_positions[CPU_TIME_VALUE_ID] => 0, means that CPU_TIME_VALUE was declared at position 0 of all_value_types.
 static const uint8_t all_value_types_positions[] =
-  {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, HEAP_SAMPLES_VALUE_ID, TIMELINE_VALUE_ID};
+  {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, HEAP_SAMPLES_VALUE_ID, HEAP_SIZE_VALUE_ID, TIMELINE_VALUE_ID};
 
 #define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
 
@@ -214,6 +216,7 @@ static VALUE _native_initialize(
   VALUE cpu_time_enabled,
   VALUE alloc_samples_enabled,
   VALUE heap_samples_enabled,
+  VALUE heap_size_enabled,
   VALUE timeline_enabled
 );
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
@@ -253,7 +256,7 @@ void stack_recorder_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
-  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 5);
+  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 6);
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
   rb_define_singleton_method(stack_recorder_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
@@ -367,11 +370,13 @@ static VALUE _native_initialize(
   VALUE cpu_time_enabled,
   VALUE alloc_samples_enabled,
   VALUE heap_samples_enabled,
+  VALUE heap_size_enabled,
   VALUE timeline_enabled
 ) {
   ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
   ENFORCE_BOOLEAN(heap_samples_enabled);
+  ENFORCE_BOOLEAN(heap_size_enabled);
   ENFORCE_BOOLEAN(timeline_enabled);
 
   struct stack_recorder_state *state;
@@ -381,6 +386,7 @@ static VALUE _native_initialize(
     (cpu_time_enabled == Qtrue ? 0 : 1) -
     (alloc_samples_enabled == Qtrue? 0 : 1) -
     (heap_samples_enabled == Qtrue ? 0 : 1) -
+    (heap_size_enabled == Qtrue ? 0 : 1) -
     (timeline_enabled == Qtrue ? 0 : 1);
 
   if (requested_values_count == ALL_VALUE_TYPES_COUNT) return Qtrue; // Nothing to do, this is the default
@@ -422,7 +428,17 @@ static VALUE _native_initialize(
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_disabled_pos++;
+  }
 
+  if (heap_size_enabled == Qtrue) {
+    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SIZE_VALUE;
+    state->position_for[HEAP_SIZE_VALUE_ID] = next_enabled_pos++;
+  } else {
+    state->position_for[HEAP_SIZE_VALUE_ID] = next_disabled_pos++;
+  }
+  heap_recorder_set_size_enabled(state->heap_recorder, heap_size_enabled);
+
+  if (heap_samples_enabled == Qfalse && heap_size_enabled == Qfalse) {
     // Turns out heap sampling is disabled but we initialized everything in _native_new
     // assuming all samples were enabled. We need to deinitialize the heap recorder.
     heap_recorder_free(state->heap_recorder);
@@ -599,6 +615,7 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   uint8_t *position_for = context->state->position_for;
 
   metric_values[position_for[HEAP_SAMPLES_VALUE_ID]] = object_data->weight;
+  metric_values[position_for[HEAP_SIZE_VALUE_ID]] = object_data->size * object_data->weight;
 
   ddog_prof_Label labels[2];
   size_t label_offset = 0;

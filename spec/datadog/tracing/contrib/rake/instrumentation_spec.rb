@@ -102,7 +102,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
         it do
           expect(execute_span.name).to eq(Datadog::Tracing::Contrib::Rake::Ext::SPAN_EXECUTE)
           expect(execute_span.resource).to eq(task_name.to_s)
-          expect(execute_span.parent_id).to eq(invoke_span.span_id)
+          expect(execute_span.parent_id).to eq(invoke_span.id)
           expect(execute_span.service).to eq(tracer.default_service)
           expect(execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rake')
           expect(execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
@@ -345,7 +345,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
           it do
             expect(prerequisite_task_execute_span.name).to eq(Datadog::Tracing::Contrib::Rake::Ext::SPAN_EXECUTE)
             expect(prerequisite_task_execute_span.resource).to eq(prerequisite_task_name.to_s)
-            expect(prerequisite_task_execute_span.parent_id).to eq(invoke_span.span_id)
+            expect(prerequisite_task_execute_span.parent_id).to eq(invoke_span.id)
             expect(prerequisite_task_execute_span.service).to eq(tracer.default_service)
             expect(prerequisite_task_execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
               .to eq('rake')
@@ -362,7 +362,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
           it do
             expect(execute_span.name).to eq(Datadog::Tracing::Contrib::Rake::Ext::SPAN_EXECUTE)
             expect(execute_span.resource).to eq(task_name.to_s)
-            expect(execute_span.parent_id).to eq(invoke_span.span_id)
+            expect(execute_span.parent_id).to eq(invoke_span.id)
             expect(execute_span.service).to eq(tracer.default_service)
             expect(execute_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
               .to eq('rake')

@@ -20,6 +20,7 @@ class ProfilerSampleLoopBenchmark
       cpu_time_enabled: true,
       alloc_samples_enabled: false,
       heap_samples_enabled: false,
+      heap_size_enabled: false,
       timeline_enabled: false,
     )
     @collector = Datadog::Profiling::Collectors::ThreadContext.new(

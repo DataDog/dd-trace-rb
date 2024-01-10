@@ -27,7 +27,7 @@ RSpec.describe 'Redis instrumentation test' do
   RSpec::Matchers.define :be_a_redis_span do
     match(notify_expectation_failures: true) do |span|
       expect(span.name).to eq('redis.command')
-      expect(span.span_type).to eq('redis')
+      expect(span.type).to eq('redis')
 
       expect(span.resource).to eq(@resource)
       expect(span.service).to eq(@service)

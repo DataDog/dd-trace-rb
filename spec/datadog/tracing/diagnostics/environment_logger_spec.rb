@@ -45,7 +45,6 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           'sampling_rules' => nil,
           'integrations_loaded' => nil,
           'partial_flushing_enabled' => false,
-          'priority_sampling_enabled' => false,
         )
       end
     end
@@ -140,7 +139,6 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           sampling_rules: nil,
           integrations_loaded: nil,
           partial_flushing_enabled: false,
-          priority_sampling_enabled: false,
         )
       end
 
@@ -215,12 +213,6 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           before { expect(Datadog.configuration.tracing.partial_flush).to receive(:enabled).and_return(true) }
 
           it { is_expected.to include partial_flushing_enabled: true }
-        end
-
-        context 'with priority sampling enabled' do
-          before { expect(Datadog.configuration.tracing).to receive(:priority_sampling).and_return(true) }
-
-          it { is_expected.to include priority_sampling_enabled: true }
         end
       end
     end
