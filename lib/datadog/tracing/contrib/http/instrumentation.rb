@@ -15,17 +15,6 @@ module Datadog
             base.prepend(InstanceMethods)
           end
 
-          # Span hook invoked after request is completed.
-          def self.after_request(&block)
-            if block
-              # Set hook
-              @after_request = block
-            else
-              # Get hook
-              @after_request ||= nil
-            end
-          end
-
           # InstanceMethods - implementing instrumentation
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
@@ -58,11 +47,6 @@ module Datadog
 
                 # Add additional response specific tags to the span.
                 annotate_span_with_response!(span, response, request_options)
-
-                # Invoke hook, if set.
-                unless Contrib::HTTP::Instrumentation.after_request.nil?
-                  Contrib::HTTP::Instrumentation.after_request.call(span, self, req, response)
-                end
 
                 response
               end
