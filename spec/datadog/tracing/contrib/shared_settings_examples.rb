@@ -28,15 +28,14 @@ RSpec.shared_examples_for 'with on_error setting' do
   end
 end
 
-RSpec.shared_examples_for 'with error_status_codes setting' do |env:|
+RSpec.shared_examples_for 'with error_status_codes setting' do |env:, default:|
   context 'default without settings' do
     subject { described_class.new }
 
-    it { expect(subject.error_status_codes).to include 400 }
-    it { expect(subject.error_status_codes).to include 499 }
-    it { expect(subject.error_status_codes).to include 500 }
-    it { expect(subject.error_status_codes).to include 599 }
-    it { expect(subject.error_status_codes).not_to include 600 }
+    it { expect(subject.error_status_codes).not_to include(default.min - 1) }
+    it { expect(subject.error_status_codes).to include(default.min) }
+    it { expect(subject.error_status_codes).to include(default.max) }
+    it { expect(subject.error_status_codes).not_to include(default.max + 1) }
   end
 
   context 'when given error_status_codes' do

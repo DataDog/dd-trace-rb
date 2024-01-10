@@ -727,8 +727,8 @@ connection.get
 | `peer_service`        | `DD_TRACE_EXCON_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `distributed_tracing` |                               | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
 | `split_by_domain`     |                               | Uses the request domain as the service name when set to `true`.                                                                                                                           | `false` |
-| `on_error` | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
-| `error_status_codes`  | `DD_TRACE_EXCON_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.| `400...600` |
+| `on_error` || Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `error_status_codes`  | `DD_TRACE_EXCON_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 
 **Configuring connections to use different settings**
@@ -792,8 +792,8 @@ connection.get('/foo')
 | `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                        | `nil`     |
 | `distributed_tracing` |                                 | Enables [distributed tracing](#distributed-tracing)                                                                                                                                         | `true`    |
 | `split_by_domain`     |                                 | Uses the request domain as the service name when set to `true`.                                                                                                                             | `false`   |
-| `on_error` | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
-| `error_status_codes`  | `DD_TRACE_FARADAY_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.| `400...600` |
+| `on_error` || Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |**default: 400...600**
+| `error_status_codes`  | `DD_TRACE_FARADAY_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 ### Grape
 
@@ -824,7 +824,7 @@ end
 | Key              | Env Var                  | Description                                                                                                                   | Default |
 |------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------|
 | `enabled`        | `DD_TRACE_GRAPE_ENABLED` | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false`                           | `true`  |
-| `error_statuses` |                          | Defines a status code or range of status codes which should be marked as errors. `'404,405,500-599'` or `[404,405,'500-599']` | `nil`   |
+| `error_status_codes` | `DD_TRACE_GRAPE_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `500...600`   |
 
 
 ### GraphQL
@@ -997,8 +997,7 @@ end
 | `peer_service`        | `DD_TRACE_HTTPRB_PEER_SERVICE`           | Name of external service the application connects to                                                                                                                                       | `nil`       |
 | `distributed_tracing` |                                          | Enables [distributed tracing](#distributed-tracing)                                                                                                                                        | `true`      |
 | `split_by_domain`     |                                          | Uses the request domain as the service name when set to `true`.                                                                                                                            | `false`     |
-| `error_status_codes`  | `DD_TRACE_HTTPRB_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                       | `400...600` |
-
+| `error_status_codes`  | `DD_TRACE_HTTPRB_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 ### httpclient
 
@@ -1025,7 +1024,7 @@ end
 | `peer_service`        | `DD_TRACE_HTTPCLIENT_PEER_SERVICE`       | Name of external service the application connects to                                                                                                                                           | `nil`        |
 | `distributed_tracing` |                                          | Enables [distributed tracing](#distributed-tracing)                                                                                                                                            | `true`       |
 | `split_by_domain`     |                                          | Uses the request domain as the service name when set to `true`.                                                                                                                                | `false`      |
-| `error_status_codes`  | `DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                           | `400...600`  |
+| `error_status_codes`  | `DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600`  |
 
 
 ### httpx
@@ -1181,7 +1180,7 @@ content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 | `peer_service`        | `DD_TRACE_NET_HTTP_PEER_SERVICE`   | Name of external service the application connects to                                                                                                                                         | `nil`       |
 | `distributed_tracing` |                                    | Enables [distributed tracing](#distributed-tracing)                                                                                                                                          | `true`      |
 | `split_by_domain`     |                                    | Uses the request domain as the service name when set to `true`.                                                                                                                              | `false`     |
-| `error_status_codes`  | `DD_TRACE_HTTP_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                         | `400...600` |
+| `error_status_codes`  | `DD_TRACE_HTTP_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 If you wish to configure each connection object individually, you may use the `Datadog.configure_onto` as it follows:
 
@@ -1242,7 +1241,7 @@ end
 | `service_name`        | `DD_TRACE_PG_SERVICE_NAME` | Name of application running the `pg` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)                                                                                                                                                                                  | `pg`         |
 | `peer_service`        | `DD_TRACE_PG_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                    | `nil`        |
 | `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
-| `on_error` | Custom error handler invoked when PG raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors from Postgres that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error` || Custom error handler invoked when PG raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors from Postgres that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Presto
 

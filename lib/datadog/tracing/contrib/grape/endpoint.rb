@@ -91,8 +91,7 @@ module Datadog
                 Contrib::Analytics.set_measured(span)
 
                 # catch thrown exceptions
-
-                span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
+                handle_error(span, payload[:exception_object]) if payload[:exception_object]
 
                 # override the current span with this notification values
                 span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
@@ -143,7 +142,7 @@ module Datadog
                 # Measure service stats
                 Contrib::Analytics.set_measured(span)
 
-                span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
+                handle_error(span, payload[:exception_object]) if payload[:exception_object]
               ensure
                 span.start(start)
                 span.finish(finish)
@@ -179,7 +178,7 @@ module Datadog
                 Contrib::Analytics.set_measured(span)
 
                 # catch thrown exceptions
-                span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
+                handle_error(span, payload[:exception_object]) if payload[:exception_object]
 
                 span.set_tag(Ext::TAG_FILTER_TYPE, type.to_s)
               ensure
@@ -191,6 +190,22 @@ module Datadog
             end
 
             private
+
+            def handle_error(span, exception)
+              if exception.respond_to?('status')
+                span.set_error(exception) if error_status_codes.include?(exception.status)
+              else
+                on_error.call(span, exception)
+              end
+            end
+
+            def error_status_codes
+              datadog_configuration[:error_status_codes]
+            end
+
+            def on_error
+              datadog_configuration[:on_error] || Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
+            end
 
             def api_view(api)
               # If the API inherits from Grape::API in version >= 1.2.0
@@ -221,15 +236,6 @@ module Datadog
 
             def analytics_sample_rate
               datadog_configuration[:analytics_sample_rate]
-            end
-
-            def exception_is_error?(exception)
-              matcher = datadog_configuration[:error_statuses]
-              return false unless exception
-              return true unless matcher
-              return true unless exception.respond_to?('status')
-
-              matcher.include?(exception.status)
             end
 
             def enabled?
