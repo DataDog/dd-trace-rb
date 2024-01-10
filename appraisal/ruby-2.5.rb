@@ -4,6 +4,45 @@ appraise 'hanami-1' do
   gem 'hanami', '~> 1'
 end
 
+appraise 'rails4-mysql2' do
+  gem 'rails', '4.2.11.1'
+  gem 'mysql2', '< 1'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
+appraise 'rails4-postgres' do
+  gem 'rails', '4.2.11.1'
+  gem 'pg', '< 1.0'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
+appraise 'rails4-semantic-logger' do
+  gem 'rails', '4.2.11.1'
+  gem 'pg', '< 1.0'
+  gem 'sprockets', '< 4'
+  gem 'rails_semantic_logger', '~> 4.0'
+end
+
+appraise 'rails4-postgres-redis' do
+  gem 'rails', '4.2.11.1'
+  gem 'pg', '< 1.0'
+  gem 'redis-rails'
+  gem 'redis', '< 4.0'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
+appraise 'rails4-postgres-sidekiq' do
+  gem 'rails', '4.2.11.1'
+  gem 'pg', '< 1.0'
+  gem 'sidekiq'
+  gem 'activejob'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
 appraise 'rails5-mysql2' do
   gem 'rails', '~> 5.2.1'
   gem 'mysql2', '< 1', platform: :ruby
