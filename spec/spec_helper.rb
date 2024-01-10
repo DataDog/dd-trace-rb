@@ -95,6 +95,12 @@ RSpec.configure do |config|
     config.default_formatter = 'doc'
   end
 
+  config.before(:example, ractors: true) do
+    unless config.filter_manager.inclusions[:ractors]
+      skip 'Skipping ractor tests. Use rake spec:profiling:ractors or pass -t ractors to rspec to run.'
+    end
+  end
+
   # Check for leaky test resources.
   #
   # Execute this after the test has finished
