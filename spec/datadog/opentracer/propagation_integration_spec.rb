@@ -175,20 +175,20 @@ RSpec.describe 'OpenTracer context propagation' do
           .to eq(low_order_trace_id(origin_datadog_span.trace_id))
       }
 
-      it { expect(intermediate_datadog_span.parent_id).to eq(origin_datadog_span.span_id) }
+      it { expect(intermediate_datadog_span.parent_id).to eq(origin_datadog_span.id) }
       it { expect(@intermediate_scope.span.context.baggage).to include(baggage) }
 
       it { expect(destination_datadog_trace.sampling_priority).to eq(1) }
       it { expect(destination_datadog_trace.origin).to eq('synthetics') }
       it { expect(destination_datadog_span.finished?).to be(true) }
       it { expect(destination_datadog_span.trace_id).to eq(intermediate_datadog_span.trace_id) }
-      it { expect(destination_datadog_span.parent_id).to eq(intermediate_datadog_span.span_id) }
+      it { expect(destination_datadog_span.parent_id).to eq(intermediate_datadog_span.id) }
       it { expect(@destination_scope.span.context.baggage).to include(baggage) }
 
       it do
         expect(@origin_carrier).to include(
           'x-datadog-trace-id' => low_order_trace_id(origin_datadog_span.trace_id),
-          'x-datadog-parent-id' => origin_datadog_span.span_id,
+          'x-datadog-parent-id' => origin_datadog_span.id,
           'x-datadog-sampling-priority' => 1,
           'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
@@ -198,7 +198,7 @@ RSpec.describe 'OpenTracer context propagation' do
       it do
         expect(@intermediate_carrier).to include(
           'x-datadog-trace-id' => intermediate_datadog_span.trace_id,
-          'x-datadog-parent-id' => intermediate_datadog_span.span_id,
+          'x-datadog-parent-id' => intermediate_datadog_span.id,
           'x-datadog-sampling-priority' => 1,
           'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
@@ -372,19 +372,19 @@ RSpec.describe 'OpenTracer context propagation' do
       it { expect(intermediate_datadog_trace.sampling_priority).to eq(1) }
       it { expect(intermediate_datadog_span.finished?).to be(true) }
       it { expect(intermediate_datadog_span.trace_id).to eq(origin_datadog_span.trace_id) }
-      it { expect(intermediate_datadog_span.parent_id).to eq(origin_datadog_span.span_id) }
+      it { expect(intermediate_datadog_span.parent_id).to eq(origin_datadog_span.id) }
       it { expect(@intermediate_scope.span.context.baggage).to include(baggage) }
 
       it { expect(destination_datadog_trace.sampling_priority).to eq(1) }
       it { expect(destination_datadog_span.finished?).to be(true) }
       it { expect(destination_datadog_span.trace_id).to eq(intermediate_datadog_span.trace_id) }
-      it { expect(destination_datadog_span.parent_id).to eq(intermediate_datadog_span.span_id) }
+      it { expect(destination_datadog_span.parent_id).to eq(intermediate_datadog_span.id) }
       it { expect(@destination_scope.span.context.baggage).to include(baggage) }
 
       it do
         expect(@origin_carrier).to include(
           'x-datadog-trace-id' => low_order_trace_id(origin_datadog_span.trace_id).to_s,
-          'x-datadog-parent-id' => origin_datadog_span.span_id.to_s,
+          'x-datadog-parent-id' => origin_datadog_span.id.to_s,
           'x-datadog-sampling-priority' => '1',
           'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
@@ -394,7 +394,7 @@ RSpec.describe 'OpenTracer context propagation' do
       it do
         expect(@intermediate_carrier).to include(
           'x-datadog-trace-id' => low_order_trace_id(intermediate_datadog_span.trace_id).to_s,
-          'x-datadog-parent-id' => intermediate_datadog_span.span_id.to_s,
+          'x-datadog-parent-id' => intermediate_datadog_span.id.to_s,
           'x-datadog-sampling-priority' => '1',
           'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'

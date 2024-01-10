@@ -57,7 +57,7 @@ RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >
         expect(publish_span.name).to eq('publish')
         expect(publish_span.service).to eq('webapp')
         expect(publish_span.resource).to eq('/index')
-        expect(publish_span.span_id).to_not eq(publish_span.trace_id)
+        expect(publish_span.id).to_not eq(publish_span.trace_id)
         expect(publish_span.parent_id).to eq(0)
       end
     end
@@ -67,7 +67,7 @@ RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >
         expect(process_span.name).to eq('process')
         expect(process_span.service).to eq('datalayer')
         expect(process_span.resource).to eq('home')
-        expect(process_span.parent_id).to eq(publish_span.span_id)
+        expect(process_span.parent_id).to eq(publish_span.id)
         expect(process_span.trace_id).to eq(publish_span.trace_id)
       end
     end
@@ -76,14 +76,14 @@ RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >
       it do
         expect(redis_cmd1_span.name).to eq('redis.command')
         expect(redis_cmd1_span.service).to eq('test-service')
-        expect(redis_cmd1_span.parent_id).to eq(process_span.span_id)
+        expect(redis_cmd1_span.parent_id).to eq(process_span.id)
         expect(redis_cmd1_span.trace_id).to eq(publish_span.trace_id)
         expect(redis_cmd1_span.get_tag('db.system')).to eq('redis')
         expect(redis_cmd2_span.get_tag('span.kind')).to eq('client')
 
         expect(redis_cmd2_span.name).to eq('redis.command')
         expect(redis_cmd2_span.service).to eq('test-service')
-        expect(redis_cmd2_span.parent_id).to eq(process_span.span_id)
+        expect(redis_cmd2_span.parent_id).to eq(process_span.id)
         expect(redis_cmd2_span.trace_id).to eq(publish_span.trace_id)
         expect(redis_cmd2_span.get_tag('db.system')).to eq('redis')
         expect(redis_cmd2_span.get_tag('span.kind')).to eq('client')

@@ -129,7 +129,6 @@ module Datadog
         start_time: nil,
         tags: nil,
         type: nil,
-        span_type: nil,
         _context: nil,
         &block
       )
@@ -163,7 +162,7 @@ module Datadog
               service: service,
               start_time: start_time,
               tags: tags,
-              type: span_type || type,
+              type: type,
               _trace: trace,
               &block
             )
@@ -180,7 +179,7 @@ module Datadog
             service: service,
             start_time: start_time,
             tags: tags,
-            type: span_type || type,
+            type: type,
             _trace: trace
           )
         end

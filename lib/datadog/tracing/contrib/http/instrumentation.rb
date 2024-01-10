@@ -41,7 +41,7 @@ module Datadog
               Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
-                  span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+                  span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
                   span.resource = req.method
 
                   if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config)

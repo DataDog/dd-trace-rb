@@ -54,7 +54,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('sts.get_access_key_info')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -107,7 +107,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('s3.list_buckets')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -151,7 +151,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('s3.list_objects')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -231,7 +231,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('sqs.send_message')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -308,7 +308,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('sqs.send_message_batch')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -358,7 +358,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('sqs.get_queue_url')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -412,7 +412,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('sns.publish')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -468,7 +468,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('sns.create_topic')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -518,7 +518,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('dynamodb.get_item')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -572,7 +572,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('kinesis.put_record')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -626,7 +626,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('kinesis.describe_stream_consumer')
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('describe_stream_consumer')
@@ -678,7 +678,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('kinesis.describe_stream_consumer')
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('describe_stream_consumer')
@@ -734,7 +734,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('eventbridge.put_rule')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -782,7 +782,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('eventbridge.list_targets_by_rule')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -835,7 +835,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('states.start_execution')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -887,7 +887,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('states.create_state_machine')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -945,7 +945,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('states.describe_state_machine')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -993,7 +993,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('states.update_state_machine')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -1039,7 +1039,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('states.delete_state_machine')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -1101,7 +1101,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('states.describe_execution')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
@@ -1149,7 +1149,7 @@ RSpec.describe 'AWS instrumentation' do
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
         expect(span.service).to eq('aws')
-        expect(span.span_type).to eq('http')
+        expect(span.type).to eq('http')
         expect(span.resource).to eq('states.stop_execution')
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')

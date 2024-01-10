@@ -15,7 +15,7 @@ module Datadog
             Tracing.trace(
               Ext::SPAN_ROUTING,
               service: configuration[:service_name],
-              span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
+              type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
             ) do |span_op, trace_op|
               begin
                 span_op.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

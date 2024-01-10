@@ -62,7 +62,7 @@ RSpec.describe 'Sequel instrumentation' do
           expect(span.name).to eq('sequel.query')
           # Expect it to be the normalized adapter name.
           expect(span.service).to eq(normalized_adapter)
-          expect(span.span_type).to eq('sql')
+          expect(span.type).to eq('sql')
           expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
           # Expect non-quantized query: agent does SQL quantization.
           expect(span.resource).to eq(expected_query)
@@ -136,14 +136,14 @@ RSpec.describe 'Sequel instrumentation' do
         expect(publish_span.name).to eq('publish')
         expect(publish_span.service).to eq('webapp')
         expect(publish_span.resource).to eq('/index')
-        expect(publish_span.span_id).to_not eq(publish_span.trace_id)
+        expect(publish_span.id).to_not eq(publish_span.trace_id)
         expect(publish_span.parent_id).to eq(0)
 
         # Check process span
         expect(process_span.name).to eq('process')
         expect(process_span.service).to eq('datalayer')
         expect(process_span.resource).to eq('home')
-        expect(process_span.parent_id).to eq(publish_span.span_id)
+        expect(process_span.parent_id).to eq(publish_span.id)
         expect(process_span.trace_id).to eq(publish_span.trace_id)
 
         # Check each command span
@@ -159,7 +159,7 @@ RSpec.describe 'Sequel instrumentation' do
           expect(span.name).to eq('sequel.query')
           # Expect it to be the normalized adapter name.
           expect(span.service).to eq(normalized_adapter)
-          expect(span.span_type).to eq('sql')
+          expect(span.type).to eq('sql')
           expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
           expect(span.status).to eq(0)
 
@@ -173,7 +173,7 @@ RSpec.describe 'Sequel instrumentation' do
           # Expect non-quantized query: agent does SQL quantization.
           expect(span.resource).to match_normalized_sql(start_with query)
 
-          expect(span.parent_id).to eq(process_span.span_id)
+          expect(span.parent_id).to eq(process_span.id)
           expect(span.trace_id).to eq(publish_span.trace_id)
         end
       end
@@ -203,7 +203,7 @@ RSpec.describe 'Sequel instrumentation' do
         expect(span.name).to eq('sequel.query')
         # Expect it to be the normalized adapter name.
         expect(span.service).to eq(normalized_adapter)
-        expect(span.span_type).to eq('sql')
+        expect(span.type).to eq('sql')
         expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
         expect(span.get_tag('sequel.prepared.name')).to eq('prepared_name')
         # Expect non-quantized query: agent does SQL quantization.

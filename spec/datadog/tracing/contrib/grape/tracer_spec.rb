@@ -166,17 +166,17 @@ RSpec.describe 'Grape instrumentation' do
           expect(spans.length).to eq(2)
 
           expect(render_span.name).to eq('grape.endpoint_render')
-          expect(render_span.span_type).to eq('template')
+          expect(render_span.type).to eq('template')
           expect(render_span.service).to eq(tracer.default_service)
           expect(render_span.resource).to eq('grape.endpoint_render')
           expect(render_span).to_not have_error
-          expect(render_span.parent_id).to eq(run_span.span_id)
+          expect(render_span.parent_id).to eq(run_span.id)
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_render')
 
           expect(run_span.name).to eq('grape.endpoint_run')
-          expect(run_span.span_type).to eq('web')
+          expect(run_span.type).to eq('web')
           expect(run_span.service).to eq(tracer.default_service)
           expect(run_span.resource).to eq('TestingAPI GET /base/success')
           expect(run_span).to_not have_error
@@ -209,39 +209,39 @@ RSpec.describe 'Grape instrumentation' do
           render_span, run_span, before_span, after_span = spans
 
           expect(before_span.name).to eq('grape.endpoint_run_filters')
-          expect(before_span.span_type).to eq('web')
+          expect(before_span.type).to eq('web')
           expect(before_span.service).to eq(tracer.default_service)
           expect(before_span.resource).to eq('grape.endpoint_run_filters')
           expect(before_span).to_not have_error
-          expect(before_span.parent_id).to eq(run_span.span_id)
+          expect(before_span.parent_id).to eq(run_span.id)
           expect(before_span.to_hash[:duration] > 0.01).to be true
           expect(before_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(before_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run_filters')
 
           expect(render_span.name).to eq('grape.endpoint_render')
-          expect(render_span.span_type).to eq('template')
+          expect(render_span.type).to eq('template')
           expect(render_span.service).to eq(tracer.default_service)
           expect(render_span.resource).to eq('grape.endpoint_render')
           expect(render_span).to_not have_error
-          expect(render_span.parent_id).to eq(run_span.span_id)
+          expect(render_span.parent_id).to eq(run_span.id)
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_render')
 
           expect(after_span.name).to eq('grape.endpoint_run_filters')
-          expect(after_span.span_type).to eq('web')
+          expect(after_span.type).to eq('web')
           expect(after_span.service).to eq(tracer.default_service)
           expect(after_span.resource).to eq('grape.endpoint_run_filters')
           expect(after_span).to_not have_error
-          expect(after_span.parent_id).to eq(run_span.span_id)
+          expect(after_span.parent_id).to eq(run_span.id)
           expect(after_span.to_hash[:duration] > 0.01).to be true
           expect(after_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(after_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run_filters')
 
           expect(run_span.name).to eq('grape.endpoint_run')
-          expect(run_span.span_type).to eq('web')
+          expect(run_span.type).to eq('web')
           expect(run_span.service).to eq(tracer.default_service)
           expect(run_span.resource).to eq('TestingAPI GET /filtered/before_after')
           expect(run_span.status).to eq(0)
@@ -305,7 +305,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(spans.length).to eq(2)
 
           expect(render_span.name).to eq('grape.endpoint_render')
-          expect(render_span.span_type).to eq('template')
+          expect(render_span.type).to eq('template')
           expect(render_span.service).to eq(tracer.default_service)
           expect(render_span.resource).to eq('grape.endpoint_render')
           expect(render_span).to have_error
@@ -313,14 +313,14 @@ RSpec.describe 'Grape instrumentation' do
           expect(render_span).to have_error_type('StandardError')
           expect(render_span).to have_error_message('Ouch!')
           expect(render_span.get_tag('error.stack')).to include('grape/tracer_spec.rb')
-          expect(render_span.parent_id).to eq(run_span.span_id)
+          expect(render_span.parent_id).to eq(run_span.id)
 
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_render')
 
           expect(run_span.name).to eq('grape.endpoint_run')
-          expect(run_span.span_type).to eq('web')
+          expect(run_span.type).to eq('web')
           expect(run_span.service).to eq(tracer.default_service)
           expect(run_span.resource).to eq('TestingAPI GET /base/hard_failure')
           expect(run_span).to have_error
@@ -361,20 +361,20 @@ RSpec.describe 'Grape instrumentation' do
           run_span, before_span = spans
 
           expect(before_span.name).to eq('grape.endpoint_run_filters')
-          expect(before_span.span_type).to eq('web')
+          expect(before_span.type).to eq('web')
           expect(before_span.service).to eq(tracer.default_service)
           expect(before_span.resource).to eq('grape.endpoint_run_filters')
           expect(before_span).to have_error
           expect(before_span).to have_error_type('StandardError')
           expect(before_span).to have_error_message('Ouch!')
           expect(before_span.get_tag('error.stack')).to include('grape/tracer_spec.rb')
-          expect(before_span.parent_id).to eq(run_span.span_id)
+          expect(before_span.parent_id).to eq(run_span.id)
           expect(before_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(before_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run_filters')
 
           expect(run_span.name).to eq('grape.endpoint_run')
-          expect(run_span.span_type).to eq('web')
+          expect(run_span.type).to eq('web')
           expect(run_span.service).to eq(tracer.default_service)
           expect(run_span.resource).to eq('TestingAPI GET /filtered_exception/before')
           expect(run_span).to have_error
@@ -406,17 +406,17 @@ RSpec.describe 'Grape instrumentation' do
           expect(spans.length).to eq(2)
 
           expect(render_span.name).to eq('grape.endpoint_render')
-          expect(render_span.span_type).to eq('template')
+          expect(render_span.type).to eq('template')
           expect(render_span.service).to eq(tracer.default_service)
           expect(render_span.resource).to eq('grape.endpoint_render')
           expect(render_span).to_not have_error
-          expect(render_span.parent_id).to eq(run_span.span_id)
+          expect(render_span.parent_id).to eq(run_span.id)
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_render')
 
           expect(run_span.name).to eq('grape.endpoint_run')
-          expect(run_span.span_type).to eq('web')
+          expect(run_span.type).to eq('web')
           expect(run_span.service).to eq(tracer.default_service)
           expect(run_span.resource).to eq('TestingAPI GET /widgets')
           expect(run_span).to_not have_error
@@ -452,17 +452,17 @@ RSpec.describe 'Grape instrumentation' do
           expect(spans.length).to eq(2)
 
           expect(render_span.name).to eq('grape.endpoint_render')
-          expect(render_span.span_type).to eq('template')
+          expect(render_span.type).to eq('template')
           expect(render_span.service).to eq(tracer.default_service)
           expect(render_span.resource).to eq('grape.endpoint_render')
           expect(render_span).to_not have_error
-          expect(render_span.parent_id).to eq(run_span.span_id)
+          expect(render_span.parent_id).to eq(run_span.id)
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_render')
 
           expect(run_span.name).to eq('grape.endpoint_run')
-          expect(run_span.span_type).to eq('web')
+          expect(run_span.type).to eq('web')
           expect(run_span.service).to eq(tracer.default_service)
           expect(run_span.resource).to eq('TestingAPI POST /widgets')
           expect(run_span).to_not have_error
@@ -488,17 +488,17 @@ RSpec.describe 'Grape instrumentation' do
           expect(spans.length).to eq(2)
 
           expect(render_span.name).to eq('grape.endpoint_render')
-          expect(render_span.span_type).to eq('template')
+          expect(render_span.type).to eq('template')
           expect(render_span.service).to eq(tracer.default_service)
           expect(render_span.resource).to eq('grape.endpoint_render')
           expect(render_span).to_not have_error
-          expect(render_span.parent_id).to eq(run_span.span_id)
+          expect(render_span.parent_id).to eq(run_span.id)
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_render')
 
           expect(run_span.name).to eq('grape.endpoint_run')
-          expect(run_span.span_type).to eq('web')
+          expect(run_span.type).to eq('web')
           expect(run_span.service).to eq(tracer.default_service)
           expect(run_span.resource).to eq('TestingAPI GET /nested/widgets')
           expect(run_span).to_not have_error
@@ -575,21 +575,21 @@ RSpec.describe 'Grape instrumentation' do
         expect(trace.resource).to eq('RackTestingAPI GET /success')
 
         expect(render_span.name).to eq('grape.endpoint_render')
-        expect(render_span.span_type).to eq('template')
+        expect(render_span.type).to eq('template')
         expect(render_span.service).to eq(tracer.default_service)
         expect(render_span.resource).to eq('grape.endpoint_render')
         expect(render_span).to_not have_error
-        expect(render_span.parent_id).to eq(run_span.span_id)
+        expect(render_span.parent_id).to eq(run_span.id)
         expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
         expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('endpoint_render')
 
         expect(run_span.name).to eq('grape.endpoint_run')
-        expect(run_span.span_type).to eq('web')
+        expect(run_span.type).to eq('web')
         expect(run_span.service).to eq(tracer.default_service)
         expect(run_span.resource).to eq('RackTestingAPI GET /success')
         expect(run_span).to_not have_error
-        expect(run_span.parent_id).to eq(rack_span.span_id)
+        expect(run_span.parent_id).to eq(rack_span.id)
         expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
         expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('endpoint_run')
@@ -601,7 +601,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
 
         expect(rack_span.name).to eq('rack.request')
-        expect(rack_span.span_type).to eq('web')
+        expect(rack_span.type).to eq('web')
         expect(rack_span.service).to eq(tracer.default_service)
         expect(rack_span.resource).to eq('RackTestingAPI GET /success')
         expect(rack_span).to_not have_error
@@ -637,24 +637,24 @@ RSpec.describe 'Grape instrumentation' do
         expect(trace.resource).to eq('RackTestingAPI GET /hard_failure')
 
         expect(render_span.name).to eq('grape.endpoint_render')
-        expect(render_span.span_type).to eq('template')
+        expect(render_span.type).to eq('template')
         expect(render_span.service).to eq(tracer.default_service)
         expect(render_span.resource).to eq('grape.endpoint_render')
         expect(render_span).to have_error
         expect(render_span).to have_error_type('StandardError')
         expect(render_span).to have_error_message('Ouch!')
         expect(render_span.get_tag('error.stack')).to include('grape/tracer_spec.rb')
-        expect(render_span.parent_id).to eq(run_span.span_id)
+        expect(render_span.parent_id).to eq(run_span.id)
         expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
         expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('endpoint_render')
 
         expect(run_span.name).to eq('grape.endpoint_run')
-        expect(run_span.span_type).to eq('web')
+        expect(run_span.type).to eq('web')
         expect(run_span.service).to eq(tracer.default_service)
         expect(run_span.resource).to eq('RackTestingAPI GET /hard_failure')
         expect(run_span).to have_error
-        expect(run_span.parent_id).to eq(rack_span.span_id)
+        expect(run_span.parent_id).to eq(rack_span.id)
         expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
         expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('endpoint_run')
@@ -666,7 +666,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
 
         expect(rack_span.name).to eq('rack.request')
-        expect(rack_span.span_type).to eq('web')
+        expect(rack_span.type).to eq('web')
         expect(rack_span.service).to eq(tracer.default_service)
         expect(rack_span.resource).to eq('RackTestingAPI GET /hard_failure')
         expect(rack_span).to have_error
@@ -687,7 +687,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(subject.status).to eq(404)
 
         expect(span.name).to eq('rack.request')
-        expect(span.span_type).to eq('web')
+        expect(span.type).to eq('web')
         expect(span.service).to eq(tracer.default_service)
         expect(span.resource).to eq('GET 404')
         expect(span).to_not have_error
