@@ -119,6 +119,10 @@ appraise 'contrib' do
   gem 'que', '>= 1.0.0'
 end
 
+appraise "tony-graphql" do
+  gem 'graphql', github: 'TonyCTHsu/graphql-ruby', ref: 'tonycthsu/datadog-tracing-span-type-change'
+end
+
 [3, 4, 5].each do |n|
   appraise "redis-#{n}" do
     gem 'redis', "~> #{n}"
