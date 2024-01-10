@@ -304,8 +304,8 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      describe 'when request queueing excludes the request time' do
-        let(:rack_options) { { request_queuing: :exclude_request } }
+      describe 'when request queueing enabled' do
+        let(:rack_options) { { request_queuing: true } }
 
         it 'creates web_server_span and rack span' do
           get 'request_queuing_enabled',
@@ -572,8 +572,8 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      context 'when `request_queuing` enabled with `:exclude_request` and trace resource overwritten by nested app' do
-        let(:rack_options) { { request_queuing: :exclude_request } }
+      context 'when `request_queuing` enabled and trace resource overwritten by nested app' do
+        let(:rack_options) { { request_queuing: true } }
         let(:routes) do
           proc do
             map '/resource_override' do

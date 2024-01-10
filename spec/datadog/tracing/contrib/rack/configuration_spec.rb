@@ -66,9 +66,7 @@ RSpec.describe 'Rack integration configuration' do
       let(:queue_value) { nil }
     end
 
-    shared_examples_for 'a Rack request with queuing excluding the request' do
-      let(:configuration_options) { super().merge(request_queuing: :exclude_request) }
-
+    shared_examples_for 'a Rack request with queuing' do
       it 'produces a queued Rack trace' do
         is_expected.to be_ok
 
@@ -140,7 +138,7 @@ RSpec.describe 'Rack integration configuration' do
     end
 
     context 'when enabled' do
-      let(:configuration_options) { super().merge(request_queuing: :exclude_request) }
+      let(:configuration_options) { super().merge(request_queuing: true) }
 
       context 'and a request is received' do
         include_context 'an incoming HTTP request'
@@ -150,13 +148,13 @@ RSpec.describe 'Rack integration configuration' do
             let(:queue_header) { 'X-Request-Start' }
           end
 
-          it_behaves_like 'a Rack request with queuing excluding the request'
+          it_behaves_like 'a Rack request with queuing'
 
           context 'given a custom web service name' do
             let(:configuration_options) { super().merge(web_service_name: web_service_name) }
             let(:web_service_name) { 'nginx' }
 
-            it_behaves_like 'a Rack request with queuing excluding the request' do
+            it_behaves_like 'a Rack request with queuing' do
               it 'sets the custom service name' do
                 is_expected.to be_ok
 
@@ -173,7 +171,7 @@ RSpec.describe 'Rack integration configuration' do
             let(:queue_header) { 'X-Queue-Start' }
           end
 
-          it_behaves_like 'a Rack request with queuing excluding the request'
+          it_behaves_like 'a Rack request with queuing'
         end
 
         # Ensure a queuing Span is NOT created if there is a clock skew

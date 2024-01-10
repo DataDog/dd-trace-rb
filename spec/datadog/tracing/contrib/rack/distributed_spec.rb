@@ -87,8 +87,8 @@ RSpec.describe 'Rack integration distributed tracing' do
         include_context 'distributed tracing headers'
         it_behaves_like 'a Rack request with distributed tracing'
 
-        context 'and request_queuing is enabled excluding the request time' do
-          let(:rack_options) { super().merge(request_queuing: :exclude_request, web_service_name: web_service_name) }
+        context 'and request_queuing is enabled' do
+          let(:rack_options) { super().merge(request_queuing: true, web_service_name: web_service_name) }
           let(:web_service_name) { 'frontend_web_server' }
 
           before do
