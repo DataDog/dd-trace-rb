@@ -87,34 +87,6 @@ RSpec.describe 'Rack integration distributed tracing' do
         include_context 'distributed tracing headers'
         it_behaves_like 'a Rack request with distributed tracing'
 
-        context 'and request_queuing is enabled including the request time' do
-          let(:rack_options) { super().merge(request_queuing: :include_request, web_service_name: web_service_name) }
-          let(:web_service_name) { 'frontend_web_server' }
-
-          before do
-            header 'X-Request-Start', "t=#{Time.now.to_f}"
-          end
-
-          it 'contains a request_queuing span that belongs to the distributed trace' do
-            is_expected.to be_ok
-
-            expect(trace.sampling_priority).to eq(sampling_priority)
-
-            expect(spans).to have(2).items
-
-            server_queue_span = spans[0]
-            rack_span = spans[1]
-
-            expect(server_queue_span.name).to eq('http_server.queue')
-            expect(server_queue_span.trace_id).to eq(trace_id)
-            expect(server_queue_span.parent_id).to eq(parent_id)
-
-            expect(rack_span.name).to eq('rack.request')
-            expect(rack_span.trace_id).to eq(trace_id)
-            expect(rack_span.parent_id).to eq(server_queue_span.id)
-          end
-        end
-
         context 'and request_queuing is enabled excluding the request time' do
           let(:rack_options) { super().merge(request_queuing: :exclude_request, web_service_name: web_service_name) }
           let(:web_service_name) { 'frontend_web_server' }
