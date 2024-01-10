@@ -107,21 +107,14 @@ module Datadog
             if status != 404 && (routed = Thread.current[:datadog_http_routing].last)
               # TODO: array == bad, this should be a Struct
               last_script_name = routed[1]
-              last_route = routed[3]
-              # TODO: probably should get HTTP method from route resolvers as well
+              last_route = routed[2]
 
               # TODO: I seem to have gathered that in some (all?) cases this
               # should be nil when no route is found, which woudl cater for the
               # note above
               if last_route
-                # TODO: concatenate better? (according to spec I think it's fine /-wise)
                 composite_route = last_script_name + last_route
-                composite_path = last_script_name + last_route
-
                 request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, composite_route)
-
-                # TODO: should it be composite_route?
-                request_span.resource = env['REQUEST_METHOD'] + ' ' + composite_path
               end
             end
 
