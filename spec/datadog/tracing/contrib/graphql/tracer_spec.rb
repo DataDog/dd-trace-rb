@@ -27,7 +27,7 @@ RSpec.describe 'GraphQL patcher' do
       end
     end
 
-    describe 'query trace', pending: 'Need to update instrumentation from graphql-ruby' do
+    describe 'query trace' do
       subject(:result) { schema.execute(query, variables: {}, context: {}, operation_name: nil) }
 
       let(:query) { '{ foo(id: 1) { name } }' }
@@ -77,7 +77,12 @@ RSpec.describe 'GraphQL patcher' do
 
           valid_operations << 'authorized'
 
-          expect(spans).to have(11).items
+          # New Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
+          if Gem::Version.new(GraphQL::VERSION) >= Gem::Version.new('2.2')
+            expect(spans).to have(10).items
+          else
+            expect(spans).to have(11).items
+          end
         end
 
         # Expect root span to be 'execute.graphql'
