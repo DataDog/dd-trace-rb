@@ -47,20 +47,17 @@ module Datadog
               configuration = Datadog.configuration.tracing[:sinatra]
               return super unless Tracing.enabled?
 
-              datadog_route = Sinatra::Env.route_path(env)
-
-              # TODO: instead of a thread local this may be put in env[something], but I'm not sure we can rely on it bubbling all the way up. see https://github.com/rack/rack/issues/2144
-              # TODO: :sinatra should be a reference to the integration name
-              Thread.current[:datadog_http_routing] << [:sinatra, env['SCRIPT_NAME'], env['PATH_INFO'], datadog_route]
+              integration_route = Sinatra::Env.route_path(env)
+              Thread.current[:datadog_http_routing] << [:sinatra, env['SCRIPT_NAME'], integration_route]
 
               Tracing.trace(
                 Ext::SPAN_ROUTE,
                 service: configuration[:service_name],
                 span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
-                resource: "#{request.request_method} #{datadog_route}",
+                resource: "#{request.request_method} #{integration_route}",
               ) do |span, trace|
                 span.set_tag(Ext::TAG_APP_NAME, settings.name || settings.superclass.name)
-                span.set_tag(Ext::TAG_ROUTE_PATH, datadog_route)
+                span.set_tag(Ext::TAG_ROUTE_PATH, integration_route)
 
                 if request.script_name && !request.script_name.empty?
                   span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name)
@@ -68,11 +65,6 @@ module Datadog
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ROUTE)
-
-                # TODO: should this rather be like this?
-                # span.set_tag(Ext::TAG_ROUTE_PATH, path_info)
-                # span.set_tag(Ext::TAG_ROUTE_PATTERN, datadog_path)
-                span.set_tag(Ext::TAG_ROUTE_PATH, datadog_route)
 
                 trace.resource = span.resource
 
