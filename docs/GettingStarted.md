@@ -824,7 +824,7 @@ end
 | Key              | Env Var                  | Description                                                                                                                   | Default |
 |------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------|
 | `enabled`        | `DD_TRACE_GRAPE_ENABLED` | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false`                           | `true`  |
-| `error_status_codes` | `DD_TRACE_GRAPE_ERROR_STATUS_CODES` | Defines HTTP status codes that would be traced as errors. Value could be a range(`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `500...600`   |
+| `error_status_codes` | `DD_TRACE_GRAPE_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `500...600`   |
 
 
 ### GraphQL
