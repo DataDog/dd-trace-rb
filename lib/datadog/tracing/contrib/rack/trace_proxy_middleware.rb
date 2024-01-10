@@ -23,7 +23,7 @@ module Datadog
             options = {
               service: configuration[:web_service_name],
               start_time: start_time,
-              span_type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY
+              type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY
             }
 
             case configuration[:request_queuing]

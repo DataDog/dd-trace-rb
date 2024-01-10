@@ -45,7 +45,7 @@ module Datadog
             end
 
             TraceProxyMiddleware.call(env, configuration) do
-              trace_options = { span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
+              trace_options = { type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
               trace_options[:service] = configuration[:service_name] if configuration[:service_name]
 
               # start a new request span and attach it to the current Rack environment;
