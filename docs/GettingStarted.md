@@ -198,7 +198,7 @@ If your Datadog Agent is listening at any of these locations, no further configu
 If your Agent runs on a different host or container than your application, or you would like to send traces via a different protocol, you will need to configure your application accordingly.
 
   - [How to send trace data via HTTP over TCP to Agent](#changing-default-agent-hostname-and-port)
-  - [How to send trace data via Unix Domain Socket (UDS) to Agent](#using-the-unix-domain-socket-uds-adapter)
+  - [How to send trace data via Unix Domain Socket (UDS) to Agent](#unix-domain-socket-uds)
 
 ### Final steps for installation
 
@@ -2470,22 +2470,15 @@ end
 
 See [Additional Configuration](#additional-configuration) for more details.
 
-#### Using the Net::HTTP adapter
+#### Agent connection methods
+The agent supports communication via TCP or Unix Domain Socket (UDS). The tracer will automatically detect the agent's
+connection method based on the configuration provided.
 
-The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default transport adapter. Use of `Net::HTTP` is
-implied by setting the host name and port.
+##### TCP
+The tracer will connect to the agent via TCP if the `host` and `port` are set, or if `HTTP/HTTPS` is specified as the
+protocol in `DD_TRACE_AGENT_URL`. TCP is the default connection method.
 
-```ruby
-Datadog.configure do |c|
-  c.agent.host = '127.0.0.1'
-  c.agent.port = 8126
-end
-```
-
-#### Using the Unix Domain Socket (UDS) adapter
-
-The `UnixSocket` adapter submits traces using `Net::HTTP` over Unix socket.
-
+##### Unix Domain Socket (UDS)
 To use, first configure your trace Agent to listen by Unix socket, then configure the tracer with:
 
 ```ruby
@@ -2494,12 +2487,21 @@ Datadog.configure do |c|
   c.agent.uds_path = '/tmp/ddagent/trace.sock'
 end
 ```
-Note: You cannot mix UDS and TCP configurations. If you set `c.agent.uds_path`, you must not set `c.agent.host` or `c.agent.port`.
 
-#### Using the transport test adapter
+You can also define the UDS path using the `DD_TRACE_AGENT_URL` environment variable by setting the protocol to `unix`:
 
-The `Test` adapter is a no-op transport that can optionally buffer requests in test suites or other
-non-production environments. It is configured by setting `c.tracing.test_mode.enabled` to true.
+```bash
+DD_TRACE_AGENT_URL=unix:///tmp/ddagent/trace.sock
+```
+
+Note: You cannot mix UDS and TCP configurations. If you set `c.agent.uds_path`, you must not set `c.agent.host`
+or `c.agent.port`.
+
+#### Transporting in Test Mode
+
+When test mode is enabled, the tracer uses a `Test` adapter for no-op transport that can optionally buffer requests in
+test suites or other non-production environments. It is configured by setting `c.tracing.test_mode.enabled` to true.
+This mode only works for tracing.
 
 ```ruby
 Datadog.configure do |c|
