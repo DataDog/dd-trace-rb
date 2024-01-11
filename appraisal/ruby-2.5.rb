@@ -5,28 +5,32 @@ appraise 'hanami-1' do
 end
 
 appraise 'rails4-mysql2' do
-  gem 'rails', '4.2.11.1'
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/marcotc/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
   gem 'mysql2', '< 1'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
 end
 
 appraise 'rails4-postgres' do
-  gem 'rails', '4.2.11.1'
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/marcotc/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
   gem 'pg', '< 1.0'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
 end
 
 appraise 'rails4-semantic-logger' do
-  gem 'rails', '4.2.11.1'
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/marcotc/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
   gem 'pg', '< 1.0'
   gem 'sprockets', '< 4'
   gem 'rails_semantic_logger', '~> 4.0'
 end
 
 appraise 'rails4-postgres-redis' do
-  gem 'rails', '4.2.11.1'
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/marcotc/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
   gem 'pg', '< 1.0'
   gem 'redis-rails'
   gem 'redis', '< 4.0'
@@ -35,7 +39,8 @@ appraise 'rails4-postgres-redis' do
 end
 
 appraise 'rails4-postgres-sidekiq' do
-  gem 'rails', '4.2.11.1'
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/marcotc/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
   gem 'pg', '< 1.0'
   gem 'sidekiq'
   gem 'activejob'
