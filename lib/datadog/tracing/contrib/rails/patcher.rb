@@ -15,7 +15,7 @@ module Datadog
         module JourneyRouterPatch
           def find_routes(*args, **kwargs)
             result = super
-            integration_route = result.first[2].path.spec.to_s if result.any?
+            integration_route = result.first[2].path.spec.to_s.gsub(/\(\.:format\)/, '') if result.any?
             Thread.current[:datadog_http_routing] << [:rails, args.first.env['SCRIPT_NAME'], integration_route]
             result
           end
@@ -52,6 +52,7 @@ module Datadog
               # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
 
+              # Check rails version if this works
               ActionDispatch::Journey::Router.prepend(JourneyRouterPatch)
 
               Rails::LogInjection.configure_log_tags(app.config)
