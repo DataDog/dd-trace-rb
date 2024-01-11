@@ -28,7 +28,7 @@ gem "webmock", ">= 3.10.0"
 gem "yard", "~> 0.9"
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
 gem "rails", git: "https://github.com/marcotc/rails", ref: "592dfae8747db3bb28c3292a9730817f0fa76885"
-gem "pg", "< 1.0"
+gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "redis-rails"
 gem "redis", "< 4.0"
 gem "sprockets", "< 4"
