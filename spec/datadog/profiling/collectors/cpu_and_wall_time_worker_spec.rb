@@ -245,15 +245,6 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
     end
 
     it 'records garbage collection cycles' do
-      if RUBY_VERSION.start_with?('3.')
-        skip(
-          'This test (and feature...) is broken on Ruby 3 if any Ractors get used due to a bug in the VM during ' \
-          'Ractor GC, see https://bugs.ruby-lang.org/issues/19112 for details. ' \
-          'For that reason, we disable this feature on Ruby 3 by default by passing `gc_profiling_enabled: false` during ' \
-          'profiler initialization.'
-        )
-      end
-
       start
 
       described_class::Testing._native_trigger_sample
