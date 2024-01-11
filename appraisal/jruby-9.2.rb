@@ -8,6 +8,7 @@ appraise 'rails4-mysql2' do
   # Rails 4.2.11.3 with bundler unlocked to > 2.0
   gem 'rails', git: 'https://github.com/marcotc/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
   gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+  gem 'jdbc-mysql', '< 8', require: false
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
 end
