@@ -282,8 +282,11 @@ namespace :test do
     task key, [:task_args] do |_, args|
       spec_arguments = args.task_args
 
-      candidates = spec_metadata.select do |_, rubies|
+      candidates = spec_metadata.select do |appraisal_group, rubies|
         if RUBY_PLATFORM == 'java'
+          # Rails 4.x is not supported on JRuby 9.2
+          next false if ruby_runtime == 'jruby-9.2' && appraisal_group.start_with?('rails4')
+
           rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
         else
           rubies.include?("✅ #{ruby_version}")
