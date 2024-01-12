@@ -535,6 +535,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#experimental_heap_size_enabled' do
+        subject(:experimental_heap_size_enabled) { settings.profiling.advanced.experimental_heap_size_enabled }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be true }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_heap_size_enabled=' do
+        it 'updates the #experimental_heap_size_enabled setting' do
+          expect { settings.profiling.advanced.experimental_heap_size_enabled = false }
+            .to change { settings.profiling.advanced.experimental_heap_size_enabled }
+            .from(true)
+            .to(false)
+        end
+      end
+
       describe '#experimental_allocation_sample_rate' do
         subject(:experimental_allocation_sample_rate) { settings.profiling.advanced.experimental_allocation_sample_rate }
 
@@ -566,6 +601,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           expect { settings.profiling.advanced.experimental_allocation_sample_rate = 100 }
             .to change { settings.profiling.advanced.experimental_allocation_sample_rate }
             .from(50)
+            .to(100)
+        end
+      end
+
+      describe '#experimental_heap_sample_rate' do
+        subject(:experimental_heap_sample_rate) { settings.profiling.advanced.experimental_heap_sample_rate }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be 10 }
+          end
+
+          [100, 30.5].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value.to_i }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_heap_sample_rate=' do
+        it 'updates the #experimental_heap_sample_rate setting' do
+          expect { settings.profiling.advanced.experimental_heap_sample_rate = 100 }
+            .to change { settings.profiling.advanced.experimental_heap_sample_rate }
+            .from(10)
             .to(100)
         end
       end

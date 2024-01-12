@@ -66,7 +66,7 @@ RSpec.describe 'Sidekiq distributed tracing' do
     end
 
     context 'when receiving' do
-      let(:trace_id) { Datadog::Tracing::Utils.next_id }
+      let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
       let(:span_id) { Datadog::Tracing::Utils.next_id }
       let(:jid) { '123abc' }
 
@@ -78,10 +78,10 @@ RSpec.describe 'Sidekiq distributed tracing' do
             'args' => [],
             'class' => EmptyWorker.to_s,
             'jid' => jid,
-            'x-datadog-trace-id' => trace_id.to_s,
+            'x-datadog-trace-id' => low_order_trace_id(trace_id).to_s,
             'x-datadog-parent-id' => span_id.to_s,
             'x-datadog-sampling-priority' => '2',
-            'x-datadog-tags' => '_dd.p.dm=-99',
+            'x-datadog-tags' => "_dd.p.dm=-99,_dd.p.tid=#{high_order_hex_trace_id(trace_id)}",
             'x-datadog-origin' => 'my-origin'
           )
         )
@@ -153,7 +153,7 @@ RSpec.describe 'Sidekiq distributed tracing' do
     end
 
     context 'when receiving' do
-      let(:trace_id) { Datadog::Tracing::Utils.next_id }
+      let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
       let(:span_id) { Datadog::Tracing::Utils.next_id }
       let(:jid) { '123abc' }
 

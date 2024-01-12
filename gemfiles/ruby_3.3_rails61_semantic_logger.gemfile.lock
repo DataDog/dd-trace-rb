@@ -11,8 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.18.0)
-      debase-ruby_core_source (= 3.2.3)
+    ddtrace (1.19.0)
+      datadog-ci (~> 0.6.0)
+      debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 5.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -99,8 +100,10 @@ GEM
       rexml
     crass (1.0.6)
     cri (2.15.11)
+    datadog-ci (0.6.0)
+      msgpack
     date (3.3.3)
-    debase-ruby_core_source (3.2.3)
+    debase-ruby_core_source (3.3.1)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -326,4 +329,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.27
+   2.3.26

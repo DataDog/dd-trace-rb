@@ -6,7 +6,7 @@ module Datadog
     class StackRecorder
       def initialize(
         cpu_time_enabled:, alloc_samples_enabled:, heap_samples_enabled:, heap_size_enabled:,
-        timeline_enabled:
+        heap_sample_every:, timeline_enabled:
       )
         # This mutex works in addition to the fancy C-level mutexes we have in the native side (see the docs there).
         # It prevents multiple Ruby threads calling serialize at the same time -- something like
@@ -22,6 +22,7 @@ module Datadog
           alloc_samples_enabled,
           heap_samples_enabled,
           heap_size_enabled,
+          heap_sample_every,
           timeline_enabled,
         )
       end

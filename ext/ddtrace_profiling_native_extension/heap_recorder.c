@@ -6,6 +6,10 @@
 #include "collectors_stack.h"
 #include "libdatadog_helpers.h"
 
+#if (defined(HAVE_WORKING_RB_GC_FORCE_RECYCLE) && ! defined(NO_SEEN_OBJ_ID_FLAG))
+  #define CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
+#endif
+
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
   char *name;
@@ -92,11 +96,25 @@ typedef struct {
 } object_record;
 static object_record* object_record_new(long, heap_record*, live_object_data);
 static void object_record_free(object_record*);
+static VALUE object_record_inspect(object_record*);
+static object_record SKIPPED_RECORD = {0};
+
+// A wrapper around an object record that is in the process of being recorded and was not
+// yet committed.
+typedef struct {
+  // Pointer to the (potentially partial) object_record containing metadata about an ongoing recording.
+  // When NULL, this symbolizes an unstarted/invalid recording.
+  object_record *object_record;
+  // A flag to track whether we had to force set the RUBY_FL_SEEN_OBJ_ID flag on this object
+  // as part of our workaround around rb_gc_force_recycle issues.
+  bool did_recycle_workaround;
+} recording;
 
 struct heap_recorder {
   // Config
   // Whether the recorder should try to determine approximate sizes for tracked objects.
   bool size_enabled;
+  uint sample_rate;
 
   // Map[key: heap_record_key*, record: heap_record*]
   // NOTE: We always use heap_record_key.type == HEAP_STACK for storage but support lookups
@@ -121,20 +139,24 @@ struct heap_recorder {
   st_table *object_records_snapshot;
 
   // Data for a heap recording that was started but not yet ended
-  object_record *partial_object_record;
+  recording active_recording;
 
   // Reusable location array, implementing a flyweight pattern for things like iteration.
   ddog_prof_Location *reusable_locations;
+
+  // Sampling state
+  uint num_recordings_skipped;
 };
 static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
+static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, object_record *record);
 static int st_heap_record_entry_free(st_data_t, st_data_t, st_data_t);
 static int st_object_record_entry_free(st_data_t, st_data_t, st_data_t);
 static int st_object_record_update(st_data_t, st_data_t, st_data_t);
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
-static void commit_allocation(heap_recorder*, heap_record*, object_record*);
+static void commit_recording(heap_recorder*, heap_record*, recording);
 
 // ==========================
 // Heap Recorder External API
@@ -152,8 +174,9 @@ heap_recorder* heap_recorder_new(void) {
   recorder->object_records = st_init_numtable();
   recorder->object_records_snapshot = NULL;
   recorder->reusable_locations = ruby_xcalloc(MAX_FRAMES_LIMIT, sizeof(ddog_prof_Location));
-  recorder->partial_object_record = NULL;
+  recorder->active_recording = (recording) {0};
   recorder->size_enabled = true;
+  recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
 
   return recorder;
 }
@@ -177,9 +200,9 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
   st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, 0);
   st_free_table(heap_recorder->heap_records);
 
-  if (heap_recorder->partial_object_record != NULL) {
+  if (heap_recorder->active_recording.object_record != NULL) {
     // If there's a partial object record, clean it up as well
-    object_record_free(heap_recorder->partial_object_record);
+    object_record_free(heap_recorder->active_recording.object_record);
   }
 
   ruby_xfree(heap_recorder->reusable_locations);
@@ -188,7 +211,24 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
 }
 
 void heap_recorder_set_size_enabled(heap_recorder *heap_recorder, bool size_enabled) {
+  if (heap_recorder == NULL) {
+    return;
+  }
+
   heap_recorder->size_enabled = size_enabled;
+}
+
+void heap_recorder_set_sample_rate(heap_recorder *heap_recorder, int sample_rate) {
+  if (heap_recorder == NULL) {
+    return;
+  }
+
+  if (sample_rate <= 0) {
+    rb_raise(rb_eArgError, "Heap sample rate must be a positive integer value but was %d", sample_rate);
+  }
+
+  heap_recorder->sample_rate = sample_rate;
+  heap_recorder->num_recordings_skipped = 0;
 }
 
 // WARN: Assumes this gets called before profiler is reinitialized on the fork
@@ -221,20 +261,64 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     return;
   }
 
+  if (heap_recorder->active_recording.object_record != NULL) {
+    rb_raise(rb_eRuntimeError, "Detected consecutive heap allocation recording starts without end.");
+  }
+
+  if (heap_recorder->num_recordings_skipped + 1 < heap_recorder->sample_rate) {
+    heap_recorder->active_recording.object_record = &SKIPPED_RECORD;
+    heap_recorder->num_recordings_skipped++;
+    return;
+  }
+
+  heap_recorder->num_recordings_skipped = 0;
+
   VALUE ruby_obj_id = rb_obj_id(new_obj);
   if (!FIXNUM_P(ruby_obj_id)) {
     rb_raise(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
   }
 
-  if (heap_recorder->partial_object_record != NULL) {
-    rb_raise(rb_eRuntimeError, "Detected consecutive heap allocation recording starts without end.");
-  }
+  bool did_recycle_workaround = false;
 
-  heap_recorder->partial_object_record = object_record_new(FIX2LONG(ruby_obj_id), NULL, (live_object_data) {
-    .weight =  weight,
-    .class = alloc_class != NULL ? string_from_char_slice(*alloc_class) : NULL,
-    .alloc_gen = rb_gc_count(),
-  });
+  #ifdef CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
+    // If we are in a ruby version that has a working rb_gc_force_recycle implementation,
+    // its usage may lead to an object being re-used outside of the typical GC cycle.
+    //
+    // This re-use is in theory invisible to us unless we're lucky enough to sample both
+    // the original object and the replacement that uses the recycled slot.
+    //
+    // In practice, we've observed (https://github.com/DataDog/dd-trace-rb/pull/3366)
+    // that non-noop implementations of rb_gc_force_recycle have an implementation bug
+    // which results in the object that re-used the recycled slot inheriting the same
+    // object id without setting the FL_SEEN_OBJ_ID flag. We rely on this knowledge to
+    // "observe" implicit frees when an object we are tracking is force-recycled.
+    //
+    // However, it may happen that we start tracking a new object and that object was
+    // allocated on a recycled slot. Due to the bug, this object would be missing the
+    // FL_SEEN_OBJ_ID flag even though it was not recycled itself. If we left it be,
+    // when we're doing our liveness check, the absence of the flag would trigger our
+    // implicit free workaround and the object would be inferred as recycled even though
+    // it might still be alive.
+    //
+    // Thus, if we detect that this new allocation is already missing the flag at the start
+    // of the heap allocation recording, we force-set it. This should be safe since we
+    // just called rb_obj_id on it above and the expectation is that any flaggable object
+    // that goes through it ends up with the flag set (as evidenced by the GC_ASSERT
+    // lines in https://github.com/ruby/ruby/blob/4a8d7246d15b2054eacb20f8ab3d29d39a3e7856/gc.c#L4050C14-L4050C14).
+    if (RB_FL_ABLE(new_obj) && !RB_FL_TEST(new_obj, RUBY_FL_SEEN_OBJ_ID)) {
+      RB_FL_SET(new_obj, RUBY_FL_SEEN_OBJ_ID);
+      did_recycle_workaround = true;
+    }
+  #endif
+
+  heap_recorder->active_recording = (recording) {
+    .object_record = object_record_new(FIX2LONG(ruby_obj_id), NULL, (live_object_data) {
+        .weight =  weight * heap_recorder->sample_rate,
+        .class = alloc_class != NULL ? string_from_char_slice(*alloc_class) : NULL,
+        .alloc_gen = rb_gc_count(),
+        }),
+    .did_recycle_workaround = did_recycle_workaround,
+  };
 }
 
 void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
@@ -242,21 +326,26 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
     return;
   }
 
-  object_record *partial_object_record = heap_recorder->partial_object_record;
+  recording active_recording = heap_recorder->active_recording;
 
-  if (partial_object_record == NULL) {
+  if (active_recording.object_record == NULL) {
     // Recording ended without having been started?
     rb_raise(rb_eRuntimeError, "Ended a heap recording that was not started");
   }
+  // From now on, mark the global active recording as invalid so we can short-circuit at any point
+  // and not end up with a still active recording. the local active_recording still holds the
+  // data required for committing though.
+  heap_recorder->active_recording = (recording) {0};
 
-  // From now on, mark active recording as invalid so we can short-circuit at any point and
-  // not end up with a still active recording. partial_object_record still holds the object for this recording
-  heap_recorder->partial_object_record = NULL;
+  if (active_recording.object_record == &SKIPPED_RECORD) {
+    // special marker when we decided to skip due to sampling
+    return;
+  }
 
   heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
 
   // And then commit the new allocation.
-  commit_allocation(heap_recorder, heap_record, partial_object_record);
+  commit_recording(heap_recorder, heap_record, active_recording);
 }
 
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
@@ -379,19 +468,45 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
 
   if (!ruby_ref_from_id(LONG2NUM(obj_id), &ref)) {
     // Id no longer associated with a valid ref. Need to delete this object record!
-
-    // Starting with the associated heap record. There will now be one less tracked object pointing to it
-    heap_record *heap_record = record->heap_record;
-    heap_record->num_tracked_objects--;
-
-    // One less object using this heap record, it may have become unused...
-    cleanup_heap_record_if_unused(recorder, heap_record);
-
-    object_record_free(record);
+    on_committed_object_record_cleanup(recorder, record);
     return ST_DELETE;
   }
 
-  // If we got this far, entry is still valid
+  // If we got this far, then we found a valid live object for the tracked id.
+
+  #ifdef CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
+    // If we are in a ruby version that has a working rb_gc_force_recycle implementation,
+    // its usage may lead to an object being re-used outside of the typical GC cycle.
+    //
+    // This re-use is in theory invisible to us and would mean that the ref from which we
+    // collected the object_record metadata may not be the same as the current ref and
+    // thus any further reporting would be innacurately attributed to stale metadata.
+    //
+    // In practice, there is a way for us to notice that this happened because of a bug
+    // in the implementation of rb_gc_force_recycle. Our heap profiler relies on object
+    // ids and id2ref to detect whether objects are still alive. Turns out that when an
+    // object with an id is re-used via rb_gc_force_recycle, it will "inherit" the ID
+    // of the old object but it will NOT have the FL_SEEN_OBJ_ID as per the experiment
+    // in https://github.com/DataDog/dd-trace-rb/pull/3360#discussion_r1442823517
+    //
+    // Thus, if we detect that the ref we just resolved above is missing this flag, we can
+    // safely say re-use happened and thus treat it as an implicit free of the object
+    // we were tracking (the original one which got recycled).
+    if (RB_FL_ABLE(ref) && !RB_FL_TEST(ref, RUBY_FL_SEEN_OBJ_ID)) {
+
+      // NOTE: We don't really need to set this flag for heap recorder to work correctly
+      // but doing so partially mitigates a bug in runtimes with working rb_gc_force_recycle
+      // which leads to broken invariants and leaking of entries in obj_to_id and id_to_obj
+      // tables in objspace. We already do the same thing when we sample a recycled object,
+      // here we apply it as well to objects that replace recycled objects that were being
+      // tracked. More details in https://github.com/DataDog/dd-trace-rb/pull/3366
+      RB_FL_SET(ref, RUBY_FL_SEEN_OBJ_ID);
+
+      on_committed_object_record_cleanup(recorder, record);
+      return ST_DELETE;
+    }
+
+  #endif
 
   if (recorder->size_enabled && !record->object_data.is_frozen) {
     // if we were asked to update sizes and this object was not already seen as being frozen,
@@ -438,31 +553,16 @@ static int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value
 
   object_record *record = (object_record*) value;
 
-  heap_frame top_frame = record->heap_record->stack->frames[0];
-  rb_str_catf(debug_str, "obj_id=%ld weight=%d size=%zu location=%s:%d alloc_gen=%zu ", record->obj_id, record->object_data.weight, record->object_data.size, top_frame.filename, (int) top_frame.line, record->object_data.alloc_gen);
-
-  const char *class = record->object_data.class;
-  if (class != NULL) {
-    rb_str_catf(debug_str, "class=%s ", class);
-  }
-
-  VALUE ref;
-  if (!ruby_ref_from_id(LONG2NUM(record->obj_id), &ref)) {
-    rb_str_catf(debug_str, "object=<invalid>");
-  } else {
-    rb_str_catf(debug_str, "object=%+"PRIsVALUE, ref);
-  }
-
-  rb_str_catf(debug_str, "\n");
+  rb_str_catf(debug_str, "%"PRIsVALUE"\n", object_record_inspect(record));
 
   return ST_CONTINUE;
 }
 
 // Struct holding data required for an update operation on heap_records
 typedef struct {
-  // [in] The new object record we want to add.
-  // NOTE: Transfer of ownership is assumed, do not re-use it after call to ::update_object_record_entry
-  object_record *new_object_record;
+  // [in] The recording containing the new object record we want to add.
+  // NOTE: Transfer of ownership of the contained object record is assumed, do not re-use it after call to ::update_object_record_entry
+  recording recording;
 
   // [in] The heap recorder where the update is happening.
   heap_recorder *heap_recorder;
@@ -470,31 +570,43 @@ typedef struct {
 
 static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *value, st_data_t data, int existing) {
   object_record_update_data *update_data = (object_record_update_data*) data;
+  recording recording = update_data->recording;
+  object_record *new_object_record = recording.object_record;
   if (existing) {
-    rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with the same id");
+    object_record *existing_record = (object_record*) (*value);
+    if (recording.did_recycle_workaround) {
+      // In this case, it's possible for an object id to be re-used and we were lucky enough to have
+      // sampled both the original object and the replacement so cleanup the old one and replace it with
+      // the new object_record (i.e. treat this as a combined free+allocation).
+      on_committed_object_record_cleanup(update_data->heap_recorder, existing_record);
+    } else {
+      // This is not supposed to happen, raising...
+      VALUE existing_inspect = object_record_inspect(existing_record);
+      VALUE new_inspect = object_record_inspect(new_object_record);
+      rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
+        "the same id. previous=%"PRIsVALUE" new=%"PRIsVALUE, existing_inspect, new_inspect);
+    }
   }
   // Always carry on with the update, we want the new record to be there at the end
-  (*value) = (st_data_t) update_data->new_object_record;
+  (*value) = (st_data_t) new_object_record;
   return ST_CONTINUE;
 }
 
-static void commit_allocation(heap_recorder *heap_recorder, heap_record *heap_record, object_record *object_record) {
-  // Link the object record with the corresponding heap record.
-  object_record->heap_record = heap_record;
+static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_record, recording recording) {
+  // Link the object record with the corresponding heap record. This was the last remaining thing we
+  // needed to fully build the object_record.
+  recording.object_record->heap_record = heap_record;
+  if (heap_record->num_tracked_objects == UINT32_MAX) {
+    rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
+  }
+  heap_record->num_tracked_objects++;
 
-  // Update object_records
+  // Update object_records with the data for this new recording
   object_record_update_data update_data = (object_record_update_data) {
     .heap_recorder = heap_recorder,
-    .new_object_record = object_record,
+    .recording = recording,
   };
-  if (!st_update(heap_recorder->object_records, object_record->obj_id, update_object_record_entry, (st_data_t) &update_data)) {
-    // We are sure there was no previous record for this id so let the heap record know there now is one
-    // extra record associated with this stack.
-    if (heap_record->num_tracked_objects == UINT32_MAX) {
-      rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
-    }
-    heap_record->num_tracked_objects++;
-  };
+  st_update(heap_recorder->object_records, recording.object_record->obj_id, update_object_record_entry, (st_data_t) &update_data);
 }
 
 // Struct holding data required for an update operation on heap_records
@@ -566,6 +678,17 @@ static void cleanup_heap_record_if_unused(heap_recorder *heap_recorder, heap_rec
   heap_record_free(heap_record);
 }
 
+static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, object_record *record) {
+  // Starting with the associated heap record. There will now be one less tracked object pointing to it
+  heap_record *heap_record = record->heap_record;
+  heap_record->num_tracked_objects--;
+
+  // One less object using this heap record, it may have become unused...
+  cleanup_heap_record_if_unused(heap_recorder, heap_record);
+
+  object_record_free(record);
+}
+
 // ===============
 // Heap Record API
 // ===============
@@ -598,6 +721,32 @@ void object_record_free(object_record *record) {
     ruby_xfree(record->object_data.class);
   }
   ruby_xfree(record);
+}
+
+VALUE object_record_inspect(object_record *record) {
+  heap_frame top_frame = record->heap_record->stack->frames[0];
+  VALUE inspect = rb_sprintf("obj_id=%ld weight=%d size=%zu location=%s:%d alloc_gen=%zu ",
+      record->obj_id, record->object_data.weight, record->object_data.size, top_frame.filename,
+      (int) top_frame.line, record->object_data.alloc_gen);
+
+  const char *class = record->object_data.class;
+  if (class != NULL) {
+    rb_str_catf(inspect, "class=%s ", class);
+  }
+  VALUE ref;
+
+  if (!ruby_ref_from_id(LONG2NUM(record->obj_id), &ref)) {
+    rb_str_catf(inspect, "object=<invalid>");
+  } else {
+    VALUE ruby_inspect = ruby_safe_inspect(ref);
+    if (ruby_inspect != Qnil) {
+      rb_str_catf(inspect, "object=%"PRIsVALUE, ruby_inspect);
+    } else {
+      rb_str_catf(inspect, "object=%s", ruby_value_type_to_string(rb_type(ref)));
+    }
+  }
+
+  return inspect;
 }
 
 // ==============
