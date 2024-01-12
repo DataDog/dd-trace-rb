@@ -48,7 +48,6 @@ module Datadog
               return super unless Tracing.enabled?
 
               integration_route = Sinatra::Env.route_path(env)
-              Thread.current[:datadog_http_routing] << [:sinatra, env['SCRIPT_NAME'], integration_route]
 
               Tracing.trace(
                 Ext::SPAN_ROUTE,
@@ -74,6 +73,7 @@ module Datadog
 
                 Contrib::Analytics.set_measured(span)
 
+                Thread.current[:datadog_http_routing] << [:sinatra, env['SCRIPT_NAME'], integration_route]
                 super
               end
             end

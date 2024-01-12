@@ -95,7 +95,6 @@ module Datadog
                 span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
 
                 integration_route = endpoint.env['grape.routing_args'][:route_info].pattern.origin
-                Thread.current[:datadog_http_routing] << [:grape, endpoint.env['SCRIPT_NAME'], integration_route]
 
                 # override the current span with this notification values
                 span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
@@ -104,6 +103,8 @@ module Datadog
 
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request_method)
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
+
+                Thread.current[:datadog_http_routing] << [:grape, endpoint.env['SCRIPT_NAME'], integration_route]
               ensure
                 span.start(start)
                 span.finish(finish)
