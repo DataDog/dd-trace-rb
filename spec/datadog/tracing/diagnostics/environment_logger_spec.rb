@@ -5,11 +5,15 @@ require 'datadog/tracing/diagnostics/environment_logger'
 require 'datadog/tracing/transport/io'
 
 RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
+  around { |example| ClimateControl.modify(environment) { example.run } }
+
   subject(:env_logger) { described_class }
 
   # Reading DD_AGENT_HOST allows this to work in CI
   let(:agent_hostname) { ENV['DD_AGENT_HOST'] || '127.0.0.1' }
   let(:agent_port) { ENV['DD_TRACE_AGENT_PORT'] || 8126 }
+
+  let(:environment) { {} }
 
   before do
     # Resets "only-once" execution pattern of `collect_and_log!`
@@ -161,12 +165,14 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       end
 
       context 'with unix socket transport' do
-        before do
-          allow(Datadog.configuration.tracing).to receive(:transport_options).and_return(
-            lambda { |t|
-              t.adapter :unix, '/tmp/trace.sock'
-            }
-          )
+        let(:environment) do
+          environment = {}
+
+          environment['DD_AGENT_HOST'] = nil
+          environment['DD_TRACE_AGENT_PORT'] = nil
+          environment['DD_TRACE_AGENT_URL'] = 'unix:///tmp/trace.sock'
+
+          environment
         end
 
         it { is_expected.to include agent_url: include('unix') }

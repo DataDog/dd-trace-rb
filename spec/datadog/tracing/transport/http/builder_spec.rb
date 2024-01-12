@@ -22,8 +22,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Builder do
           hostname: nil,
           port: nil,
           uds_path: nil,
-          timeout_seconds: nil,
-          deprecated_for_removal_transport_configuration_proc: nil,
+          timeout_seconds: nil
         )
       end
       let(:config_adapter) { :adapter_foo }

@@ -88,7 +88,7 @@ module Datadog
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
           @remote = Remote::Component.build(settings, agent_settings)
-          @tracer = self.class.build_tracer(settings, logger: @logger)
+          @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
 
           @profiler = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,

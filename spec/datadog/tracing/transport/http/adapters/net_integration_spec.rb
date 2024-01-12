@@ -9,7 +9,18 @@ require 'datadog/core/transport/http/adapters/net'
 RSpec.describe 'Adapters::Net tracing integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::Net.new(hostname: hostname, port: port) }
+  subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings) }
+
+  let(:agent_settings) do
+    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+      adapter: nil,
+      ssl: false,
+      uds_path: nil,
+      hostname: hostname,
+      port: port,
+      timeout_seconds: 30,
+    )
+  end
 
   shared_context 'HTTP server' do
     # HTTP

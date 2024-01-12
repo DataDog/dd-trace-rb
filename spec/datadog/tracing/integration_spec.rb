@@ -154,9 +154,7 @@ RSpec.describe 'Tracer integration tests' do
         skip("Can't share docker volume to access unix socket in CircleCI currently") if PlatformHelpers.ci?
 
         Datadog.configure do |c|
-          c.tracing.transport_options = proc { |t|
-            t.adapter :unix, ENV['TEST_DDAGENT_UNIX_SOCKET']
-          }
+          c.agent.uds_path = ENV['TEST_DDAGENT_UNIX_SOCKET']
         end
       end
 
@@ -918,116 +916,6 @@ RSpec.describe 'Tracer integration tests' do
         expect(stats[:transport].client_error).to eq(0)
         expect(stats[:transport].server_error).to eq(0)
         expect(stats[:transport].internal_error).to eq(0)
-      end
-    end
-  end
-
-  describe 'tracer transport' do
-    include_context 'agent-based test'
-
-    subject(:configure) do
-      Datadog.configure do |c|
-        c.agent.host = hostname
-        c.agent.port = port
-      end
-    end
-
-    let(:hostname) { double('hostname') }
-    let(:port) { 34567 }
-
-    context 'when :transport_options' do
-      let(:remote_enabled) { false }
-      let(:appsec_enabled) { false }
-      let(:transport_options) { proc { |t| on_build.call(t) } }
-
-      before do
-        Datadog.configure do |c|
-          c.tracing.transport_options = transport_options
-          c.remote.enabled = remote_enabled
-          c.appsec.enabled = appsec_enabled
-        end
-      end
-
-      after do
-        Datadog.configuration.reset!
-      end
-
-      context 'is provided' do
-        let(:on_build) do
-          double('on_build').tap do |double|
-            allow(double).to receive(:call).with(any_args) # e.g. Telemetry transport, RC transport
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Transport::HTTP::Builder))
-              .at_least(1).time
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
-              .at_least(1).time
-          end
-        end
-
-        it do
-          configure
-
-          tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
-            expect(transport.current_api.adapter.hostname).to be hostname
-            expect(transport.current_api.adapter.port).to be port
-          end
-        end
-      end
-
-      context 'is provided and remote configuration enabled, and appsec is disabled' do
-        let(:remote_enabled) { true }
-        let(:on_build) do
-          double('on_build').tap do |double|
-            allow(double).to receive(:call).with(any_args) # e.g. Telemetry transport, RC transport
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Transport::HTTP::Builder))
-              .at_least(1).time
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
-              .at_least(1).time
-          end
-        end
-
-        it do
-          configure
-
-          tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
-            expect(transport.current_api.adapter.hostname).to be hostname
-            expect(transport.current_api.adapter.port).to be port
-          end
-        end
-      end
-
-      context 'is provided and remote configuration, and appsec is enabled' do
-        let(:remote_enabled) { true }
-        let(:appsec_enabled) { true }
-        let(:on_build) do
-          double('on_build').tap do |double|
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Transport::HTTP::Builder))
-              .at_least(1).time
-            # For the remote component.
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Core::Remote::Transport::HTTP::Builder))
-              .at_least(1).time
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
-              .at_least(1).time
-          end
-        end
-
-        it do
-          configure
-
-          tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
-            expect(transport.current_api.adapter.hostname).to be hostname
-            expect(transport.current_api.adapter.port).to be port
-          end
-        end
       end
     end
   end

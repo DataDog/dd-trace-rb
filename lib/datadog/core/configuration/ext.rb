@@ -27,11 +27,14 @@ module Datadog
           # env var has "trace" in it, but it really applies to all products
           ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'
           ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'
+          ENV_DEFAULT_TIMEOUT_SECONDS = 'DD_TRACE_AGENT_TIMEOUT_SECONDS'
 
           module HTTP
             ADAPTER = :net_http # DEV: Rename to simply `:http`, as Net::HTTP is an implementation detail.
             DEFAULT_HOST = '127.0.0.1'
             DEFAULT_PORT = 8126
+            DEFAULT_USE_SSL = false
+            DEFAULT_TIMEOUT_SECONDS = 30
           end
 
           # @public_api

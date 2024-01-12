@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative 'tracer'
-require_relative 'configuration/agent_settings_resolver'
 require_relative 'flush'
 require_relative 'sync_writer'
 require_relative 'sampling/span/rule_parser'
@@ -23,13 +22,11 @@ module Datadog
         end
       end
 
-      def build_tracer(settings, logger:)
+      def build_tracer(settings, agent_settings, logger:)
         # If a custom tracer has been provided, use it instead.
         # Ignore all other options (they should already be configured.)
         tracer = settings.tracing.instance
         return tracer unless tracer.nil?
-
-        agent_settings = Configuration::AgentSettingsResolver.call(settings, logger: logger)
 
         # Apply test mode settings if test mode is activated
         if settings.tracing.test_mode.enabled
