@@ -17,7 +17,7 @@ RSpec.describe Datadog::Profiling::Collectors::DynamicSamplingRate do
       expected_time_to_sleep = sampling_time_ns * ((100 - max_overhead_target) / max_overhead_target)
 
       expect(
-        described_class::Testing._native_after_sample(
+        described_class::Testing._native_after_sample_continuous(
           max_overhead_target,
           current_monotonic_wall_time_ns,
           sampling_time_ns
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Profiling::Collectors::DynamicSamplingRate do
         sampling_time_ns = 60_000_000_000
 
         expect(
-          described_class::Testing._native_after_sample(
+          described_class::Testing._native_after_sample_continuous(
             max_overhead_target,
             current_monotonic_wall_time_ns,
             sampling_time_ns

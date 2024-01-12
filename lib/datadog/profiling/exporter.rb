@@ -29,12 +29,14 @@ module Datadog
 
       def initialize(
         pprof_recorder:,
+        worker:,
         code_provenance_collector:,
         internal_metadata:,
         minimum_duration_seconds: PROFILE_DURATION_THRESHOLD_SECONDS,
         time_provider: Time
       )
         @pprof_recorder = pprof_recorder
+        @worker = worker
         @code_provenance_collector = code_provenance_collector
         @minimum_duration_seconds = minimum_duration_seconds
         @time_provider = time_provider
@@ -64,7 +66,12 @@ module Datadog
           code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
           code_provenance_data: uncompressed_code_provenance,
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
-          internal_metadata: internal_metadata,
+          internal_metadata: internal_metadata.merge(
+            {
+              worker_stats: @worker.stats_and_reset,
+              gc: GC.stat,
+            }
+          ),
         )
       end
 

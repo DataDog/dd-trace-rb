@@ -367,18 +367,6 @@ module Datadog
               o.default true # This gets ANDed with experimental_heap_enabled in the profiler component.
             end
 
-            # Can be used to configure the allocation sampling rate: a sample will be collected every x allocations.
-            #
-            # The lower the value, the more accuracy in allocation and heap tracking but the bigger the overhead. In
-            # particular, a value of 1 will sample ALL allocations.
-            #
-            # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE` environment variable, otherwise `50`.
-            option :experimental_allocation_sample_rate do |o|
-              o.type :int
-              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE'
-              o.default 50
-            end
-
             # Can be used to configure the heap sampling rate: a heap sample will be collected for every x allocation
             # samples.
             #
