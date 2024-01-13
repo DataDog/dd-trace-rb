@@ -52,7 +52,8 @@ module Datadog
               # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
 
-              ActionDispatch::Journey::Router.prepend(JourneyRouterPatch)
+              # ActionDispatch::Journey not available in Rails 3.2
+              ActionDispatch::Journey::Router.prepend(JourneyRouterPatch) if defined?(ActionDispatch::Journey::Router)
 
               Rails::LogInjection.configure_log_tags(app.config)
             end
