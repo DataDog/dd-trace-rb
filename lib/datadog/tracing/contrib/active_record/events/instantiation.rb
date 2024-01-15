@@ -30,6 +30,15 @@ module Datadog
             end
 
             def process(span, event, _id, payload)
+              config = Utils.connection_config(payload[:connection], payload[:connection_id])
+              settings = Datadog.configuration.tracing[:active_record, config]
+              adapter_name = Contrib::Utils::Database.normalize_vendor(config[:adapter])
+              service_name = if settings.service_name != Contrib::Utils::Database::VENDOR_DEFAULT
+                               settings.service_name
+                             else
+                               adapter_name
+                             end
+              span.service = service_name
               span.resource = payload.fetch(:class_name)
               span.span_type = Ext::SPAN_TYPE_INSTANTIATION
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
