@@ -855,7 +855,8 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   VALUE pretty_cpu_sampling_time_ns_total = state->stats.cpu_sampling_time_ns_total == 0 ? Qnil : ULL2NUM(state->stats.cpu_sampling_time_ns_total);
   VALUE pretty_cpu_sampling_time_ns_avg =
     state->stats.cpu_sampled == 0 ? Qnil : DBL2NUM(((double) state->stats.cpu_sampling_time_ns_total) / state->stats.cpu_sampled);
-  VALUE pretty_cpu_sleeping_time_ns_avg = state->stats.cpu_sampling_time_ns_max == 0 ? Qnil: DBL2NUM(((double) state->stats.cpu_sampling_sleep_time_ns_total) / state->stats.cpu_sampled);
+  VALUE pretty_cpu_sleeping_time_ns_avg =
+    state->stats.cpu_sampled == 0 ? Qnil: DBL2NUM(((double) state->stats.cpu_sampling_sleep_time_ns_total) / state->stats.cpu_sampled);
 
   VALUE pretty_allocation_sampling_time_ns_min = state->stats.allocation_sampling_time_ns_min == UINT64_MAX ? Qnil : ULL2NUM(state->stats.allocation_sampling_time_ns_min);
   VALUE pretty_allocation_sampling_time_ns_max = state->stats.allocation_sampling_time_ns_max == 0 ? Qnil : ULL2NUM(state->stats.allocation_sampling_time_ns_max);
@@ -864,9 +865,11 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     state->stats.allocation_sampled == 0 ? Qnil : DBL2NUM(((double) state->stats.allocation_sampling_time_ns_total) / state->stats.allocation_sampled);
 
   unsigned long total_cpu_samples_attempted = state->stats.cpu_sampled + state->stats.skipped_cpu_sample_because_of_dynamic_sampling_rate;
-  VALUE effective_cpu_sample_rate = total_cpu_samples_attempted == 0 ? Qnil : DBL2NUM(((double) state->stats.cpu_sampled) / total_cpu_samples_attempted);
+  VALUE effective_cpu_sample_rate =
+    total_cpu_samples_attempted == 0 ? Qnil : DBL2NUM(((double) state->stats.cpu_sampled) / total_cpu_samples_attempted);
   unsigned long total_allocation_samples_attempted = state->stats.allocation_sampled + state->stats.skipped_allocation_sample_because_of_dynamic_sampling_rate;
-  VALUE effective_allocation_sample_rate = total_allocation_samples_attempted == 0 ? Qnil : DBL2NUM(((double) state->stats.allocation_sampled) / total_allocation_samples_attempted);
+  VALUE effective_allocation_sample_rate =
+    total_allocation_samples_attempted == 0 ? Qnil : DBL2NUM(((double) state->stats.allocation_sampled) / total_allocation_samples_attempted);
 
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {

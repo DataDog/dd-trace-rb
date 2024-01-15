@@ -34,8 +34,8 @@
 //
 // We currently have 2 flavours of these functions:
 // * `dynamic_sampling_rate_after_sample_continuous()` - This function operates under the assumption that, if desired
-//   we could be continuously sampling. In other words, we own the decision of when to sample and thus the overhead
-//   is a direct result of how much a single sample takes and how often we choose to do this.
+//   we could be continuously sampling (e.g. cpu/wall time sampling). In other words, we own the decision of when to
+//   sample and thus the overhead is a direct result of how much a single sample takes and how often we choose to do this.
 // * `dynamic_sampling_rate_after_sample_discrete()` - This function operates under the assumption that sampling
 //   cannot be done at will and has to align with discrete and distinct sampling opportunities (e.g. allocation
 //   events). Thus overhead calculations have to take into account the approximate interval between these opportunities
@@ -93,7 +93,7 @@ uint64_t dynamic_sampling_rate_get_sleep(dynamic_sampling_rate_state *state, lon
 
 bool dynamic_sampling_rate_should_sample(dynamic_sampling_rate_state *state, long wall_time_ns_before_sample) {
   long latest_tick_time_ns = long_max_of(0, wall_time_ns_before_sample - state->last_check_time_ns);
-  state->tick_time_ns = ((unsigned long) (EMA_SMOOTHING_FACTOR * latest_tick_time_ns) + ((1.0 - EMA_SMOOTHING_FACTOR) * state->tick_time_ns));
+  state->tick_time_ns = ((unsigned long) ((EMA_SMOOTHING_FACTOR * latest_tick_time_ns) + ((1.0 - EMA_SMOOTHING_FACTOR) * state->tick_time_ns)));
   state->last_check_time_ns = wall_time_ns_before_sample;
   return wall_time_ns_before_sample >= atomic_load(&state->next_sample_after_monotonic_wall_time_ns);
 }
@@ -125,13 +125,14 @@ static void dynamic_sampling_rate_after_sample(dynamic_sampling_rate_state *stat
   // * between_time = 0
   //
   // Then sleeping_time would wield (100 * 1ms) / 2 - 1 = 49ms
-  uint64_t time_to_sleep_ns = 100.0 * sampling_time_ns / overhead_target - sampling_time_ns - tick_time_ns;
+  double sleeping_time_ns = 100.0 * sampling_time_ns / overhead_target - sampling_time_ns - tick_time_ns;
 
   // In case a sample took an unexpected long time (e.g. maybe a VM was paused, or a laptop was suspended), we clamp the
-  // value so it doesn't get too crazy
-  time_to_sleep_ns = uint64_min_of(time_to_sleep_ns, MAX_TIME_UNTIL_NEXT_SAMPLE_NS);
+  // value so it doesn't get too crazy.
+  // Similarly, if as part of our equation we somehow arrived at a negative sleeping time, clamp it to 0.
+  sleeping_time_ns = uint64_max_of(0, uint64_min_of(sleeping_time_ns, MAX_TIME_UNTIL_NEXT_SAMPLE_NS));
 
-  atomic_store(&state->next_sample_after_monotonic_wall_time_ns, wall_time_ns_after_sample + time_to_sleep_ns);
+  atomic_store(&state->next_sample_after_monotonic_wall_time_ns, wall_time_ns_after_sample + sleeping_time_ns);
 }
 
 void dynamic_sampling_rate_after_sample_continuous(dynamic_sampling_rate_state *state, long wall_time_ns_after_sample, uint64_t sampling_time_ns) {
