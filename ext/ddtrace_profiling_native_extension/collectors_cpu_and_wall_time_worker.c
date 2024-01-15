@@ -861,7 +861,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   VALUE pretty_allocation_sampling_time_ns_max = state->stats.allocation_sampling_time_ns_max == 0 ? Qnil : ULL2NUM(state->stats.allocation_sampling_time_ns_max);
   VALUE pretty_allocation_sampling_time_ns_total = state->stats.allocation_sampling_time_ns_total == 0 ? Qnil : ULL2NUM(state->stats.allocation_sampling_time_ns_total);
   VALUE pretty_allocation_sampling_time_ns_avg =
-    state->stats.cpu_sampled == 0 ? Qnil : DBL2NUM(((double) state->stats.allocation_sampling_time_ns_total) / state->stats.allocation_sampled);
+    state->stats.allocation_sampled == 0 ? Qnil : DBL2NUM(((double) state->stats.allocation_sampling_time_ns_total) / state->stats.allocation_sampled);
 
   unsigned long total_cpu_samples = state->stats.cpu_sampled + state->stats.skipped_cpu_sample_because_of_dynamic_sampling_rate;
   VALUE effective_cpu_sample_rate = total_cpu_samples == 0 ? Qnil : DBL2NUM(((double) state->stats.cpu_sampled) / total_cpu_samples);
