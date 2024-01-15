@@ -39,7 +39,7 @@
 // * `dynamic_sampling_rate_after_sample_discrete()` - This function operates under the assumption that sampling
 //   cannot be done at will and has to align with discrete and distinct sampling opportunities (e.g. allocation
 //   events). Thus overhead calculations have to take into account the approximate interval between these opportunities
-//   which we do by keeping an exponential moving average of the times between consutive `dynamic_sampling_rate_should_sample`
+//   which we do by keeping an exponential moving average of the times between consecutive `dynamic_sampling_rate_should_sample`
 //   calls.
 //
 // Before taking a sample, the profiler checks using `dynamic_sampling_rate_should_sample()`, if it's time or not to
