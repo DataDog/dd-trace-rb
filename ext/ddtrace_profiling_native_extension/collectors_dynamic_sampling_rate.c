@@ -125,11 +125,14 @@ static void dynamic_sampling_rate_after_sample(dynamic_sampling_rate_state *stat
   // * between_time = 0
   //
   // Then sleeping_time would wield (100 * 1ms) / 2 - 1 = 49ms
-  double sleeping_time_ns = 100.0 * sampling_time_ns / overhead_target - sampling_time_ns - tick_time_ns;
+
+  // To prevent underflow, we split the equation in 2 parts to check that subtracting tick_time wouldn't
+  // result in a negative value (if that were the case we clamp it to 0).
+  uint64_t sleeping_plus_tick_time_ns = 100.0 * sampling_time_ns / overhead_target - sampling_time_ns;
+  uint64_t sleeping_time_ns = sleeping_plus_tick_time_ns > tick_time_ns ? sleeping_plus_tick_time_ns - tick_time_ns : 0;
 
   // In case a sample took an unexpected long time (e.g. maybe a VM was paused, or a laptop was suspended), we clamp the
   // value so it doesn't get too crazy.
-  // Similarly, if as part of our equation we somehow arrived at a negative sleeping time, clamp it to 0.
   sleeping_time_ns = uint64_max_of(0, uint64_min_of(sleeping_time_ns, MAX_TIME_UNTIL_NEXT_SAMPLE_NS));
 
   atomic_store(&state->next_sample_after_monotonic_wall_time_ns, wall_time_ns_after_sample + sleeping_time_ns);
