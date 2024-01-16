@@ -53,9 +53,7 @@ module Datadog
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
 
               # ActionDispatch::Journey is not available or incompatible in Rails < 4.2.
-              if Integration.version >= Gem::Version.new('4.2')
-                ActionDispatch::Journey::Router.prepend(JourneyRouterPatch)
-              end
+              ActionDispatch::Journey::Router.prepend(JourneyRouterPatch) if Integration.version >= Gem::Version.new('4.2')
 
               Rails::LogInjection.configure_log_tags(app.config)
             end
