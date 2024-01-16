@@ -831,6 +831,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(90)
         end
       end
+
+      describe '#experimental_crash_tracking_enabled' do
+        subject(:experimental_crash_tracking_enabled) { settings.profiling.advanced.experimental_crash_tracking_enabled }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_crash_tracking_enabled=' do
+        it 'updates the #experimental_crash_tracking_enabled setting' do
+          expect { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
+            .to change { settings.profiling.advanced.experimental_crash_tracking_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
     end
 
     describe '#upload' do
