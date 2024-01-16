@@ -43,7 +43,6 @@ static VALUE _native_do_export(
 );
 static void *call_exporter_without_gvl(void *call_args);
 static void interrupt_exporter_call(void *cancel_token);
-static VALUE ddtrace_version(void);
 
 void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
@@ -280,14 +279,4 @@ static void *call_exporter_without_gvl(void *call_args) {
 // Called by Ruby when it wants to interrupt call_exporter_without_gvl above, e.g. when the app wants to exit cleanly
 static void interrupt_exporter_call(void *cancel_token) {
   ddog_CancellationToken_cancel((ddog_CancellationToken *) cancel_token);
-}
-
-static VALUE ddtrace_version(void) {
-  VALUE ddtrace_module = rb_const_get(rb_cObject, rb_intern("DDTrace"));
-  ENFORCE_TYPE(ddtrace_module, T_MODULE);
-  VALUE version_module = rb_const_get(ddtrace_module, rb_intern("VERSION"));
-  ENFORCE_TYPE(version_module, T_MODULE);
-  VALUE version_string = rb_const_get(version_module, rb_intern("STRING"));
-  ENFORCE_TYPE(version_string, T_STRING);
-  return version_string;
 }
