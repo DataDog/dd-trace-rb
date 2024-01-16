@@ -10,11 +10,10 @@ GIT
 
 GIT
   remote: https://github.com/TonyCTHsu/graphql-ruby.git
-  revision: 6b619055ee402387806484db32b592430df3fe96
-  ref: tonycthsu/datadog-tracing-span-type-change
+  revision: 927e61e2af81568872878341d4eed5cc0e65e04d
+  ref: tonycthsu/backport-datadog-span-type-to-2.0.x
   specs:
-    graphql (2.2.4)
-      racc (~> 1.4)
+    graphql (2.0.27)
 
 PATH
   remote: ..
@@ -45,7 +44,7 @@ GEM
     climate_control (0.2.0)
     coderay (1.1.3)
     colorize (0.8.1)
-    concurrent-ruby (1.2.2)
+    concurrent-ruby (1.2.3)
     crack (0.4.5)
       rexml
     cri (2.15.11)
@@ -69,7 +68,7 @@ GEM
     msgpack (1.7.2)
     os (1.1.4)
     parallel (1.24.0)
-    parser (3.3.0.2)
+    parser (3.3.0.4)
       ast (~> 2.4.1)
       racc
     pimpmychangelog (0.1.3)
