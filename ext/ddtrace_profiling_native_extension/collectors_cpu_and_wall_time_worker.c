@@ -114,7 +114,6 @@ struct cpu_and_wall_time_worker_state {
   // that happens during another sample.
   bool during_sample;
   unsigned int allocations_since_last_sample;
-  long wall_time_ns_before_allocation_sample;
 
   struct stats {
     // How many times we tried to trigger a sample
@@ -984,8 +983,7 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
     return;
   }
 
-  state->wall_time_ns_before_allocation_sample = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-  if (state->dynamic_sampling_rate_enabled && !dynamic_sampling_rate_should_sample(&state->allocation_dynamic_sampling_rate, state->wall_time_ns_before_allocation_sample)) {
+  if (state->dynamic_sampling_rate_enabled && !dynamic_sampling_rate_should_sample_discrete(&state->allocation_dynamic_sampling_rate)) {
     state->stats.skipped_allocation_sample_because_of_dynamic_sampling_rate++;
     return;
   }
@@ -1026,6 +1024,8 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
   // This should not happen in a normal situation because on_newobj_event already checked for this, but just in case...
   if (state == NULL) return Qnil;
 
+  long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+
   rb_trace_arg_t *data = rb_tracearg_from_tracepoint(tracepoint_data);
   VALUE new_object = rb_tracearg_object(data);
 
@@ -1033,7 +1033,7 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
 
   long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
 
-  long delta_ns = wall_time_ns_after_sample - state->wall_time_ns_before_allocation_sample;
+  long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
 
   // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
   uint64_t sampling_time_ns = delta_ns < 0 ? 0 : delta_ns;
