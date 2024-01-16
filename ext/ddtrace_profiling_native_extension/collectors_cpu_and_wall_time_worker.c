@@ -892,6 +892,8 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("allocation_sampling_time_ns_avg")),            /* => */ pretty_allocation_sampling_time_ns_avg,
     ID2SYM(rb_intern("allocations_during_sample")),                  /* => */ UINT2NUM(state->stats.allocations_during_sample),
     ID2SYM(rb_intern("allocation_tick_time_ns_avg")),                /* => */ ULONG2NUM(state->allocation_dynamic_sampling_rate.tick_time_ns),
+    ID2SYM(rb_intern("allocation_ticks_till_next_sample")),          /* => */ ULONG2NUM(state->allocation_dynamic_sampling_rate.next_sample_after_ticks),
+    ID2SYM(rb_intern("allocation_num_ticks_since_last_sample")),     /* => */ ULONG2NUM(state->allocation_dynamic_sampling_rate.num_ticks_since_last_sample),
 
     ID2SYM(rb_intern("cpu_sampled")),                                                /* => */ UINT2NUM(state->stats.cpu_sampled),
     ID2SYM(rb_intern("skipped_cpu_sample_because_of_dynamic_sampling_rate")),        /* => */ UINT2NUM(state->stats.skipped_cpu_sample_because_of_dynamic_sampling_rate),
