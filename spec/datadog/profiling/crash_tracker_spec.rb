@@ -87,4 +87,6 @@ RSpec.describe Datadog::Profiling::CrashTracker do
       it { is_expected.to be nil }
     end
   end
+
+  # TODO: Maybe add an integration spec that triggers a segfault in a fork?
 end
