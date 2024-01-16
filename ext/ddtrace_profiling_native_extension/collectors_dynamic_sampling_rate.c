@@ -104,8 +104,6 @@ bool dynamic_sampling_rate_should_sample_discrete(dynamic_sampling_rate_state *s
 }
 
 static uint64_t dynamic_sampling_calculate_sleep_time(dynamic_sampling_rate_state *state, long wall_time_ns_after_sample, uint64_t tick_time_ns, uint64_t sampling_time_ns) {
-  state->last_sample_time_ns = wall_time_ns_after_sample;
-
   double overhead_target = state->overhead_target_percentage;
 
   // The idea here is that we're targeting a maximum % of wall-time spent sampling.
@@ -140,7 +138,7 @@ static uint64_t dynamic_sampling_calculate_sleep_time(dynamic_sampling_rate_stat
 
   // In case a sample took an unexpected long time (e.g. maybe a VM was paused, or a laptop was suspended), we clamp the
   // value so it doesn't get too crazy.
-  return uint64_max_of(0, uint64_min_of(sleeping_time_ns, MAX_TIME_UNTIL_NEXT_SAMPLE_NS));
+  return uint64_min_of(sleeping_time_ns, MAX_TIME_UNTIL_NEXT_SAMPLE_NS);
 }
 
 void dynamic_sampling_rate_after_sample_continuous(dynamic_sampling_rate_state *state, long wall_time_ns_after_sample, uint64_t sampling_time_ns) {

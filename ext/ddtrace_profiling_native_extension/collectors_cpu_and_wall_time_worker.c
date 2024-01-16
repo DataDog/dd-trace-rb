@@ -131,9 +131,9 @@ struct cpu_and_wall_time_worker_state {
     // How many times we skipped a CPU/wall sample because of the dynamic sampling rate mechanism
     unsigned int skipped_cpu_sample_because_of_dynamic_sampling_rate;
     // How many times we actually allocation sampled
-    unsigned int allocation_sampled;
+    uint64_t allocation_sampled;
     // How many times we skipped an allocation sample because of the dynamic sampling rate mechanism
-    unsigned int skipped_allocation_sample_because_of_dynamic_sampling_rate;
+    uint64_t skipped_allocation_sample_because_of_dynamic_sampling_rate;
 
     // Stats for the results of calling rb_postponed_job_register_one
       // The same function was already waiting to be executed
@@ -898,8 +898,8 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("cpu_sampled")),                                                /* => */ UINT2NUM(state->stats.cpu_sampled),
     ID2SYM(rb_intern("skipped_cpu_sample_because_of_dynamic_sampling_rate")),        /* => */ UINT2NUM(state->stats.skipped_cpu_sample_because_of_dynamic_sampling_rate),
     ID2SYM(rb_intern("effective_cpu_sample_rate")),                                  /* => */ effective_cpu_sample_rate,
-    ID2SYM(rb_intern("allocation_sampled")),                                         /* => */ UINT2NUM(state->stats.allocation_sampled),
-    ID2SYM(rb_intern("skipped_allocation_sample_because_of_dynamic_sampling_rate")), /* => */ UINT2NUM(state->stats.skipped_allocation_sample_because_of_dynamic_sampling_rate),
+    ID2SYM(rb_intern("allocation_sampled")),                                         /* => */ ULONG2NUM(state->stats.allocation_sampled),
+    ID2SYM(rb_intern("skipped_allocation_sample_because_of_dynamic_sampling_rate")), /* => */ ULONG2NUM(state->stats.skipped_allocation_sample_because_of_dynamic_sampling_rate),
     ID2SYM(rb_intern("effective_allocation_sample_rate")),                           /* => */ effective_allocation_sample_rate,
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
@@ -969,6 +969,8 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   } else {
     allocation_count++;
   }
+
+  fprintf(stderr, "newobj_event\n");
 
   struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
