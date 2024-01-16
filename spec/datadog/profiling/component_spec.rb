@@ -501,6 +501,50 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
       end
+
+      context 'when crash tracking is disabled' do
+        before { settings.profiling.advanced.experimental_crash_tracking_enabled = false }
+
+        it 'does not initialize the crash tracker' do
+          expect(Datadog::Profiling::CrashTracker).to_not receive(:build_crash_tracker)
+
+          build_profiler_component
+        end
+      end
+
+      context 'when crash tracking is enabled' do
+        before { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
+
+        it 'initializes the crash tracker' do
+          expect(Datadog::Profiling::CrashTracker).to receive(:build_crash_tracker).with(
+            exporter_configuration: array_including(:agent),
+            tags: hash_including('runtime' => 'ruby'),
+          )
+
+          build_profiler_component
+        end
+
+        context 'when a custom transport is provided' do
+          let(:custom_transport) { double('Custom transport') }
+
+          before do
+            settings.profiling.exporter.transport = custom_transport
+            allow(Datadog.logger).to receive(:warn)
+          end
+
+          it 'warns that crash tracking will not be enabled' do
+            expect(Datadog.logger).to receive(:warn).with(/Cannot enable profiling crash tracking/)
+
+            build_profiler_component
+          end
+
+          it 'does not initialize the crash tracker' do
+            expect(Datadog::Profiling::CrashTracker).to_not receive(:build_crash_tracker)
+
+            build_profiler_component
+          end
+        end
+      end
     end
   end
 

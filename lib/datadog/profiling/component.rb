@@ -72,6 +72,8 @@ module Datadog
         exporter = build_profiler_exporter(settings, recorder, worker, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
+        # FIXME: What should the lifetime of the crash tracker be?
+        build_crash_tracker(settings, transport)
 
         [Profiling::Profiler.new(worker: worker, scheduler: scheduler), { profiling_enabled: true }]
       end
@@ -108,6 +110,22 @@ module Datadog
             api_key: settings.api_key,
             upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
           )
+      end
+
+      private_class_method def self.build_crash_tracker(settings, transport)
+        return unless settings.profiling.advanced.experimental_crash_tracking_enabled
+
+        unless transport.respond_to?(:exporter_configuration)
+          Datadog.logger.warn(
+            'Cannot enable profiling crash tracking as a custom settings.profiling.exporter.transport is configured'
+          )
+          return
+        end
+
+        Datadog::Profiling::CrashTracker.build_crash_tracker(
+          exporter_configuration: transport.exporter_configuration,
+          tags: Datadog::Profiling::TagBuilder.call(settings: settings),
+        )
       end
 
       private_class_method def self.enable_gc_profiling?(settings)

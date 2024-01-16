@@ -1,0 +1,25 @@
+module Datadog
+  module Profiling
+    class CrashTracker
+      def self.build_crash_tracker: (
+        exporter_configuration: [:agentless | :agent, untyped],
+        tags: ::Hash[::String, ::String],
+        ?path_to_crashtracking_receiver_binary: ::String,
+      ) -> CrashTracker?
+
+      private
+
+      def initialize: (
+        exporter_configuration: [:agentless | :agent, untyped],
+        path_to_crashtracking_receiver_binary: ::String,
+        tags_as_array: ::Array[[::String, ::String]],
+      ) -> void
+
+      def self._native_start_crashtracker: (
+        exporter_configuration: [:agentless | :agent, untyped],
+        path_to_crashtracking_receiver_binary: ::String,
+        tags_as_array: ::Array[[::String, ::String]],
+      ) -> void
+    end
+  end
+end

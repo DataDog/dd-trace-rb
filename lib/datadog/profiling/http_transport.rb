@@ -5,6 +5,8 @@ module Datadog
     # Used to report profiling data to Datadog.
     # Methods prefixed with _native_ are implemented in `http_transport.c`
     class HttpTransport
+      attr_reader :exporter_configuration
+
       def initialize(agent_settings:, site:, api_key:, upload_timeout_seconds:)
         @upload_timeout_milliseconds = (upload_timeout_seconds * 1_000).to_i
 
@@ -12,19 +14,19 @@ module Datadog
 
         @exporter_configuration =
           if agentless?(site, api_key)
-            [:agentless, site, api_key]
+            [:agentless, site, api_key].freeze
           else
-            [:agent, base_url_from(agent_settings)]
+            [:agent, base_url_from(agent_settings)].freeze
           end
 
-        status, result = validate_exporter(@exporter_configuration)
+        status, result = validate_exporter(exporter_configuration)
 
         raise(ArgumentError, "Failed to initialize transport: #{result}") if status == :error
       end
 
       def export(flush)
         status, result = do_export(
-          exporter_configuration: @exporter_configuration,
+          exporter_configuration: exporter_configuration,
           upload_timeout_milliseconds: @upload_timeout_milliseconds,
 
           # why "timespec"?
@@ -134,7 +136,7 @@ module Datadog
       end
 
       def config_without_api_key
-        [@exporter_configuration[0..1]].to_h
+        [exporter_configuration[0..1]].to_h
       end
     end
   end
