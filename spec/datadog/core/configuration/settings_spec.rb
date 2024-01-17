@@ -610,38 +610,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#experimental_allocation_sample_rate' do
-        subject(:experimental_allocation_sample_rate) { settings.profiling.advanced.experimental_allocation_sample_rate }
-
-        context 'when DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be 50 }
-          end
-
-          [100, 30.5].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value.to_i }
-            end
-          end
-        end
-      end
-
       describe '#experimental_allocation_sample_rate=' do
-        it 'updates the #experimental_allocation_sample_rate setting' do
-          expect { settings.profiling.advanced.experimental_allocation_sample_rate = 100 }
-            .to change { settings.profiling.advanced.experimental_allocation_sample_rate }
-            .from(50)
-            .to(100)
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
+
+          settings.profiling.advanced.experimental_allocation_sample_rate = 0
         end
       end
 
