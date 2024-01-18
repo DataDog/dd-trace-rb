@@ -51,6 +51,7 @@ module Datadog
             option :distributed_tracing, default: true, type: :bool
 
             option :request_queuing do |o|
+              o.type :bool
               o.default false
             end
 

@@ -39,6 +39,7 @@ module Datadog
             option :middleware_names, default: false, type: :bool
             option :quantize, default: {}, type: :hash
             option :request_queuing do |o|
+              o.type :bool
               o.default false
             end
 

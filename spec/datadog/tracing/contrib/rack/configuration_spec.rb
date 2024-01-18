@@ -66,46 +66,7 @@ RSpec.describe 'Rack integration configuration' do
       let(:queue_value) { nil }
     end
 
-    shared_examples_for 'a Rack request with queuing including the request' do
-      let(:configuration_options) { super().merge(request_queuing: :include_request) }
-
-      it 'produces a queued Rack trace' do
-        is_expected.to be_ok
-
-        expect(trace.resource).to eq('GET 200')
-
-        expect(spans).to have(2).items
-
-        server_queue_span = spans[0]
-        rack_span = spans[1]
-
-        web_service_name = Datadog.configuration.tracing[:rack][:web_service_name]
-
-        expect(server_queue_span.name).to eq('http_server.queue')
-        expect(server_queue_span.type).to eq('proxy')
-        expect(server_queue_span.service).to eq(web_service_name)
-        expect(server_queue_span.start_time.to_i).to eq(queue_time)
-        expect(server_queue_span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)).to be_nil
-        expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
-        expect(server_queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('queue')
-
-        expect(rack_span.name).to eq('rack.request')
-        expect(rack_span.type).to eq('web')
-        expect(rack_span.service).to eq(Datadog.configuration.service)
-        expect(rack_span.resource).to eq('GET 200')
-        expect(rack_span.get_tag('http.method')).to eq('GET')
-        expect(rack_span.get_tag('http.status_code')).to eq('200')
-        expect(rack_span.get_tag('http.url')).to eq('/')
-        expect(rack_span.status).to eq(0)
-        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
-        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
-        expect(rack_span.parent_id).to eq(server_queue_span.id)
-      end
-    end
-
-    shared_examples_for 'a Rack request with queuing excluding the request' do
-      let(:configuration_options) { super().merge(request_queuing: :exclude_request) }
-
+    shared_examples_for 'a Rack request with queuing' do
       it 'produces a queued Rack trace' do
         is_expected.to be_ok
 
@@ -177,7 +138,7 @@ RSpec.describe 'Rack integration configuration' do
     end
 
     context 'when enabled' do
-      let(:configuration_options) { super().merge(request_queuing: :exclude_request) }
+      let(:configuration_options) { super().merge(request_queuing: true) }
 
       context 'and a request is received' do
         include_context 'an incoming HTTP request'
@@ -187,24 +148,13 @@ RSpec.describe 'Rack integration configuration' do
             let(:queue_header) { 'X-Request-Start' }
           end
 
-          it_behaves_like 'a Rack request with queuing including the request'
-          it_behaves_like 'a Rack request with queuing excluding the request'
+          it_behaves_like 'a Rack request with queuing'
 
           context 'given a custom web service name' do
             let(:configuration_options) { super().merge(web_service_name: web_service_name) }
             let(:web_service_name) { 'nginx' }
 
-            it_behaves_like 'a Rack request with queuing including the request' do
-              it 'sets the custom service name' do
-                is_expected.to be_ok
-
-                queue_span = spans.find { |s| s.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_SERVER_QUEUE }
-
-                expect(queue_span.service).to eq(web_service_name)
-              end
-            end
-
-            it_behaves_like 'a Rack request with queuing excluding the request' do
+            it_behaves_like 'a Rack request with queuing' do
               it 'sets the custom service name' do
                 is_expected.to be_ok
 
@@ -221,8 +171,7 @@ RSpec.describe 'Rack integration configuration' do
             let(:queue_header) { 'X-Queue-Start' }
           end
 
-          it_behaves_like 'a Rack request with queuing including the request'
-          it_behaves_like 'a Rack request with queuing excluding the request'
+          it_behaves_like 'a Rack request with queuing'
         end
 
         # Ensure a queuing Span is NOT created if there is a clock skew
