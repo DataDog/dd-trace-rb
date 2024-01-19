@@ -1,6 +1,7 @@
 #include <ruby.h>
 #include <ruby/thread.h>
 #include <errno.h>
+#include <malloc.h>
 
 #include "clock_id.h"
 #include "helpers.h"
@@ -32,6 +33,15 @@ static void holding_the_gvl_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_U
 static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VALUE _self, VALUE background_thread);
 static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE with_gvl);
 static void *trigger_enforce_success(void *trigger_args);
+
+static VALUE _native_malloc_trim(DDTRACE_UNUSED VALUE _self) {
+  return INT2NUM(malloc_trim(0));
+}
+
+static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self) {
+  malloc_stats();
+  return Qnil;
+}
 
 void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -65,6 +75,9 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
   rb_define_singleton_method(testing_module, "_native_install_holding_the_gvl_signal_handler", _native_install_holding_the_gvl_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_trigger_holding_the_gvl_signal_handler_on", _native_trigger_holding_the_gvl_signal_handler_on, 1);
   rb_define_singleton_method(testing_module, "_native_enforce_success", _native_enforce_success, 2);
+
+  rb_define_singleton_method(testing_module, "_native_malloc_trim", _native_malloc_trim, 0);
+  rb_define_singleton_method(testing_module, "_native_malloc_stats", _native_malloc_stats, 0);
 }
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
