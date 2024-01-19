@@ -25,32 +25,29 @@ end
 
 RSpec.shared_examples 'graphql instrumentation' do
   describe 'query trace' do
-    subject(:result) { TestGraphQLSchema.execute(query) }
+    subject(:result) { TestGraphQLSchema.execute('{ user(id: 1) { name } }') }
 
-    let(:query) { '{ user(id: 1) { name } }' }
+    matrix = [
+      ['TestGraphQLQuery.authorized', 'authorized'],
+      ['TestGraphQLQuery.user', 'execute_field'],
+      ['TestUser.authorized', 'authorized'],
+      ['analyze.graphql', 'analyze_multiplex'],
+      ['analyze.graphql', 'analyze_query'],
+      ['execute.graphql', 'execute_multiplex'],
+      ['execute.graphql', 'execute_query'],
+      ['execute.graphql', 'execute_query_lazy'],
+      # New Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
+      (['lex.graphql', 'lex'] if Gem::Version.new(GraphQL::VERSION) < Gem::Version.new('2.2')),
+      ['parse.graphql', 'parse'],
+      ['validate.graphql', 'validate']
+    ].compact
 
-    it do
-      expect(result.to_h['errors']).to be nil
+    matrix.each_with_index do |(name, operation), index|
+      it "creates #{name} span with #{operation} operation" do
+        expect(result.to_h['errors']).to be nil
+        expect(spans).to have(matrix.length).items
 
-      matrix = [
-        ['TestGraphQLQuery.authorized', 'authorized'],
-        ['TestGraphQLQuery.user', 'execute_field'],
-        ['TestUser.authorized', 'authorized'],
-        ['analyze.graphql', 'analyze_multiplex'],
-        ['analyze.graphql', 'analyze_query'],
-        ['execute.graphql', 'execute_multiplex'],
-        ['execute.graphql', 'execute_query'],
-        ['execute.graphql', 'execute_query_lazy'],
-        # New Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
-        (['lex.graphql', 'lex'] if Gem::Version.new(GraphQL::VERSION) < Gem::Version.new('2.2')),
-        ['parse.graphql', 'parse'],
-        ['validate.graphql', 'validate']
-      ].compact
-
-      expect(spans).to have(matrix.length).items
-
-      spans.each_with_index do |span, index|
-        name, operation = matrix.fetch(index)
+        span = spans[index]
 
         expect(span.name).to eq(name)
         expect(span.resource).to eq(name)
