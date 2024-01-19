@@ -28,7 +28,10 @@ module Datadog
               o.default 1.0
             end
 
-            option :schemas
+            option :schemas do |o|
+              o.type :array, nilable: true
+            end
+
             option :service_name
           end
         end
