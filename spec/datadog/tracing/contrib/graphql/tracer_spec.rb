@@ -7,6 +7,7 @@ RSpec.describe 'GraphQL patcher' do
   # This suppresses those warnings.
   around do |example|
     remove_patch!(:graphql)
+    Datadog.configuration.tracing[:graphql].reset!
     reset_schema_cache!(::GraphQL::Schema)
     reset_schema_cache!(TestGraphQLSchema)
 
@@ -15,6 +16,7 @@ RSpec.describe 'GraphQL patcher' do
     end
 
     remove_patch!(:graphql)
+    Datadog.configuration.tracing[:graphql].reset!
     reset_schema_cache!(::GraphQL::Schema)
     reset_schema_cache!(TestGraphQLSchema)
   end
@@ -37,6 +39,24 @@ RSpec.describe 'GraphQL patcher' do
             c.tracing.instrument :graphql, schemas: [TestGraphQLSchema]
           end
         end
+      end
+    end
+
+    context 'with empty schema configuration' do
+      before do
+        Datadog.configure do |c|
+          c.tracing.instrument :graphql, schemas: []
+        end
+      end
+
+      subject(:result) { TestGraphQLSchema.execute(query) }
+
+      let(:query) { '{ user(id: 1) { name } }' }
+
+      it do
+        expect(result.to_h['errors']).to be nil
+
+        expect(spans.length).to eq(0)
       end
     end
   end

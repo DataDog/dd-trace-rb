@@ -18,7 +18,7 @@ module Datadog
           def patch
             schemas = configuration[:schemas]
 
-            if schemas.nil? || schemas.empty?
+            if schemas.nil?
               ::GraphQL::Schema.tracer(::GraphQL::Tracing::DataDogTracing.new(**trace_options))
             else
               schemas.each do |schema|
