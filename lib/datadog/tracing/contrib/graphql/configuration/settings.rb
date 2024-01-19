@@ -32,7 +32,7 @@ module Datadog
               o.type :array, nilable: true
               o.after_set do |v|
                 if v.is_a?(Array) && v.empty?
-                  Datadog.logger.warn('No schema being instrumentated, because an empty array is given to option `schemas`')
+                  Datadog.logger.warn('An empty array is given to option `schemas`, no GraphQL schema being instrumentated')
                 end
               end
             end
