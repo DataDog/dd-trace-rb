@@ -4,8 +4,8 @@ source "https://rubygems.org"
 
 gem 'puma'
 gem 'unicorn'
-gem 'sinatra'
-gem 'sinatra-router'
+gem 'sinatra', '>= 2.2.4', '< 3'
+gem 'sinatra-router', '>= 0.3.0'
 
 gem 'dogstatsd-ruby'
 # Choose correct specs for 'ddtrace' demo environment
@@ -36,3 +36,4 @@ gem 'pry-byebug'
 gem 'rspec'
 gem 'rspec-wait'
 gem 'webrick' if RUBY_VERSION >= '2.3' # Older Rubies can just use the built-in version of webrick
+gem 'rackup'
