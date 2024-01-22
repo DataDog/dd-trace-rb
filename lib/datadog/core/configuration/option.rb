@@ -168,7 +168,7 @@ module Datadog
               hash[pair[0]] = pair[1]
             end
           when :int
-            coerce_env_var_int(value)
+            Integer(value, 10)
           when :float
             Float(value)
           when :array
@@ -194,31 +194,11 @@ module Datadog
           end
         end
 
-        def coerce_env_var_int(value)
-          # Strict integer parsing
-          Integer(value, 10)
-        rescue ArgumentError => e
-          # Try also parsing as a whole floating point numbers
-          begin
-            f = Float(value)
-
-            # Check for whole numbers
-            raise ArgumentError, "#{value} is not a whole number" unless f.truncate == f
-
-            f
-          rescue ArgumentError
-            # It's neither an integer nor a whole float
-            raise e
-          end
-        end
-
         # For errors caused by illegal option declarations
         class InvalidDefinitionError < StandardError
         end
 
         def validate_type(value)
-          return value if skip_validation?
-
           raise_error = false
 
           valid_type = validate(@definition.type, value)
@@ -240,10 +220,7 @@ module Datadog
                           "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})."\
                         end
 
-            error_msg = "#{error_msg} Please update your `configure` block. "\
-            'Alternatively, you can disable this validation using the '\
-            '`DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION=true`environment variable. '\
-            'For help, please open an issue on <https://github.com/datadog/dd-trace-rb/issues/new/choose>.'
+            error_msg = "#{error_msg} Please update your `configure` block. "
 
             raise ArgumentError, error_msg
           end
@@ -256,9 +233,9 @@ module Datadog
           when :string
             value.is_a?(String)
           when :int
-            value.is_a?(Integer) || (value.is_a?(Float) && (value.truncate == value))
+            value.is_a?(Integer)
           when :float
-            value.is_a?(Float) || value.is_a?(Integer) || value.is_a?(Rational)
+            value.is_a?(Float) || value.is_a?(Rational)
           when :array
             value.is_a?(Array)
           when :hash
@@ -326,10 +303,6 @@ module Datadog
           raise ArgumentError,
             "Expected environment variable #{effective_env} to be a #{@definition.type}, " \
                               "but '#{ENV[effective_env]}' was provided"
-        end
-
-        def skip_validation?
-          ['true', '1'].include?(ENV.fetch('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION', '').strip)
         end
 
         # Used for testing
