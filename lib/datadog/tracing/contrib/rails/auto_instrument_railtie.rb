@@ -1,5 +1,3 @@
-require_relative '../auto_instrument'
-
 # Railtie to include AutoInstrumentation in rails loading
 class DatadogAutoInstrumentRailtie < Rails::Railtie
   # we want to load before config initializers so that any user supplied config

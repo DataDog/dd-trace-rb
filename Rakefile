@@ -17,6 +17,12 @@ TEST_METADATA = {
   'appsec:main' => {
     '' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
   },
+  'profiling:main' => {
+    '' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'profiling:ractors' => {
+    '' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
   'contrib' => {
     '' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
   },
@@ -327,19 +333,15 @@ desc 'Run RSpec'
 namespace :spec do
   task all: [:main, :benchmark,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
-             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument]
+             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
+             :profiling]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,auto_instrument,opentelemetry}/**/*_spec.rb,'\
+    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,auto_instrument,opentelemetry,profiling}/**/*_spec.rb,'\
                         ' spec/**/{auto_instrument,opentelemetry}_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
-  end
-  if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3.0')
-    # "bundle exec rake compile" currently only works on MRI Ruby on Linux
-    Rake::Task[:main].enhance([:clean])
-    Rake::Task[:main].enhance([:compile])
   end
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
@@ -540,6 +542,40 @@ namespace :spec do
   end
 
   task appsec: [:'appsec:all']
+
+  namespace :profiling do
+    task all: [:main, :ractors]
+
+    task :compile_native_extensions do
+      # "bundle exec rake compile" currently only works on MRI Ruby on Linux
+      if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3.0')
+        Rake::Task[:clean].invoke
+        Rake::Task[:compile].invoke
+      end
+    end
+
+    # Datadog Profiling main specs without Ractor creation
+    # NOTE: Ractor creation will transition the entire Ruby VM into multi-ractor mode. This cannot be undone
+    #       and, as such, may introduce side-effects between tests and make them flaky depending on order of
+    #       execution. By splitting in two separate suites, the side-effect impact should be mitigated as
+    #       the non-ractor VM will never trigger the transition into multi-ractor mode.
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:main) do |t, args|
+      t.pattern = 'spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb'
+      t.rspec_opts = [*args.to_a, '-t ~ractors'].join(' ')
+    end
+
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:ractors) do |t, args|
+      t.pattern = 'spec/datadog/profiling/**/*_spec.rb'
+      t.rspec_opts = [*args.to_a, '-t ractors'].join(' ')
+    end
+
+    # Make sure each profiling test suite has a dependency on compiled native extensions
+    Rake::Task[:all].prerequisite_tasks.each { |t| t.enhance([:compile_native_extensions]) }
+  end
+
+  task profiling: [:'profiling:all']
 end
 
 if defined?(RuboCop::RakeTask)

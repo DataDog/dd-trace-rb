@@ -3,6 +3,7 @@
 #include "collectors_thread_context.h"
 #include "clock_id.h"
 #include "collectors_stack.h"
+#include "collectors_gc_profiling_helper.h"
 #include "helpers.h"
 #include "libdatadog_helpers.h"
 #include "private_vm_api_access.h"
@@ -37,24 +38,29 @@
 // When `thread_context_collector_on_gc_start` gets called, the current cpu and wall-time get recorded to the thread
 // context: `cpu_time_at_gc_start_ns` and `wall_time_at_gc_start_ns`.
 //
-// While these fields are set, regular samples (if any) do not account for any time that passes after these two
-// timestamps.
+// While `cpu_time_at_gc_start_ns` is set, regular samples (if any) do not account for cpu-time any time that passes
+// after this timestamp. The idea is that this cpu-time will be blamed separately on GC, and not on the user thread.
+// Wall-time accounting is not affected by this (e.g. we still record 60 seconds every 60 seconds).
 //
-// (Regular samples can still account for the time between the previous sample and the start of GC.)
+// (Regular samples can still account for the cpu-time between the previous sample and the start of GC.)
 //
-// When `thread_context_collector_on_gc_finish` gets called, the current cpu and wall-time again get recorded to the
-// thread context: `cpu_time_at_gc_finish_ns` and `wall_time_at_gc_finish_ns`.
+// When `thread_context_collector_on_gc_finish` gets called, the cpu-time and wall-time spent during GC gets recorded
+// into the global gc_tracking structure, and further samples are not affected. (The `cpu_time_at_previous_sample_ns`
+// of the thread that did GC also gets adjusted to avoid double-accounting.)
 //
-// Finally, when `thread_context_collector_sample_after_gc` gets called, the following happens:
+// Finally, when `thread_context_collector_sample_after_gc` gets called, a sample gets recorded with a stack having
+// a single placeholder `Garbage Collection` frame. This sample gets
+// assigned the cpu-time and wall-time that was recorded between calls to `on_gc_start` and `on_gc_finish`, as well
+// as metadata for the last GC.
 //
-// 1. A sample gets taken, using the special `SAMPLE_IN_GC` sample type, which produces a stack with a placeholder
-// `Garbage Collection` frame as the latest frame. This sample gets assigned the cpu-time and wall-time period that was
-// recorded between calls to `on_gc_start` and `on_gc_finish`.
-//
-// 2. The thread is no longer marked as being in gc (all gc tracking fields get reset back to `INVALID_TIME`).
-//
-// 3. The `cpu_time_at_previous_sample_ns` and `wall_time_at_previous_sample_ns` get updated with the elapsed time in
-// GC, so that all time is accounted for -- e.g. the next sample will not get "blamed" by time spent in GC.
+// Note that the Ruby GC does not usually do all of the GC work in one go. Instead, it breaks it up into smaller steps
+// so that the application can keep doing user work in between GC steps.
+// The `on_gc_start` / `on_gc_finish` will trigger each time the VM executes these smaller steps, and on a benchmark
+// that executes `Object.new` in a loop, I measured more than 50k of this steps per second (!!).
+// Creating these many events for every GC step is a lot of overhead, so instead `on_gc_finish` coalesces time
+// spent in GC and only flushes it at most every 10 ms/every complete GC collection. This reduces the amount of
+// individual GC events we need to record. We use the latest GC metadata for this event, reflecting the last GC that
+// happened in the coalesced period.
 //
 // In an earlier attempt at implementing this functionality (https://github.com/DataDog/dd-trace-rb/pull/2308), we
 // discovered that we needed to factor the sampling work away from `thread_context_collector_on_gc_finish` and into a
@@ -68,6 +74,7 @@
 #define IS_WALL_TIME true
 #define IS_NOT_WALL_TIME false
 #define MISSING_TRACER_CONTEXT_KEY 0
+#define TIME_BETWEEN_GC_EVENTS_NS MILLIS_AS_NS(10)
 
 static ID at_active_span_id;  // id of :@active_span in Ruby
 static ID at_active_trace_id; // id of :@active_trace in Ruby
@@ -114,6 +121,14 @@ struct thread_context_collector_state {
     // See thread_context_collector_on_gc_start for details
     unsigned int gc_samples_missed_due_to_missing_context;
   } stats;
+
+  struct {
+    unsigned long accumulated_cpu_time_ns;
+    unsigned long accumulated_wall_time_ns;
+
+    long wall_time_at_previous_gc_ns; // Will be INVALID_TIME unless there's accumulated time above
+    long wall_time_at_last_flushed_gc_event_ns; // Starts at 0 and then will always be valid
+  } gc_tracking;
 };
 
 // Tracks per-thread state
@@ -127,15 +142,10 @@ struct per_thread_context {
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
 
   struct {
-    // Both of these fields are set by on_gc_start and kept until sample_after_gc is called.
+    // Both of these fields are set by on_gc_start and kept until on_gc_finish is called.
     // Outside of this window, they will be INVALID_TIME.
     long cpu_time_at_start_ns;
     long wall_time_at_start_ns;
-
-    // Both of these fields are set by on_gc_finish and kept until sample_after_gc is called.
-    // Outside of this window, they will be INVALID_TIME.
-    long cpu_time_at_finish_ns;
-    long wall_time_at_finish_ns;
   } gc_tracking;
 };
 
@@ -180,7 +190,6 @@ static void trigger_sample_for_thread(
   VALUE stack_from_thread,
   struct per_thread_context *thread_context,
   sample_values values,
-  sample_type type,
   long current_monotonic_wall_time_ns,
   ddog_CharSlice *ruby_vm_type,
   ddog_CharSlice *class_name
@@ -193,6 +202,7 @@ static VALUE _native_inspect(VALUE self, VALUE collector_instance);
 static VALUE per_thread_context_st_table_as_ruby_hash(struct thread_context_collector_state *state);
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash);
 static VALUE stats_as_ruby_hash(struct thread_context_collector_state *state);
+static VALUE gc_tracking_as_ruby_hash(struct thread_context_collector_state *state);
 static void remove_context_for_dead_threads(struct thread_context_collector_state *state);
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
@@ -200,13 +210,14 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
 static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
+static VALUE _native_gc_tracking(VALUE self, VALUE collector_instance);
 static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
 static bool should_collect_resource(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object);
 static VALUE _native_new_empty_thread(VALUE self);
-ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type);
+static ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -235,6 +246,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_thread_list", _native_thread_list, 0);
   rb_define_singleton_method(testing_module, "_native_per_thread_context", _native_per_thread_context, 1);
   rb_define_singleton_method(testing_module, "_native_stats", _native_stats, 1);
+  rb_define_singleton_method(testing_module, "_native_gc_tracking", _native_gc_tracking, 1);
   rb_define_singleton_method(testing_module, "_native_new_empty_thread", _native_new_empty_thread, 0);
 
   at_active_span_id = rb_intern_const("@active_span");
@@ -243,6 +255,8 @@ void collectors_thread_context_init(VALUE profiling_module) {
   at_resource_id = rb_intern_const("@resource");
   at_root_span_id = rb_intern_const("@root_span");
   at_type_id = rb_intern_const("@type");
+
+  gc_profiling_init();
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct thread_context_collector_state
@@ -320,6 +334,8 @@ static VALUE _native_new(VALUE klass) {
   state->allocation_type_enabled = true;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   state->main_thread = rb_thread_main();
+  state->gc_tracking.wall_time_at_previous_gc_ns = INVALID_TIME;
+  state->gc_tracking.wall_time_at_last_flushed_gc_event_ns = 0;
 
   return TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
 }
@@ -465,7 +481,11 @@ void update_metrics_and_sample(
   long wall_time_elapsed_ns = update_time_since_previous_sample(
     &thread_context->wall_time_at_previous_sample_ns,
     current_monotonic_wall_time_ns,
-    thread_context->gc_tracking.wall_time_at_start_ns,
+    // We explicitly pass in `INVALID_TIME` as an argument for `gc_start_time_ns` here because we don't want wall-time
+    // accounting to change during GC.
+    // E.g. if 60 seconds pass in the real world, 60 seconds of wall-time are recorded, regardless of the thread doing
+    // GC or not.
+    INVALID_TIME,
     IS_WALL_TIME
   );
 
@@ -475,7 +495,6 @@ void update_metrics_and_sample(
     stack_from_thread,
     thread_context,
     (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
-    SAMPLE_REGULAR,
     current_monotonic_wall_time_ns,
     NULL,
     NULL
@@ -484,7 +503,7 @@ void update_metrics_and_sample(
 
 // This function gets called when Ruby is about to start running the Garbage Collector on the current thread.
 // It updates the per_thread_context of the current thread to include the current cpu/wall times, to be used to later
-// create a stack sample that blames the cpu/wall time spent from now until the end of the garbage collector work.
+// create an event including the cpu/wall time spent in garbage collector work.
 //
 // Safety: This function gets called while Ruby is doing garbage collection. While Ruby is doing garbage collection,
 // *NO ALLOCATION* is allowed. This function, and any it calls must never trigger memory or object allocation.
@@ -509,27 +528,14 @@ void thread_context_collector_on_gc_start(VALUE self_instance) {
     return;
   }
 
-  // If these fields are set, there's an existing GC sample that still needs to be written out by `sample_after_gc`.
-  //
-  // When can this happen? Because we don't have precise control over when `sample_after_gc` gets called (it will be
-  // called sometime after GC finishes), there is no way to guarantee that Ruby will not trigger more than one GC cycle
-  // before we can actually run that method.
-  //
-  // We handle this by collapsing multiple GC cycles into one. That is, if the following happens:
-  // `on_gc_start` (time=0) -> `on_gc_finish` (time=1) -> `on_gc_start` (time=2) -> `on_gc_finish` (time=3) -> `sample_after_gc`
-  // then we just use time=0 from the first on_gc_start and time=3 from the last on_gc_finish, e.g. we behave as if
-  // there was a single, longer GC period.
-  if (thread_context->gc_tracking.cpu_time_at_finish_ns != INVALID_TIME &&
-    thread_context->gc_tracking.wall_time_at_finish_ns != INVALID_TIME) return;
-
-  // Here we record the wall-time first and in on_gc_finish we record it second to avoid having wall-time be slightly < cpu-time
+  // Here we record the wall-time first and in on_gc_finish we record it second to try to avoid having wall-time be slightly < cpu-time
   thread_context->gc_tracking.wall_time_at_start_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   thread_context->gc_tracking.cpu_time_at_start_ns = cpu_time_now_ns(thread_context);
 }
 
 // This function gets called when Ruby has finished running the Garbage Collector on the current thread.
-// It updates the per_thread_context of the current thread to include the current cpu/wall times, to be used to later
-// create a stack sample that blames the cpu/wall time spent from the start of garbage collector work until now.
+// It records the cpu/wall-time observed during GC, which will be used to later
+// create an event including the cpu/wall time spent from the start of garbage collector work until now.
 //
 // Safety: This function gets called while Ruby is doing garbage collection. While Ruby is doing garbage collection,
 // *NO ALLOCATION* is allowed. This function, and any it calls must never trigger memory or object allocation.
@@ -537,9 +543,9 @@ void thread_context_collector_on_gc_start(VALUE self_instance) {
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 // Assumption 2: This function is called from the main Ractor (if Ruby has support for Ractors).
-void thread_context_collector_on_gc_finish(VALUE self_instance) {
+bool thread_context_collector_on_gc_finish(VALUE self_instance) {
   struct thread_context_collector_state *state;
-  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return;
+  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return false;
   // This should never fail the the above check passes
   TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -547,28 +553,66 @@ void thread_context_collector_on_gc_finish(VALUE self_instance) {
 
   // If there was no previously-existing context for this thread, we won't allocate one (see safety). We keep a metric for
   // how often this happens -- see on_gc_start.
-  if (thread_context == NULL) return;
+  if (thread_context == NULL) return false;
 
-  if (thread_context->gc_tracking.cpu_time_at_start_ns == INVALID_TIME &&
-    thread_context->gc_tracking.wall_time_at_start_ns == INVALID_TIME) {
+  long cpu_time_at_start_ns = thread_context->gc_tracking.cpu_time_at_start_ns;
+  long wall_time_at_start_ns = thread_context->gc_tracking.wall_time_at_start_ns;
+
+  if (cpu_time_at_start_ns == INVALID_TIME && wall_time_at_start_ns == INVALID_TIME) {
     // If this happened, it means that on_gc_start was either never called for the thread OR it was called but no thread
     // context existed at the time. The former can be the result of a bug, but since we can't distinguish them, we just
     // do nothing.
-    return;
+    return false;
   }
 
-  // Here we record the wall-time second and in on_gc_start we record it first to avoid having wall-time be slightly < cpu-time
-  thread_context->gc_tracking.cpu_time_at_finish_ns = cpu_time_now_ns(thread_context);
-  thread_context->gc_tracking.wall_time_at_finish_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  // Mark thread as no longer in GC
+  thread_context->gc_tracking.cpu_time_at_start_ns = INVALID_TIME;
+  thread_context->gc_tracking.wall_time_at_start_ns = INVALID_TIME;
+
+  // Here we record the wall-time second and in on_gc_start we record it first to try to avoid having wall-time be slightly < cpu-time
+  long cpu_time_at_finish_ns = cpu_time_now_ns(thread_context);
+  long wall_time_at_finish_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+
+  // If our end timestamp is not OK, we bail out
+  if (wall_time_at_finish_ns == 0) return false;
+
+  long gc_cpu_time_elapsed_ns = cpu_time_at_finish_ns - cpu_time_at_start_ns;
+  long gc_wall_time_elapsed_ns = wall_time_at_finish_ns - wall_time_at_start_ns;
+
+  // Wall-time can go backwards if the system clock gets changed (and we observed spurious jumps back on macOS as well)
+  // so let's ensure we don't get negative values for time deltas.
+  gc_cpu_time_elapsed_ns = long_max_of(gc_cpu_time_elapsed_ns, 0);
+  gc_wall_time_elapsed_ns = long_max_of(gc_wall_time_elapsed_ns, 0);
+
+  if (state->gc_tracking.wall_time_at_previous_gc_ns == INVALID_TIME) {
+    state->gc_tracking.accumulated_cpu_time_ns = 0;
+    state->gc_tracking.accumulated_wall_time_ns = 0;
+  }
+
+  state->gc_tracking.accumulated_cpu_time_ns += gc_cpu_time_elapsed_ns;
+  state->gc_tracking.accumulated_wall_time_ns += gc_wall_time_elapsed_ns;
+  state->gc_tracking.wall_time_at_previous_gc_ns = wall_time_at_finish_ns;
+
+  // Update cpu-time accounting so it doesn't include the cpu-time spent in GC during the next sample
+  // We don't update the wall-time because we don't subtract the wall-time spent in GC (see call to
+  // `update_time_since_previous_sample` for wall-time in `update_metrics_and_sample`).
+  if (thread_context->cpu_time_at_previous_sample_ns != INVALID_TIME) {
+    thread_context->cpu_time_at_previous_sample_ns += gc_cpu_time_elapsed_ns;
+  }
+
+  // Let the caller know if it should schedule a flush or not. Returning true every time would cause a lot of overhead
+  // on the application (see GC tracking introduction at the top of the file), so instead we try to accumulate a few
+  // samples first.
+  bool finished_major_gc = gc_profiling_has_major_gc_finished();
+  bool over_flush_time_treshold =
+    (wall_time_at_finish_ns - state->gc_tracking.wall_time_at_last_flushed_gc_event_ns) >= TIME_BETWEEN_GC_EVENTS_NS;
+
+  return finished_major_gc || over_flush_time_treshold;
 }
 
-// This function gets called shortly after Ruby has finished running the Garbage Collector.
+// This function gets called after one or more GC work steps (calls to on_gc_start/on_gc_finish).
 // It creates a new sample including the cpu and wall-time spent by the garbage collector work, and resets any
 // GC-related tracking.
-//
-// Specifically, it will search for thread(s) which have gone through a cycle of on_gc_start/on_gc_finish
-// and thus have cpu_time_at_start_ns, cpu_time_at_finish_ns, wall_time_at_start_ns, wall_time_at_finish_ns
-// set on their context.
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 // Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
@@ -578,70 +622,45 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  VALUE threads = thread_list(state);
-  bool sampled_any_thread = false;
-
-  const long thread_count = RARRAY_LEN(threads);
-  for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
-    struct per_thread_context *thread_context = get_or_create_context_for(thread, state);
-
-    if (
-      thread_context->gc_tracking.cpu_time_at_start_ns == INVALID_TIME ||
-      thread_context->gc_tracking.cpu_time_at_finish_ns == INVALID_TIME ||
-      thread_context->gc_tracking.wall_time_at_start_ns == INVALID_TIME ||
-      thread_context->gc_tracking.wall_time_at_finish_ns == INVALID_TIME
-    ) continue; // Ignore threads with no/incomplete garbage collection data
-
-    sampled_any_thread = true;
-
-    long gc_cpu_time_elapsed_ns =
-      thread_context->gc_tracking.cpu_time_at_finish_ns - thread_context->gc_tracking.cpu_time_at_start_ns;
-    long gc_wall_time_elapsed_ns =
-      thread_context->gc_tracking.wall_time_at_finish_ns - thread_context->gc_tracking.wall_time_at_start_ns;
-
-    // We don't expect non-wall time to go backwards, so let's flag this as a bug
-    if (gc_cpu_time_elapsed_ns < 0) rb_raise(rb_eRuntimeError, "BUG: Unexpected negative gc_cpu_time_elapsed_ns between samples");
-    // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
-    // was a bug.
-    // @ivoanjo: I've also observed time going backwards spuriously on macOS, see discussion on
-    // https://github.com/DataDog/dd-trace-rb/pull/2336.
-    if (gc_wall_time_elapsed_ns < 0) gc_wall_time_elapsed_ns = 0;
-
-    if (thread_context->gc_tracking.wall_time_at_start_ns == 0 && thread_context->gc_tracking.wall_time_at_finish_ns != 0) {
-      // Avoid using wall-clock if we got 0 for a start (meaning there was an error) but not 0 for finish so we don't
-      // come up with a crazy value for the frame
-      rb_raise(rb_eRuntimeError, "BUG: Unexpected zero value for gc_tracking.wall_time_at_start_ns");
-    }
-
-    trigger_sample_for_thread(
-      state,
-      /* thread: */  thread,
-      /* stack_from_thread: */ thread,
-      thread_context,
-      (sample_values) {.cpu_time_ns = gc_cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = gc_wall_time_elapsed_ns},
-      SAMPLE_IN_GC,
-      INVALID_TIME, // For now we're not collecting timestamps for these events
-      NULL,
-      NULL
-    );
-
-    // Mark thread as no longer in GC
-    thread_context->gc_tracking.cpu_time_at_start_ns = INVALID_TIME;
-    thread_context->gc_tracking.cpu_time_at_finish_ns = INVALID_TIME;
-    thread_context->gc_tracking.wall_time_at_start_ns = INVALID_TIME;
-    thread_context->gc_tracking.wall_time_at_finish_ns = INVALID_TIME;
-
-    // Update counters so that they won't include the time in GC during the next sample
-    if (thread_context->cpu_time_at_previous_sample_ns != INVALID_TIME) {
-      thread_context->cpu_time_at_previous_sample_ns += gc_cpu_time_elapsed_ns;
-    }
-    if (thread_context->wall_time_at_previous_sample_ns != INVALID_TIME) {
-      thread_context->wall_time_at_previous_sample_ns += gc_wall_time_elapsed_ns;
-    }
+  if (state->gc_tracking.wall_time_at_previous_gc_ns == INVALID_TIME) {
+    rb_raise(rb_eRuntimeError, "BUG: Unexpected call to sample_after_gc without valid GC information available");
   }
 
-  if (sampled_any_thread) state->stats.gc_samples++;
+  int max_labels_needed_for_gc = 7; // Magic number gets validated inside gc_profiling_set_metadata
+  ddog_prof_Label labels[max_labels_needed_for_gc];
+  uint8_t label_pos = gc_profiling_set_metadata(labels, max_labels_needed_for_gc);
+
+  ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = label_pos};
+
+  // The end_timestamp_ns is treated specially by libdatadog and that's why it's not added as a ddog_prof_Label
+  int64_t end_timestamp_ns = 0;
+
+  if (state->timeline_enabled) {
+    end_timestamp_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, state->gc_tracking.wall_time_at_previous_gc_ns);
+  }
+
+  record_placeholder_stack(
+    state->sampling_buffer,
+    state->recorder_instance,
+    (sample_values) {
+      // This event gets both a regular cpu/wall-time duration, as a normal cpu/wall-time sample would, as well as a
+      // timeline duration.
+      // This is done to enable two use-cases:
+      // * regular cpu/wall-time makes this event show up as a regular stack in the flamegraph
+      // * the timeline duration is used when the event shows up in the timeline
+      .cpu_time_ns = state->gc_tracking.accumulated_cpu_time_ns,
+      .cpu_or_wall_samples = 1,
+      .wall_time_ns = state->gc_tracking.accumulated_wall_time_ns,
+      .timeline_wall_time_ns = state->gc_tracking.accumulated_wall_time_ns,
+    },
+    (sample_labels) {.labels = slice_labels, .state_label = NULL, .end_timestamp_ns = end_timestamp_ns},
+    DDOG_CHARSLICE_C("Garbage Collection")
+  );
+
+  state->gc_tracking.wall_time_at_last_flushed_gc_event_ns = state->gc_tracking.wall_time_at_previous_gc_ns;
+  state->gc_tracking.wall_time_at_previous_gc_ns = INVALID_TIME;
+
+  state->stats.gc_samples++;
 
   // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
   return Qnil;
@@ -653,7 +672,6 @@ static void trigger_sample_for_thread(
   VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
   sample_values values,
-  sample_type type,
   long current_monotonic_wall_time_ns,
   // These two labels are only used for allocation profiling; @ivoanjo: may want to refactor this at some point?
   ddog_CharSlice *ruby_vm_type,
@@ -776,8 +794,7 @@ static void trigger_sample_for_thread(
     state->sampling_buffer,
     state->recorder_instance,
     values,
-    (sample_labels) {.labels = slice_labels, .state_label = state_label, .end_timestamp_ns = end_timestamp_ns},
-    type
+    (sample_labels) {.labels = slice_labels, .state_label = state_label, .end_timestamp_ns = end_timestamp_ns}
   );
 }
 
@@ -874,9 +891,7 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
 
   // These will only be used during a GC operation
   thread_context->gc_tracking.cpu_time_at_start_ns = INVALID_TIME;
-  thread_context->gc_tracking.cpu_time_at_finish_ns = INVALID_TIME;
   thread_context->gc_tracking.wall_time_at_start_ns = INVALID_TIME;
-  thread_context->gc_tracking.wall_time_at_finish_ns = INVALID_TIME;
 }
 
 static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
@@ -901,6 +916,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
     state->time_converter_state.delta_to_epoch_ns
   ));
   rb_str_concat(result, rb_sprintf(" main_thread=%"PRIsVALUE, state->main_thread));
+  rb_str_concat(result, rb_sprintf(" gc_tracking=%"PRIsVALUE, gc_tracking_as_ruby_hash(state)));
 
   return result;
 }
@@ -927,9 +943,7 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
     ID2SYM(rb_intern("wall_time_at_previous_sample_ns")), /* => */ LONG2NUM(thread_context->wall_time_at_previous_sample_ns),
 
     ID2SYM(rb_intern("gc_tracking.cpu_time_at_start_ns")),   /* => */ LONG2NUM(thread_context->gc_tracking.cpu_time_at_start_ns),
-    ID2SYM(rb_intern("gc_tracking.cpu_time_at_finish_ns")),  /* => */ LONG2NUM(thread_context->gc_tracking.cpu_time_at_finish_ns),
     ID2SYM(rb_intern("gc_tracking.wall_time_at_start_ns")),  /* => */ LONG2NUM(thread_context->gc_tracking.wall_time_at_start_ns),
-    ID2SYM(rb_intern("gc_tracking.wall_time_at_finish_ns")), /* => */ LONG2NUM(thread_context->gc_tracking.wall_time_at_finish_ns)
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
 
@@ -945,6 +959,19 @@ static VALUE stats_as_ruby_hash(struct thread_context_collector_state *state) {
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
+}
+
+static VALUE gc_tracking_as_ruby_hash(struct thread_context_collector_state *state) {
+  // Update this when modifying state struct (gc_tracking inner struct)
+  VALUE result = rb_hash_new();
+  VALUE arguments[] = {
+    ID2SYM(rb_intern("accumulated_cpu_time_ns")),               /* => */ ULONG2NUM(state->gc_tracking.accumulated_cpu_time_ns),
+    ID2SYM(rb_intern("accumulated_wall_time_ns")),              /* => */ ULONG2NUM(state->gc_tracking.accumulated_wall_time_ns),
+    ID2SYM(rb_intern("wall_time_at_previous_gc_ns")),           /* => */ LONG2NUM(state->gc_tracking.wall_time_at_previous_gc_ns),
+    ID2SYM(rb_intern("wall_time_at_last_flushed_gc_event_ns")), /* => */ LONG2NUM(state->gc_tracking.wall_time_at_last_flushed_gc_event_ns),
+  };
+  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(result, arguments[i], arguments[i+1]);
+  return result;
 }
 
 static void remove_context_for_dead_threads(struct thread_context_collector_state *state) {
@@ -1049,13 +1076,20 @@ VALUE enforce_thread_context_collector_instance(VALUE object) {
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-//
-// Returns the whole contents of the per_thread_context structs being tracked.
 static VALUE _native_stats(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   return stats_as_ruby_hash(state);
+}
+
+// This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_gc_tracking(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  return gc_tracking_as_ruby_hash(state);
 }
 
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
@@ -1210,13 +1244,14 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     }
   }
 
+  track_object(state->recorder_instance, new_object, sample_weight, optional_class_name);
+
   trigger_sample_for_thread(
     state,
     /* thread: */  current_thread,
     /* stack_from_thread: */ current_thread,
     get_or_create_context_for(current_thread, state),
     (sample_values) {.alloc_samples = sample_weight},
-    SAMPLE_REGULAR,
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,
     optional_class_name
@@ -1239,7 +1274,7 @@ static VALUE _native_new_empty_thread(DDTRACE_UNUSED VALUE self) {
   return rb_thread_create(new_empty_thread_inner, NULL);
 }
 
-ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type) {
+static ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type) {
   switch (type) {
     case(RUBY_T_OBJECT  ): return DDOG_CHARSLICE_C("Object");
     case(RUBY_T_CLASS   ): return DDOG_CHARSLICE_C("Class");

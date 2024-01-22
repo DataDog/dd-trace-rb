@@ -92,7 +92,7 @@ RSpec.describe Datadog::Tracing::TraceDigest do
 
       context ':trace_id' do
         let(:options) { { trace_id: trace_id } }
-        let(:trace_id) { Datadog::Tracing::Utils.next_id }
+        let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
 
         it { is_expected.to have_attributes(trace_id: trace_id) }
       end

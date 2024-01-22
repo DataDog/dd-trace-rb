@@ -7,7 +7,7 @@ module Datadog
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
-      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:)
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
         require_relative '../profiling/diagnostics/environment_logger'
 
         Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
@@ -41,36 +41,55 @@ module Datadog
 
         no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
         timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
+        allocation_sample_every = get_allocation_sample_every(settings)
+        allocation_profiling_enabled = enable_allocation_profiling?(settings, allocation_sample_every)
+        heap_sample_every = get_heap_sample_every(settings)
+        heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled, heap_sample_every)
+        heap_size_profiling_enabled = enable_heap_size_profiling?(settings, heap_profiling_enabled)
+
+        overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage)
+        upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
 
         recorder = Datadog::Profiling::StackRecorder.new(
           cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
-          alloc_samples_enabled: false, # Always disabled for now -- work in progress
+          alloc_samples_enabled: allocation_profiling_enabled,
+          heap_samples_enabled: heap_profiling_enabled,
+          heap_size_enabled: heap_size_profiling_enabled,
+          heap_sample_every: heap_sample_every,
+          timeline_enabled: timeline_enabled,
         )
-        thread_context_collector = Datadog::Profiling::Collectors::ThreadContext.new(
+        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
+        worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
+          gc_profiling_enabled: enable_gc_profiling?(settings),
+          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          thread_context_collector: thread_context_collector,
+          dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
+          allocation_sample_every: allocation_sample_every,
+          allocation_profiling_enabled: allocation_profiling_enabled,
+        )
+
+        internal_metadata = {
+          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          timeline_enabled: timeline_enabled,
+          allocation_sample_every: allocation_sample_every,
+          heap_sample_every: heap_sample_every,
+        }.freeze
+
+        exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
+        transport = build_profiler_transport(settings, agent_settings)
+        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
+
+        Profiling::Profiler.new(worker: worker, scheduler: scheduler)
+      end
+
+      private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
+        Datadog::Profiling::Collectors::ThreadContext.new(
           recorder: recorder,
           max_frames: settings.profiling.advanced.max_frames,
           tracer: optional_tracer,
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
           timeline_enabled: timeline_enabled,
         )
-        worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
-          gc_profiling_enabled: enable_gc_profiling?(settings),
-          allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
-          no_signals_workaround_enabled: no_signals_workaround_enabled,
-          thread_context_collector: thread_context_collector,
-          allocation_sample_every: 0,
-        )
-
-        internal_metadata = {
-          no_signals_workaround_enabled: no_signals_workaround_enabled,
-          timeline_enabled: timeline_enabled,
-        }.freeze
-
-        exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
-        transport = build_profiler_transport(settings, agent_settings)
-        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
-
-        Profiling::Profiler.new(worker: worker, scheduler: scheduler)
       end
 
       private_class_method def self.build_profiler_exporter(settings, recorder, internal_metadata:)
@@ -108,6 +127,126 @@ module Datadog
         else
           false
         end
+      end
+
+      private_class_method def self.get_allocation_sample_every(settings)
+        allocation_sample_rate = settings.profiling.advanced.experimental_allocation_sample_rate
+
+        if allocation_sample_rate <= 0
+          raise ArgumentError, "Allocation sample rate must be a positive integer. Was #{allocation_sample_rate}"
+        end
+
+        allocation_sample_rate
+      end
+
+      private_class_method def self.get_heap_sample_every(settings)
+        heap_sample_rate = settings.profiling.advanced.experimental_heap_sample_rate
+
+        raise ArgumentError, "Heap sample rate must be a positive integer. Was #{heap_sample_rate}" if heap_sample_rate <= 0
+
+        heap_sample_rate
+      end
+
+      private_class_method def self.enable_allocation_profiling?(settings, allocation_sample_every)
+        unless settings.profiling.advanced.experimental_allocation_enabled
+          # Allocation profiling disabled, short-circuit out
+          return false
+        end
+
+        # Allocation sampling is safe and supported on Ruby 2.x, but has a few caveats on Ruby 3.x.
+
+        # SEVERE - All configurations
+        # Ruby 3.2.0 to 3.2.2 have a bug in the newobj tracepoint (https://bugs.ruby-lang.org/issues/19482,
+        # https://github.com/ruby/ruby/pull/7464) that makes this crash in any configuration. This bug is
+        # fixed on Ruby versions 3.2.3 and 3.3.0.
+        if RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION < '3.2.3'
+          Datadog.logger.warn(
+            'Allocation profiling is not supported in Ruby versions 3.2.0, 3.2.1 and 3.2.2 and will be forcibly '\
+            'disabled. This is due to a VM bug that can lead to crashes (https://bugs.ruby-lang.org/issues/19482). '\
+            'Other Ruby versions do not suffer from this issue.'
+          )
+          return false
+        end
+
+        # SEVERE - Only with Ractors
+        # On Ruby versions 3.0 (all), 3.1.0 to 3.1.3, and 3.2.0 to 3.2.2 allocation profiling can trigger a VM bug
+        # that causes a segmentation fault during garbage collection of Ractors
+        # (https://bugs.ruby-lang.org/issues/18464). We don't recommend using this feature on such Rubies.
+        # This bug is fixed on Ruby versions 3.1.4, 3.2.3 and 3.3.0.
+        if RUBY_VERSION.start_with?('3.0.') ||
+            (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION < '3.1.4') ||
+            (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION < '3.2.3')
+          Datadog.logger.warn(
+            "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling allocation profiling while using "\
+            'Ractors may cause unexpected issues, including crashes (https://bugs.ruby-lang.org/issues/18464). '\
+            'This does not happen if Ractors are not used.'
+          )
+        # ANNOYANCE - Only with Ractors
+        # On all known versions of Ruby 3.x, due to https://bugs.ruby-lang.org/issues/19112, when a ractor gets
+        # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
+        elsif RUBY_VERSION.start_with?('3.')
+          Datadog.logger.warn(
+            'In all known versions of Ruby 3.x, using Ractors may result in allocation profiling unexpectedly ' \
+            'stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your ' \
+            'application stability or performance. This does not happen if Ractors are not used.'
+          )
+        end
+
+        Datadog.logger.warn(
+          "Enabled experimental allocation profiling: allocation_sample_rate=#{allocation_sample_every}. This is " \
+          'experimental, not recommended, and will increase overhead!'
+        )
+
+        true
+      end
+
+      private_class_method def self.enable_heap_profiling?(settings, allocation_profiling_enabled, heap_sample_rate)
+        heap_profiling_enabled = settings.profiling.advanced.experimental_heap_enabled
+
+        return false unless heap_profiling_enabled
+
+        if RUBY_VERSION.start_with?('2.') && RUBY_VERSION < '2.7'
+          Datadog.logger.warn(
+            'Heap profiling currently relies on features introduced in Ruby 2.7 and will be forcibly disabled. '\
+            'Please upgrade to Ruby >= 2.7 in order to use this feature.'
+          )
+          return false
+        end
+
+        if RUBY_VERSION < '3.1'
+          Datadog.logger.debug(
+            "Current Ruby version (#{RUBY_VERSION}) supports forced object recycling which has a bug that the " \
+            'heap profiler is forced to work around to remain accurate. This workaround requires force-setting '\
+            "the SEEN_OBJ_ID flag on objects that should have it but don't. Full details can be found in " \
+            'https://github.com/DataDog/dd-trace-rb/pull/3360. This workaround should be safe but can be ' \
+            'bypassed by disabling the heap profiler or upgrading to Ruby >= 3.1 where forced object recycling ' \
+            'was completely removed (https://bugs.ruby-lang.org/issues/18290).'
+          )
+        end
+
+        unless allocation_profiling_enabled
+          raise ArgumentError,
+            'Heap profiling requires allocation profiling to be enabled'
+        end
+
+        Datadog.logger.warn(
+          "Enabled experimental heap profiling: heap_sample_rate=#{heap_sample_rate}. This is experimental, not " \
+          'recommended, and will increase overhead!'
+        )
+
+        true
+      end
+
+      private_class_method def self.enable_heap_size_profiling?(settings, heap_profiling_enabled)
+        heap_size_profiling_enabled = settings.profiling.advanced.experimental_heap_size_enabled
+
+        return false unless heap_profiling_enabled && heap_size_profiling_enabled
+
+        Datadog.logger.warn(
+          'Enabled experimental heap size profiling. This is experimental, not recommended, and will increase overhead!'
+        )
+
+        true
       end
 
       private_class_method def self.no_signals_workaround_enabled?(settings) # rubocop:disable Metrics/MethodLength
@@ -217,9 +356,12 @@ module Datadog
 
           return true unless mysql2_client_class && mysql2_client_class.respond_to?(:info)
 
-          libmysqlclient_version = Gem::Version.new(mysql2_client_class.info[:version])
+          info = mysql2_client_class.info
+          libmysqlclient_version = Gem::Version.new(info[:version])
 
-          compatible = libmysqlclient_version >= Gem::Version.new('8.0.0')
+          compatible =
+            libmysqlclient_version >= Gem::Version.new('8.0.0') ||
+            looks_like_mariadb?(info, libmysqlclient_version)
 
           Datadog.logger.debug(
             "The `mysql2` gem is using #{compatible ? 'a compatible' : 'an incompatible'} version of " \
@@ -244,6 +386,48 @@ module Datadog
         else
           true
         end
+      end
+
+      private_class_method def self.valid_overhead_target(overhead_target_percentage)
+        if overhead_target_percentage > 0 && overhead_target_percentage <= 20
+          overhead_target_percentage
+        else
+          Datadog.logger.error(
+            'Ignoring invalid value for profiling overhead_target_percentage setting: ' \
+            "#{overhead_target_percentage.inspect}. Falling back to default value."
+          )
+
+          2.0
+        end
+      end
+
+      # To add just a bit more complexity to our detection code, in https://github.com/DataDog/dd-trace-rb/issues/3334
+      # a user reported that our code was incorrectly flagging the mariadb variant of libmysqlclient as being
+      # incompatible. In fact we have no reports of the mariadb variant needing the "no signals" workaround,
+      # so we flag it as compatible when it's in use.
+      #
+      # A problem is that there doesn't seem to be an obvious way to query the mysql2 gem on which kind of
+      # libmysqlclient it's using, so we detect it by looking at the version.
+      #
+      # The info method for mysql2 with mariadb looks something like this:
+      # `{:id=>30308, :version=>"3.3.8", :header_version=>"11.2.2"}`
+      #
+      # * The version seems to come from https://github.com/mariadb-corporation/mariadb-connector-c and the latest
+      # one is 3.x.
+      # * The header_version is what people usually see as the "mariadb version"
+      #
+      # As a comparison, for libmysql the info looks like:
+      # * `{:id=>80035, :version=>"8.0.35", :header_version=>"8.0.35"}`
+      #
+      # Thus our detection is version 4 or older, because libmysqlclient 4 is almost 20 years old so it's most probably
+      # not that one + header_version being 10 or newer, since according to https://endoflife.date/mariadb that's a
+      # sane range for modern mariadb releases.
+      private_class_method def self.looks_like_mariadb?(info, libmysqlclient_version)
+        header_version = Gem::Version.new(info[:header_version]) if info[:header_version]
+
+        !!(header_version &&
+          libmysqlclient_version < Gem::Version.new('5.0.0') &&
+          header_version >= Gem::Version.new('10.0.0'))
       end
     end
   end

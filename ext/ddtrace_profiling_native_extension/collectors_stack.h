@@ -4,17 +4,24 @@
 
 #include "stack_recorder.h"
 
-typedef struct sampling_buffer sampling_buffer;
+#define MAX_FRAMES_LIMIT            10000
+#define MAX_FRAMES_LIMIT_AS_STRING "10000"
 
-typedef enum { SAMPLE_REGULAR, SAMPLE_IN_GC } sample_type;
+typedef struct sampling_buffer sampling_buffer;
 
 void sample_thread(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
+  sample_labels labels
+);
+void record_placeholder_stack(
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  sample_values values,
   sample_labels labels,
-  sample_type type
+  ddog_CharSlice placeholder_stack
 );
 sampling_buffer *sampling_buffer_new(unsigned int max_frames);
 void sampling_buffer_free(sampling_buffer *buffer);
