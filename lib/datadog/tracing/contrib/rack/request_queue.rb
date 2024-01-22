@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Tracing
     module Contrib
@@ -9,8 +11,8 @@ module Datadog
         # such proxy before the request made it to the Ruby
         # process.
         module QueueTime
-          REQUEST_START = 'HTTP_X_REQUEST_START'.freeze
-          QUEUE_START = 'HTTP_X_QUEUE_START'.freeze
+          REQUEST_START = 'HTTP_X_REQUEST_START'
+          QUEUE_START = 'HTTP_X_QUEUE_START'
           MINIMUM_ACCEPTABLE_TIME_VALUE = 1_000_000_000
 
           module_function

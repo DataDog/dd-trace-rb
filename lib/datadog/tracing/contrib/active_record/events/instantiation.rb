@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../metadata/ext'
 require_relative '../../analytics'
 require_relative '../ext'
@@ -12,7 +14,7 @@ module Datadog
           module Instantiation
             include ActiveRecord::Event
 
-            EVENT_NAME = 'instantiation.active_record'.freeze
+            EVENT_NAME = 'instantiation.active_record'
 
             module_function
 

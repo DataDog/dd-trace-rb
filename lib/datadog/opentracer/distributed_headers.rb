@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../tracing/distributed/datadog'
 require_relative '../tracing/utils'
 

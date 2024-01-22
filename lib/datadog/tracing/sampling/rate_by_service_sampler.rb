@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'rate_by_key_sampler'
 
 module Datadog
@@ -6,7 +8,7 @@ module Datadog
       # {Datadog::Tracing::Sampling::RateByServiceSampler} samples different services at different rates
       # @public_api
       class RateByServiceSampler < RateByKeySampler
-        DEFAULT_KEY = 'service:,env:'.freeze
+        DEFAULT_KEY = 'service:,env:'
 
         def initialize(default_rate = 1.0, env: nil, decision: Datadog::Tracing::Sampling::Ext::Decision::DEFAULT)
           super(

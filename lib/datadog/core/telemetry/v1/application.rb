@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../utils/hash'
 
 module Datadog
@@ -8,10 +10,10 @@ module Datadog
         class Application
           using Core::Utils::Hash::Refinement
 
-          ERROR_NIL_LANGUAGE_NAME_MESSAGE = ':language_name must not be nil'.freeze
-          ERROR_NIL_LANGUAGE_VERSION_MESSAGE = ':language_version must not be nil'.freeze
-          ERROR_NIL_SERVICE_NAME_MESSAGE = ':service_name must not be nil'.freeze
-          ERROR_NIL_TRACER_VERSION_MESSAGE = ':tracer_version must not be nil'.freeze
+          ERROR_NIL_LANGUAGE_NAME_MESSAGE = ':language_name must not be nil'
+          ERROR_NIL_LANGUAGE_VERSION_MESSAGE = ':language_version must not be nil'
+          ERROR_NIL_SERVICE_NAME_MESSAGE = ':service_name must not be nil'
+          ERROR_NIL_TRACER_VERSION_MESSAGE = ':tracer_version must not be nil'
 
           attr_reader \
             :env,
