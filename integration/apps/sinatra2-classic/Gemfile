@@ -35,3 +35,4 @@ gem 'pry-byebug'
 gem 'rspec'
 gem 'rspec-wait'
 gem 'webrick' if RUBY_VERSION >= '2.3' # Older Rubies can just use the built-in version of webrick
+gem 'rackup'
