@@ -4,7 +4,7 @@ source "https://rubygems.org"
 
 gem 'puma'
 gem 'unicorn'
-gem 'sinatra'
+gem 'sinatra', '>= 3.0'
 
 gem 'dogstatsd-ruby'
 # Choose correct specs for 'ddtrace' demo environment
