@@ -74,11 +74,11 @@ module Datadog
           end
 
           def to_s
-            s = "#{@type}/#{@subtype}"
+            s = +"#{@type}/#{@subtype}"
 
             s << ';' << @parameters.map { |k, v| "#{k}=#{v}" }.join(';') if @parameters.count > 0
 
-            s
+            s.freeze
           end
         end
       end
