@@ -31,6 +31,16 @@ RSpec.describe 'GraphQL patcher' do
     end
   end
 
+  context 'with empty schema configuration' do
+    it_behaves_like 'graphql instrumentation' do
+      before do
+        Datadog.configure do |c|
+          c.tracing.instrument :graphql, schemas: []
+        end
+      end
+    end
+  end
+
   context 'with specified schemas configuration' do
     it_behaves_like 'graphql instrumentation' do
       before do
@@ -38,24 +48,6 @@ RSpec.describe 'GraphQL patcher' do
           c.tracing.instrument :graphql, schemas: [TestGraphQLSchema]
         end
       end
-    end
-  end
-
-  context 'with empty schema configuration' do
-    before do
-      Datadog.configure do |c|
-        c.tracing.instrument :graphql, schemas: []
-      end
-    end
-
-    subject(:result) { TestGraphQLSchema.execute(query) }
-
-    let(:query) { '{ user(id: 1) { name } }' }
-
-    it do
-      expect(result.to_h['errors']).to be nil
-
-      expect(spans.length).to eq(0)
     end
   end
 
