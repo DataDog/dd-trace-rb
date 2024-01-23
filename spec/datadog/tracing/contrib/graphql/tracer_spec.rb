@@ -21,42 +21,50 @@ RSpec.describe 'GraphQL patcher' do
     reset_schema_cache!(TestGraphQLSchema)
   end
 
-  describe 'class-based schema' do
-    context 'with default configuration' do
-      it_behaves_like 'graphql instrumentation' do
-        before do
-          Datadog.configure do |c|
-            c.tracing.instrument :graphql
-          end
-        end
-      end
-    end
-
-    context 'with specified schemas configuration' do
-      it_behaves_like 'graphql instrumentation' do
-        before do
-          Datadog.configure do |c|
-            c.tracing.instrument :graphql, schemas: [TestGraphQLSchema]
-          end
-        end
-      end
-    end
-
-    context 'with empty schema configuration' do
+  context 'with default configuration' do
+    it_behaves_like 'graphql instrumentation' do
       before do
         Datadog.configure do |c|
-          c.tracing.instrument :graphql, schemas: []
+          c.tracing.instrument :graphql
         end
       end
+    end
+  end
 
-      subject(:result) { TestGraphQLSchema.execute(query) }
+  context 'with specified schemas configuration' do
+    it_behaves_like 'graphql instrumentation' do
+      before do
+        Datadog.configure do |c|
+          c.tracing.instrument :graphql, schemas: [TestGraphQLSchema]
+        end
+      end
+    end
+  end
 
-      let(:query) { '{ user(id: 1) { name } }' }
+  context 'with empty schema configuration' do
+    before do
+      Datadog.configure do |c|
+        c.tracing.instrument :graphql, schemas: []
+      end
+    end
 
-      it do
-        expect(result.to_h['errors']).to be nil
+    subject(:result) { TestGraphQLSchema.execute(query) }
 
-        expect(spans.length).to eq(0)
+    let(:query) { '{ user(id: 1) { name } }' }
+
+    it do
+      expect(result.to_h['errors']).to be nil
+
+      expect(spans.length).to eq(0)
+    end
+  end
+
+  context 'when given something else' do
+    it do
+      expect_any_instance_of(Datadog::Core::Logger).to receive(:warn).with(/Unable to patch/)
+
+      Datadog.configure do |c|
+        c.tracing.instrument :graphql, schemas: [OpenStruct.new]
       end
     end
   end

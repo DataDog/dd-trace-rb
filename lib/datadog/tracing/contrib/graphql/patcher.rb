@@ -22,7 +22,11 @@ module Datadog
               ::GraphQL::Schema.tracer(::GraphQL::Tracing::DataDogTracing.new(**trace_options))
             else
               schemas.each do |schema|
-                schema.use(::GraphQL::Tracing::DataDogTracing, **trace_options)
+                if schema.respond_to? :use
+                  schema.use(::GraphQL::Tracing::DataDogTracing, **trace_options)
+                else
+                  Datadog.logger.warn("Unable to patch #{schema}, please migrate to class-based schema.")
+                end
               end
             end
           end
@@ -30,7 +34,7 @@ module Datadog
           def trace_options
             {
               service: configuration[:service_name],
-              analytics_enabled: configuration[:analytics_enabled],
+              analytics_enabled: Contrib::Analytics.enabled?(configuration[:analytics_enabled]),
               analytics_sample_rate: configuration[:analytics_sample_rate]
             }
           end
