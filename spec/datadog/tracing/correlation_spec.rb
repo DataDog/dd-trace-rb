@@ -47,16 +47,9 @@ RSpec.describe Datadog::Tracing::Correlation do
           env: default_env,
           service: default_service,
           span_id: '0',
-          span_name: nil,
-          span_resource: nil,
-          span_service: nil,
-          span_type: nil,
           trace_id: '0',
-          trace_name: nil,
-          trace_resource: nil,
-          trace_service: nil,
           version: default_version
-        )
+       )
       end
 
       it 'has frozen copies of strings' do
@@ -89,14 +82,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           env: default_env,
           service: default_service,
           span_id: span_id.to_s,
-          span_name: span_name,
-          span_resource: span_resource,
-          span_service: span_service,
-          span_type: span_type,
           trace_id: low_order_trace_id(trace_id).to_s,
-          trace_name: trace_name,
-          trace_resource: trace_resource,
-          trace_service: trace_service,
           version: default_version
         )
       end
@@ -104,13 +90,6 @@ RSpec.describe Datadog::Tracing::Correlation do
       it 'has frozen copies of strings' do
         expect(identifier.env).to be_a_frozen_copy_of(default_env)
         expect(identifier.service).to be_a_frozen_copy_of(default_service)
-        expect(identifier.span_name).to be_a_frozen_copy_of(span_name)
-        expect(identifier.span_resource).to be_a_frozen_copy_of(span_resource)
-        expect(identifier.span_service).to be_a_frozen_copy_of(span_service)
-        expect(identifier.span_type).to be_a_frozen_copy_of(span_type)
-        expect(identifier.trace_name).to be_a_frozen_copy_of(trace_name)
-        expect(identifier.trace_resource).to be_a_frozen_copy_of(trace_resource)
-        expect(identifier.trace_service).to be_a_frozen_copy_of(trace_service)
         expect(identifier.version).to be_a_frozen_copy_of(default_version)
       end
     end
@@ -126,14 +105,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             env: default_env,
             service: default_service,
             span_id: '0',
-            span_name: nil,
-            span_resource: nil,
-            span_service: nil,
-            span_type: nil,
             trace_id: '0',
-            trace_name: nil,
-            trace_resource: nil,
-            trace_service: nil,
             version: default_version
           )
         end
@@ -153,14 +125,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             env: env,
             service: service,
             span_id: span_id,
-            span_name: span_name,
-            span_resource: span_resource,
-            span_service: span_service,
-            span_type: span_type,
             trace_id: trace_id,
-            trace_name: trace_name,
-            trace_resource: trace_resource,
-            trace_service: trace_service,
             version: version
           )
         end
@@ -170,14 +135,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             env: env,
             service: service,
             span_id: span_id.to_s,
-            span_name: span_name,
-            span_resource: span_resource,
-            span_service: span_service,
-            span_type: span_type,
             trace_id: low_order_trace_id(trace_id).to_s,
-            trace_name: trace_name,
-            trace_resource: trace_resource,
-            trace_service: trace_service,
             version: version
           )
         end
@@ -185,13 +143,6 @@ RSpec.describe Datadog::Tracing::Correlation do
         it 'has frozen copies of strings' do
           expect(identifier.env).to be_a_frozen_copy_of(env)
           expect(identifier.service).to be_a_frozen_copy_of(service)
-          expect(identifier.span_name).to be_a_frozen_copy_of(span_name)
-          expect(identifier.span_resource).to be_a_frozen_copy_of(span_resource)
-          expect(identifier.span_service).to be_a_frozen_copy_of(span_service)
-          expect(identifier.span_type).to be_a_frozen_copy_of(span_type)
-          expect(identifier.trace_name).to be_a_frozen_copy_of(trace_name)
-          expect(identifier.trace_resource).to be_a_frozen_copy_of(trace_resource)
-          expect(identifier.trace_service).to be_a_frozen_copy_of(trace_service)
           expect(identifier.version).to be_a_frozen_copy_of(version)
         end
       end

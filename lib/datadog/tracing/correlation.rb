@@ -6,6 +6,8 @@ module Datadog
   module Tracing
     # Contains behavior for managing correlations with tracing
     # e.g. Retrieve a correlation to the current trace for logging, etc.
+    # This class is for usage with log correlation.
+    # To continue from a trace, users should use TraceDigest instead.
     module Correlation
       # Represents current trace state with key identifiers
       # @public_api
@@ -21,13 +23,6 @@ module Datadog
           :env,
           :service,
           :span_id,
-          :span_name,
-          :span_resource,
-          :span_service,
-          :span_type,
-          :trace_name,
-          :trace_resource,
-          :trace_service,
           :version
 
         # @!visibility private
@@ -35,28 +30,14 @@ module Datadog
           env: nil,
           service: nil,
           span_id: nil,
-          span_name: nil,
-          span_resource: nil,
-          span_service: nil,
-          span_type: nil,
           trace_id: nil,
-          trace_name: nil,
-          trace_resource: nil,
-          trace_service: nil,
           version: nil
         )
           # Dup and freeze strings so they aren't modified by reference.
           @env = Core::Utils::SafeDup.frozen_dup(env || Datadog.configuration.env)
           @service = Core::Utils::SafeDup.frozen_dup(service || Datadog.configuration.service)
           @span_id = (span_id || 0).to_s
-          @span_name = Core::Utils::SafeDup.frozen_dup(span_name)
-          @span_resource = Core::Utils::SafeDup.frozen_dup(span_resource)
-          @span_service = Core::Utils::SafeDup.frozen_dup(span_service)
-          @span_type = Core::Utils::SafeDup.frozen_dup(span_type)
           @trace_id = trace_id || 0
-          @trace_name = Core::Utils::SafeDup.frozen_dup(trace_name)
-          @trace_resource = Core::Utils::SafeDup.frozen_dup(trace_resource)
-          @trace_service = Core::Utils::SafeDup.frozen_dup(trace_service)
           @version = Core::Utils::SafeDup.frozen_dup(version || Datadog.configuration.version)
         end
 
@@ -112,14 +93,7 @@ module Datadog
 
         Identifier.new(
           span_id: digest.span_id,
-          span_name: digest.span_name,
-          span_resource: digest.span_resource,
-          span_service: digest.span_service,
-          span_type: digest.span_type,
           trace_id: digest.trace_id,
-          trace_name: digest.trace_name,
-          trace_resource: digest.trace_resource,
-          trace_service: digest.trace_service
         )
       end
     end
