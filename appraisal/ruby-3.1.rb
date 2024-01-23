@@ -124,7 +124,6 @@ end
   '2.1' => 'tonycthsu/backport-span-type-2.1.x',
   '2.0' => 'tonycthsu/backport-datadog-span-type-to-2.0.x',
   '1.13' => 'tonycthsu/backport-datadog-span-type-to-1.13.x',
-  '1.12' => 'tonycthsu/backport-datadog-span-type-to-1.12.x',
 }.each do |v, ref|
   appraise "graphql-#{v}" do
     gem 'graphql', github: 'TonyCTHsu/graphql-ruby', ref: ref

@@ -10,7 +10,7 @@ GIT
 
 GIT
   remote: https://github.com/TonyCTHsu/graphql-ruby.git
-  revision: 927e61e2af81568872878341d4eed5cc0e65e04d
+  revision: 72e51d3cbd17529440205bfb4a56889c2aa3d6dc
   ref: tonycthsu/backport-datadog-span-type-to-2.0.x
   specs:
     graphql (2.0.27)
@@ -72,7 +72,7 @@ GEM
     msgpack (1.7.2)
     os (1.1.4)
     parallel (1.24.0)
-    parser (3.3.0.4)
+    parser (3.3.0.5)
       ast (~> 2.4.1)
       racc
     pimpmychangelog (0.1.3)
@@ -89,7 +89,7 @@ GEM
     racc (1.7.3)
     rainbow (3.1.1)
     rake (13.1.0)
-    rake-compiler (1.2.5)
+    rake-compiler (1.2.6)
       rake
     redcarpet (3.6.0)
     regexp_parser (2.9.0)
