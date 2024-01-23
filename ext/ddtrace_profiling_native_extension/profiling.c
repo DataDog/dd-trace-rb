@@ -41,6 +41,7 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
   rb_define_singleton_method(native_extension_module, "native_working?", native_working_p, 0);
   rb_funcall(native_extension_module, rb_intern("private_class_method"), 1, ID2SYM(rb_intern("native_working?")));
 
+  ruby_helpers_init();
   collectors_cpu_and_wall_time_worker_init(profiling_module);
   collectors_dynamic_sampling_rate_init(profiling_module);
   collectors_idle_sampling_helper_init(profiling_module);

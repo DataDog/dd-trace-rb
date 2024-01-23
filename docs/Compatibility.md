@@ -6,7 +6,8 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 | Type  | Documentation              | Version | Support type                         | Gem version support |
 | ----- | -------------------------- | -----   | ------------------------------------ | ------------------- |
-| MRI   | https://www.ruby-lang.org/ | 3.2     | Full                                 | Latest              |
+| MRI   | https://www.ruby-lang.org/ | 3.3     | Full                                 | Latest              |
+|       |                            | 3.2     | Full                                 | Latest              |
 |       |                            | 3.1     | Full                                 | Latest              |
 |       |                            | 3.0     | Full                                 | Latest              |
 |       |                            | 2.7     | Full                                 | Latest              |
@@ -61,12 +62,12 @@ For a list of available integrations, and their configuration options, refer to 
 | -------------------------- | -------------------------- | ------------------------ | --------------------------| ----------------------------------- | ------------------------------------------------------------------------------ |
 | Action Cable               | `action_cable`             | `>= 5.0`                 | `>= 5.0`                  | [Link][2]                           | [Link](https://github.com/rails/rails/tree/master/actioncable)               |
 | Action Mailer              | `action_mailer`            | `>= 5.0`                 | `>= 5.0`                  | [Link][3]                           | [Link](https://github.com/rails/rails/tree/master/actionmailer)              |
-| Action Pack                | `action_pack`              | `>= 3.2`                 | `>= 3.2`                  | [Link][4]                           | [Link](https://github.com/rails/rails/tree/master/actionpack)                |
-| Action View                | `action_view`              | `>= 3.2`                 | `>= 3.2`                  | [Link][5]                           | [Link](https://github.com/rails/rails/tree/master/actionview)                |
+| Action Pack                | `action_pack`              | `>= 4.0`                 | `>= 4.0`                  | [Link][4]                           | [Link](https://github.com/rails/rails/tree/master/actionpack)                |
+| Action View                | `action_view`              | `>= 4.0`                 | `>= 4.0`                  | [Link][5]                           | [Link](https://github.com/rails/rails/tree/master/actionview)                |
 | Active Job                 | `active_job`               | `>= 4.2`                 | `>= 4.2`                  | [Link][6]                           | [Link](https://github.com/rails/rails/tree/master/activejob)                 |
 | Active Model Serializers   | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | [Link][7]                           | [Link](https://github.com/rails-api/active_model_serializers)                |
-| Active Record              | `active_record`            | `>= 3.2`                 | `>= 3.2`                  | [Link][8]                           | [Link](https://github.com/rails/rails/tree/master/activerecord)              |
-| Active Support             | `active_support`           | `>= 3.2`                 | `>= 3.2`                  | [Link][9]                           | [Link](https://github.com/rails/rails/tree/master/activesupport)             |
+| Active Record              | `active_record`            | `>= 4.0`                 | `>= 4.0`                  | [Link][8]                           | [Link](https://github.com/rails/rails/tree/master/activerecord)              |
+| Active Support             | `active_support`           | `>= 4.0`                 | `>= 4.0`                  | [Link][9]                           | [Link](https://github.com/rails/rails/tree/master/activesupport)             |
 | AWS                        | `aws`                      | `>= 2.0`                 | `>= 2.0`                  | [Link][10]                          | [Link](https://github.com/aws/aws-sdk-ruby)                                  |
 | Concurrent Ruby            | `concurrent_ruby`          | `>= 0.9`                 | `>= 0.9`                  | [Link][11]                          | [Link](https://github.com/ruby-concurrency/concurrent-ruby)                  |
 | Dalli                      | `dalli`                    | `>= 2.0`                 | `>= 2.0`                  | [Link][12]                          | [Link](https://github.com/petergoldstein/dalli)                              |
@@ -94,7 +95,7 @@ For a list of available integrations, and their configuration options, refer to 
 | Que                        | `que`                      | `>= 1.0.0.beta2`         | `>= 1.0.0.beta2`          | [Link][33]                          | [Link](https://github.com/que-rb/que)                                        |
 | Racecar                    | `racecar`                  | `>= 0.3.5`               | `>= 0.3.5`                | [Link][34]                          | [Link](https://github.com/zendesk/racecar)                                   |
 | Rack                       | `rack`                     | `>= 1.1`                 | `>= 1.1`                  | [Link][35]                          | [Link](https://github.com/rack/rack)                                         |
-| Rails                      | `rails`                    | `>= 3.2`                 | `>= 3.2`                  | [Link][36]                          | [Link](https://github.com/rails/rails)                                       |
+| Rails                      | `rails`                    | `>= 4.0`                 | `>= 4.0`                  | [Link][36]                          | [Link](https://github.com/rails/rails)                                       |
 | Rake                       | `rake`                     | `>= 12.0`                | `>= 12.0`                 | [Link][37]                          | [Link](https://github.com/ruby/rake)                                         |
 | Redis                      | `redis`                    | `>= 3.2`                 | `>= 3.2`                  | [Link][38]                          | [Link](https://github.com/redis/redis-rb)                                    |
 | Resque                     | `resque`                   | `>= 1.0`                 | `>= 1.0`                  | [Link][39]                          | [Link](https://github.com/resque/resque)                                     |
@@ -108,14 +109,6 @@ For a list of available integrations, and their configuration options, refer to 
 | Stripe                     | `stripe`                   | `>= 5.15.0`              | `>= 5.15.0`               | [Link][47]                          | [Link](https://github.com/stripe/stripe-ruby)                                |
 | Sucker Punch               | `sucker_punch`             | `>= 2.0`                 | `>= 2.0`                  | [Link][48]                          | [Link](https://github.com/brandonhilkert/sucker_punch)                       |
 
-### CI visibility integrations
-
-These are the available CI visibility integrations:
-
-| Name      | Key        | Versions Supported: MRI | Versions Supported: JRuby | How to configure    | Gem source                                          |
-|-----------|------------|-------------------------|---------------------------|---------------------|-----------------------------------------------------|
-| Cucumber  | `cucumber` | `>= 3.0`                | `>= 1.7.16`               | [Link][49]          | [Link](https://github.com/cucumber/cucumber-ruby)   |
-| RSpec     | `rspec`    | `>= 3.0.0`              | `>= 3.0.0`                | [Link][50]          | [Link](https://github.com/rspec/rspec)              |
 
 [1]: https://github.com/DataDog/dd-trace-rb
 [2]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#action-cable
@@ -165,6 +158,4 @@ These are the available CI visibility integrations:
 [46]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#sneakers
 [47]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#stripe
 [48]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#sucker-punch
-[49]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#cucumber
-[50]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#rspec
 

@@ -16,24 +16,15 @@ module Datadog
               :timeout,
               :ssl
 
-            # in seconds
-            DEFAULT_TIMEOUT = 30
-
-            # @deprecated Positional parameters are deprecated. Use named parameters instead.
-            def initialize(hostname = nil, port = nil, **options)
-              @hostname = hostname || options.fetch(:hostname)
-              @port = port || options.fetch(:port)
-              @timeout = options[:timeout] || DEFAULT_TIMEOUT
-              @ssl = options.key?(:ssl) ? options[:ssl] == true : false
+            def initialize(agent_settings)
+              @hostname = agent_settings.hostname
+              @port = agent_settings.port
+              @timeout = agent_settings.timeout_seconds
+              @ssl = agent_settings.ssl
             end
 
             def self.build(agent_settings)
-              new(
-                hostname: agent_settings.hostname,
-                port: agent_settings.port,
-                timeout: agent_settings.timeout_seconds,
-                ssl: agent_settings.ssl
-              )
+              new(agent_settings)
             end
 
             def open(&block)

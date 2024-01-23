@@ -8,7 +8,8 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     {
       'DD_AGENT_HOST' => nil,
       'DD_TRACE_AGENT_PORT' => nil,
-      'DD_TRACE_AGENT_URL' => nil
+      'DD_TRACE_AGENT_URL' => nil,
+      'DD_TRACE_AGENT_TIMEOUT_SECONDS' => nil,
     }
   end
   let(:environment) { {} }
@@ -22,8 +23,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       hostname: hostname,
       port: port,
       uds_path: uds_path,
-      timeout_seconds: nil,
-      deprecated_for_removal_transport_configuration_proc: nil,
+      timeout_seconds: timeout_seconds
     }
   end
 
@@ -31,6 +31,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   let(:hostname) { '127.0.0.1' }
   let(:port) { 8126 }
   let(:uds_path) { nil }
+  let(:timeout_seconds) { 30 }
 
   before do
     # Environment does not have existing unix socket for the base testing case
@@ -39,20 +40,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   end
 
   subject(:resolver) { described_class.call(ddtrace_settings, logger: logger) }
-
-  context 'when settings.tracing is not present' do
-    before do
-      allow(ddtrace_settings).to receive(:tracing).and_return(nil)
-    end
-
-    it 'uses non proc settings' do
-      expect(resolver).to have_attributes settings
-    end
-
-    it 'does not raise an error' do
-      expect { resolver }.not_to raise_error
-    end
-  end
 
   context 'by default' do
     it 'contacts the agent using the http adapter, using hostname 127.0.0.1 and port 8126' do
@@ -68,6 +55,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       let(:uds_path) { '/var/run/datadog/apm.socket' }
       let(:hostname) { nil }
       let(:port) { nil }
+      let(:timeout_seconds) { 1 }
 
       it 'configures the agent to connect to unix:///var/run/datadog/apm.socket' do
         expect(resolver).to have_attributes(
@@ -108,26 +96,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'when a custom hostname is specified via code using "tracing.transport_options =" (positional args variant)' do
-      before do
-        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, 'custom-hostname') }
-      end
-
-      it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
-      end
-    end
-
-    context 'when a custom hostname is specified via code using "tracing.transport_options =" (keyword args variant)' do
-      before do
-        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, hostname: 'custom-hostname') }
-      end
-
-      it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
-      end
-    end
-
     describe 'priority' do
       let(:with_transport_options) { nil }
       let(:with_agent_host) { nil }
@@ -145,29 +113,8 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       before do
         allow(logger).to receive(:warn)
-        if with_transport_options
-          ddtrace_settings.tracing.transport_options =
-            proc { |t| t.adapter(:net_http, hostname: with_transport_options) }
-        end
         (ddtrace_settings.agent.host = with_agent_host) if with_agent_host
         (ddtrace_settings.agent.port = with_agent_port) if with_agent_port
-      end
-
-      context 'when tracing.transport_options, agent.host, DD_TRACE_AGENT_URL, DD_AGENT_HOST are provided' do
-        let(:with_transport_options) { 'custom-hostname-1' }
-        let(:with_agent_host) { 'custom-hostname-2' }
-        let(:with_trace_agent_url) { 'custom-hostname-3' }
-        let(:with_environment_agent_host) { 'custom-hostname-4' }
-
-        it 'prioritizes the tracing.transport_options' do
-          expect(resolver).to have_attributes(hostname: 'custom-hostname-1')
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Configuration mismatch/)
-
-          resolver
-        end
       end
 
       context 'when agent.host, DD_TRACE_AGENT_URL, DD_AGENT_HOST are provided' do
@@ -426,40 +373,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'when a custom port is specified via code using "tracing.transport_options =" (positional args variant)' do
-      before do
-        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, nil, 1234) }
-      end
-
-      it 'contacts the agent using the http adapter, using the custom port' do
-        expect(resolver).to have_attributes(**settings, port: 1234)
-      end
-
-      it_behaves_like "parsing of port when it's not an integer" do
-        before do
-          port = port_value_to_parse
-          ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, nil, port) }
-        end
-      end
-    end
-
-    context 'when a custom port is specified via code using "tracing.transport_options =" (keyword args variant)' do
-      before do
-        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, port: 1234) }
-      end
-
-      it 'contacts the agent using the http adapter, using the custom port' do
-        expect(resolver).to have_attributes(**settings, port: 1234)
-      end
-
-      it_behaves_like "parsing of port when it's not an integer" do
-        before do
-          port = port_value_to_parse
-          ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, port: port) }
-        end
-      end
-    end
-
     describe 'priority' do
       let(:with_agent_port) { nil }
       let(:with_trace_agent_url) { nil }
@@ -527,6 +440,233 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
   end
 
+  describe 'timeout' do
+    shared_examples_for "parsing of timeout when it's not an integer" do
+      context 'when the timeout is specified as a string instead of a number' do
+        let(:timeout_value_to_parse) { '777' }
+
+        it 'contacts the agent using the http adapter, using the custom timeout' do
+          expect(resolver).to have_attributes(**settings, timeout_seconds: 777)
+        end
+      end
+
+      context 'when the timeout is an invalid string value' do
+        let(:timeout_value_to_parse) { 'timeout' }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+
+      context 'when the timeout is an invalid object' do
+        let(:timeout_value_to_parse) { Object.new }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+    end
+
+    context 'when a custom timeout is specified via the DD_TRACE_AGENT_TIMEOUT_SECONDS environment variable' do
+      let(:environment) { { 'DD_TRACE_AGENT_TIMEOUT_SECONDS' => '798' } }
+
+      it 'contacts the agent using the http adapter, using the custom timeout' do
+        expect(resolver).to have_attributes(**settings, timeout_seconds: 798)
+      end
+
+      context 'when the custom timeout is invalid' do
+        let(:environment) { { 'DD_TRACE_AGENT_TIMEOUT_SECONDS' => 'this-is-an-invalid-timeout' } }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+    end
+
+    context 'when a custom timeout is specified via code using "agent.timeout_seconds = "' do
+      before do
+        ddtrace_settings.agent.timeout_seconds = 111
+      end
+
+      it 'contacts the agent using the http adapter, using the custom timeout' do
+        expect(resolver).to have_attributes(**settings, timeout_seconds: 111)
+      end
+
+      it_behaves_like "parsing of timeout when it's not an integer" do
+        before do
+          ddtrace_settings.agent.timeout_seconds = timeout_value_to_parse
+        end
+      end
+    end
+
+    describe 'priority' do
+      let(:with_agent_timeout) { nil }
+      let(:with_env_agent_timeout) { nil }
+      let(:environment) do
+        environment = {}
+
+        (environment['DD_TRACE_AGENT_TIMEOUT_SECONDS'] = with_env_agent_timeout.to_s) if with_env_agent_timeout
+
+        environment
+      end
+
+      before do
+        allow(logger).to receive(:warn)
+        (ddtrace_settings.agent.timeout_seconds = with_agent_timeout) if with_agent_timeout
+      end
+
+      context 'when all of agent.timeout_seconds, DD_TRACE_AGENT_TIMEOUT_SECONDS are provided' do
+        let(:with_agent_timeout) { 17 }
+        let(:with_env_agent_timeout) { 39 }
+
+        it 'prioritizes the agent.timeout_seconds' do
+          expect(resolver).to have_attributes(timeout_seconds: 17)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      context 'when only DD_TRACE_AGENT_TIMEOUT_SECONDS is provided' do
+        let(:with_env_agent_timeout) { 9 }
+
+        it 'uses the DD_TRACE_AGENT_TIMEOUT_SECONDS' do
+          expect(resolver).to have_attributes(timeout_seconds: 9)
+        end
+
+        it 'does not log any warning' do
+          expect(logger).to_not receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+    end
+  end
+
+  describe 'ssl' do
+    context 'When agent.use_ssl is set' do
+      before do
+        ddtrace_settings.agent.use_ssl = agent_use_ssl
+      end
+
+      context 'when agent.use_ssl is true' do
+        let(:agent_use_ssl) { true }
+
+        it 'contacts the agent using ssl' do
+          expect(resolver).to have_attributes(ssl: true)
+        end
+      end
+
+      context 'when agent.use_ssl is false' do
+        let(:agent_use_ssl) { false }
+
+        it 'contacts the agent without ssl' do
+          expect(resolver).to have_attributes(ssl: false)
+        end
+      end
+    end
+
+    context 'when DD_TRACE_AGENT_URL is set' do
+      let(:environment) { { 'DD_TRACE_AGENT_URL' => "#{trace_agent_url_protocol}://custom-hostname:1234" } }
+
+      context 'when set to https' do
+        let(:trace_agent_url_protocol) { 'https' }
+
+        it 'contacts the agent using ssl' do
+          expect(resolver).to have_attributes(ssl: true)
+        end
+      end
+
+      context 'when http is specified' do
+        let(:trace_agent_url_protocol) { 'http' }
+
+        it 'contacts the agent without ssl' do
+          expect(resolver).to have_attributes(ssl: false)
+        end
+      end
+    end
+
+    describe 'priority' do
+      let(:environment) do
+        environment = {}
+        (environment['DD_TRACE_AGENT_URL'] = "#{trace_agent_url_protocol}://agent_hostname:1234") if with_trace_agent_url
+
+        environment
+      end
+
+      before do
+        allow(logger).to receive(:warn)
+        (ddtrace_settings.agent.use_ssl = with_agent_use_ssl) if with_agent_use_ssl
+      end
+
+      context 'when agent.use_ssl, DD_TRACE_AGENT_URL are provided' do
+        let(:with_agent_use_ssl) { true }
+        let(:with_trace_agent_url) { true }
+        let(:trace_agent_url_protocol) { 'http' }
+        let(:with_environment_agent_use_ssl_value) { false }
+
+        it 'prioritizes the agent.use_ssl' do
+          expect(resolver).to have_attributes(ssl: true)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      context 'Only DD_TRACE_AGENT_URL is provided' do
+        let(:with_agent_use_ssl) { false }
+        let(:with_trace_agent_url) { true }
+        let(:trace_agent_url_protocol) { 'https' }
+
+        it 'prioritizes the DD_TRACE_URL' do
+          expect(resolver).to have_attributes(ssl: true)
+        end
+
+        it 'does not log any warning' do
+          expect(logger).to_not receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+    end
+  end
+
   context 'when a custom url is specified via environment variable' do
     let(:environment) { { 'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234' } }
 
@@ -549,6 +689,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
     context 'when the uri scheme is unix' do
       let(:environment) { { 'DD_TRACE_AGENT_URL' => 'unix:///path/to/apm.socket' } }
+      let(:timeout_seconds) { 1 }
 
       it 'contacts the agent via a unix domain socket' do
         expect(resolver).to have_attributes(
@@ -580,118 +721,72 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     end
   end
 
-  context 'when a proc is configured in tracer.transport_options' do
-    before do
-      ddtrace_settings.tracing.transport_options = transport_options
-    end
+  describe 'uds_path' do
+    let(:hostname) { nil }
+    let(:port) { nil }
+    let(:timeout_seconds) { 1 }
+    let(:adapter) { :unix }
 
-    context 'when the proc does not configure the :net_http or :unix adapters' do
-      let(:transport_options) { proc {} }
+    context 'when a custom path is specified via code using "agent.uds_path ="' do
+      before do
+        ddtrace_settings.agent.uds_path = '/var/code/custom.socket'
+      end
 
-      it 'includes the given proc in the resolved settings as the deprecated_for_removal_transport_configuration_proc' do
-        expect(resolver).to have_attributes(
-          **settings,
-          deprecated_for_removal_transport_configuration_proc: transport_options
-        )
+      it 'contacts the agent using the unix adapter, using the custom path' do
+        expect(resolver).to have_attributes(**settings, uds_path: '/var/code/custom.socket')
       end
     end
 
-    context 'when the proc requests the :net_http adapter' do
-      let(:transport_options) do
-        proc { |t| t.adapter(:net_http, hostname: 'custom-hostname', port: 1234, timeout: 42, ssl: false) }
+    context 'when a custom path is specified via the DD_TRACE_AGENT_URL environment variable' do
+      let(:environment) { { 'DD_TRACE_AGENT_URL' => 'unix:///var/uri.socket' } }
+
+      it 'contacts the agent using the unix adapter, using the custom path' do
+        expect(resolver).to have_attributes(**settings, uds_path: '/var/uri.socket')
+      end
+    end
+
+    describe 'priority' do
+      let(:with_agent_uds_path) { nil }
+      let(:with_trace_agent_url) { nil }
+      let(:environment) do
+        environment = {}
+
+        (environment['DD_TRACE_AGENT_URL'] = "unix://#{with_trace_agent_url}") if with_trace_agent_url
+
+        environment
       end
 
-      it 'contacts the agent using the http adapter, using the requested configuration' do
-        expect(resolver).to have_attributes(
-          **settings,
-          ssl: false,
-          hostname: 'custom-hostname',
-          port: 1234,
-          timeout_seconds: 42,
-        )
+      before do
+        allow(logger).to receive(:warn)
+        (ddtrace_settings.agent.uds_path = with_agent_uds_path) if with_agent_uds_path
       end
 
-      context 'with ssl' do
-        let(:transport_options) do
-          proc { |t| t.adapter(:net_http, hostname: 'custom-hostname', port: 1234, timeout: 42, ssl: true) }
+      context 'when agent.uds_path, DD_TRACE_AGENT_URL are provided' do
+        let(:with_agent_uds_path) { '/var/uds/path.socket' }
+        let(:with_trace_agent_url) { 'var/trace/agent.socket' }
+
+        it 'prioritizes the agent.uds_path' do
+          expect(resolver).to have_attributes(uds_path: '/var/uds/path.socket')
         end
 
-        it 'contacts the agent using the http adapter, using the requested configuration' do
-          expect(resolver).to have_attributes(
-            **settings,
-            ssl: true,
-            hostname: 'custom-hostname',
-            port: 1234,
-            timeout_seconds: 42,
-          )
-        end
-      end
-
-      context 'when the proc tries to set any other option' do
-        let(:transport_options) do
-          proc do |t|
-            t.adapter(:net_http, hostname: 'custom-hostname', port: 1234, timeout: 42, ssl: true)
-            t.another_option = 2
-          end
-        end
-
-        before do
-          allow(logger).to receive(:debug)
-        end
-
-        it 'includes the given proc in the resolved settings as the ' \
-        'deprecated_for_removal_transport_configuration_proc and falls back to the defaults' do
-          expect(resolver).to have_attributes(
-            **settings,
-            deprecated_for_removal_transport_configuration_proc: transport_options
-          )
-        end
-
-        it 'logs a debug message' do
-          expect(logger).to receive(:debug)
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
 
           resolver
         end
       end
-    end
 
-    context 'when the proc requests the :unix adapter' do
-      let(:transport_options) do
-        proc { |t| t.adapter(:unix, uds_path: '/custom/uds/path') }
-      end
+      # This somewhat duplicates some of the testing above, but it's still helpful to validate that the test is correct
+      # (otherwise it may pass due to bugs, not due to right priority being used)
+      context 'when only DD_TRACE_AGENT_URL is provided' do
+        let(:with_trace_agent_url) { '/var/trace/agent.socket' }
 
-      it 'configures the agent to connect via a unix domain socket' do
-        expect(resolver).to have_attributes(
-          **settings,
-          adapter: :unix,
-          uds_path: '/custom/uds/path',
-          hostname: nil,
-          port: nil,
-        )
-      end
-
-      context 'when the proc tries to set any other option' do
-        let(:transport_options) do
-          proc do |t|
-            t.adapter(:unix, uds_path: '/custom/uds/path')
-            t.another_option = 2
-          end
+        it 'uses the DD_TRACE_AGENT_URL_PATH' do
+          expect(resolver).to have_attributes(uds_path: '/var/trace/agent.socket')
         end
 
-        before do
-          allow(logger).to receive(:debug)
-        end
-
-        it 'includes the given proc in the resolved settings as the ' \
-          'deprecated_for_removal_transport_configuration_proc and falls back to the defaults' do
-            expect(resolver).to have_attributes(
-              **settings,
-              deprecated_for_removal_transport_configuration_proc: transport_options
-            )
-          end
-
-        it 'logs a debug message' do
-          expect(logger).to receive(:debug)
+        it 'does not log any warning' do
+          expect(logger).to_not receive(:warn).with(/Configuration mismatch/)
 
           resolver
         end

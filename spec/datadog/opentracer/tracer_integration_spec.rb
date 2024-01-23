@@ -119,7 +119,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
           it { expect(parent_datadog_span.parent_id).to eq(0) }
           it { expect(parent_datadog_span.finished?).to be true }
           it { expect(child_datadog_span.name).to eq('operation.child') }
-          it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.span_id) }
+          it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.id) }
           it { expect(child_datadog_span.finished?).to be true }
         end
 
@@ -169,7 +169,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
         it { expect(parent_datadog_span.parent_id).to eq(0) }
         it { expect(parent_datadog_span.finished?).to be true }
         it { expect(child_datadog_span.name).to eq('operation.child') }
-        it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.span_id) }
+        it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.id) }
         it { expect(child_datadog_span.finished?).to be true }
       end
     end
@@ -277,7 +277,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
         it { expect(parent_datadog_span.parent_id).to eq(0) }
         it { expect(parent_datadog_span.finished?).to be(true) }
         it { expect(child_datadog_span.name).to eq(span_name) }
-        it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.span_id) }
+        it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.id) }
         it { expect(child_datadog_span.finished?).to be(true) }
         it { expect(child_datadog_span.trace_id).to eq(parent_datadog_span.trace_id) }
       end
@@ -302,7 +302,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
         it { expect(parent_datadog_span.parent_id).to eq(0) }
         it { expect(parent_datadog_span.finished?).to be(true) }
         it { expect(child_datadog_span.name).to eq(child_span_name) }
-        it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.span_id) }
+        it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.id) }
         it { expect(child_datadog_span.finished?).to be(true) }
         it { expect(child_datadog_span.trace_id).to eq(parent_datadog_span.trace_id) }
       end
@@ -329,7 +329,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
           it { expect(parent_datadog_span.parent_id).to eq(0) }
           it { expect(parent_datadog_span.finished?).to be true }
           it { expect(child_datadog_span.name).to eq('operation.child') }
-          it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.span_id) }
+          it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.id) }
           it { expect(child_datadog_span.finished?).to be true }
         end
 
@@ -379,7 +379,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
         it { expect(parent_datadog_span.parent_id).to eq(0) }
         it { expect(parent_datadog_span.finished?).to be true }
         it { expect(child_datadog_span.name).to eq('operation.child') }
-        it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.span_id) }
+        it { expect(child_datadog_span.parent_id).to eq(parent_datadog_span.id) }
         it { expect(child_datadog_span.finished?).to be true }
         it { expect(fake_parent_datadog_span.name).to eq('operation.fake_parent') }
         it { expect(fake_parent_datadog_span.parent_id).to eq(0) }

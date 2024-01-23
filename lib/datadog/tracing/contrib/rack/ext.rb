@@ -13,7 +13,6 @@ module Datadog
           RACK_ENV_REQUEST_SPAN = 'datadog.rack_request_span'
           SPAN_HTTP_PROXY_REQUEST = 'http.proxy.request'
           SPAN_HTTP_PROXY_QUEUE = 'http.proxy.queue'
-          SPAN_HTTP_SERVER_QUEUE = 'http_server.queue'
           SPAN_REQUEST = 'rack.request'
           TAG_COMPONENT = 'rack'
           TAG_COMPONENT_HTTP_PROXY = 'http_proxy'

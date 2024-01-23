@@ -21,10 +21,11 @@ module Datadog
           module InstanceMethods
             def query(sql, options = {})
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+              on_error = Datadog.configuration_for(self, :on_error) || datadog_configuration[:on_error]
 
-              Tracing.trace(Ext::SPAN_QUERY, service: service) do |span, trace_op|
+              Tracing.trace(Ext::SPAN_QUERY, service: service, on_error: on_error) do |span, trace_op|
                 span.resource = sql
-                span.span_type = Tracing::Metadata::Ext::SQL::TYPE
+                span.type = Tracing::Metadata::Ext::SQL::TYPE
 
                 if datadog_configuration[:peer_service]
                   span.set_tag(

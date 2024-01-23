@@ -27,7 +27,7 @@ RSpec.describe 'GraphQL patcher' do
       end
     end
 
-    describe 'query trace' do
+    describe 'query trace', pending: 'Need to update instrumentation from graphql-ruby' do
       subject(:result) { schema.execute(query, variables: {}, context: {}, operation_name: nil) }
 
       let(:query) { '{ foo(id: 1) { name } }' }

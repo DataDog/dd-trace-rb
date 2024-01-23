@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Contrib
+      class StatusRangeEnvParser
+        def self.call: (untyped value) -> untyped
+      end
+    end
+  end
+end

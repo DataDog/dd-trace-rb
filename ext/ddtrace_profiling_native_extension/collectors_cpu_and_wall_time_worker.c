@@ -75,15 +75,22 @@
 //
 // ---
 
+#ifndef NO_POSTPONED_TRIGGER
+  // Used to call the rb_postponed_job_trigger from Ruby 3.3+. These get initialized in
+  // `collectors_cpu_and_wall_time_worker_init` below and always get reused after that.
+  static rb_postponed_job_handle_t sample_from_postponed_job_handle;
+  static rb_postponed_job_handle_t after_gc_from_postponed_job_handle;
+#endif
+
 // Contains state for a single CpuAndWallTimeWorker instance
 struct cpu_and_wall_time_worker_state {
   // These are immutable after initialization
 
   bool gc_profiling_enabled;
-  bool allocation_counting_enabled;
   bool no_signals_workaround_enabled;
   bool dynamic_sampling_rate_enabled;
-  int allocation_sample_every; // Temporarily used for development/testing of allocation profiling
+  int allocation_sample_every;
+  bool allocation_profiling_enabled;
   VALUE self_instance;
   VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
@@ -149,11 +156,11 @@ static VALUE _native_initialize(
   VALUE thread_context_collector_instance,
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
-  VALUE allocation_counting_enabled,
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE dynamic_sampling_rate_overhead_target_percentage,
-  VALUE allocation_sample_every
+  VALUE allocation_sample_every,
+  VALUE allocation_profiling_enabled
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
@@ -212,6 +219,16 @@ __thread uint64_t allocation_count = 0;
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_global_variable(&active_sampler_instance);
 
+  #ifndef NO_POSTPONED_TRIGGER
+    int unused_flags = 0;
+    sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
+    after_gc_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gc_from_postponed_job, NULL);
+
+    if (sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID || after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID) {
+      rb_raise(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
+    }
+  #endif
+
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   VALUE collectors_cpu_and_wall_time_worker_class = rb_define_class_under(collectors_module, "CpuAndWallTimeWorker", rb_cObject);
   // Hosts methods used for testing the native code using RSpec
@@ -265,10 +282,10 @@ static VALUE _native_new(VALUE klass) {
   // being leaked.
 
   state->gc_profiling_enabled = false;
-  state->allocation_counting_enabled = false;
   state->no_signals_workaround_enabled = false;
   state->dynamic_sampling_rate_enabled = true;
   state->allocation_sample_every = 0;
+  state->allocation_profiling_enabled = false;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
@@ -293,31 +310,31 @@ static VALUE _native_initialize(
   VALUE thread_context_collector_instance,
   VALUE gc_profiling_enabled,
   VALUE idle_sampling_helper_instance,
-  VALUE allocation_counting_enabled,
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE dynamic_sampling_rate_overhead_target_percentage,
-  VALUE allocation_sample_every
+  VALUE allocation_sample_every,
+  VALUE allocation_profiling_enabled
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
-  ENFORCE_BOOLEAN(allocation_counting_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
   ENFORCE_TYPE(allocation_sample_every, T_FIXNUM);
   ENFORCE_TYPE(dynamic_sampling_rate_overhead_target_percentage, T_FLOAT);
+  ENFORCE_BOOLEAN(allocation_profiling_enabled);
 
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   state->gc_profiling_enabled = (gc_profiling_enabled == Qtrue);
-  state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
   state->no_signals_workaround_enabled = (no_signals_workaround_enabled == Qtrue);
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
   dynamic_sampling_rate_set_overhead_target_percentage(&state->dynamic_sampling_rate, NUM2DBL(dynamic_sampling_rate_overhead_target_percentage));
   state->allocation_sample_every = NUM2INT(allocation_sample_every);
+  state->allocation_profiling_enabled = (allocation_profiling_enabled == Qtrue);
 
-  if (state->allocation_sample_every < 0) {
-    rb_raise(rb_eArgError, "Unexpected value for allocation_sample_every: %d. This value must be >= 0.", state->allocation_sample_every);
+  if (state->allocation_sample_every <= 0) {
+    rb_raise(rb_eArgError, "Unexpected value for allocation_sample_every: %d. This value must be > 0.", state->allocation_sample_every);
   }
 
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
@@ -476,20 +493,25 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 
   // Note: If we ever want to get rid of rb_postponed_job_register_one, remember not to clobber Ruby exceptions, as
   // this function does this helpful job for us now -- https://github.com/ruby/ruby/commit/a98e343d39c4d7bf1e2190b076720f32d9f298b3.
-  int result = rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
+  #ifndef NO_POSTPONED_TRIGGER // Ruby 3.3+
+    rb_postponed_job_trigger(sample_from_postponed_job_handle);
+    state->stats.postponed_job_success++; // Always succeeds
+  #else
+    int result = rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
 
-  // Officially, the result of rb_postponed_job_register_one is documented as being opaque, but in practice it does not
-  // seem to have changed between Ruby 2.3 and 3.2, and so we track it as a debugging mechanism
-  switch (result) {
-    case 0:
-      state->stats.postponed_job_full++; break;
-    case 1:
-      state->stats.postponed_job_success++; break;
-    case 2:
-      state->stats.postponed_job_skipped_already_existed++; break;
-    default:
-      state->stats.postponed_job_unknown_result++;
-  }
+    // Officially, the result of rb_postponed_job_register_one is documented as being opaque, but in practice it does not
+    // seem to have changed between Ruby 2.3 and 3.2, and so we track it as a debugging mechanism
+    switch (result) {
+      case 0:
+        state->stats.postponed_job_full++; break;
+      case 1:
+        state->stats.postponed_job_success++; break;
+      case 2:
+        state->stats.postponed_job_skipped_already_existed++; break;
+      default:
+        state->stats.postponed_job_unknown_result++;
+    }
+  #endif
 }
 
 // The actual sampling trigger loop always runs **without** the global vm lock.
@@ -636,7 +658,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   // because they may raise exceptions.
   install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
-  if (state->allocation_counting_enabled) rb_tracepoint_enable(state->object_allocation_tracepoint);
+  if (state->allocation_profiling_enabled) rb_tracepoint_enable(state->object_allocation_tracepoint);
 
   rb_thread_call_without_gvl(run_sampling_trigger_loop, state, interrupt_sampling_trigger_loop, state);
 
@@ -718,28 +740,17 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
     thread_context_collector_on_gc_start(state->thread_context_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
-    // Design: In an earlier iteration of this feature (see https://github.com/DataDog/dd-trace-rb/pull/2308) we
-    // actually had a single method to implement the behavior of both thread_context_collector_on_gc_finish
-    // and thread_context_collector_sample_after_gc (the latter is called via after_gc_from_postponed_job).
-    //
-    // Unfortunately, then we discovered the safety issue around no allocations, and thus decided to separate them -- so that
-    // the sampling could run outside the tight safety constraints of the garbage collection process.
-    //
-    // There is a downside: The sample is now taken very very shortly afterwards the GC finishes, and not immediately
-    // as the GC finishes, which means the stack captured may by affected by "skid", e.g. point slightly after where
-    // it should be pointing at.
-    // Alternatives to solve this would be to capture no stack for garbage collection (as we do for Java and .net);
-    // making the sampling process allocation-safe (very hard); or separate stack sampling from sample recording,
-    // e.g. enabling us to capture the stack in thread_context_collector_on_gc_finish and do the rest later
-    // (medium hard).
+    bool should_flush = thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
 
-    thread_context_collector_on_gc_finish(state->thread_context_collector_instance);
-    // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc after if
-    // fully finishes the garbage collection, so that one is allowed to do allocations and throw exceptions as usual.
-    //
-    // Note: If we ever want to get rid of rb_postponed_job_register_one, remember not to clobber Ruby exceptions, as
-    // this function does this helpful job for us now -- https://github.com/ruby/ruby/commit/a98e343d39c4d7bf1e2190b076720f32d9f298b3.
-    rb_postponed_job_register_one(0, after_gc_from_postponed_job, NULL);
+    // We use rb_postponed_job_register_one to ask Ruby to run thread_context_collector_sample_after_gc when the
+    // thread collector flags it's time to flush.
+    if (should_flush) {
+      #ifndef NO_POSTPONED_TRIGGER // Ruby 3.3+
+        rb_postponed_job_trigger(after_gc_from_postponed_job_handle);
+      #else
+        rb_postponed_job_register_one(0, after_gc_from_postponed_job, NULL);
+      #endif
+    }
   }
 }
 
@@ -892,9 +903,9 @@ static void sleep_for(uint64_t time_ns) {
 }
 
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
-  bool is_profiler_running = active_sampler_instance_state != NULL;
+  bool are_allocations_being_tracked = active_sampler_instance_state != NULL && active_sampler_instance_state->allocation_profiling_enabled;
 
-  return is_profiler_running ? ULL2NUM(allocation_count) : Qnil;
+  return are_allocations_being_tracked ? ULL2NUM(allocation_count) : Qnil;
 }
 
 // Implements memory-related profiling events. This function is called by Ruby via the `object_allocation_tracepoint`
@@ -928,7 +939,7 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
 
   // TODO: This is a placeholder sampling decision strategy. We plan to replace it with a better one soon (e.g. before
   // beta), and having something here allows us to test the rest of feature, sampling decision aside.
-  if (state->allocation_sample_every > 0 && ((allocation_count % state->allocation_sample_every) == 0)) {
+  if (allocation_count % state->allocation_sample_every == 0) {
     // Rescue against any exceptions that happen during sampling
     safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
   }

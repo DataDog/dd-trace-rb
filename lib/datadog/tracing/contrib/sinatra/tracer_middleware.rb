@@ -32,7 +32,7 @@ module Datadog
             Tracing.trace(
               Ext::SPAN_REQUEST,
               service: configuration[:service_name],
-              span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
+              type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
             ) do |span|
               begin
                 # this is kept nil until we set a correct one (either in the route or with a fallback in the ensure below)

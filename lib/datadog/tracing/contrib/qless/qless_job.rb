@@ -14,7 +14,7 @@ module Datadog
 
             Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
               span.resource = job.klass_name
-              span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
+              span.type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
               span.set_tag(Ext::TAG_JOB_ID, job.jid)
               span.set_tag(Ext::TAG_JOB_QUEUE, job.queue_name)
 

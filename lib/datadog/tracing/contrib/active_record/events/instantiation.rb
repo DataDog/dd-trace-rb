@@ -31,7 +31,7 @@ module Datadog
 
             def process(span, event, _id, payload)
               span.resource = payload.fetch(:class_name)
-              span.span_type = Ext::SPAN_TYPE_INSTANTIATION
+              span.type = Ext::SPAN_TYPE_INSTANTIATION
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_INSTANTIATION)
 

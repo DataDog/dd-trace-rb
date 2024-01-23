@@ -198,7 +198,7 @@ If your Datadog Agent is listening at any of these locations, no further configu
 If your Agent runs on a different host or container than your application, or you would like to send traces via a different protocol, you will need to configure your application accordingly.
 
   - [How to send trace data via HTTP over TCP to Agent](#changing-default-agent-hostname-and-port)
-  - [How to send trace data via Unix Domain Socket (UDS) to Agent](#using-the-unix-domain-socket-uds-adapter)
+  - [How to send trace data via Unix Domain Socket (UDS) to Agent](#unix-domain-socket-uds)
 
 ### Final steps for installation
 
@@ -333,18 +333,7 @@ For a list of configuration options for the available integrations, refer to the
 
 #### CI Visibility
 
-For Datadog CI Visibility, library instrumentation can be activated and configured by using the following `Datadog.configure` API:
-
-```ruby
-Datadog.configure do |c|
-  # Activates and configures an integration
-  c.ci.instrument :integration_name, **options
-end
-```
-
-`options` are keyword arguments for integration-specific configuration.
-
-For a list of available integrations and their supported versions, see [Ruby CI Integration Compatibility][3]
+Checkout [Datadog's Ruby Library for instrumenting your test and continuous integration pipeline](https://github.com/DataDog/datadog-ci-rb)
 
 ### Action Cable
 
@@ -602,41 +591,6 @@ Datadog::Tracing.trace('outer') do
 end
 ```
 
-### Cucumber
-
-Cucumber integration will trace all executions of scenarios and steps when using `cucumber` framework.
-
-To activate your integration, use the `Datadog.configure` method:
-
-```ruby
-require 'cucumber'
-require 'ddtrace'
-
-# Configure default Cucumber integration
-Datadog.configure do |c|
-  c.ci.instrument :cucumber, **options
-end
-
-# Example of how to attach tags from scenario to active span
-Around do |scenario, block|
-  active_span = Datadog.configuration[:cucumber][:tracer].active_span
-  unless active_span.nil?
-    scenario.tags.filter { |tag| tag.include? ':' }.each do |tag|
-      active_span.set_tag(*tag.name.split(':', 2))
-    end
-  end
-  block.call
-end
-```
-
-`options` are the following keyword arguments:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `enabled` | Defines whether Cucumber tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `cucumber` instrumentation. | `'cucumber'` |
-| `operation_name` | Operation name used for `cucumber` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'cucumber.test'` |
-
 ### Dalli
 
 Dalli integration will trace all calls to your `memcached` server:
@@ -682,7 +636,7 @@ end
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Elasticsearch
 
@@ -773,7 +727,8 @@ connection.get
 | `peer_service`        | `DD_TRACE_EXCON_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `distributed_tracing` |                               | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
 | `split_by_domain`     |                               | Uses the request domain as the service name when set to `true`.                                                                                                                           | `false` |
-| `error_handler`       |                               | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors.                    | `nil`   |
+| `on_error` || Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `error_status_codes`  | `DD_TRACE_EXCON_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 
 **Configuring connections to use different settings**
@@ -837,8 +792,8 @@ connection.get('/foo')
 | `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                        | `nil`     |
 | `distributed_tracing` |                                 | Enables [distributed tracing](#distributed-tracing)                                                                                                                                         | `true`    |
 | `split_by_domain`     |                                 | Uses the request domain as the service name when set to `true`.                                                                                                                             | `false`   |
-| `error_handler`       |                                 | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors.                      | `nil`     |
-
+| `on_error` || Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |**default: 400...600**
+| `error_status_codes`  | `DD_TRACE_FARADAY_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 ### Grape
 
@@ -869,7 +824,7 @@ end
 | Key              | Env Var                  | Description                                                                                                                   | Default |
 |------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------|
 | `enabled`        | `DD_TRACE_GRAPE_ENABLED` | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false`                           | `true`  |
-| `error_statuses` |                          | Defines a status code or range of status codes which should be marked as errors. `'404,405,500-599'` or `[404,405,'500-599']` | `nil`   |
+| `error_status_codes` | `DD_TRACE_GRAPE_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `500...600`   |
 
 
 ### GraphQL
@@ -973,11 +928,7 @@ client.my_endpoint(DemoMessage.new(contents: 'hello!'))
 | `service_name`        | `DD_TRACE_GRPC_SERVICE_NAME` | Name of application running the `grpc` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `grpc`                                                             |
 | `peer_service`        | `DD_TRACE_GRPC_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                     | `nil`                                                              |
 | `distributed_tracing` |                              | Enables [distributed tracing](#distributed-tracing)                                                                                                                                      | `true`                                                             |
-| `server_error_handler`       |                              | Custom error handler invoked when there is a server error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
-| `client_error_handler`       |                              | Custom error handler invoked when there is a client error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
-
-Deprecation notice:
-- `error_handler` will be removed. Use `server_error_handler` instead.
+| `on_error`       | | Custom error handler invoked when there is an error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
 
 **Configuring clients to use different settings**
 
@@ -1046,8 +997,7 @@ end
 | `peer_service`        | `DD_TRACE_HTTPRB_PEER_SERVICE`           | Name of external service the application connects to                                                                                                                                       | `nil`       |
 | `distributed_tracing` |                                          | Enables [distributed tracing](#distributed-tracing)                                                                                                                                        | `true`      |
 | `split_by_domain`     |                                          | Uses the request domain as the service name when set to `true`.                                                                                                                            | `false`     |
-| `error_status_codes`  | `DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                       | `400...600` |
-
+| `error_status_codes`  | `DD_TRACE_HTTPRB_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 ### httpclient
 
@@ -1074,7 +1024,7 @@ end
 | `peer_service`        | `DD_TRACE_HTTPCLIENT_PEER_SERVICE`       | Name of external service the application connects to                                                                                                                                           | `nil`        |
 | `distributed_tracing` |                                          | Enables [distributed tracing](#distributed-tracing)                                                                                                                                            | `true`       |
 | `split_by_domain`     |                                          | Uses the request domain as the service name when set to `true`.                                                                                                                                | `false`      |
-| `error_status_codes`  | `DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                           | `400...600`  |
+| `error_status_codes`  | `DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600`  |
 
 
 ### httpx
@@ -1111,30 +1061,6 @@ Datadog.configure do |c|
   c.tracing.instrument :kafka
 end
 ```
-
-### Minitest
-
-The Minitest integration will trace all executions of tests when using `minitest` test framework.
-
-To activate your integration, use the `Datadog.configure` method:
-
-```ruby
-require 'minitest'
-require 'ddtrace'
-
-# Configure default Minitest integration
-Datadog.configure do |c|
-  c.ci.instrument :minitest, **options
-end
-```
-
-`options` are the following keyword arguments:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `enabled` | Defines whether Minitest tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `minitest` instrumentation. | `'minitest'` |
-| `operation_name` | Operation name used for `minitest` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'minitest.test'` |
 
 ### MongoDB
 
@@ -1218,8 +1144,8 @@ client.query("SELECT * FROM users WHERE group='x'")
 |-----------------------|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
 | `service_name`        | `DD_TRACE_MYSQL2_SERVICE_NAME` | Name of application running the `mysql2` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)                                                                                                                                                                              | `mysql2`     |
 | `peer_service`        | `DD_TRACE_MYSQL2_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                    | `nil`        |
-| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`      | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
-
+| `comment_propagation` | `DD_DBM_PROPAGATION_MODE`      | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database.* | `'disabled'` |
+| `on_error` | | Custom error handler invoked when MySQL raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 ### Net/HTTP
 
 The Net/HTTP integration will trace any HTTP call using the standard lib Net::HTTP module.
@@ -1254,7 +1180,7 @@ content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 | `peer_service`        | `DD_TRACE_NET_HTTP_PEER_SERVICE`   | Name of external service the application connects to                                                                                                                                         | `nil`       |
 | `distributed_tracing` |                                    | Enables [distributed tracing](#distributed-tracing)                                                                                                                                          | `true`      |
 | `split_by_domain`     |                                    | Uses the request domain as the service name when set to `true`.                                                                                                                              | `false`     |
-| `error_status_codes`  | `DD_TRACE_HTTP_ERROR_STATUS_CODES` | Range or Array of HTTP status codes that should be traced as errors.                                                                                                                         | `400...600` |
+| `error_status_codes`  | `DD_TRACE_HTTP_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 If you wish to configure each connection object individually, you may use the `Datadog.configure_onto` as it follows:
 
@@ -1315,7 +1241,7 @@ end
 | `service_name`        | `DD_TRACE_PG_SERVICE_NAME` | Name of application running the `pg` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)                                                                                                                                                                                  | `pg`         |
 | `peer_service`        | `DD_TRACE_PG_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                    | `nil`        |
 | `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors from Postgres that are handled at the application level. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `on_error` || Custom error handler invoked when PG raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors from Postgres that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Presto
 
@@ -1392,7 +1318,7 @@ end
 | `enabled`       | `DD_TRACE_QUE_ENABLED`          | Defines whether Que should be traced. Useful for temporarily disabling tracing. `true` or `false`                                                                           | `true`                                                             |
 | `tag_args`      | `DD_TRACE_QUE_TAG_ARGS_ENABLED` | Enable tagging of a job's args field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
 | `tag_data`      | `DD_TRACE_QUE_TAG_DATA_ENABLED` | Enable tagging of a job's data field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
-| `error_handler` |                                 | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
+| `on_error` |                                 | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
 
 ### Racecar
 
@@ -1541,9 +1467,9 @@ end
 
 | MRI Versions  | JRuby Versions | Rails Versions |
 | ------------- | -------------- | -------------- |
-|  2.5          |                |  4.2.8 - 6.1   |
-|  2.6 - 2.7    |  9.2           |  5.0 - 6.1     |
-|  3.0 - 3.2    |                |  6.1           |
+|  2.5          |                |  4.2 - 6.1     |
+|  2.6 - 2.7    |  9.2 - 9.3     |  5.0 - 6.1     |
+|  3.0 - 3.2    |  9.4           |  6.1           |
 
 ### Rake
 
@@ -1738,7 +1664,7 @@ end
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Rest Client
 
@@ -1794,30 +1720,6 @@ end
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `service_name` | Service name for `roda` instrumentation. | `'nil'` |
-
-### RSpec
-
-RSpec integration will trace all executions of example groups and examples when using `rspec` test framework.
-
-To activate your integration, use the `Datadog.configure` method:
-
-```ruby
-require 'rspec'
-require 'ddtrace'
-
-# Configure default RSpec integration
-Datadog.configure do |c|
-  c.ci.instrument :rspec, **options
-end
-```
-
-`options` are the following keyword arguments:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `enabled` | Defines whether RSpec tests should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `rspec` instrumentation. | `'rspec'` |
-| `operation_name` | Operation name used for `rspec` instrumentation. Useful if you want rename automatic trace metrics e.g. `trace.#{operation_name}.errors`. | `'rspec.example'` |
 
 ### Sequel
 
@@ -1883,7 +1785,7 @@ end
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `tag_body` | Tag spans with the SQS message body `true` or `false` | `false` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Sidekiq
 
@@ -1905,7 +1807,7 @@ end
 | --- | ----------- | ------- |
 | `distributed_tracing` | Enabling [distributed tracing](#distributed-tracing) creates a parent-child relationship between the `sidekiq.push` span and the `sidekiq.job` span. <br /><br />**Important**: *Enabling distributed_tracing for asynchronous processing can result in drastic changes in your trace graph. Such cases include long running jobs, retried jobs, and jobs scheduled in the far future. Make sure to inspect your traces after enabling this feature.* | `false` |
 | `tag_args` | Enable tagging of job arguments. `true` for on, `false` for off. | `false` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `quantize` | Hash containing options for quantization of job arguments. | `{}` |
 
 ### Sinatra
@@ -1984,7 +1886,7 @@ end
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Sneakers should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `tag_body` | Enable tagging of job message. `true` for on, `false` for off. | `false` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Stripe
 
@@ -2405,7 +2307,7 @@ end
 
 Traces that originate from HTTP requests can be configured to include the time spent in a frontend web server or load balancer queue before the request reaches the Ruby application.
 
-This feature is disabled by default. To activate it, you must add an `X-Request-Start` or `X-Queue-Start` header from your web server (i.e., Nginx). The following is an Nginx configuration example:
+This feature is disabled by default. To activate it, you must add an `X-Request-Start` or `X-Queue-Start` header from your web server (i.e., Nginx) before enabling the request queuing feature. The following is an Nginx configuration example:
 
 ```
 # /etc/nginx/conf.d/ruby_service.conf
@@ -2418,14 +2320,6 @@ server {
     }
 }
 ```
-
-Then you must enable the request queuing feature. The following options are available for the `:request_queuing` configuration:
-
-| Option             | Description |
-| ------------------ | ----------- |
-| `:include_request` | A `http_server.queue` span will be the root span of a trace, including the total time spent processing the request *in addition* to the time spent waiting for the request to begin being processed. This is the behavior when the configuration is set to `true`. This is the selected configuration when set to `true`. |
-| `:exclude_request` | A `http.proxy.request` span will be the root span of a trace, with the `http.proxy.queue` child span duration representing only the time spent waiting for the request to begin being processed. *This is an experimental feature!* |
-
 For Rack-based applications, see the [documentation](#rack) for details.
 
 ### Processing Pipeline
@@ -2568,62 +2462,42 @@ end
 
 See [Additional Configuration](#additional-configuration) for more details.
 
-#### Using the Net::HTTP adapter
+#### Agent connection methods
+The agent supports communication via TCP or Unix Domain Socket (UDS). The tracer will automatically detect the agent's
+connection method based on the configuration provided.
 
-The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default transport adapter.
+##### TCP
+The tracer will connect to the agent via TCP if the `host` and `port` are set, or if `HTTP/HTTPS` is specified as the
+protocol in `DD_TRACE_AGENT_URL`. TCP is the default connection method.
 
-```ruby
-Datadog.configure do |c|
-  c.tracing.transport_options = proc { |t|
-    # Hostname, port, and additional options. :timeout is in seconds.
-    t.adapter :net_http, '127.0.0.1', 8126, timeout: 30
-  }
-end
-```
-
-#### Using the Unix Domain Socket (UDS) adapter
-
-The `UnixSocket` adapter submits traces using `Net::HTTP` over Unix socket.
-
+##### Unix Domain Socket (UDS)
 To use, first configure your trace Agent to listen by Unix socket, then configure the tracer with:
 
 ```ruby
 Datadog.configure do |c|
-  c.tracing.transport_options = proc { |t|
-    # Provide local path to trace Agent Unix socket
-    t.adapter :unix, '/tmp/ddagent/trace.sock'
-  }
+  # Provide local path to trace Agent Unix socket
+  c.agent.uds_path = '/tmp/ddagent/trace.sock'
 end
 ```
 
-#### Using the transport test adapter
+You can also define the UDS path using the `DD_TRACE_AGENT_URL` environment variable by setting the protocol to `unix`:
 
-The `Test` adapter is a no-op transport that can optionally buffer requests. For use in test suites or other non-production environments.
-
-```ruby
-Datadog.configure do |c|
-  c.tracing.transport_options = proc { |t|
-    # Set transport to no-op mode. Does not retain traces.
-    t.adapter :test
-
-    # Alternatively, you can provide a buffer to examine trace output.
-    # The buffer must respond to '<<'.
-    t.adapter :test, []
-  }
-end
+```bash
+DD_TRACE_AGENT_URL=unix:///tmp/ddagent/trace.sock
 ```
 
-#### Using a custom transport adapter
+Note: You cannot mix UDS and TCP configurations. If you set `c.agent.uds_path`, you must not set `c.agent.host`
+or `c.agent.port`.
 
-Custom adapters can be configured with:
+#### Transporting in Test Mode
+
+When test mode is enabled, the tracer uses a `Test` adapter for no-op transport that can optionally buffer requests in
+test suites or other non-production environments. It is configured by setting `c.tracing.test_mode.enabled` to true.
+This mode only works for tracing.
 
 ```ruby
 Datadog.configure do |c|
-  c.tracing.transport_options = proc { |t|
-    # Initialize and pass an instance of the adapter
-    custom_adapter = CustomAdapter.new
-    t.adapter custom_adapter
-  }
+  c.tracing.test_mode.enabled = true
 end
 ```
 
@@ -2789,4 +2663,3 @@ See [this issue](https://github.com/DataDog/dd-trace-rb/issues/3015) for a discu
 [header tags]: https://docs.datadoghq.com/tracing/configure_data_security/#applying-header-tags-to-root-spans
 [1]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby/
 [2]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby#integrations
-[3]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby#ci-visibility-integrations

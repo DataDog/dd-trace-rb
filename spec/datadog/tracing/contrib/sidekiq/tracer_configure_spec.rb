@@ -7,7 +7,7 @@ RSpec.describe 'Tracer configuration' do
   subject(:perform_async) { job_class.perform_async }
 
   let(:job_class) { EmptyWorker }
-  let(:error_handler) { nil }
+  let(:on_error) { nil }
 
   context 'with custom middleware configuration' do
     before do
@@ -15,7 +15,7 @@ RSpec.describe 'Tracer configuration' do
         chain.add(
           Datadog::Tracing::Contrib::Sidekiq::ServerTracer,
           service_name: 'my-service',
-          error_handler: error_handler
+          on_error: on_error
         )
       end
     end
@@ -31,7 +31,7 @@ RSpec.describe 'Tracer configuration' do
 
     context 'with custom error handler' do
       let(:job_class) { ErrorWorker }
-      let(:error_handler) { proc { @error_handler_called = true } }
+      let(:on_error) { proc { @error_handler_called = true } }
 
       before do
         stub_const(

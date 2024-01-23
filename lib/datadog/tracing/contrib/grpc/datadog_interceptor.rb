@@ -58,6 +58,10 @@ module Datadog
               datadog_configuration[:analytics_sample_rate]
             end
 
+            def on_error
+              Datadog.configuration_for(self, :on_error) || datadog_configuration[:on_error]
+            end
+
             # Allows interceptors to define settings using methods instead of `[]`
             class PinAdapter
               OPTIONS = Configuration::Settings.instance_methods(false).freeze

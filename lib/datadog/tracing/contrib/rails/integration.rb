@@ -12,7 +12,10 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('3.2')
+          # The version of Rails lives in Ext because the `rails/patcher.rb` indirectly loads
+          # all Rails components, and those components need the Rails version. Declaring the version
+          # here would cause a circular dependency.
+          MINIMUM_VERSION = Ext::MINIMUM_VERSION
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :rails, auto_patch: false

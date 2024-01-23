@@ -227,12 +227,6 @@ module Datadog
                 option :min_spans_threshold, default: 500, type: :int
               end
 
-              # Enables {https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/#datadog-intelligent-retention-filter
-              # Datadog intelligent retention filter}.
-              # @default `true`
-              # @return [Boolean,nil]
-              option :priority_sampling
-
               option :report_hostname do |o|
                 o.env Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME
                 o.default false
@@ -363,17 +357,6 @@ module Datadog
                 end
               end
 
-              # @see file:docs/GettingStarted.md#configuring-the-transport-layer Configuring the transport layer
-              #
-              # A {Proc} that configures a custom tracer transport.
-              # @yield Receives a {Datadog::Tracing::Transport::HTTP} that can be modified with custom adapters and settings.
-              # @yieldparam [Datadog::Tracing::Transport::HTTP] t transport to be configured.
-              # @default `nil`
-              # @return [Proc,nil]
-              option :transport_options do |o|
-                o.type :proc, nilable: true
-                o.default nil
-              end
               # A custom writer instance.
               # The object must respect the {Datadog::Tracing::Writer} interface.
               #

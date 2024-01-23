@@ -11,9 +11,6 @@
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
-#define MAX_FRAMES_LIMIT            10000
-#define MAX_FRAMES_LIMIT_AS_STRING "10000"
-
 static VALUE missing_string = Qnil;
 
 // Used as scratch space during sampling
@@ -36,23 +33,7 @@ static VALUE _native_sample(
   VALUE in_gc
 );
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
-static void record_placeholder_stack_in_native_code(
-  sampling_buffer* buffer,
-  VALUE recorder_instance,
-  sample_values values,
-  sample_labels labels,
-  sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
-);
-static void sample_thread_internal(
-  VALUE thread,
-  sampling_buffer* buffer,
-  VALUE recorder_instance,
-  sample_values values,
-  sample_labels labels,
-  sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
-);
+static void record_placeholder_stack_in_native_code(sampling_buffer* buffer, VALUE recorder_instance, sample_values values, sample_labels labels);
 
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -88,6 +69,7 @@ static VALUE _native_sample(
     .cpu_or_wall_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-samples"), zero)),
     .wall_time_ns  = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("wall-time"),     zero)),
     .alloc_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("alloc-samples"), zero)),
+    .timeline_wall_time_ns = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("timeline"), zero)),
   };
 
   long labels_count = RARRAY_LEN(labels_array) + RARRAY_LEN(numeric_labels_array);
@@ -122,60 +104,27 @@ static VALUE _native_sample(
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
-  sample_thread(
-    thread,
-    buffer,
-    recorder_instance,
-    values,
-    (sample_labels) {.labels = slice_labels, .state_label = state_label},
-    RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
-  );
+  if (in_gc == Qtrue) {
+    record_placeholder_stack(
+      buffer,
+      recorder_instance,
+      values,
+      (sample_labels) {.labels = slice_labels, .state_label = state_label},
+      DDOG_CHARSLICE_C("Garbage Collection")
+    );
+  } else {
+    sample_thread(
+      thread,
+      buffer,
+      recorder_instance,
+      values,
+      (sample_labels) {.labels = slice_labels, .state_label = state_label}
+    );
+  }
 
   sampling_buffer_free(buffer);
 
   return Qtrue;
-}
-
-void sample_thread(
-  VALUE thread,
-  sampling_buffer* buffer,
-  VALUE recorder_instance,
-  sample_values values,
-  sample_labels labels,
-  sample_type type
-) {
-  // Samples thread into recorder
-  if (type == SAMPLE_REGULAR) {
-    sampling_buffer *record_buffer = buffer;
-    int extra_frames_in_record_buffer = 0;
-    sample_thread_internal(thread, buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
-    return;
-  }
-
-  // Samples thread into recorder, including as a top frame in the stack a frame named "Garbage Collection"
-  if (type == SAMPLE_IN_GC) {
-    ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
-    ddog_CharSlice function_filename = DDOG_CHARSLICE_C("Garbage Collection");
-    buffer->locations[0] = (ddog_prof_Location) {
-      .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
-      .line = 0
-    };
-    // To avoid changing sample_thread_internal, we just prepare a new buffer struct that uses the same underlying storage as the
-    // original buffer, but has capacity one less, so that we can keep the above Garbage Collection frame untouched.
-    sampling_buffer thread_in_gc_buffer = (struct sampling_buffer) {
-      .max_frames = buffer->max_frames - 1,
-      .stack_buffer = buffer->stack_buffer + 1,
-      .lines_buffer = buffer->lines_buffer + 1,
-      .is_ruby_frame = buffer->is_ruby_frame + 1,
-      .locations = buffer->locations + 1,
-    };
-    sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
-    int extra_frames_in_record_buffer = 1;
-    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, values, labels, record_buffer, extra_frames_in_record_buffer);
-    return;
-  }
-
-  rb_raise(rb_eArgError, "Unexpected value for sample_type: %d", type);
 }
 
 #define CHARSLICE_EQUALS(must_be_a_literal, charslice) (strlen("" must_be_a_literal) == charslice.len && strncmp(must_be_a_literal, charslice.ptr, charslice.len) == 0)
@@ -189,24 +138,12 @@ void sample_thread(
 // * Should we move this into a different thread entirely?
 // * If we don't move it into a different thread, does releasing the GVL on a Ruby thread mean that we're introducing
 //   a new thread switch point where there previously was none?
-//
-// ---
-//
-// Why the weird extra record_buffer and extra_frames_in_record_buffer?
-// The answer is: to support both sample_thread() and sample_thread_in_gc().
-//
-// For sample_thread(), buffer == record_buffer and extra_frames_in_record_buffer == 0, so it's a no-op.
-// For sample_thread_in_gc(), the buffer is a special buffer that is the same as the record_buffer, but with every
-// pointer shifted forward extra_frames_in_record_buffer elements, so that the caller can actually inject those extra
-// frames, and this function doesn't have to care about it.
-static void sample_thread_internal(
+void sample_thread(
   VALUE thread,
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  sample_labels labels,
-  sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
+  sample_labels labels
 ) {
   int captured_frames = ddtrace_rb_profile_frames(
     thread,
@@ -218,14 +155,7 @@ static void sample_thread_internal(
   );
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
-    record_placeholder_stack_in_native_code(
-      buffer,
-      recorder_instance,
-      values,
-      labels,
-      record_buffer,
-      extra_frames_in_record_buffer
-    );
+    record_placeholder_stack_in_native_code(buffer, recorder_instance, values, labels);
     return;
   }
 
@@ -332,7 +262,7 @@ static void sample_thread_internal(
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = captured_frames + extra_frames_in_record_buffer},
+    (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = captured_frames},
     values,
     labels
   );
@@ -379,24 +309,35 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 //
 // To give customers visibility into these threads, rather than reporting an empty stack, we replace the empty stack
 // with one containing a placeholder frame, so that these threads are properly represented in the UX.
+
 static void record_placeholder_stack_in_native_code(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  sample_labels labels,
-  sampling_buffer *record_buffer,
-  int extra_frames_in_record_buffer
+  sample_labels labels
 ) {
-  ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
-  ddog_CharSlice function_filename = DDOG_CHARSLICE_C("In native code");
-  buffer->locations[0] = (ddog_prof_Location) {
-    .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
-    .line = 0
-  };
+  record_placeholder_stack(
+    buffer,
+    recorder_instance,
+    values,
+    labels,
+    DDOG_CHARSLICE_C("In native code")
+  );
+}
+
+void record_placeholder_stack(
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  sample_values values,
+  sample_labels labels,
+  ddog_CharSlice placeholder_stack
+) {
+  ddog_prof_Function placeholder = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack};
+  buffer->locations[0] = (ddog_prof_Location) {.function = placeholder, .line = 0};
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Slice_Location) {.ptr = record_buffer->locations, .len = 1 + extra_frames_in_record_buffer},
+    (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = 1},
     values,
     labels
   );

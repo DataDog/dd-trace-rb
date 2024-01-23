@@ -227,14 +227,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       it { expect(settings.env).to eq(env) }
     end
 
-    context 'when given a symbol' do
-      let(:env) { :symbol }
-
-      before { set_env }
-
-      it { expect(settings.env).to eq('symbol') }
-    end
-
     context 'when given `nil`' do
       let(:env) { nil }
 
@@ -465,39 +457,186 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#allocation_counting_enabled' do
-        subject(:allocation_counting_enabled) { settings.profiling.advanced.allocation_counting_enabled }
+      describe '#allocation_counting_enabled=' do
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
 
-        before { stub_const('RUBY_VERSION', testing_version) }
-
-        context 'on Ruby 2.x' do
-          let(:testing_version) { '2.3.0 ' }
-          it { is_expected.to be true }
+          settings.profiling.advanced.allocation_counting_enabled = false
         end
+      end
 
-        ['3.0.0', '3.1.0', '3.1.3', '3.2.0', '3.2.2'].each do |broken_ruby|
-          context "on a Ruby 3 version affected by https://bugs.ruby-lang.org/issues/18464 (#{broken_ruby})" do
-            let(:testing_version) { broken_ruby }
+      describe '#experimental_allocation_enabled' do
+        subject(:experimental_allocation_enabled) { settings.profiling.advanced.experimental_allocation_enabled }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
             it { is_expected.to be false }
           end
-        end
 
-        ['3.1.4', '3.2.3', '3.3.0'].each do |fixed_ruby|
-          context "on a Ruby 3 version where https://bugs.ruby-lang.org/issues/18464 is fixed (#{fixed_ruby})" do
-            let(:testing_version) { fixed_ruby }
-            it { is_expected.to be true }
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
           end
         end
       end
 
-      describe '#allocation_counting_enabled=' do
-        it 'updates the #allocation_counting_enabled setting' do
-          settings.profiling.advanced.allocation_counting_enabled = true
+      describe '#experimental_allocation_enabled=' do
+        it 'updates the #experimental_allocation_enabled setting' do
+          expect { settings.profiling.advanced.experimental_allocation_enabled = true }
+            .to change { settings.profiling.advanced.experimental_allocation_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
 
-          expect { settings.profiling.advanced.allocation_counting_enabled = false }
-            .to change { settings.profiling.advanced.allocation_counting_enabled }
+      describe '#experimental_heap_enabled' do
+        subject(:experimental_heap_enabled) { settings.profiling.advanced.experimental_heap_enabled }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_heap_enabled=' do
+        it 'updates the #experimental_heap_enabled setting' do
+          expect { settings.profiling.advanced.experimental_heap_enabled = true }
+            .to change { settings.profiling.advanced.experimental_heap_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
+
+      describe '#experimental_heap_size_enabled' do
+        subject(:experimental_heap_size_enabled) { settings.profiling.advanced.experimental_heap_size_enabled }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be true }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_heap_size_enabled=' do
+        it 'updates the #experimental_heap_size_enabled setting' do
+          expect { settings.profiling.advanced.experimental_heap_size_enabled = false }
+            .to change { settings.profiling.advanced.experimental_heap_size_enabled }
             .from(true)
             .to(false)
+        end
+      end
+
+      describe '#experimental_allocation_sample_rate' do
+        subject(:experimental_allocation_sample_rate) { settings.profiling.advanced.experimental_allocation_sample_rate }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be 50 }
+          end
+
+          [100, 30.5].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value.to_i }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_allocation_sample_rate=' do
+        it 'updates the #experimental_allocation_sample_rate setting' do
+          expect { settings.profiling.advanced.experimental_allocation_sample_rate = 100 }
+            .to change { settings.profiling.advanced.experimental_allocation_sample_rate }
+            .from(50)
+            .to(100)
+        end
+      end
+
+      describe '#experimental_heap_sample_rate' do
+        subject(:experimental_heap_sample_rate) { settings.profiling.advanced.experimental_heap_sample_rate }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be 10 }
+          end
+
+          [100, 30.5].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value.to_i }
+            end
+          end
+        end
+      end
+
+      describe '#experimental_heap_sample_rate=' do
+        it 'updates the #experimental_heap_sample_rate setting' do
+          expect { settings.profiling.advanced.experimental_heap_sample_rate = 100 }
+            .to change { settings.profiling.advanced.experimental_heap_sample_rate }
+            .from(10)
+            .to(100)
         end
       end
 
@@ -837,14 +976,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       before { set_service }
 
       it { expect(settings.service).to eq(service) }
-    end
-
-    context 'when given a symbol' do
-      let(:service) { :symbol }
-
-      before { set_service }
-
-      it { expect(settings.service).to eq('symbol') }
     end
 
     context 'when given `nil`' do
@@ -1268,6 +1399,99 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       it 'updates the #heartbeat_interval setting' do
         expect { settings.telemetry.heartbeat_interval_seconds = 2.2 }
           .to change { settings.telemetry.heartbeat_interval_seconds }.from(1.1).to(2.2)
+      end
+    end
+
+    describe '#install_id' do
+      subject(:install_id) { settings.telemetry.install_id }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_ID' }
+
+      context 'when DD_INSTRUMENTATION_INSTALL_ID' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to eq nil }
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { '68e75c48-57ca-4a12-adfc-575c4b05fcbe' }
+
+          it { is_expected.to eq '68e75c48-57ca-4a12-adfc-575c4b05fcbe' }
+        end
+      end
+    end
+
+    describe '#install_id=' do
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_ID' }
+      let(:env_var_value) { '68e75c48-57ca-4a12-adfc-575c4b05fcbe' }
+
+      it 'updates the #install_id setting' do
+        expect { settings.telemetry.install_id = 'abc123' }
+          .to change { settings.telemetry.install_id }
+          .from('68e75c48-57ca-4a12-adfc-575c4b05fcbe')
+          .to('abc123')
+      end
+    end
+
+    describe '#install_type' do
+      subject(:install_id) { settings.telemetry.install_type }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_TYPE' }
+
+      context 'when DD_INSTRUMENTATION_INSTALL_TYPE' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to eq nil }
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { 'k8s_single_step' }
+
+          it { is_expected.to eq 'k8s_single_step' }
+        end
+      end
+    end
+
+    describe '#install_type=' do
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_TYPE' }
+      let(:env_var_value) { 'k8s_single_step' }
+
+      it 'updates the #install_type setting' do
+        expect { settings.telemetry.install_type = 'abc123' }
+          .to change { settings.telemetry.install_type }
+          .from('k8s_single_step')
+          .to('abc123')
+      end
+    end
+
+    describe '#install_time' do
+      subject(:install_id) { settings.telemetry.install_time }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_TIME' }
+
+      context 'when DD_INSTRUMENTATION_INSTALL_TIME' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to eq nil }
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { '1703188212' }
+
+          it { is_expected.to eq '1703188212' }
+        end
+      end
+    end
+
+    describe '#install_time=' do
+      let(:env_var_name) { 'DD_INSTRUMENTATION_INSTALL_TIME' }
+      let(:env_var_value) { '1703188212' }
+
+      it 'updates the #install_time setting' do
+        expect { settings.telemetry.install_time = 'abc123' }
+          .to change { settings.telemetry.install_time }
+          .from('1703188212')
+          .to('abc123')
       end
     end
   end
