@@ -77,7 +77,7 @@ module Datadog
 
         exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
-        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
+        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds, stats: proc { pp Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_stats(worker) })
 
         Profiling::Profiler.new(worker: worker, scheduler: scheduler)
       end

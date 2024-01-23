@@ -701,9 +701,6 @@ static void *call_serialize_without_gvl(void *call_args) {
   build_heap_profile_without_gvl(args->state, args->profile, args->gc_count_before_serialize);
 
   // Note: The profile gets reset by the serialize call
-  fprintf(stderr, " !! Resetting profile before serialization\n");
-  ddog_prof_Profile_reset(args->profile, NULL);
-
   args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
   args->serialize_ran = true;
 

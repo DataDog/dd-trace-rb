@@ -27,6 +27,7 @@ module Datadog
       def initialize(
         exporter:,
         transport:,
+        stats: nil,
         interval:, fork_policy: Core::Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default, # seconds
         enabled: true
       )
@@ -41,6 +42,8 @@ module Datadog
 
         # Workers::Polling settings
         self.enabled = enabled
+
+        @stats = stats
       end
 
       def start(on_failure_proc: nil)
@@ -103,6 +106,8 @@ module Datadog
         flush = exporter.flush
 
         return false unless flush
+
+        @stats.call
 
         # Sleep for a bit to cause misalignment between profilers in multi-process applications
         #

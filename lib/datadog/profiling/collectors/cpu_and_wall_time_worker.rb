@@ -22,7 +22,7 @@ module Datadog
           allocation_profiling_enabled:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
-          dynamic_sampling_rate_enabled: true,
+          dynamic_sampling_rate_enabled: false,
           idle_sampling_helper: IdleSamplingHelper.new
         )
           unless dynamic_sampling_rate_enabled
