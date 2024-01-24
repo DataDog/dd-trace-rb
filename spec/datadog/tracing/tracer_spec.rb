@@ -740,7 +740,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         is_expected.to be_a_kind_of(Datadog::Tracing::Correlation::Identifier)
         expect(active_correlation.trace_id)
           .to eq(low_order_trace_id(span.trace_id).to_s)
-        expect(active_correlation.span_id).to eq(span.span_id.to_s)
+        expect(active_correlation.span_id).to eq(span.id.to_s)
       end
     end
 
