@@ -1,7 +1,7 @@
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling'
 
-RSpec.describe Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler do
+RSpec.describe 'Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler' do
   let(:max_overhead_target) { 2.0 }
 
   before do
@@ -10,7 +10,7 @@ RSpec.describe Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler d
   end
 
   subject(:sampler) do
-    sampler = described_class.new
+    sampler = Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler.new
     sampler.reset(max_overhead_target)
     sampler
   end
