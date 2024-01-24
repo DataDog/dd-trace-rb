@@ -20,8 +20,6 @@ module Datadog
             @on_error = options[:on_error] || configuration[:on_error]
           end
 
-          # rubocop:disable Metrics/MethodLength
-          # rubocop:disable Metrics/AbcSize
           def call(worker, job, queue)
             resource = job_resource(job)
 
@@ -67,14 +65,10 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Time.now.utc.to_f - job['enqueued_at'].to_f))
 
               args = job['args']
-              if args && !args.empty?
-                span.set_tag(Ext::TAG_JOB_ARGS, quantize_args(quantize, args))
-              end
+              span.set_tag(Ext::TAG_JOB_ARGS, quantize_args(quantize, args)) if args && !args.empty?
 
               yield
             end
-            # rubocop:enable Metrics/MethodLength
-            # rubocop:enable Metrics/AbcSize
           end
 
           private
