@@ -56,7 +56,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       code_provenance_data: code_provenance_data,
       tags_as_array: tags_as_array,
       internal_metadata: { no_signals_workaround_enabled: true },
-      system_info: {
+      info: {
         application: {
           start_time: '2023-09-08 13:45:29.415742 UTC'
         },
@@ -197,7 +197,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
       internal_metadata_json = '{"no_signals_workaround_enabled":"true"}'
 
-      system_info_json = '{"application":{"start_time":"2023-09-08 13:45:29.415742 UTC"},"runtime":{"engine":"ruby"}}'
+      info_json = '{"application":{"start_time":"2023-09-08 13:45:29.415742 UTC"},"runtime":{"engine":"ruby"}}'
 
       expect(described_class).to receive(:_native_do_export).with(
         kind_of(Array), # exporter_configuration
@@ -212,7 +212,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         code_provenance_data,
         tags_as_array,
         internal_metadata_json,
-        system_info_json,
+        info_json,
       ).and_return([:ok, 200])
 
       export

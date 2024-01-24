@@ -11,7 +11,7 @@ module Datadog
       attr_reader code_provenance_data: ::String?
       attr_reader tags_as_array: Array[[::String, ::String]]
       attr_reader internal_metadata_json: ::String
-      attr_reader system_info_json: ::String
+      attr_reader info_json: ::String
 
       def initialize: (
         start: ::Time,
@@ -22,7 +22,7 @@ module Datadog
         code_provenance_data: ::String?,
         tags_as_array: Array[[::String, ::String]],
         internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
-        system_info: ::Hash[::Symbol, untyped],
+        info: ::Hash[::Symbol, untyped],
       ) -> void
     end
   end

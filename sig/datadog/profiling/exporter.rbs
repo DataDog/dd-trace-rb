@@ -6,7 +6,7 @@ module Datadog
       private
 
       attr_reader pprof_recorder: Datadog::Profiling::StackRecorder
-      attr_reader system_info_collector: Datadog::Profiling::Collectors::SystemInfo
+      attr_reader info_collector: Datadog::Profiling::Collectors::Info
       attr_reader code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?
       attr_reader minimum_duration_seconds: ::Integer
       attr_reader time_provider: untyped
@@ -18,7 +18,7 @@ module Datadog
 
       def initialize: (
         pprof_recorder: Datadog::Profiling::StackRecorder,
-        system_info_collector: Datadog::Profiling::Collectors::SystemInfo,
+        info_collector: Datadog::Profiling::Collectors::Info,
         code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?,
         internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
         ?minimum_duration_seconds: ::Integer,

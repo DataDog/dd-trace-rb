@@ -19,7 +19,7 @@ module Datadog
       attr_reader \
         :pprof_recorder,
         :code_provenance_collector, # The code provenance collector acts both as collector and as a recorder
-        :system_info_collector,
+        :info_collector,
         :minimum_duration_seconds,
         :time_provider,
         :last_flush_finish_at,
@@ -30,14 +30,14 @@ module Datadog
 
       def initialize(
         pprof_recorder:,
-        system_info_collector:,
+        info_collector:,
         code_provenance_collector:,
         internal_metadata:,
         minimum_duration_seconds: PROFILE_DURATION_THRESHOLD_SECONDS,
         time_provider: Time
       )
         @pprof_recorder = pprof_recorder
-        @system_info_collector = system_info_collector
+        @info_collector = info_collector
         @code_provenance_collector = code_provenance_collector
         @minimum_duration_seconds = minimum_duration_seconds
         @time_provider = time_provider
@@ -58,7 +58,7 @@ module Datadog
         end
 
         uncompressed_code_provenance = code_provenance_collector.refresh.generate_json if code_provenance_collector
-        system_info = system_info_collector.refresh.system_info
+        info = @info_collector.refresh.info
 
         Flush.new(
           start: start,
@@ -69,7 +69,7 @@ module Datadog
           code_provenance_data: uncompressed_code_provenance,
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
           internal_metadata: internal_metadata,
-          system_info: system_info,
+          info: info,
         )
       end
 

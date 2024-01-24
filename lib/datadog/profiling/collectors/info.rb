@@ -6,18 +6,18 @@ require 'json'
 module Datadog
   module Profiling
     module Collectors
-      # Collects SystemInfo data of relevance for profiler. This will get sent alongside
-      # the profile and show up in the UI or influence processing.
-      class SystemInfo
+      # Collects information of relevance for profiler. This will get sent alongside
+      # the profile and show up in the UI or potentially influence processing in some way.
+      class Info
         def initialize(settings)
           @settings = settings
           refresh
         end
 
-        attr_reader :system_info
+        attr_reader :info
 
         def refresh
-          @system_info = {
+          @info = {
             platform: collect_platform_info,
             runtime: collect_runtime_info,
             application: collect_application_info,

@@ -1,10 +1,10 @@
 module Datadog
   module Profiling
     module Collectors
-      class SystemInfo
+      class Info
         def initialize: (untyped settings) -> void
 
-        attr_reader system_info: ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
+        attr_reader info: ::Hash[::Symbol, ::Hash[::Symbol, untyped]]
 
         def refresh: () -> self
 

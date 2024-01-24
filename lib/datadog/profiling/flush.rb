@@ -15,7 +15,7 @@ module Datadog
         :code_provenance_data, # gzipped json bytes
         :tags_as_array,
         :internal_metadata_json,
-        :system_info_json
+        :info_json
 
       def initialize(
         start:,
@@ -26,7 +26,7 @@ module Datadog
         code_provenance_data:,
         tags_as_array:,
         internal_metadata:,
-        system_info:
+        info:
       )
         @start = start
         @finish = finish
@@ -35,8 +35,8 @@ module Datadog
         @code_provenance_file_name = code_provenance_file_name
         @code_provenance_data = code_provenance_data
         @tags_as_array = tags_as_array
-        @internal_metadata_json = JSON.fast_generate(internal_metadata.map { |k, v| [k, v.to_s] }.to_h)
-        @system_info_json = JSON.fast_generate(system_info)
+        @internal_metadata_json = JSON.fast_generate(internal_metadata)
+        @info_json = JSON.fast_generate(info)
       end
     end
   end
