@@ -295,6 +295,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
               expect { set }.not_to raise_exception
             end
 
+            context 'that is an integer' do
+              let(:value) { 10 }
+
+              it 'does not raise exception' do
+                expect { set }.not_to raise_exception
+              end
+            end
+
             context 'that is a rational' do
               let(:value) { 1/3r }
 
@@ -309,14 +317,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
             it 'raise exception' do
               expect { set }.to raise_exception(ArgumentError)
-            end
-
-            context 'that is an integer' do
-              let(:value) { 10 }
-
-              it 'raise exception' do
-                expect { set }.to raise_exception(ArgumentError)
-              end
             end
           end
         end

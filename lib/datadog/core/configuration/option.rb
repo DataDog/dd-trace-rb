@@ -235,7 +235,7 @@ module Datadog
           when :int
             value.is_a?(Integer)
           when :float
-            value.is_a?(Float) || value.is_a?(Rational)
+            value.is_a?(Float) || value.is_a?(Integer) || value.is_a?(Rational)
           when :array
             value.is_a?(Array)
           when :hash
