@@ -49,7 +49,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           span_id: '0',
           trace_id: '0',
           version: default_version
-       )
+        )
       end
 
       it 'has frozen copies of strings' do
