@@ -10,18 +10,24 @@ module Datadog
             :additional_payload,
             :configuration,
             :dependencies,
+            :install_signature,
             :integrations
 
           # @param additional_payload [Array<Telemetry::V1::Configuration>] List of Additional payload to track (any key
           #   value not mentioned and doesn't fit under a metric)
           # @param configuration [Array<Telemetry::V1::Configuration>] List of Tracer related configuration data
           # @param dependencies [Array<Telemetry::V1::Dependency>] List of all loaded modules requested by the app
+          # @param install_signature [Telemetry::V1::InstallSignature] Install signature data
           # @param integrations [Array<Telemetry::V1::Integration>] List of integrations that are available within the app
           #   and applicable to be traced
-          def initialize(additional_payload: nil, configuration: nil, dependencies: nil, integrations: nil)
+          def initialize(
+            additional_payload: nil, configuration: nil, dependencies: nil, install_signature: nil,
+            integrations: nil
+          )
             @additional_payload = additional_payload
             @configuration = configuration
             @dependencies = dependencies
+            @install_signature = install_signature
             @integrations = integrations
           end
 
@@ -30,6 +36,7 @@ module Datadog
               hash[:additional_payload] = map_hash(@additional_payload) if @additional_payload
               hash[:configuration] = map_hash(@configuration) if @configuration
               hash[:dependencies] = map_array(@dependencies) if @dependencies
+              hash[:install_signature] = @install_signature.to_h if @install_signature
               hash[:integrations] = map_array(@integrations) if @integrations
             end
           end

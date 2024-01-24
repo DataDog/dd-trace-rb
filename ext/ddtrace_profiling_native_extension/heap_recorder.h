@@ -26,6 +26,23 @@ typedef struct live_object_data {
   // Example: If we were sampling every 50 objects, then each sampled object
   //          could be seen as being representative of 50 objects.
   unsigned int weight;
+
+  // Size of this object on last flush/update.
+  size_t size;
+
+  // The class of the object that we're tracking.
+  // NOTE: This is optional and will be set to NULL if not set.
+  char* class;
+
+  // The GC allocation gen in which we saw this object being allocated.
+  //
+  // This enables us to calculate the age of this object in terms of GC executions.
+  size_t alloc_gen;
+
+  // Whether this object was previously seen as being frozen. If this is the case,
+  // we'll skip any further size updates since frozen objects are supposed to be
+  // immutable.
+  bool is_frozen;
 } live_object_data;
 
 // Data that is made available to iterators of heap recorder data for each live object
@@ -40,6 +57,32 @@ heap_recorder* heap_recorder_new(void);
 
 // Free a previously initialized heap recorder.
 void heap_recorder_free(heap_recorder *heap_recorder);
+
+// Sets whether this heap recorder should keep track of sizes or not.
+//
+// If set to true, the heap recorder will attempt to determine the approximate sizes of
+// tracked objects and wield them during iteration.
+// If set to false, sizes returned during iteration should not be used/relied on (they
+// may be 0 or the last determined size before disabling the tracking of sizes).
+//
+// NOTE: Default is true, i.e., it will attempt to determine approximate sizes of tracked
+// objects.
+void heap_recorder_set_size_enabled(heap_recorder *heap_recorder, bool size_enabled);
+
+// Set sample rate used by this heap recorder.
+//
+// Controls how many recordings will be ignored before committing a heap allocation and
+// the weight of the committed heap allocation.
+//
+// A value of 1 will effectively track all objects that are passed through
+// start/end_heap_allocation_recording pairs. A value of 10 will only track every 10th
+// object passed through such calls and its effective weight for the purposes of heap
+// profiling will be multiplied by 10.
+//
+// NOTE: Default is 1, i.e., track all heap allocation recordings.
+//
+// WARN: Non-positive values will lead to an exception being thrown.
+void heap_recorder_set_sample_rate(heap_recorder *heap_recorder, int sample_rate);
 
 // Do any cleanup needed after forking.
 // WARN: Assumes this gets called before profiler is reinitialized on the fork
@@ -56,7 +99,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder);
 //   The sampling weight of this object.
 //
 // WARN: It needs to be paired with a ::end_heap_allocation_recording call.
-void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight);
+void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *alloc_class);
 
 // End a previously started heap allocation recording on the heap recorder.
 //

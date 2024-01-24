@@ -3,13 +3,22 @@ module Datadog
     class StackRecorder
       @no_concurrent_synchronize_mutex: ::Thread::Mutex
 
-      def initialize: (cpu_time_enabled: bool, alloc_samples_enabled: bool, heap_samples_enabled: bool, timeline_enabled: bool) -> void
+      def initialize: (
+        cpu_time_enabled: bool,
+        alloc_samples_enabled: bool,
+        heap_samples_enabled: bool,
+        heap_size_enabled: bool,
+        heap_sample_every: Integer,
+        timeline_enabled: bool,
+      ) -> void
 
       def self._native_initialize: (
         Datadog::Profiling::StackRecorder recorder_instance,
         bool cpu_time_enabled,
         bool alloc_samples_enabled,
         bool heap_samples_enabled,
+        bool heap_size_enabled,
+        Integer heap_sample_every,
         bool timeline_enabled,
       ) -> true
 

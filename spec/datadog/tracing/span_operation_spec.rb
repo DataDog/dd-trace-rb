@@ -359,7 +359,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
 
         context 'that is an Integer' do
-          let(:trace_id) { Datadog::Tracing::Utils.next_id }
+          let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
           it { is_expected.to have_attributes(trace_id: trace_id) }
         end
       end

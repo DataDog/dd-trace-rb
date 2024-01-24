@@ -10,6 +10,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   # Disabling these by default since they require some extra setup and produce separate samples.
   # Enabling this is tested in a particular context below.
   let(:heap_samples_enabled) { false }
+  let(:heap_size_enabled) { false }
+  let(:heap_sample_every) { 1 }
   let(:timeline_enabled) { true }
 
   subject(:stack_recorder) do
@@ -17,6 +19,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       cpu_time_enabled: cpu_time_enabled,
       alloc_samples_enabled: alloc_samples_enabled,
       heap_samples_enabled: heap_samples_enabled,
+      heap_size_enabled: heap_size_enabled,
+      heap_sample_every: heap_sample_every,
       timeline_enabled: timeline_enabled,
     )
   end
@@ -124,6 +128,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:cpu_time_enabled) { true }
         let(:alloc_samples_enabled) { true }
         let(:heap_samples_enabled) { true }
+        let(:heap_size_enabled) { true }
         let(:timeline_enabled) { true }
         let(:all_profile_types) do
           {
@@ -132,6 +137,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             'wall-time' => 'nanoseconds',
             'alloc-samples' => 'count',
             'heap-live-samples' => 'count',
+            'heap-live-size' => 'bytes',
             'timeline' => 'nanoseconds',
           }
         end
@@ -170,6 +176,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
         end
 
+        context 'when heap-live-size is disabled' do
+          let(:heap_size_enabled) { false }
+
+          it 'returns a pprof without the heap-live-size type' do
+            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('heap-live-size'))
+          end
+        end
+
         context 'when timeline is disabled' do
           let(:timeline_enabled) { false }
 
@@ -182,6 +196,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:cpu_time_enabled) { false }
           let(:alloc_samples_enabled) { false }
           let(:heap_samples_enabled) { false }
+          let(:heap_size_enabled) { false }
           let(:timeline_enabled) { false }
 
           it 'returns a pprof without the optional types' do
@@ -340,7 +355,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
-    describe 'heap samples' do
+    describe 'heap samples and sizes' do
       let(:sample_rate) { 50 }
       let(:metric_values) do
         { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => sample_rate, 'timeline' => 42 }
@@ -348,14 +363,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
       let(:a_string) { 'a beautiful string' }
-      let(:an_array) { (1..10).to_a }
-      let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true } }
+      let(:an_array) { (1..100).to_a.compact }
+      let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true, 'd' => Object.new } }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
       def sample_allocation(obj)
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
-        described_class::Testing._native_track_object(stack_recorder, obj, sample_rate)
+        described_class::Testing._native_track_object(stack_recorder, obj, sample_rate, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
       end
@@ -372,18 +387,24 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
           end
           @num_allocations += 1
+          GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
         end
 
         allocations.clear # The literals in the previous array are now dangling
         GC.start # And this will clear them, leaving only the non-literals which are still pointed to by the lets
 
-        # NOTE: We've witnessed CI flakiness where the last entry of allocations may still be alive
-        # after the previous GC. We've experimentally noticed this is no longer the case if
-        # we do a second GC.
+        # NOTE: We've witnessed CI flakiness where some no longer referenced allocations may still be seen as alive
+        # after the previous GC.
         # This might be an instance of the issues described in https://bugs.ruby-lang.org/issues/19460
         # and https://bugs.ruby-lang.org/issues/19041. We didn't get to the bottom of the
         # reason but it might be that some machine context/register ends up still pointing to
         # that last entry and thus manages to get it marked in the first GC.
+        # To reduce the likelihood of this happening we'll:
+        # * Allocate some more stuff and clear again
+        # * Do another GC
+        allocations = ["another fearsome interpolated string: #{sample_rate}", (-20..-10).to_a,
+                       { 'a' => 1, 'b' => '2', 'c' => true }, Object.new]
+        allocations.clear
         GC.start
       end
 
@@ -398,33 +419,74 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       context 'when disabled' do
         let(:heap_samples_enabled) { false }
+        let(:heap_size_enabled) { false }
 
         it 'are ommitted from the profile' do
           # We sample from 2 distinct locations
           expect(samples.size).to eq(2)
           expect(samples.select { |s| s.values.key?('heap-live-samples') }).to be_empty
+          expect(samples.select { |s| s.values.key?('heap-live-size') }).to be_empty
         end
       end
 
       context 'when enabled' do
         let(:heap_samples_enabled) { true }
+        let(:heap_size_enabled) { true }
 
         let(:heap_samples) do
-          samples.select { |s| s.values[:'heap-live-samples'] > 0 }
+          samples.select { |s| s.value?(:'heap-live-samples') }
         end
 
         let(:non_heap_samples) do
-          samples.select { |s| s.values[:'heap-live-samples'] == 0 }
+          samples.reject { |s| s.value?(:'heap-live-samples') }
+        end
+
+        before do
+          skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
         end
 
         it 'include the stack and sample counts for the objects still left alive' do
-          # We sample from 2 distinct locations
-          expect(heap_samples.size).to eq(2)
+          # There should be 3 different allocation class labels so we expect 3 different heap samples
+          expect(heap_samples.size).to eq(3)
 
-          sum_heap_samples = 0
-          heap_samples.each { |s| sum_heap_samples += s.values[:'heap-live-samples'] }
+          expect(heap_samples.map { |s| s.labels[:'allocation class'] }).to include('String', 'Array', 'Hash')
+          expect(heap_samples.map(&:labels)).to all(match(hash_including(:'gc gen age' => be_a(Integer).and(be >= 0))))
+        end
 
-          expect(sum_heap_samples).to(eq([a_string, an_array, a_hash].size * sample_rate))
+        it 'include accurate object sizes' do
+          string_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'String' }
+          expect(string_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
+
+          array_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Array' }
+          expect(array_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(an_array) * sample_rate)
+
+          hash_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Hash' }
+          expect(hash_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
+        end
+
+        it 'include accurate object ages' do
+          string_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'String' }
+          string_age = string_sample.labels[:'gc gen age']
+
+          array_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Array' }
+          array_age = array_sample.labels[:'gc gen age']
+
+          hash_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Hash' }
+          hash_age = hash_sample.labels[:'gc gen age']
+
+          unique_sorted_ages = [string_age, array_age, hash_age].uniq.sort
+          # Expect all ages to be different and to be in the reverse order of allocation
+          # Last to allocate => Lower age
+          expect(unique_sorted_ages).to match([hash_age, array_age, string_age])
+
+          # Validate that the age of the newest object makes sense.
+          # * We force a GC after each allocation and the hash sample should correspond to
+          #   the 5th allocation in 7 (which means we expect at least 3 GC after all allocations
+          #   are done)
+          # * We forced 1 extra GC at the end of our before (+1)
+          # * This test isn't memory intensive otherwise so lets give us an extra margin of 1 GC to account for any
+          #   GC out of our control
+          expect(hash_age).to be_between(4, 5)
         end
 
         it 'keeps on reporting accurate samples for other profile types' do
@@ -440,7 +502,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # We use the same metric_values in all sample calls in before. So we'd expect
           # the summed values to match `@num_allocations * metric_values[profile-type]`
           # for each profile-type there in.
-          expected_summed_values = { :'heap-live-samples' => 0 }
+          expected_summed_values = { :'heap-live-samples' => 0, :'heap-live-size' => 0, }
           metric_values.each_pair do |k, v|
             expected_summed_values[k.to_sym] = v * @num_allocations
           end
@@ -459,19 +521,119 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             sample_allocation(live_objects[i])
           end
 
-          allocation_line = __LINE__ - 3
+          sample_line = __LINE__ - 3
 
           described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
 
-          heap_samples_in_test_matcher = lambda { |sample|
-            (sample.values[:'heap-live-samples'] || 0) > 0 && sample.locations.any? do |location|
-              location.lineno == allocation_line && location.path == __FILE__
-            end
-          }
-
-          relevant_sample = heap_samples.find(&heap_samples_in_test_matcher)
+          relevant_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
           expect(relevant_sample).not_to be nil
           expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object * sample_rate
+        end
+
+        context 'with custom heap sample rate configuration' do
+          let(:heap_sample_every) { 2 }
+
+          it 'only keeps track of some allocations' do
+            # By only sampling every 2nd allocation we only track the odd objects which means our array
+            # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
+            expect(heap_samples.size).to eq(1)
+
+            heap_sample = heap_samples.first
+            expect(heap_sample.labels[:'allocation class']).to eq('Array')
+            expect(heap_sample.values[:'heap-live-samples']).to eq(sample_rate * heap_sample_every)
+          end
+        end
+
+        context 'on Rubies supporting rb_gc_force_recycle' do
+          before do
+            skip 'rb_gc_force_recycle is a no-op in current Ruby version' if RUBY_VERSION >= '3.1'
+            @recycled_sample_allocation_line = 0
+          end
+
+          def has_seen_id_flag(obj)
+            described_class::Testing._native_has_seen_id_flag(obj)
+          end
+
+          def create_obj_in_recycled_slot(should_sample_original: false)
+            obj = Object.new
+            sample_allocation(obj) if should_sample_original
+            @recycled_sample_allocation_line = __LINE__ - 1
+
+            # Get the id of the object we're about to recycle
+            obj_id = obj.object_id
+
+            # Force recycle the given object
+            described_class::Testing._native_gc_force_recycle(obj)
+
+            # Repeatedly allocate objects until we find one that resolves to the same id
+            loop do
+              # Instead of doing this one at a time which would be slow given id2ref will
+              # raise on failure, allocate a ton of objects each time, increasing the
+              # probability of getting a hit on each iteration
+              1000.times { obj = Object.new }
+              begin
+                return ObjectSpace._id2ref(obj_id)
+              rescue RangeError # rubocop:disable Lint/SuppressedException
+              end
+            end
+          end
+
+          it 'enforces seen id flag on objects on recycled slots that get sampled' do
+            recycled_obj = create_obj_in_recycled_slot
+
+            expect(has_seen_id_flag(recycled_obj)).to be false
+
+            sample_allocation(recycled_obj)
+
+            expect(has_seen_id_flag(recycled_obj)).to be true
+          end
+
+          it 'enforces seen id flag on untracked objects that replace tracked recycled objects' do
+            recycled_obj = create_obj_in_recycled_slot(should_sample_original: true)
+
+            expect(has_seen_id_flag(recycled_obj)).to be false
+
+            serialize
+
+            expect(has_seen_id_flag(recycled_obj)).to be true
+          end
+
+          it 'correctly handles lifecycle of objects on recycled slots that get sampled' do
+            recycled_obj = create_obj_in_recycled_slot
+
+            sample_allocation(recycled_obj)
+            sample_line = __LINE__ - 1
+
+            recycled_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
+            expect(recycled_sample).not_to be nil
+          end
+
+          it 'supports allocation samples with duplicate ids due to force recycling' do
+            recycled_obj = create_obj_in_recycled_slot(should_sample_original: true)
+
+            expect { sample_allocation(recycled_obj) }.not_to raise_error
+          end
+
+          it 'raises on allocation samples with duplicate ids that are not due to force recycling' do
+            obj = Object.new
+
+            sample_allocation(obj)
+
+            expect { sample_allocation(obj) }.to raise_error(/supposed to be unique/)
+          end
+
+          it 'can detect implicit frees due to slot recycling' do
+            live_objects = []
+            live_objects << create_obj_in_recycled_slot(should_sample_original: true)
+
+            # If we act on implicit frees, then we assume that even though there's a live object
+            # in the same slot as the original one we were tracking, we'll be able to detect this
+            # recycling, clean up that record and not include it in the final heap samples
+            relevant_sample = heap_samples.find do |s|
+              s.has_location?(path: __FILE__, line: @recycled_sample_allocation_line)
+            end
+            expect(relevant_sample).to be nil
+          end
         end
       end
     end

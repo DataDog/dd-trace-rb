@@ -8,12 +8,16 @@
 // They are not expected to be mutated outside of init.
 static VALUE module_object_space = Qnil;
 static ID _id2ref_id = Qnil;
+static ID inspect_id = Qnil;
+static ID to_s_id = Qnil;
 
 void ruby_helpers_init(void) {
   rb_global_variable(&module_object_space);
 
   module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
   _id2ref_id = rb_intern("_id2ref");
+  inspect_id = rb_intern("inspect");
+  to_s_id = rb_intern("to_s");
 }
 
 void raise_unexpected_type(
@@ -165,4 +169,89 @@ bool ruby_ref_from_id(VALUE obj_id, VALUE *value) {
   }
 
   return true;
+}
+
+// Not part of public headers but is externed from Ruby
+size_t rb_obj_memsize_of(VALUE obj);
+
+// Wrapper around rb_obj_memsize_of to avoid hitting crashing paths.
+//
+// The crashing paths are due to calls to rb_bug so should hopefully
+// be situations that can't happen. But given that rb_obj_memsize_of
+// isn't fully public (it's externed but not part of public headers)
+// there is a possibility that it is just assumed that whoever calls
+// it, will do proper checking for those cases. We want to be cautious
+// so we'll assume that's the case and will skip over known crashing
+// paths in this wrapper.
+size_t ruby_obj_memsize_of(VALUE obj) {
+  switch (rb_type(obj)) {
+    case T_OBJECT:
+    case T_MODULE:
+    case T_CLASS:
+    case T_ICLASS:
+    case T_STRING:
+    case T_ARRAY:
+    case T_HASH:
+    case T_REGEXP:
+    case T_DATA:
+    case T_MATCH:
+    case T_FILE:
+    case T_RATIONAL:
+    case T_COMPLEX:
+    case T_IMEMO:
+    case T_FLOAT:
+    case T_SYMBOL:
+    case T_BIGNUM:
+    // case T_NODE: -> Crashes the vm in rb_obj_memsize_of
+    case T_STRUCT:
+    case T_ZOMBIE:
+    #ifndef NO_T_MOVED
+    case T_MOVED:
+    #endif
+      return rb_obj_memsize_of(obj);
+    default:
+      // Unsupported, return 0 instead of erroring like rb_obj_memsize_of likes doing
+      return 0;
+  }
+}
+
+// Inspired by rb_class_of but without actually returning classes or potentially doing assertions
+static bool ruby_is_obj_with_class(VALUE obj) {
+  if (!RB_SPECIAL_CONST_P(obj)) {
+    return true;
+  }
+  if (obj == RUBY_Qfalse) {
+    return true;
+  }
+  else if (obj == RUBY_Qnil) {
+    return true;
+  }
+  else if (obj == RUBY_Qtrue) {
+    return true;
+  }
+  else if (RB_FIXNUM_P(obj)) {
+    return true;
+  }
+  else if (RB_STATIC_SYM_P(obj)) {
+    return true;
+  }
+  else if (RB_FLONUM_P(obj)) {
+    return true;
+  }
+
+  return false;
+}
+
+VALUE ruby_safe_inspect(VALUE obj) {
+  if (!ruby_is_obj_with_class(obj)) {
+    return rb_str_new_cstr("(Not an object)");
+  }
+
+  if (rb_respond_to(obj, inspect_id)) {
+    return rb_sprintf("%+"PRIsVALUE, obj);
+  } else if (rb_respond_to(obj, to_s_id)) {
+    return rb_sprintf("%"PRIsVALUE, obj);
+  } else {
+    return rb_str_new_cstr("(Not inspectable)");
+  }
 }
