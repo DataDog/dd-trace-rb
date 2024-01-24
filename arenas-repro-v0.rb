@@ -23,7 +23,9 @@ class RubyOverheadExperiment
     )
   end
 
-  def workload(steps_per_sample:, loop_times:, profile:)
+  def workload(steps_per_sample:, loop_times:, profile:, sync_queue:)
+    sync_queue.pop
+
     count = 0
     while count < loop_times
       steps = 0
@@ -55,9 +57,13 @@ class RubyOverheadExperiment
     10.times do
       start_time = Time.now
 
+      sync_queue = Queue.new
+
       threads = seconds.times.map do
-        Thread.new { workload(steps_per_sample: 10, loop_times: seconds, profile: profiler_enabled) }
+        Thread.new { workload(steps_per_sample: 10, loop_times: seconds, profile: profiler_enabled, sync_queue: sync_queue) }
       end
+
+      seconds.times { sync_queue << true }
 
       threads.each(&:join)
 
