@@ -34,26 +34,8 @@ module Datadog
             # rubocop:disable Metrics/MethodLength
             # rubocop:disable Metrics/AbcSize
             def perform_request(*args)
-              # DEV-2.0: Remove this access, as `Client#self` in this context is not exposed to the user
-              # since `elasticsearch` v8.0.0. In contrast, `Client#transport` is always available across
-              # all `elasticsearch` gem versions and should be used instead.
-              service = Datadog.configuration_for(self, :service_name)
-
-              if service
-                SELF_DEPRECATION_ONLY_ONCE.run do
-                  Datadog.logger.warn(
-                    'Providing configuration though the Elasticsearch client object is deprecated.' \
-                    'Configure the `client#transport` object instead: ' \
-                    'Datadog.configure_onto(client.transport, service_name: service_name, ...)'
-                  )
-                end
-              end
-
-              # `Client#transport` is most convenient object both this integration and the library
-              # user have shared access to across all `elasticsearch` versions.
-              #
-              # `Client#self` in this context is an internal object that the library user
-              # does not have access to since `elasticsearch` v8.0.0.
+              # `Client#transport` is the most convenient object both for this integration and the library
+              # as users have shared access to it across all `elasticsearch` versions.
               service ||= Datadog.configuration_for(transport, :service_name) || datadog_configuration[:service_name]
 
               method = args[0]
