@@ -91,7 +91,6 @@ For a list of available integrations, and their configuration options, refer to 
 | OpenSearch                 | `opensearch-ruby`          | `>= 1.0.0`               | `>= 1.0.0`                | [Link][29]                          | [Link](https://github.com/opensearch-project/opensearch-ruby)                |
 | Postgres                   | `pg`                       | `>= 0.18.4`              | *gem not available*       | [Link][30]                          | [Link](https://github.com/ged/ruby-pg)                                       |
 | Presto                     | `presto`                   | `>= 0.5.14`              | `>= 0.5.14`               | [Link][31]                          | [Link](https://github.com/treasure-data/presto-client-ruby)                  |
-| Qless                      | `qless`                    | `>= 0.10.0`              | `>= 0.10.0`               | [Link][32]                          | [Link](https://github.com/seomoz/qless)                                      |
 | Que                        | `que`                      | `>= 1.0.0.beta2`         | `>= 1.0.0.beta2`          | [Link][33]                          | [Link](https://github.com/que-rb/que)                                        |
 | Racecar                    | `racecar`                  | `>= 0.3.5`               | `>= 0.3.5`                | [Link][34]                          | [Link](https://github.com/zendesk/racecar)                                   |
 | Rack                       | `rack`                     | `>= 1.1`                 | `>= 1.1`                  | [Link][35]                          | [Link](https://github.com/rack/rack)                                         |
@@ -141,7 +140,6 @@ For a list of available integrations, and their configuration options, refer to 
 [29]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#opensearch
 [30]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#postgres
 [31]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#presto
-[32]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#qless
 [33]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#que
 [34]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#racecar
 [35]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#rack
