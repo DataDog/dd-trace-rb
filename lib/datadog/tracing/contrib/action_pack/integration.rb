@@ -16,6 +16,10 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :action_pack, auto_patch: false
 
+          def self.gems
+            ['actionpack']
+          end
+
           def self.version
             Gem.loaded_specs['actionpack'] && Gem.loaded_specs['actionpack'].version
           end

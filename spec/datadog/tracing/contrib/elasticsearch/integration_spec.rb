@@ -108,4 +108,6 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Elasticsearch::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

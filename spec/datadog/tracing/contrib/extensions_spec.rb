@@ -6,12 +6,39 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
   shared_context 'registry with integration' do
     let(:registry) { Datadog::Tracing::Contrib::Registry.new }
     let(:integration_name) { :example }
-    let(:integration) { integration_class.new(integration_name) }
+    let(:integration) { registry[integration_name] }
+
     let(:integration_class) do
+      available = self.available
+      compatible = self.compatible
+      loaded = self.loaded
+      gems = self.gems
+      patcher = self.patcher
       Class.new do
         include Datadog::Tracing::Contrib::Integration
         include Datadog::Tracing::Contrib::Configurable
+
+        define_singleton_method(:available?) { available }
+        define_singleton_method(:compatible?) { compatible }
+        define_singleton_method(:loaded?) { loaded }
+        define_singleton_method(:gems) { gems }
+
+        define_method(:patcher) { patcher }
       end
+    end
+
+    let(:available) { true }
+    let(:compatible) { true }
+    let(:loaded) { true }
+    let(:gems) { ['test gem 1', 'test gem 2'] } # Invalid gem names, for testing purposes
+
+    let(:patcher) do
+      Class.new do
+        include Datadog::Tracing::Contrib::Patcher
+        def patch
+          nil
+        end
+      end.new
     end
 
     let(:configurable_module) do
@@ -23,33 +50,166 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
       )
     end
 
-    before { registry.add(integration_name, integration) }
+    before do
+      integration_name = self.integration_name
+      registry = self.registry
+      integration_class.class_eval do
+        register_as integration_name, registry: registry
+      end
+    end
+
+    after do
+      patcher.send(:patch_only_once).send(:reset_ran_once_state_for_tests)
+    end
   end
 
   context 'for' do
-    describe Datadog do
-      describe '#configure' do
+    describe 'Datadog.configure' do
+      subject(:configure) { Datadog.configure(&block) }
+
+      context 'calling c.tracing.instrument for an integration' do
         include_context 'registry with integration' do
           before { stub_const('Datadog::Tracing::Contrib::REGISTRY', registry) }
         end
 
-        context 'given a block' do
-          subject(:configure) { described_class.configure(&block) }
+        let(:block) { proc { |c| c.tracing.instrument integration_name } }
 
-          context 'that calls #instrument for an integration' do
-            let(:block) { proc { |c| c.tracing.instrument integration_name } }
+        shared_examples 'registers require monitor' do
+          it 'configures & patches the integration' do
+            expect(integration).to receive(:configure).with(:default, any_args)
+            expect(integration).to receive(:patch).and_call_original
 
-            it 'configures & patches the integration' do
-              expect(integration).to receive(:configure).with(:default, any_args)
-              expect(integration).to receive(:patch).and_call_original
-              configure
+            configure
+
+            expect(integration.patcher.patch_successful).to be_falsey
+          end
+
+          it 'register require monitor' do
+            allow(integration).to receive(:patch).and_call_original
+
+            expect(Datadog::Tracing::Contrib::Kernel).to receive(:patch!)
+
+            expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 1') do |&block|
+              # Because we are forcing the block to be called to make assertions,
+              # the patcher will raise a warning because the gem is not loaded, which is what we expect.
+              expect(Datadog.logger).to receive(:warn).once
+
+              expect(integration).to have_received(:patch).once
+              block.call
+              expect(integration).to have_received(:patch).twice
             end
 
-            it 'sends a telemetry integrations change event' do
-              expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
-              configure
+            expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 2') do |&block|
+              # Because we are forcing the block to be called to make assertions,
+              # the patcher will raise a warning because the gem is not loaded, which is what we expect.
+              expect(Datadog.logger).to receive(:warn).once
+
+              expect(integration).to have_received(:patch).twice
+              block.call
+              expect(integration).to have_received(:patch).thrice
+            end
+            configure
+          end
+
+          it 'sends a telemetry integrations change event' do
+            expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
+            configure
+          end
+        end
+
+        shared_examples 'patches immediately' do
+          it 'configures & patches the integration' do
+            expect(integration).to receive(:configure).with(:default, any_args)
+            expect(integration).to receive(:patch).and_call_original
+
+            configure
+
+            expect(integration.patcher.patch_successful).to be_truthy
+          end
+
+          it 'does not register require monitor' do
+            expect(Datadog::Tracing::Contrib::Kernel).to_not receive(:patch!)
+            expect(Datadog::Tracing::Contrib::Kernel).to_not receive(:on_require)
+            configure
+          end
+
+          it 'sends a telemetry integrations change event' do
+            expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
+            configure
+          end
+        end
+
+        shared_examples 'cannot instrument' do
+          it 'configures & patches the integration' do
+            expect(integration).to receive(:configure).with(:default, any_args)
+            expect(integration).to receive(:patch).and_call_original
+
+            configure
+
+            expect(integration.patcher.patch_successful).to be_falsey
+          end
+
+          it 'does not register require monitor' do
+            expect(Datadog::Tracing::Contrib::Kernel).to_not receive(:patch!)
+            expect(Datadog::Tracing::Contrib::Kernel).to_not receive(:on_require)
+            configure
+          end
+
+          it 'sends a telemetry integrations change event' do
+            expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
+            configure
+          end
+        end
+
+        context 'that is available' do
+          let(:available) { true }
+
+          context 'and compatible' do
+            let(:compatible) { true }
+
+            context 'and loaded' do
+              let(:loaded) { true }
+              it_behaves_like 'patches immediately'
+            end
+
+            context 'and not loaded' do
+              let(:loaded) { false }
+              it_behaves_like 'registers require monitor'
+
+              context 'but is loaded while we are registering the monitors' do
+                it 'register require monitor and also patches' do
+                  expect(Datadog::Tracing::Contrib::Kernel).to receive(:patch!) do
+                    # Load the gems!
+                    allow(integration.class).to receive(:loaded?).and_return(true)
+                  end
+
+                  expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).twice
+
+                  expect(integration).to receive(:configure).with(:default, any_args)
+                  expect(integration).to receive(:patch).and_call_original.twice
+
+                  configure
+
+                  expect(integration.patcher.patch_successful).to be_truthy
+                end
+
+                it 'sends a telemetry integrations change event' do
+                  expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
+                  configure
+                end
+              end
             end
           end
+
+          context 'and not compatible' do
+            let(:compatible) { false }
+            it_behaves_like 'cannot instrument'
+          end
+        end
+
+        context 'that is not available' do
+          let(:available) { false }
+          it_behaves_like 'cannot instrument'
         end
       end
     end
@@ -192,9 +352,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
 
           context 'for an integration that includes Datadog::Tracing::Contrib::Integration' do
             include_context 'registry with integration' do
-              let(:integration) do
-                integration_class.new(integration_name)
-              end
+              let(:integration) { registry[integration_name] }
 
               let(:integration_class) do
                 patcher_module

@@ -16,6 +16,10 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :shoryuken
 
+          def self.gems
+            ['shoryuken']
+          end
+
           def self.version
             Gem.loaded_specs['shoryuken'] && Gem.loaded_specs['shoryuken'].version
           end

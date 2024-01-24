@@ -15,6 +15,10 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :lograge
 
+          def self.gems
+            ['lograge']
+          end
+
           def self.version
             Gem.loaded_specs['lograge'] && Gem.loaded_specs['lograge'].version
           end

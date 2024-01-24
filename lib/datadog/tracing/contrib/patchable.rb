@@ -13,6 +13,10 @@ module Datadog
         # Class methods for integrations
         # @public_api
         module ClassMethods
+          def gems
+            []
+          end
+
           # Version of the integration target code in the environment.
           #
           # This is the gem version, when the instrumentation target is a Ruby gem.

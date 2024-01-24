@@ -62,4 +62,6 @@ RSpec.describe Datadog::Tracing::Contrib::ActionMailer::Integration do
     subject(:patcher) { integration.patcher }
     it { is_expected.to be Datadog::Tracing::Contrib::ActionMailer::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

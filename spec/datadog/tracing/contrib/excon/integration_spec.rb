@@ -73,4 +73,6 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Excon::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

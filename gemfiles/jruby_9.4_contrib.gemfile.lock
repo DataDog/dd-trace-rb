@@ -28,6 +28,7 @@ GEM
       rake
       thor (>= 0.14.0)
     ast (2.4.2)
+    base64 (0.2.0)
     benchmark-ips (2.10.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -51,6 +52,11 @@ GEM
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.5.0)
+    faraday (2.7.12)
+      base64
+      faraday-net_http (>= 2.0, < 3.1)
+      ruby2_keywords (>= 0.0.4)
+    faraday-net_http (3.0.2)
     ffi (1.15.5-java)
     graphql (2.0.16)
     hashdiff (1.0.1)
@@ -210,6 +216,7 @@ DEPENDENCIES
   dalli (>= 3.0.0)
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
+  faraday
   graphql (>= 2.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)

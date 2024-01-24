@@ -15,6 +15,10 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :active_model_serializers
 
+          def self.gems
+            ['active_model_serializers']
+          end
+
           def self.version
             Gem.loaded_specs['active_model_serializers'] \
               && Gem.loaded_specs['active_model_serializers'].version

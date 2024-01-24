@@ -15,6 +15,10 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :rest_client
 
+          def self.gems
+            ['rest-client']
+          end
+
           def self.version
             Gem.loaded_specs['rest-client'] && Gem.loaded_specs['rest-client'].version
           end

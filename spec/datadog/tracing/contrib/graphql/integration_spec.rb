@@ -85,4 +85,6 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::GraphQL::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

@@ -97,4 +97,6 @@ RSpec.describe Datadog::Tracing::Contrib::Racecar::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Racecar::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

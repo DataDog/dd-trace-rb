@@ -15,6 +15,10 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :elasticsearch, auto_patch: true
 
+          def self.gems
+            ['elastic-transport', 'elasticsearch-transport']
+          end
+
           def self.version
             # elastic-transport gem for version >= 8.0.0
             # elasticsearch-transport gem for version < 8.0.0

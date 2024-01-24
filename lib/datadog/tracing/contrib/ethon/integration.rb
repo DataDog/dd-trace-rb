@@ -16,6 +16,10 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :ethon
 
+          def self.gems
+            ['ethon']
+          end
+
           def self.version
             Gem.loaded_specs['ethon'] && Gem.loaded_specs['ethon'].version
           end

@@ -82,4 +82,6 @@ RSpec.describe Datadog::Tracing::Contrib::ActionView::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::ActionView::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

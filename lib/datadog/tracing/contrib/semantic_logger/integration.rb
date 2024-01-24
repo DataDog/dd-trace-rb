@@ -18,6 +18,10 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :semantic_logger
 
+          def self.gems
+            ['semantic_logger']
+          end
+
           def self.version
             Gem.loaded_specs['semantic_logger'] && Gem.loaded_specs['semantic_logger'].version
           end

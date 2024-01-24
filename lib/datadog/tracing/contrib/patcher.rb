@@ -76,6 +76,12 @@ module Datadog
             # NOTE: This is not thread-safe
             @patch_only_once ||= Core::Utils::OnlyOnce.new
           end
+
+          def reset_for_tests
+            remove_instance_variable(:@patch_error_result) if instance_variable_defined?(:@patch_error_result)
+            remove_instance_variable(:@patch_successful) if instance_variable_defined?(:@patch_successful)
+            @patch_only_once.send(:reset_ran_once_state_for_tests)
+          end
         end
       end
     end

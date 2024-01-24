@@ -1448,6 +1448,7 @@ GEM
     aws-sigv2 (1.1.0)
     aws-sigv4 (1.6.0)
       aws-eventstream (~> 1, >= 1.0.2)
+    base64 (0.2.0)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -1465,6 +1466,11 @@ GEM
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.6.0)
+    faraday (2.7.12)
+      base64
+      faraday-net_http (>= 2.0, < 3.1)
+      ruby2_keywords (>= 0.0.4)
+    faraday-net_http (3.0.2)
     ffi (1.15.5-java)
     hashdiff (1.0.1)
     jmespath (1.6.2)
@@ -1543,6 +1549,7 @@ GEM
       rubocop-capybara (~> 2.17)
     ruby-debug-base (0.11.0-java)
     ruby-progressbar (1.13.0)
+    ruby2_keywords (0.0.5)
     shoryuken (6.0.0)
       aws-sdk-core (>= 2)
       concurrent-ruby
@@ -1576,6 +1583,7 @@ DEPENDENCIES
   concurrent-ruby
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
+  faraday
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
