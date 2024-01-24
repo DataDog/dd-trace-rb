@@ -115,21 +115,6 @@ RSpec.describe 'Server tracer' do
       expect(custom.get_tag('messaging.system')).to eq('sidekiq')
     end
 
-    context 'with tag_args' do
-      let(:sidekiq_options) { { service_name: 'sidekiq-slow', tag_args: true } }
-
-      it 'records tag values' do
-        perform_async
-        CustomWorker.perform_async('random_id')
-
-        expect(spans).to have(4).items
-
-        custom, _empty, _push, _push = spans
-
-        expect(custom.get_tag('sidekiq.job.args')).to eq(['random_id'].to_s)
-      end
-    end
-
     context 'with default quantization' do
       let(:sidekiq_options) { { service_name: 'sidekiq-slow', quantize: {} } }
 

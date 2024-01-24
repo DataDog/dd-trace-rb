@@ -15,8 +15,6 @@ module Datadog
         class ServerTracer
           include Utils
 
-          QUANTIZE_SHOW_ALL = { args: { show: :all } }.freeze
-
           def initialize(options = {})
             @sidekiq_service = options[:service_name] || configuration[:service_name]
             @on_error = options[:on_error] || configuration[:on_error]
@@ -33,8 +31,6 @@ module Datadog
             end
 
             service = worker_config(resource, :service_name) || @sidekiq_service
-            # DEV-2.0: Remove `tag_args`, as `quantize` can fulfill the same contract
-            tag_args = worker_config(resource, :tag_args) || configuration[:tag_args]
             quantize = worker_config(resource, :quantize) || configuration[:quantize]
 
             Datadog::Tracing.trace(
@@ -72,7 +68,6 @@ module Datadog
 
               args = job['args']
               if args && !args.empty?
-                quantize = tag_args ? QUANTIZE_SHOW_ALL : quantize
                 span.set_tag(Ext::TAG_JOB_ARGS, quantize_args(quantize, args))
               end
 

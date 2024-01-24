@@ -29,12 +29,6 @@ module Datadog
               o.default 1.0
             end
 
-            option :tag_args do |o|
-              o.type :bool
-              o.env Ext::ENV_TAG_JOB_ARGS
-              o.default false
-            end
-
             option :service_name
             option :client_service_name
 
