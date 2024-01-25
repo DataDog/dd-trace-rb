@@ -467,7 +467,7 @@ end
 
 | Key            | Description                                                                                                                                                                                       | Default                                    |
 |----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
-| `service_name` | **Deprecated:** override the service name for the SQL query instrumentation. ActiveRecord instantiation instrumentation always uses the application's configured service name. | Name of database adapter (e.g. `'mysql2'`) |
+| `service_name` | Override the service name for the SQL query instrumentation. ActiveRecord instantiation instrumentation always uses the application's configured service name. | Name of database adapter (e.g. `'mysql2'`) |
 
 **Configuring trace settings per database**
 
