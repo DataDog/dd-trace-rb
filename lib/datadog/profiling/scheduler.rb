@@ -107,7 +107,7 @@ module Datadog
 
         return false unless flush
 
-        @stats.call
+        @stats&.call
 
         # Sleep for a bit to cause misalignment between profilers in multi-process applications
         #
