@@ -31,7 +31,7 @@ module Datadog
         )
           unless getter == ::OpenTelemetry::Context::Propagation.text_map_getter
             Datadog.logger.error(
-              'Custom getter is not supported. Please inform the `ddtrace` team at ' \
+              "Custom getter #{getter} is not supported. Please inform the `ddtrace` team at " \
             ' https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default ' \
             'OpenTelemetry::Context::Propagation.text_map_getter as a fallback getter.'
             )
