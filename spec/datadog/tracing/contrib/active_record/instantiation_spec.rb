@@ -65,18 +65,17 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
       #it_behaves_like 'schema version span'
 
       context 'is not set' do
-        it { expect(span.service).to eq('rspec') }
+        it { expect(span.service).to eq(tracer.default_service) }
       end
 
       context 'is set' do
         let(:service_name) { 'test_active_record' }
         let(:configuration_options) { super().merge(service_name: service_name) }
 
-        #it { expect(span.service).to eq(service_name) }
-        #
-        # Currently the service name is not defined in the instantiation
-        # integration, therefore the root span's service name is used.
-        it { expect(span.service).to eq('rspec') }
+        # Service name override in AR tracing configuration applies only to
+        # the SQL query instrumentation, not to instantiation insturmentation.
+        # Instantiation events always use the application's service name.
+        it { expect(span.service).to eq(tracer.default_service) }
       end
     end
   end
