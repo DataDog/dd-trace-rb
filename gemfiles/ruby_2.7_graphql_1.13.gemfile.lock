@@ -51,13 +51,17 @@ GEM
     extlz4 (0.3.4)
     ffi (1.16.3)
     google-protobuf (3.25.2-aarch64-linux)
+    google-protobuf (3.25.2-x86_64-linux)
     graphql (1.13.21)
     hashdiff (1.1.0)
     json (2.7.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (5.0.0.1.0-aarch64-linux)
+    libdatadog (5.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
@@ -147,6 +151,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-linux
 
 DEPENDENCIES
   appraisal (~> 2.4.0)
