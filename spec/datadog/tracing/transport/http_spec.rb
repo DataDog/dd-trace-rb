@@ -78,7 +78,6 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       let(:port) { nil }
       let(:uds_path) { nil }
       let(:timeout_seconds) { nil }
-      let(:deprecated_for_removal_transport_configuration_proc) { nil }
 
       let(:agent_settings) do
         Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
@@ -87,8 +86,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
           hostname: hostname,
           port: port,
           uds_path: uds_path,
-          timeout_seconds: timeout_seconds,
-          deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
+          timeout_seconds: timeout_seconds
         )
       end
 
@@ -106,17 +104,6 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
             expect(api.adapter.timeout).to be(timeout_seconds)
             expect(api.adapter.ssl).to be true
           end
-        end
-      end
-
-      context 'that specifies a deprecated_for_removal_transport_configuration_proc' do
-        let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
-
-        it 'calls the deprecated_for_removal_transport_configuration_proc with the transport builder' do
-          expect(deprecated_for_removal_transport_configuration_proc).to \
-            receive(:call).with(an_instance_of(Datadog::Tracing::Transport::HTTP::Builder))
-
-          default
         end
       end
     end

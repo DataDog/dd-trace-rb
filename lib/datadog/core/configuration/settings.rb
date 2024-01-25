@@ -61,6 +61,26 @@ module Datadog
           # @return [String,nil]
           option :port
 
+          # Agent APM SSL.
+          # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
+          # @default defined as part of `DD_TRACE_AGENT_URL` environment variable, otherwise `false`
+          # Only applies to http connections.
+          # @return [Boolean,nil]
+          option :use_ssl
+
+          # Agent APM Timeout.
+          # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
+          # @default `DD_TRACE_AGENT_TIMEOUT_SECONDS` environment variable, otherwise `30` for http, '1' for UDS
+          # @return [Integer,nil]
+          option :timeout_seconds
+
+          # Agent unix domain socket path.
+          # @default defined in `DD_TRACE_AGENT_URL` environment variable, otherwise '/var/run/datadog/apm.socket'
+          # Agent connects via HTTP by default, but will use UDS if this is set or if unix scheme defined in
+          # DD_TRACE_AGENT_URL.
+          # @return [String,nil]
+          option :uds_path
+
           # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
           # @public_api
@@ -109,29 +129,6 @@ module Datadog
               require 'pp' if enabled
             end
           end
-          # Internal {Datadog::Statsd} metrics collection.
-          #
-          # @public_api
-          settings :health_metrics do
-            # Enable health metrics collection.
-            #
-            # @default `DD_HEALTH_METRICS_ENABLED` environment variable, otherwise `false`
-            # @return [Boolean]
-            option :enabled do |o|
-              o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED
-              o.default false
-              o.type :bool
-            end
-
-            # {Datadog::Statsd} instance to collect health metrics.
-            #
-            # If `nil`, health metrics creates a new {Datadog::Statsd} client with default agent configuration.
-            #
-            # @default `nil`
-            # @return [Datadog::Statsd,nil] a custom {Datadog::Statsd} instance
-            # @return [nil] an instance with default agent configuration will be lazily created
-            option :statsd
-          end
 
           # Tracer startup debug log statement configuration.
           # @public_api
@@ -159,6 +156,30 @@ module Datadog
           o.type :string, nilable: true
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env Core::Environment::Ext::ENV_ENVIRONMENT
+        end
+
+        # Internal {Datadog::Statsd} metrics collection.
+        #
+        # @public_api
+        settings :health_metrics do
+          # Enable health metrics collection.
+          #
+          # @default `DD_HEALTH_METRICS_ENABLED` environment variable, otherwise `false`
+          # @return [Boolean]
+          option :enabled do |o|
+            o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED
+            o.default false
+            o.type :bool
+          end
+
+          # {Datadog::Statsd} instance to collect health metrics.
+          #
+          # If `nil`, health metrics creates a new {Datadog::Statsd} client with default agent configuration.
+          #
+          # @default `nil`
+          # @return [Datadog::Statsd,nil] a custom {Datadog::Statsd} instance
+          # @return [nil] an instance with default agent configuration will be lazily created
+          option :statsd
         end
 
         # Internal `Datadog.logger` configuration.
@@ -279,8 +300,6 @@ module Datadog
             #       in summary, this should be supported on Ruby 2.x, 3.1.4+, 3.2.3+ and 3.3.0+. Enabling it on
             #       unsupported Rubies may result in unexpected behaviour, including crashes.
             #
-            # @note Allocation profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
-            #
             # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_allocation_enabled do |o|
               o.type :bool
@@ -293,13 +312,26 @@ module Datadog
             # This feature is alpha and disabled by default
             #
             # @warn To enable heap profiling you are required to also enable allocation profiling.
-            # @note Heap profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
             #
             # @default `DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_heap_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED'
               o.default false
+            end
+
+            # Can be used to enable/disable the collection of heap size profiles.
+            #
+            # This feature is alpha and enabled by default when heap profiling is enabled.
+            #
+            # @warn To enable heap size profiling you are required to also enable allocation and heap profiling.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise
+            # whatever the value of DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED is.
+            option :experimental_heap_size_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED'
+              o.default true # This gets ANDed with experimental_heap_enabled in the profiler component.
             end
 
             # Can be used to configure the allocation sampling rate: a sample will be collected every x allocations.
@@ -312,6 +344,22 @@ module Datadog
               o.type :int
               o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE'
               o.default 50
+            end
+
+            # Can be used to configure the heap sampling rate: a heap sample will be collected for every x allocation
+            # samples.
+            #
+            # The lower the value, the more accuracy in heap tracking but the bigger the overhead. In particular, a
+            # value of 1 will track ALL allocations samples for heap profiles.
+            #
+            # The effective heap sampling rate in terms of allocations (not allocation samples) can be calculated via
+            # effective_heap_sample_rate = allocation_sample_rate * heap_sample_rate.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE` environment variable, otherwise `10`.
+            option :experimental_heap_sample_rate do |o|
+              o.type :int
+              o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE'
+              o.default 10
             end
 
             # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.
@@ -590,6 +638,42 @@ module Datadog
             o.type :float
             o.env Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL
             o.default 60.0
+          end
+
+          # The install id of the application.
+          #
+          # This method is used internally, by library injection.
+          #
+          # @default `DD_INSTRUMENTATION_INSTALL_ID` environment variable, otherwise `nil`.
+          # @return [String,nil]
+          # @!visibility private
+          option :install_id do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_INSTALL_ID
+          end
+
+          # The install type of the application.
+          #
+          # This method is used internally, by library injection.
+          #
+          # @default `DD_INSTRUMENTATION_INSTALL_TYPE` environment variable, otherwise `nil`.
+          # @return [String,nil]
+          # @!visibility private
+          option :install_type do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_INSTALL_TYPE
+          end
+
+          # The install time of the application.
+          #
+          # This method is used internally, by library injection.
+          #
+          # @default `DD_INSTRUMENTATION_INSTALL_TIME` environment variable, otherwise `nil`.
+          # @return [String,nil]
+          # @!visibility private
+          option :install_time do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_INSTALL_TIME
           end
         end
 

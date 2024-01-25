@@ -124,12 +124,6 @@ module Datadog
       def start_time_nano: () -> untyped
 
       def duration_nano: () -> untyped
-
-      alias span_id id
-
-      alias span_type type
-
-      alias span_type= type=
     end
   end
 end

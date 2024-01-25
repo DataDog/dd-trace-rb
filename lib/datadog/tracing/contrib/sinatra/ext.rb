@@ -23,12 +23,6 @@ module Datadog
           TAG_SCRIPT_NAME = 'sinatra.script_name'
           TAG_TEMPLATE_ENGINE = 'sinatra.template_engine'
           TAG_TEMPLATE_NAME = 'sinatra.template_name'
-
-          # === Deprecated: To be removed ===
-          RACK_ENV_REQUEST_SPAN = 'datadog.sinatra_request_span'
-          RACK_ENV_MIDDLEWARE_START_TIME = 'datadog.sinatra_middleware_start_time'
-          RACK_ENV_MIDDLEWARE_TRACED = 'datadog.sinatra_middleware_traced'
-          # === Deprecated: To be removed ===
         end
       end
     end

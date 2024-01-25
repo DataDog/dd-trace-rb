@@ -27,7 +27,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
   shared_examples 'a child span operation' do
     it 'associates to the parent' do
       expect(span_op).to have_attributes(
-        parent_id: parent.span_id,
+        parent_id: parent.id,
         trace_id: parent.trace_id
       )
     end
@@ -94,20 +94,6 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           started?: false,
           stopped?: false
         )
-      end
-
-      it 'aliases #span_id' do
-        expect(span_op.id).to eq(span_op.span_id)
-      end
-
-      it 'aliases #span_type' do
-        expect(span_op.type).to eq(span_op.span_type)
-      end
-
-      it 'aliases #span_type= to #type=' do
-        span_type = 'foo'
-        span_op.span_type = 'foo'
-        expect(span_op.type).to eq(span_type)
       end
 
       it_behaves_like 'a root span operation'
@@ -282,7 +268,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
             let(:options) { { child_of: parent, parent_id: parent_id } }
 
             # :child_of will override :parent_id, if both are provided.
-            it { is_expected.to have_attributes(parent_id: parent.span_id) }
+            it { is_expected.to have_attributes(parent_id: parent.id) }
           end
         end
       end
@@ -359,7 +345,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
 
         context 'that is an Integer' do
-          let(:trace_id) { Datadog::Tracing::Utils.next_id }
+          let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
           it { is_expected.to have_attributes(trace_id: trace_id) }
         end
       end

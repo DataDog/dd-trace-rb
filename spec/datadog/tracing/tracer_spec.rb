@@ -108,11 +108,11 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
 
         context 'span_type:' do
-          let(:options) { { span_type: span_type } }
+          let(:options) { { type: span_type } }
           let(:span_type) { 'my-span_type' }
 
           it 'sets the span resource' do
-            expect(span.span_type).to eq(span_type)
+            expect(span.type).to eq(span_type)
           end
         end
 
@@ -273,12 +273,12 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(parent.name).to eq('parent')
           expect(parent.service).to eq('service-parent')
 
-          expect(child1.parent_id).to be(parent.span_id)
+          expect(child1.parent_id).to be(parent.id)
           expect(child1.name).to eq('child1')
           expect(child1.service).to eq(tracer.default_service)
           expect(child1.get_tag('tag')).to eq('tag_1')
 
-          expect(child2.parent_id).to be(parent.span_id)
+          expect(child2.parent_id).to be(parent.id)
           expect(child2.name).to eq('child2')
           expect(child2.service).to eq('service-child2')
           expect(child2.get_tag('tag')).to eq('tag_2')
@@ -324,11 +324,11 @@ RSpec.describe Datadog::Tracing::Tracer do
               expect(spans.all? { |s| s.trace_id == grandparent.trace_id }).to be true
 
               expect(grandparent).to be_root_span
-              expect(parent.parent_id).to be grandparent.span_id
-              expect(child.parent_id).to be parent.span_id
-              expect(grandchild.parent_id).to be child.span_id
-              expect(uncle.parent_id).to be grandparent.span_id
-              expect(nephew.parent_id).to be uncle.span_id
+              expect(parent.parent_id).to be grandparent.id
+              expect(child.parent_id).to be parent.id
+              expect(grandchild.parent_id).to be child.id
+              expect(uncle.parent_id).to be grandparent.id
+              expect(nephew.parent_id).to be uncle.id
             end
           end
 
@@ -740,7 +740,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         is_expected.to be_a_kind_of(Datadog::Tracing::Correlation::Identifier)
         expect(active_correlation.trace_id)
           .to eq(low_order_trace_id(span.trace_id))
-        expect(active_correlation.span_id).to eq(span.span_id)
+        expect(active_correlation.span_id).to eq(span.id)
       end
     end
 
@@ -786,7 +786,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(span).to have_attributes(
             parent_id: 0,
-            span_id: a_kind_of(Integer),
+            id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end
@@ -829,7 +829,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(span).to have_attributes(
             parent_id: 0,
-            span_id: a_kind_of(Integer),
+            id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end
@@ -948,7 +948,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(span).to have_attributes(
             parent_id: 0,
-            span_id: a_kind_of(Integer),
+            id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end

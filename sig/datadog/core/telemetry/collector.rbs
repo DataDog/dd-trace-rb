@@ -14,7 +14,7 @@ module Datadog
 
         private
 
-        TARGET_OPTIONS: ::Array["ci.enabled" | "logger.level" | "profiling.advanced.code_provenance_enabled" | "profiling.advanced.endpoint.collection.enabled" | "profiling.enabled" | "runtime_metrics.enabled" | "tracing.analytics.enabled" | "tracing.propagation_style_inject" | "tracing.propagation_style_extract" | "tracing.enabled" | "tracing.log_injection" | "tracing.partial_flush.enabled" | "tracing.partial_flush.min_spans_threshold" | "tracing.priority_sampling" | "tracing.report_hostname" | "tracing.sampling.default_rate" | "tracing.sampling.rate_limit"]
+        TARGET_OPTIONS: ::Array[::String]
 
         def additional_payload_variables: () -> untyped
 

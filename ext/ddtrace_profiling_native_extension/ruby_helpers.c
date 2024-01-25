@@ -4,6 +4,22 @@
 #include "ruby_helpers.h"
 #include "private_vm_api_access.h"
 
+// The following global variables are initialized at startup to save expensive lookups later.
+// They are not expected to be mutated outside of init.
+static VALUE module_object_space = Qnil;
+static ID _id2ref_id = Qnil;
+static ID inspect_id = Qnil;
+static ID to_s_id = Qnil;
+
+void ruby_helpers_init(void) {
+  rb_global_variable(&module_object_space);
+
+  module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
+  _id2ref_id = rb_intern("_id2ref");
+  inspect_id = rb_intern("inspect");
+  to_s_id = rb_intern("to_s");
+}
+
 void raise_unexpected_type(
   VALUE value,
   const char *value_name,
@@ -106,5 +122,136 @@ void raise_syserr(
     rb_exc_raise(rb_syserr_new_str(syserr_errno, rb_sprintf("Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name)));
   } else {
     grab_gvl_and_raise_syserr(syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
+  }
+}
+
+char* ruby_strndup(const char *str, size_t size) {
+  char *dup;
+
+  dup = xmalloc(size + 1);
+  memcpy(dup, str, size);
+  dup[size] = '\0';
+
+  return dup;
+}
+
+static VALUE _id2ref(VALUE obj_id) {
+  // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
+  return rb_funcall(module_object_space, _id2ref_id, 1, obj_id);
+}
+
+static VALUE _id2ref_failure(DDTRACE_UNUSED VALUE _unused1, DDTRACE_UNUSED VALUE _unused2) {
+  return Qfalse;
+}
+
+// Native wrapper to get an object ref from an id. Returns true on success and
+// writes the ref to the value pointer parameter if !NULL. False if id doesn't
+// reference a valid object (in which case value is not changed).
+bool ruby_ref_from_id(VALUE obj_id, VALUE *value) {
+  // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
+  // so we need to call it via rb_rescue2
+  // TODO: Benchmark rb_rescue2 vs rb_protect here
+  VALUE result = rb_rescue2(
+    _id2ref,
+    obj_id,
+    _id2ref_failure,
+    Qnil,
+    rb_eRangeError, // rb_eRangeError is the error used to flag invalid ids
+    0 // Required by API to be the last argument
+  );
+
+  if (result == Qfalse) {
+    return false;
+  }
+
+  if (value != NULL) {
+    (*value) = result;
+  }
+
+  return true;
+}
+
+// Not part of public headers but is externed from Ruby
+size_t rb_obj_memsize_of(VALUE obj);
+
+// Wrapper around rb_obj_memsize_of to avoid hitting crashing paths.
+//
+// The crashing paths are due to calls to rb_bug so should hopefully
+// be situations that can't happen. But given that rb_obj_memsize_of
+// isn't fully public (it's externed but not part of public headers)
+// there is a possibility that it is just assumed that whoever calls
+// it, will do proper checking for those cases. We want to be cautious
+// so we'll assume that's the case and will skip over known crashing
+// paths in this wrapper.
+size_t ruby_obj_memsize_of(VALUE obj) {
+  switch (rb_type(obj)) {
+    case T_OBJECT:
+    case T_MODULE:
+    case T_CLASS:
+    case T_ICLASS:
+    case T_STRING:
+    case T_ARRAY:
+    case T_HASH:
+    case T_REGEXP:
+    case T_DATA:
+    case T_MATCH:
+    case T_FILE:
+    case T_RATIONAL:
+    case T_COMPLEX:
+    case T_IMEMO:
+    case T_FLOAT:
+    case T_SYMBOL:
+    case T_BIGNUM:
+    // case T_NODE: -> Crashes the vm in rb_obj_memsize_of
+    case T_STRUCT:
+    case T_ZOMBIE:
+    #ifndef NO_T_MOVED
+    case T_MOVED:
+    #endif
+      return rb_obj_memsize_of(obj);
+    default:
+      // Unsupported, return 0 instead of erroring like rb_obj_memsize_of likes doing
+      return 0;
+  }
+}
+
+// Inspired by rb_class_of but without actually returning classes or potentially doing assertions
+static bool ruby_is_obj_with_class(VALUE obj) {
+  if (!RB_SPECIAL_CONST_P(obj)) {
+    return true;
+  }
+  if (obj == RUBY_Qfalse) {
+    return true;
+  }
+  else if (obj == RUBY_Qnil) {
+    return true;
+  }
+  else if (obj == RUBY_Qtrue) {
+    return true;
+  }
+  else if (RB_FIXNUM_P(obj)) {
+    return true;
+  }
+  else if (RB_STATIC_SYM_P(obj)) {
+    return true;
+  }
+  else if (RB_FLONUM_P(obj)) {
+    return true;
+  }
+
+  return false;
+}
+
+VALUE ruby_safe_inspect(VALUE obj) {
+  if (!ruby_is_obj_with_class(obj)) {
+    return rb_str_new_cstr("(Not an object)");
+  }
+
+  if (rb_respond_to(obj, inspect_id)) {
+    return rb_sprintf("%+"PRIsVALUE, obj);
+  } else if (rb_respond_to(obj, to_s_id)) {
+    return rb_sprintf("%"PRIsVALUE, obj);
+  } else {
+    return rb_str_new_cstr("(Not inspectable)");
   }
 }

@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.18.0)
-      datadog-ci (~> 0.5.0)
-      debase-ruby_core_source (= 3.2.3)
+    ddtrace (1.19.0)
+      base64
+      debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 5.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -27,6 +27,7 @@ GEM
       rake
       thor (>= 0.14.0)
     ast (2.4.2)
+    base64 (0.2.0)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -41,9 +42,7 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
-    datadog-ci (0.5.0)
-      msgpack
-    debase-ruby_core_source (3.2.3)
+    debase-ruby_core_source (3.3.1)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)

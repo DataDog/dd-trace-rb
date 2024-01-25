@@ -22,7 +22,7 @@ RSpec.describe 'Rack integration tests' do
   shared_examples 'a rack GET 200 span' do
     it do
       expect(span.name).to eq('rack.request')
-      expect(span.span_type).to eq('web')
+      expect(span.type).to eq('web')
       expect(span.service).to eq(tracer.default_service)
       expect(span.resource).to eq('GET 200')
       expect(span.get_tag('http.method')).to eq('GET')
@@ -64,7 +64,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 404')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -275,7 +275,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
+            expect(span.type).to eq('web')
             expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('POST 200')
             expect(span.get_tag('http.method')).to eq('POST')
@@ -304,46 +304,8 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      describe 'when request queueing includes the request time' do
-        let(:rack_options) { { request_queuing: :include_request } }
-
-        it 'creates web_server_span and rack span' do
-          get 'request_queuing_enabled',
-            nil,
-            { Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}" }
-
-          expect(trace.resource).to eq('GET 200')
-
-          expect(spans).to have(2).items
-
-          server_queue_span = spans[0]
-          rack_span = spans[1]
-
-          expect(server_queue_span).to be_root_span
-          expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_SERVER_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
-          expect(server_queue_span.service).to eq('web-server')
-          expect(server_queue_span.resource).to eq('http_server.queue')
-          expect(server_queue_span.get_tag('component')).to eq('rack')
-          expect(server_queue_span.get_tag('operation')).to eq('queue')
-          expect(server_queue_span.status).to eq(0)
-          expect(server_queue_span.get_tag('span.kind')).to eq('server')
-
-          expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
-          expect(rack_span.service).to eq(tracer.default_service)
-          expect(rack_span.resource).to eq('GET 200')
-          expect(rack_span.get_tag('http.method')).to eq('GET')
-          expect(rack_span.get_tag('http.status_code')).to eq('200')
-          expect(rack_span.status).to eq(0)
-          expect(rack_span.get_tag('component')).to eq('rack')
-          expect(rack_span.get_tag('operation')).to eq('request')
-          expect(rack_span.get_tag('span.kind')).to eq('server')
-        end
-      end
-
-      describe 'when request queueing excludes the request time' do
-        let(:rack_options) { { request_queuing: :exclude_request } }
+      describe 'when request queueing enabled' do
+        let(:rack_options) { { request_queuing: true } }
 
         it 'creates web_server_span and rack span' do
           get 'request_queuing_enabled',
@@ -360,7 +322,7 @@ RSpec.describe 'Rack integration tests' do
 
           expect(server_request_span).to be_root_span
           expect(server_request_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_REQUEST)
-          expect(server_request_span.span_type).to eq('proxy')
+          expect(server_request_span.type).to eq('proxy')
           expect(server_request_span.service).to eq('web-server')
           expect(server_request_span.resource).to eq('http.proxy.request')
           expect(server_request_span.get_tag('component')).to eq('http_proxy')
@@ -369,7 +331,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_request_span.get_tag('span.kind')).to eq('proxy')
 
           expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
+          expect(server_queue_span.type).to eq('proxy')
           expect(server_queue_span.service).to eq('web-server')
           expect(server_queue_span.resource).to eq('http.proxy.queue')
           expect(server_queue_span.get_tag('component')).to eq('http_proxy')
@@ -379,7 +341,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_queue_span).to be_measured
 
           expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
+          expect(rack_span.type).to eq('web')
           expect(rack_span.service).to eq(tracer.default_service)
           expect(rack_span.resource).to eq('GET 200')
           expect(rack_span.get_tag('http.method')).to eq('GET')
@@ -411,7 +373,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 400')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -449,7 +411,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 500')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -489,7 +451,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
+            expect(span.type).to eq('web')
             expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -530,7 +492,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
+            expect(span.type).to eq('web')
             expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -590,7 +552,7 @@ RSpec.describe 'Rack integration tests' do
               expect(trace.resource).to eq('GET /app/')
 
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
+              expect(span.type).to eq('web')
               expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET /app/')
               expect(span.get_tag('http.method')).to eq('GET_V2')
@@ -610,65 +572,8 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      context 'when `request_queuing` enabled with `:include_request` and trace resource overwritten by nested app' do
-        let(:rack_options) { { request_queuing: :include_request } }
-        let(:routes) do
-          proc do
-            map '/resource_override' do
-              run(
-                proc do |_env|
-                  Datadog::Tracing.trace('nested_app', resource: 'UserController#show') do |span_op, trace_op|
-                    trace_op.resource = span_op.resource
-
-                    [200, { 'Content-Type' => 'text/html' }, ['OK']]
-                  end
-                end
-              )
-            end
-          end
-        end
-
-        it 'creates a web_server span and rack span with resource overriden' do
-          get '/resource_override',
-            nil,
-            { Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}" }
-
-          expect(trace.resource).to eq('UserController#show')
-
-          expect(spans).to have(3).items
-
-          server_queue_span = spans[0]
-          rack_span = spans[2]
-          nested_app_span = spans[1]
-
-          expect(server_queue_span).to be_root_span
-          expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_SERVER_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
-          expect(server_queue_span.service).to eq('web-server')
-          expect(server_queue_span.resource).to eq('http_server.queue')
-          expect(server_queue_span.get_tag('component')).to eq('rack')
-          expect(server_queue_span.get_tag('operation')).to eq('queue')
-          expect(server_queue_span.status).to eq(0)
-          expect(server_queue_span.get_tag('span.kind')).to eq('server')
-
-          expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
-          expect(rack_span.service).to eq(tracer.default_service)
-          expect(rack_span.resource).to eq('UserController#show')
-          expect(rack_span.get_tag('http.method')).to eq('GET')
-          expect(rack_span.get_tag('http.status_code')).to eq('200')
-          expect(rack_span.status).to eq(0)
-          expect(rack_span.get_tag('component')).to eq('rack')
-          expect(rack_span.get_tag('operation')).to eq('request')
-          expect(rack_span.get_tag('span.kind')).to eq('server')
-
-          expect(nested_app_span.name).to eq('nested_app')
-          expect(nested_app_span.resource).to eq('UserController#show')
-        end
-      end
-
-      context 'when `request_queuing` enabled with `:exclude_request` and trace resource overwritten by nested app' do
-        let(:rack_options) { { request_queuing: :exclude_request } }
+      context 'when `request_queuing` enabled and trace resource overwritten by nested app' do
+        let(:rack_options) { { request_queuing: true } }
         let(:routes) do
           proc do
             map '/resource_override' do
@@ -701,7 +606,7 @@ RSpec.describe 'Rack integration tests' do
 
           expect(server_request_span).to be_root_span
           expect(server_request_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_REQUEST)
-          expect(server_request_span.span_type).to eq('proxy')
+          expect(server_request_span.type).to eq('proxy')
           expect(server_request_span.service).to eq('web-server')
           expect(server_request_span.resource).to eq('http.proxy.request')
           expect(server_request_span.get_tag('component')).to eq('http_proxy')
@@ -710,7 +615,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_request_span.get_tag('span.kind')).to eq('proxy')
 
           expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
+          expect(server_queue_span.type).to eq('proxy')
           expect(server_queue_span.service).to eq('web-server')
           expect(server_queue_span.resource).to eq('http.proxy.queue')
           expect(server_queue_span.get_tag('component')).to eq('http_proxy')
@@ -720,7 +625,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_queue_span).to be_measured
 
           expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
+          expect(rack_span.type).to eq('web')
           expect(rack_span.service).to eq(tracer.default_service)
           expect(rack_span.resource).to eq('UserController#show')
           expect(rack_span.get_tag('http.method')).to eq('GET')
@@ -765,7 +670,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
+              expect(span.type).to eq('web')
               expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 500')
               expect(span.get_tag('http.method')).to eq('GET')
@@ -808,7 +713,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
+              expect(span.type).to eq('web')
               expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 500')
               expect(span.get_tag('http.method')).to eq('GET')
@@ -1064,7 +969,7 @@ RSpec.describe 'Rack integration tests' do
 
         expect(span).to be_root_span
         expect(span.name).to eq('rack.request')
-        expect(span.span_type).to eq('web')
+        expect(span.type).to eq('web')
         expect(span.service).to eq(tracer.default_service)
         expect(span.resource).to eq('POST 200')
         expect(span.get_tag('http.method')).to eq('POST')

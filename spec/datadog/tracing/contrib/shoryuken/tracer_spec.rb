@@ -119,6 +119,48 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
     end
   end
 
+  describe 'when worker raises exception' do
+    let(:exception_worker_class) do
+      stub_const(
+        'TestExceptionWorker',
+        Class.new do
+          include Shoryuken::Worker
+          shoryuken_options queue: 'default'
+          def perform(sqs_msg, body)
+            raise 'Bala Boom!'
+          end
+        end
+      )
+    end
+    let(:worker) { exception_worker_class.new }
+
+    subject(:raise_exception) do
+      body = 'message body'
+      sqs_msg = instance_double(
+        'Shoryuken::Message', message_id: SecureRandom.uuid, attributes: {}
+      )
+      shoryuken_tracer.call(worker, 'default', sqs_msg, body) do
+        worker.perform(sqs_msg, body)
+      end
+    end
+
+    context 'given without an error handler' do
+      it do
+        expect { raise_exception }.to raise_error 'Bala Boom!'
+        expect(span).to have_error
+      end
+    end
+
+    context 'given an error handler' do
+      let(:configuration_options) { { on_error: proc { @error_handler_called = true } } }
+      it do
+        expect { raise_exception }.to raise_error 'Bala Boom!'
+        expect(span).not_to have_error
+        expect(@error_handler_called).to be_truthy
+      end
+    end
+  end
+
   context 'when a Shoryuken::Worker class' do
     include_context 'Shoryuken::Worker'
 

@@ -101,7 +101,7 @@ module Datadog
               @datadog_span = Tracing.trace(
                 Ext::SPAN_REQUEST,
                 service: uri ? service_name(uri.host, datadog_configuration) : datadog_configuration[:service_name],
-                span_type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
+                type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
                 **trace_options
               )
               datadog_trace = Tracing.active_trace

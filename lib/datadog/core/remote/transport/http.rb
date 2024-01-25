@@ -76,10 +76,6 @@ module Datadog
                 transport.headers options[:headers] if options.key?(:headers)
               end
 
-              if agent_settings.deprecated_for_removal_transport_configuration_proc
-                agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
-              end
-
               # Call block to apply any customization, if provided
               yield(transport) if block_given?
             end
@@ -105,10 +101,6 @@ module Datadog
                 transport.headers options[:headers] if options.key?(:headers)
               end
 
-              if agent_settings.deprecated_for_removal_transport_configuration_proc
-                agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
-              end
-
               # Call block to apply any customization, if provided
               yield(transport) if block_given?
             end
@@ -132,18 +124,21 @@ module Datadog
           end
 
           def default_adapter
-            Datadog::Core::Transport::Ext::HTTP::ADAPTER
+            Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
           end
 
           # Add adapters to registry
-          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Net, Datadog::Core::Transport::Ext::HTTP::ADAPTER)
+          Builder::REGISTRY.set(
+            Datadog::Core::Transport::HTTP::Adapters::Net,
+            Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
+          )
           Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::Test,
             Datadog::Core::Transport::Ext::Test::ADAPTER
           )
           Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
-            Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
+            Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
           )
         end
       end

@@ -24,7 +24,7 @@ module Datadog
               span = Tracing.trace(
                 Ext::SPAN_ACTION_CONTROLLER,
                 service: service,
-                span_type: type,
+                type: type,
                 resource: "#{payload.fetch(:controller)}##{payload.fetch(:action)}",
               )
               trace = Tracing.active_trace

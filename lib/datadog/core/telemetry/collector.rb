@@ -9,6 +9,7 @@ require_relative '../utils/hash'
 require_relative 'v1/application'
 require_relative 'v1/dependency'
 require_relative 'v1/host'
+require_relative 'v1/install_signature'
 require_relative 'v1/integration'
 require_relative 'v1/product'
 require_relative '../transport/ext'
@@ -81,6 +82,15 @@ module Datadog
           )
         end
 
+        # Forms a telemetry app-started install_signature object
+        def install_signature
+          Telemetry::V1::InstallSignature.new(
+            install_id: Datadog.configuration.dig('telemetry', 'install_id'),
+            install_type: Datadog.configuration.dig('telemetry', 'install_type'),
+            install_time: Datadog.configuration.dig('telemetry', 'install_time'),
+          )
+        end
+
         # Forms a telemetry app-started integrations object
         def integrations
           Datadog.registry.map do |integration|
@@ -110,7 +120,6 @@ module Datadog
         private
 
         TARGET_OPTIONS = [
-          'ci.enabled',
           'logger.level',
           'profiling.advanced.code_provenance_enabled',
           'profiling.advanced.endpoint.collection.enabled',
@@ -123,7 +132,6 @@ module Datadog
           'tracing.log_injection',
           'tracing.partial_flush.enabled',
           'tracing.partial_flush.min_spans_threshold',
-          'tracing.priority_sampling',
           'tracing.report_hostname',
           'tracing.sampling.default_rate',
           'tracing.sampling.rate_limit'
@@ -145,6 +153,7 @@ module Datadog
             format_configuration_value(configuration.tracing.writer_options[:flush_interval])
           options['logger.instance'] = configuration.logger.instance.class.to_s
           options['appsec.enabled'] = configuration.dig('appsec', 'enabled') if configuration.respond_to?('appsec')
+          options['ci.enabled'] = configuration.dig('ci', 'enabled') if configuration.respond_to?('ci')
           options['tracing.opentelemetry.enabled'] = !defined?(Datadog::OpenTelemetry::LOADED).nil?
           options['tracing.opentracing.enabled'] = !defined?(Datadog::OpenTracer::LOADED).nil?
           options.compact!

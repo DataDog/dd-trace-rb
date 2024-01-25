@@ -166,7 +166,7 @@ module Datadog
 
           # @return [Boolean, nil] health metrics enabled in configuration
           def health_metrics_enabled
-            !!Datadog.configuration.diagnostics.health_metrics.enabled
+            !!Datadog.configuration.health_metrics.enabled
           end
 
           private

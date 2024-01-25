@@ -28,7 +28,7 @@ module Datadog
                                   adapter_name
                                 )
                 span.resource = opts[:query]
-                span.span_type = Tracing::Metadata::Ext::SQL::TYPE
+                span.type = Tracing::Metadata::Ext::SQL::TYPE
                 Utils.set_common_tags(span, self)
                 span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
                 response = super(sql, options)

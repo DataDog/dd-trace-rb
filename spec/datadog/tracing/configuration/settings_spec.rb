@@ -403,21 +403,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
-    describe '#priority_sampling' do
-      subject(:priority_sampling) { settings.tracing.priority_sampling }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#priority_sampling=' do
-      it 'updates the #priority_sampling setting' do
-        expect { settings.tracing.priority_sampling = true }
-          .to change { settings.tracing.priority_sampling }
-          .from(nil)
-          .to(true)
-      end
-    end
-
     describe '#report_hostname' do
       subject(:report_hostname) { settings.tracing.report_hostname }
 
@@ -667,7 +652,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
 
       describe '#writer_options=' do
-        let(:options) { { priority_sampling: true } }
+        let(:options) { { anything: double } }
 
         it 'updates the #writer_options setting' do
           expect { settings.tracing.test_mode.writer_options = options }
@@ -675,23 +660,6 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             .from({})
             .to(options)
         end
-      end
-    end
-
-    describe '#transport_options' do
-      subject(:transport_options) { settings.tracing.transport_options }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#transport_options=' do
-      let(:config_proc) { proc { |t| t.adapter :test } }
-
-      it 'updates the #transport_options setting' do
-        expect { settings.tracing.transport_options = config_proc }
-          .to change { settings.tracing.transport_options }
-          .from(nil)
-          .to(config_proc)
       end
     end
 
@@ -727,7 +695,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     end
 
     describe '#writer_options=' do
-      let(:options) { { priority_sampling: true } }
+      let(:options) { { anything: double } }
 
       it 'updates the #writer_options setting' do
         expect { settings.tracing.writer_options = options }

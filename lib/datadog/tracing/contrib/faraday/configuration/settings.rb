@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../../configuration/settings'
+require_relative '../../status_range_matcher'
+require_relative '../../status_range_env_parser'
 require_relative '../ext'
 
 module Datadog
@@ -34,10 +36,22 @@ module Datadog
             end
 
             option :distributed_tracing, default: true, type: :bool
-            option :error_handler do |o|
-              o.type :proc
-              o.default_proc(&DEFAULT_ERROR_HANDLER)
+
+            option :on_error do |o|
+              o.type :proc, nilable: true
             end
+
+            option :error_status_codes do |o|
+              o.env Ext::ENV_ERROR_STATUS_CODES
+              o.default 400...600
+              o.setter do |v|
+                Tracing::Contrib::StatusRangeMatcher.new(v) if v
+              end
+              o.env_parser do |v|
+                Tracing::Contrib::StatusRangeEnvParser.call(v) if v
+              end
+            end
+
             option :split_by_domain, default: false, type: :bool
 
             option :service_name do |o|

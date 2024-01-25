@@ -6,7 +6,8 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 | Type  | Documentation              | Version | Support type                         | Gem version support |
 | ----- | -------------------------- | -----   | ------------------------------------ | ------------------- |
-| MRI   | https://www.ruby-lang.org/ | 3.2     | Full                                 | Latest              |
+| MRI   | https://www.ruby-lang.org/ | 3.3     | Full                                 | Latest              |
+|       |                            | 3.2     | Full                                 | Latest              |
 |       |                            | 3.1     | Full                                 | Latest              |
 |       |                            | 3.0     | Full                                 | Latest              |
 |       |                            | 2.7     | Full                                 | Latest              |
@@ -90,7 +91,6 @@ For a list of available integrations, and their configuration options, refer to 
 | OpenSearch                 | `opensearch-ruby`          | `>= 1.0.0`               | `>= 1.0.0`                | [Link][29]                          | [Link](https://github.com/opensearch-project/opensearch-ruby)                |
 | Postgres                   | `pg`                       | `>= 0.18.4`              | *gem not available*       | [Link][30]                          | [Link](https://github.com/ged/ruby-pg)                                       |
 | Presto                     | `presto`                   | `>= 0.5.14`              | `>= 0.5.14`               | [Link][31]                          | [Link](https://github.com/treasure-data/presto-client-ruby)                  |
-| Qless                      | `qless`                    | `>= 0.10.0`              | `>= 0.10.0`               | [Link][32]                          | [Link](https://github.com/seomoz/qless)                                      |
 | Que                        | `que`                      | `>= 1.0.0.beta2`         | `>= 1.0.0.beta2`          | [Link][33]                          | [Link](https://github.com/que-rb/que)                                        |
 | Racecar                    | `racecar`                  | `>= 0.3.5`               | `>= 0.3.5`                | [Link][34]                          | [Link](https://github.com/zendesk/racecar)                                   |
 | Rack                       | `rack`                     | `>= 1.1`                 | `>= 1.1`                  | [Link][35]                          | [Link](https://github.com/rack/rack)                                         |
@@ -108,14 +108,6 @@ For a list of available integrations, and their configuration options, refer to 
 | Stripe                     | `stripe`                   | `>= 5.15.0`              | `>= 5.15.0`               | [Link][47]                          | [Link](https://github.com/stripe/stripe-ruby)                                |
 | Sucker Punch               | `sucker_punch`             | `>= 2.0`                 | `>= 2.0`                  | [Link][48]                          | [Link](https://github.com/brandonhilkert/sucker_punch)                       |
 
-### CI visibility integrations
-
-These are the available CI visibility integrations:
-
-| Name      | Key        | Versions Supported: MRI | Versions Supported: JRuby | How to configure    | Gem source                                          |
-|-----------|------------|-------------------------|---------------------------|---------------------|-----------------------------------------------------|
-| Cucumber  | `cucumber` | `>= 3.0`                | `>= 1.7.16`               | [Link][49]          | [Link](https://github.com/cucumber/cucumber-ruby)   |
-| RSpec     | `rspec`    | `>= 3.0.0`              | `>= 3.0.0`                | [Link][50]          | [Link](https://github.com/rspec/rspec)              |
 
 [1]: https://github.com/DataDog/dd-trace-rb
 [2]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#action-cable
@@ -148,7 +140,6 @@ These are the available CI visibility integrations:
 [29]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#opensearch
 [30]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#postgres
 [31]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#presto
-[32]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#qless
 [33]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#que
 [34]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#racecar
 [35]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#rack
@@ -165,6 +156,4 @@ These are the available CI visibility integrations:
 [46]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#sneakers
 [47]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#stripe
 [48]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#sucker-punch
-[49]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#cucumber
-[50]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#rspec
 

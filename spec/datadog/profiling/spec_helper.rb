@@ -5,7 +5,17 @@ if Datadog::Profiling.supported?
 end
 
 module ProfileHelpers
-  Sample = Struct.new(:locations, :values, :labels) # rubocop:disable Lint/StructNewOverride
+  Sample = Struct.new(:locations, :values, :labels) do |_sample_class| # rubocop:disable Lint/StructNewOverride
+    def value?(type)
+      (values[type] || 0) > 0
+    end
+
+    def has_location?(path:, line:)
+      locations.any? do |location|
+        location.path == path && location.lineno == line
+      end
+    end
+  end
   Frame = Struct.new(:base_label, :path, :lineno)
 
   def skip_if_profiling_not_supported(testcase)
@@ -73,16 +83,24 @@ module ProfileHelpers
   end
 
   def samples_for_thread(samples, thread)
-    samples.select { |sample| object_id_from(sample.labels.fetch(:'thread id')) == thread.object_id }
+    samples.select do |sample|
+      thread_id = sample.labels[:'thread id']
+      thread_id && object_id_from(thread_id) == thread.object_id
+    end
   end
 
   # We disable heap_sample collection by default in tests since it requires some extra mocking/
   # setup for it to properly work.
-  def build_stack_recorder(heap_samples_enabled: false, timeline_enabled: false)
+  def build_stack_recorder(
+    heap_samples_enabled: false, heap_size_enabled: false, heap_sample_every: 1,
+    timeline_enabled: false
+  )
     Datadog::Profiling::StackRecorder.new(
       cpu_time_enabled: true,
       alloc_samples_enabled: true,
       heap_samples_enabled: heap_samples_enabled,
+      heap_size_enabled: heap_size_enabled,
+      heap_sample_every: heap_sample_every,
       timeline_enabled: timeline_enabled,
     )
   end

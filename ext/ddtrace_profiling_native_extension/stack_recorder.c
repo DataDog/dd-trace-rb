@@ -153,17 +153,19 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 #define ALLOC_SAMPLES_VALUE_ID 3
 #define HEAP_SAMPLES_VALUE      {.type_ = VALUE_STRING("heap-live-samples"), .unit = VALUE_STRING("count")}
 #define HEAP_SAMPLES_VALUE_ID 4
+#define HEAP_SIZE_VALUE         {.type_ = VALUE_STRING("heap-live-size"),    .unit = VALUE_STRING("bytes")}
+#define HEAP_SIZE_VALUE_ID 5
 #define TIMELINE_VALUE          {.type_ = VALUE_STRING("timeline"),          .unit = VALUE_STRING("nanoseconds")}
-#define TIMELINE_VALUE_ID 5
+#define TIMELINE_VALUE_ID 6
 
 static const ddog_prof_ValueType all_value_types[] =
-  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, HEAP_SAMPLES_VALUE, TIMELINE_VALUE};
+  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, HEAP_SAMPLES_VALUE, HEAP_SIZE_VALUE, TIMELINE_VALUE};
 
 // This array MUST be kept in sync with all_value_types above and is intended to act as a "hashmap" between VALUE_ID and the position it
 // occupies on the all_value_types array.
 // E.g. all_value_types_positions[CPU_TIME_VALUE_ID] => 0, means that CPU_TIME_VALUE was declared at position 0 of all_value_types.
 static const uint8_t all_value_types_positions[] =
-  {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, HEAP_SAMPLES_VALUE_ID, TIMELINE_VALUE_ID};
+  {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, HEAP_SAMPLES_VALUE_ID, HEAP_SIZE_VALUE_ID, TIMELINE_VALUE_ID};
 
 #define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
 
@@ -194,6 +196,7 @@ struct call_serialize_without_gvl_arguments {
   // Set by caller
   struct stack_recorder_state *state;
   ddog_Timespec finish_timestamp;
+  size_t gc_count_before_serialize;
 
   // Set by callee
   ddog_prof_Profile *profile;
@@ -213,6 +216,8 @@ static VALUE _native_initialize(
   VALUE cpu_time_enabled,
   VALUE alloc_samples_enabled,
   VALUE heap_samples_enabled,
+  VALUE heap_size_enabled,
+  VALUE heap_sample_every,
   VALUE timeline_enabled
 );
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
@@ -230,7 +235,13 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
 static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec start_time);
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
 static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */);
-static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight);
+static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight, VALUE alloc_class);
+static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locations);
+static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj);
+static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj);
 
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -248,14 +259,25 @@ void stack_recorder_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
-  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 5);
+  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 7);
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
   rb_define_singleton_method(stack_recorder_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
   rb_define_singleton_method(testing_module, "_native_slot_one_mutex_locked?", _native_is_slot_one_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_record_endpoint", _native_record_endpoint, 3);
-  rb_define_singleton_method(testing_module, "_native_track_object", _native_track_object, 3);
+  rb_define_singleton_method(testing_module, "_native_track_object", _native_track_object, 4);
+  rb_define_singleton_method(testing_module, "_native_check_heap_hashes", _native_check_heap_hashes, 1);
+  rb_define_singleton_method(testing_module, "_native_start_fake_slow_heap_serialization",
+      _native_start_fake_slow_heap_serialization, 1);
+  rb_define_singleton_method(testing_module, "_native_end_fake_slow_heap_serialization",
+      _native_end_fake_slow_heap_serialization, 1);
+  rb_define_singleton_method(testing_module, "_native_debug_heap_recorder",
+      _native_debug_heap_recorder, 1);
+  rb_define_singleton_method(testing_module, "_native_gc_force_recycle",
+      _native_gc_force_recycle, 1);
+  rb_define_singleton_method(testing_module, "_native_has_seen_id_flag",
+      _native_has_seen_id_flag, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -355,20 +377,27 @@ static VALUE _native_initialize(
   VALUE cpu_time_enabled,
   VALUE alloc_samples_enabled,
   VALUE heap_samples_enabled,
+  VALUE heap_size_enabled,
+  VALUE heap_sample_every,
   VALUE timeline_enabled
 ) {
   ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
   ENFORCE_BOOLEAN(heap_samples_enabled);
+  ENFORCE_BOOLEAN(heap_size_enabled);
+  ENFORCE_TYPE(heap_sample_every, T_FIXNUM);
   ENFORCE_BOOLEAN(timeline_enabled);
 
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
+  heap_recorder_set_sample_rate(state->heap_recorder, NUM2INT(heap_sample_every));
+
   uint8_t requested_values_count = ALL_VALUE_TYPES_COUNT -
     (cpu_time_enabled == Qtrue ? 0 : 1) -
     (alloc_samples_enabled == Qtrue? 0 : 1) -
     (heap_samples_enabled == Qtrue ? 0 : 1) -
+    (heap_size_enabled == Qtrue ? 0 : 1) -
     (timeline_enabled == Qtrue ? 0 : 1);
 
   if (requested_values_count == ALL_VALUE_TYPES_COUNT) return Qtrue; // Nothing to do, this is the default
@@ -410,7 +439,17 @@ static VALUE _native_initialize(
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_disabled_pos++;
+  }
 
+  if (heap_size_enabled == Qtrue) {
+    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SIZE_VALUE;
+    state->position_for[HEAP_SIZE_VALUE_ID] = next_enabled_pos++;
+  } else {
+    state->position_for[HEAP_SIZE_VALUE_ID] = next_disabled_pos++;
+  }
+  heap_recorder_set_size_enabled(state->heap_recorder, heap_size_enabled);
+
+  if (heap_samples_enabled == Qfalse && heap_size_enabled == Qfalse) {
     // Turns out heap sampling is disabled but we initialized everything in _native_new
     // assuming all samples were enabled. We need to deinitialize the heap recorder.
     heap_recorder_free(state->heap_recorder);
@@ -441,13 +480,18 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // Need to do this while still holding on to the Global VM Lock; see comments on method for why
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
-  // Flush any pending data in the heap recorder prior to doing the iteration during serialization.
-  // This needs to happen while holding on to the GVL
-  heap_recorder_flush(state->heap_recorder);
+  // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
+  // happen while holding on to the GVL.
+  heap_recorder_prepare_iteration(state->heap_recorder);
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
-  struct call_serialize_without_gvl_arguments args = {.state = state, .finish_timestamp = finish_timestamp, .serialize_ran = false};
+  struct call_serialize_without_gvl_arguments args = {
+    .state = state,
+    .finish_timestamp = finish_timestamp,
+    .gc_count_before_serialize = rb_gc_count(),
+    .serialize_ran = false
+  };
 
   while (!args.serialize_ran) {
     // Give the Ruby VM an opportunity to process any pending interruptions (including raising exceptions).
@@ -462,6 +506,9 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
     // interruptions and thus does not raise exceptions after running our code.
     rb_thread_call_without_gvl2(call_serialize_without_gvl, &args, NULL /* No interruption function needed in this case */, NULL /* Not needed */);
   }
+
+  // Cleanup after heap recorder iteration. This needs to happen while holding on to the GVL.
+  heap_recorder_finish_iteration(state->heap_recorder);
 
   ddog_prof_Profile_SerializeResult serialized_profile = args.result;
 
@@ -532,13 +579,13 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   }
 }
 
-void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight) {
+void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice *alloc_class) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
   // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
   //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
   //        be fixed with some refactoring but for now this leads to a less impactful change.
-  start_heap_allocation_recording(state->heap_recorder, new_object, sample_weight);
+  start_heap_allocation_recording(state->heap_recorder, new_object, sample_weight, alloc_class);
 }
 
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint) {
@@ -563,24 +610,51 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
 typedef struct heap_recorder_iteration_context {
   struct stack_recorder_state *state;
   ddog_prof_Profile *profile;
+
   bool error;
   char error_msg[MAX_LEN_HEAP_ITERATION_ERROR_MSG];
+
+  size_t profile_gen;
 } heap_recorder_iteration_context;
 
 static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteration_data iteration_data, void *extra_arg) {
   heap_recorder_iteration_context *context = (heap_recorder_iteration_context*) extra_arg;
 
+  live_object_data *object_data = &iteration_data.object_data;
+
   int64_t metric_values[ALL_VALUE_TYPES_COUNT] = {0};
   uint8_t *position_for = context->state->position_for;
 
-  metric_values[position_for[HEAP_SAMPLES_VALUE_ID]] = iteration_data.object_data.weight;
+  metric_values[position_for[HEAP_SAMPLES_VALUE_ID]] = object_data->weight;
+  metric_values[position_for[HEAP_SIZE_VALUE_ID]] = object_data->size * object_data->weight;
+
+  ddog_prof_Label labels[2];
+  size_t label_offset = 0;
+
+  if (object_data->class != NULL) {
+    labels[label_offset++] = (ddog_prof_Label) {
+      .key = DDOG_CHARSLICE_C("allocation class"),
+      .str = (ddog_CharSlice) {
+        .ptr = object_data->class,
+        .len = strlen(object_data->class),
+      },
+      .num = 0, // This shouldn't be needed but the tracer-2.7 docker image ships a buggy gcc that complains about this
+    };
+  }
+  labels[label_offset++] = (ddog_prof_Label) {
+    .key = DDOG_CHARSLICE_C("gc gen age"),
+    .num = context->profile_gen - object_data->alloc_gen,
+  };
 
   ddog_prof_Profile_Result result = ddog_prof_Profile_add(
     context->profile,
     (ddog_prof_Sample) {
       .locations = iteration_data.locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = context->state->enabled_values_count},
-      .labels = {0},
+      .labels = (ddog_prof_Slice_Label) {
+        .ptr = labels,
+        .len = label_offset,
+      }
     },
     0
   );
@@ -596,20 +670,23 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   return true;
 }
 
-static void build_heap_profile_without_gvl(struct stack_recorder_state *state, ddog_prof_Profile *profile) {
+static void build_heap_profile_without_gvl(struct stack_recorder_state *state, ddog_prof_Profile *profile, size_t gc_count_before_serialize) {
   heap_recorder_iteration_context iteration_context = {
     .state = state,
     .profile = profile,
     .error = false,
     .error_msg = {0},
+    .profile_gen = gc_count_before_serialize,
   };
-  heap_recorder_for_each_live_object(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context, false);
-  if (iteration_context.error) {
-    // We wait until we're out of the iteration to grab the gvl and raise. This is important because during
-    // iteration we first grab the records_mutex and raising requires grabbing the GVL. When sampling, we are
-    // in the opposite situation: we have the GVL and may need to grab the records_mutex for mutation. This
-    // different ordering can lead to deadlocks. By delaying the raise here until after we no longer hold
-    // records_mutex, we prevent this different-lock-acquisition-order situation.
+  bool iterated = heap_recorder_for_each_live_object(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context);
+  // We wait until we're out of the iteration to grab the gvl and raise. This is important because during
+  // iteration we may potentially acquire locks in the heap recorder and we could reach a deadlock if the
+  // same locks are acquired by the heap recorder while holding the gvl (since we'd be operating on the
+  // same locks but acquiring them in different order).
+  if (!iterated) {
+    grab_gvl_and_raise(rb_eRuntimeError, "Failure during heap profile building: iteration cancelled");
+  }
+  else if (iteration_context.error) {
     grab_gvl_and_raise(rb_eRuntimeError, "Failure during heap profile building: %s", iteration_context.error_msg);
   }
 }
@@ -621,7 +698,7 @@ static void *call_serialize_without_gvl(void *call_args) {
 
   // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
   // without needing to race with the active sampler
-  build_heap_profile_without_gvl(args->state, args->profile);
+  build_heap_profile_without_gvl(args->state, args->profile, args->gc_count_before_serialize);
 
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
@@ -763,10 +840,41 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
   return Qtrue;
 }
 
-static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight) {
+static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight, VALUE alloc_class) {
   ENFORCE_TYPE(weight, T_FIXNUM);
-  track_object(recorder_instance, new_obj, NUM2UINT(weight));
+  ddog_CharSlice alloc_class_slice = char_slice_from_ruby_string(alloc_class);
+  track_object(recorder_instance, new_obj, NUM2UINT(weight), &alloc_class_slice);
   return Qtrue;
+}
+
+static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locations) {
+  ENFORCE_TYPE(locations, T_ARRAY);
+  size_t locations_len = rb_array_len(locations);
+  ddog_prof_Location locations_arr[locations_len];
+  for (size_t i = 0; i < locations_len; i++) {
+    VALUE location = rb_ary_entry(locations, i);
+    ENFORCE_TYPE(location, T_ARRAY);
+    VALUE name = rb_ary_entry(location, 0);
+    VALUE filename = rb_ary_entry(location, 1);
+    VALUE line = rb_ary_entry(location, 2);
+    ENFORCE_TYPE(name, T_STRING);
+    ENFORCE_TYPE(filename, T_STRING);
+    ENFORCE_TYPE(line, T_FIXNUM);
+    locations_arr[i] = (ddog_prof_Location) {
+      .line = line,
+        .function = (ddog_prof_Function) {
+          .name = char_slice_from_ruby_string(name),
+          .filename = char_slice_from_ruby_string(filename),
+        }
+    };
+  }
+  ddog_prof_Slice_Location ddog_locations = {
+    .len = locations_len,
+    .ptr = locations_arr,
+  };
+  heap_recorder_testonly_assert_hash_matches(ddog_locations);
+
+  return Qnil;
 }
 
 static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */) {
@@ -774,4 +882,60 @@ static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time 
   if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
   }
+}
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_prepare_iteration(state->heap_recorder);
+
+  return Qnil;
+}
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_finish_iteration(state->heap_recorder);
+
+  return Qnil;
+}
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  return heap_recorder_testonly_debug(state->heap_recorder);
+}
+
+#pragma GCC diagnostic push
+// rb_gc_force_recycle was deprecated in latest versions of Ruby and is a noop.
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  rb_gc_force_recycle(obj);
+  return Qnil;
+}
+#pragma GCC diagnostic pop
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  #ifndef NO_SEEN_OBJ_ID_FLAG
+    if (RB_FL_TEST(obj, RUBY_FL_SEEN_OBJ_ID)) {
+      return Qtrue;
+    } else {
+      return Qfalse;
+    }
+  #else
+    return Qfalse;
+  #endif
 }

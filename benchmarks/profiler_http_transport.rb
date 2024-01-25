@@ -29,12 +29,11 @@ class ProfilerHttpTransportBenchmark
 
     @transport = Datadog::Profiling::HttpTransport.new(
       agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
-        adapter: Datadog::Core::Transport::Ext::HTTP::ADAPTER,
+        adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
         uds_path: nil,
         ssl: false,
         hostname: '127.0.0.1',
         port: @port,
-        deprecated_for_removal_transport_configuration_proc: nil,
         timeout_seconds: nil,
       ),
       site: nil,

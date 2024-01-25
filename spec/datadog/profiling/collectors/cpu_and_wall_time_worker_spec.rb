@@ -12,7 +12,9 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   let(:allocation_sample_every) { 50 }
   let(:allocation_profiling_enabled) { false }
   let(:heap_profiling_enabled) { false }
-  let(:recorder) { build_stack_recorder(heap_samples_enabled: heap_profiling_enabled) }
+  let(:recorder) do
+    build_stack_recorder(heap_samples_enabled: heap_profiling_enabled, heap_size_enabled: heap_profiling_enabled)
+  end
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }
   let(:options) { {} }
@@ -243,15 +245,6 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
     end
 
     it 'records garbage collection cycles' do
-      if RUBY_VERSION.start_with?('3.')
-        skip(
-          'This test (and feature...) is broken on Ruby 3 if any Ractors get used due to a bug in the VM during ' \
-          'Ractor GC, see https://bugs.ruby-lang.org/issues/19112 for details. ' \
-          'For that reason, we disable this feature on Ruby 3 by default by passing `gc_profiling_enabled: false` during ' \
-          'profiler initialization.'
-        )
-      end
-
       start
 
       described_class::Testing._native_trigger_sample
@@ -570,21 +563,32 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       end
 
       it 'records live heap objects' do
-        pending "heap profiling isn't actually implemented just yet"
-
         stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
 
         start
 
-        test_num_allocated_object.times { CpuAndWallTimeWorkerSpec::TestStruct.new }
+        live_objects = Array.new(test_num_allocated_object)
+
+        test_num_allocated_object.times { |i| live_objects[i] = CpuAndWallTimeWorkerSpec::TestStruct.new }
         allocation_line = __LINE__ - 1
 
         cpu_and_wall_time_worker.stop
 
-        relevant_sample = samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-          .find { |s| s.locations.first.lineno == allocation_line && s.locations.first.path == __FILE__ }
+        test_struct_heap_sample = lambda { |sample|
+          first_frame = sample.locations.first
+          first_frame.lineno == allocation_line &&
+            first_frame.path == __FILE__ &&
+            first_frame.base_label == 'new' &&
+            sample.labels[:'allocation class'] == 'CpuAndWallTimeWorkerSpec::TestStruct' &&
+            (sample.values[:'heap-live-samples'] || 0) > 0
+        }
 
-        expect(relevant_sample.values[':heap-live-samples']).to eq test_num_allocated_object
+        relevant_sample = samples_from_pprof(recorder.serialize!)
+          .find(&test_struct_heap_sample)
+
+        expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object
+        # 40 is the size of a basic object and we have test_num_allocated_object of them
+        expect(relevant_sample.values[:'heap-live-size']).to eq test_num_allocated_object * 40
       end
     end
 

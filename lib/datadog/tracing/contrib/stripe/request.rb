@@ -36,7 +36,7 @@ module Datadog
             # dependent upon stripe/stripe-ruby#1168
             span.resource = "stripe.#{event.object_name}" if event.respond_to?(:object_name) && event.object_name
 
-            span.span_type = Ext::SPAN_TYPE_REQUEST
+            span.type = Ext::SPAN_TYPE_REQUEST
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
