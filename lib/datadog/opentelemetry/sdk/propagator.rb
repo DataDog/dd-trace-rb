@@ -30,7 +30,7 @@ module Datadog
           getter: ::OpenTelemetry::Context::Propagation.text_map_getter
         )
           if getter != ::OpenTelemetry::Context::Propagation.text_map_getter &&
-            getter != ::OpenTelemetry::Common::Propagation.rack_env_getter
+              getter != ::OpenTelemetry::Common::Propagation.rack_env_getter
             Datadog.logger.error(
               "Custom getter #{getter} is not supported. Please inform the `ddtrace` team at " \
             ' https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default ' \
