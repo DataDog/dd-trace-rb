@@ -1,30 +1,28 @@
 # frozen_string_literal: true
 
 require 'set'
-require 'json'
+require 'time'
 
 module Datadog
   module Profiling
     module Collectors
       # Collects information of relevance for profiler. This will get sent alongside
       # the profile and show up in the UI or potentially influence processing in some way.
+      #
+      # Information is currently collected and frozen at construction time. A full collector
+      # could be seen as overkill for this case but it allows us to centralize information
+      # gathering and easily support more flexible/dynamic info collection in the future.
       class Info
         def initialize(settings)
-          @settings = settings
-          refresh
-        end
-
-        attr_reader :info
-
-        def refresh
           @info = {
             platform: collect_platform_info,
             runtime: collect_runtime_info,
-            application: collect_application_info,
-            profiler: collect_profiler_info,
-          }
-          self
+            application: collect_application_info(settings),
+            profiler: collect_profiler_info(settings),
+          }.freeze
         end
+
+        attr_reader :info
 
         private
 
@@ -40,7 +38,7 @@ module Datadog
             kernel_name: Datadog::Core::Environment::Platform.kernel_name,
             kernel_release: Datadog::Core::Environment::Platform.kernel_release,
             kernel_version: Datadog::Core::Environment::Platform.kernel_version
-          }
+          }.freeze
         end
 
         def collect_runtime_info
@@ -48,26 +46,26 @@ module Datadog
             engine: Datadog::Core::Environment::Identity.lang_engine,
             version: Datadog::Core::Environment::Identity.lang_version,
             platform: Datadog::Core::Environment::Identity.lang_platform,
-          }
+          }.freeze
         end
 
-        def collect_application_info
+        def collect_application_info(settings)
           @application_info ||= {
             start_time: START_TIME.iso8601,
-            env: @settings.env,
-            service: @settings.service,
-            version: @settings.version,
-          }
+            env: settings.env,
+            service: settings.service,
+            version: settings.version,
+          }.freeze
         end
 
-        def collect_profiler_info
+        def collect_profiler_info(settings)
           unless @profiler_info
             lib_datadog_gem = ::Gem.loaded_specs['libdatadog']
             @profiler_info = {
               version: Datadog::Core::Environment::Identity.tracer_version,
               libdatadog: "#{lib_datadog_gem.version}-#{lib_datadog_gem.platform}",
-              settings: collect_settings_recursively(@settings.profiling),
-            }
+              settings: collect_settings_recursively(settings.profiling),
+            }.freeze
           end
           @profiler_info
         end
@@ -80,19 +78,19 @@ module Datadog
         def collect_settings_recursively(v)
           v = v.options_hash if v.respond_to?(:options_hash)
 
-          if v.is_a?(Numeric) || v.is_a?(String) || v === true || v === false
-            v
+          if v.nil? || v.is_a?(Numeric) || v.is_a?(String) || v === true || v === false
+            Core::Utils::SafeDup.frozen_or_dup(v)
           elsif v.is_a?(Hash)
             collected_hash = v.each_with_object({}) do |(key, value), hash|
               collected_value = collect_settings_recursively(value)
               hash[key] = collected_value unless collected_value.nil?
             end
-            collected_hash.empty? ? nil : collected_hash
+            collected_hash.freeze
           elsif v.is_a?(Enumerable)
             collected_list = v
               .map { |value| collect_settings_recursively(value) }
               .reject(&:is_nil?)
-            collected_list.empty? ? nil : collected_list
+            collected_list.freeze
           end
         end
       end

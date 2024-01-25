@@ -71,6 +71,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
           expect(context).to receive(:instance_exec) do |*args, &block|
             expect(args.first).to be(setter_value)
+            expect(args[1]).to be(nil)
+            expect(args[2]).to be(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
             expect(block).to be after_set
             after_set.call
           end
@@ -132,7 +134,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
               setter.call
             elsif block == after_set && args.first == setter_value
               # Invoked second
-              expect(args).to include(setter_value, old_value)
+              expect(args).to include(
+                setter_value,
+                old_value,
+                Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+              )
               expect(block).to be after_set
               after_set.call
             else
@@ -154,14 +160,30 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       context 'with precedence REMOTE_CONFIGURATION' do
+        let(:after_set) { double('after_set block') }
         let(:setter) { proc { |value| value } }
 
         before do
+          after_set_double = after_set
+          allow(definition).to receive(:after_set).and_return(proc { |*args| after_set_double.call(*args) })
+
+          expect(after_set).to receive(:call).with(
+            :original_value,
+            nil,
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+          )
+          allow(after_set).to receive(:call).with(:override, :original_value, anything)
+
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           allow(Datadog.logger).to receive(:info)
         end
 
         it 'overrides with value with the same precedence' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           expect(option.get).to eq(:override)
         end
@@ -192,19 +214,39 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       context 'with precedence PROGRAMMATIC' do
+        let(:after_set) { double('after_set block') }
         let(:setter) { proc { |value| value } }
 
         before do
+          after_set_double = after_set
+          allow(definition).to receive(:after_set).and_return(proc { |*args| after_set_double.call(*args) })
+
+          expect(after_set).to receive(:call).with(
+            :original_value,
+            nil,
+            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+          )
+
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           allow(Datadog.logger).to receive(:info)
         end
 
         it 'overrides with value with precedence REMOTE_CONFIGURATION' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           expect(option.get).to eq(:override)
         end
 
         it 'overrides with value with the same precedence' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           expect(option.get).to eq(:override)
         end
@@ -216,23 +258,48 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       context 'with precedence DEFAULT' do
+        let(:after_set) { instance_double(Proc) }
         let(:setter) { proc { |value| value } }
 
         before do
+          after_set_double = after_set
+          allow(definition).to receive(:after_set).and_return(proc { |*args| after_set_double.call(*args) })
+
+          expect(after_set).to receive(:call).with(
+            :original_value,
+            nil,
+            Datadog::Core::Configuration::Option::Precedence::DEFAULT
+          )
+
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
         end
 
         it 'overrides with value with precedence REMOTE_CONFIGURATION' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           expect(option.get).to eq(:override)
         end
 
         it 'overrides with value with precedence PROGRAMMATIC' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           expect(option.get).to eq(:override)
         end
 
         it 'overrides with value with the same precedence' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::DEFAULT
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
           expect(option.get).to eq(:override)
         end

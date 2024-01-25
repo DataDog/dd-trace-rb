@@ -22,7 +22,7 @@ module Datadog
         code_provenance_data: ::String?,
         tags_as_array: Array[[::String, ::String]],
         internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
-        info: ::Hash[::Symbol, untyped],
+        info: Datadog::Profiling::Collectors::Info::info,
       ) -> void
     end
   end

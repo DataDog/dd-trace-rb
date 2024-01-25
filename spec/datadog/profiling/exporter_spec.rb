@@ -6,6 +6,7 @@ RSpec.describe Datadog::Profiling::Exporter do
   subject(:exporter) do
     described_class.new(
       pprof_recorder: pprof_recorder,
+      info_collector: info_collector,
       code_provenance_collector: code_provenance_collector,
       internal_metadata: internal_metadata,
       **options
@@ -24,6 +25,8 @@ RSpec.describe Datadog::Profiling::Exporter do
     collector
   end
   let(:internal_metadata) { { no_signals_workaround_enabled: no_signals_workaround_enabled } }
+  let(:info) { { profiler: { running_under_test: true } } }
+  let(:info_collector) { instance_double(Datadog::Profiling::Collectors::Info, info: info) }
   let(:no_signals_workaround_enabled) { false }
   let(:logger) { Datadog.logger }
   let(:options) { {} }

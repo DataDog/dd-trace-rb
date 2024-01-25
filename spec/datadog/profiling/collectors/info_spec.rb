@@ -7,7 +7,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
 
   subject(:info_collector) { described_class.new(settings) }
 
-  describe '#refresh' do
+  describe '#info' do
     before do
       settings.service = 'test'
       settings.profiling.advanced.max_frames = 600
@@ -15,8 +15,6 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
     end
 
     it 'records useful info in multiple categories' do
-      info_collector.refresh
-
       expect(info).to match(
         {
           platform: hash_including(
@@ -36,8 +34,6 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
     end
 
     it 'records a sensible application start time' do
-      info_collector.refresh
-
       now = Time.now
 
       # We approximate the start time to the loading time of info. For this not to be
@@ -47,8 +43,6 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
     end
 
     it 'records profiler info including a json dump of settings' do
-      info_collector.refresh
-
       expect(info[:profiler][:settings][:advanced]).to match(
         a_hash_including(
           max_frames: 600,
@@ -58,24 +52,8 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
       )
     end
 
-    it 'caches unmutable info' do
-      info_collector.refresh
-
-      platform = info[:platform]
-      runtime = info[:runtime]
-      application = info[:application]
-      profiler = info[:profiler]
-
-      info_collector.refresh
-
-      expect(info[:platform]).to be(platform)
-      expect(info[:runtime]).to be(runtime)
-      expect(info[:application]).to be(application)
-      expect(info[:profiler]).to be(profiler)
-    end
-
-    it 'returns self' do
-      expect(info_collector.refresh).to be info_collector
+    it 'caches data' do
+      expect(info_collector.info).to be(info_collector.info)
     end
   end
 end

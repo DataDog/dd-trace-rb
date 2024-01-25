@@ -13,7 +13,7 @@ RSpec.describe Datadog::Profiling::Flush do
     let(:info) do
       {
         application: {
-          start_time: '2023-09-08 13:45:29.415742 UTC'
+          start_time: '2024-01-24T11:17:22Z'
         },
         runtime: {
           engine: 'ruby'
@@ -44,8 +44,8 @@ RSpec.describe Datadog::Profiling::Flush do
         code_provenance_file_name: code_provenance_file_name,
         code_provenance_data: code_provenance_data,
         tags_as_array: tags_as_array,
-        internal_metadata_json: '{"no_signals_workaround_enabled":"false"}',
-        info_json: '{"application":{"start_time":"2023-09-08 13:45:29.415742 UTC"},"runtime":{"engine":"ruby"}}'
+        internal_metadata_json: '{"no_signals_workaround_enabled":false}',
+        info_json: '{"application":{"start_time":"2024-01-24T11:17:22Z"},"runtime":{"engine":"ruby"}}'
       )
     end
   end

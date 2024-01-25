@@ -58,7 +58,7 @@ module Datadog
         end
 
         uncompressed_code_provenance = code_provenance_collector.refresh.generate_json if code_provenance_collector
-        info = @info_collector.refresh.info
+        info = @info_collector.info
 
         Flush.new(
           start: start,
