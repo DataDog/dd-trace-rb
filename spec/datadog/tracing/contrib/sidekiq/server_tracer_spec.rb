@@ -12,7 +12,7 @@ RSpec.describe 'Server tracer' do
   before do
     Sidekiq::Testing.server_middleware.clear
     Sidekiq::Testing.server_middleware do |chain|
-      chain.add(Datadog::Tracing::Contrib::Sidekiq::ServerTracer)
+      chain.add(Datadog::Tracing::Contrib::Sidekiq::ServerTracer, sidekiq_options)
     end
   end
 
@@ -75,8 +75,6 @@ RSpec.describe 'Server tracer' do
 
   context 'with custom job' do
     before do
-      allow(Datadog.configuration.tracing).to receive(:[]).with(:sidekiq).and_return(sidekiq_options)
-
       stub_const(
         'CustomWorker',
         Class.new do
