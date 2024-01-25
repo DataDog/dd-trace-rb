@@ -78,19 +78,20 @@ module Datadog
         def collect_settings_recursively(v)
           v = v.options_hash if v.respond_to?(:options_hash)
 
-          if v.nil? || v.is_a?(Numeric) || v.is_a?(String) || v === true || v === false
+          if v.nil? || v.is_a?(Symbol) || v.is_a?(Numeric) || v.is_a?(String) || v.equal?(true) || v.equal?(false)
             Core::Utils::SafeDup.frozen_or_dup(v)
           elsif v.is_a?(Hash)
             collected_hash = v.each_with_object({}) do |(key, value), hash|
               collected_value = collect_settings_recursively(value)
-              hash[key] = collected_value unless collected_value.nil?
+              hash[key] = collected_value
             end
             collected_hash.freeze
           elsif v.is_a?(Enumerable)
             collected_list = v
               .map { |value| collect_settings_recursively(value) }
-              .reject(&:is_nil?)
             collected_list.freeze
+          else
+            v.inspect
           end
         end
       end
