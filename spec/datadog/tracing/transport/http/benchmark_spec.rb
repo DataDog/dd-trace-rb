@@ -11,7 +11,7 @@ RSpec.describe 'Transport::HTTP benchmarks' do
 
   describe '#send' do
     let!(:default_transport) { Datadog::Tracing::Transport::HTTP.default }
-    let!(:net_transport) { Datadog::Tracing::Transport::HTTP.default { |t| t.adapter :net_http } }
+    let!(:net_transport) { Datadog::Tracing::Transport::HTTP.default { |t| t.adapter :http } }
     let!(:unix_transport) { Datadog::Tracing::Transport::HTTP.default { |t| t.adapter :unix } }
     let!(:test_transport) { Datadog::Tracing::Transport::HTTP.default { |t| t.adapter :test } }
 

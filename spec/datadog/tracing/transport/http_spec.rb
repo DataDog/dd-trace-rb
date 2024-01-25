@@ -53,7 +53,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
         expect(api.headers).to include(described_class.default_headers)
 
         case env_agent_settings.adapter
-        when :net_http
+        when :http
           expect(api.adapter).to be_a_kind_of(Datadog::Core::Transport::HTTP::Adapters::Net)
           expect(api.adapter.hostname).to eq(env_agent_settings.hostname)
           expect(api.adapter.port).to eq(env_agent_settings.port)
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
 
       let(:options) { {} }
 
-      let(:adapter) { :net_http }
+      let(:adapter) { :http }
       let(:ssl) { nil }
       let(:hostname) { nil }
       let(:port) { nil }
@@ -183,6 +183,6 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
   describe '.default_adapter' do
     subject(:default_adapter) { described_class.default_adapter }
 
-    it { is_expected.to be(:net_http) }
+    it { is_expected.to be(:http) }
   end
 end

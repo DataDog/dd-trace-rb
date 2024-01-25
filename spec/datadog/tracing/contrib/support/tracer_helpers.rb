@@ -104,7 +104,7 @@ module Contrib
           if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
               tracer.writer.transport.client.api.adapter.hostname == agent_host
             transport_options = {
-              adapter: :net_http,
+              adapter: :http,
               hostname: agent_host,
               port: agent_port,
               timeout: 30

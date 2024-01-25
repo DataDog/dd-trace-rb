@@ -14,7 +14,7 @@ require 'datadog/tracing/contrib/elasticsearch/support/client'
 RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
   include_context 'Elasticsearch client'
 
-  let(:client) { Elasticsearch::Client.new(url: server, adapter: :net_http) }
+  let(:client) { Elasticsearch::Client.new(url: server, adapter: :http) }
   let(:configuration_options) { {} }
 
   before do

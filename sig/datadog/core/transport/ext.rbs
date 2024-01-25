@@ -3,7 +3,7 @@ module Datadog
     module Transport
       module Ext
         module HTTP
-          ADAPTER: :net_http
+          ADAPTER: :http
 
           DEFAULT_HOST: "127.0.0.1"
 

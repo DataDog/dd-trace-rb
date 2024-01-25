@@ -29,7 +29,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '1234').to_i }
   let(:server) { "http://#{host}:#{port}" }
 
-  let(:client) { Elasticsearch::Client.new(url: server, adapter: :net_http) }
+  let(:client) { Elasticsearch::Client.new(url: server, adapter: :http) }
   let(:configuration_options) { {} }
 
   before do

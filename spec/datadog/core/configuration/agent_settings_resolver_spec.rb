@@ -27,7 +27,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     }
   end
 
-  let(:adapter) { :net_http }
+  let(:adapter) { :http }
   let(:hostname) { '127.0.0.1' }
   let(:port) { 8126 }
   let(:uds_path) { nil }
@@ -171,7 +171,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
           let(:with_agent_host) { 'custom-hostname' }
 
           it 'prioritizes the http configuration' do
-            expect(resolver).to have_attributes(hostname: 'custom-hostname', adapter: :net_http)
+            expect(resolver).to have_attributes(hostname: 'custom-hostname', adapter: :http)
           end
 
           it 'logs a warning including the uds path' do
@@ -187,7 +187,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
           context 'when there is no port specified' do
             it 'prioritizes the http configuration and uses the default port' do
-              expect(resolver).to have_attributes(port: 8126, hostname: 'custom-hostname', adapter: :net_http)
+              expect(resolver).to have_attributes(port: 8126, hostname: 'custom-hostname', adapter: :http)
             end
 
             it 'logs a warning including the hostname and default port' do
@@ -205,7 +205,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
             let(:with_agent_port) { 1234 }
 
             it 'prioritizes the http configuration and uses the specified port' do
-              expect(resolver).to have_attributes(port: 1234, hostname: 'custom-hostname', adapter: :net_http)
+              expect(resolver).to have_attributes(port: 1234, hostname: 'custom-hostname', adapter: :http)
             end
 
             it 'logs a warning including the hostname and port' do
@@ -224,7 +224,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
           let(:with_agent_port) { 5678 }
 
           it 'prioritizes the http configuration' do
-            expect(resolver).to have_attributes(port: 5678, adapter: :net_http)
+            expect(resolver).to have_attributes(port: 5678, adapter: :http)
           end
 
           it 'logs a warning including the uds path' do
@@ -240,7 +240,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
           context 'when there is no hostname specified' do
             it 'prioritizes the http configuration and uses the default hostname' do
-              expect(resolver).to have_attributes(port: 5678, hostname: '127.0.0.1', adapter: :net_http)
+              expect(resolver).to have_attributes(port: 5678, hostname: '127.0.0.1', adapter: :http)
             end
 
             it 'logs a warning including the default hostname and port' do
@@ -258,7 +258,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
             let(:with_agent_host) { 'custom-hostname' }
 
             it 'prioritizes the http configuration and uses the specified hostname' do
-              expect(resolver).to have_attributes(port: 5678, hostname: 'custom-hostname', adapter: :net_http)
+              expect(resolver).to have_attributes(port: 5678, hostname: 'custom-hostname', adapter: :http)
             end
 
             it 'logs a warning including the hostname and port' do

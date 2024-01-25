@@ -30,7 +30,7 @@ module Datadog
           ENV_DEFAULT_TIMEOUT_SECONDS = 'DD_TRACE_AGENT_TIMEOUT_SECONDS'
 
           module HTTP
-            ADAPTER = :net_http # DEV: Rename to simply `:http`, as Net::HTTP is an implementation detail.
+            ADAPTER = :http
             DEFAULT_HOST = '127.0.0.1'
             DEFAULT_PORT = 8126
             DEFAULT_USE_SSL = false
