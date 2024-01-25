@@ -174,4 +174,31 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
       end
     end
   end
+
+  describe 'client configuration override' do
+    context 'when #service is overridden' do
+      before { Datadog.configure_onto(client.transport, service_name: service_name) }
+
+      let(:service_name) { 'bar' }
+
+      describe 'then a GET request' do
+        subject(:response) { client.perform_request(method, path) }
+
+        let(:method) { 'GET' }
+        let(:path) { '_cluster/health' }
+
+        before do
+          stub_request(:get, "#{server}/#{path}").to_return(status: 200)
+        end
+
+        it 'produces a well-formed trace' do
+          expect(response.status).to eq(200)
+          expect(WebMock).to have_requested(:get, "#{server}/#{path}")
+          expect(spans).to have(1).items
+          expect(span.name).to eq('elasticsearch.query')
+          expect(span.service).to eq(service_name)
+        end
+      end
+    end
+  end
 end
