@@ -464,12 +464,12 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
         context 'when ENV is provided' do
           around do |example|
-            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT => '20.0') do
+            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT => '20') do
               example.run
             end
           end
 
-          it { is_expected.to eq(20.0) }
+          it { is_expected.to eq(20) }
         end
       end
 

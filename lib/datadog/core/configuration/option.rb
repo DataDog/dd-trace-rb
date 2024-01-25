@@ -168,11 +168,9 @@ module Datadog
               hash[pair[0]] = pair[1]
             end
           when :int
-            # DEV-2.0: Change to a more strict coercion method. Integer(value).
-            value.to_i
+            Integer(value, 10)
           when :float
-            # DEV-2.0: Change to a more strict coercion method. Float(value).
-            value.to_f
+            Float(value)
           when :array
             values = value.split(',')
 
@@ -191,14 +189,16 @@ module Datadog
           when :string, NilClass
             value
           else
-            raise ArgumentError,
+            raise InvalidDefinitionError,
               "The option #{@definition.name} is using an unsupported type option for env coercion `#{@definition.type}`"
           end
         end
 
-        def validate_type(value)
-          return value if skip_validation?
+        # For errors caused by illegal option declarations
+        class InvalidDefinitionError < StandardError
+        end
 
+        def validate_type(value)
           raise_error = false
 
           valid_type = validate(@definition.type, value)
@@ -220,10 +220,7 @@ module Datadog
                           "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})."\
                         end
 
-            error_msg = "#{error_msg} Please update your `configure` block. "\
-            'Alternatively, you can disable this validation using the '\
-            '`DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION=true`environment variable. '\
-            'For help, please open an issue on <https://github.com/datadog/dd-trace-rb/issues/new/choose>.'
+            error_msg = "#{error_msg} Please update your `configure` block. "
 
             raise ArgumentError, error_msg
           end
@@ -235,8 +232,10 @@ module Datadog
           case type
           when :string
             value.is_a?(String)
-          when :int, :float
-            value.is_a?(Numeric)
+          when :int
+            value.is_a?(Integer)
+          when :float
+            value.is_a?(Float) || value.is_a?(Integer) || value.is_a?(Rational)
           when :array
             value.is_a?(Array)
           when :hash
@@ -279,13 +278,16 @@ module Datadog
         def set_value_from_env_or_default
           value = nil
           precedence = nil
+          effective_env = nil
 
           if definition.env && ENV[definition.env]
+            effective_env = definition.env
             value = coerce_env_variable(ENV[definition.env])
             precedence = Precedence::PROGRAMMATIC
           end
 
           if value.nil? && definition.deprecated_env && ENV[definition.deprecated_env]
+            effective_env = definition.deprecated_env
             value = coerce_env_variable(ENV[definition.deprecated_env])
             precedence = Precedence::PROGRAMMATIC
 
@@ -297,10 +299,10 @@ module Datadog
           option_value = value.nil? ? default_value : value
 
           set(option_value, precedence: precedence || Precedence::DEFAULT)
-        end
-
-        def skip_validation?
-          ['true', '1'].include?(ENV.fetch('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION', '').strip)
+        rescue ArgumentError
+          raise ArgumentError,
+            "Expected environment variable #{effective_env} to be a #{@definition.type}, " \
+                              "but '#{ENV[effective_env]}' was provided"
         end
 
         # Used for testing

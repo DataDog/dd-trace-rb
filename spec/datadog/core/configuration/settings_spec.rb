@@ -586,12 +586,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be 50 }
           end
 
-          [100, 30.5].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
+          context 'is defined as 100' do
+            let(:environment) { '100' }
 
-              it { is_expected.to be value.to_i }
-            end
+            it { is_expected.to eq(100) }
           end
         end
       end
@@ -621,12 +619,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be 10 }
           end
 
-          [100, 30.5].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
+          context 'is defined as 100' do
+            let(:environment) { '100' }
 
-              it { is_expected.to be value.to_i }
-            end
+            it { is_expected.to eq(100) }
           end
         end
       end
