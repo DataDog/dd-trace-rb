@@ -35,7 +35,6 @@ RSpec.describe Datadog::Tracing::Contrib do
     'opensearch' => 'OpenSearch', # exception
     'pg' => 'Pg',
     'presto' => 'Presto',
-    'qless' => 'Qless',
     'que' => 'Que',
     'racecar' => 'Racecar',
     'rack' => 'Rack',

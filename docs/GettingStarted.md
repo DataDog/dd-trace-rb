@@ -1275,28 +1275,6 @@ client.run("select * from system.nodes")
 | `service_name`        | `DD_TRACE_PRESTO_SERVICE_NAME` | Name of application running the `presto` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `presto` |
 | `peer_service`        | `DD_TRACE_PRESTO_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                       | `nil`    |
 
-
-### Qless
-
-The Qless integration uses lifecycle hooks to trace job executions.
-
-To add tracing to a Qless job:
-
-```ruby
-require 'ddtrace'
-
-Datadog.configure do |c|
-  c.tracing.instrument :qless, **options
-end
-```
-
-`options` are the following keyword arguments:
-
-| Key            | Env Var                 | Description                                                    | Default |
-|----------------|-------------------------|----------------------------------------------------------------|---------|
-| `tag_job_data` | `DD_QLESS_TAG_JOB_DATA` | Enable tagging with job arguments. `true` for on, `false` for off. | `false` |
-| `tag_job_tags` | `DD_QLESS_TAG_JOB_TAGS` | Enable tagging with job tags. `true` for on, `false` for off.      | `false` |
-
 ### Que
 
 The Que integration is a middleware which will trace job executions.
@@ -1806,7 +1784,6 @@ end
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `distributed_tracing` | Enabling [distributed tracing](#distributed-tracing) creates a parent-child relationship between the `sidekiq.push` span and the `sidekiq.job` span. <br /><br />**Important**: *Enabling distributed_tracing for asynchronous processing can result in drastic changes in your trace graph. Such cases include long running jobs, retried jobs, and jobs scheduled in the far future. Make sure to inspect your traces after enabling this feature.* | `false` |
-| `tag_args` | Enable tagging of job arguments. `true` for on, `false` for off. | `false` |
 | `on_error` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `quantize` | Hash containing options for quantization of job arguments. | `{}` |
 
