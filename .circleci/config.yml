@@ -35,7 +35,6 @@ test_containers:
     GRPC_RUBY_BUILD_PROCS: 6
     DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
     DD_REMOTE_CONFIGURATION_ENABLED: false
-    TEST_REDIS_OLD_HOST: redis_old
     TEST_OPENSEARCH_HOST: opensearch
     TEST_OPENSEARCH_PORT: 9200
     DD_AGENT_HOST: testagent
@@ -98,10 +97,6 @@ test_containers:
   - &container_redis
     image: redis:6.2
   - &redis_port 6379
-  - &container_redis_old # `qless` is still using this older version of redis
-    image: redis:3.0
-    name: redis_old
-  - &redis_old_port 6379
   - &container_mongo
     image: mongo:3.5
   - &mongo_port 27017
@@ -217,7 +212,7 @@ step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_result
 
       RESPONSE=$(curl -s -w "\n%{http_code}" -o response.txt http://testagent:9126/test/trace_check/failures)
       RESPONSE_CODE=$(echo "$RESPONSE" | awk 'END {print $NF}')
-          
+
       if [[ $RESPONSE_CODE -eq 200 ]]; then
         echo "All APM Test Agent Check Traces returned successful! (HTTP 200)"
         echo "APM Test Agent Check Traces Summary Results:"
@@ -324,7 +319,6 @@ orbs:
           - *container_opensearch
           - *container_elasticsearch
           - *container_redis
-          - *container_redis_old
           - *container_mongo
           - *container_memcached
           - *container_testagent
@@ -355,8 +349,6 @@ orbs:
               port: *elasticsearch_port
           - docker-wait:
               port: *redis_port
-          - docker-wait:
-              port: *redis_old_port
           - docker-wait:
               port: *mongo_port
           - docker-wait:

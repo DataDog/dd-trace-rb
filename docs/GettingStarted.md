@@ -1275,28 +1275,6 @@ client.run("select * from system.nodes")
 | `service_name`        | `DD_TRACE_PRESTO_SERVICE_NAME` | Name of application running the `presto` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `presto` |
 | `peer_service`        | `DD_TRACE_PRESTO_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                       | `nil`    |
 
-
-### Qless
-
-The Qless integration uses lifecycle hooks to trace job executions.
-
-To add tracing to a Qless job:
-
-```ruby
-require 'ddtrace'
-
-Datadog.configure do |c|
-  c.tracing.instrument :qless, **options
-end
-```
-
-`options` are the following keyword arguments:
-
-| Key            | Env Var                 | Description                                                    | Default |
-|----------------|-------------------------|----------------------------------------------------------------|---------|
-| `tag_job_data` | `DD_QLESS_TAG_JOB_DATA` | Enable tagging with job arguments. `true` for on, `false` for off. | `false` |
-| `tag_job_tags` | `DD_QLESS_TAG_JOB_TAGS` | Enable tagging with job tags. `true` for on, `false` for off.      | `false` |
-
 ### Que
 
 The Que integration is a middleware which will trace job executions.
