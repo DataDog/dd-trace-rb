@@ -54,7 +54,9 @@ class RubyOverheadExperiment
 
     puts "At benchmark start, process rss usage is #{current_rss}k"
 
-    10.times do
+    #10.times do
+    15.times do
+    #30.times do
       start_time = Time.now
 
       sync_queue = Queue.new
