@@ -24,6 +24,7 @@ module Datadog
             require 'json'
             require_relative 'quantize'
 
+            transport_module::Client.prepend(DatadogPin)
             transport_module::Client.prepend(Client)
           end
 
@@ -125,6 +126,25 @@ module Datadog
           end
           # rubocop:enable Metrics/MethodLength
           # rubocop:enable Metrics/AbcSize
+
+          # Patch to support both `elasticsearch` and `elastic-transport` versions
+          module DatadogPin
+            def datadog_pin=(pin)
+              pin.onto(pin_candidate)
+            end
+
+            def datadog_pin
+              Datadog.configuration_for(pin_candidate)
+            end
+
+            def pin_candidate(candidate = self)
+              if candidate.respond_to?(:transport)
+                pin_candidate(candidate.transport)
+              else
+                candidate
+              end
+            end
+          end
 
           # `Elasticsearch` namespace renamed to `Elastic` in version 8.0.0 of the transport gem:
           # @see https://github.com/elastic/elastic-transport-ruby/commit/ef804cbbd284f2a82d825221f87124f8b5ff823c
