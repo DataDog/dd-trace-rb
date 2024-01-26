@@ -183,7 +183,6 @@ end
 appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
-  gem 'graphql'
   gem 'grpc'
   gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
@@ -196,6 +195,14 @@ appraise 'contrib' do
   gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0', '< 2.0.0'
+end
+
+[
+  '1.12',
+].each do |v|
+  appraise "graphql-#{v}" do
+    gem 'graphql', "~> #{v}.0"
+  end
 end
 
 [1, 2].each do |n|
