@@ -175,9 +175,17 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     end
   end
 
-  describe 'client configuration override' do
+  describe 'transport configuration override' do
     context 'when #service is overridden' do
-      before { Datadog.configure_onto(client.transport, service_name: service_name) }
+      let(:version_greater_than_8) { Gem::Version.new(::Elasticsearch::VERSION) >= Gem::Version.new('8.0.0') }
+
+      before do
+        if version_greater_than_8
+          Datadog.configure_onto(client.transport, service_name: service_name)
+        else
+          Datadog.configure_onto(client.transport.transport, service_name: service_name)
+        end
+      end
 
       let(:service_name) { 'bar' }
 
