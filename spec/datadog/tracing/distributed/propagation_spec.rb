@@ -97,7 +97,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         context 'with no styles configured' do
           before do
             Datadog.configure do |c|
-              c.tracing.distributed_tracing.propagation_inject_style = []
+              c.tracing.propagation_style_inject = []
             end
           end
 
@@ -315,7 +315,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             end
 
             context 'with propagation_extract_first true' do
-              before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_extract_first = true } }
+              before { Datadog.configure { |c| c.tracing.propagation_extract_first = true } }
 
               it 'does not preserve tracestate' do
                 expect(trace_digest.trace_state).to be nil
