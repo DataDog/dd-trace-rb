@@ -40,8 +40,6 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
-    it_behaves_like 'measured span for integration', true
-
     let(:span) do
       # First span is for SQL query, second span is for instantiation.
       expect(spans.length).to be(2)
@@ -49,6 +47,7 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
       expect(spans.last.name).to match(/query/)
       spans.first
     end
+    it_behaves_like 'measured span for integration', true
 
     it 'calls the instrumentation when is used standalone' do
       aggregate_failures do
@@ -61,7 +60,7 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
     end
 
     context 'and service_name' do
-      #it_behaves_like 'schema version span'
+      # it_behaves_like 'schema version span'
 
       context 'is not set' do
         it { expect(span.service).to eq(tracer.default_service) }
