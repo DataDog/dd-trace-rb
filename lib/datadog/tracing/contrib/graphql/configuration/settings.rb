@@ -28,7 +28,11 @@ module Datadog
               o.default 1.0
             end
 
-            option :schemas
+            option :schemas do |o|
+              o.type :array
+              o.default []
+            end
+
             option :service_name
           end
         end
