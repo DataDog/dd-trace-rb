@@ -847,7 +847,7 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `schemas` | Array of `GraphQL::Schema` objects (Only supporting class-based schema) which to trace. If you do not provide any, then tracing will applied to all the schemas. | `[]` |
+| `schemas` | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas. | `[]` |
 | `service_name` | Service name used for graphql instrumentation | `'ruby-graphql'` |
 
 **Manually configuring GraphQL schemas**
