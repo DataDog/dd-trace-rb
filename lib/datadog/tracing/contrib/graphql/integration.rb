@@ -22,7 +22,7 @@ module Datadog
               && !defined?(::GraphQL::Tracing::DataDogTracing).nil?
           end
 
-          # Breaking changes are introduce in `2.2.6` and have been backported to
+          # Breaking changes are introduced in `2.2.6` and have been backported to
           #
           # * 1.13.21
           # * 2.0.28
