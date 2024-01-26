@@ -372,30 +372,14 @@ module Datadog
                 # Whether client IP collection is enabled. When enabled client IPs from HTTP requests will
                 #   be reported in traces.
                 #
-                # Usage of the DD_TRACE_CLIENT_IP_HEADER_DISABLED environment variable is deprecated.
-                #
                 # @see https://docs.datadoghq.com/tracing/configure_data_security#configuring-a-client-ip-header
                 #
                 # @default `DD_TRACE_CLIENT_IP_ENABLED` environment variable, otherwise `false`.
                 # @return [Boolean]
                 option :enabled do |o|
                   o.type :bool
-                  o.default do
-                    disabled = Core::Environment::VariableHelpers.env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED)
-
-                    enabled = if disabled.nil?
-                                false
-                              else
-                                Datadog::Core.log_deprecation do
-                                  "#{Tracing::Configuration::Ext::ClientIp::ENV_DISABLED} environment variable is deprecated, use #{Tracing::Configuration::Ext::ClientIp::ENV_ENABLED} instead."
-                                end
-
-                                !disabled
-                              end
-
-                    # ENABLED env var takes precedence over deprecated DISABLED
-                    Core::Environment::VariableHelpers.env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_ENABLED, enabled)
-                  end
+                  o.env Tracing::Configuration::Ext::ClientIp::ENV_ENABLED
+                  o.default false
                 end
 
                 # An optional name of a custom header to resolve the client IP from.

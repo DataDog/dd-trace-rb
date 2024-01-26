@@ -823,5 +823,31 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           .to(true)
       end
     end
+
+    describe '#client_ip.enabled' do
+      context 'default' do
+        it do
+          expect(settings.tracing.client_ip.enabled).to eq(false)
+        end
+      end
+
+      {
+        'true' => true,
+        '1' => true,
+        'false' => false
+      }.each do |env, value|
+        context "when ENV['DD_TRACE_CLIENT_IP_ENABLED'] is '#{env}'" do
+          around do |example|
+            ClimateControl.modify('DD_TRACE_CLIENT_IP_ENABLED' => env) do
+              example.run
+            end
+          end
+
+          it do
+            expect(settings.tracing.client_ip.enabled).to eq(value)
+          end
+        end
+      end
+    end
   end
 end
