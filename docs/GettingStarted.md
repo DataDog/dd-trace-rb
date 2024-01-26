@@ -868,6 +868,8 @@ Or you can modify an already defined schema:
 YourSchema.use(GraphQL::Tracing::DataDogTracing)
 ```
 
+**Note**: This integration does not support define-style schemas. Only class-based schemas are supported.
+
 Do *NOT* `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
 
 ### gRPC
