@@ -261,10 +261,11 @@ TEST_METADATA = {
     'redis-4' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
     'redis-5' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
   },
-  # The regression task must be a standalone task due to the life cycle of patcher
-  'redis_regression' => {
+  # Must be a standalone task due to the life cycle of patcher
+  'redis_patcher_lifecycle' => {
     'redis-3' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
     'redis-4' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'redis-5' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
   },
   'appsec:rack' => {
     # Non-deprecated form of Regexp.new does not backport to Rack 1.x, see: https://github.com/rack/rack/pull/1998
@@ -451,8 +452,8 @@ namespace :spec do
   end
 
   desc '' # "Explicitly hiding from `rake -T`"
-  RSpec::Core::RakeTask.new(:redis_regression) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/redis/regression_spec.rb'
+  RSpec::Core::RakeTask.new(:redis_patcher_lifecycle) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/redis/redis_patcher_lifecycle_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 

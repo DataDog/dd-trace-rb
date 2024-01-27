@@ -18,6 +18,12 @@ module Datadog
               attr_reader redis_instance: untyped
             end
           end
+          module NotSupportedNoticePatch
+            def self.included: (untyped base) -> untyped
+            module InstanceMethods
+              def datadog_pin=: (untyped _pin) -> untyped
+            end
+          end
 
           def self?.default_tags: () -> untyped
 
