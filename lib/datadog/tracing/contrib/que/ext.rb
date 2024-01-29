@@ -12,7 +12,6 @@ module Datadog
           ENV_ENABLED = 'DD_TRACE_QUE_ENABLED'
           ENV_TAG_ARGS_ENABLED = 'DD_TRACE_QUE_TAG_ARGS_ENABLED'
           ENV_TAG_DATA_ENABLED = 'DD_TRACE_QUE_TAG_DATA_ENABLED'
-          SERVICE_NAME = 'que'
           SPAN_JOB = 'que.job'
           TAG_JOB_ARGS = 'que.job.args'
           TAG_JOB_DATA = 'que.job.data'

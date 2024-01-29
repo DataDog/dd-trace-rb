@@ -10,7 +10,6 @@ module Datadog
           ENV_ENABLED = 'DD_TRACE_GRAPHQL_ENABLED'
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_GRAPHQL_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE'
-          SERVICE_NAME = 'graphql'
           TAG_COMPONENT = 'graphql'
         end
       end

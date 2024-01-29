@@ -10,7 +10,6 @@ module Datadog
           ENV_ENABLED = 'DD_TRACE_SHORYUKEN_ENABLED'
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_SHORYUKEN_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SHORYUKEN_ANALYTICS_SAMPLE_RATE'
-          SERVICE_NAME = 'shoryuken'
           SPAN_JOB = 'shoryuken.job'
           TAG_JOB_ID = 'shoryuken.id'
           TAG_JOB_QUEUE = 'shoryuken.queue'

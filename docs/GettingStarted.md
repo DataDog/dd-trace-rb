@@ -467,17 +467,17 @@ You can configure trace settings per database connection by using the `describes
 Datadog.configure do |c|
   # Symbol matching your database connection in config/database.yml
   # Only available if you are using Rails with ActiveRecord.
-  c.tracing.instrument :active_record, describes: :secondary_database, service_name: 'secondary-db'
+  c.tracing.instrument :active_record, describes: :secondary_database, peer_service: 'secondary-db'
 
   # Block configuration pattern.
   c.tracing.instrument :active_record, describes: :secondary_database do |second_db|
-    second_db.service_name = 'secondary-db'
+    second_db.peer_service = 'secondary-db'
   end
 
   # Connection string with the following connection settings:
   # adapter, username, host, port, database
   # Other fields are ignored.
-  c.tracing.instrument :active_record, describes: 'mysql2://root@127.0.0.1:3306/mysql', service_name: 'secondary-db'
+  c.tracing.instrument :active_record, describes: 'mysql2://root@127.0.0.1:3306/mysql', peer_service: 'secondary-db'
 
   # Hash with following connection settings:
   # adapter, username, host, port, database
@@ -489,11 +489,11 @@ Datadog.configure do |c|
       database: 'mysql',
       username: 'root'
     },
-    service_name: 'secondary-db'
+    peer_service: 'secondary-db'
 
   # If using the `makara` gem, it's possible to match on connection `role`:
-  c.tracing.instrument :active_record, describes: { makara_role: 'primary' }, service_name: 'primary-db'
-  c.tracing.instrument :active_record, describes: { makara_role: 'replica' }, service_name: 'secondary-db'
+  c.tracing.instrument :active_record, describes: { makara_role: 'primary' }, peer_service: 'primary-db'
+  c.tracing.instrument :active_record, describes: { makara_role: 'replica' }, peer_service: 'secondary-db'
 end
 ```
 
@@ -502,17 +502,17 @@ You can also create configurations based on partial matching of database connect
 ```ruby
 Datadog.configure do |c|
   # Matches any connection on host `127.0.0.1`.
-  c.tracing.instrument :active_record, describes: { host:  '127.0.0.1' }, service_name: 'local-db'
+  c.tracing.instrument :active_record, describes: { host:  '127.0.0.1' }, peer_service: 'local-db'
 
   # Matches any `mysql2` connection.
-  c.tracing.instrument :active_record, describes: { adapter: 'mysql2'}, service_name: 'mysql-db'
+  c.tracing.instrument :active_record, describes: { adapter: 'mysql2'}, peer_service: 'mysql-db'
 
   # Matches any `mysql2` connection to the `reports` database.
   #
   # In case of multiple matching `describe` configurations, the latest one applies.
   # In this case a connection with both adapter `mysql` and database `reports`
-  # will be configured `service_name: 'reports-db'`, not `service_name: 'mysql-db'`.
-  c.tracing.instrument :active_record, describes: { adapter: 'mysql2', database:  'reports'}, service_name: 'reports-db'
+  # will be configured `peer_service: 'reports-db'`, not `peer_service: 'mysql-db'`.
+  c.tracing.instrument :active_record, describes: { adapter: 'mysql2', database:  'reports'}, peer_service: 'reports-db'
 end
 ```
 
@@ -668,7 +668,7 @@ Datadog.configure do |c|
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :ethon, describes: /user-[^.]+\.example\.com/ do |ethon|
-    ethon.service_name = 'user.example.com'
+    ethon.peer_service = 'user.example.com'
     ethon.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -698,7 +698,7 @@ Datadog.configure do |c|
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :excon, describes: /user-[^.]+\.example\.com/ do |excon|
-    excon.service_name = 'user.example.com'
+    excon.peer_service = 'user.example.com'
     excon.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -757,7 +757,7 @@ Datadog.configure do |c|
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :faraday, describes: /user-[^.]+\.example\.com/ do |faraday|
-    faraday.service_name = 'user.example.com'
+    faraday.peer_service = 'user.example.com'
     faraday.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -898,7 +898,7 @@ In situations where you have multiple clients calling multiple distinct services
 
 ```ruby
 configured_interceptor = Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
-  c.service_name = "Alternate"
+  c.peer_service = "Alternate"
 end
 
 alternate_client = Demo::Echo::Service.rpc_stub_class.new(
@@ -940,7 +940,7 @@ Datadog.configure do |c|
   c.tracing.instrument :httprb, **options
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :httprb, describes: /user-[^.]+\.example\.com/ do |httprb|
-    httprb.service_name = 'user.example.com'
+    httprb.peer_service = 'user.example.com'
     httprb.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -966,7 +966,7 @@ Datadog.configure do |c|
   c.tracing.instrument :httpclient, **options
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :httpclient, describes: /user-[^.]+\.example\.com/ do |httpclient|
-    httpclient.service_name = 'user.example.com'
+    httpclient.peer_service = 'user.example.com'
     httpclient.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -995,7 +995,7 @@ Datadog.configure do |c|
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :httpx, describes: /user-[^.]+\.example\.com/ do |http|
-    http.service_name = 'user.example.com'
+    http.peer_service = 'user.example.com'
     http.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -1057,10 +1057,10 @@ You can configure trace settings per connection by using the `describes` option:
 
 Datadog.configure do |c|
   # Network connection string
-  c.tracing.instrument :mongo, describes: '127.0.0.1:27017', service_name: 'mongo-primary'
+  c.tracing.instrument :mongo, describes: '127.0.0.1:27017', peer_service: 'mongo-primary'
 
   # Network connection regular expression
-  c.tracing.instrument :mongo, describes: /localhost.*/, service_name: 'mongo-secondary'
+  c.tracing.instrument :mongo, describes: /localhost.*/, peer_service: 'mongo-secondary'
 end
 
 client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'artists')
@@ -1112,7 +1112,7 @@ Datadog.configure do |c|
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :http, describes: /user-[^.]+\.example\.com/ do |http|
-    http.service_name = 'user.example.com'
+    http.peer_service = 'user.example.com'
     http.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -1499,8 +1499,8 @@ Datadog.configure do |c|
   c.tracing.instrument :redis # Enabling integration instrumentation is still required
 end
 
-customer_cache = Redis.new(custom: { datadog: { service_name: 'custom-cache' } })
-invoice_cache = Redis.new(custom: { datadog: { service_name: 'invoice-cache' } })
+customer_cache = Redis.new(custom: { datadog: { peer_service: 'custom-cache' } })
+invoice_cache = Redis.new(custom: { datadog: { peer_service: 'invoice-cache' } })
 
 # Traced call will belong to `customer-cache` service
 customer_cache.get(...)
@@ -1521,8 +1521,8 @@ end
 customer_cache = Redis.new
 invoice_cache = Redis.new
 
-Datadog.configure_onto(customer_cache, service_name: 'customer-cache')
-Datadog.configure_onto(invoice_cache, service_name: 'invoice-cache')
+Datadog.configure_onto(customer_cache, peer_service: 'customer-cache')
+Datadog.configure_onto(invoice_cache, peer_service: 'invoice-cache')
 
 # Traced call will belong to `customer-cache` service
 customer_cache.get(...)
@@ -1542,23 +1542,23 @@ You can configure trace settings per connection by using the `describes` option:
 
 Datadog.configure do |c|
   # The default configuration for any redis client
-  c.tracing.instrument :redis, service_name: 'redis-default'
+  c.tracing.instrument :redis, peer_service: 'redis-default'
 
   # The configuration matching a given unix socket.
-  c.tracing.instrument :redis, describes: { url: 'unix://path/to/file' }, service_name: 'redis-unix'
+  c.tracing.instrument :redis, describes: { url: 'unix://path/to/file' }, peer_service: 'redis-unix'
 
   # For network connections, only these fields are considered during matching:
   # scheme, host, port, db
   # Other fields are ignored.
 
   # Network connection string
-  c.tracing.instrument :redis, describes: 'redis://127.0.0.1:6379/0', service_name: 'redis-connection-string'
-  c.tracing.instrument :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, service_name: 'redis-connection-url'
+  c.tracing.instrument :redis, describes: 'redis://127.0.0.1:6379/0', peer_service: 'redis-connection-string'
+  c.tracing.instrument :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, peer_service: 'redis-connection-url'
   # Network client hash
-  c.tracing.instrument :redis, describes: { host: 'my-host.com', port: 6379, db: 1, scheme: 'redis' }, service_name: 'redis-connection-hash'
+  c.tracing.instrument :redis, describes: { host: 'my-host.com', port: 6379, db: 1, scheme: 'redis' }, peer_service: 'redis-connection-hash'
   # Only a subset of the connection hash
-  c.tracing.instrument :redis, describes: { host: ENV['APP_CACHE_HOST'], port: ENV['APP_CACHE_PORT'] }, service_name: 'redis-cache'
-  c.tracing.instrument :redis, describes: { host: ENV['SIDEKIQ_CACHE_HOST'] }, service_name: 'redis-sidekiq'
+  c.tracing.instrument :redis, describes: { host: ENV['APP_CACHE_HOST'], port: ENV['APP_CACHE_PORT'] }, peer_service: 'redis-cache'
+  c.tracing.instrument :redis, describes: { host: ENV['SIDEKIQ_CACHE_HOST'] }, peer_service: 'redis-sidekiq'
 end
 ```
 
@@ -1672,8 +1672,8 @@ sqlite_database = Sequel.sqlite
 postgres_database = Sequel.connect('postgres://user:password@host:port/database_name')
 
 # Configure each database with different service names
-Datadog.configure_onto(sqlite_database, service_name: 'my-sqlite-db')
-Datadog.configure_onto(postgres_database, service_name: 'my-postgres-db')
+Datadog.configure_onto(sqlite_database, peer_service: 'my-sqlite-db')
+Datadog.configure_onto(postgres_database, peer_service: 'my-postgres-db')
 ```
 
 ### Shoryuken

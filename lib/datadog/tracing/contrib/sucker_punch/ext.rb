@@ -10,7 +10,6 @@ module Datadog
           ENV_ENABLED = 'DD_TRACE_SUCKER_PUNCH_ENABLED'
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_SUCKER_PUNCH_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SUCKER_PUNCH_ANALYTICS_SAMPLE_RATE'
-          SERVICE_NAME = 'sucker_punch'
           SPAN_PERFORM = 'sucker_punch.perform'
           SPAN_PERFORM_ASYNC = 'sucker_punch.perform_async'
           SPAN_PERFORM_IN = 'sucker_punch.perform_in'
