@@ -29,7 +29,6 @@ module Datadog
               o.default 1.0
             end
 
-            option :service_name
             option :email_data, default: false
           end
         end

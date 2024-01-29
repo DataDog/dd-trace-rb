@@ -31,6 +31,7 @@ module Datadog
 
             option :quantize, default: {}
 
+            # @!visibility private
             option :service_name do |o|
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(

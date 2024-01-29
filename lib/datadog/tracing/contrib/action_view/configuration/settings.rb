@@ -27,7 +27,6 @@ module Datadog
               o.default 1.0
             end
 
-            option :service_name
             option :template_base_path, default: 'views/'
           end
         end

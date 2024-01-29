@@ -33,6 +33,7 @@ module Datadog
 
             option :distributed_tracing, default: true, type: :bool
 
+            # @!visibility private
             option :service_name do |o|
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(

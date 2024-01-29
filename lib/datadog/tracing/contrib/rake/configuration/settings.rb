@@ -32,7 +32,6 @@ module Datadog
             end
 
             option :quantize, default: {}, type: :hash
-            option :service_name
 
             # A list of rake tasks, using their string names, to be instrumented.
             # An empty list, or not setting this option means no task is instrumented.

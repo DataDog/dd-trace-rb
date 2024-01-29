@@ -33,8 +33,6 @@ module Datadog
             option :distributed_tracing, default: true, type: :bool
             option :headers, default: DEFAULT_HEADERS, type: :hash
             option :resource_script_names, default: false, type: :bool
-
-            option :service_name
           end
         end
       end

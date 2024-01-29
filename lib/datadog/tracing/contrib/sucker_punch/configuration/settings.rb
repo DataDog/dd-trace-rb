@@ -28,8 +28,6 @@ module Datadog
               o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
               o.default 1.0
             end
-
-            option :service_name
           end
         end
       end

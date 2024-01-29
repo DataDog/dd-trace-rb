@@ -13,8 +13,7 @@ module Datadog
           option :analytics_enabled, default: false
           option :analytics_sample_rate, default: 1.0
           option :enabled, default: true
-          # TODO: Deprecate per-integration service name when first-class peer service support is added
-          # TODO: We don't want to recommend per-integration service naming, but there are no equivalent alternatives today.
+          # @!visibility private
           option :service_name
 
           def configure(options = {})

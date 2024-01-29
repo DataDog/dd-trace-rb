@@ -29,7 +29,6 @@ module Datadog
               o.default 1.0
             end
 
-            option :service_name
             option :on_error do |o|
               o.type :proc, nilable: true
             end

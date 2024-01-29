@@ -10,7 +10,6 @@ module Datadog
         module Configuration
           # Default settings for the Que integration
           class Settings < Contrib::Configuration::Settings
-            option :service_name
             option :distributed_tracing, default: true, type: :bool
 
             option :enabled do |o|
