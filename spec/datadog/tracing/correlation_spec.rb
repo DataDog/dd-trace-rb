@@ -46,15 +46,8 @@ RSpec.describe Datadog::Tracing::Correlation do
         expect(identifier).to have_attributes(
           env: default_env,
           service: default_service,
-          span_id: 0,
-          span_name: nil,
-          span_resource: nil,
-          span_service: nil,
-          span_type: nil,
-          trace_id: 0,
-          trace_name: nil,
-          trace_resource: nil,
-          trace_service: nil,
+          span_id: '0',
+          trace_id: '0',
           version: default_version
         )
       end
@@ -88,15 +81,8 @@ RSpec.describe Datadog::Tracing::Correlation do
         expect(identifier).to have_attributes(
           env: default_env,
           service: default_service,
-          span_id: span_id,
-          span_name: span_name,
-          span_resource: span_resource,
-          span_service: span_service,
-          span_type: span_type,
-          trace_id: low_order_trace_id(trace_id),
-          trace_name: trace_name,
-          trace_resource: trace_resource,
-          trace_service: trace_service,
+          span_id: span_id.to_s,
+          trace_id: low_order_trace_id(trace_id).to_s,
           version: default_version
         )
       end
@@ -104,13 +90,6 @@ RSpec.describe Datadog::Tracing::Correlation do
       it 'has frozen copies of strings' do
         expect(identifier.env).to be_a_frozen_copy_of(default_env)
         expect(identifier.service).to be_a_frozen_copy_of(default_service)
-        expect(identifier.span_name).to be_a_frozen_copy_of(span_name)
-        expect(identifier.span_resource).to be_a_frozen_copy_of(span_resource)
-        expect(identifier.span_service).to be_a_frozen_copy_of(span_service)
-        expect(identifier.span_type).to be_a_frozen_copy_of(span_type)
-        expect(identifier.trace_name).to be_a_frozen_copy_of(trace_name)
-        expect(identifier.trace_resource).to be_a_frozen_copy_of(trace_resource)
-        expect(identifier.trace_service).to be_a_frozen_copy_of(trace_service)
         expect(identifier.version).to be_a_frozen_copy_of(default_version)
       end
     end
@@ -125,15 +104,8 @@ RSpec.describe Datadog::Tracing::Correlation do
           expect(identifier).to have_attributes(
             env: default_env,
             service: default_service,
-            span_id: 0,
-            span_name: nil,
-            span_resource: nil,
-            span_service: nil,
-            span_type: nil,
-            trace_id: 0,
-            trace_name: nil,
-            trace_resource: nil,
-            trace_service: nil,
+            span_id: '0',
+            trace_id: '0',
             version: default_version
           )
         end
@@ -153,14 +125,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             env: env,
             service: service,
             span_id: span_id,
-            span_name: span_name,
-            span_resource: span_resource,
-            span_service: span_service,
-            span_type: span_type,
             trace_id: trace_id,
-            trace_name: trace_name,
-            trace_resource: trace_resource,
-            trace_service: trace_service,
             version: version
           )
         end
@@ -169,15 +134,8 @@ RSpec.describe Datadog::Tracing::Correlation do
           expect(identifier).to have_attributes(
             env: env,
             service: service,
-            span_id: span_id,
-            span_name: span_name,
-            span_resource: span_resource,
-            span_service: span_service,
-            span_type: span_type,
-            trace_id: low_order_trace_id(trace_id),
-            trace_name: trace_name,
-            trace_resource: trace_resource,
-            trace_service: trace_service,
+            span_id: span_id.to_s,
+            trace_id: low_order_trace_id(trace_id).to_s,
             version: version
           )
         end
@@ -185,13 +143,6 @@ RSpec.describe Datadog::Tracing::Correlation do
         it 'has frozen copies of strings' do
           expect(identifier.env).to be_a_frozen_copy_of(env)
           expect(identifier.service).to be_a_frozen_copy_of(service)
-          expect(identifier.span_name).to be_a_frozen_copy_of(span_name)
-          expect(identifier.span_resource).to be_a_frozen_copy_of(span_resource)
-          expect(identifier.span_service).to be_a_frozen_copy_of(span_service)
-          expect(identifier.span_type).to be_a_frozen_copy_of(span_type)
-          expect(identifier.trace_name).to be_a_frozen_copy_of(trace_name)
-          expect(identifier.trace_resource).to be_a_frozen_copy_of(trace_resource)
-          expect(identifier.trace_service).to be_a_frozen_copy_of(trace_service)
           expect(identifier.version).to be_a_frozen_copy_of(version)
         end
       end
@@ -509,22 +460,22 @@ RSpec.describe Datadog::Tracing::Correlation do
           context 'when given 64 bit trace id' do
             it 'returns to lower 64 bits of trace id' do
               trace_id = 0xaaaaaaaaaaaaaaaa
-              expected_trace_id = 0xaaaaaaaaaaaaaaaa
 
               identifier = described_class.new(trace_id: trace_id)
 
-              expect(identifier.trace_id).to eq(expected_trace_id)
+              # `0xaaaaaaaaaaaaaaaa.to_s` => '12297829382473034410'
+              expect(identifier.trace_id).to eq('12297829382473034410')
             end
           end
 
           context 'when given 128 bit trace id' do
             it 'returns to lower 64 bits of trace id' do
               trace_id = 0xaaaaaaaaaaaaaaaaffffffffffffffff
-              expected_trace_id = 0xffffffffffffffff
 
               identifier = described_class.new(trace_id: trace_id)
 
-              expect(identifier.trace_id).to eq(expected_trace_id)
+              # `0xffffffffffffffff.to_s` => '18446744073709551615'
+              expect(identifier.trace_id).to eq('18446744073709551615')
             end
           end
         end
@@ -537,11 +488,11 @@ RSpec.describe Datadog::Tracing::Correlation do
           context 'when given 64 bit trace id' do
             it 'returns lower 64 bits of trace id' do
               trace_id = 0xaaaaaaaaaaaaaaaa
-              expected_trace_id = 0xaaaaaaaaaaaaaaaa
 
               identifier = described_class.new(trace_id: trace_id)
 
-              expect(identifier.trace_id).to eq(expected_trace_id)
+              # `0xaaaaaaaaaaaaaaaa.to_s` => '12297829382473034410'
+              expect(identifier.trace_id).to eq('12297829382473034410')
             end
           end
 
@@ -559,11 +510,11 @@ RSpec.describe Datadog::Tracing::Correlation do
         context 'when given > 64 bit trace id but high order is 0' do
           it 'returns to lower 64 bits of trace id' do
             trace_id = 0x00000000000000000aaaaaaaaaaaaaaaa
-            expected_trace_id = 0xaaaaaaaaaaaaaaaa
 
             identifier = described_class.new(trace_id: trace_id)
 
-            expect(identifier.trace_id).to eq(expected_trace_id)
+            # `0xaaaaaaaaaaaaaaaa.to_s` => '12297829382473034410'
+            expect(identifier.trace_id).to eq('12297829382473034410')
           end
         end
       end

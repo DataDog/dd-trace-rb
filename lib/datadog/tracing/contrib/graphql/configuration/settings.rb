@@ -28,8 +28,17 @@ module Datadog
               o.default 1.0
             end
 
-            option :schemas
+            option :schemas do |o|
+              o.type :array
+              o.default []
+            end
+
             option :service_name
+
+            option :with_deprecated_tracer do |o|
+              o.type :bool
+              o.default false
+            end
           end
         end
       end

@@ -847,52 +847,30 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `schemas` | Required. Array of `GraphQL::Schema` objects which to trace. Tracing will be added to all the schemas listed, using the options provided to this configuration. If you do not provide any, then tracing will not be activated. | `[]` |
+| `schemas` | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas. | `[]` |
+| `with_deprecated_tracer` | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`  | `false` |
 | `service_name` | Service name used for graphql instrumentation | `'ruby-graphql'` |
 
 **Manually configuring GraphQL schemas**
 
-If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas with different service names), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
+If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
+
+With `GraphQL::Tracing::DataDogTrace`
 
 ```ruby
-# Class-based schema
 class YourSchema < GraphQL::Schema
-  use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
-  )
+  trace_with GraphQL::Tracing::DataDogTrace
+end
+```
+or with `GraphQL::Tracing::DataDogTracing` (deprecated)
+
+```ruby
+class YourSchema < GraphQL::Schema
+  use(GraphQL::Tracing::DataDogTracing)
 end
 ```
 
-```ruby
-# .define-style schema
-YourSchema = GraphQL::Schema.define do
-  use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
-  )
-end
-```
-
-Or you can modify an already defined schema:
-
-```ruby
-# Class-based schema
-YourSchema.use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
-)
-```
-
-```ruby
-# .define-style schema
-YourSchema.define do
-  use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
-  )
-end
-```
+**Note**: This integration does not support define-style schemas. Only class-based schemas are supported.
 
 Do *NOT* `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
 
@@ -1941,10 +1919,10 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`                            | `nil`                        | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `tracing.contrib.peer_service_mapping`                  | `DD_TRACE_PEER_SERVICE_MAPPING`                         | `nil`                        | Defines remapping of `peer.service` tag across all instrumentation. Provide a list of `old_value1:new_value1, old_value2:new_value2, ...`                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tracing.contrib.global_default_service_name.enabled`   | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `false`                      | Changes the default value for `service_name` to the application service name across all instrumentation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `tracing.distributed_tracing.propagation_extract_first` | `DD_TRACE_PROPAGATION_EXTRACT_FIRST` | `false` | Exit immediately on the first valid propagation format detected.  See [Distributed Tracing](#distributed-tracing) for more details. |
-| `tracing.distributed_tracing.propagation_extract_style` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT`                    | `['Datadog','tracecontext']` | Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `tracing.distributed_tracing.propagation_inject_style`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`                     | `['Datadog','tracecontext']` | Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `tracing.distributed_tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE`                            | `nil`                        | Distributed tracing propagation formats to extract and inject. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `tracing.propagation_extract_first` | `DD_TRACE_PROPAGATION_EXTRACT_FIRST` | `false` | Exit immediately on the first valid propagation format detected.  See [Distributed Tracing](#distributed-tracing) for more details. |
+| `tracing.propagation_style_extract` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT`                    | `['Datadog','tracecontext']` | Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `tracing.propagation_style_inject`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`                     | `['Datadog','tracecontext']` | Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE`                            | `nil`                        | Distributed tracing propagation formats to extract and inject. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `tracing.enabled`                                       | `DD_TRACE_ENABLED`                                      | `true`                       | Enables or disables tracing. If set to `false` instrumentation will still run, but no traces are sent to the trace agent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tracing.header_tags`                                   | `DD_TRACE_HEADER_TAGS`                                  | `nil`                        | Record HTTP headers as span tags. See [Applying header tags to root spans][header tags] for more information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `tracing.instrument(<integration-name>, <options...>)`  |                                                         |                              | Activates instrumentation for a specific library. See [Integration instrumentation](#integration-instrumentation) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -2229,10 +2207,10 @@ You can enable/disable the use of these formats via `Datadog.configure`:
 ```ruby
 Datadog.configure do |c|
   # List of header formats that should be extracted
-  c.tracing.distributed_tracing.propagation_extract_style = [ 'tracecontext', 'Datadog', 'b3' ]
+  c.tracing.propagation_style_extract = [ 'tracecontext', 'Datadog', 'b3' ]
 
   # List of header formats that should be injected
-  c.tracing.distributed_tracing.propagation_inject_style = [ 'tracecontext', 'Datadog' ]
+  c.tracing.propagation_style_inject = [ 'tracecontext', 'Datadog' ]
 end
 ```
 
