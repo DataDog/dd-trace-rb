@@ -1,7 +1,7 @@
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling'
 
-RSpec.describe 'Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler' do
+RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
   let(:max_overhead_target) { 2.0 }
 
   before do
@@ -10,15 +10,15 @@ RSpec.describe 'Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler'
   end
 
   subject(:sampler) do
-    sampler = Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler.new
-    sampler.reset(max_overhead_target)
+    sampler = Datadog::Profiling::Collectors::DiscreteDynamicSampler::Testing::Sampler.new
+    sampler._native_set_overhead_target_percentage(max_overhead_target)
     sampler
   end
 
   def maybe_sample(now, sampling_time)
     start_ns = (now * 1e9).to_i
     end_ns = start_ns + (sampling_time * 1e9).to_i
-    sampler.after_sample(end_ns) / 1e9 if sampler.should_sample(start_ns)
+    sampler._native_after_sample(end_ns) / 1e9 if sampler._native_should_sample(start_ns)
   end
 
   def simulate_load(duration_seconds:, events_per_second:, sampling_seconds:)
@@ -63,7 +63,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler'
         # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
         # At an event rate of 8/sec we can sample 1/4 of total events.
         stats = simulate_load(duration_seconds: 60, events_per_second: 8, sampling_seconds: 0.01)
-        expect(sampler.probability).to be_between(23, 27)
+        expect(sampler._native_probability).to be_between(23, 27)
         expect(stats[:sampling_ratio]).to be_between(0.23, 0.27)
         expect(stats[:overhead]).to be < max_overhead_target
       end
@@ -75,7 +75,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler'
         # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
         # At an event rate of 100/sec we can sample 2% of total events.
         stats = simulate_load(duration_seconds: 60, events_per_second: 100, sampling_seconds: 0.01)
-        expect(sampler.probability).to be_between(1, 3)
+        expect(sampler._native_probability).to be_between(1, 3)
         expect(stats[:sampling_ratio]).to be_between(0.01, 0.03)
         expect(stats[:overhead]).to be < max_overhead_target
       end
@@ -87,7 +87,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler'
       it 'will readjust to decrease sampling rate' do
         # Baseline
         simulate_load(duration_seconds: 10, events_per_second: 10, sampling_seconds: 0.01)
-        p_baseline = sampler.probability
+        p_baseline = sampler._native_probability
 
         # We'll spike every 5 seconds. Sampler should have some short term memory so
         # after a spiking period it should be using a lower probability
@@ -98,7 +98,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler'
         simulate_load(duration_seconds: 1, events_per_second: 1000, sampling_seconds: 0.01)
         simulate_load(duration_seconds: 10, events_per_second: 10, sampling_seconds: 0.01)
 
-        p_after_spikes = sampler.probability
+        p_after_spikes = sampler._native_probability
 
         expect(p_after_spikes).to be < p_baseline
       end
@@ -113,7 +113,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler'
         # baseline, entire minutes could pass before we even decide to sample again and realize that
         # we've been sampling nothing for a while.
         simulate_load(duration_seconds: 5, events_per_second: 100000, sampling_seconds: 0.01)
-        p1 = sampler.probability
+        p1 = sampler._native_probability
         expect(p1).to be < 0.1 # %
 
         # With such a low probability, our sampling skip is >1000 so if we relied on samples alone
@@ -121,11 +121,11 @@ RSpec.describe 'Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler'
         # readjustment.
 
         simulate_load(duration_seconds: 5, events_per_second: 1, sampling_seconds: 0.01)
-        p2 = sampler.probability
+        p2 = sampler._native_probability
         expect(p2).to be > p1
 
         simulate_load(duration_seconds: 5, events_per_second: 1, sampling_seconds: 0.01)
-        p3 = sampler.probability
+        p3 = sampler._native_probability
         expect(p3).to be > p2
       end
     end
@@ -167,7 +167,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::Testing::DiscreteDynamicSampler'
       expect(stats[:sampling_ratio]).to be_between(0.45, 0.55)
 
       # We'll now increase our overhead target to 4%
-      sampler.reset(max_overhead_target * 2)
+      sampler._native_set_overhead_target_percentage(max_overhead_target * 2)
 
       # This should allow us to sample the entire load
       stats = simulate_load(duration_seconds: 60, events_per_second: 4, sampling_seconds: 0.01)

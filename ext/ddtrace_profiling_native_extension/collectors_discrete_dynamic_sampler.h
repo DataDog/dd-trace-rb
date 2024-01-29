@@ -12,19 +12,59 @@
 //       every event and is thus, in theory, susceptible to some pattern
 //       biases. In practice, the dynamic readjustment of sampling interval
 //       and randomized starting point should help with avoiding heavy biases.
-typedef struct discrete_dynamic_sampler discrete_dynamic_sampler;
+typedef struct discrete_dynamic_sampler {
+  // --- Config ---
+  // Name of this sampler for debug logs.
+  const char *debug_name;
+  // Value in the range ]0, 100] representing the % of time we're willing to dedicate
+  // to sampling.
+  double target_overhead;
 
-// Create a new sampler with sane defaults.
-discrete_dynamic_sampler* discrete_dynamic_sampler_new(const char *id);
+  // -- Reference State ---
+  // Moving average of how many events per ns we saw over the recent past.
+  double events_per_ns;
+  // Moving average of the sampling time of each individual event.
+  long sampling_time_ns;
+  // Sampling probability being applied by this sampler.
+  double sampling_probability;
+  // Sampling interval/skip that drives the systematic sampling done by this sampler.
+  // NOTE: This is an inverted view of the probability.
+  // NOTE: A value of 0 works as +inf, effectively disabling sampling (to align with probability=0)
+  unsigned long sampling_interval;
 
-// Reset a sampler, clearing all stored state and providing a target overhead.
+  // -- Sampling State --
+  // How many events have we seen since we last decided to sample.
+  unsigned long events_since_last_sample;
+  // Captures the time at which the last true-returning call to should_sample happened.
+  // This is used in after_sample to understand the total sample time.
+  long sample_start_time_ns;
+
+  // -- Adjustment State --
+  // Time at which we last readjust our sampling parameters.
+  long last_readjust_time_ns;
+  // How many events have we seen since the last readjustment.
+  unsigned long events_since_last_readjustment;
+  // How many samples have we seen since the last readjustment.
+  unsigned long samples_since_last_readjustment;
+  // How much time have we spent sampling since the last readjustment.
+  unsigned long sampling_time_since_last_readjustment_ns;
+  // A negative number that we add to target_overhead to serve as extra padding to
+  // try and mitigate observed overshooting of max sampling time.
+  double target_overhead_adjustment;
+} discrete_dynamic_sampler;
+
+
+// Init a new sampler with sane defaults.
+void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name);
+
+// Reset a sampler, clearing all stored state.
+void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler);
+
+// Sets a new target_overhead for the provided sampler, resetting it in the process.
 // @param target_overhead A double representing the percentage of total time we are
 //        willing to use as overhead for the resulting sampling. Values are expected
 //        to be in the range ]0.0, 100.0].
-void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, double target_overhead);
-
-// Free a previously initialized sampler.
-void discrete_dynamic_sampler_free(discrete_dynamic_sampler *sampler);
+void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead);
 
 // Make a sampling decision.
 //
@@ -43,7 +83,7 @@ long discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler);
 // Retrieve the current event rate as witnessed by the discrete sampler.
 //
 // NOTE: This is a rolling average of the event rate over the recent past.
-double discrete_dynamic_sampler_event_rate(discrete_dynamic_sampler *sampler);
+double discrete_dynamic_sampler_events_per_sec(discrete_dynamic_sampler *sampler);
 
 // Retrieve the current sampling probability ([0.0, 100.0]) being applied by this sampler.
 double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler);
@@ -54,7 +94,7 @@ double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler);
 long discrete_dynamic_sampler_sampling_time_ns(discrete_dynamic_sampler *sampler);
 
 // Retrieve the current number of events seen since last sample.
-size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler);
+unsigned long discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler);
 
 // Retrieve the target overhead adjustment applied by this sampler.
 //
