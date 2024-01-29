@@ -6,6 +6,7 @@ module Datadog
 
         attr_reader client: Datadog::Core::Remote::Client
         attr_reader worker: Datadog::Core::Remote::Worker
+        attr_reader healthy: bool
 
         @barrier: Barrier
 
@@ -14,6 +15,8 @@ module Datadog
         def start: -> void
 
         def started?: -> bool
+
+        def barrier: (Symbol) -> Symbol
 
         def sync: () -> void
 

@@ -26,34 +26,8 @@ module Datadog
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
-            unless Datadog::Core::Remote.active_remote.nil?
-              barrier = nil
-
-              t = Datadog::Core::Utils::Time.measure do
-                barrier = Datadog::Core::Remote.active_remote.barrier(:once)
-              end
-
-              if (span = active_span)
-                # TODO: this is not thread-consistent
-                ready = Datadog::Core::Remote.active_remote.healthy
-                status = ready ? 'ready' : 'disconnected'
-
-                unless span.has_tag?('_dd.rc.client_id')
-                  span.set_tag('_dd.rc.client_id', Datadog::Core::Remote.active_remote.client.id)
-                  span.set_tag('_dd.rc.status', status)
-                end
-
-                if barrier != :pass && !span.has_tag?('_dd.rc.boot.time')
-                  span.set_tag('_dd.rc.boot.time', t)
-
-                  if barrier == :timeout
-                    span.set_tag('_dd.rc.boot.timeout', true)
-                  else
-                    span.set_tag('_dd.rc.boot.ready', ready)
-                  end
-                end
-              end
-            end
+            boot = Datadog::Core::Remote::Tie.boot
+            Datadog::Core::Remote::Tie::Tracing.tag(boot, active_span)
 
             processor = nil
             ready = false

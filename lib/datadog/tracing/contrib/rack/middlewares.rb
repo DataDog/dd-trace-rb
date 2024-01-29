@@ -2,6 +2,7 @@ require 'date'
 
 require_relative '../../../core/environment/variable_helpers'
 require_relative '../../../core/backport'
+require_relative '../../../core/remote/tie/tracing'
 require_relative '../../client_ip'
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
@@ -71,13 +72,7 @@ module Datadog
 
             return @app.call(env) if previous_request_span
 
-            unless Datadog::Core::Remote.active_remote.nil?
-              barrier = nil
-
-              t = Datadog::Core::Utils::Time.measure do
-                barrier = Datadog::Core::Remote.active_remote.barrier(:once)
-              end
-            end
+            boot = Datadog::Core::Remote::Tie.boot
 
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
@@ -100,26 +95,7 @@ module Datadog
             request_trace = Tracing.active_trace
             env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
-            unless Datadog::Core::Remote.active_remote.nil?
-              if (span = request_span)
-                # TODO: this is not thread-consistent
-                ready = Datadog::Core::Remote.active_remote.healthy
-                status = ready ? 'ready' : 'disconnected'
-
-                span.set_tag('_dd.rc.client_id', Datadog::Core::Remote.active_remote.client.id)
-                span.set_tag('_dd.rc.status', status)
-
-                if barrier != :pass
-                  span.set_tag('_dd.rc.boot.time', t)
-
-                  if barrier == :timeout
-                    span.set_tag('_dd.rc.boot.timeout', true)
-                  else
-                    span.set_tag('_dd.rc.boot.ready', ready)
-                  end
-                end
-              end
-            end
+            Datadog::Core::Remote::Tie::Tracing.tag(boot, request_span)
 
             # Copy the original env, before the rest of the stack executes.
             # Values may change; we want values before that happens.
