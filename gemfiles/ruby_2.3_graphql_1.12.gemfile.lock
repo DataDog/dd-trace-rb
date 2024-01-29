@@ -35,6 +35,7 @@ GEM
     extlz4 (0.3.4)
     ffi (1.15.5)
     google-protobuf (3.19.1)
+    google-protobuf (3.19.1-x86_64-linux)
     graphql (1.12.24)
     hashdiff (1.1.0)
     json (2.7.1)
@@ -91,7 +92,9 @@ GEM
     yard (0.9.34)
 
 PLATFORMS
+  aarch64-linux
   ruby
+  x86_64-linux
 
 DEPENDENCIES
   appraisal (~> 2.4.0)
