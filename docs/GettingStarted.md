@@ -848,24 +848,26 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `schemas` | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas. | `[]` |
+| `with_deprecated_tracer` | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`  | `false` |
 | `service_name` | Service name used for graphql instrumentation | `'ruby-graphql'` |
 
 **Manually configuring GraphQL schemas**
 
-If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas with different service names), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
+If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
+
+With `GraphQL::Tracing::DataDogTrace`
 
 ```ruby
-# Class-based schema
+class YourSchema < GraphQL::Schema
+  trace_with GraphQL::Tracing::DataDogTrace
+end
+```
+or with `GraphQL::Tracing::DataDogTracing` (deprecated)
+
+```ruby
 class YourSchema < GraphQL::Schema
   use(GraphQL::Tracing::DataDogTracing)
 end
-```
-
-Or you can modify an already defined schema:
-
-```ruby
-# Class-based schema
-YourSchema.use(GraphQL::Tracing::DataDogTracing)
 ```
 
 **Note**: This integration does not support define-style schemas. Only class-based schemas are supported.

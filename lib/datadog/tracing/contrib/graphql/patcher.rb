@@ -1,5 +1,7 @@
 require_relative '../analytics'
 require_relative '../patcher'
+require_relative 'tracing_patcher'
+require_relative 'trace_patcher'
 
 module Datadog
   module Tracing
@@ -16,18 +18,16 @@ module Datadog
           end
 
           def patch
-            schemas = configuration[:schemas]
-
-            if schemas.empty?
-              ::GraphQL::Schema.tracer(::GraphQL::Tracing::DataDogTracing.new(**trace_options))
+            if configuration[:with_deprecated_tracer]
+              TracingPatcher.patch!(schemas, trace_options)
+            elsif Integration.trace_supported?
+              TracePatcher.patch!(schemas, trace_options)
             else
-              schemas.each do |schema|
-                if schema.respond_to? :use
-                  schema.use(::GraphQL::Tracing::DataDogTracing, **trace_options)
-                else
-                  Datadog.logger.warn("Unable to patch #{schema}, please migrate to class-based schema.")
-                end
-              end
+              Datadog.logger.warn(
+                "GraphQL version (#{target_version}) does not support GraphQL::Tracing::DataDogTrace. "\
+                'Falling back to GraphQL::Tracing::DataDogTracing.'
+              )
+              TracingPatcher.patch!(schemas, trace_options)
             end
           end
 
@@ -41,6 +41,10 @@ module Datadog
 
           def configuration
             Datadog.configuration.tracing[:graphql]
+          end
+
+          def schemas
+            configuration[:schemas]
           end
         end
       end
