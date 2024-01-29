@@ -6,35 +6,52 @@
 #include "ruby_helpers.h"
 
 #define BASE_OVERHEAD_PCT 1.0
+#define BASE_SAMPLING_INTERVAL 50
 
 #define ADJUSTMENT_WINDOW_NS SECONDS_AS_NS(1)
 
 #define EMA_SMOOTHING_FACTOR 0.6
-#define EXP_MOVING_AVERAGE(last, avg) (1-EMA_SMOOTHING_FACTOR) * avg + EMA_SMOOTHING_FACTOR * last
+#define EXP_MOVING_AVERAGE(last, avg, first) first ? last : (1-EMA_SMOOTHING_FACTOR) * avg + EMA_SMOOTHING_FACTOR * last
 
 void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name) {
   sampler->debug_name = debug_name;
   discrete_dynamic_sampler_set_overhead_target_percentage(sampler, BASE_OVERHEAD_PCT);
 }
 
-void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler) {
+static void _discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, long now_ns) {
   const char *debug_name = sampler->debug_name;
   double target_overhead = sampler->target_overhead;
   (*sampler) = (discrete_dynamic_sampler) {
     .debug_name = debug_name,
     .target_overhead = target_overhead,
-    // sample the next event that comes after a reset. We'll immediately
-    // readjust after anyway
-    .sampling_interval = 1,
+    // Act as if a reset is a readjustment (it kinda is!) and wait for a full adjustment window
+    // to compute stats. Otherwise, we'd readjust on the next even that comes and thus be operating
+    // with very incomplete information
+    .last_readjust_time_ns = now_ns,
+    // This fake readjustment will use a hardcoded sampling interval
+    .sampling_interval = BASE_SAMPLING_INTERVAL,
+    // But we want to make sure we sample at least once in the next window so that our first
+    // real readjustment has some notion of how heavy sampling is
+    .events_since_last_sample = BASE_SAMPLING_INTERVAL,
   };
 }
 
-void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead) {
+void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler) {
+  long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  _discrete_dynamic_sampler_reset(sampler, now);
+}
+
+static void _discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns) {
   if (target_overhead <= 0 || target_overhead > 100) {
     rb_raise(rb_eArgError, "Target overhead must be a double between ]0,100] was %f", target_overhead);
   }
   sampler->target_overhead = target_overhead;
-  discrete_dynamic_sampler_reset(sampler);
+  _discrete_dynamic_sampler_reset(sampler, now_ns);
+}
+
+void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead) {
+  long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  _discrete_dynamic_sampler_set_overhead_target_percentage(sampler, target_overhead, now);
 }
 
 static void maybe_readjust(discrete_dynamic_sampler *sampler, long now);
@@ -97,26 +114,46 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   }
 
   // If we got this far, lets recalculate our sampling params based on new observations
+  bool first_readjustment = !sampler->has_completed_full_adjustment_window;
 
   // Update our running average of events/sec with latest observation
-  sampler->events_per_ns = EXP_MOVING_AVERAGE((double) sampler->events_since_last_readjustment / window_time_ns, sampler->events_per_ns);
+  sampler->events_per_ns = EXP_MOVING_AVERAGE(
+    (double) sampler->events_since_last_readjustment / window_time_ns,
+    sampler->events_per_ns,
+    first_readjustment
+  );
 
   // Update our running average of sampling time for a specific event
   long sampling_window_time_ns = sampler->sampling_time_since_last_readjustment_ns;
+  long sampling_overshoot_time_ns = -1;
   if (sampler->samples_since_last_readjustment > 0) {
+    // We can only update sampling-related stats if we actually sampled on the last window...
+
+    // Lets update our average sampling time per event
     long avg_sampling_time_in_window_ns = sampler->samples_since_last_readjustment == 0 ? 0 : sampling_window_time_ns / sampler->samples_since_last_readjustment;
-    sampler->sampling_time_ns = EXP_MOVING_AVERAGE(avg_sampling_time_in_window_ns, sampler->sampling_time_ns);
+    sampler->sampling_time_ns = EXP_MOVING_AVERAGE(
+      avg_sampling_time_in_window_ns,
+      sampler->sampling_time_ns,
+      first_readjustment
+    );
   }
 
   // Are we meeting our target in practice? If we're consistently overshooting our estimate due to non-uniform allocation patterns lets
   // adjust our overhead target.
+  // NOTE: Updating this even when no samples occur is a conscious choice which enables us to cooldown extreme adjustments over time.
+  //       If we didn't do this, whenever a big spike caused target_overhead_adjustment to equal target_overhead, we'd get stuck
+  //       in a "probability = 0" state.
   long reference_target_sampling_time_ns = window_time_ns * (sampler->target_overhead / 100.);
   // Overshoot by definition is always >= 0. < 0 would be undershooting!
-  long sampling_overshoot_time_ns = long_max_of(0, sampler->sampling_time_since_last_readjustment_ns - reference_target_sampling_time_ns);
+  sampling_overshoot_time_ns = long_max_of(0, sampler->sampling_time_since_last_readjustment_ns - reference_target_sampling_time_ns);
   // Our overhead adjustment should always be between [-target_overhead, 0]. Higher adjustments would lead to negative overhead targets
   // which don't make much sense.
   double last_target_overhead_adjustment = -double_min_of(sampler->target_overhead, sampling_overshoot_time_ns * 100. / window_time_ns);
-  sampler->target_overhead_adjustment = EXP_MOVING_AVERAGE(last_target_overhead_adjustment, sampler->target_overhead_adjustment);
+  sampler->target_overhead_adjustment = EXP_MOVING_AVERAGE(
+    last_target_overhead_adjustment,
+    sampler->target_overhead_adjustment,
+    first_readjustment
+  );
 
   // Apply our overhead adjustment to figure out our real targets for this readjustment.
   double target_overhead = double_max_of(0, sampler->target_overhead + sampler->target_overhead_adjustment);
@@ -151,11 +188,17 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   //   then probability will be > 1 (but we should clamp to 1 since probabilities higher than 1 don't make sense).
   // * If app is eventing a lot or our sampling overhead is big, then as time_to_sample_all_events_ns grows, sampling_probability will
   //   tend to 0.
-  long working_window_time_ns = window_time_ns - sampling_window_time_ns;
+  long working_window_time_ns = long_max_of(0, window_time_ns - sampling_window_time_ns);
   long max_allowed_time_for_sampling_ns = target_sampling_time_ns;
   long time_to_sample_all_events_ns = sampler->events_per_ns * working_window_time_ns * sampler->sampling_time_ns;
-  sampler->sampling_probability = time_to_sample_all_events_ns == 0 ? 1. :
-    double_min_of(1., (double) max_allowed_time_for_sampling_ns / time_to_sample_all_events_ns);
+  if (max_allowed_time_for_sampling_ns == 0) {
+    // if we aren't allowed any sampling time at all, probability has to be 0
+    sampler->sampling_probability = 0;
+  } else {
+    // otherwise apply the formula described above (protecting against div by 0)
+    sampler->sampling_probability = time_to_sample_all_events_ns == 0 ? 1. :
+      double_min_of(1., (double) max_allowed_time_for_sampling_ns / time_to_sample_all_events_ns);
+  }
 
   // Doing true random selection would involve "tossing a coin" on every allocation. Lets do systematic sampling instead so that our
   // sampling decision can rely solely on a sampling skip/interval (i.e. more efficient).
@@ -195,7 +238,9 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
     fprintf(stderr, "expected allocs in 60s=%f\n", allocs_in_60s);
     fprintf(stderr, "expected samples in 60s=%f\n", samples_in_60s);
     fprintf(stderr, "expected sampling time in 60s=%f (previous real=%f)\n", expected_total_sampling_time_in_60s, real_total_sampling_time_in_60s);
+    fprintf(stderr, "target_overhead=%f\n", sampler->target_overhead);
     fprintf(stderr, "target_overhead_adjustment=%f\n", sampler->target_overhead_adjustment);
+    fprintf(stderr, "target_sampling_time=%ld\n", target_sampling_time_ns);
     fprintf(stderr, "expected max overhead in 60s=%f\n", target_overhead / 100.0 * 60);
     fprintf(stderr, "-------\n");
   #endif
@@ -204,6 +249,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   sampler->samples_since_last_readjustment = 0;
   sampler->sampling_time_since_last_readjustment_ns = 0;
   sampler->last_readjust_time_ns = now;
+  sampler->has_completed_full_adjustment_window = true;
 }
 
 // ---
@@ -211,8 +257,8 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
 
 static VALUE _native_new(VALUE klass);
 static void _native_free(void *state);
-static VALUE _native_reset(VALUE self);
-static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_overhead);
+static VALUE _native_reset(VALUE self, VALUE now);
+static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_overhead, VALUE now);
 static VALUE _native_should_sample(VALUE self, VALUE now);
 static VALUE _native_after_sample(VALUE self, VALUE now);
 static VALUE _native_probability(VALUE self);
@@ -229,8 +275,8 @@ void collectors_discrete_dynamic_sampler_init(VALUE profiling_module) {
 
   rb_define_alloc_func(sampler_class, _native_new);
 
-  rb_define_method(sampler_class, "_native_reset", _native_reset, 0);
-  rb_define_method(sampler_class, "_native_set_overhead_target_percentage", _native_set_overhead_target_percentage, 1);
+  rb_define_method(sampler_class, "_native_reset", _native_reset, 1);
+  rb_define_method(sampler_class, "_native_set_overhead_target_percentage", _native_set_overhead_target_percentage, 2);
   rb_define_method(sampler_class, "_native_should_sample", _native_should_sample, 1);
   rb_define_method(sampler_class, "_native_after_sample", _native_after_sample, 1);
   rb_define_method(sampler_class, "_native_probability", _native_probability, 0);
@@ -259,22 +305,22 @@ static void _native_free(void *state_ptr) {
   ruby_xfree(state);
 }
 
-static VALUE _native_reset(VALUE self) {
+static VALUE _native_reset(VALUE self, VALUE now_ns) {
 
   sampler_state *state;
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
 
-  discrete_dynamic_sampler_reset(&state->sampler);
+  _discrete_dynamic_sampler_reset(&state->sampler, NUM2LONG(now_ns));
   return Qtrue;
 }
 
-static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_overhead) {
+static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_overhead, VALUE now_ns) {
   ENFORCE_TYPE(target_overhead, T_FLOAT);
 
   sampler_state *state;
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
 
-  discrete_dynamic_sampler_set_overhead_target_percentage(&state->sampler, NUM2DBL(target_overhead));
+  _discrete_dynamic_sampler_set_overhead_target_percentage(&state->sampler, NUM2DBL(target_overhead), NUM2LONG(now_ns));
 
   return Qnil;
 }

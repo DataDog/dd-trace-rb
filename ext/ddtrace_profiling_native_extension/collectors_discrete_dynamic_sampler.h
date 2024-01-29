@@ -40,6 +40,8 @@ typedef struct discrete_dynamic_sampler {
   long sample_start_time_ns;
 
   // -- Adjustment State --
+  // Has this sampler already ran for at least one complete adjustment window?
+  bool has_completed_full_adjustment_window;
   // Time at which we last readjust our sampling parameters.
   long last_readjust_time_ns;
   // How many events have we seen since the last readjustment.

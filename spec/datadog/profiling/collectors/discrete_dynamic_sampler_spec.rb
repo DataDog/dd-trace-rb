@@ -11,13 +11,13 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
 
   subject(:sampler) do
     sampler = Datadog::Profiling::Collectors::DiscreteDynamicSampler::Testing::Sampler.new
-    sampler._native_set_overhead_target_percentage(max_overhead_target)
+    update_overhead_target(max_overhead_target, sampler)
     sampler
   end
 
-  def maybe_sample(now, sampling_time)
-    start_ns = (now * 1e9).to_i
-    end_ns = start_ns + (sampling_time * 1e9).to_i
+  def maybe_sample(sampling_seconds:)
+    start_ns = (@now * 1e9).to_i
+    end_ns = start_ns + (sampling_seconds * 1e9).to_i
     sampler._native_after_sample(end_ns) / 1e9 if sampler._native_should_sample(start_ns)
   end
 
@@ -28,7 +28,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     num_samples = 0
     total_sampling_seconds = 0
     num_events.times do
-      sampling_time = maybe_sample(@now, sampling_seconds)
+      sampling_time = maybe_sample(sampling_seconds: sampling_seconds)
       unless sampling_time.nil?
         num_samples += 1
         total_sampling_seconds += sampling_time
@@ -45,39 +45,56 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     }
   end
 
+  def update_overhead_target(new_overhead_target, sampler_instance = sampler)
+    sampler_instance._native_set_overhead_target_percentage(new_overhead_target, @now * 1e9)
+  end
+
   context 'when under a constant' do
+    let(:events_per_second) { nil }
+
+    let(:stats) do
+      # Warm things up a little to overcome the hardcoded starting parameters
+      simulate_load(duration_seconds: 5, events_per_second: events_per_second, sampling_seconds: 0.01)
+      # Actual stat window we care about
+      simulate_load(duration_seconds: 60, events_per_second: events_per_second, sampling_seconds: 0.01)
+    end
+
     context 'low load' do
+      let(:events_per_second) { 1 }
+
       it 'samples everything that comes' do
         # Max overhead of 2% over 1 second means a max of 0.02 seconds of sampling.
         # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
         # At an event rate of 1/sec we can sample all.
-        stats = simulate_load(duration_seconds: 60, events_per_second: 1, sampling_seconds: 0.01)
         expect(stats[:sampling_ratio]).to eq(1)
         expect(stats[:overhead]).to be < max_overhead_target
+        expect(sampler._native_probability).to eq(100)
       end
     end
 
     context 'moderate load' do
+      let(:events_per_second) { 8 }
+
       it 'samples only as many samples as it can to keep to the overhead target' do
         # Max overhead of 2% over 1 second means a max of 0.02 seconds of sampling.
         # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
         # At an event rate of 8/sec we can sample 1/4 of total events.
-        stats = simulate_load(duration_seconds: 60, events_per_second: 8, sampling_seconds: 0.01)
-        expect(sampler._native_probability).to be_between(23, 27)
         expect(stats[:sampling_ratio]).to be_between(0.23, 0.27)
         expect(stats[:overhead]).to be < max_overhead_target
+        expect(sampler._native_probability).to be_between(23, 27)
       end
     end
 
     context 'heavy load' do
+      let(:events_per_second) { 100 }
+
       it 'will heavily restrict sampling' do
         # Max overhead of 2% over 1 second means a max of 0.02 seconds of sampling.
         # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
         # At an event rate of 100/sec we can sample 2% of total events.
-        stats = simulate_load(duration_seconds: 60, events_per_second: 100, sampling_seconds: 0.01)
-        expect(sampler._native_probability).to be_between(1, 3)
         expect(stats[:sampling_ratio]).to be_between(0.01, 0.03)
         expect(stats[:overhead]).to be < max_overhead_target
+        expect(sampler._native_probability).to be_between(1, 3)
       end
     end
   end
@@ -112,21 +129,25 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
         # that may happen inbetween. If that weren't the case, after we go down to a very low event
         # baseline, entire minutes could pass before we even decide to sample again and realize that
         # we've been sampling nothing for a while.
-        simulate_load(duration_seconds: 5, events_per_second: 100000, sampling_seconds: 0.01)
+        simulate_load(duration_seconds: 5, events_per_second: 100000, sampling_seconds: 0.1)
         p1 = sampler._native_probability
         expect(p1).to be < 0.1 # %
 
         # With such a low probability, our sampling skip is >1000 so if we relied on samples alone
-        # for adjustment, the 10 events generated in the following 2 loads would not trigger this
-        # readjustment.
+        # for adjustment, the events generated in each of the following loads would not be enough to
+        # trigger this readjustment. We expect that continuous adjustment slowly brings probabilities
+        # up and eventually we can sample again within some reasonable amount of settings (15 secs
+        last_p = p1
+        saw_sample = 10.times do
+          stats = simulate_load(duration_seconds: 2, events_per_second: 1, sampling_seconds: 0.1)
+          current_p = sampler._native_probability
+          expect(current_p).to be > last_p
 
-        simulate_load(duration_seconds: 5, events_per_second: 1, sampling_seconds: 0.01)
-        p2 = sampler._native_probability
-        expect(p2).to be > p1
+          last_p = current_p
 
-        simulate_load(duration_seconds: 5, events_per_second: 1, sampling_seconds: 0.01)
-        p3 = sampler._native_probability
-        expect(p3).to be > p2
+          break true if stats[:num_samples] > 0
+        end
+        expect(saw_sample).to be(true)
       end
     end
   end
@@ -161,17 +182,45 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
 
   context 'given a constant load' do
     it "the higher the target overhead, the more we'll sample" do
+      # Warm-up to overcome initial hardcoded window
+      simulate_load(duration_seconds: 5, events_per_second: 4, sampling_seconds: 0.01)
       # Start with an initial load of 4 eps @ 0.01s sampling time should give us a sampling
       # probability of around 50% given our 2% overhead target (see similar test case above)
       stats = simulate_load(duration_seconds: 60, events_per_second: 4, sampling_seconds: 0.01)
       expect(stats[:sampling_ratio]).to be_between(0.45, 0.55)
 
       # We'll now increase our overhead target to 4%
-      sampler._native_set_overhead_target_percentage(max_overhead_target * 2)
+      update_overhead_target(max_overhead_target * 2)
+
+      # Warm-up to overcome initial hardcoded window
+      simulate_load(duration_seconds: 5, events_per_second: 4, sampling_seconds: 0.01)
 
       # This should allow us to sample the entire load
       stats = simulate_load(duration_seconds: 60, events_per_second: 4, sampling_seconds: 0.01)
       expect(stats[:sampling_ratio]).to eq(1)
     end
+  end
+
+  it 'disables sampling for next window if sampling overhead is deemed extremely high but relaxes over time' do
+    # Max overhead of 2% over 1 seconds means a max of 0.02 seconds of sampling. If each
+    # of our samples takes 2 full seconds, there's no way for us to sample and meet the target
+    # so probability and intervals must go down to 0.
+    maybe_sample(sampling_seconds: 2) # This will trigger a readjustment because sampling_seconds > readjust_window
+    expect(sampler._native_probability).to eq(0)
+
+    # Since that initial readjustment set probability to 0, all events in the next window will be ignored but
+    # ideally we should slowly relax this over time otherwise probability = 0 would be a terminal state (if we
+    # never sample again, we'll be "stuck" with the same sampling overhead view that determined probability = 0
+    # in the first place since no new sampling data came in). Because of that, over a large enough window, we
+    # should get some "are things still as bad as before?" probing samples.
+    #
+    # Question is: how long do we have to wait for probing samples? Intuitively, we need to build enough budget over
+    # time for us to be able to take that probing hit assuming things remain the same. Each adjustment window
+    # with no sampling activity earns us 0.02 seconds of budget. Therefore we need 100 of these to go by before
+    # we see the next probing sample.
+    stats = simulate_load(duration_seconds: 99, events_per_second: 4, sampling_seconds: 2)
+    expect(stats[:num_samples]).to eq(0)
+    stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 2)
+    expect(stats[:num_samples]).to eq(1)
   end
 end
