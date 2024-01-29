@@ -80,24 +80,12 @@ long discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler) {
   return _discrete_dynamic_sampler_after_sample(sampler, now);
 }
 
-double discrete_dynamic_sampler_events_per_sec(discrete_dynamic_sampler *sampler) {
-  return sampler->events_per_ns * 1e9;
-}
-
 double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler) {
   return sampler->sampling_probability * 100.;
 }
 
-long discrete_dynamic_sampler_sampling_time_ns(discrete_dynamic_sampler *sampler) {
-  return sampler->sampling_time_ns;
-}
-
 size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler) {
   return sampler->events_since_last_sample;
-}
-
-double discrete_dynamic_sampler_target_overhead_adjustment(discrete_dynamic_sampler *sampler) {
-  return sampler->target_overhead_adjustment * 100.;
 }
 
 static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {

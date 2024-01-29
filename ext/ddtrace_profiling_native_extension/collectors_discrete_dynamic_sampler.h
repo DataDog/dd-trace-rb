@@ -80,29 +80,8 @@ bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler);
 // @return Sampling time in nanoseconds for the sample operation we just finished.
 long discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler);
 
-// Retrieve the current event rate as witnessed by the discrete sampler.
-//
-// NOTE: This is a rolling average of the event rate over the recent past.
-double discrete_dynamic_sampler_events_per_sec(discrete_dynamic_sampler *sampler);
-
 // Retrieve the current sampling probability ([0.0, 100.0]) being applied by this sampler.
 double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler);
 
-// Retrieve the current sampling time for an individual event in nanoseconds.
-//
-// NOTE: This is a rolling average of the event sampling time over the recent past.
-long discrete_dynamic_sampler_sampling_time_ns(discrete_dynamic_sampler *sampler);
-
 // Retrieve the current number of events seen since last sample.
 unsigned long discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler);
-
-// Retrieve the target overhead adjustment applied by this sampler.
-//
-// If a sampler sees itself constantly overshooting the configured target overhead, it
-// will automatically adjust that target down to add more padding, thus acting more
-// pessimistic and making it easier to stay within the desired target.
-//
-// NOTE: This will necessarily be a number in the range [-target_overhead, 0]. The
-//       sampler will never adjust itself to go over the configured target. The
-//       real overhead target is the sum of the configured target with this adjustment.
-double discrete_dynamic_sampler_target_overhead_adjustment(discrete_dynamic_sampler *sampler);
