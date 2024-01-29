@@ -22,26 +22,18 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Integration do
   describe '.loaded?' do
     subject(:loaded?) { described_class.loaded? }
 
-    context 'when neither GraphQL or GraphQL::Tracing::DataDogTracing are defined' do
+    context 'when GraphQL is not defined' do
       before do
         hide_const('GraphQL')
-        hide_const('GraphQL::Tracing::DataDogTracing')
       end
 
       it { is_expected.to be false }
     end
 
-    context 'when only GraphQL is defined' do
+    context 'when GraphQL is defined' do
       before do
         stub_const('GraphQL', Class.new)
-        hide_const('GraphQL::Tracing::DataDogTracing')
       end
-
-      it { is_expected.to be false }
-    end
-
-    context 'when GraphQL::Tracing::DataDogTracing is defined' do
-      before { stub_const('GraphQL::Tracing::DataDogTracing', Class.new) }
 
       it { is_expected.to be true }
     end
@@ -94,6 +86,20 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Integration do
     subject(:auto_instrument?) { integration.auto_instrument? }
 
     it { is_expected.to be(true) }
+  end
+
+  describe '.trace_supported?' do
+    subject(:trace_supported) { described_class.trace_supported? }
+
+    context 'with version `2.0.19`' do
+      include_context 'loaded gems', graphql: '2.0.19'
+      it { is_expected.to be true }
+    end
+
+    context 'with version `2.0.18`' do
+      include_context 'loaded gems', graphql: decrement_gem_version('2.0.19')
+      it { is_expected.to be false }
+    end
   end
 
   describe '#default_configuration' do

@@ -18,8 +18,7 @@ module Datadog
           end
 
           def self.loaded?
-            !defined?(::GraphQL).nil? \
-              && !defined?(::GraphQL::Tracing::DataDogTracing).nil?
+            !defined?(::GraphQL).nil?
           end
 
           # Breaking changes are introduced in `2.2.6` and have been backported to
@@ -35,6 +34,10 @@ module Datadog
               (version >= Gem::Version.new('2.1.11') && version < Gem::Version.new('2.2')) ||
               (version >= Gem::Version.new('2.2.6'))
             )
+          end
+
+          def self.trace_supported?
+            version >= Gem::Version.new('2.0.19')
           end
 
           def new_configuration

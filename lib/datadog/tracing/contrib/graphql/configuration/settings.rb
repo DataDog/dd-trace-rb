@@ -34,6 +34,11 @@ module Datadog
             end
 
             option :service_name
+
+            option :with_deprecated_tracer do |o|
+              o.type :bool
+              o.default false
+            end
           end
         end
       end

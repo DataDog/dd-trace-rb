@@ -1,6 +1,6 @@
-LogHelpers.without_warnings do
-  require 'graphql'
-end
+require 'graphql'
+
+require_relative 'test_helpers'
 
 class TestUserType < ::GraphQL::Schema::Object
   field :id, ::GraphQL::Types::ID, null: false
@@ -24,6 +24,16 @@ class TestGraphQLSchema < ::GraphQL::Schema
 end
 
 RSpec.shared_examples 'graphql instrumentation' do
+  around do |example|
+    Datadog::GraphQLTestHelpers.reset_schema_cache!(::GraphQL::Schema)
+    Datadog::GraphQLTestHelpers.reset_schema_cache!(TestGraphQLSchema)
+
+    example.run
+
+    Datadog::GraphQLTestHelpers.reset_schema_cache!(::GraphQL::Schema)
+    Datadog::GraphQLTestHelpers.reset_schema_cache!(TestGraphQLSchema)
+  end
+
   describe 'query trace' do
     subject(:result) { TestGraphQLSchema.execute('{ user(id: 1) { name } }') }
 
