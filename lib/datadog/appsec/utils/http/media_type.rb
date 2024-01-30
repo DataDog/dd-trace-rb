@@ -78,7 +78,7 @@ module Datadog
 
             s << ';' << @parameters.map { |k, v| "#{k}=#{v}" }.join(';') if @parameters.count > 0
 
-            s.freeze
+            s
           end
         end
       end

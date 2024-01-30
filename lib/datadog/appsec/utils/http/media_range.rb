@@ -192,7 +192,7 @@ module Datadog
             s << ";q=#{@quality}" if @quality < 1.0
             s << ';' << @accept_ext.map { |k, v| "#{k}=#{v}" }.join(';') if @accept_ext.count > 0
 
-            s.freeze
+            s
           end
         end
       end
