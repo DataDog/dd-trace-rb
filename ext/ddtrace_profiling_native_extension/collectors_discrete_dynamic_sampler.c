@@ -30,9 +30,11 @@ static void _discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, l
     .last_readjust_time_ns = now_ns,
     // This fake readjustment will use a hardcoded sampling interval
     .sampling_interval = BASE_SAMPLING_INTERVAL,
+    .sampling_probability = 1.0 / BASE_SAMPLING_INTERVAL,
     // But we want to make sure we sample at least once in the next window so that our first
-    // real readjustment has some notion of how heavy sampling is
-    .events_since_last_sample = BASE_SAMPLING_INTERVAL,
+    // real readjustment has some notion of how heavy sampling is. Therefore, we'll make it so that
+    // the next event is automatically sampled by artificially locating it in the interval threshold.
+    .events_since_last_sample = BASE_SAMPLING_INTERVAL - 1,
   };
 }
 
@@ -189,7 +191,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   // * If app is eventing a lot or our sampling overhead is big, then as time_to_sample_all_events_ns grows, sampling_probability will
   //   tend to 0.
   long working_window_time_ns = long_max_of(0, window_time_ns - sampling_window_time_ns);
-  long max_allowed_time_for_sampling_ns = target_sampling_time_ns;
+  double max_allowed_time_for_sampling_ns = target_sampling_time_ns;
   long time_to_sample_all_events_ns = sampler->events_per_ns * working_window_time_ns * sampler->sampling_time_ns;
   if (max_allowed_time_for_sampling_ns == 0) {
     // if we aren't allowed any sampling time at all, probability has to be 0
@@ -197,7 +199,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   } else {
     // otherwise apply the formula described above (protecting against div by 0)
     sampler->sampling_probability = time_to_sample_all_events_ns == 0 ? 1. :
-      double_min_of(1., (double) max_allowed_time_for_sampling_ns / time_to_sample_all_events_ns);
+      double_min_of(1., max_allowed_time_for_sampling_ns / time_to_sample_all_events_ns);
   }
 
   // Doing true random selection would involve "tossing a coin" on every allocation. Lets do systematic sampling instead so that our
@@ -231,6 +233,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
     fprintf(stderr, "events_per_sec=%f\n", sampler->events_per_ns * 1e9);
     fprintf(stderr, "sampling_time=%ld\n", sampler->sampling_time_ns);
     fprintf(stderr, "sampling_window_time=%ld\n", sampling_window_time_ns);
+    fprintf(stderr, "sampling_target_time=%ld\n", reference_target_sampling_time_ns);
     fprintf(stderr, "sampling_overshoot_time=%ld\n", sampling_overshoot_time_ns);
     fprintf(stderr, "working_window_time=%ld\n", working_window_time_ns);
     fprintf(stderr, "sampling_interval=%zu\n", sampler->sampling_interval);
@@ -256,7 +259,6 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
 // Below here is boilerplate to expose the above code to Ruby so that we can test it with RSpec as usual.
 
 static VALUE _native_new(VALUE klass);
-static void _native_free(void *state);
 static VALUE _native_reset(VALUE self, VALUE now);
 static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_overhead, VALUE now);
 static VALUE _native_should_sample(VALUE self, VALUE now);
@@ -285,7 +287,7 @@ void collectors_discrete_dynamic_sampler_init(VALUE profiling_module) {
 static const rb_data_type_t sampler_typed_data = {
   .wrap_struct_name = "Datadog::Profiling::DiscreteDynamicSampler::Testing::Sampler",
   .function = {
-    .dfree = _native_free,
+    .dfree = RUBY_DEFAULT_FREE,
     .dsize = NULL,
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
@@ -299,13 +301,8 @@ static VALUE _native_new(VALUE klass) {
   return TypedData_Wrap_Struct(klass, &sampler_typed_data, state);
 }
 
-static void _native_free(void *state_ptr) {
-  struct sampler_state *state = (sampler_state*) state_ptr;
-
-  ruby_xfree(state);
-}
-
 static VALUE _native_reset(VALUE self, VALUE now_ns) {
+  ENFORCE_TYPE(now_ns, T_FIXNUM);
 
   sampler_state *state;
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);

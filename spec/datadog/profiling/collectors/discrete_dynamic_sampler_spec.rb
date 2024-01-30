@@ -9,7 +9,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     @now = Time.now.to_f
   end
 
-  subject(:sampler) do
+  subject!(:sampler) do
     sampler = Datadog::Profiling::Collectors::DiscreteDynamicSampler::Testing::Sampler.new
     update_overhead_target(max_overhead_target, sampler)
     sampler
@@ -28,13 +28,17 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     num_samples = 0
     total_sampling_seconds = 0
     num_events.times do
-      sampling_time = maybe_sample(sampling_seconds: sampling_seconds)
-      unless sampling_time.nil?
-        num_samples += 1
-        total_sampling_seconds += sampling_time
-        @now += sampling_time
-      end
+      # We update time at the beginning on purpose to force the last event to
+      # occur at the end of the specified duration window. In other words, we
+      # consciously go with end-aligned allocations in these simulated loads
+      # so that it's easier to force
       @now += time_between_events
+      sampling_time = maybe_sample(sampling_seconds: sampling_seconds)
+      next if sampling_time.nil?
+
+      num_samples += 1
+      total_sampling_seconds += sampling_time
+      @now += sampling_time
     end
     {
       sampling_ratio: num_samples.to_f / num_events,
@@ -46,11 +50,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
   end
 
   def update_overhead_target(new_overhead_target, sampler_instance = sampler)
-    sampler_instance._native_set_overhead_target_percentage(new_overhead_target, @now * 1e9)
+    sampler_instance._native_set_overhead_target_percentage(new_overhead_target, (@now * 1e9).to_i)
   end
 
   context 'when under a constant' do
-
     let(:stats) do
       # Warm things up a little to overcome the hardcoded starting parameters
       simulate_load(duration_seconds: 5, events_per_second: events_per_second, sampling_seconds: 0.01)
@@ -193,7 +196,6 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
 
       # Warm-up to overcome initial hardcoded window
       simulate_load(duration_seconds: 5, events_per_second: 4, sampling_seconds: 0.01)
-
       # This should allow us to sample the entire load
       stats = simulate_load(duration_seconds: 60, events_per_second: 4, sampling_seconds: 0.01)
       expect(stats[:sampling_ratio]).to eq(1)
@@ -201,10 +203,11 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
   end
 
   it 'disables sampling for next window if sampling overhead is deemed extremely high but relaxes over time' do
-    # Max overhead of 2% over 1 seconds means a max of 0.02 seconds of sampling. If each
-    # of our samples takes 2 full seconds, there's no way for us to sample and meet the target
+    # Max overhead of 2% over 1 seconds means a max of 0.02 seconds of sampling each second. If each
+    # of our samples takes 0.08 seconds, there's no way for us to sample and meet the target
     # so probability and intervals must go down to 0.
-    maybe_sample(sampling_seconds: 2) # This will trigger a readjustment because sampling_seconds > readjust_window
+    # This will trigger a readjustment because duration >= readjust_window
+    simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 0.08)
     expect(sampler._native_probability).to eq(0)
 
     # Since that initial readjustment set probability to 0, all events in the next window will be ignored but
@@ -215,9 +218,9 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     #
     # Question is: how long do we have to wait for probing samples? Intuitively, we need to build enough budget over
     # time for us to be able to take that probing hit assuming things remain the same. Each adjustment window
-    # with no sampling activity earns us 0.02 seconds of budget. Therefore we need 100 of these to go by before
+    # with no sampling activity earns us 0.02 seconds of budget. Therefore we need 4 of these to go by before
     # we see the next probing sample.
-    stats = simulate_load(duration_seconds: 99, events_per_second: 4, sampling_seconds: 2)
+    stats = simulate_load(duration_seconds: 3, events_per_second: 4, sampling_seconds: 2)
     expect(stats[:num_samples]).to eq(0)
     stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 2)
     expect(stats[:num_samples]).to eq(1)
