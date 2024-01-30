@@ -13,12 +13,8 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
 
   before do
     if Gem::Version.new(ActiveRecord::VERSION::STRING) < Gem::Version.new('4.2')
-      skip "ActiveRecord instantiation events were added in Rails 4.2"
+      skip 'ActiveRecord instantiation events were added in Rails 4.2'
     end
-  end
-
-  before do
-    # Create the article to be retrieved in the tests.
     Article.create!(title: 'test')
 
     # Reset options (that might linger from other tests)
