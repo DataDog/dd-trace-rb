@@ -11,17 +11,28 @@ module Datadog
           include Contrib::Patcher
 
           # Patch for redis instance (with redis < 5)
-          module InstancePatch
+          module DatadogPinPatch
             def self.included(base)
               base.prepend(InstanceMethods)
             end
 
             # Instance method patch for redis instance
             module InstanceMethods
-              # we can't assume redis object is initialized after datadog is configured
               def datadog_pin=(pin)
-                send(Integration.redis_client_method).instance_variable_set(:@redis_instance, self)
-                @datadog_pin = pin
+                pin.onto(datadog_target)
+              end
+
+              def datadog_target
+                # For `redis-rb` 4.x
+                return _client if respond_to?(:_client)
+                # For `redis-rb` 3.x
+                return client  if respond_to?(:client)
+
+                Datadog.logger.warn
+                  'Fail to apply configuration on redis client instance with `Datadog.configure_onto(redis)`.'
+
+                # Null object instead of raising error
+                self
               end
             end
           end
@@ -41,20 +52,6 @@ module Datadog
                   "  `Redis.new(..., custom: { datadog: { service_name: 'my-service' } })`.\n\n" \
                   'See: https://github.com/DataDog/dd-trace-rb/blob/master/docs/GettingStarted.md#redis'
               end
-            end
-          end
-
-          # Patch for redis client
-          module ClientPatch
-            def self.included(base)
-              base.prepend(InstanceMethods)
-            end
-
-            # Instance method patch for redis client
-            module InstanceMethods
-              private
-
-              attr_reader :redis_instance
             end
           end
 
@@ -79,8 +76,7 @@ module Datadog
               if Integration.redis_version < Gem::Version.new('5.0.0')
                 require_relative 'instrumentation'
 
-                ::Redis.include(InstancePatch)
-                ::Redis::Client.include(ClientPatch)
+                ::Redis.include(DatadogPinPatch)
                 ::Redis::Client.include(Instrumentation)
               else # warn about non-supported configure_onto usage
                 ::Redis.include(NotSupportedNoticePatch)

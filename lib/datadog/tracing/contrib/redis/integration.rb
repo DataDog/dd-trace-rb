@@ -60,10 +60,6 @@ module Datadog
             !!(redis_client_version && redis_client_version >= REDISCLIENT_MINIMUM_VERSION)
           end
 
-          def self.redis_client_method
-            redis_version >= Gem::Version.new('4.0') ? :_client : :client
-          end
-
           def new_configuration
             Configuration::Settings.new
           end
