@@ -316,6 +316,7 @@ static VALUE _native_reset(VALUE self, VALUE now_ns) {
 
 static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_overhead, VALUE now_ns) {
   ENFORCE_TYPE(target_overhead, T_FLOAT);
+  ENFORCE_TYPE(now_ns, T_FIXNUM);
 
   sampler_state *state;
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
