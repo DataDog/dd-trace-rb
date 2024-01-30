@@ -73,7 +73,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
       end
 
       context 'with a custom configuration' do
-        context 'with the maraka gem' do
+        context 'with the makara gem' do
           before do
             if PlatformHelpers.jruby?
               skip("JRuby doesn't support ObjectSpace._id2ref, which is required for makara connection lookup.")

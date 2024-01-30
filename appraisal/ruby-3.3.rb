@@ -41,6 +41,15 @@ appraise 'rails61-semantic-logger' do
   gem 'net-smtp'
 end
 
+appraise 'rails61-trilogy' do
+  gem 'rails', '~> 6.1.0'
+  gem 'trilogy'
+  gem 'activerecord-trilogy-adapter'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
 appraise 'resque2-redis3' do
   gem 'redis', '< 4.0'
   gem 'resque', '>= 2.0'
@@ -88,6 +97,7 @@ appraise 'relational_db' do
   gem 'pg', platform: :ruby
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'trilogy'
 end
 
 appraise 'activesupport' do
@@ -116,8 +126,18 @@ appraise 'contrib' do
   gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
+end
 
-  gem 'racc' # Remove this once graphql resolves issue for ruby 3.3 preview. https://github.com/rmosolgo/graphql-ruby/issues/4650
+[
+  '2.2',
+  '2.1',
+  '2.0',
+  '1.13',
+  '1.12',
+].each do |v|
+  appraise "graphql-#{v}" do
+    gem 'graphql', "~> #{v}.0"
+  end
 end
 
 [

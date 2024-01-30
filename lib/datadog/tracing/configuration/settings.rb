@@ -22,10 +22,11 @@ module Datadog
               # @configure_with {Datadog::Tracing}
               # @deprecated Use [Trace Retention and Ingestion](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/)
               #   controls.
-              # @public_api
+              # @!visibility private
               settings :analytics do
                 # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
                 # @return [Boolean,nil]
+                # @!visibility private
                 option :enabled do |o|
                   o.type :bool, nilable: true
                   o.env Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED
