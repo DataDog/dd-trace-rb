@@ -47,13 +47,14 @@ module Datadog
           #
           # This method modifies the `span` if it matches the provided matcher.
           #
+          # @param [Datadog::Tracing::TraceOperation] trace_op trace for the span to be sampled
           # @param [Datadog::Tracing::SpanOperation] span_op span to be sampled
           # @return [:kept,:rejected] should this span be sampled?
           # @return [:not_matched] span did not satisfy the matcher, no changes are made to the span
-          def sample!(span_op)
+          def sample!(trace_op, span_op)
             return :not_matched unless @matcher.match?(span_op)
 
-            if @sampler.sample?(span_op) && @rate_limiter.allow?(1)
+            if @rate_limiter.allow?(1) && @sampler.sample!(trace_op)
               span_op.set_metric(Span::Ext::TAG_MECHANISM, Sampling::Ext::Mechanism::SPAN_SAMPLING_RATE)
               span_op.set_metric(Span::Ext::TAG_RULE_RATE, @sample_rate)
               span_op.set_metric(Span::Ext::TAG_MAX_PER_SECOND, @rate_limit)

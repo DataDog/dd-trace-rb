@@ -54,7 +54,7 @@ module Datadog
 
             # Applies the first matching rule
             @rules.each do |rule|
-              decision = rule.sample!(span_op)
+              decision = rule.sample!(trace_op, span_op)
 
               next if decision == :not_matched # Iterate until we find a matching decision
 

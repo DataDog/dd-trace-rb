@@ -3,19 +3,7 @@ module Datadog
     module Sampling
       # Interface for client-side trace sampling.
       # @abstract
-      # @public_api
       class Sampler
-        # Returns `true` if the provided trace should be kept.
-        # Otherwise, `false`.
-        #
-        # This method *must not* modify the `trace`.
-        #
-        # @param [Datadog::Tracing::TraceOperation] trace
-        # @return [Boolean] should this trace be kept?
-        def sample?(trace)
-          raise NotImplementedError, 'Samplers must implement the #sample? method'
-        end
-
         # Returns `true` if the provided trace should be kept.
         # Otherwise, `false`.
         #
