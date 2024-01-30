@@ -982,7 +982,11 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
   rb_trace_arg_t *data = rb_tracearg_from_tracepoint(tracepoint_data);
   VALUE new_object = rb_tracearg_object(data);
 
-  unsigned long allocations_since_last_sample = discrete_dynamic_sampler_events_since_last_sample(&state->allocation_sampler);
+  unsigned long allocations_since_last_sample = state->dynamic_sampling_rate_enabled ?
+    // if we're doing dynamic sampling, ask the sampler how many events since last sample
+    discrete_dynamic_sampler_events_since_last_sample(&state->allocation_sampler) :
+    // if we aren't, then we're sampling every event
+    1;
   // TODO: Signal in the profile that clamping happened?
   unsigned int weight = allocations_since_last_sample > MAX_ALLOC_WEIGHT ? MAX_ALLOC_WEIGHT : (unsigned int) allocations_since_last_sample;
   thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);

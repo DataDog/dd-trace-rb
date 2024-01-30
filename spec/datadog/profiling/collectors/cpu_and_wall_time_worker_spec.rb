@@ -442,9 +442,13 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
     context 'when allocation profiling is enabled' do
       let(:allocation_profiling_enabled) { true }
       let(:test_num_allocated_object) { 123 }
+      # Explicitly disable dynamic sampling in these tests so we can deterministically verify
+      # sample counts.
+      let(:options) { { dynamic_sampling_rate_enabled: false } }
 
       before do
         allow(Datadog.logger).to receive(:warn)
+        expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
 
       it 'records allocated objects' do
@@ -551,9 +555,13 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       let(:allocation_profiling_enabled) { true }
       let(:heap_profiling_enabled) { true }
       let(:test_num_allocated_object) { 123 }
+      # Explicitly disable dynamic sampling in these tests so we can deterministically verify
+      # sample counts.
+      let(:options) { { dynamic_sampling_rate_enabled: false } }
 
       before do
         allow(Datadog.logger).to receive(:warn)
+        expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
 
       it 'records live heap objects' do
