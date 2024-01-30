@@ -1666,7 +1666,7 @@ customer_cache.get(...)
 invoice_cache.get(...)
 ```
 
-With standalone `RedisClient`
+With a standalone `RedisClient`:
 
 ```ruby
 require "redis-client"
