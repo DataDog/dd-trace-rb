@@ -29,7 +29,7 @@ module Datadog
                 return client  if respond_to?(:client)
 
                 Datadog.logger.warn
-                  'Fail to apply configuration on redis client instance with `Datadog.configure_onto(redis)`.'
+                'Fail to apply configuration on redis client instance with `Datadog.configure_onto(redis)`.'
 
                 # Null object instead of raising error
                 self
