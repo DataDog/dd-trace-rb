@@ -79,8 +79,8 @@ module Datadog
               value: parsed_http_url&.hostname
             ),
             DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST} environment variable",
-              value: ENV[Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST]
+              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST} environment variable",
+              value: ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST]
             )
           )
         end

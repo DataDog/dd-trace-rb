@@ -49,7 +49,7 @@ module Datadog
         end
 
         def default_hostname
-          ENV.fetch(Configuration::Ext::Transport::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
+          ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
         end
 
         def default_port

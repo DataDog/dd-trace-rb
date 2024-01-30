@@ -14,10 +14,6 @@ module Datadog
           ENV_DEFAULT_PORT: "DD_METRIC_AGENT_PORT"
         end
 
-        module Transport
-          ENV_DEFAULT_HOST: "DD_AGENT_HOST"
-        end
-
         module Agent
           ENV_DEFAULT_PORT: 'DD_TRACE_AGENT_PORT'
           ENV_DEFAULT_URL: 'DD_TRACE_AGENT_URL'
