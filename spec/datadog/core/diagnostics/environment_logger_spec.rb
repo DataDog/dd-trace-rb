@@ -194,7 +194,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with health metrics enabled' do
-        before { expect(Datadog.configuration.diagnostics.health_metrics).to receive(:enabled).and_return(true) }
+        before { expect(Datadog.configuration.health_metrics).to receive(:enabled).and_return(true) }
 
         it { is_expected.to include health_metrics_enabled: true }
       end

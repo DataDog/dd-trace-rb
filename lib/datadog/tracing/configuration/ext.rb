@@ -91,7 +91,6 @@ module Datadog
         # @public_api
         module ClientIp
           ENV_ENABLED = 'DD_TRACE_CLIENT_IP_ENABLED'
-          ENV_DISABLED = 'DD_TRACE_CLIENT_IP_HEADER_DISABLED' # TODO: deprecated, remove later
           ENV_HEADER_NAME = 'DD_TRACE_CLIENT_IP_HEADER'
         end
       end

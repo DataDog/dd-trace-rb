@@ -13,7 +13,6 @@ services:
       - postgres
       - presto
       - redis
-      - redis_old
       - testagent
     env_file: ./.env
     environment: &common-environment
@@ -31,8 +30,6 @@ services:
       TEST_PRESTO_HOST: presto
       TEST_PRESTO_PORT: 8080
       TEST_REDIS_HOST: redis
-      TEST_REDIS_OLD_HOST: redis_old
-      TEST_REDIS_OLD_PORT: 6379
       DDTRACE_CI: 'true'
     stdin_open: true
     tty: true
@@ -54,7 +51,6 @@ services:
       - postgres
       - presto
       - redis
-      - redis_old
       - testagent
     env_file: ./.env
     environment:
@@ -80,7 +76,6 @@ services:
       - postgres
       - presto
       - redis
-      - redis_old
       - testagent
     env_file: ./.env
     environment:
@@ -106,7 +101,6 @@ services:
       - postgres
       - presto
       - redis
-      - redis_old
       - testagent
     env_file: ./.env
     environment: &common-environment-3x
@@ -122,8 +116,6 @@ services:
       TEST_OPENSEARCH_PORT: 9200
       TEST_POSTGRES_HOST: postgres
       TEST_REDIS_HOST: redis
-      TEST_REDIS_OLD_HOST: redis_old
-      TEST_REDIS_OLD_PORT: 6379
       DDTRACE_CI: 'true'
     stdin_open: true
     tty: true
@@ -145,7 +137,6 @@ services:
       - postgres
       - presto
       - redis
-      - redis_old
       - testagent
     env_file: ./.env
     environment:
@@ -171,7 +162,6 @@ services:
       - postgres
       - presto
       - redis
-      - redis_old
       - testagent
     env_file: ./.env
     environment:
@@ -197,7 +187,6 @@ services:
       - postgres
       - presto
       - redis
-      - redis_old
     env_file: ./.env
     environment:
       <<: *common-environment-3x
@@ -223,7 +212,6 @@ services:
       - postgres
       - presto
       - redis
-      - redis_old
       - testagent
     env_file: ./.env
     environment:
@@ -248,7 +236,6 @@ services:
       - postgres
       - presto
       - redis
-      - redis_old
       - testagent
     env_file: ./.env
     environment:
@@ -273,7 +260,6 @@ services:
       - postgres
       - presto
       - redis
-      - redis_old
       - testagent
     env_file: ./.env
     environment:
@@ -394,13 +380,6 @@ services:
       - "6379"
     ports:
       - "127.0.0.1:${TEST_REDIS_PORT}:6379"
-  # `qless` is still using this older version of redis
-  redis_old:
-    image: redis:3.0
-    expose:
-      - "6379"
-    ports:
-      - "127.0.0.1:${TEST_REDIS_OLD_PORT}:6379"
 volumes:
   bundle-2.5:
   bundle-2.6:

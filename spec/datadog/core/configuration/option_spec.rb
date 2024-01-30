@@ -255,26 +255,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
           it 'raise exception' do
             expect { set }.to raise_exception(ArgumentError)
           end
-
-          context 'set DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' do
-            ['1', 'true'].each do |value|
-              context "with #{value}" do
-                it 'does not raise exception' do
-                  ClimateControl.modify('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' => '1') do
-                    expect { set }.to_not raise_exception
-                  end
-                end
-              end
-            end
-
-            context 'with something else' do
-              it 'does not raise exception' do
-                ClimateControl.modify('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' => 'esle') do
-                  expect { set }.to raise_exception(ArgumentError)
-                end
-              end
-            end
-          end
         end
 
         context 'Integer' do
@@ -286,14 +266,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
             it 'does not raise exception' do
               expect { set }.not_to raise_exception
             end
-
-            context 'allow floats too' do
-              let(:value) { 10.0 }
-
-              it 'does not raise exception' do
-                expect { set }.not_to raise_exception
-              end
-            end
           end
 
           context 'invalid value' do
@@ -301,6 +273,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
             it 'raise exception' do
               expect { set }.to raise_exception(ArgumentError)
+            end
+
+            context 'that is a float' do
+              let(:value) { 10.1 }
+
+              it 'raises exception' do
+                expect { set }.to raise_exception(ArgumentError)
+              end
             end
           end
         end
@@ -315,8 +295,16 @@ RSpec.describe Datadog::Core::Configuration::Option do
               expect { set }.not_to raise_exception
             end
 
-            context 'allow integers too' do
+            context 'that is an integer' do
               let(:value) { 10 }
+
+              it 'does not raise exception' do
+                expect { set }.not_to raise_exception
+              end
+            end
+
+            context 'that is a rational' do
+              let(:value) { 1/3r }
 
               it 'does not raise exception' do
                 expect { set }.not_to raise_exception
@@ -631,6 +619,27 @@ RSpec.describe Datadog::Core::Configuration::Option do
           it 'coerce value' do
             expect(option.get).to eq 1234
           end
+
+          context 'with an octal number' do
+            let(:env_value) { '010' }
+            it 'parses in base 10' do
+              expect(option.get).to eq 10
+            end
+          end
+
+          context 'with a float' do
+            let(:env_value) { '10.1' }
+            it 'errors' do
+              expect { option.get }.to raise_exception(ArgumentError)
+            end
+          end
+
+          context 'with not a number' do
+            let(:env_value) { 'not a number' }
+            it 'errors' do
+              expect { option.get }.to raise_exception(ArgumentError)
+            end
+          end
         end
 
         context ':float' do
@@ -639,6 +648,13 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
           it 'coerce value' do
             expect(option.get).to eq 12.34
+          end
+
+          context 'with not a number' do
+            let(:env_value) { 'not a number' }
+            it 'errors' do
+              expect { option.get }.to raise_exception(ArgumentError)
+            end
           end
         end
 
@@ -695,7 +711,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           let(:env_value) { '1' }
 
           it 'raise exception' do
-            expect { option.get }.to raise_exception(ArgumentError)
+            expect { option.get }.to raise_exception(Datadog::Core::Configuration::Option::InvalidDefinitionError)
           end
         end
       end

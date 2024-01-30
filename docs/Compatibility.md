@@ -77,7 +77,7 @@ For a list of available integrations, and their configuration options, refer to 
 | Excon                      | `excon`                    | `>= 0.50`                | `>= 0.50`                 | [Link][16]                          | [Link](https://github.com/excon/excon)                                       |
 | Faraday                    | `faraday`                  | `>= 0.14`                | `>= 0.14`                 | [Link][17]                          | [Link](https://github.com/lostisland/faraday)                                |
 | Grape                      | `grape`                    | `>= 1.0`                 | `>= 1.0`                  | [Link][18]                          | [Link](https://github.com/ruby-grape/grape)                                  |
-| GraphQL                    | `graphql`                  | `>= 1.7.9`               | `>= 1.7.9`                | [Link][19]                          | [Link](https://github.com/rmosolgo/graphql-ruby)                             |
+| GraphQL                    | `graphql`                  | `>= 2.2.6`, `2.1.11+`,`2.0.28+`, `1.13.21+`| `>= 2.2.6`, `2.1.11+`,`2.0.28+`, `1.13.21+`| [Link][19]                          | [Link](https://github.com/rmosolgo/graphql-ruby)                             |
 | gRPC                       | `grpc`                     | `>= 1.7`                 | *gem not available*       | [Link][20]                          | [Link](https://github.com/grpc/grpc/tree/master/src/rubyc)                   |
 | hanami                     | `hanami`                   | `>= 1`, `< 2`            | `>= 1`, `< 2`             | [Link][21]                          | [Link](https://github.com/hanami/hanami)                                     |
 | http.rb                    | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | [Link][22]                          | [Link](https://github.com/httprb/http)                                       |
@@ -91,7 +91,6 @@ For a list of available integrations, and their configuration options, refer to 
 | OpenSearch                 | `opensearch-ruby`          | `>= 1.0.0`               | `>= 1.0.0`                | [Link][29]                          | [Link](https://github.com/opensearch-project/opensearch-ruby)                |
 | Postgres                   | `pg`                       | `>= 0.18.4`              | *gem not available*       | [Link][30]                          | [Link](https://github.com/ged/ruby-pg)                                       |
 | Presto                     | `presto`                   | `>= 0.5.14`              | `>= 0.5.14`               | [Link][31]                          | [Link](https://github.com/treasure-data/presto-client-ruby)                  |
-| Qless                      | `qless`                    | `>= 0.10.0`              | `>= 0.10.0`               | [Link][32]                          | [Link](https://github.com/seomoz/qless)                                      |
 | Que                        | `que`                      | `>= 1.0.0.beta2`         | `>= 1.0.0.beta2`          | [Link][33]                          | [Link](https://github.com/que-rb/que)                                        |
 | Racecar                    | `racecar`                  | `>= 0.3.5`               | `>= 0.3.5`                | [Link][34]                          | [Link](https://github.com/zendesk/racecar)                                   |
 | Rack                       | `rack`                     | `>= 1.1`                 | `>= 1.1`                  | [Link][35]                          | [Link](https://github.com/rack/rack)                                         |
@@ -141,7 +140,6 @@ For a list of available integrations, and their configuration options, refer to 
 [29]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#opensearch
 [30]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#postgres
 [31]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#presto
-[32]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#qless
 [33]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#que
 [34]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#racecar
 [35]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#rack

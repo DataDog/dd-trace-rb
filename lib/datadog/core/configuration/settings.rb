@@ -131,29 +131,6 @@ module Datadog
               require 'pp' if enabled
             end
           end
-          # Internal {Datadog::Statsd} metrics collection.
-          #
-          # @public_api
-          settings :health_metrics do
-            # Enable health metrics collection.
-            #
-            # @default `DD_HEALTH_METRICS_ENABLED` environment variable, otherwise `false`
-            # @return [Boolean]
-            option :enabled do |o|
-              o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED
-              o.default false
-              o.type :bool
-            end
-
-            # {Datadog::Statsd} instance to collect health metrics.
-            #
-            # If `nil`, health metrics creates a new {Datadog::Statsd} client with default agent configuration.
-            #
-            # @default `nil`
-            # @return [Datadog::Statsd,nil] a custom {Datadog::Statsd} instance
-            # @return [nil] an instance with default agent configuration will be lazily created
-            option :statsd
-          end
 
           # Tracer startup debug log statement configuration.
           # @public_api
@@ -181,6 +158,30 @@ module Datadog
           o.type :string, nilable: true
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env Core::Environment::Ext::ENV_ENVIRONMENT
+        end
+
+        # Internal {Datadog::Statsd} metrics collection.
+        #
+        # @public_api
+        settings :health_metrics do
+          # Enable health metrics collection.
+          #
+          # @default `DD_HEALTH_METRICS_ENABLED` environment variable, otherwise `false`
+          # @return [Boolean]
+          option :enabled do |o|
+            o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED
+            o.default false
+            o.type :bool
+          end
+
+          # {Datadog::Statsd} instance to collect health metrics.
+          #
+          # If `nil`, health metrics creates a new {Datadog::Statsd} client with default agent configuration.
+          #
+          # @default `nil`
+          # @return [Datadog::Statsd,nil] a custom {Datadog::Statsd} instance
+          # @return [nil] an instance with default agent configuration will be lazily created
+          option :statsd
         end
 
         # Internal `Datadog.logger` configuration.

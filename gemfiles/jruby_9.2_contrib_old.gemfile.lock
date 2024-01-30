@@ -12,6 +12,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.19.0)
+      base64
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 5.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -25,6 +26,7 @@ GEM
       bundler
       rake
       thor (>= 0.14.0)
+    base64 (0.2.0)
     benchmark-ips (2.10.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -46,7 +48,6 @@ GEM
     faraday_middleware (0.12.2)
       faraday (>= 0.7.4, < 1.0)
     ffi (1.15.5-java)
-    graphql (1.12.24)
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
@@ -131,7 +132,6 @@ DEPENDENCIES
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   faraday (= 0.17)
-  graphql (~> 1.12.0, < 2.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)

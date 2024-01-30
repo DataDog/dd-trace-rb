@@ -10,7 +10,7 @@ module Datadog
       # Provides extraction and injection of distributed trace data.
       class Propagation
         # DEV: This class should receive the value for
-        # DEV: `Datadog.configuration.tracing.distributed_tracing.propagation_inject_style`
+        # DEV: `Datadog.configuration.tracing.propagation_style_inject`
         # DEV: at initialization time, instead of constantly reading global values.
         # DEV: This means this class should be reconfigured on `Datadog.configure` calls, thus
         # DEV: singleton instances should not used as they will become stale.
@@ -20,10 +20,10 @@ module Datadog
           @propagation_styles = propagation_styles
           # We need to make sure propagation_style option is evaluated.
           # Our options are lazy evaluated and it happens that propagation_style has the after_set callback
-          # that affect Datadog.configuration.tracing.distributed_tracing.propagation_inject_style and
-          # Datadog.configuration.tracing.distributed_tracing.propagation_extract_style
+          # that affect Datadog.configuration.tracing.propagation_style_inject and
+          # Datadog.configuration.tracing.propagation_style_extract
           # By calling it here, we make sure if the customers has set any value either via code or ENV variable is applied.
-          ::Datadog.configuration.tracing.distributed_tracing.propagation_style
+          ::Datadog.configuration.tracing.propagation_style
         end
 
         # inject! populates the env with span ID, trace ID and sampling priority
@@ -53,7 +53,7 @@ module Datadog
           result = false
 
           # Inject all configured propagation styles
-          ::Datadog.configuration.tracing.distributed_tracing.propagation_inject_style.each do |style|
+          ::Datadog.configuration.tracing.propagation_style_inject.each do |style|
             propagator = @propagation_styles[style]
             begin
               if propagator
@@ -83,9 +83,9 @@ module Datadog
 
           extracted_trace_digest = nil
 
-          config = ::Datadog.configuration.tracing.distributed_tracing
+          config = ::Datadog.configuration.tracing
 
-          config.propagation_extract_style.each do |style|
+          config.propagation_style_extract.each do |style|
             propagator = @propagation_styles[style]
             next if propagator.nil?
 

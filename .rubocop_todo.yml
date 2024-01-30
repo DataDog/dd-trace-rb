@@ -16,7 +16,6 @@ Lint/MissingCopEnableDirective:
     - 'spec/datadog/tracing/contrib/mongodb/client_spec.rb'
     - 'spec/datadog/tracing/contrib/patchable_spec.rb'
     - 'spec/datadog/tracing/contrib/presto/client_spec.rb'
-    - 'spec/datadog/tracing/contrib/qless/support/job.rb'
     - 'spec/datadog/tracing/contrib/rails/support/middleware.rb'
     - 'spec/support/container_helpers.rb'
 
