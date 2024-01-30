@@ -131,7 +131,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
         # that may happen inbetween. If that weren't the case, after we go down to a very low event
         # baseline, entire minutes could pass before we even decide to sample again and realize that
         # we've been sampling nothing for a while.
-        simulate_load(duration_seconds: 5, events_per_second: 100000, sampling_seconds: 0.1)
+        simulate_load(duration_seconds: 5, events_per_second: 10000, sampling_seconds: 0.01)
         p1 = sampler._native_probability
         expect(p1).to be < 0.1 # %
 
@@ -140,16 +140,21 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
         # trigger this readjustment. We expect that continuous adjustment slowly brings probabilities
         # up and eventually we can sample again within some reasonable amount of settings (15 secs
         last_p = p1
-        saw_sample = 10.times do
-          stats = simulate_load(duration_seconds: 2, events_per_second: 1, sampling_seconds: 0.1)
+        samples = 0
+        5.times do
+          stats = simulate_load(duration_seconds: 2, events_per_second: 1, sampling_seconds: 0.01)
           current_p = sampler._native_probability
           expect(current_p).to be > last_p
 
           last_p = current_p
 
-          break true if stats[:num_samples] > 0
+          samples += stats[:num_samples]
         end
-        expect(saw_sample).to be(true)
+        expect(samples).to be_between(1, 3)
+
+        # After 10 seconds of 1 event/sec at 0.01 sampling time (fully inside our overhead target),
+        # we should be back to a relatively high probability
+        expect(sampler._native_probability).to be > 30 # %
       end
     end
   end
