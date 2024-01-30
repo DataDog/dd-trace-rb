@@ -16,7 +16,9 @@ module Datadog
           def find_routes(*args)
             result = super
             integration_route = result.first[2].path.spec.to_s.gsub(/\(\.:format\)/, '') if result.any?
-            Thread.current[:datadog_http_routing] << [:rails, args.first.env['SCRIPT_NAME'], integration_route]
+            if Thread.current.key?(:datadog_http_routing) && Thread.current[:datadog_http_routing].is_a?(Array)
+              Thread.current[:datadog_http_routing] << [:rails, args.first.env['SCRIPT_NAME'], integration_route]
+            end
             result
           end
         end

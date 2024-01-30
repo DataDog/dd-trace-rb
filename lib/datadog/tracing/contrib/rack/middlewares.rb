@@ -68,6 +68,7 @@ module Datadog
           # rubocop:disable Metrics/CyclomaticComplexity
           # rubocop:disable Metrics/PerceivedComplexity
           # rubocop:disable Metrics/MethodLength
+          # rubocop:disable Metrics/AbcSize
           def call(env)
             # Find out if this is rack within rack
             previous_request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
@@ -121,6 +122,7 @@ module Datadog
               end
 
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route) if last_route
+              Thread.current[:datadog_http_routing] = []
             end
 
             [status, headers, response]
@@ -158,7 +160,6 @@ module Datadog
           end
           # rubocop:enable Lint/RescueException
 
-          # rubocop:disable Metrics/AbcSize
           def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
             request_header_collection = Header::RequestHeaderCollection.new(env)
 
