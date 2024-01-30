@@ -11,6 +11,7 @@ module Datadog
           # Custom settings for the Qless integration
           # @public_api
           class Settings < Contrib::Configuration::Settings
+            # @!visibility private
             option :analytics_enabled do |o|
               o.type :bool
               o.env Ext::ENV_ANALYTICS_ENABLED
