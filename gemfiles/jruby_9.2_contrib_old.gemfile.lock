@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.19.0)
-      datadog-ci (~> 0.6.0)
+      datadog-ci (~> 0.7.0)
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 5.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -38,7 +38,7 @@ GEM
       rexml
     cri (2.15.11)
     dalli (2.7.11)
-    datadog-ci (0.6.0)
+    datadog-ci (0.7.0)
       msgpack
     debase-ruby_core_source (3.3.1)
     diff-lcs (1.5.0)
@@ -49,7 +49,6 @@ GEM
     faraday_middleware (0.12.2)
       faraday (>= 0.7.4, < 1.0)
     ffi (1.15.5-java)
-    graphql (1.12.24)
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
@@ -134,7 +133,6 @@ DEPENDENCIES
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   faraday (= 0.17)
-  graphql (~> 1.12.0, < 2.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
