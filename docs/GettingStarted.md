@@ -1666,6 +1666,21 @@ customer_cache.get(...)
 invoice_cache.get(...)
 ```
 
+With standalone `RedisClient`
+
+```ruby
+require "redis-client"
+require "ddtrace"
+
+redis = RedisClient.config(custom: { datadog: { service_name: "my-custom-redis" } }).new_client
+
+Datadog.configure do |c|
+  c.tracing.instrument :redis # Enabling integration instrumentation is still required
+end
+
+redis.call('PING')
+```
+
 With Redis version < 5:
 
 ```ruby
