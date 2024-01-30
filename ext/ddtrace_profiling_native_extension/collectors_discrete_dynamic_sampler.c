@@ -25,7 +25,7 @@ static void _discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, l
     .debug_name = debug_name,
     .target_overhead = target_overhead,
     // Act as if a reset is a readjustment (it kinda is!) and wait for a full adjustment window
-    // to compute stats. Otherwise, we'd readjust on the next even that comes and thus be operating
+    // to compute stats. Otherwise, we'd readjust on the next event that comes and thus be operating
     // with very incomplete information
     .last_readjust_time_ns = now_ns,
     // This fake readjustment will use a hardcoded sampling interval
