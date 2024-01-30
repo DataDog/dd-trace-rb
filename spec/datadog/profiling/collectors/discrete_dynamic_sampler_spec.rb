@@ -50,7 +50,6 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
   end
 
   context 'when under a constant' do
-    let(:events_per_second) { nil }
 
     let(:stats) do
       # Warm things up a little to overcome the hardcoded starting parameters
