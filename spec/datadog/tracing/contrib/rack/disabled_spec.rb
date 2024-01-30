@@ -15,6 +15,7 @@ RSpec.describe 'Rack integration tests' do
   end
 
   after do
+    Datadog.registry[:rack].reset_configuration!
     Datadog.configuration.reset!
   end
 
