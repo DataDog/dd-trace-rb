@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Remote
+      module Tie
+        module Tracing
+          def self.tag: (Boot? boot, Datadog::Tracing::SpanOperation? span) -> void
+        end
+      end
+    end
+  end
+end

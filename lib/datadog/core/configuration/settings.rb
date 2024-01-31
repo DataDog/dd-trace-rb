@@ -747,6 +747,19 @@ module Datadog
             o.default 5.0
           end
 
+          # Tune remote configuration boot timeout.
+          # Early operations such as requests are blocked until RC is ready. In
+          # order to not block the application indefinitely a timeout is
+          # enforced allowing requests to proceed with the local configuration.
+          #
+          # @default `DD_REMOTE_CONFIG_BOOT_TIMEOUT` environment variable, otherwise `1.0` seconds.
+          # @return [Float]
+          option :boot_timeout_seconds do |o|
+            o.env Core::Remote::Ext::ENV_BOOT_TIMEOUT_SECONDS
+            o.type :float
+            o.default 1.0
+          end
+
           # Declare service name to bind to remote configuration. Use when
           # DD_SERVICE does not match the correct integration for which remote
           # configuration applies.
