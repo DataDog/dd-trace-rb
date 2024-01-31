@@ -1,3 +1,5 @@
+# OpenTelemetry
+
 **ATTENTION**:
 
 ***OpenTelemetry support is currently "experimental". It may be subject to breaking changes between minor versions, and is not yet recommended for use in production or other sensitive environments.***
@@ -10,7 +12,7 @@ If you are interested in using this feature experimentally, please contact the d
 | ------------- | ---------------------------------------------------- | --------------- | ------------------- |
 | OpenTelemetry | https://github.com/open-telemetry/opentelemetry-ruby | 1.9.0+          | >= 1.1.0            |
 
-#### Configuring OpenTelemetry
+## Configuring OpenTelemetry
 
 1. Add the `ddtrace` gem to your Gemfile:
 
@@ -48,7 +50,7 @@ If you are interested in using this feature experimentally, please contact the d
 
    [Integration instrumentations](#integration-instrumentation) and OpenTelemetry [Automatic instrumentations](https://opentelemetry.io/docs/instrumentation/ruby/automatic/) are also supported.
 
-##### Limitations
+## Limitations
 
 There are a few limitations to OpenTelemetry Tracing when the APM integration is activated:
 
@@ -60,7 +62,7 @@ There are a few limitations to OpenTelemetry Tracing when the APM integration is
 | `OpenTelemetry.logger`                                                                                     | Special     | `OpenTelemetry.logger` is set to the same object as `Datadog.logger`.             | Configure through [Custom logging](#custom-logging). |   |
 | Trace/span [ID generators](https://opentelemetry.io/docs/reference/specification/trace/sdk/#id-generators) | Special     | ID generation is performed by `ddtrace`.                                          | N/A                                                  |   |
 
-##### Exporting OpenTelemetry-only traces
+## Exporting OpenTelemetry-only traces
 
 You can send OpenTelemetry traces directly to the Datadog agent (without `ddtrace`) by using [OTLP](https://open-telemetry.github.io/opentelemetry-ruby/opentelemetry-exporter-otlp/latest).
 Check out our documentation on [OTLP ingest in the Datadog Agent](https://docs.datadoghq.com/tracing/setup_overview/open_standards/#otlp-ingest-in-datadog-agent) for details.
