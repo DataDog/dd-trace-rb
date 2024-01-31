@@ -2,6 +2,8 @@
 
 require_relative '../../core/environment/identity'
 require_relative '../../core/environment/socket'
+require_relative '../../core/environment/git'
+require_relative '../../core/git/ext'
 require_relative '../../core/runtime/ext'
 require_relative '../metadata/ext'
 require_relative '../trace_segment'
@@ -13,6 +15,7 @@ module Datadog
       class TraceFormatter
         attr_reader \
           :root_span,
+          :first_span,
           :trace
 
         def self.format!(trace)
@@ -22,6 +25,9 @@ module Datadog
         def initialize(trace)
           @trace = trace
           @root_span = find_root_span(trace)
+          # source code integration uses the "first span in trace chunk" concept instead of root span
+          # see: https://github.com/DataDog/dd-trace-rb/pull/3424
+          @first_span = trace.spans.first
         end
 
         # Modifies a trace so suitable for transport
@@ -53,6 +59,11 @@ module Datadog
           tag_high_order_trace_id!
           tag_sampling_priority!
           tag_profiling_enabled!
+
+          return trace unless first_span
+
+          tag_git_repository_url!
+          tag_git_commit_sha!
 
           trace
         end
@@ -185,6 +196,18 @@ module Datadog
           )
         end
 
+        def tag_git_repository_url!
+          return if git_repository_url.nil?
+
+          first_span.set_tag(Core::Git::Ext::TAG_REPOSITORY_URL, git_repository_url)
+        end
+
+        def tag_git_commit_sha!
+          return if git_commit_sha.nil?
+
+          first_span.set_tag(Core::Git::Ext::TAG_COMMIT_SHA, git_commit_sha)
+        end
+
         private
 
         def partial?
@@ -202,6 +225,14 @@ module Datadog
 
           # when root span is not found, fall back to last span (partial flush)
           root_span || trace.spans.last
+        end
+
+        def git_repository_url
+          Core::Environment::Git.git_repository_url
+        end
+
+        def git_commit_sha
+          Core::Environment::Git.git_commit_sha
         end
       end
     end

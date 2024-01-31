@@ -4,6 +4,8 @@ module Datadog
       class TraceFormatter
         attr_reader root_span: untyped
 
+        attr_reader first_span: untyped
+
         attr_reader trace: untyped
 
         def self.format!: (untyped trace) -> untyped
@@ -40,11 +42,19 @@ module Datadog
 
         def tag_high_order_trace_id!: () -> (nil | untyped)
 
+        def tag_git_repository_url!: () -> (nil | untyped)
+
+        def tag_git_commit_sha!: () -> (nil | untyped)
+
         private
 
         def partial?: () -> untyped
 
         def find_root_span: (untyped trace) -> untyped
+
+        def git_repository_url: () -> (nil | untyped)
+
+        def git_commit_sha: () -> (nil | untyped)
       end
     end
   end

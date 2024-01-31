@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Utils
       module Url
-        def self?.filter_sensitive_info: (::String? url) -> ::String?
+        def self?.filter_basic_auth: (::String? url) -> ::String?
       end
     end
   end
