@@ -369,14 +369,16 @@ module Datadog
 
             # Can be used to configure the allocation sampling rate: a sample will be collected every x allocations.
             #
-            # The lower the value, the more accuracy in allocation and heap tracking but the bigger the overhead. In
-            # particular, a value of 1 will sample ALL allocations.
-            #
-            # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE` environment variable, otherwise `50`.
+            # This feature is now controlled via {:overhead_target_percentage}
             option :experimental_allocation_sample_rate do |o|
-              o.type :int
-              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE'
-              o.default 50
+              o.after_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.experimental_allocation_sample_rate setting has been deprecated for removal ' \
+                  'and no longer does anything. Please remove it from your Datadog.configure block. ' \
+                  'Allocation sample rate is now handled by a dynamic sampler which will adjust the sampling rate to ' \
+                  'keep to the configured `profiling.advanced.overhead_target_percentage`.'
+                )
+              end
             end
 
             # Can be used to configure the heap sampling rate: a heap sample will be collected for every x allocation
