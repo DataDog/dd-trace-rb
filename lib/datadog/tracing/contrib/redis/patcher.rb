@@ -10,38 +10,48 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          # Patch for redis instance
-          module InstancePatch
+          # Patch for redis instance (with redis < 5)
+          module DatadogPinPatch
             def self.included(base)
               base.prepend(InstanceMethods)
             end
 
             # Instance method patch for redis instance
             module InstanceMethods
-              # `options` could be frozen
-              def initialize(options = {})
-                super(options.merge(redis_instance: self))
+              def datadog_pin=(pin)
+                pin.onto(datadog_target)
+              end
+
+              def datadog_target
+                # For `redis-rb` 4.x
+                return _client if respond_to?(:_client)
+                # For `redis-rb` 3.x
+                return client if respond_to?(:client)
+
+                Datadog.logger.warn 'Fail to apply configuration on redis client instance with '  \
+                                                        '`Datadog.configure_onto(redis)`.'
+
+                # Null object instead of raising error
+                self
               end
             end
           end
 
-          # Patch for redis client
-          module ClientPatch
+          # Patch for redis instance (with redis >= 5)
+          module NotSupportedNoticePatch
             def self.included(base)
               base.prepend(InstanceMethods)
             end
 
-            # Instance method patch for redis client
+            # Instance method patch for redis instance
             module InstanceMethods
-              def initialize(options = {})
-                @redis_instance = options.delete(:redis_instance)
-
-                super(options)
+              def datadog_pin=(_pin)
+                Datadog.logger.warn \
+                  '`Datadog.configure_onto(redis)` is not supported on Redis 5+. To instrument '\
+                  "a redis instance with custom configuration, please initialize it with:\n"\
+                  "  `Redis.new(..., custom: { datadog: { service_name: 'my-service' } })`.\n\n" \
+                  'See: https://github.com/DataDog/dd-trace-rb/blob/master/docs/GettingStarted.md#redis'
               end
-
-              private
-
-              attr_reader :redis_instance
             end
           end
 
@@ -62,12 +72,15 @@ module Datadog
               ::RedisClient.register(TraceMiddleware)
             end
 
-            if Integration.redis_compatible? && Integration.redis_version < Gem::Version.new('5.0.0')
-              require_relative 'instrumentation'
+            if Integration.redis_compatible?
+              if Integration.redis_version < Gem::Version.new('5.0.0')
+                require_relative 'instrumentation'
 
-              ::Redis.include(InstancePatch)
-              ::Redis::Client.include(ClientPatch)
-              ::Redis::Client.include(Instrumentation)
+                ::Redis.include(DatadogPinPatch)
+                ::Redis::Client.include(Instrumentation)
+              else # warn about non-supported configure_onto usage
+                ::Redis.include(NotSupportedNoticePatch)
+              end
             end
           end
         end

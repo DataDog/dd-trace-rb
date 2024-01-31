@@ -28,7 +28,7 @@ module Datadog
             private
 
             def command_args?
-              pinned = Datadog.configuration_for(redis_instance, :command_args)
+              pinned = Datadog.configuration_for(self, :command_args)
 
               return pinned unless pinned.nil?
 
@@ -36,7 +36,7 @@ module Datadog
             end
 
             def service_name
-              Datadog.configuration_for(redis_instance, :service_name) ||
+              Datadog.configuration_for(self, :service_name) ||
                 datadog_configuration[:service_name]
             end
 

@@ -13,6 +13,10 @@ module Datadog
 
           def poll_interval_seconds=: (::Float) -> void
 
+          def boot_timeout_seconds: () -> ::Float
+
+          def boot_timeout_seconds=: (::Float) -> void
+
           def service: () -> ::String?
 
           def service=: (::String) -> void
