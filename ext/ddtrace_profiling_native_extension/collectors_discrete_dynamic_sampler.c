@@ -9,7 +9,6 @@
 #define BASE_SAMPLING_INTERVAL 50
 
 #define ADJUSTMENT_WINDOW_NS SECONDS_AS_NS(1)
-#define ADJUSTMENT_WINDOW_SAMPLES 100
 
 #define EMA_SMOOTHING_FACTOR 0.6
 #define EXP_MOVING_AVERAGE(last, avg, first) first ? last : (1-EMA_SMOOTHING_FACTOR) * avg + EMA_SMOOTHING_FACTOR * last
@@ -111,13 +110,8 @@ size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sample
 static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   long window_time_ns = sampler->last_readjust_time_ns == 0 ? ADJUSTMENT_WINDOW_NS : now - sampler->last_readjust_time_ns;
 
-  if (window_time_ns < ADJUSTMENT_WINDOW_NS && sampler->events_since_last_readjustment < ADJUSTMENT_WINDOW_SAMPLES) {
-    // not enough time or samples have passed to perform a readjustment
-    return;
-  }
-
-  if (window_time_ns == 0) {
-    // should not be possible given previous condition but lets protect against div by 0 below.
+  if (window_time_ns < ADJUSTMENT_WINDOW_NS) {
+    // not enough time has passed to perform a readjustment
     return;
   }
 
