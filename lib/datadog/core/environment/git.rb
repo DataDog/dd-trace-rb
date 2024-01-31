@@ -6,14 +6,14 @@ require_relative '../utils/url'
 module Datadog
   module Core
     module Environment
-      # Retrieves garbage collection statistics
+      # Retrieves git repository information from environment variables
       module Git
         module_function
 
         def git_repository_url
           return @git_repository_url if defined?(@git_repository_url)
 
-          @git_repository_url = Utils::Url.filter_sensitive_info(ENV[Datadog::Core::Git::Ext::ENV_REPOSITORY_URL])
+          @git_repository_url = Utils::Url.filter_basic_auth(ENV[Datadog::Core::Git::Ext::ENV_REPOSITORY_URL])
         end
 
         def git_commit_sha

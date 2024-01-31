@@ -3,10 +3,28 @@ require 'spec_helper'
 require 'datadog/core/environment/git'
 
 RSpec.describe Datadog::Core::Environment::Git do
+  def remove_cached_variables
+    if described_class.instance_variable_defined?(:@git_repository_url)
+      described_class.remove_instance_variable(:@git_repository_url)
+    end
+
+    if described_class.instance_variable_defined?(:@git_commit_sha)
+      described_class.remove_instance_variable(:@git_commit_sha)
+    end
+  end
+
   around do |example|
     ClimateControl.modify(env_key => env_value) do
       example.run
     end
+  end
+
+  before do
+    remove_cached_variables
+  end
+
+  after do
+    remove_cached_variables
   end
 
   describe '.git_repository_url' do

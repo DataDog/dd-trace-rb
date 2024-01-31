@@ -3,8 +3,8 @@ require 'spec_helper'
 require 'datadog/core/utils/url'
 
 RSpec.describe Datadog::Core::Utils::Url do
-  describe '.filter_sensitive_info' do
-    subject(:filtered_url) { described_class.filter_sensitive_info(url) }
+  describe '.filter_basic_auth' do
+    subject(:filtered_url) { described_class.filter_basic_auth(url) }
 
     context 'with https' do
       context 'with username and password' do
