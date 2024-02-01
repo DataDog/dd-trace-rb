@@ -7,7 +7,6 @@ module Datadog
   module Tracing
     module Sampling
       # {Datadog::Tracing::Sampling::RateSampler} is based on a sample rate.
-      # @public_api
       class RateSampler < Sampler
         KNUTH_FACTOR = 1111111111111111111
 
@@ -44,7 +43,7 @@ module Datadog
         end
 
         def sample!(trace)
-          sampled = trace.sampled = sample?(trace)
+          sampled = sample?(trace)
 
           return false unless sampled
 

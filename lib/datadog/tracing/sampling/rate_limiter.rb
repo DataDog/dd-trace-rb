@@ -6,7 +6,6 @@ module Datadog
   module Tracing
     module Sampling
       # Checks for rate limiting on a resource.
-      # @public_api
       class RateLimiter
         # Checks if resource of specified size can be
         # conforms with the current limit.
@@ -28,7 +27,6 @@ module Datadog
       # for rate limiting.
       #
       # @see https://en.wikipedia.org/wiki/Token_bucket Token bucket
-      # @public_api
       class TokenBucket < RateLimiter
         attr_reader :rate, :max_tokens
 
@@ -171,7 +169,6 @@ module Datadog
 
       # {Datadog::Tracing::Sampling::RateLimiter} that accepts all resources,
       # with no limits.
-      # @public_api
       class UnlimitedLimiter < RateLimiter
         # @return [Boolean] always +true+
         def allow?(_)

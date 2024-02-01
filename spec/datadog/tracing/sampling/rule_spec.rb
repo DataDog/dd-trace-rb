@@ -49,13 +49,13 @@ RSpec.describe Datadog::Tracing::Sampling::Rule do
     end
   end
 
-  describe '#sample?' do
-    subject(:sample?) { rule.sample?(span_op) }
+  describe '#sample!' do
+    subject(:sample!) { rule.sample!(span_op) }
 
     let(:sample) { double }
 
     before do
-      allow(sampler).to receive(:sample?).with(span_op).and_return(sample)
+      allow(sampler).to receive(:sample!).with(span_op).and_return(sample)
     end
 
     it { is_expected.to be(sample) }
