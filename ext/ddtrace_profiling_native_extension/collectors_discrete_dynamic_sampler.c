@@ -266,9 +266,8 @@ VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler)
     ID2SYM(rb_intern("events_since_last_readjustment")),  /* => */ ULONG2NUM(sampler->events_since_last_readjustment),
     ID2SYM(rb_intern("samples_since_last_readjustment")), /* => */ ULONG2NUM(sampler->samples_since_last_readjustment),
   };
-  size_t entries = VALUE_COUNT(arguments) / 2;
-  VALUE hash = rb_hash_new_capa(entries);
-  rb_hash_bulk_insert(entries * 2, arguments, hash);
+  VALUE hash = rb_hash_new();
+  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
   return hash;
 }
 
