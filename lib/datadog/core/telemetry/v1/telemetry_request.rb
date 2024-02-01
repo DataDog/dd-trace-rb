@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../utils/hash'
 
 module Datadog
@@ -8,14 +10,14 @@ module Datadog
         class TelemetryRequest
           using Core::Utils::Hash::Refinement
 
-          ERROR_NIL_API_VERSION_MESSAGE = ':api_version must not be nil'.freeze
-          ERROR_NIL_APPLICATION_MESSAGE = ':application must not be nil'.freeze
-          ERROR_NIL_HOST_MESSAGE = ':host must not be nil'.freeze
-          ERROR_NIL_PAYLOAD_MESSAGE = ':payload must not be nil'.freeze
-          ERROR_NIL_REQUEST_TYPE_MESSAGE = ':request_type must not be nil'.freeze
-          ERROR_NIL_RUNTIME_ID_MESSAGE = ':runtime_id must not be nil'.freeze
-          ERROR_NIL_SEQ_ID_MESSAGE = ':seq_id must not be nil'.freeze
-          ERROR_NIL_TRACER_TIME_MESSAGE = ':tracer_time must not be nil'.freeze
+          ERROR_NIL_API_VERSION_MESSAGE = ':api_version must not be nil'
+          ERROR_NIL_APPLICATION_MESSAGE = ':application must not be nil'
+          ERROR_NIL_HOST_MESSAGE = ':host must not be nil'
+          ERROR_NIL_PAYLOAD_MESSAGE = ':payload must not be nil'
+          ERROR_NIL_REQUEST_TYPE_MESSAGE = ':request_type must not be nil'
+          ERROR_NIL_RUNTIME_ID_MESSAGE = ':runtime_id must not be nil'
+          ERROR_NIL_SEQ_ID_MESSAGE = ':seq_id must not be nil'
+          ERROR_NIL_TRACER_TIME_MESSAGE = ':tracer_time must not be nil'
 
           attr_reader \
             :api_version,

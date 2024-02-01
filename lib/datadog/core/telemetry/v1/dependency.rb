@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../utils/hash'
 
 module Datadog
@@ -8,7 +10,7 @@ module Datadog
         class Dependency
           using Core::Utils::Hash::Refinement
 
-          ERROR_NIL_NAME_MESSAGE = ':name must not be nil'.freeze
+          ERROR_NIL_NAME_MESSAGE = ':name must not be nil'
 
           attr_reader \
             :hash,
