@@ -333,8 +333,6 @@ module Datadog
             #       in summary, this should be supported on Ruby 2.x, 3.1.4+, 3.2.3+ and 3.3.0+. Enabling it on
             #       unsupported Rubies may result in unexpected behaviour, including crashes.
             #
-            # @note Allocation profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
-            #
             # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_allocation_enabled do |o|
               o.type :bool
@@ -347,7 +345,6 @@ module Datadog
             # This feature is alpha and disabled by default
             #
             # @warn To enable heap profiling you are required to also enable allocation profiling.
-            # @note Heap profiles are not yet GA in the Datadog UI, get in touch if you want to help us test it.
             #
             # @default `DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_heap_enabled do |o|
@@ -356,16 +353,48 @@ module Datadog
               o.default false
             end
 
+            # Can be used to enable/disable the collection of heap size profiles.
+            #
+            # This feature is alpha and enabled by default when heap profiling is enabled.
+            #
+            # @warn To enable heap size profiling you are required to also enable allocation and heap profiling.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise
+            # whatever the value of DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED is.
+            option :experimental_heap_size_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED'
+              o.default true # This gets ANDed with experimental_heap_enabled in the profiler component.
+            end
+
             # Can be used to configure the allocation sampling rate: a sample will be collected every x allocations.
             #
-            # The lower the value, the more accuracy in allocation and heap tracking but the bigger the overhead. In
-            # particular, a value of 1 will sample ALL allocations.
-            #
-            # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE` environment variable, otherwise `50`.
+            # This feature is now controlled via {:overhead_target_percentage}
             option :experimental_allocation_sample_rate do |o|
+              o.after_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.experimental_allocation_sample_rate setting has been deprecated for removal ' \
+                  'and no longer does anything. Please remove it from your Datadog.configure block. ' \
+                  'Allocation sample rate is now handled by a dynamic sampler which will adjust the sampling rate to ' \
+                  'keep to the configured `profiling.advanced.overhead_target_percentage`.'
+                )
+              end
+            end
+
+            # Can be used to configure the heap sampling rate: a heap sample will be collected for every x allocation
+            # samples.
+            #
+            # The lower the value, the more accuracy in heap tracking but the bigger the overhead. In particular, a
+            # value of 1 will track ALL allocations samples for heap profiles.
+            #
+            # The effective heap sampling rate in terms of allocations (not allocation samples) can be calculated via
+            # effective_heap_sample_rate = allocation_sample_rate * heap_sample_rate.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE` environment variable, otherwise `10`.
+            option :experimental_heap_sample_rate do |o|
               o.type :int
-              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE'
-              o.default 50
+              o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE'
+              o.default 10
             end
 
             # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.
@@ -646,6 +675,42 @@ module Datadog
             o.env Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL
             o.default 60.0
           end
+
+          # The install id of the application.
+          #
+          # This method is used internally, by library injection.
+          #
+          # @default `DD_INSTRUMENTATION_INSTALL_ID` environment variable, otherwise `nil`.
+          # @return [String,nil]
+          # @!visibility private
+          option :install_id do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_INSTALL_ID
+          end
+
+          # The install type of the application.
+          #
+          # This method is used internally, by library injection.
+          #
+          # @default `DD_INSTRUMENTATION_INSTALL_TYPE` environment variable, otherwise `nil`.
+          # @return [String,nil]
+          # @!visibility private
+          option :install_type do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_INSTALL_TYPE
+          end
+
+          # The install time of the application.
+          #
+          # This method is used internally, by library injection.
+          #
+          # @default `DD_INSTRUMENTATION_INSTALL_TIME` environment variable, otherwise `nil`.
+          # @return [String,nil]
+          # @!visibility private
+          option :install_time do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_INSTALL_TIME
+          end
         end
 
         # Remote configuration
@@ -682,6 +747,19 @@ module Datadog
             o.env Core::Remote::Ext::ENV_POLL_INTERVAL_SECONDS
             o.type :float
             o.default 5.0
+          end
+
+          # Tune remote configuration boot timeout.
+          # Early operations such as requests are blocked until RC is ready. In
+          # order to not block the application indefinitely a timeout is
+          # enforced allowing requests to proceed with the local configuration.
+          #
+          # @default `DD_REMOTE_CONFIG_BOOT_TIMEOUT` environment variable, otherwise `1.0` seconds.
+          # @return [Float]
+          option :boot_timeout_seconds do |o|
+            o.env Core::Remote::Ext::ENV_BOOT_TIMEOUT_SECONDS
+            o.type :float
+            o.default 1.0
           end
 
           # Declare service name to bind to remote configuration. Use when

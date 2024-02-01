@@ -26,7 +26,8 @@ module Datadog
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
-            Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
+            boot = Datadog::Core::Remote::Tie.boot
+            Datadog::Core::Remote::Tie::Tracing.tag(boot, active_span)
 
             processor = nil
             ready = false

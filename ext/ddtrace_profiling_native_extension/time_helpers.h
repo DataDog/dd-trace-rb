@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #define SECONDS_AS_NS(value) (value * 1000 * 1000 * 1000L)
 #define MILLIS_AS_NS(value) (value * 1000 * 1000L)
 

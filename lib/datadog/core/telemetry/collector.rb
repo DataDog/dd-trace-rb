@@ -9,6 +9,7 @@ require_relative '../utils/hash'
 require_relative 'v1/application'
 require_relative 'v1/dependency'
 require_relative 'v1/host'
+require_relative 'v1/install_signature'
 require_relative 'v1/integration'
 require_relative 'v1/product'
 require_relative '../transport/ext'
@@ -78,6 +79,15 @@ module Datadog
             kernel_name: Core::Environment::Platform.kernel_name,
             kernel_release: Core::Environment::Platform.kernel_release,
             kernel_version: Core::Environment::Platform.kernel_version
+          )
+        end
+
+        # Forms a telemetry app-started install_signature object
+        def install_signature
+          Telemetry::V1::InstallSignature.new(
+            install_id: Datadog.configuration.dig('telemetry', 'install_id'),
+            install_type: Datadog.configuration.dig('telemetry', 'install_type'),
+            install_time: Datadog.configuration.dig('telemetry', 'install_time'),
           )
         end
 

@@ -13,8 +13,8 @@ module Datadog
           #
           # In case both variants are present, the verbatim match will be used.
           class Fetcher < Tracing::Distributed::Fetcher
-            # DEV: Should we try to parse both verbatim an Rack-formatted headers,
-            # DEV: given Rack-formatted is the most common format in Ruby?
+            # @param [String] name the header name
+            # @return [String, nil] the header value or nil if not found
             def [](name)
               # Try to fetch with the plain key
               value = super(name)

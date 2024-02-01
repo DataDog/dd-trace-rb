@@ -115,6 +115,7 @@ add_compiler_flag '-Wall'
 add_compiler_flag '-Wextra'
 
 if ENV['DDTRACE_DEBUG']
+  $defs << '-DDD_DEBUG'
   CONFIG['optflags'] = '-O0'
   CONFIG['debugflags'] = '-ggdb3'
 end
@@ -129,6 +130,11 @@ if RUBY_PLATFORM.include?('linux')
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
+
+have_func 'malloc_stats'
+
+# On older Rubies, rb_postponed_job_preregister/rb_postponed_job_trigger did not exist
+$defs << '-DNO_POSTPONED_TRIGGER' if RUBY_VERSION < '3.3'
 
 # On older Rubies, M:N threads were not available
 $defs << '-DNO_MN_THREADS_AVAILABLE' if RUBY_VERSION < '3.3'
@@ -188,6 +194,14 @@ if RUBY_VERSION < '2.4'
   # ...we use a legacy copy of rb_vm_frame_method_entry
   $defs << '-DUSE_LEGACY_RB_VM_FRAME_METHOD_ENTRY'
 end
+
+# On older Rubies, rb_gc_force_recycle allowed to free objects in a way that
+# would be invisible to free tracepoints, finalizers and without cleaning
+# obj_to_id_tbl mappings.
+$defs << '-DHAVE_WORKING_RB_GC_FORCE_RECYCLE' if RUBY_VERSION < '3.1'
+
+# On older Rubies, there was no RUBY_SEEN_OBJ_ID flag
+$defs << '-DNO_SEEN_OBJ_ID_FLAG' if RUBY_VERSION < '2.7'
 
 # If we got here, libdatadog is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"

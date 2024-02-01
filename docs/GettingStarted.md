@@ -467,7 +467,7 @@ end
 
 | Key            | Description                                                                                                                                                                                       | Default                                    |
 |----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
-| `service_name` | Name of application running the `active_record` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | Name of database adapter (e.g. `'mysql2'`) |
+| `service_name` | Override the service name for the SQL query instrumentation. ActiveRecord instantiation instrumentation always uses the application's configured service name. | Name of database adapter (e.g. `'mysql2'`) |
 
 **Configuring trace settings per database**
 
@@ -1667,6 +1667,21 @@ customer_cache.get(...)
 invoice_cache.get(...)
 ```
 
+With a standalone `RedisClient`:
+
+```ruby
+require "redis-client"
+require "ddtrace"
+
+redis = RedisClient.config(custom: { datadog: { service_name: "my-custom-redis" } }).new_client
+
+Datadog.configure do |c|
+  c.tracing.instrument :redis # Enabling integration instrumentation is still required
+end
+
+redis.call('PING')
+```
+
 With Redis version < 5:
 
 ```ruby
@@ -2025,6 +2040,29 @@ end
 LogJob.perform_async('login')
 ```
 
+### Trilogy
+
+The trilogy integration traces any SQL command sent through the `trilogy` gem.
+
+```ruby
+require 'trilogy'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.tracing.instrument :trilogy, **options
+end
+
+client = Trilogy.new(host: "localhost", username: "root")
+client.query("SELECT * FROM users WHERE group='x'")
+```
+
+`options` are the following keyword arguments:
+
+| Key                   | Env Var                        | Description                                                                                                                                                                                                                                                                                                                                                             | Default      |
+|-----------------------|---------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| `service_name`        | `DD_TRACE_TRILOGY_SERVICE_NAME` | Name of application running the `trilogy` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)  | `trilogy` |
+| `peer_service`        | `DD_TRACE_TRILOGY_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                         | `nil`     |
+
 ## Additional configuration
 
 To change the default behavior of `ddtrace`, you can use, in order of priority, with 1 being the highest:
@@ -2063,7 +2101,6 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `version`                                               | `DD_VERSION`                                            | `nil`                        | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED`                  | `true`                       | Allows you to enable sending telemetry data to Datadog. Can be disabled, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **Tracing**                                             |                                                         |                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`                            | `nil`                        | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `tracing.contrib.peer_service_mapping`                  | `DD_TRACE_PEER_SERVICE_MAPPING`                         | `nil`                        | Defines remapping of `peer.service` tag across all instrumentation. Provide a list of `old_value1:new_value1, old_value2:new_value2, ...`                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tracing.contrib.global_default_service_name.enabled`   | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `false`                      | Changes the default value for `service_name` to the application service name across all instrumentation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `tracing.distributed_tracing.propagation_extract_first` | `DD_TRACE_PROPAGATION_EXTRACT_FIRST` | `false` | Exit immediately on the first valid propagation format detected.  See [Distributed Tracing](#distributed-tracing) for more details. |

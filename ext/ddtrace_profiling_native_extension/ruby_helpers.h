@@ -106,3 +106,12 @@ char* ruby_strndup(const char *str, size_t size);
 // writes the ref to the value pointer parameter if !NULL. False if id doesn't
 // reference a valid object (in which case value is not changed).
 bool ruby_ref_from_id(size_t id, VALUE *value);
+
+// Native wrapper to get the approximate/estimated current size of the passed
+// object.
+size_t ruby_obj_memsize_of(VALUE obj);
+
+// Safely inspect any ruby object. If the object responds to 'inspect',
+// return a string with the result of that call. Elsif the object responds to
+// 'to_s', return a string with the result of that call. Otherwise, return Qnil.
+VALUE ruby_safe_inspect(VALUE obj);
