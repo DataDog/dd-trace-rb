@@ -38,6 +38,7 @@ module Datadog
 
         def stats: () -> ::Hash[::Symbol, untyped]
         def self._native_stats: (CpuAndWallTimeWorker self_instance) -> ::Hash[::Symbol, untyped]
+        def self._native_stats_reset: (CpuAndWallTimeWorker self_instance) -> void
 
         def self._native_allocation_count: () -> ::Integer?
         def self._native_sampling_loop: (CpuAndWallTimeWorker self_instance) -> void

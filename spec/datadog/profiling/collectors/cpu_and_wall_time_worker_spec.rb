@@ -211,10 +211,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
       stats = cpu_and_wall_time_worker.stats
 
-      sampling_time_ns_min = stats.fetch(:sampling_time_ns_min)
-      sampling_time_ns_max = stats.fetch(:sampling_time_ns_max)
-      sampling_time_ns_total = stats.fetch(:sampling_time_ns_total)
-      sampling_time_ns_avg = stats.fetch(:sampling_time_ns_avg)
+      sampling_time_ns_min = stats.fetch(:cpu_sampling_time_ns_min)
+      sampling_time_ns_max = stats.fetch(:cpu_sampling_time_ns_max)
+      sampling_time_ns_total = stats.fetch(:cpu_sampling_time_ns_total)
+      sampling_time_ns_avg = stats.fetch(:cpu_sampling_time_ns_avg)
 
       expect(sampling_time_ns_min).to be <= sampling_time_ns_max
       expect(sampling_time_ns_max).to be <= sampling_time_ns_total
@@ -832,23 +832,34 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
       reset_after_fork
 
-      expect(cpu_and_wall_time_worker.stats).to eq(
-        trigger_sample_attempts: 0,
-        trigger_simulated_signal_delivery_attempts: 0,
-        simulated_signal_delivery: 0,
-        signal_handler_enqueued_sample: 0,
-        signal_handler_wrong_thread: 0,
-        sampled: 0,
-        skipped_sample_because_of_dynamic_sampling_rate: 0,
-        postponed_job_skipped_already_existed: 0,
-        postponed_job_success: 0,
-        postponed_job_full: 0,
-        postponed_job_unknown_result: 0,
-        sampling_time_ns_min: nil,
-        sampling_time_ns_max: nil,
-        sampling_time_ns_total: nil,
-        sampling_time_ns_avg: nil,
-        allocations_during_sample: 0,
+      expect(cpu_and_wall_time_worker.stats).to match(
+        {
+          trigger_sample_attempts: 0,
+          trigger_simulated_signal_delivery_attempts: 0,
+          simulated_signal_delivery: 0,
+          signal_handler_enqueued_sample: 0,
+          signal_handler_wrong_thread: 0,
+          postponed_job_skipped_already_existed: 0,
+          postponed_job_success: 0,
+          postponed_job_full: 0,
+          postponed_job_unknown_result: 0,
+          cpu_sampled: 0,
+          cpu_skipped: 0,
+          cpu_effective_sample_rate: nil,
+          cpu_sampling_time_ns_min: nil,
+          cpu_sampling_time_ns_max: nil,
+          cpu_sampling_time_ns_total: nil,
+          cpu_sampling_time_ns_avg: nil,
+          allocation_sampled: 0,
+          allocation_skipped: 0,
+          allocation_effective_sample_rate: nil,
+          allocation_sampling_time_ns_min: nil,
+          allocation_sampling_time_ns_max: nil,
+          allocation_sampling_time_ns_total: nil,
+          allocation_sampling_time_ns_avg: nil,
+          allocation_sampler_snapshot: hash_including(:sampling_probability => be > 0),
+          allocations_during_sample: 0,
+        }
       )
     end
   end

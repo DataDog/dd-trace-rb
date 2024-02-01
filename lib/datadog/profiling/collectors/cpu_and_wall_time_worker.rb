@@ -100,6 +100,12 @@ module Datadog
         def stats
           self.class._native_stats(self)
         end
+
+        def stats_and_reset
+          stats = self.stats
+          self.class._native_stats_reset(self)
+          stats
+        end
       end
     end
   end
