@@ -584,8 +584,7 @@ Aws::S3::Client.new.list_buckets
 
 ### Concurrent Ruby
 
-The Concurrent Ruby integration adds support for context propagation when using `::Concurrent::Future` and `Concurrent::Async`,
-making sure that code traced within the `Future#execute` and `Concurrent::Async#async` will have correct parent set.
+The Concurrent Ruby integration adds support for context propagation when using `::Concurrent::Future` and `Concurrent::Async`, and ensures that code traced within the `Future#execute` and `Concurrent::Async#async` will have the correct parent set.
 
 To activate your integration, use the `Datadog.configure` method:
 
