@@ -1,7 +1,9 @@
 #include <ruby.h>
 #include <ruby/thread.h>
 #include <errno.h>
-#include <malloc.h>
+#ifdef HAVE_MALLOC_STATS
+  #include <malloc.h>
+#endif
 
 #include "clock_id.h"
 #include "helpers.h"
@@ -256,6 +258,8 @@ static void *trigger_enforce_success(void *trigger_args) {
 static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self) {
   #ifdef HAVE_MALLOC_STATS
     malloc_stats();
+    return Qtrue;
+  #else
+    return Qfalse;
   #endif
-  return Qnil;
 }
