@@ -454,10 +454,6 @@ end
 
 `options` are the following keyword arguments:
 
-| Key            | Description                                                                                                                                                                                       | Default                                    |
-|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
-| `service_name` | Name of application running the `active_record` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | Name of database adapter (e.g. `'mysql2'`) |
-
 **Configuring trace settings per database**
 
 You can configure trace settings per database connection by using the `describes` option:
@@ -471,17 +467,17 @@ You can configure trace settings per database connection by using the `describes
 Datadog.configure do |c|
   # Symbol matching your database connection in config/database.yml
   # Only available if you are using Rails with ActiveRecord.
-  c.tracing.instrument :active_record, describes: :secondary_database, service_name: 'secondary-db'
+  c.tracing.instrument :active_record, describes: :secondary_database, peer_service: 'secondary-db'
 
   # Block configuration pattern.
   c.tracing.instrument :active_record, describes: :secondary_database do |second_db|
-    second_db.service_name = 'secondary-db'
+    second_db.peer_service = 'secondary-db'
   end
 
   # Connection string with the following connection settings:
   # adapter, username, host, port, database
   # Other fields are ignored.
-  c.tracing.instrument :active_record, describes: 'mysql2://root@127.0.0.1:3306/mysql', service_name: 'secondary-db'
+  c.tracing.instrument :active_record, describes: 'mysql2://root@127.0.0.1:3306/mysql', peer_service: 'secondary-db'
 
   # Hash with following connection settings:
   # adapter, username, host, port, database
@@ -493,11 +489,11 @@ Datadog.configure do |c|
       database: 'mysql',
       username: 'root'
     },
-    service_name: 'secondary-db'
+    peer_service: 'secondary-db'
 
   # If using the `makara` gem, it's possible to match on connection `role`:
-  c.tracing.instrument :active_record, describes: { makara_role: 'primary' }, service_name: 'primary-db'
-  c.tracing.instrument :active_record, describes: { makara_role: 'replica' }, service_name: 'secondary-db'
+  c.tracing.instrument :active_record, describes: { makara_role: 'primary' }, peer_service: 'primary-db'
+  c.tracing.instrument :active_record, describes: { makara_role: 'replica' }, peer_service: 'secondary-db'
 end
 ```
 
@@ -506,17 +502,17 @@ You can also create configurations based on partial matching of database connect
 ```ruby
 Datadog.configure do |c|
   # Matches any connection on host `127.0.0.1`.
-  c.tracing.instrument :active_record, describes: { host:  '127.0.0.1' }, service_name: 'local-db'
+  c.tracing.instrument :active_record, describes: { host:  '127.0.0.1' }, peer_service: 'local-db'
 
   # Matches any `mysql2` connection.
-  c.tracing.instrument :active_record, describes: { adapter: 'mysql2'}, service_name: 'mysql-db'
+  c.tracing.instrument :active_record, describes: { adapter: 'mysql2'}, peer_service: 'mysql-db'
 
   # Matches any `mysql2` connection to the `reports` database.
   #
   # In case of multiple matching `describe` configurations, the latest one applies.
   # In this case a connection with both adapter `mysql` and database `reports`
-  # will be configured `service_name: 'reports-db'`, not `service_name: 'mysql-db'`.
-  c.tracing.instrument :active_record, describes: { adapter: 'mysql2', database:  'reports'}, service_name: 'reports-db'
+  # will be configured `peer_service: 'reports-db'`, not `peer_service: 'mysql-db'`.
+  c.tracing.instrument :active_record, describes: { adapter: 'mysql2', database:  'reports'}, peer_service: 'reports-db'
 end
 ```
 
@@ -542,10 +538,6 @@ cache.read('city')
 
 `options` are the following keyword arguments:
 
-| Key             | Description                                                                                                                                                                                        | Default                |
-|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
-| `cache_service` | Name of application running the `active_support` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `active_support-cache` |
-
 ### AWS
 
 The AWS integration will trace every interaction (e.g. API calls) with AWS services (S3, ElastiCache etc.).
@@ -566,7 +558,6 @@ Aws::S3::Client.new.list_buckets
 
 | Key            | Env Var                     | Description                                                                                                                                                                             | Default |
 |----------------|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `service_name` | `DD_TRACE_AWS_SERVICE_NAME` | Name of application running the `aws` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `aws`   |
 | `peer_service` | `DD_TRACE_AWS_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                    | `nil`   |
 
 
@@ -614,7 +605,6 @@ client.set('abc', 123)
 | Key            | Env Var                       | Description                                                                                                                                                                               | Default     |
 |----------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
 | `command_enabled` | `DD_TRACE_MEMCACHED_COMMAND_ENABLED` | Collect commands as the `memcached.command` tag. Command `keys` can potentially contain sensitive information. | `false` |
-| `service_name` | `DD_TRACE_DALLI_SERVICE_NAME` | Name of application running the `dalli` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `memcached` |
 | `peer_service` | `DD_TRACE_DALLI_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`       |
 
 
@@ -662,7 +652,6 @@ Datadog.configure_onto(client.transport, **options)
 
 | Key            | Env Var                               | Description                                                                                                                                                                                       | Default         |
 |----------------|---------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------|
-| `service_name` | `DD_TRACE_ELASTICSEARCH_SERVICE_NAME` | Name of application running the `elasticsearch` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `elasticsearch` |
 | `peer_service` | `DD_TRACE_ELASTICSEARCH_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                              | `nil`           |
 | `quantize`     |                                       | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely.       | `{}`            |
 
@@ -679,7 +668,7 @@ Datadog.configure do |c|
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :ethon, describes: /user-[^.]+\.example\.com/ do |ethon|
-    ethon.service_name = 'user.example.com'
+    ethon.peer_service = 'user.example.com'
     ethon.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -689,7 +678,6 @@ end
 
 | Key                   | Env Var                       | Description                                                                                                                                                                               | Default |
 |-----------------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `service_name`        | `DD_TRACE_ETHON_SERVICE_NAME` | Name of application running the `ethon` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `ethon` |
 | `peer_service`        | `DD_TRACE_ETHON_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `distributed_tracing` |                               | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
 | `split_by_domain`     |                               | Uses the request domain as the service name when set to `true`.                                                                                                                           | `false` |
@@ -710,7 +698,7 @@ Datadog.configure do |c|
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :excon, describes: /user-[^.]+\.example\.com/ do |excon|
-    excon.service_name = 'user.example.com'
+    excon.peer_service = 'user.example.com'
     excon.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -723,7 +711,6 @@ connection.get
 
 | Key                   | Env Var                       | Description                                                                                                                                                                               | Default |
 |-----------------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `service_name`        | `DD_TRACE_EXCON_SERVICE_NAME` | Name of application running the `excon` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `excon` |
 | `peer_service`        | `DD_TRACE_EXCON_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `distributed_tracing` |                               | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
 | `split_by_domain`     |                               | Uses the request domain as the service name when set to `true`.                                                                                                                           | `false` |
@@ -770,7 +757,7 @@ Datadog.configure do |c|
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :faraday, describes: /user-[^.]+\.example\.com/ do |faraday|
-    faraday.service_name = 'user.example.com'
+    faraday.peer_service = 'user.example.com'
     faraday.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -788,7 +775,6 @@ connection.get('/foo')
 
 | Key                   | Env Var                         | Description                                                                                                                                                                                 | Default   |
 |-----------------------|---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
-| `service_name`        | `DD_TRACE_FARADAY_SERVICE_NAME` | Name of application running the `faraday` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `faraday` |
 | `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                        | `nil`     |
 | `distributed_tracing` |                                 | Enables [distributed tracing](#distributed-tracing)                                                                                                                                         | `true`    |
 | `split_by_domain`     |                                 | Uses the request domain as the service name when set to `true`.                                                                                                                             | `false`   |
@@ -849,7 +835,6 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | --- | ----------- | ------- |
 | `schemas` | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas. | `[]` |
 | `with_deprecated_tracer` | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`  | `false` |
-| `service_name` | Service name used for graphql instrumentation | `'ruby-graphql'` |
 
 **Manually configuring GraphQL schemas**
 
@@ -903,7 +888,6 @@ client.my_endpoint(DemoMessage.new(contents: 'hello!'))
 
 | Key                   | Env Var                      | Description                                                                                                                                                                              | Default                                                            |
 |-----------------------|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
-| `service_name`        | `DD_TRACE_GRPC_SERVICE_NAME` | Name of application running the `grpc` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `grpc`                                                             |
 | `peer_service`        | `DD_TRACE_GRPC_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                     | `nil`                                                              |
 | `distributed_tracing` |                              | Enables [distributed tracing](#distributed-tracing)                                                                                                                                      | `true`                                                             |
 | `on_error`       | | Custom error handler invoked when there is an error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default.                                         | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
@@ -914,7 +898,7 @@ In situations where you have multiple clients calling multiple distinct services
 
 ```ruby
 configured_interceptor = Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
-  c.service_name = "Alternate"
+  c.peer_service = "Alternate"
 end
 
 alternate_client = Demo::Echo::Service.rpc_stub_class.new(
@@ -945,11 +929,6 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name for `hanami` instrumentation. | `nil` |
-
-
 ### http.rb
 
 The http.rb integration will trace any HTTP call using the Http.rb gem.
@@ -961,7 +940,7 @@ Datadog.configure do |c|
   c.tracing.instrument :httprb, **options
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :httprb, describes: /user-[^.]+\.example\.com/ do |httprb|
-    httprb.service_name = 'user.example.com'
+    httprb.peer_service = 'user.example.com'
     httprb.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -971,7 +950,6 @@ end
 
 | Key                   | Env Var                                  | Description                                                                                                                                                                                | Default     |
 |-----------------------|------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
-| `service_name`        | `DD_TRACE_HTTPRB_SERVICE_NAME`           | Name of application running the `httprb` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `httprb`    |
 | `peer_service`        | `DD_TRACE_HTTPRB_PEER_SERVICE`           | Name of external service the application connects to                                                                                                                                       | `nil`       |
 | `distributed_tracing` |                                          | Enables [distributed tracing](#distributed-tracing)                                                                                                                                        | `true`      |
 | `split_by_domain`     |                                          | Uses the request domain as the service name when set to `true`.                                                                                                                            | `false`     |
@@ -988,7 +966,7 @@ Datadog.configure do |c|
   c.tracing.instrument :httpclient, **options
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :httpclient, describes: /user-[^.]+\.example\.com/ do |httpclient|
-    httpclient.service_name = 'user.example.com'
+    httpclient.peer_service = 'user.example.com'
     httpclient.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -998,7 +976,6 @@ end
 
 | Key                   | Env Var                                  | Description                                                                                                                                                                                    | Default      |
 |-----------------------|------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
-| `service_name`        | `DD_TRACE_HTTPCLIENT_SERVICE_NAME`       | Name of application running the `httpclient` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `httpclient` |
 | `peer_service`        | `DD_TRACE_HTTPCLIENT_PEER_SERVICE`       | Name of external service the application connects to                                                                                                                                           | `nil`        |
 | `distributed_tracing` |                                          | Enables [distributed tracing](#distributed-tracing)                                                                                                                                            | `true`       |
 | `split_by_domain`     |                                          | Uses the request domain as the service name when set to `true`.                                                                                                                                | `false`      |
@@ -1018,7 +995,7 @@ Datadog.configure do |c|
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :httpx, describes: /user-[^.]+\.example\.com/ do |http|
-    http.service_name = 'user.example.com'
+    http.peer_service = 'user.example.com'
     http.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -1065,7 +1042,6 @@ Datadog.configure_onto(client, **options)
 
 | Key            | Env Var                       | Description                                                                                                                                                                                 | Default                                          |
 |----------------|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------|
-| `service_name` | `DD_TRACE_MONGO_SERVICE_NAME` | Name of application running the `mongo` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)   | `mongodb`                                        |
 | `peer_service` | `DD_TRACE_MONGO_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                        | `nil`                                            |
 | `quantize`     |                               | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{ show: [:collection, :database, :operation] }` |
 
@@ -1081,10 +1057,10 @@ You can configure trace settings per connection by using the `describes` option:
 
 Datadog.configure do |c|
   # Network connection string
-  c.tracing.instrument :mongo, describes: '127.0.0.1:27017', service_name: 'mongo-primary'
+  c.tracing.instrument :mongo, describes: '127.0.0.1:27017', peer_service: 'mongo-primary'
 
   # Network connection regular expression
-  c.tracing.instrument :mongo, describes: /localhost.*/, service_name: 'mongo-secondary'
+  c.tracing.instrument :mongo, describes: /localhost.*/, peer_service: 'mongo-secondary'
 end
 
 client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'artists')
@@ -1120,7 +1096,6 @@ client.query("SELECT * FROM users WHERE group='x'")
 
 | Key                   | Env Var                        | Description                                                                                                                                                                                                                                                                                                                                                             | Default      |
 |-----------------------|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
-| `service_name`        | `DD_TRACE_MYSQL2_SERVICE_NAME` | Name of application running the `mysql2` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)                                                                                                                                                                              | `mysql2`     |
 | `peer_service`        | `DD_TRACE_MYSQL2_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                    | `nil`        |
 | `comment_propagation` | `DD_DBM_PROPAGATION_MODE`      | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database.* | `'disabled'` |
 | `on_error` | | Custom error handler invoked when MySQL raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
@@ -1137,7 +1112,7 @@ Datadog.configure do |c|
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :http, describes: /user-[^.]+\.example\.com/ do |http|
-    http.service_name = 'user.example.com'
+    http.peer_service = 'user.example.com'
     http.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
 end
@@ -1154,7 +1129,6 @@ content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 
 | Key                   | Env Var                            | Description                                                                                                                                                                                  | Default     |
 |-----------------------|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
-| `service_name`        | `DD_TRACE_NET_HTTP_SERVICE_NAME`   | Name of application running the `net/http` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `net/http`  |
 | `peer_service`        | `DD_TRACE_NET_HTTP_PEER_SERVICE`   | Name of external service the application connects to                                                                                                                                         | `nil`       |
 | `distributed_tracing` |                                    | Enables [distributed tracing](#distributed-tracing)                                                                                                                                          | `true`      |
 | `split_by_domain`     |                                    | Uses the request domain as the service name when set to `true`.                                                                                                                              | `false`     |
@@ -1192,7 +1166,6 @@ client.cluster.health
 
 | Key            | Env Var                            | Description                                                                                                                                                                                    | Default      |
 |----------------|------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
-| `service_name` | `DD_TRACE_OPENSEARCH_SERVICE_NAME` | Name of application running the `opensearch` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `opensearch` |
 | `peer_service` | `DD_TRACE_OPENSEARCH_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                           | `nil`        |
 | `quantize`     |                                    | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely.    | `{}`         |
 
@@ -1216,7 +1189,6 @@ end
 
 | Key                   | Env Var                    | Description                                                                                                                                                                                                                                                                                                                                                             | Default      |
 |-----------------------|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
-| `service_name`        | `DD_TRACE_PG_SERVICE_NAME` | Name of application running the `pg` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)                                                                                                                                                                                  | `pg`         |
 | `peer_service`        | `DD_TRACE_PG_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                    | `nil`        |
 | `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
 | `on_error` || Custom error handler invoked when PG raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring errors from Postgres that are handled at the application level. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
@@ -1250,7 +1222,6 @@ client.run("select * from system.nodes")
 
 | Key                   | Env Var                        | Description                                                                                                                                                                                | Default  |
 |-----------------------|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
-| `service_name`        | `DD_TRACE_PRESTO_SERVICE_NAME` | Name of application running the `presto` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `presto` |
 | `peer_service`        | `DD_TRACE_PRESTO_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                       | `nil`    |
 
 ### Que
@@ -1292,10 +1263,6 @@ end
 
 `options` are the following keyword arguments:
 
-| Key                   | Env Var                         | Description                                                                                                                                                                                 | Default   |
-|-----------------------|---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
-| `service_name`        | `DD_TRACE_RACECAR_SERVICE_NAME` | Name of application running the `racecar` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `racecar` |
-|
 ### Rack
 
 The Rack integration provides a middleware that traces all requests before they reach the underlying framework or application. It responds to the Rack minimal interface, providing reasonable values that can be retrieved at the Rack level.
@@ -1337,7 +1304,6 @@ run app
 | `quantize.query.obfuscate.regex` | Defines the regex with which the query string will be redacted. May be a Regexp, or `:internal` to use the default internal Regexp, which redacts well-known sensitive data. Each match is redacted entirely by replacing it with `query.obfuscate.with`. Option must be nested inside the `query.obfuscate` option. | `:internal` |
 | `quantize.fragment` | Defines behavior for URL fragments. May be `:show` to show URL fragments, or `nil` to remove fragments. Option must be nested inside the `quantize` option. | `nil` |
 | `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. | `false` |
-| `web_service_name` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | `'web-server'` |
 
 Deprecation notice:
 - `quantize.base` will change its default from `:exclude` to `:show` in a future version. Voluntarily moving to `:show` is recommended.
@@ -1416,7 +1382,6 @@ end
 | `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. | `false` |
 | `middleware` | Add the trace middleware to the Rails application. Set to `false` if you don't want the middleware to load. | `true` |
 | `middleware_names` | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace. | `false` |
-| `service_name` | Service name used when tracing application requests (on the `rack` level) | `'<app_name>'` (inferred from your Rails application namespace) |
 | `template_base_path` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
 
 **Supported versions**
@@ -1461,7 +1426,6 @@ Rake::Task['my_task'].invoke
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `quantize` | Hash containing options for quantization of task arguments. See below for more details and examples. | `{}` |
-| `service_name` | Service name used for `rake` instrumentation | `'rake'` |
 | `tasks` | Names of the Rake tasks to instrument | `[]` |
 
 **Configuring task quantization behavior**
@@ -1519,7 +1483,6 @@ redis.set 'foo', 'bar'
 
 | Key            | Env Var                       | Description                                                                                                                                                                               | Default |
 |----------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `service_name` | `DD_TRACE_REDIS_SERVICE_NAME` | Name of application running the `redis` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `redis` |
 | `peer_service` | `DD_TRACE_REDIS_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `command_args` | `DD_REDIS_COMMAND_ARGS`       | Show the command arguments (for example, `key` in `GET key`) as resource name and tag. If `false`, only the command name is shown (for example, `GET`). | false |
 
@@ -1536,8 +1499,8 @@ Datadog.configure do |c|
   c.tracing.instrument :redis # Enabling integration instrumentation is still required
 end
 
-customer_cache = Redis.new(custom: { datadog: { service_name: 'custom-cache' } })
-invoice_cache = Redis.new(custom: { datadog: { service_name: 'invoice-cache' } })
+customer_cache = Redis.new(custom: { datadog: { peer_service: 'custom-cache' } })
+invoice_cache = Redis.new(custom: { datadog: { peer_service: 'invoice-cache' } })
 
 # Traced call will belong to `customer-cache` service
 customer_cache.get(...)
@@ -1558,8 +1521,8 @@ end
 customer_cache = Redis.new
 invoice_cache = Redis.new
 
-Datadog.configure_onto(customer_cache, service_name: 'customer-cache')
-Datadog.configure_onto(invoice_cache, service_name: 'invoice-cache')
+Datadog.configure_onto(customer_cache, peer_service: 'customer-cache')
+Datadog.configure_onto(invoice_cache, peer_service: 'invoice-cache')
 
 # Traced call will belong to `customer-cache` service
 customer_cache.get(...)
@@ -1579,23 +1542,23 @@ You can configure trace settings per connection by using the `describes` option:
 
 Datadog.configure do |c|
   # The default configuration for any redis client
-  c.tracing.instrument :redis, service_name: 'redis-default'
+  c.tracing.instrument :redis, peer_service: 'redis-default'
 
   # The configuration matching a given unix socket.
-  c.tracing.instrument :redis, describes: { url: 'unix://path/to/file' }, service_name: 'redis-unix'
+  c.tracing.instrument :redis, describes: { url: 'unix://path/to/file' }, peer_service: 'redis-unix'
 
   # For network connections, only these fields are considered during matching:
   # scheme, host, port, db
   # Other fields are ignored.
 
   # Network connection string
-  c.tracing.instrument :redis, describes: 'redis://127.0.0.1:6379/0', service_name: 'redis-connection-string'
-  c.tracing.instrument :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, service_name: 'redis-connection-url'
+  c.tracing.instrument :redis, describes: 'redis://127.0.0.1:6379/0', peer_service: 'redis-connection-string'
+  c.tracing.instrument :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, peer_service: 'redis-connection-url'
   # Network client hash
-  c.tracing.instrument :redis, describes: { host: 'my-host.com', port: 6379, db: 1, scheme: 'redis' }, service_name: 'redis-connection-hash'
+  c.tracing.instrument :redis, describes: { host: 'my-host.com', port: 6379, db: 1, scheme: 'redis' }, peer_service: 'redis-connection-hash'
   # Only a subset of the connection hash
-  c.tracing.instrument :redis, describes: { host: ENV['APP_CACHE_HOST'], port: ENV['APP_CACHE_PORT'] }, service_name: 'redis-cache'
-  c.tracing.instrument :redis, describes: { host: ENV['SIDEKIQ_CACHE_HOST'] }, service_name: 'redis-sidekiq'
+  c.tracing.instrument :redis, describes: { host: ENV['APP_CACHE_HOST'], port: ENV['APP_CACHE_PORT'] }, peer_service: 'redis-cache'
+  c.tracing.instrument :redis, describes: { host: ENV['SIDEKIQ_CACHE_HOST'] }, peer_service: 'redis-sidekiq'
 end
 ```
 
@@ -1639,7 +1602,6 @@ end
 
 | Key                   | Env Var                             | Description                                                                                                                                                                                     | Default       |
 |-----------------------|-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
-| `service_name`        | `DD_TRACE_REST_CLIENT_SERVICE_NAME` | Name of application running the `rest_client` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | `rest_client` |
 | `peer_service`        | `DD_TRACE_REST_CLIENT_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                            | `nil`         |
 | `distributed_tracing` |                                     | Enables [distributed tracing](#distributed-tracing)                                                                                                                                             | `true`        |
 | `split_by_domain`     |                                     | Uses the request domain as the service name when set to `true`.                                                                                                                                 | `false`       |
@@ -1673,10 +1635,6 @@ end
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name for `roda` instrumentation. | `'nil'` |
-
 ### Sequel
 
 The Sequel integration traces queries made to your database.
@@ -1705,10 +1663,6 @@ articles.all
 
 `options` are the following keyword arguments:
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name for `sequel` instrumentation | Name of database adapter (e.g. `'mysql2'`) |
-
 **Configuring databases to use different settings**
 
 If you use multiple databases with Sequel, you can give each of them different settings by configuring their respective `Sequel::Database` objects:
@@ -1718,8 +1672,8 @@ sqlite_database = Sequel.sqlite
 postgres_database = Sequel.connect('postgres://user:password@host:port/database_name')
 
 # Configure each database with different service names
-Datadog.configure_onto(sqlite_database, service_name: 'my-sqlite-db')
-Datadog.configure_onto(postgres_database, service_name: 'my-postgres-db')
+Datadog.configure_onto(sqlite_database, peer_service: 'my-sqlite-db')
+Datadog.configure_onto(postgres_database, peer_service: 'my-postgres-db')
 ```
 
 ### Shoryuken
@@ -1940,7 +1894,7 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED`                  | `true`                       | Allows you to enable sending telemetry data to Datadog. Can be disabled, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **Tracing**                                             |                                                         |                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `tracing.contrib.peer_service_mapping`                  | `DD_TRACE_PEER_SERVICE_MAPPING`                         | `nil`                        | Defines remapping of `peer.service` tag across all instrumentation. Provide a list of `old_value1:new_value1, old_value2:new_value2, ...`                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `tracing.contrib.global_default_service_name.enabled`   | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `false`                      | Changes the default value for `service_name` to the application service name across all instrumentation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `tracing.contrib.global_default_service_name.enabled`   | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `false`                      | Changes the default value for service name to the application service name across all instrumentation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `tracing.propagation_extract_first` | `DD_TRACE_PROPAGATION_EXTRACT_FIRST` | `false` | Exit immediately on the first valid propagation format detected.  See [Distributed Tracing](#distributed-tracing) for more details. |
 | `tracing.propagation_style_extract` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT`                    | `['Datadog','tracecontext']` | Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `tracing.propagation_style_inject`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`                     | `['Datadog','tracecontext']` | Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                             |

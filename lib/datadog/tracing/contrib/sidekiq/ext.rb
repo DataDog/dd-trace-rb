@@ -12,7 +12,6 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_SIDEKIQ_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SIDEKIQ_ANALYTICS_SAMPLE_RATE'
-          SERVICE_NAME = 'sidekiq'
           SPAN_PUSH = 'sidekiq.push'
           SPAN_JOB = 'sidekiq.job'
           SPAN_JOB_FETCH = 'sidekiq.job_fetch'
