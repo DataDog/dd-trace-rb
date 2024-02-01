@@ -40,7 +40,7 @@ module Datadog
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
         no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
-        timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
+        timeline_enabled = settings.profiling.advanced.timeline_enabled
         allocation_profiling_enabled = enable_allocation_profiling?(settings)
         heap_sample_every = get_heap_sample_every(settings)
         heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled, heap_sample_every)

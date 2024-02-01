@@ -424,9 +424,28 @@ module Datadog
             #
             # @default `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_timeline_enabled do |o|
+              o.after_set do
+                # FIXME: TODO: This needs to be updated to match up with https://github.com/DataDog/dd-trace-rb/pull/3357
+                Datadog.logger.warn(
+                  'The profiling.advanced.experimental_timeline_enabled setting has been deprecated for removal ' \
+                  'and no longer does anything. Please remove it from your Datadog.configure block. ' \
+                  'The timeline feature counting is now controlled by the `timeline_enabled` setting instead.'
+                )
+              end
+            end
+
+            # Controls data collection for the timeline feature.
+            #
+            # If you needed to disable this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>,
+            # so we can fix it!
+            #
+            # TODO: In the future this setting may be deprecated and the timeline may no longer be optional.
+            #
+            # @default `DD_PROFILING_TIMELINE_ENABLED` environment variable as a boolean, otherwise `true`
+            option :timeline_enabled do |o|
               o.type :bool
-              o.env 'DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED'
-              o.default false
+              o.env 'DD_PROFILING_TIMELINE_ENABLED'
+              o.default true
             end
 
             # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
