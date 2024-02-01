@@ -992,7 +992,7 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   }
 
   if (state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler)) {
-    state->stats.cpu_skipped++;
+    state->stats.allocation_skipped++;
     return;
   }
 
