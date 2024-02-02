@@ -22,10 +22,11 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Integration do
   describe '.loaded?' do
     subject(:loaded?) { described_class.loaded? }
 
-    context 'when neither GraphQL or GraphQL::Tracing::DataDogTracing are defined' do
+    context 'when neither GraphQL, GraphQL::Tracing::DataDogTracing, nor GraphQL::Tracing::DataDogTrace are defined' do
       before do
         hide_const('GraphQL')
         hide_const('GraphQL::Tracing::DataDogTracing')
+        hide_const('GraphQL::Tracing::DataDogTrace')
       end
 
       it { is_expected.to be false }
@@ -35,6 +36,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Integration do
       before do
         stub_const('GraphQL', Class.new)
         hide_const('GraphQL::Tracing::DataDogTracing')
+        hide_const('GraphQL::Tracing::DataDogTrace')
       end
 
       it { is_expected.to be false }
@@ -44,6 +46,18 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Integration do
       before { stub_const('GraphQL::Tracing::DataDogTracing', Class.new) }
 
       it { is_expected.to be true }
+    end
+
+    context 'when GraphQL::Tracing::DataDogTrace is defined' do
+      context 'when only GraphQL is defined' do
+        before do
+          stub_const('GraphQL', Class.new)
+          hide_const('GraphQL::Tracing::DataDogTracing')
+          stub_const('GraphQL::Tracing::DataDogTrace', Class.new)
+        end
+
+        it { is_expected.to be true }
+      end
     end
   end
 

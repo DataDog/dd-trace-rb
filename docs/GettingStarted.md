@@ -902,18 +902,8 @@ If you prefer to individually configure the tracer settings for a schema (e.g. y
 ```ruby
 # Class-based schema
 class YourSchema < GraphQL::Schema
-  use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
-  )
-end
-```
-
-```ruby
-# .define-style schema
-YourSchema = GraphQL::Schema.define do
-  use(
-    GraphQL::Tracing::DataDogTracing,
+  trace_with(
+    GraphQL::Tracing::DatadogTrace,
     service: 'graphql'
   )
 end
@@ -923,20 +913,10 @@ Or you can modify an already defined schema:
 
 ```ruby
 # Class-based schema
-YourSchema.use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
+YourSchema.trace_with(
+  GraphQL::Tracing::DatadogTrace,
+  service: 'graphql'
 )
-```
-
-```ruby
-# .define-style schema
-YourSchema.define do
-  use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
-  )
-end
 ```
 
 Do *NOT* `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.

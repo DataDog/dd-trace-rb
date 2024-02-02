@@ -28,7 +28,17 @@ module Datadog
             analytics_enabled = Contrib::Analytics.enabled?(get_option(:analytics_enabled))
             analytics_sample_rate = get_option(:analytics_sample_rate)
 
-            if schema.respond_to?(:use)
+            if schema.respond_to?(:trace_with)
+              schema.trace_with(
+                ::GraphQL::Tracing::DataDogTrace,
+                # By default, Tracing::DataDogTrace holds a reference to a tracer.
+                # If we provide a tracer argument here it will be eagerly cached,
+                # and Tracing::DataDogTracing will send traces to a stale tracer instance.
+                service: service_name,
+                analytics_enabled: analytics_enabled,
+                analytics_sample_rate: analytics_sample_rate
+              )
+            elsif schema.respond_to?(:use)
               schema.use(
                 ::GraphQL::Tracing::DataDogTracing,
                 # By default, Tracing::DataDogTracing holds a reference to a tracer.
