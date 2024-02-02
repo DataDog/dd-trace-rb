@@ -259,7 +259,7 @@ VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler)
   VALUE arguments[] = {
     ID2SYM(rb_intern("target_overhead")),                 /* => */ DBL2NUM(sampler->target_overhead),
     ID2SYM(rb_intern("target_overhead_adjustment")),      /* => */ DBL2NUM(sampler->target_overhead_adjustment),
-    ID2SYM(rb_intern("events_per_sec")),                  /* => */ DBL2NUM(sampler->events_per_ns / 1e9),
+    ID2SYM(rb_intern("events_per_sec")),                  /* => */ DBL2NUM(sampler->events_per_ns * 1e9),
     ID2SYM(rb_intern("sampling_time_ns")),                /* => */ LONG2NUM(sampler->sampling_time_ns),
     ID2SYM(rb_intern("sampling_interval")),               /* => */ ULONG2NUM(sampler->sampling_interval),
     ID2SYM(rb_intern("sampling_probability")),            /* => */ DBL2NUM(sampler->sampling_probability),
