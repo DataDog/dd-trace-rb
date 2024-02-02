@@ -262,7 +262,7 @@ VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler)
     ID2SYM(rb_intern("events_per_sec")),                  /* => */ DBL2NUM(sampler->events_per_ns * 1e9),
     ID2SYM(rb_intern("sampling_time_ns")),                /* => */ LONG2NUM(sampler->sampling_time_ns),
     ID2SYM(rb_intern("sampling_interval")),               /* => */ ULONG2NUM(sampler->sampling_interval),
-    ID2SYM(rb_intern("sampling_probability")),            /* => */ DBL2NUM(sampler->sampling_probability),
+    ID2SYM(rb_intern("sampling_probability")),            /* => */ DBL2NUM(sampler->sampling_probability * 100),
     ID2SYM(rb_intern("events_since_last_readjustment")),  /* => */ ULONG2NUM(sampler->events_since_last_readjustment),
     ID2SYM(rb_intern("samples_since_last_readjustment")), /* => */ ULONG2NUM(sampler->samples_since_last_readjustment),
   };
