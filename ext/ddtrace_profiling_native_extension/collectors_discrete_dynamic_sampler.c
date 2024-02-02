@@ -9,6 +9,7 @@
 #define BASE_SAMPLING_INTERVAL 50
 
 #define ADJUSTMENT_WINDOW_NS SECONDS_AS_NS(1)
+#define ADJUSTMENT_WINDOW_SAMPLES 100
 
 #define EMA_SMOOTHING_FACTOR 0.6
 #define EXP_MOVING_AVERAGE(last, avg, first) first ? last : (1-EMA_SMOOTHING_FACTOR) * avg + EMA_SMOOTHING_FACTOR * last
@@ -108,31 +109,37 @@ size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sample
 }
 
 static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
-  long window_time_ns = sampler->last_readjust_time_ns == 0 ? ADJUSTMENT_WINDOW_NS : now - sampler->last_readjust_time_ns;
+  long this_window_time_ns = sampler->last_readjust_time_ns == 0 ? ADJUSTMENT_WINDOW_NS : now - sampler->last_readjust_time_ns;
 
-  if (window_time_ns < ADJUSTMENT_WINDOW_NS) {
-    // not enough time has passed to perform a readjustment
+  bool should_readjust_based_on_time = this_window_time_ns >= ADJUSTMENT_WINDOW_NS;
+  bool should_readjust_based_on_samples = sampler->samples_since_last_readjustment >= ADJUSTMENT_WINDOW_SAMPLES;
+
+  if (!should_readjust_based_on_time && !should_readjust_based_on_samples) {
+    // not enough time or samples have passed to perform a readjustment
+    return;
+  }
+
+  if (this_window_time_ns == 0) {
+    // should not be possible given previous condition but lets protect against div by 0 below.
     return;
   }
 
   // If we got this far, lets recalculate our sampling params based on new observations
   bool first_readjustment = !sampler->has_completed_full_adjustment_window;
 
-  // Update our running average of events/sec with latest observation
+  // Update our running average of events/sec with latest observation.
   sampler->events_per_ns = EXP_MOVING_AVERAGE(
-    (double) sampler->events_since_last_readjustment / window_time_ns,
+    (double) sampler->events_since_last_readjustment / this_window_time_ns,
     sampler->events_per_ns,
     first_readjustment
   );
 
   // Update our running average of sampling time for a specific event
-  long sampling_window_time_ns = sampler->sampling_time_since_last_readjustment_ns;
-  long sampling_overshoot_time_ns = -1;
   if (sampler->samples_since_last_readjustment > 0) {
     // We can only update sampling-related stats if we actually sampled on the last window...
 
     // Lets update our average sampling time per event
-    long avg_sampling_time_in_window_ns = sampler->samples_since_last_readjustment == 0 ? 0 : sampling_window_time_ns / sampler->samples_since_last_readjustment;
+    long avg_sampling_time_in_window_ns = sampler->samples_since_last_readjustment == 0 ? 0 : sampler->sampling_time_since_last_readjustment_ns / sampler->samples_since_last_readjustment;
     sampler->sampling_time_ns = EXP_MOVING_AVERAGE(
       avg_sampling_time_in_window_ns,
       sampler->sampling_time_ns,
@@ -145,12 +152,12 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   // NOTE: Updating this even when no samples occur is a conscious choice which enables us to cooldown extreme adjustments over time.
   //       If we didn't do this, whenever a big spike caused target_overhead_adjustment to equal target_overhead, we'd get stuck
   //       in a "probability = 0" state.
-  long reference_target_sampling_time_ns = window_time_ns * (sampler->target_overhead / 100.);
+  long this_window_sampling_target_time_ns = this_window_time_ns * (sampler->target_overhead / 100.);
   // Overshoot by definition is always >= 0. < 0 would be undershooting!
-  sampling_overshoot_time_ns = long_max_of(0, sampler->sampling_time_since_last_readjustment_ns - reference_target_sampling_time_ns);
+  long this_window_sampling_overshoot_time_ns = long_max_of(0, sampler->sampling_time_since_last_readjustment_ns - this_window_sampling_target_time_ns);
   // Our overhead adjustment should always be between [-target_overhead, 0]. Higher adjustments would lead to negative overhead targets
   // which don't make much sense.
-  double last_target_overhead_adjustment = -double_min_of(sampler->target_overhead, sampling_overshoot_time_ns * 100. / window_time_ns);
+  double last_target_overhead_adjustment = -double_min_of(sampler->target_overhead, this_window_sampling_overshoot_time_ns * 100. / this_window_time_ns);
   sampler->target_overhead_adjustment = EXP_MOVING_AVERAGE(
     last_target_overhead_adjustment,
     sampler->target_overhead_adjustment,
@@ -159,7 +166,6 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
 
   // Apply our overhead adjustment to figure out our real targets for this readjustment.
   double target_overhead = double_max_of(0, sampler->target_overhead + sampler->target_overhead_adjustment);
-  long target_sampling_time_ns = window_time_ns * (target_overhead / 100.);
 
   // Recalculate target sampling probability so that the following 2 hold:
   // * window_time_ns = working_window_time_ns + sampling_window_time_ns
@@ -190,9 +196,15 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   //   then probability will be > 1 (but we should clamp to 1 since probabilities higher than 1 don't make sense).
   // * If app is eventing a lot or our sampling overhead is big, then as time_to_sample_all_events_ns grows, sampling_probability will
   //   tend to 0.
+
+  // Use our stored data to extrapolate to a full adjustment window view
+  long window_time_ns = ADJUSTMENT_WINDOW_NS;
+  long sampling_window_time_ns = window_time_ns * sampler->events_per_ns * sampler->sampling_probability * sampler->sampling_time_ns;
   long working_window_time_ns = long_max_of(0, window_time_ns - sampling_window_time_ns);
-  double max_allowed_time_for_sampling_ns = target_sampling_time_ns;
   long time_to_sample_all_events_ns = sampler->events_per_ns * working_window_time_ns * sampler->sampling_time_ns;
+
+  double max_allowed_time_for_sampling_ns = window_time_ns * (target_overhead / 100.);
+
   if (max_allowed_time_for_sampling_ns == 0) {
     // if we aren't allowed any sampling time at all, probability has to be 0
     sampler->sampling_probability = 0;
@@ -227,23 +239,33 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
       samples_in_60s * sampler->sampling_time_ns / 1e9;
     double real_total_sampling_time_in_60s = sampling_window_time_ns / 1e9 * 60 / (window_time_ns / 1e9);
 
-    fprintf(stderr, "[dds.%s] readjusting...\n", sampler->debug_name);
+    const char* readjustment_reason = should_readjust_based_on_time ? "time" : "samples";
+
+    fprintf(stderr, "[dds.%s] readjusting due to %s...\n", sampler->debug_name, readjustment_reason);
+    fprintf(stderr, "events_since_last_readjustment=%ld\n", sampler->events_since_last_readjustment);
     fprintf(stderr, "samples_since_last_readjustment=%ld\n", sampler->samples_since_last_readjustment);
-    fprintf(stderr, "window_time=%ld\n", window_time_ns);
+    fprintf(stderr, "this_window_time=%ld\n", this_window_time_ns);
+    fprintf(stderr, "this_window_sampling_time=%ld\n", sampler->sampling_time_since_last_readjustment_ns);
+    fprintf(stderr, "this_working_window_time=%ld\n", this_window_time_ns - sampler->sampling_time_since_last_readjustment_ns);
+    fprintf(stderr, "this_window_sampling_target_time=%ld\n", this_window_sampling_target_time_ns);
+    fprintf(stderr, "this_window_sampling_overshoot_time=%ld\n", this_window_sampling_overshoot_time_ns);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "target_overhead=%f\n", sampler->target_overhead);
+    fprintf(stderr, "target_overhead_adjustment=%f\n", sampler->target_overhead_adjustment);
     fprintf(stderr, "events_per_sec=%f\n", sampler->events_per_ns * 1e9);
     fprintf(stderr, "sampling_time=%ld\n", sampler->sampling_time_ns);
-    fprintf(stderr, "sampling_window_time=%ld\n", sampling_window_time_ns);
-    fprintf(stderr, "sampling_target_time=%ld\n", reference_target_sampling_time_ns);
-    fprintf(stderr, "sampling_overshoot_time=%ld\n", sampling_overshoot_time_ns);
-    fprintf(stderr, "working_window_time=%ld\n", working_window_time_ns);
     fprintf(stderr, "sampling_interval=%zu\n", sampler->sampling_interval);
-    fprintf(stderr, "sampling_probability=%f\n", sampler->sampling_probability);
+    fprintf(stderr, "sampling_probability=%f\n", sampler->sampling_probability * 100);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "window_time_ns=%ld\n", window_time_ns);
+    fprintf(stderr, "sampling_window_time_ns=%ld\n", sampling_window_time_ns);
+    fprintf(stderr, "working_window_time_ns=%ld\n", working_window_time_ns);
+    fprintf(stderr, "time_to_sample_all_events_ns=%ld\n", time_to_sample_all_events_ns);
+    fprintf(stderr, "max_allowed_time_for_sampling_ns=%f\n", max_allowed_time_for_sampling_ns);
+    fprintf(stderr, "\n");
     fprintf(stderr, "expected allocs in 60s=%f\n", allocs_in_60s);
     fprintf(stderr, "expected samples in 60s=%f\n", samples_in_60s);
     fprintf(stderr, "expected sampling time in 60s=%f (previous real=%f)\n", expected_total_sampling_time_in_60s, real_total_sampling_time_in_60s);
-    fprintf(stderr, "target_overhead=%f\n", sampler->target_overhead);
-    fprintf(stderr, "target_overhead_adjustment=%f\n", sampler->target_overhead_adjustment);
-    fprintf(stderr, "target_sampling_time=%ld\n", target_sampling_time_ns);
     fprintf(stderr, "expected max overhead in 60s=%f\n", target_overhead / 100.0 * 60);
     fprintf(stderr, "-------\n");
   #endif
