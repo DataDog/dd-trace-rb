@@ -157,6 +157,23 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
         expect(sampler._native_probability).to be > 30 # %
       end
     end
+
+    context 'with a big spike that fits within an adjustment window' do
+      it 'will readjust preemptively with smaller windows to prevent sampling overload' do
+        # Start with a very small constant load during a long time. So low in fact that we'll
+        # decide to sample everything
+        simulate_load(duration_seconds: 60, events_per_second: 1, sampling_seconds: 0.0001)
+        expect(sampler._native_probability).to eq(100) # %
+
+        # Now lets do a big event spike over half a second. This is within an adjustment
+        # window so in theory we should only react after it occurred. But if this happened
+        # we'd sample all of these events. Instead, we expect our sampler to preempt
+        # adjustments with smaller windows to try and contain the deluge
+        stats = simulate_load(duration_seconds: 0.5, events_per_second: 5000, sampling_seconds: 0.0001)
+        expect(stats[:num_samples]).to be < 1000
+        expect(sampler._native_probability).to be < 25 # %
+      end
+    end
   end
 
   context 'when sampling time worsens' do
