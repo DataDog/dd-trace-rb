@@ -41,8 +41,7 @@ module Datadog
 
         no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
         timeline_enabled = settings.profiling.advanced.experimental_timeline_enabled
-        allocation_sample_every = get_allocation_sample_every(settings)
-        allocation_profiling_enabled = enable_allocation_profiling?(settings, allocation_sample_every)
+        allocation_profiling_enabled = enable_allocation_profiling?(settings)
         heap_sample_every = get_heap_sample_every(settings)
         heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled, heap_sample_every)
         heap_size_profiling_enabled = enable_heap_size_profiling?(settings, heap_profiling_enabled)
@@ -64,14 +63,12 @@ module Datadog
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           thread_context_collector: thread_context_collector,
           dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
-          allocation_sample_every: allocation_sample_every,
           allocation_profiling_enabled: allocation_profiling_enabled,
         )
 
         internal_metadata = {
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           timeline_enabled: timeline_enabled,
-          allocation_sample_every: allocation_sample_every,
           heap_sample_every: heap_sample_every,
         }.freeze
 
@@ -129,16 +126,6 @@ module Datadog
         end
       end
 
-      private_class_method def self.get_allocation_sample_every(settings)
-        allocation_sample_rate = settings.profiling.advanced.experimental_allocation_sample_rate
-
-        if allocation_sample_rate <= 0
-          raise ArgumentError, "Allocation sample rate must be a positive integer. Was #{allocation_sample_rate}"
-        end
-
-        allocation_sample_rate
-      end
-
       private_class_method def self.get_heap_sample_every(settings)
         heap_sample_rate = settings.profiling.advanced.experimental_heap_sample_rate
 
@@ -147,7 +134,7 @@ module Datadog
         heap_sample_rate
       end
 
-      private_class_method def self.enable_allocation_profiling?(settings, allocation_sample_every)
+      private_class_method def self.enable_allocation_profiling?(settings)
         unless settings.profiling.advanced.experimental_allocation_enabled
           # Allocation profiling disabled, short-circuit out
           return false
@@ -193,8 +180,7 @@ module Datadog
         end
 
         Datadog.logger.warn(
-          "Enabled experimental allocation profiling: allocation_sample_rate=#{allocation_sample_every}. This is " \
-          'experimental, not recommended, and will increase overhead!'
+          'Enabled experimental allocation profiling. This is experimental, not recommended, and will increase overhead!'
         )
 
         true

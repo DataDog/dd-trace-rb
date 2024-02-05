@@ -115,6 +115,7 @@ add_compiler_flag '-Wall'
 add_compiler_flag '-Wextra'
 
 if ENV['DDTRACE_DEBUG']
+  $defs << '-DDD_DEBUG'
   CONFIG['optflags'] = '-O0'
   CONFIG['debugflags'] = '-ggdb3'
 end
@@ -129,6 +130,8 @@ if RUBY_PLATFORM.include?('linux')
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
+
+have_func 'malloc_stats'
 
 # On older Rubies, rb_postponed_job_preregister/rb_postponed_job_trigger did not exist
 $defs << '-DNO_POSTPONED_TRIGGER' if RUBY_VERSION < '3.3'

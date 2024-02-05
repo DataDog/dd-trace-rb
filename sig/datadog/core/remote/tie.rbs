@@ -1,0 +1,16 @@
+module Datadog
+  module Core
+    module Remote
+      module Tie
+        class Boot < ::Struct[untyped]
+          def initialize: (Component::Barrier? barrier, Numeric? time) -> void
+
+          attr_reader barrier: Component::Barrier
+          attr_reader time: Numeric
+        end
+
+        def self.boot: () -> (nil | Boot)
+      end
+    end
+  end
+end

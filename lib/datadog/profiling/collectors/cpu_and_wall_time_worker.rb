@@ -20,7 +20,6 @@ module Datadog
           no_signals_workaround_enabled:,
           thread_context_collector:,
           dynamic_sampling_rate_overhead_target_percentage:,
-          allocation_sample_every:,
           allocation_profiling_enabled:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
@@ -41,7 +40,6 @@ module Datadog
             no_signals_workaround_enabled,
             dynamic_sampling_rate_enabled,
             dynamic_sampling_rate_overhead_target_percentage,
-            allocation_sample_every,
             allocation_profiling_enabled,
           )
           @worker_thread = nil

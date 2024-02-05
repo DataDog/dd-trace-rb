@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.19.0)
+    ddtrace (1.20.0)
       datadog-ci (~> 0.7.0)
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 5.0.0.1.0)
@@ -35,6 +35,7 @@ GEM
     extlz4 (0.3.4)
     ffi (1.12.2)
     google-protobuf (3.6.1)
+    google-protobuf (3.6.1-x86_64-linux)
     graphql (1.12.24)
     hashdiff (1.1.0)
     json (2.5.1)
@@ -91,7 +92,9 @@ GEM
     yard (0.9.26)
 
 PLATFORMS
+  aarch64-linux
   ruby
+  x86_64-linux
 
 DEPENDENCIES
   appraisal (~> 2.2.0)

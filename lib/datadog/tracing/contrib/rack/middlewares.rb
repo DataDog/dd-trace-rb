@@ -4,6 +4,7 @@ require 'date'
 
 require_relative '../../../core/environment/variable_helpers'
 require_relative '../../../core/backport'
+require_relative '../../../core/remote/tie/tracing'
 require_relative '../../client_ip'
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
@@ -37,7 +38,7 @@ module Datadog
 
             return @app.call(env) if previous_request_span
 
-            Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
+            boot = Datadog::Core::Remote::Tie.boot
 
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
@@ -54,8 +55,13 @@ module Datadog
               # we must ensure that the span `resource` is set later
               request_span = Tracing.trace(Ext::SPAN_REQUEST, **trace_options)
               request_span.resource = nil
-              request_trace = Tracing.active_trace
+
+              # When tracing and distributed tracing are both disabled, `.active_trace` will be `nil`,
+              # Return a null object to continue operation
+              request_trace = Tracing.active_trace || TraceOperation.new
               env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
+
+              Datadog::Core::Remote::Tie::Tracing.tag(boot, request_span)
 
               # Copy the original env, before the rest of the stack executes.
               # Values may change; we want values before that happens.
