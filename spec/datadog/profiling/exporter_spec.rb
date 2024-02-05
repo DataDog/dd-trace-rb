@@ -54,7 +54,7 @@ RSpec.describe Datadog::Profiling::Exporter do
         {
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           worker_stats: stats,
-          gc: hash_including(:count, :time),
+          gc: hash_including(:count, :total_freed_objects),
         }
       )
     end
