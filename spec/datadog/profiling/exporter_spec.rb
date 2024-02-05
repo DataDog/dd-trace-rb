@@ -53,8 +53,10 @@ RSpec.describe Datadog::Profiling::Exporter do
         {
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           worker_stats: stats,
-          # GC stats are slightly different between ruby and jruby
-          gc: hash_including(:count, RUBY_PLATFORM != 'java' ? :total_freed_objects : :"PS MarkSweep"),
+          # GC stats are slightly different between ruby versions and jrubies. Count is always
+          # there but it's hard to find commonality across others so we'll be very lenient in
+          # our matching
+          gc: hash_including(:count),
         }
       )
     end
