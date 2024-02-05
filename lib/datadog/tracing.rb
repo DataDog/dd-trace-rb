@@ -73,8 +73,14 @@ module Datadog
       # (see Datadog::Tracing::Tracer#active_correlation)
       # @public_api
       def correlation
-        current_tracer = tracer
-        return unless current_tracer
+        # We access this in this way as:
+        # * If the components have not been initialized, it doesn't make sense to initialize ddtrace just to say
+        #   'nil' here
+        # * It prevents recursive initialization attempts, see https://github.com/DataDog/dd-trace-rb/issues/3385
+        components = Datadog.send(:components, allow_initialization: false)
+        current_tracer = components.tracer if components
+
+        return Datadog::Tracing::Correlation::Identifier.new unless current_tracer
 
         current_tracer.active_correlation
       end
