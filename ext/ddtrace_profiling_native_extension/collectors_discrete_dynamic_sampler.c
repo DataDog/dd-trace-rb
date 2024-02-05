@@ -12,7 +12,6 @@
 #define ADJUSTMENT_WINDOW_SAMPLES 100
 
 #define EMA_SMOOTHING_FACTOR 0.6
-#define EXP_MOVING_AVERAGE(last, avg, first) first ? last : (1-EMA_SMOOTHING_FACTOR) * avg + EMA_SMOOTHING_FACTOR * last
 
 void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name) {
   sampler->debug_name = debug_name;
@@ -108,6 +107,20 @@ size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sample
   return sampler->events_since_last_sample;
 }
 
+static double ewma_adj_window(double current, double avg, long current_window_time_ns, bool is_first) {
+  if (is_first) {
+    return current;
+  }
+
+  // We don't want samples coming from partial adjustment windows (e.g. preempted due to number of samples)
+  // to lead to quick "forgetting" of the past. Thus, we'll tweak the weight of this new value based on the
+  // size of the time window from which we gathered it in relation to our standard adjustment window time.
+  double fraction_of_full_window = double_min_of((double) current_window_time_ns / ADJUSTMENT_WINDOW_NS, 1);
+  double alpha = EMA_SMOOTHING_FACTOR * fraction_of_full_window;
+
+  return (1-alpha) * avg + alpha * current;
+}
+
 static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   long this_window_time_ns = sampler->last_readjust_time_ns == 0 ? ADJUSTMENT_WINDOW_NS : now - sampler->last_readjust_time_ns;
 
@@ -128,9 +141,10 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   bool first_readjustment = !sampler->has_completed_full_adjustment_window;
 
   // Update our running average of events/sec with latest observation.
-  sampler->events_per_ns = EXP_MOVING_AVERAGE(
+  sampler->events_per_ns = ewma_adj_window(
     (double) sampler->events_since_last_readjustment / this_window_time_ns,
     sampler->events_per_ns,
+    this_window_time_ns,
     first_readjustment
   );
 
@@ -140,9 +154,10 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
 
     // Lets update our average sampling time per event
     long avg_sampling_time_in_window_ns = sampler->samples_since_last_readjustment == 0 ? 0 : sampler->sampling_time_since_last_readjustment_ns / sampler->samples_since_last_readjustment;
-    sampler->sampling_time_ns = EXP_MOVING_AVERAGE(
+    sampler->sampling_time_ns = ewma_adj_window(
       avg_sampling_time_in_window_ns,
       sampler->sampling_time_ns,
+      this_window_time_ns,
       first_readjustment
     );
   }
@@ -158,9 +173,10 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   // Our overhead adjustment should always be between [-target_overhead, 0]. Higher adjustments would lead to negative overhead targets
   // which don't make much sense.
   double last_target_overhead_adjustment = -double_min_of(sampler->target_overhead, this_window_sampling_overshoot_time_ns * 100. / this_window_time_ns);
-  sampler->target_overhead_adjustment = EXP_MOVING_AVERAGE(
+  sampler->target_overhead_adjustment = ewma_adj_window(
     last_target_overhead_adjustment,
     sampler->target_overhead_adjustment,
+    this_window_time_ns,
     first_readjustment
   );
 
