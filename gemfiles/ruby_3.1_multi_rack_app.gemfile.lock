@@ -133,6 +133,7 @@ GEM
     ffi (1.16.3)
     globalid (1.2.1)
       activesupport (>= 6.1)
+    google-protobuf (3.25.2-aarch64-linux)
     google-protobuf (3.25.2-x86_64-linux)
     grape (2.0.0)
       activesupport (>= 5)
@@ -147,7 +148,10 @@ GEM
     json (2.7.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (5.0.0.1.0-aarch64-linux)
     libdatadog (5.0.0.1.0-x86_64-linux)
+    libddwaf (1.14.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     loofah (2.22.0)
@@ -178,6 +182,8 @@ GEM
     net-smtp (0.4.0.1)
       net-protocol
     nio4r (2.7.0)
+    nokogiri (1.16.2-aarch64-linux)
+      racc (~> 1.4)
     nokogiri (1.16.2-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
@@ -324,6 +330,7 @@ GEM
     zeitwerk (2.6.12)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
