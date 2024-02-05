@@ -92,7 +92,11 @@ module Datadog
             # we must ensure that the span `resource` is set later
             request_span = Tracing.trace(Ext::SPAN_REQUEST, **trace_options)
             request_span.resource = nil
-            request_trace = Tracing.active_trace
+
+            # When tracing and distributed tracing are both disabled, `.active_trace` will be `nil`,
+            # Return a null object to continue operation
+            request_trace = Tracing.active_trace || TraceOperation.new
+
             env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
             Datadog::Core::Remote::Tie::Tracing.tag(boot, request_span)
