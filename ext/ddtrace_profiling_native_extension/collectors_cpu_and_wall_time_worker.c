@@ -12,9 +12,13 @@
 #include "collectors_thread_context.h"
 #include "collectors_dynamic_sampling_rate.h"
 #include "collectors_idle_sampling_helper.h"
+#include "collectors_discrete_dynamic_sampler.h"
 #include "private_vm_api_access.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+
+// Maximum allowed value for an allocation weight. Attempts to use higher values will result in clamping.
+unsigned int MAX_ALLOC_WEIGHT = 65535;
 
 // Used to trigger the execution of Collectors::ThreadState, which implements all of the sampling logic
 // itself; this class only implements the "when to do it" part.
@@ -89,13 +93,13 @@ struct cpu_and_wall_time_worker_state {
   bool gc_profiling_enabled;
   bool no_signals_workaround_enabled;
   bool dynamic_sampling_rate_enabled;
-  int allocation_sample_every;
   bool allocation_profiling_enabled;
   VALUE self_instance;
   VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
   VALUE owner_thread;
-  dynamic_sampling_rate_state dynamic_sampling_rate;
+  dynamic_sampling_rate_state cpu_dynamic_sampling_rate;
+  discrete_dynamic_sampler allocation_sampler;
   VALUE gc_tracepoint; // Used to get gc start/finish information
   VALUE object_allocation_tracepoint; // Used to get allocation counts and allocation profiling
 
@@ -159,7 +163,6 @@ static VALUE _native_initialize(
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE dynamic_sampling_rate_overhead_target_percentage,
-  VALUE allocation_sample_every,
   VALUE allocation_profiling_enabled
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
@@ -244,7 +247,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 9);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 8);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -284,12 +287,12 @@ static VALUE _native_new(VALUE klass) {
   state->gc_profiling_enabled = false;
   state->no_signals_workaround_enabled = false;
   state->dynamic_sampling_rate_enabled = true;
-  state->allocation_sample_every = 0;
   state->allocation_profiling_enabled = false;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
-  dynamic_sampling_rate_init(&state->dynamic_sampling_rate);
+  dynamic_sampling_rate_init(&state->cpu_dynamic_sampling_rate);
+  discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation");
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
 
@@ -313,13 +316,11 @@ static VALUE _native_initialize(
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE dynamic_sampling_rate_overhead_target_percentage,
-  VALUE allocation_sample_every,
   VALUE allocation_profiling_enabled
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
-  ENFORCE_TYPE(allocation_sample_every, T_FIXNUM);
   ENFORCE_TYPE(dynamic_sampling_rate_overhead_target_percentage, T_FLOAT);
   ENFORCE_BOOLEAN(allocation_profiling_enabled);
 
@@ -329,12 +330,16 @@ static VALUE _native_initialize(
   state->gc_profiling_enabled = (gc_profiling_enabled == Qtrue);
   state->no_signals_workaround_enabled = (no_signals_workaround_enabled == Qtrue);
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
-  dynamic_sampling_rate_set_overhead_target_percentage(&state->dynamic_sampling_rate, NUM2DBL(dynamic_sampling_rate_overhead_target_percentage));
-  state->allocation_sample_every = NUM2INT(allocation_sample_every);
   state->allocation_profiling_enabled = (allocation_profiling_enabled == Qtrue);
 
-  if (state->allocation_sample_every <= 0) {
-    rb_raise(rb_eArgError, "Unexpected value for allocation_sample_every: %d. This value must be > 0.", state->allocation_sample_every);
+  double total_overhead_target_percentage = NUM2DBL(dynamic_sampling_rate_overhead_target_percentage);
+  if (!state->allocation_profiling_enabled) {
+    dynamic_sampling_rate_set_overhead_target_percentage(&state->cpu_dynamic_sampling_rate, total_overhead_target_percentage);
+  } else {
+    // TODO: May be nice to offer customization here? Distribute available "overhead" margin with a bias towards one or the other
+    // sampler.
+    dynamic_sampling_rate_set_overhead_target_percentage(&state->cpu_dynamic_sampling_rate, total_overhead_target_percentage / 2);
+    discrete_dynamic_sampler_set_overhead_target_percentage(&state->allocation_sampler, total_overhead_target_percentage / 2);
   }
 
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
@@ -387,7 +392,8 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   if (state->stop_thread == rb_thread_current()) return Qnil;
 
   // Reset the dynamic sampling rate state, if any (reminder: the monotonic clock reference may change after a fork)
-  dynamic_sampling_rate_reset(&state->dynamic_sampling_rate);
+  dynamic_sampling_rate_reset(&state->cpu_dynamic_sampling_rate);
+  discrete_dynamic_sampler_reset(&state->allocation_sampler);
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance_state = state;
@@ -560,7 +566,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
     // Note that we deliberately should NOT combine this sleep_for with the one above because the result of
     // `dynamic_sampling_rate_get_sleep` may have changed while the above sleep was ongoing.
     uint64_t extra_sleep =
-      dynamic_sampling_rate_get_sleep(&state->dynamic_sampling_rate, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE));
+      dynamic_sampling_rate_get_sleep(&state->cpu_dynamic_sampling_rate, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE));
     if (state->dynamic_sampling_rate_enabled && extra_sleep > 0) sleep_for(extra_sleep);
   }
 
@@ -600,7 +606,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
 
   long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
 
-  if (state->dynamic_sampling_rate_enabled && !dynamic_sampling_rate_should_sample(&state->dynamic_sampling_rate, wall_time_ns_before_sample)) {
+  if (state->dynamic_sampling_rate_enabled && !dynamic_sampling_rate_should_sample(&state->cpu_dynamic_sampling_rate, wall_time_ns_before_sample)) {
     state->stats.skipped_sample_because_of_dynamic_sampling_rate++;
     return Qnil;
   }
@@ -620,7 +626,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   state->stats.sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.sampling_time_ns_max);
   state->stats.sampling_time_ns_total += sampling_time_ns;
 
-  dynamic_sampling_rate_after_sample(&state->dynamic_sampling_rate, wall_time_ns_after_sample, sampling_time_ns);
+  dynamic_sampling_rate_after_sample(&state->cpu_dynamic_sampling_rate, wall_time_ns_after_sample, sampling_time_ns);
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;
@@ -931,18 +937,20 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
     return;
   }
 
+  if (state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler)) {
+    return;
+  }
+
   // @ivoanjo: Strictly speaking, this is not needed because Ruby should not call the same tracepoint while a previous
   // invocation is still pending, (e.g. it wouldn't call `on_newobj_event` while it's already running), but I decided
   // to keep this here for consistency -- every call to the thread context (other than the special gc calls which are
   // defined as not being able to allocate) sets this.
   state->during_sample = true;
 
-  // TODO: This is a placeholder sampling decision strategy. We plan to replace it with a better one soon (e.g. before
-  // beta), and having something here allows us to test the rest of feature, sampling decision aside.
-  if (allocation_count % state->allocation_sample_every == 0) {
-    // Rescue against any exceptions that happen during sampling
-    safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
-  }
+  // Rescue against any exceptions that happen during sampling
+  safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
+
+  discrete_dynamic_sampler_after_sample(&state->allocation_sampler);
 
   state->during_sample = false;
 }
@@ -974,7 +982,14 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
   rb_trace_arg_t *data = rb_tracearg_from_tracepoint(tracepoint_data);
   VALUE new_object = rb_tracearg_object(data);
 
-  thread_context_collector_sample_allocation(state->thread_context_collector_instance, state->allocation_sample_every, new_object);
+  unsigned long allocations_since_last_sample = state->dynamic_sampling_rate_enabled ?
+    // if we're doing dynamic sampling, ask the sampler how many events since last sample
+    discrete_dynamic_sampler_events_since_last_sample(&state->allocation_sampler) :
+    // if we aren't, then we're sampling every event
+    1;
+  // TODO: Signal in the profile that clamping happened?
+  unsigned int weight = allocations_since_last_sample > MAX_ALLOC_WEIGHT ? MAX_ALLOC_WEIGHT : (unsigned int) allocations_since_last_sample;
+  thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;

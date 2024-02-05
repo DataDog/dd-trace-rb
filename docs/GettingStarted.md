@@ -456,7 +456,7 @@ end
 
 | Key            | Description                                                                                                                                                                                       | Default                                    |
 |----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
-| `service_name` | Name of application running the `active_record` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | Name of database adapter (e.g. `'mysql2'`) |
+| `service_name` | Override the service name for the SQL query instrumentation. ActiveRecord instantiation instrumentation always uses the application's configured service name. | Name of database adapter (e.g. `'mysql2'`) |
 
 **Configuring trace settings per database**
 
@@ -792,7 +792,7 @@ connection.get('/foo')
 | `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                        | `nil`     |
 | `distributed_tracing` |                                 | Enables [distributed tracing](#distributed-tracing)                                                                                                                                         | `true`    |
 | `split_by_domain`     |                                 | Uses the request domain as the service name when set to `true`.                                                                                                                             | `false`   |
-| `on_error` || Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |**default: 400...600**
+| `on_error` || Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets an error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |**default: 400...600**
 | `error_status_codes`  | `DD_TRACE_FARADAY_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 ### Grape
@@ -1545,6 +1545,21 @@ customer_cache.get(...)
 invoice_cache.get(...)
 ```
 
+With a standalone `RedisClient`:
+
+```ruby
+require "redis-client"
+require "ddtrace"
+
+redis = RedisClient.config(custom: { datadog: { service_name: "my-custom-redis" } }).new_client
+
+Datadog.configure do |c|
+  c.tracing.instrument :redis # Enabling integration instrumentation is still required
+end
+
+redis.call('PING')
+```
+
 With Redis version < 5:
 
 ```ruby
@@ -2104,7 +2119,7 @@ When custom sampling is required, there are two possible strategies:
 
 2. Application-side, which can completely prevent a span from being flushed from the Ruby process, but it prevents
     [post-ingestion sampling](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_controls/) from receiving the data necessary to work correctly.
-   
+
     This strategy should only be used when the gains in performance and bandwidth reduction are essential to the system.
 
     If you are use application-side sampling, please let us know by [opening an issue on GitHub](https://github.com/DataDog/dd-trace-rb/issues/new), so we can better understand and support your use case.
@@ -2130,7 +2145,7 @@ class CustomSampler
      trace.reject!
 
      # Or
-     
+
      # 2. Do not flush span. Ingestion Controls page will be **inaccurate**.
      #    Can save processing time and bandwidth.
      #   a. Flush the span
@@ -2138,7 +2153,7 @@ class CustomSampler
      #   b. Do not flush the span
      trace.sampled = false
   end
-   
+
   # The sampling rate, if this sampler has such concept. Otherwise, `nil`.
   #
   # @param [Datadog::Tracing::TraceOperation] trace

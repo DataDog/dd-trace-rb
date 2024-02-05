@@ -13,9 +13,7 @@ module Datadog
       # Configures the HTTP transport to communicate with the agent
       # to fetch and sync the remote configuration
       class Component
-        BARRIER_TIMEOUT = 1.0 # second
-
-        attr_reader :client
+        attr_reader :client, :healthy
 
         def initialize(settings, capabilities, agent_settings)
           transport_options = {}
@@ -24,14 +22,14 @@ module Datadog
           negotiation = Negotiation.new(settings, agent_settings)
           transport_v7 = Datadog::Core::Remote::Transport::HTTP.v7(**transport_options.dup)
 
-          @barrier = Barrier.new(BARRIER_TIMEOUT)
+          @barrier = Barrier.new(settings.remote.boot_timeout_seconds)
 
           @client = Client.new(transport_v7, capabilities)
-          healthy = false
+          @healthy = false
           Datadog.logger.debug { "new remote configuration client: #{@client.id}" }
 
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds) do
-            unless healthy || negotiation.endpoint?('/v0.7/config')
+            unless @healthy || negotiation.endpoint?('/v0.7/config')
               @barrier.lift
 
               next
@@ -39,7 +37,7 @@ module Datadog
 
             begin
               @client.sync
-              healthy ||= true
+              @healthy ||= true
             rescue Client::SyncError => e
               Datadog.logger.error do
                 "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
@@ -57,7 +55,7 @@ module Datadog
 
               # client state is unknown, state might be corrupted
               @client = Client.new(transport_v7, capabilities)
-              healthy = false
+              @healthy = false
               Datadog.logger.debug { "new remote configuration client: #{@client.id}" }
 
               # TODO: bail out if too many errors?
@@ -103,17 +101,32 @@ module Datadog
           def wait_once(timeout = nil)
             # TTAS (Test and Test-And-Set) optimisation
             # Since @once only ever goes from false to true, this is semantically valid
-            return if @once
+            return :pass if @once
 
             begin
               @mutex.lock
 
-              return if @once
+              return :pass if @once
 
               timeout ||= @timeout
 
-              # rbs/core has a bug, timeout type is incorrectly ?Integer
-              @condition.wait(@mutex, _ = timeout)
+              # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
+              #   timeout and an integer otherwise
+              # - before Ruby 3.2, ConditionVariable returns itself
+              # so we have to rely on @once having been set
+              if RUBY_VERSION >= '3.2'
+                lifted = @condition.wait(@mutex, timeout)
+              else
+                @condition.wait(@mutex, timeout)
+                lifted = @once
+              end
+
+              if lifted
+                :lift
+              else
+                @once = true
+                :timeout
+              end
             ensure
               @mutex.unlock
             end

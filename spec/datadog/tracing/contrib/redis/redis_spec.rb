@@ -68,37 +68,68 @@ RSpec.describe 'Redis test' do
       end
     end
 
-    context 'with custom configuration', skip: Gem::Version.new(::Redis::VERSION) < Gem::Version.new('5.0.0') do
+    context 'with custom configuration at the instance level' do
       let(:redis) { Redis.new(redis_options.freeze) }
 
-      context 'with service_name as `custom`' do
-        let(:redis_options) do
-          default_redis_options.merge(
-            custom: {
-              datadog: {
-                service_name: 'custom'
-              }
-            }
-          )
-        end
+      context(
+        'when working with Redis < 5',
+        skip: Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0')
+      ) do
+        context 'when supplying custom configuration via `Datadog.configure_onto`' do
+          before { Datadog.configure_onto(redis, **tracing_options) }
 
-        it_behaves_like 'redis instrumentation', service_name: 'custom'
-        it_behaves_like 'an authenticated redis instrumentation', service_name: 'custom'
+          let(:redis_options) { default_redis_options }
+
+          context 'with service_name as `custom`' do
+            let(:tracing_options) { { service_name: 'custom' } }
+
+            it_behaves_like 'redis instrumentation', service_name: 'custom'
+            it_behaves_like 'an authenticated redis instrumentation', service_name: 'custom'
+          end
+
+          context 'with command_args as `true`' do
+            let(:tracing_options) { { command_args: true } }
+
+            it_behaves_like 'redis instrumentation', command_args: true
+            it_behaves_like 'an authenticated redis instrumentation', command_args: true
+          end
+        end
       end
 
-      context 'with command_args as `true`' do
-        let(:redis_options) do
-          default_redis_options.merge(
-            custom: {
-              datadog: {
-                command_args: true
-              }
-            }
-          )
+      context(
+        'when working with Redis >= 5',
+        skip: Gem::Version.new(::Redis::VERSION) < Gem::Version.new('5.0.0')
+      ) do
+        context 'when attempting to supply configuration via Datadog.configure_onto' do
+          let(:redis_options) { default_redis_options }
+
+          it 'logs a warning about non-supported usage of Datadog.configure_onto' do
+            expect(Datadog.logger)
+              .to receive(:warn)
+              .with(/`Datadog\.configure_onto\(redis\)` is not supported on Redis 5+/)
+            Datadog.configure_onto(redis, service_name: 'custom')
+          end
         end
 
-        it_behaves_like 'redis instrumentation', command_args: true
-        it_behaves_like 'an authenticated redis instrumentation', command_args: true
+        context 'when supplying custom configuration via Redis 5 custom API' do
+          let(:redis_options) do
+            default_redis_options.merge(custom: { datadog: tracing_options })
+          end
+
+          context 'with service_name as `custom`' do
+            let(:tracing_options) { { service_name: 'custom' } }
+
+            it_behaves_like 'redis instrumentation', service_name: 'custom'
+            it_behaves_like 'an authenticated redis instrumentation', service_name: 'custom'
+          end
+
+          context 'with command_args as `true`' do
+            let(:tracing_options) { { command_args: true } }
+
+            it_behaves_like 'redis instrumentation', command_args: true
+            it_behaves_like 'an authenticated redis instrumentation', command_args: true
+          end
+        end
       end
     end
   end

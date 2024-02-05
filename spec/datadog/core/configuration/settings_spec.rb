@@ -570,36 +570,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#experimental_allocation_sample_rate' do
-        subject(:experimental_allocation_sample_rate) { settings.profiling.advanced.experimental_allocation_sample_rate }
-
-        context 'when DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_ALLOCATION_SAMPLE_RATE' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be 50 }
-          end
-
-          context 'is defined as 100' do
-            let(:environment) { '100' }
-
-            it { is_expected.to eq(100) }
-          end
-        end
-      end
-
       describe '#experimental_allocation_sample_rate=' do
-        it 'updates the #experimental_allocation_sample_rate setting' do
-          expect { settings.profiling.advanced.experimental_allocation_sample_rate = 100 }
-            .to change { settings.profiling.advanced.experimental_allocation_sample_rate }
-            .from(50)
-            .to(100)
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
+
+          settings.profiling.advanced.experimental_allocation_sample_rate = 0
         end
       end
 
@@ -1566,6 +1541,39 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.remote.poll_interval_seconds }
           .from(5.0)
           .to(1.0)
+      end
+    end
+
+    describe '#boot_timeout_seconds' do
+      subject(:enabled) { settings.remote.boot_timeout_seconds }
+
+      context "when #{Datadog::Core::Remote::Ext::ENV_BOOT_TIMEOUT_SECONDS}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Remote::Ext::ENV_BOOT_TIMEOUT_SECONDS => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to eq 1.0 }
+        end
+
+        context 'is defined' do
+          let(:environment) { '2' }
+
+          it { is_expected.to eq 2.0 }
+        end
+      end
+    end
+
+    describe '#boot_timeout_seconds=' do
+      it 'updates the #boot_timeout_seconds setting' do
+        expect { settings.remote.boot_timeout_seconds = 2.0 }
+          .to change { settings.remote.boot_timeout_seconds }
+          .from(1.0)
+          .to(2.0)
       end
     end
 

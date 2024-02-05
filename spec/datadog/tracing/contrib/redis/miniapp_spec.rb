@@ -5,18 +5,25 @@ require 'time'
 require 'redis'
 require 'ddtrace'
 
-RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0') do
+RSpec.describe 'Redis mini app test' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   before do
     Datadog.configure { |c| c.tracing.instrument :redis }
-
-    # Configure redis instance with custom options
-    Datadog.configure_onto(redis, service_name: 'test-service')
   end
 
   let(:redis_options) { { host: host, port: port } }
-  let(:redis) { Redis.new(redis_options.freeze) }
+  let(:redis) do
+    # Redis instance with custom options
+    if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0')
+      custom_options = { custom: { datadog: { service_name: 'test-service' } } }
+      Redis.new(redis_options.merge(custom_options).freeze)
+    else
+      Redis.new(redis_options.freeze).tap do |redis|
+        Datadog.configure_onto(redis, service_name: 'test-service')
+      end
+    end
+  end
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
@@ -31,9 +38,9 @@ RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >
           subspan.service = 'datalayer'
           subspan.resource = 'home'
           redis.get 'data1'
-          redis.pipelined do
-            redis.set 'data2', 'something'
-            redis.get 'data2'
+          redis.pipelined do |pipeline|
+            pipeline.set 'data2', 'something'
+            pipeline.get 'data2'
           end
         end
       end
