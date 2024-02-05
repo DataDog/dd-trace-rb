@@ -301,7 +301,7 @@ static VALUE _native_reset(VALUE self, VALUE now);
 static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_overhead, VALUE now);
 static VALUE _native_should_sample(VALUE self, VALUE now);
 static VALUE _native_after_sample(VALUE self, VALUE now);
-static VALUE _native_probability(VALUE self);
+static VALUE _native_state_snapshot(VALUE self);
 
 typedef struct sampler_state {
   discrete_dynamic_sampler sampler;
@@ -319,7 +319,7 @@ void collectors_discrete_dynamic_sampler_init(VALUE profiling_module) {
   rb_define_method(sampler_class, "_native_set_overhead_target_percentage", _native_set_overhead_target_percentage, 2);
   rb_define_method(sampler_class, "_native_should_sample", _native_should_sample, 1);
   rb_define_method(sampler_class, "_native_after_sample", _native_after_sample, 1);
-  rb_define_method(sampler_class, "_native_probability", _native_probability, 0);
+  rb_define_method(sampler_class, "_native_state_snapshot", _native_state_snapshot, 0);
 }
 
 static const rb_data_type_t sampler_typed_data = {
@@ -379,9 +379,9 @@ VALUE _native_after_sample(VALUE self, VALUE now_ns) {
   return LONG2NUM(_discrete_dynamic_sampler_after_sample(&state->sampler, NUM2LONG(now_ns)));
 }
 
-VALUE _native_probability(VALUE self) {
+VALUE _native_state_snapshot(VALUE self) {
   sampler_state *state;
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
 
-  return DBL2NUM(discrete_dynamic_sampler_probability(&state->sampler));
+  return discrete_dynamic_sampler_state_snapshot(&state->sampler);
 }
