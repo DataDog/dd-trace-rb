@@ -346,7 +346,7 @@ namespace :spec do
   task all: [:main, :benchmark,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-             :profiling]
+             :profiling, :routetest]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -381,7 +381,7 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
-  # desc '' # "Explicitly hiding from `rake -T`"
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:routetest) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rack/http_route_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
