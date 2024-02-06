@@ -7,7 +7,6 @@ module Datadog
         def log_error!: (untyped prefix, untyped type, untyped error) -> untyped
 
         def logger: () -> untyped
-        def log_once!: () ?{ () -> untyped } -> (false | untyped)
         def log?: () -> untyped
 
         REPL_PROGRAM_NAMES: ::Array["irb" | "pry"]

@@ -38,11 +38,11 @@ RSpec.describe Datadog::Profiling::Diagnostics::EnvironmentLogger do
     end
 
     context 'with multiple invocations' do
-      it 'executes only once' do
+      it 'executes multiple times' do
         env_logger.collect_and_log!
         env_logger.collect_and_log!
 
-        expect(logger).to have_received(:info).once
+        expect(logger).to have_received(:info).twice
       end
     end
 
