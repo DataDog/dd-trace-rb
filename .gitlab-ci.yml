@@ -74,8 +74,6 @@ promote-image:
 
 .install-base-ruby-gems:
   image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-$ARCHITECTURE:current
-  needs:
-    - check-gem-presence
   stage: package
   rules:
     - if: $RUBY_PACKAGE_VERSION
@@ -121,7 +119,6 @@ install-version-dependant-gems-amd64:
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-amd64:current
   tags: [ "runner:main" ]
   needs:
-    - check-gem-presence
     - install-base-ruby-gems-amd64
 
 install-version-dependant-gems-arm64:
@@ -129,24 +126,11 @@ install-version-dependant-gems-arm64:
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-arm64:current
   tags: [ "arch:arm64" ]
   needs:
-    - check-gem-presence
     - install-base-ruby-gems-arm64
-
-check-gem-presence:
-  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-amd64:current
-  rules:
-    - if: $RUBY_PACKAGE_VERSION
-      when: on_success
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
-      when: on_success
-  stage: package
-  script:
-    -  .gitlab/check_gem_presence.sh
 
 package:
   extends: .package
   needs:
-    - check-gem-presence
     - install-version-dependant-gems-amd64
     - install-base-ruby-gems-amd64
   rules:
@@ -161,7 +145,6 @@ package:
 package-arm:
   extends: .package-arm
   needs:
-    - check-gem-presence
     - install-version-dependant-gems-arm64
     - install-base-ruby-gems-arm64
   rules:
