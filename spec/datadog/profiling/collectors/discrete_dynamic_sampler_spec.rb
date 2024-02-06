@@ -6,7 +6,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
 
   before do
     skip_if_profiling_not_supported(self)
-    @now = Time.now.to_f
+    @now = Time.now.to_r
   end
 
   subject!(:sampler) do
@@ -15,10 +15,22 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     sampler
   end
 
+  def to_ns(secs)
+    (secs * 1e9).to_i
+  end
+
+  def to_sec(ns)
+    (ns / 1e9)
+  end
+
   def maybe_sample(sampling_seconds:)
-    start_ns = (@now * 1e9).to_i
-    end_ns = start_ns + (sampling_seconds * 1e9).to_i
-    sampler._native_after_sample(end_ns) / 1e9 if sampler._native_should_sample(start_ns)
+    sampled = false
+    if sampler._native_should_sample(to_ns(@now))
+      sampler._native_after_sample(to_ns(@now + sampling_seconds))
+      @now += sampling_seconds
+      sampled = true
+    end
+    sampled
   end
 
   def simulate_load(duration_seconds:, events_per_second:, sampling_seconds:)
@@ -31,14 +43,13 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       # We update time at the beginning on purpose to force the last event to
       # occur at the end of the specified duration window. In other words, we
       # consciously go with end-aligned allocations in these simulated loads
-      # so that it's easier to force
+      # so that it's easier to force an adjustment to occur at the end of it.
       @now += time_between_events
-      sampling_time = maybe_sample(sampling_seconds: sampling_seconds)
-      next if sampling_time.nil?
+      sampled = maybe_sample(sampling_seconds: sampling_seconds)
+      next unless sampled
 
       num_samples += 1
-      total_sampling_seconds += sampling_time
-      @now += sampling_time
+      total_sampling_seconds += sampling_seconds
     end
     {
       sampling_ratio: num_samples.to_f / num_events,
@@ -255,9 +266,9 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     # time for us to be able to take that probing hit assuming things remain the same. Each adjustment window
     # with no sampling activity earns us 0.02 seconds of budget. Therefore we need 4 of these to go by before
     # we see the next probing sample.
-    stats = simulate_load(duration_seconds: 3, events_per_second: 4, sampling_seconds: 2)
+    stats = simulate_load(duration_seconds: 3, events_per_second: 4, sampling_seconds: 0.08)
     expect(stats[:num_samples]).to eq(0)
-    stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 2)
+    stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 0.08)
     expect(stats[:num_samples]).to eq(1)
   end
 
@@ -295,5 +306,21 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
 
       expect(sampler._native_error).to eq('failed to get clock time')
     end
+  end
+
+  it "a weird hiccup shouldn't be able to disable sampling for whole minutes" do
+    # A normal load
+    simulate_load(duration_seconds: 60, events_per_second: 50, sampling_seconds: 0.0001)
+
+    # Followed by a a single super weird sampling event that takes an apparent 1000 seconds to complete
+    # (e.g. due to a process suspension)
+    maybe_sample(sampling_seconds: 1000)
+
+    # Followed by another normal load
+    stats = simulate_load(duration_seconds: 60, events_per_second: 50, sampling_seconds: 0.001)
+
+    # We expect the weird sample to not prevent us from sampling at least 1 sample per second from
+    # the above load
+    expect(stats[:num_samples]).to be >= 60
   end
 end

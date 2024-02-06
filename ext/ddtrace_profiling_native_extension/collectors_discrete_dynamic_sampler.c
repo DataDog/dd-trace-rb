@@ -245,8 +245,9 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
 
   double max_allowed_time_for_sampling_ns = window_time_ns * (target_overhead / 100.);
 
-  if (max_allowed_time_for_sampling_ns == 0) {
-    // if we aren't allowed any sampling time at all, probability has to be 0
+  if (max_allowed_time_for_sampling_ns == 0 || working_window_time_ns == 0) {
+    // if we aren't allowed any sampling time at all or if data suggests app would have no working time at all,
+    // probability has to be 0
     sampler->sampling_probability = 0;
   } else {
     // otherwise apply the formula described above (protecting against div by 0)
