@@ -168,8 +168,12 @@ module Datadog
               integration
             end
 
-            # TODO: Deprecate in the next major version, as `instrument` better describes this method's purpose
-            alias_method :use, :instrument
+            def use(integration_name, options = {}, &block)
+              Core.log_deprecation do
+                'Configuration with `use` has been deprecated, replace with `instrument` instead.'
+              end
+              instrument(integration_name, options, &block)
+            end
 
             # For the provided `integration_name`, resolves a matching configuration
             # for the provided integration from an integration-specific `key`.
