@@ -39,6 +39,8 @@ gem_version_mapping.each do |gem, version|
   when "ddtrace"
     env["DD_PROFILING_NO_EXTENSION"] = "true"
     gem_install_cmd << "--install-dir #{versioned_path} "
+
+    # gem install --local pkg/ddtrace-xxx.gem
   when "msgpack"
     gem_install_cmd << "--install-dir #{versioned_path} "
   else
