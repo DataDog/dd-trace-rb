@@ -256,18 +256,21 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 0.08)
     expect(sampler_current_probability).to eq(0)
 
-    # Since that initial readjustment set probability to 0, all events in the next window will be ignored but
-    # ideally we should slowly relax this over time otherwise probability = 0 would be a terminal state (if we
+    # Since that initial readjustment set probability to 0, all events in the next window will be ignored
+    stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 0.08)
+    expect(stats[:num_samples]).to eq(0)
+
+    # Ideally we should slowly relax this over time otherwise probability = 0 would be a terminal state (if we
     # never sample again, we'll be "stuck" with the same sampling overhead view that determined probability = 0
     # in the first place since no new sampling data came in). Because of that, over a large enough window, we
     # should get some "are things still as bad as before?" probing samples.
     #
     # Question is: how long do we have to wait for probing samples? Intuitively, we need to build enough budget over
     # time for us to be able to take that probing hit assuming things remain the same. Each adjustment window
-    # with no sampling activity earns us 0.02 seconds of budget. Therefore we need 4 of these to go by before
-    # we see the next probing sample.
-    stats = simulate_load(duration_seconds: 3, events_per_second: 4, sampling_seconds: 0.08)
-    expect(stats[:num_samples]).to eq(0)
+    # with no sampling activity earns us 0.02 seconds of budget. Therefore in theory we'd need 4 of these windows
+    # to go by before we see the next probing sample. However, with our new minimum sampling target, we are actually
+    # clamping the 0.08 sampling_seconds for an individual event to just 0.02 so we expect to see a sample in the next
+    # window already
     stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 0.08)
     expect(stats[:num_samples]).to eq(1)
   end

@@ -10,6 +10,13 @@
 
 #define ADJUSTMENT_WINDOW_NS SECONDS_AS_NS(1)
 #define ADJUSTMENT_WINDOW_SAMPLES 100
+// Any average sampling times above this value will be clamped to this value.
+// In practice, this limits the budget consumption of a single sample to that of an adjustment window,
+// thus aiming for a minimum sample rate of once per adjustment window (dependent on actual event rate).
+// NOTE: This is our main strategy to deal with timing hiccups such as those that can be caused by
+//       suspensions, system overloads and other things that could lead to arbitrarily big sampling
+//       time measurements.
+#define MAX_ALLOWED_SAMPLING_NS(target_overhead) (long) (ADJUSTMENT_WINDOW_NS * target_overhead / 100.)
 
 #define EMA_SMOOTHING_FACTOR 0.6
 
@@ -35,6 +42,7 @@ static void _discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, l
     // This fake readjustment will use a hardcoded sampling interval
     .sampling_interval = BASE_SAMPLING_INTERVAL,
     .sampling_probability = 1.0 / BASE_SAMPLING_INTERVAL,
+    .max_sampling_time_ns = MAX_ALLOWED_SAMPLING_NS(target_overhead),
     // But we want to make sure we sample at least once in the next window so that our first
     // real readjustment has some notion of how heavy sampling is. Therefore, we'll make it so that
     // the next event is automatically sampled by artificially locating it in the interval threshold.
@@ -178,6 +186,15 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
 
     // Lets update our average sampling time per event
     long avg_sampling_time_in_window_ns = sampler->samples_since_last_readjustment == 0 ? 0 : sampler->sampling_time_since_last_readjustment_ns / sampler->samples_since_last_readjustment;
+    if (avg_sampling_time_in_window_ns > sampler->max_sampling_time_ns) {
+      // If the average sampling time in the previous window was deemed unnacceptable, clamp it to the
+      // maximum acceptable value and register this operation in our counter.
+      // NOTE: This is important so that events like suspensions or system overloads do not lead us to
+      //       learn arbitrarily big sampling times which may then result in us not sampling anything
+      //       for very long periods of time.
+      avg_sampling_time_in_window_ns = sampler->max_sampling_time_ns;
+      sampler->sampling_time_clamps++;
+    }
     sampler->sampling_time_ns = ewma_adj_window(
       avg_sampling_time_in_window_ns,
       sampler->sampling_time_ns,
@@ -302,12 +319,14 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
     fprintf(stderr, "sampling_window_time_ns=%ld\n", sampling_window_time_ns);
     fprintf(stderr, "working_window_time_ns=%ld\n", working_window_time_ns);
     fprintf(stderr, "time_to_sample_all_events_ns=%ld\n", time_to_sample_all_events_ns);
-    fprintf(stderr, "max_allowed_time_for_sampling_ns=%f\n", max_allowed_time_for_sampling_ns);
+    fprintf(stderr, "max_allowed_time_for_sampling_ns=%ld\n", (long) max_allowed_time_for_sampling_ns);
     fprintf(stderr, "\n");
     fprintf(stderr, "expected allocs in 60s=%f\n", allocs_in_60s);
     fprintf(stderr, "expected samples in 60s=%f\n", samples_in_60s);
     fprintf(stderr, "expected sampling time in 60s=%f (previous real=%f)\n", expected_total_sampling_time_in_60s, real_total_sampling_time_in_60s);
     fprintf(stderr, "expected max overhead in 60s=%f\n", target_overhead / 100.0 * 60);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "sampling_time_clamps=%zu\n", sampler->sampling_time_clamps);
     fprintf(stderr, "-------\n");
   #endif
 
@@ -328,6 +347,8 @@ VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler)
     ID2SYM(rb_intern("sampling_probability")),            /* => */ DBL2NUM(sampler->sampling_probability * 100),
     ID2SYM(rb_intern("events_since_last_readjustment")),  /* => */ ULONG2NUM(sampler->events_since_last_readjustment),
     ID2SYM(rb_intern("samples_since_last_readjustment")), /* => */ ULONG2NUM(sampler->samples_since_last_readjustment),
+    ID2SYM(rb_intern("max_sampling_time_ns")),            /* => */ LONG2NUM(sampler->max_sampling_time_ns),
+    ID2SYM(rb_intern("sampling_time_clamps")),            /* => */ ULONG2NUM(sampler->sampling_time_clamps),
   };
   VALUE hash = rb_hash_new();
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
