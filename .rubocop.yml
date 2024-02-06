@@ -457,7 +457,6 @@ Naming/FileName:
     - CRuby
     - GC
     - OpenTelemetry
-    - OpenTracer
     - VM
     - SDK
     - GraphQL
