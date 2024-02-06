@@ -30,7 +30,6 @@ RSpec.describe 'Multi-app testing for http.route' do
   end
 
   shared_context 'multi-app' do
-
     let(:app) do
       apps_to_build = apps
 
@@ -60,7 +59,7 @@ RSpec.describe 'Multi-app testing for http.route' do
     let(:rack_app) do
       Rack::Builder.new do
         map '/hello/world' do
-          run -> (env) { [200, { 'content-type' => 'text/plain' }, 'hello world'] }
+          run ->(_env) { [200, { 'content-type' => 'text/plain' }, 'hello world'] }
         end
       end
     end
@@ -68,7 +67,7 @@ RSpec.describe 'Multi-app testing for http.route' do
     let(:sinatra_app) do
       Class.new(Sinatra::Application) do
         get '/hello/world' do
-          "hello world"
+          'hello world'
         end
 
         get '/hello/:id' do
@@ -90,25 +89,26 @@ RSpec.describe 'Multi-app testing for http.route' do
 
     let(:rails_app) do
       Class.new(Rails::Engine) do
-        class HelloController < ActionController::Base
-          unless method_defined?(:world)
-            define_method(:world) do
-              render plain: 'Hello, world!'
-            end
-          end
-
-          unless method_defined?(:show)
-            define_method(:show) do
-              render plain: "Hello, #{params[:id]}!"
-            end
-          end
-        end
-
         routes.draw do
-          get "/hello/world" => "hello#world"
-          get "/hello/:id" => "hello#show"
+          get '/hello/world' => 'hello#world'
+          get '/hello/:id' => 'hello#show'
         end
       end
+    end
+
+    before do
+      stub_const(
+        'HelloController',
+        Class.new(ActionController::Base) do
+          def world
+            render plain: 'Hello, world!'
+          end
+
+          def show
+            render plain: "Hello, #{params[:id]}!"
+          end
+        end
+      )
     end
   end
 
@@ -121,11 +121,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/hello/world')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/hello/world')
+
+          break
         end
       end
     end
@@ -136,11 +136,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/rack/hello/world')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/rack/hello/world')
+
+          break
         end
       end
     end
@@ -151,11 +151,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/sinatra/hello/world')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            next
-          end
+          expect(span.get_tag('http.route')).to eq('/sinatra/hello/world')
+
+          next
         end
       end
     end
@@ -166,11 +166,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/sinatra/hello/:id')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/sinatra/hello/:id')
+
+          break
         end
       end
     end
@@ -181,11 +181,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/grape/hello/world')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/grape/hello/world')
+
+          break
         end
       end
     end
@@ -196,11 +196,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/grape/hello/:id')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/grape/hello/:id')
+
+          break
         end
       end
     end
@@ -211,11 +211,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/rails/hello/world')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/rails/hello/world')
+
+          break
         end
       end
     end
@@ -226,11 +226,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/rails/hello/:id')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/rails/hello/:id')
+
+          break
         end
       end
     end
@@ -245,11 +245,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/rack/sinatra/hello/world')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/rack/sinatra/hello/world')
+
+          break
         end
       end
     end
@@ -260,11 +260,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/rack/sinatra/hello/:id')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/rack/sinatra/hello/:id')
+
+          break
         end
       end
     end
@@ -275,11 +275,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/rack/grape/hello/world')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/rack/grape/hello/world')
+
+          break
         end
       end
     end
@@ -290,11 +290,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/rack/grape/hello/:id')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/rack/grape/hello/:id')
+
+          break
         end
       end
     end
@@ -305,11 +305,11 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/rack/rails/hello/world')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/rack/rails/hello/world')
+
+          break
         end
       end
     end
@@ -320,14 +320,13 @@ RSpec.describe 'Multi-app testing for http.route' do
       it do
         is_expected.to be_ok
         spans.each do |span|
-          if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
-            expect(span.get_tag('http.route')).to eq('/rack/rails/hello/:id')
+          next unless span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
 
-            break
-          end
+          expect(span.get_tag('http.route')).to eq('/rack/rails/hello/:id')
+
+          break
         end
       end
     end
   end
-
 end
