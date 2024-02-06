@@ -9,7 +9,6 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
   let(:endpoint_collection_enabled) { true }
   let(:gc_profiling_enabled) { true }
-  let(:allocation_sample_every) { 50 }
   let(:allocation_profiling_enabled) { false }
   let(:heap_profiling_enabled) { false }
   let(:recorder) do
@@ -24,7 +23,6 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       no_signals_workaround_enabled: no_signals_workaround_enabled,
       thread_context_collector: build_thread_context_collector(recorder),
       dynamic_sampling_rate_overhead_target_percentage: 2.0,
-      allocation_sample_every: allocation_sample_every,
       allocation_profiling_enabled: allocation_profiling_enabled,
       **options
     }
@@ -444,11 +442,13 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
     context 'when allocation profiling is enabled' do
       let(:allocation_profiling_enabled) { true }
       let(:test_num_allocated_object) { 123 }
-      # Sample all allocations to get easy-to-reason about numbers that are also not flaky in CI.
-      let(:allocation_sample_every) { 1 }
+      # Explicitly disable dynamic sampling in these tests so we can deterministically verify
+      # sample counts.
+      let(:options) { { dynamic_sampling_rate_enabled: false } }
 
       before do
         allow(Datadog.logger).to receive(:warn)
+        expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
 
       it 'records allocated objects' do
@@ -555,11 +555,13 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       let(:allocation_profiling_enabled) { true }
       let(:heap_profiling_enabled) { true }
       let(:test_num_allocated_object) { 123 }
-      # Sample all allocations to get easy-to-reason about numbers that are also not flaky in CI.
-      let(:allocation_sample_every) { 1 }
+      # Explicitly disable dynamic sampling in these tests so we can deterministically verify
+      # sample counts.
+      let(:options) { { dynamic_sampling_rate_enabled: false } }
 
       before do
         allow(Datadog.logger).to receive(:warn)
+        expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
 
       it 'records live heap objects' do

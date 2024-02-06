@@ -13,6 +13,7 @@ module Datadog
                 mysql2
                 activerecord-jdbcpostgresql-adapter
                 activerecord-jdbcmysql-adapter
+                activerecord-trilogy-adapter
               ].each do |adapter|
                 begin
                   require adapter
@@ -21,6 +22,8 @@ module Datadog
                     connector = postgres_url
                   elsif adapter.include?('mysql')
                     connector = mysql_url
+                  elsif adapter == 'activerecord-trilogy-adapter'
+                    connector = mysql_url('trilogy')
                   end
                 rescue LoadError
                   puts "#{adapter} gem not found, trying another connector"
@@ -47,9 +50,9 @@ module Datadog
               }
             end
 
-            def mysql_url
+            def mysql_url(protocol = 'mysql2')
               hash = mysql_hash
-              "mysql2://root:#{hash[:password]}@#{hash[:host]}:#{hash[:port]}/#{hash[:database]}"
+              "#{protocol}://root:#{hash[:password]}@#{hash[:host]}:#{hash[:port]}/#{hash[:database]}"
             end
 
             def mysql_hash

@@ -8,7 +8,10 @@
 # This file activates the integrations of all OpenTelemetry
 # components supported by Datadog.
 
+# Load Tracing
 require_relative 'tracing'
+require_relative 'tracing/contrib'
+
 require_relative 'opentelemetry/api/context'
 
 # DEV: Should this be a Contrib integration, that depends on the `opentelemetry-sdk`
