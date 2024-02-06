@@ -33,6 +33,9 @@ typedef struct discrete_dynamic_sampler {
   // NOTE: This is an inverted view of the probability.
   // NOTE: A value of 0 works as +inf, effectively disabling sampling (to align with probability=0)
   unsigned long sampling_interval;
+  // If this sampler is in an error state, this field contains the error reason.
+  // Otherwise, NULL.
+  const char* error;
 
   // -- Sampling State --
   // How many events have we seen since we last decided to sample.
@@ -90,7 +93,13 @@ double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler);
 // Retrieve the current number of events seen since last sample.
 unsigned long discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler);
 
+// Returns an error message if the provided sampler is in error state. Otherwise returns NULL.
+const char* discrete_dynamic_sampler_error(discrete_dynamic_sampler *sampler);
+
 // Return a Ruby hash containing a snapshot of this sampler's interesting state at calling time.
 // WARN: This allocates in the Ruby VM and therefore should not be called without the
 //       VM lock or during GC.
 VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler);
+
+// Testing-only function to force a failure mode on the provided sampler.
+void discrete_dynamic_sampler_testing_force_fail(discrete_dynamic_sampler *sampler);

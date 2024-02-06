@@ -260,4 +260,40 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 2)
     expect(stats[:num_samples]).to eq(1)
   end
+
+  context 'with failing clock' do
+    @now = 0
+
+    after do
+      # After entering failing mode we expect no further sampling to occur
+      stats = simulate_load(duration_seconds: 20, events_per_second: 4, sampling_seconds: 0.001)
+      expect(stats[:num_samples]).to eq(0)
+    end
+
+    it 'enters failure mode on should_sample call' do
+      expect(sampler._native_error).to be(nil)
+
+      should_sample = sampler._native_should_sample(0)
+
+      expect(should_sample).to be(false)
+      expect(sampler._native_error).to eq('failed to get clock time')
+    end
+
+    it 'enters failure mode on after_sample call' do
+      sampler._native_should_sample(123)
+      expect(sampler._native_error).to be(nil)
+
+      sampler._native_after_sample(0)
+
+      expect(sampler._native_error).to eq('failed to get clock time')
+    end
+
+    it 'enters failure mode on reset call' do
+      expect(sampler._native_error).to be(nil)
+
+      sampler._native_set_overhead_target_percentage(3.0, 0)
+
+      expect(sampler._native_error).to eq('failed to get clock time')
+    end
+  end
 end

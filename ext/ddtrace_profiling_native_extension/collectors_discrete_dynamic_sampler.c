@@ -13,6 +13,9 @@
 
 #define EMA_SMOOTHING_FACTOR 0.6
 
+#define ERR_CLOCK_FAIL "failed to get clock time"
+#define ERR_TEST "test failure"
+
 void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name) {
   sampler->debug_name = debug_name;
   discrete_dynamic_sampler_set_overhead_target_percentage(sampler, BASE_OVERHEAD_PCT);
@@ -28,6 +31,7 @@ static void _discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, l
     // to compute stats. Otherwise, we'd readjust on the next event that comes and thus be operating
     // with very incomplete information
     .last_readjust_time_ns = now_ns,
+    .error = now_ns > 0 ? NULL : ERR_CLOCK_FAIL,
     // This fake readjustment will use a hardcoded sampling interval
     .sampling_interval = BASE_SAMPLING_INTERVAL,
     .sampling_probability = 1.0 / BASE_SAMPLING_INTERVAL,
@@ -59,6 +63,14 @@ void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sa
 static void maybe_readjust(discrete_dynamic_sampler *sampler, long now);
 
 static bool _discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler, long now_ns) {
+  if (now_ns <= 0) {
+    sampler->error = ERR_CLOCK_FAIL;
+  }
+
+  if (sampler->error) {
+    return false;
+  }
+
   // For efficiency reasons we don't do true random sampling but rather systematic
   // sampling following a sample interval/skip. This can be biased and hide patterns
   // but the dynamic interval and rather indeterministic pattern of allocations in
@@ -83,6 +95,14 @@ bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler) {
 }
 
 static long _discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler, long now_ns) {
+  if (now_ns <= 0) {
+    sampler->error = ERR_CLOCK_FAIL;
+  }
+
+  if (sampler->error) {
+    return false;
+  }
+
   long last_sampling_time_ns = sampler->sample_start_time_ns == 0 ? 0 : long_max_of(0, now_ns - sampler->sample_start_time_ns);
   sampler->samples_since_last_readjustment++;
   sampler->sampling_time_since_last_readjustment_ns += last_sampling_time_ns;
@@ -105,6 +125,10 @@ double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler) {
 
 size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler) {
   return sampler->events_since_last_sample;
+}
+
+const char* discrete_dynamic_sampler_error(discrete_dynamic_sampler *sampler) {
+  return sampler->error;
 }
 
 static double ewma_adj_window(double current, double avg, long current_window_time_ns, bool is_first) {
@@ -309,6 +333,10 @@ VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler)
   return hash;
 }
 
+void discrete_dynamic_sampler_testing_force_fail(discrete_dynamic_sampler *sampler) {
+  sampler->error = ERR_TEST;
+}
+
 // ---
 // Below here is boilerplate to expose the above code to Ruby so that we can test it with RSpec as usual.
 
@@ -318,6 +346,7 @@ static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_ove
 static VALUE _native_should_sample(VALUE self, VALUE now);
 static VALUE _native_after_sample(VALUE self, VALUE now);
 static VALUE _native_state_snapshot(VALUE self);
+static VALUE _native_error(VALUE self);
 
 typedef struct sampler_state {
   discrete_dynamic_sampler sampler;
@@ -336,6 +365,7 @@ void collectors_discrete_dynamic_sampler_init(VALUE profiling_module) {
   rb_define_method(sampler_class, "_native_should_sample", _native_should_sample, 1);
   rb_define_method(sampler_class, "_native_after_sample", _native_after_sample, 1);
   rb_define_method(sampler_class, "_native_state_snapshot", _native_state_snapshot, 0);
+  rb_define_method(sampler_class, "_native_error", _native_error, 0);
 }
 
 static const rb_data_type_t sampler_typed_data = {
@@ -400,4 +430,17 @@ VALUE _native_state_snapshot(VALUE self) {
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
 
   return discrete_dynamic_sampler_state_snapshot(&state->sampler);
+}
+
+VALUE _native_error(VALUE self) {
+  sampler_state *state;
+  TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
+
+  const char *error = discrete_dynamic_sampler_error(&state->sampler);
+
+  if (error == NULL) {
+    return Qnil;
+  }
+
+  return rb_str_new_cstr(error);
 }

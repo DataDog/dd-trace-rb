@@ -180,6 +180,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread);
 static VALUE stop(VALUE self_instance, VALUE optional_exception);
+static void stop_state(struct cpu_and_wall_time_worker_state *state, VALUE optional_exception);
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
@@ -212,6 +213,8 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
+static void stop_if_allocation_sampling_failure(struct cpu_and_wall_time_worker_state *state);
+static VALUE _native_force_allocation_sampler_failure(DDTRACE_UNUSED VALUE self);
 
 // Note on sampler global state safety:
 //
@@ -276,6 +279,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_simulate_sample_from_postponed_job", _native_simulate_sample_from_postponed_job, 0);
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
   rb_define_singleton_method(testing_module, "_native_with_blocked_sigprof", _native_with_blocked_sigprof, 0);
+  rb_define_singleton_method(testing_module, "_native_force_allocation_sampler_failure", _native_force_allocation_sampler_failure, 0);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_worker_state
@@ -468,15 +472,19 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE
   return stop(self_instance, /* optional_exception: */ Qnil);
 }
 
-static VALUE stop(VALUE self_instance, VALUE optional_exception) {
-  struct cpu_and_wall_time_worker_state *state;
-  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
-
+static void stop_state(struct cpu_and_wall_time_worker_state *state, VALUE optional_exception) {
   atomic_store(&state->should_run, false);
   state->failure_exception = optional_exception;
 
   // Disable the tracepoints as soon as possible, so the VM doesn't keep on calling them
   disable_tracepoints(state);
+}
+
+static VALUE stop(VALUE self_instance, VALUE optional_exception) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  stop_state(state, optional_exception);
 
   return Qtrue;
 }
@@ -993,6 +1001,7 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
 
   if (state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler)) {
     state->stats.allocation_skipped++;
+    stop_if_allocation_sampling_failure(state);
     return;
   }
 
@@ -1012,6 +1021,7 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   state->stats.allocation_sampled++;
 
   state->during_sample = false;
+  stop_if_allocation_sampling_failure(state);
 }
 
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
@@ -1051,5 +1061,22 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
   thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
+  return Qnil;
+}
+
+static void stop_if_allocation_sampling_failure(struct cpu_and_wall_time_worker_state *state) {
+  const char* error = discrete_dynamic_sampler_error(&state->allocation_sampler);
+  if (error != NULL) {
+    VALUE error_rbstr = rb_str_new_cstr("allocation sampler - ");
+    rb_str_cat_cstr(error_rbstr, discrete_dynamic_sampler_error(&state->allocation_sampler));
+    stop_state(state, rb_exc_new_str(rb_eRuntimeError, error_rbstr));
+  }
+}
+
+static VALUE _native_force_allocation_sampler_failure(DDTRACE_UNUSED VALUE self) {
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+  discrete_dynamic_sampler_testing_force_fail(&state->allocation_sampler);
+
   return Qnil;
 }
