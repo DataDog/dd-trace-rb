@@ -90,7 +90,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
             # MiniTest 5.22.1 requires a test to be defined, otherwise it will fail
             # https://github.com/minitest/minitest/blob/master/History.rdoc#label-5.22.1+-2F+2024-02-06
-            class DummyTest < Minitest::Test
+            Class.new(Minitest::Test) do
               def test_it_does_something_useful
                 assert true
               end
