@@ -23,6 +23,7 @@ test_thread = Thread.new do
     3.times do
       LOOP_STARTED << true
       nil while THREAD_SHOULD_SLEEP.empty?
+      # Comment this nested trace out (e.g. flatten trace) to "fix" issue
       Datadog::Tracing.trace('nested') do
         THREAD_SHOULD_SLEEP.pop
         begin
