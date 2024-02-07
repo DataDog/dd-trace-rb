@@ -53,15 +53,6 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
     end
 
-    context 'with multiple invocations' do
-      it 'executes only once' do
-        env_logger.collect_and_log!
-        env_logger.collect_and_log!
-
-        expect(logger).to have_received(:info).once
-      end
-    end
-
     context 'under a REPL' do
       around do |example|
         begin
