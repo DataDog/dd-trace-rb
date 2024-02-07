@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ConcurrentRuby
+        module AsyncPatch
+          @executor: untyped
+
+          def initialize: (untyped delegate) -> void
+        end
+      end
+    end
+  end
+end
