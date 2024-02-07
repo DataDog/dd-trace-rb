@@ -84,7 +84,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
             # Minitest reads CLI arguments, but the current process has RSpec
             # arguments that are not relevant (nor compatible) with Minitest.
             # This happens inside a fork, thus we don't have to reset it.
-            Object.const_set('ARGV', [])
+            stub_const('ARGV', [])
 
             require 'minitest/autorun'
 
