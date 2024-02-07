@@ -88,6 +88,14 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
             require 'minitest/autorun'
 
+            # MiniTest 5.22.1 requires a test to be defined, otherwise it will fail
+            # https://github.com/minitest/minitest/blob/master/History.rdoc#label-5.22.1+-2F+2024-02-06
+            class DummyTest < Minitest::Test
+              def test_it_does_something_useful
+                assert true
+              end
+            end
+
             is_expected.to eq(true)
           end
         end
