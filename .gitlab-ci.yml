@@ -75,18 +75,21 @@ promote-image:
 .install-base-ruby-gems:
   image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-$ARCHITECTURE:current
   stage: package
-  rules:
-    - if: $RUBY_PACKAGE_VERSION
-      when: on_success
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
-      when: on_success
+  # base on a merge commit into master
+  # or given a tag
   script:
-    # This would install all dependencies
-    - .gitlab/prepare_pkg_directory.sh
-    - ruby pkg/install_ddtrace_deps.rb debase-ruby_core_source libdatadog libddwaf datadog-ci msgpack ffi ddtrace
+    - .gitlab/patch_gem_version.sh # if not release, patch the version
+    - bundle install && bundle exec rake build # .gem is created under pkg/
+    - mkdir -p tmp
+    - ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s' >> tmp/version.txt
+    - export RUBY_PACKAGE_VERSION=$(cat tmp/version.txt)
+    - export DDTRACE_GEM_LOCATION=$(readlink -f pkg/ddtrace-*.gem)
+    - .gitlab/prepare_tmp_directory.sh
+    - ruby .gitlab/install_ddtrace_deps.rb debase-ruby_core_source libdatadog libddwaf datadog-ci msgpack ffi ddtrace
   artifacts:
     paths:
       - pkg
+      - tmp
 
 install-base-ruby-gems-amd64:
   extends: .install-base-ruby-gems
@@ -102,17 +105,14 @@ install-base-ruby-gems-arm64:
   parallel:
     matrix:
       - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4"]
-  rules:
-    - if: $RUBY_PACKAGE_VERSION
-      when: on_success
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
-      when: on_success
   stage: package
   script:
-    - ruby pkg/install_ddtrace_deps.rb msgpack ffi ddtrace
+    - export DDTRACE_GEM_LOCATION=$(readlink -f pkg/ddtrace-*.gem)
+    - ruby .gitlab/install_ddtrace_deps.rb msgpack ffi ddtrace
   artifacts:
     paths:
       - pkg
+      - tmp
 
 install-version-dependant-gems-amd64:
   extends: .install-version-dependant-gems
@@ -133,27 +133,19 @@ package:
   needs:
     - install-version-dependant-gems-amd64
     - install-base-ruby-gems-amd64
-  rules:
-    - if: $RUBY_PACKAGE_VERSION
-      when: on_success
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
-      when: on_success
   script:
     - ls ../pkg
+    - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
 
 package-arm:
-  extends: .package-arm
+  extends: .package
   needs:
     - install-version-dependant-gems-arm64
     - install-base-ruby-gems-arm64
-  rules:
-    - if: $RUBY_PACKAGE_VERSION
-      when: on_success
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
-      when: on_success
   script:
     - ls ../pkg
+    - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
 
 .release-package:

@@ -8,7 +8,7 @@ ruby_api_version = Gem.ruby_api_version
 
 current_path = Pathname.new(FileUtils.pwd)
 
-artifact_path = current_path.join("pkg")
+artifact_path = current_path.join("tmp")
 
 lock_file_path = artifact_path.join("Gemfile.lock")
 versioned_path = artifact_path.join(ruby_api_version)
@@ -37,10 +37,13 @@ gem_version_mapping.each do |gem, version|
     # Install `ffi` gem with its built-in `libffi` native extension instead of using system's `libffi`
     gem_install_cmd << "-- --disable-system-libffi "
   when "ddtrace"
+    # Install `ddtrace` gem locally without its profiling native extension
     env["DD_PROFILING_NO_EXTENSION"] = "true"
-    gem_install_cmd << "--install-dir #{versioned_path} "
-
-    # gem install --local pkg/ddtrace-xxx.gem
+    gem_install_cmd =
+      "gem install --local #{ENV['DDTRACE_GEM_LOCATION']} "\
+      "--no-document "\
+      "--ignore-dependencies "\
+      "--install-dir #{versioned_path} "
   when "msgpack"
     gem_install_cmd << "--install-dir #{versioned_path} "
   else
