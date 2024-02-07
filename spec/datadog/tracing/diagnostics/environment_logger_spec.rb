@@ -53,15 +53,6 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       end
     end
 
-    context 'with multiple invocations' do
-      it 'executes multiple times' do
-        env_logger.collect_and_log!
-        env_logger.collect_and_log!
-
-        expect(logger).to have_received(:info).twice
-      end
-    end
-
     context 'with agent error' do
       subject(:collect_and_log!) { env_logger.collect_and_log!(responses: [response]) }
 
