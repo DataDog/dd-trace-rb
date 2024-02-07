@@ -60,10 +60,10 @@ end
   test_thread.raise(StandardError.new("wake up!"))
 end
 
-70.times {
-  sleep 1
-  Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
-}
+# 70.times {
+#   sleep 1
+#   Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
+# }
 FINISH << true
 test_thread.join
 # sleep 1 # make sure we have minimum profile length
