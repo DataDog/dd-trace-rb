@@ -214,7 +214,7 @@ void sample_thread(
         // "matching by method name" + is native code seems actually to be good enough for a lot of cases.
 
         if (CHARSLICE_EQUALS("sleep", name_slice)) { // Expected to be Kernel.sleep
-          state_label->str  = DDOG_CHARSLICE_C("sleeping");
+          state_label->str  = DDOG_CHARSLICE_C("network"); // Testing wip
         } else if (CHARSLICE_EQUALS("select", name_slice)) { // Expected to be Kernel.select
           state_label->str  = DDOG_CHARSLICE_C("waiting");
         } else if (
@@ -226,18 +226,18 @@ void sample_thread(
         } else if (CHARSLICE_EQUALS("wait_readable", name_slice)) { // Expected to be IO#wait_readable
           state_label->str  = DDOG_CHARSLICE_C("network");
         }
-        #ifdef NO_PRIMITIVE_POP // Ruby < 3.2
-          else if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
-            state_label->str  = DDOG_CHARSLICE_C("waiting");
-          }
-        #endif
+        // #ifdef NO_PRIMITIVE_POP // Ruby < 3.2
+        //   else if (CHARSLICE_EQUALS("pop", name_slice)) { // Expected to be Queue/SizedQueue#pop
+        //     state_label->str  = DDOG_CHARSLICE_C("waiting");
+        //   }
+        // #endif
       } else {
-        #ifndef NO_PRIMITIVE_POP // Ruby >= 3.2
-          // Unlike the above, Ruby actually treats this one specially and gives it a nice file name we can match on!
-          if (CHARSLICE_EQUALS("pop", name_slice) && CHARSLICE_EQUALS("<internal:thread_sync>", filename_slice)) { // Expected to be Queue/SizedQueue#pop
-            state_label->str  = DDOG_CHARSLICE_C("waiting");
-          }
-        #endif
+        // #ifndef NO_PRIMITIVE_POP // Ruby >= 3.2
+        //   Unlike the above, Ruby actually treats this one specially and gives it a nice file name we can match on!
+        //   if (CHARSLICE_EQUALS("pop", name_slice) && CHARSLICE_EQUALS("<internal:thread_sync>", filename_slice)) { // Expected to be Queue/SizedQueue#pop
+        //     state_label->str  = DDOG_CHARSLICE_C("waiting");
+        //   }
+        // #endif
       }
     }
 
