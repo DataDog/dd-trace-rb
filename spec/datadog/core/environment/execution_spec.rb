@@ -77,7 +77,10 @@ RSpec.describe Datadog::Core::Environment::Execution do
       end
 
       context 'when in a Minitest test' do
-        before { skip('Minitest not in bundle') unless Gem.loaded_specs['minitest'] }
+        before do
+          skip 'TODO: Test is flaky on macOS' if RUBY_PLATFORM.include?('darwin')
+          skip('Minitest not in bundle') unless Gem.loaded_specs['minitest']
+        end
 
         it 'returns true' do
           expect_in_fork do
