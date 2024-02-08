@@ -555,25 +555,39 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
 
           def create_obj_in_recycled_slot(should_sample_original: false)
-            obj = Object.new
-            sample_allocation(obj) if should_sample_original
-            @recycled_sample_allocation_line = __LINE__ - 1
+            # Force-recycle 1000 objects.
+            # NOTE: In theory, a single force recycle would suffice but the more recycled slots
+            #       there are to use the more probable it is for a new allocation to use it.
+            recycled_obj_ids = []
+            1000.times do
+              obj = Object.new
+              sample_allocation(obj) if should_sample_original
+              @recycled_sample_allocation_line = __LINE__ - 1
 
-            # Get the id of the object we're about to recycle
-            obj_id = obj.object_id
+              # Get the id of the object we're about to recycle
+              recycled_obj_ids << obj.object_id
 
-            # Force recycle the given object
-            described_class::Testing._native_gc_force_recycle(obj)
+              # Force recycle the given object
+              described_class::Testing._native_gc_force_recycle(obj)
+            end
 
-            # Repeatedly allocate objects until we find one that resolves to the same id
+            # Repeatedly allocate objects until we find one that resolves to the id of one of
+            # the force recycled objects
+            objs = []
             loop do
               # Instead of doing this one at a time which would be slow given id2ref will
               # raise on failure, allocate a ton of objects each time, increasing the
               # probability of getting a hit on each iteration
-              1000.times { obj = Object.new }
-              begin
-                return ObjectSpace._id2ref(obj_id)
-              rescue RangeError # rubocop:disable Lint/SuppressedException
+              # NOTE: We keep the object references around to prevent GCs from constantly
+              #       freeing up slots from the previous iteration. Thus each consecutive
+              #       iteration should get one step closer to re-using one of the recycled
+              #       slots.
+              1000.times { objs << Object.new }
+              recycled_obj_ids.each do |obj_id|
+                begin
+                  return ObjectSpace._id2ref(obj_id)
+                rescue RangeError # rubocop:disable Lint/SuppressedException
+                end
               end
             end
           end
