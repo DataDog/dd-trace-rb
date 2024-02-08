@@ -8,11 +8,7 @@ module Datadog
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
       def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
-        require_relative '../profiling/diagnostics/environment_logger'
-
-        Profiling::Diagnostics::EnvironmentLogger.collect_and_log!
-
-        return unless settings.profiling.enabled
+        return [nil, { profiling_enabled: false }] unless settings.profiling.enabled
 
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
         # dependency on individual products, in this case the Profiler.
@@ -32,7 +28,8 @@ module Datadog
         # done, then profiling may not be loaded, and thus to avoid this issue we do a require here (which is a
         # no-op if profiling is already loaded).
         require_relative '../profiling'
-        return unless Profiling.supported?
+
+        return [nil, { profiling_enabled: false }] unless Profiling.supported?
 
         # Activate forking extensions
         Profiling::Tasks::Setup.new.run
@@ -76,7 +73,7 @@ module Datadog
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
 
-        Profiling::Profiler.new(worker: worker, scheduler: scheduler)
+        [Profiling::Profiler.new(worker: worker, scheduler: scheduler), { profiling_enabled: true }]
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
