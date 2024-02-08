@@ -170,7 +170,7 @@ module Datadog
 
             def use(integration_name, options = {}, &block)
               Core.log_deprecation do
-                'Configuration with `use` has been deprecated, replace with `instrument` instead.'
+                'Configuration with `use` has been deprecated, use `instrument` instead.'
               end
               instrument(integration_name, options, &block)
             end
