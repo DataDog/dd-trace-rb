@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 // Used to mark symbols to be exported to the outside of the extension.
 // Consider very carefully before tagging a function with this.
 #define DDTRACE_EXPORT __attribute__ ((visibility ("default")))
@@ -17,3 +19,5 @@ inline static uint64_t uint64_max_of(uint64_t a, uint64_t b) { return a > b ? a 
 inline static uint64_t uint64_min_of(uint64_t a, uint64_t b) { return a > b ? b : a; }
 inline static long long_max_of(long a, long b) { return a > b ? a : b; }
 inline static long long_min_of(long a, long b) { return a > b ? b : a; }
+inline static double double_max_of(double a, double b) { return a > b ? a : b; }
+inline static double double_min_of(double a, double b) { return a > b ? b : a; }

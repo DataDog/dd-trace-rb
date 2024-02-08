@@ -4,8 +4,8 @@ require 'datadog/tracing/distributed/b3_single'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'B3 Single distributed format' do
-  let(:propagation_inject_style) { ['b3'] }
-  let(:propagation_extract_style) { ['b3'] }
+  let(:propagation_style_inject) { ['b3'] }
+  let(:propagation_style_extract) { ['b3'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 

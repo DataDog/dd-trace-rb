@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'agent_settings_resolver'
 require_relative 'ext'
 require_relative '../diagnostics/environment_logger'
@@ -21,7 +23,7 @@ module Datadog
           include Datadog::Tracing::Component
 
           def build_health_metrics(settings)
-            settings = settings.diagnostics.health_metrics
+            settings = settings.health_metrics
             options = { enabled: settings.enabled }
             options[:statsd] = settings.statsd unless settings.statsd.nil?
 

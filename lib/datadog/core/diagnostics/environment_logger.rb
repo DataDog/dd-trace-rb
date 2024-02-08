@@ -23,16 +23,6 @@ module Datadog
           Datadog.logger
         end
 
-        # If logger should log and hasn't logged already, then output environment configuration and possible errors.
-        def log_once!
-          # Check if already been executed
-          return false if (defined?(@executed) && @executed) || !log?
-
-          yield if block_given?
-
-          @executed = true
-        end
-
         # Are we logging the environment data?
         def log?
           startup_logs_enabled = Datadog.configuration.diagnostics.startup_logs.enabled
@@ -59,7 +49,7 @@ module Datadog
         extend EnvironmentLogging
 
         def self.collect_and_log!
-          log_once! do
+          if log?
             data = EnvironmentCollector.collect_config!
             log_configuration!('CORE', data.to_json)
           end
@@ -166,7 +156,7 @@ module Datadog
 
           # @return [Boolean, nil] health metrics enabled in configuration
           def health_metrics_enabled
-            !!Datadog.configuration.diagnostics.health_metrics.enabled
+            !!Datadog.configuration.health_metrics.enabled
           end
 
           private

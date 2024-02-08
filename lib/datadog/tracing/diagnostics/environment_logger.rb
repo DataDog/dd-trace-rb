@@ -13,7 +13,7 @@ module Datadog
         extend Core::Diagnostics::EnvironmentLogging
 
         def self.collect_and_log!(responses: nil)
-          log_once! do
+          if log?
             env_data = EnvironmentCollector.collect_config!
             log_configuration!('TRACING', env_data.to_json)
 

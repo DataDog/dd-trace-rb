@@ -4,8 +4,8 @@ require 'datadog/tracing/distributed/b3_multi'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'B3 Multi distributed format' do
-  let(:propagation_inject_style) { ['b3multi'] }
-  let(:propagation_extract_style) { ['b3multi'] }
+  let(:propagation_style_inject) { ['b3multi'] }
+  let(:propagation_style_extract) { ['b3multi'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 

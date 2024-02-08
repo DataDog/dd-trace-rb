@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../metadata/ext'
 require_relative '../http'
 require_relative '../analytics'

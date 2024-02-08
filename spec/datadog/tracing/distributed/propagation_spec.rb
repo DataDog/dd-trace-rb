@@ -9,8 +9,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   subject(:propagator) do
     described_class.new(
       propagation_styles: propagation_styles,
-      propagation_inject_style: propagation_inject_style,
-      propagation_extract_style: propagation_extract_style,
+      propagation_style_inject: propagation_style_inject,
+      propagation_style_extract: propagation_style_extract,
       propagation_extract_first: propagation_extract_first
     )
   end
@@ -23,8 +23,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   end
   let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
 
-  let(:propagation_inject_style) { ['datadog', 'tracecontext'] }
-  let(:propagation_extract_style) { ['datadog', 'tracecontext'] }
+  let(:propagation_style_inject) { ['datadog', 'tracecontext'] }
+  let(:propagation_style_extract) { ['datadog', 'tracecontext'] }
   let(:propagation_extract_first) { false }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
@@ -109,7 +109,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
 
       it_behaves_like 'trace injection' do
         context 'with no styles configured' do
-          let(:propagation_inject_style) { [] }
+          let(:propagation_style_inject) { [] }
 
           it { is_expected.to eq(false) }
 

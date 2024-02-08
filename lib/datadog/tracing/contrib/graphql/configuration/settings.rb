@@ -17,6 +17,7 @@ module Datadog
               o.default true
             end
 
+            # @!visibility private
             option :analytics_enabled do |o|
               o.type :bool, nilable: true
               o.env Ext::ENV_ANALYTICS_ENABLED
@@ -28,8 +29,17 @@ module Datadog
               o.default 1.0
             end
 
-            option :schemas
+            option :schemas do |o|
+              o.type :array
+              o.default []
+            end
+
             option :service_name
+
+            option :with_deprecated_tracer do |o|
+              o.type :bool
+              o.default false
+            end
           end
         end
       end

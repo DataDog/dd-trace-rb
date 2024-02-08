@@ -357,8 +357,8 @@ RSpec.describe Datadog::Tracing::Tracer do
     context 'with distributed Trace Context headers' do
       before do
         Datadog.configure do |c|
-          c.tracing.distributed_tracing.propagation_extract_style = ['tracecontext']
-          c.tracing.distributed_tracing.propagation_inject_style = ['tracecontext']
+          c.tracing.propagation_style_extract = ['tracecontext']
+          c.tracing.propagation_style_inject = ['tracecontext']
         end
       end
 

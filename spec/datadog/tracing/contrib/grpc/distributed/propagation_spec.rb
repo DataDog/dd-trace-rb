@@ -11,14 +11,14 @@ require_relative '../../../distributed/trace_context_spec'
 RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
   subject(:propagation) do
     described_class.new(
-      propagation_inject_style: propagation_inject_style,
-      propagation_extract_style: propagation_extract_style,
+      propagation_style_inject: propagation_style_inject,
+      propagation_style_extract: propagation_style_extract,
       propagation_extract_first: propagation_extract_first
     )
   end
 
-  let(:propagation_inject_style) { ['datadog', 'tracecontext'] }
-  let(:propagation_extract_style) { ['datadog', 'tracecontext'] }
+  let(:propagation_style_inject) { ['datadog', 'tracecontext'] }
+  let(:propagation_style_extract) { ['datadog', 'tracecontext'] }
   let(:propagation_extract_first) { false }
 
   it_behaves_like 'Distributed tracing propagator' do
@@ -50,35 +50,35 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
 
   context 'for B3 Multi' do
     it_behaves_like 'B3 Multi distributed format' do
-      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['b3multi'] } }
+      before { Datadog.configure { |c| c.tracing.propagation_style = ['b3multi'] } }
       let(:b3) { propagation }
     end
   end
 
   context 'for B3 Single' do
     it_behaves_like 'B3 Single distributed format' do
-      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['b3'] } }
+      before { Datadog.configure { |c| c.tracing.propagation_style = ['b3'] } }
       let(:b3_single) { propagation }
     end
   end
 
   context 'for Datadog' do
     it_behaves_like 'Datadog distributed format' do
-      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['datadog'] } }
+      before { Datadog.configure { |c| c.tracing.propagation_style = ['datadog'] } }
       let(:datadog) { propagation }
     end
   end
 
   context 'for Trace Context' do
     it_behaves_like 'Trace Context distributed format' do
-      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['tracecontext'] } }
+      before { Datadog.configure { |c| c.tracing.propagation_style = ['tracecontext'] } }
       let(:datadog) { propagation }
     end
   end
 
   context 'for None' do
     it_behaves_like 'None distributed format' do
-      before { Datadog.configure { |c| c.tracing.distributed_tracing.propagation_style = ['none'] } }
+      before { Datadog.configure { |c| c.tracing.propagation_style = ['none'] } }
       let(:datadog) { propagation }
     end
   end

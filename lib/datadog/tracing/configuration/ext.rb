@@ -18,7 +18,6 @@ module Datadog
           ENV_PEER_SERVICE_MAPPING = 'DD_TRACE_PEER_SERVICE_MAPPING'
         end
 
-        # @public_api
         module Analytics
           ENV_TRACE_ANALYTICS_ENABLED = 'DD_TRACE_ANALYTICS_ENABLED'
         end
@@ -91,7 +90,6 @@ module Datadog
         # @public_api
         module ClientIp
           ENV_ENABLED = 'DD_TRACE_CLIENT_IP_ENABLED'
-          ENV_DISABLED = 'DD_TRACE_CLIENT_IP_HEADER_DISABLED' # TODO: deprecated, remove later
           ENV_HEADER_NAME = 'DD_TRACE_CLIENT_IP_HEADER'
         end
       end

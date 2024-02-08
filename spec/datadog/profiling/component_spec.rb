@@ -85,7 +85,6 @@ RSpec.describe Datadog::Profiling::Component do
             no_signals_workaround_enabled: :no_signals_result,
             thread_context_collector: instance_of(Datadog::Profiling::Collectors::ThreadContext),
             dynamic_sampling_rate_overhead_target_percentage: :overhead_target_percentage_config,
-            allocation_sample_every: kind_of(Integer),
             allocation_profiling_enabled: false,
           )
 
@@ -375,14 +374,12 @@ RSpec.describe Datadog::Profiling::Component do
 
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
           expect(settings.profiling.advanced).to receive(:experimental_timeline_enabled).and_return(:timeline_result)
-          expect(settings.profiling.advanced).to receive(:experimental_allocation_sample_rate).and_return(123)
           expect(settings.profiling.advanced).to receive(:experimental_heap_sample_rate).and_return(456)
           expect(Datadog::Profiling::Exporter).to receive(:new).with(
             hash_including(
               internal_metadata: {
                 no_signals_workaround_enabled: :no_signals_result,
                 timeline_enabled: :timeline_result,
-                allocation_sample_every: 123,
                 heap_sample_every: 456,
               }
             )

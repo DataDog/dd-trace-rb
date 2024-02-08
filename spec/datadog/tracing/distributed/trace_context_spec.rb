@@ -4,8 +4,8 @@ require 'datadog/tracing/distributed/trace_context'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'Trace Context distributed format' do
-  let(:propagation_inject_style) { ['tracecontext'] }
-  let(:propagation_extract_style) { ['tracecontext'] }
+  let(:propagation_style_inject) { ['tracecontext'] }
+  let(:propagation_style_extract) { ['tracecontext'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 

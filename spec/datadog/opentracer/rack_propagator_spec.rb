@@ -24,7 +24,7 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
 
     before do
       Datadog.configure do |c|
-        c.tracing.distributed_tracing.propagation_style = ['datadog']
+        c.tracing.propagation_style = ['datadog']
       end
 
       # Expect carrier to be set with Datadog trace properties

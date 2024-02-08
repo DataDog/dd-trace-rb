@@ -29,14 +29,14 @@ module Datadog
         end
 
         Contrib::Component.register('grpc') do |config|
-          distributed_tracing = config.tracing.distributed_tracing
-          # DEV: evaluate propagation_style in case it overrides propagation_extract_style & propagation_extract_first
-          distributed_tracing.propagation_style
+          tracing = config.tracing
+          # DEV: evaluate propagation_style in case it overrides propagation_style_extract & propagation_extract_first
+          tracing.propagation_style
 
           @propagation = GRPC::Distributed::Propagation.new(
-            propagation_inject_style: distributed_tracing.propagation_inject_style,
-            propagation_extract_style: distributed_tracing.propagation_extract_style,
-            propagation_extract_first: distributed_tracing.propagation_extract_first
+            propagation_style_inject: tracing.propagation_style_inject,
+            propagation_style_extract: tracing.propagation_style_extract,
+            propagation_extract_first: tracing.propagation_extract_first
           )
         end
       end

@@ -129,7 +129,6 @@ target :ddtrace do
   ignore 'lib/datadog/core/utils/safe_dup.rb'
   ignore 'lib/datadog/core/utils/sequence.rb'
   ignore 'lib/datadog/core/utils/time.rb'
-  ignore 'lib/datadog/core/vendor/ipaddr.rb'
   ignore 'lib/datadog/core/vendor/multipart-post/multipart.rb'
   ignore 'lib/datadog/core/vendor/multipart-post/multipart/post.rb'
   ignore 'lib/datadog/core/vendor/multipart-post/multipart/post/composite_read_io.rb'

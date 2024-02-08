@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.19.0)
+    ddtrace (1.20.0)
       base64
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 5.0.0.1.0)
@@ -50,7 +50,6 @@ GEM
     docile (1.4.0)
     dogstatsd-ruby (5.6.0)
     ffi (1.15.5-java)
-    graphql (2.0.26)
     hashdiff (1.0.1)
     i18n (1.8.7)
       concurrent-ruby (~> 1.0)
@@ -176,7 +175,6 @@ DEPENDENCIES
   dalli (>= 3.0.0)
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
-  graphql (>= 2.0)
   i18n (= 1.8.7)
   json-schema (< 3)
   memory_profiler (~> 0.9)

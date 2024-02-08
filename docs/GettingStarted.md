@@ -456,7 +456,7 @@ end
 
 | Key            | Description                                                                                                                                                                                       | Default                                    |
 |----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
-| `service_name` | Name of application running the `active_record` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | Name of database adapter (e.g. `'mysql2'`) |
+| `service_name` | Override the service name for the SQL query instrumentation. ActiveRecord instantiation instrumentation always uses the application's configured service name. | Name of database adapter (e.g. `'mysql2'`) |
 
 **Configuring trace settings per database**
 
@@ -792,7 +792,7 @@ connection.get('/foo')
 | `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                        | `nil`     |
 | `distributed_tracing` |                                 | Enables [distributed tracing](#distributed-tracing)                                                                                                                                         | `true`    |
 | `split_by_domain`     |                                 | Uses the request domain as the service name when set to `true`.                                                                                                                             | `false`   |
-| `on_error` || Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |**default: 400...600**
+| `on_error` || Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets an error on the span by deault. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |**default: 400...600**
 | `error_status_codes`  | `DD_TRACE_FARADAY_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 ### Grape
@@ -847,52 +847,30 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `schemas` | Required. Array of `GraphQL::Schema` objects which to trace. Tracing will be added to all the schemas listed, using the options provided to this configuration. If you do not provide any, then tracing will not be activated. | `[]` |
+| `schemas` | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas. | `[]` |
+| `with_deprecated_tracer` | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`  | `false` |
 | `service_name` | Service name used for graphql instrumentation | `'ruby-graphql'` |
 
 **Manually configuring GraphQL schemas**
 
-If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas with different service names), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
+If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
+
+With `GraphQL::Tracing::DataDogTrace`
 
 ```ruby
-# Class-based schema
 class YourSchema < GraphQL::Schema
-  use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
-  )
+  trace_with GraphQL::Tracing::DataDogTrace
+end
+```
+or with `GraphQL::Tracing::DataDogTracing` (deprecated)
+
+```ruby
+class YourSchema < GraphQL::Schema
+  use(GraphQL::Tracing::DataDogTracing)
 end
 ```
 
-```ruby
-# .define-style schema
-YourSchema = GraphQL::Schema.define do
-  use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
-  )
-end
-```
-
-Or you can modify an already defined schema:
-
-```ruby
-# Class-based schema
-YourSchema.use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
-)
-```
-
-```ruby
-# .define-style schema
-YourSchema.define do
-  use(
-    GraphQL::Tracing::DataDogTracing,
-    service: 'graphql'
-  )
-end
-```
+**Note**: This integration does not support define-style schemas. Only class-based schemas are supported.
 
 Do *NOT* `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
 
@@ -1567,6 +1545,21 @@ customer_cache.get(...)
 invoice_cache.get(...)
 ```
 
+With a standalone `RedisClient`:
+
+```ruby
+require "redis-client"
+require "ddtrace"
+
+redis = RedisClient.config(custom: { datadog: { service_name: "my-custom-redis" } }).new_client
+
+Datadog.configure do |c|
+  c.tracing.instrument :redis # Enabling integration instrumentation is still required
+end
+
+redis.call('PING')
+```
+
 With Redis version < 5:
 
 ```ruby
@@ -1900,6 +1893,29 @@ end
 LogJob.perform_async('login')
 ```
 
+### Trilogy
+
+The trilogy integration traces any SQL command sent through the `trilogy` gem.
+
+```ruby
+require 'trilogy'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.tracing.instrument :trilogy, **options
+end
+
+client = Trilogy.new(host: "localhost", username: "root")
+client.query("SELECT * FROM users WHERE group='x'")
+```
+
+`options` are the following keyword arguments:
+
+| Key                   | Env Var                        | Description                                                                                                                                                                                                                                                                                                                                                             | Default      |
+|-----------------------|---------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| `service_name`        | `DD_TRACE_TRILOGY_SERVICE_NAME` | Name of application running the `trilogy` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration)  | `trilogy` |
+| `peer_service`        | `DD_TRACE_TRILOGY_PEER_SERVICE` | Name of external service the application connects to                                                                                                                                         | `nil`     |
+
 ## Additional configuration
 
 To change the default behavior of `ddtrace`, you can use, in order of priority, with 1 being the highest:
@@ -1938,21 +1954,20 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `version`                                               | `DD_VERSION`                                            | `nil`                        | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED`                  | `true`                       | Allows you to enable sending telemetry data to Datadog. Can be disabled, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **Tracing**                                             |                                                         |                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`                            | `nil`                        | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `tracing.contrib.peer_service_mapping`                  | `DD_TRACE_PEER_SERVICE_MAPPING`                         | `nil`                        | Defines remapping of `peer.service` tag across all instrumentation. Provide a list of `old_value1:new_value1, old_value2:new_value2, ...`                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tracing.contrib.global_default_service_name.enabled`   | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `false`                      | Changes the default value for `service_name` to the application service name across all instrumentation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `tracing.distributed_tracing.propagation_extract_first` | `DD_TRACE_PROPAGATION_EXTRACT_FIRST` | `false` | Exit immediately on the first valid propagation format detected.  See [Distributed Tracing](#distributed-tracing) for more details. |
-| `tracing.distributed_tracing.propagation_extract_style` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT`                    | `['Datadog','tracecontext']` | Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `tracing.distributed_tracing.propagation_inject_style`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`                     | `['Datadog','tracecontext']` | Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `tracing.distributed_tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE`                            | `nil`                        | Distributed tracing propagation formats to extract and inject. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `tracing.propagation_extract_first` | `DD_TRACE_PROPAGATION_EXTRACT_FIRST` | `false` | Exit immediately on the first valid propagation format detected.  See [Distributed Tracing](#distributed-tracing) for more details. |
+| `tracing.propagation_style_extract` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT`                    | `['Datadog','tracecontext']` | Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `tracing.propagation_style_inject`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`                     | `['Datadog','tracecontext']` | Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE`                            | `nil`                        | Distributed tracing propagation formats to extract and inject. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `tracing.enabled`                                       | `DD_TRACE_ENABLED`                                      | `true`                       | Enables or disables tracing. If set to `false` instrumentation will still run, but no traces are sent to the trace agent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tracing.header_tags`                                   | `DD_TRACE_HEADER_TAGS`                                  | `nil`                        | Record HTTP headers as span tags. See [Applying header tags to root spans][header tags] for more information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `tracing.instrument(<integration-name>, <options...>)`  |                                                         |                              | Activates instrumentation for a specific library. See [Integration instrumentation](#integration-instrumentation) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `tracing.log_injection`                                 | `DD_LOGS_INJECTION`                                     | `true`                       | Injects [Trace Correlation](#trace-correlation) information into Rails logs if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `tracing.partial_flush.enabled`                         |                                                         | `false`                      | Enables or disables partial flushing. Partial flushing submits completed portions of a trace to the agent. Used when tracing instruments long running tasks (e.g. jobs) with many spans.                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `tracing.partial_flush.min_spans_threshold`             |                                                         | `500`                        | The number of spans that must be completed in a trace before partial flushing submits those completed spans.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `tracing.sampler`                                       |                                                         | `nil`                        | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Application-side sampling](#application-side-sampling) for details.                                                                                                                                                                                                                                                                                                                                                |
-| `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`                                  | `nil`                        | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%). See [Application-side sampling](#application-side-sampling) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `tracing.sampler`                                       |                                                         | `nil`                        | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Custom sampling](#custom-sampling) for details.                                                                                                                                                                                                                                                                                                                                                |
+| `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`                                  | `nil`                        | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%).                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `tracing.sampling.rate_limit`                           | `DD_TRACE_RATE_LIMIT`                                   | `100` (per second)           | Sets a maximum number of traces per second to sample. Set a rate limit to avoid the ingestion volume overages in the case of traffic spikes.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `tracing.sampling.rules`                                | `DD_TRACE_SAMPLING_RULES`                               | `nil`                        | Sets trace-level sampling rules, matching against the local root span. The format is a `String` with JSON, containing an Array of Objects. Each Object must have a float attribute `sample_rate` (between 0.0 and 1.0, inclusive), and optionally `name` and `service` string attributes. `name` and `service` control to which traces this sampling rule applies; if both are absent, then this rule applies to all traces. Rules are evaluted in order of declartion in the array; only the first to match is applied. If none apply, then `tracing.sampling.default_rate` is applied. |
 | `tracing.sampling.span_rules`                           | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `nil`                        | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -2091,26 +2106,69 @@ This allows you to keep important spans when trace-level sampling is applied. Is
 
 To configure it, see the [Ingestion Mechanisms documentation](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_mechanisms/?tab=ruby#single-spans).
 
-#### Application-side sampling
+#### Custom sampling
 
-While the Datadog Agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead in the host application.
+It's possible to configure a completely custom sampling strategy.
 
-**Application-side sampling drops traces as early as possible. This causes the [Ingestion Controls](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_controls/) page to not receive enough information to report accurate sampling rates. Use only when reducing the tracing overhead is paramount.**
+When possible, avoid using custom sampling, and instead use the [Priority sampling API](#priority-sampling) alongside the sampling options provided in [Additional Configuration](#additional-configuration).
+This will ensure the highest level of maintainability and the debuggability of your sampling decisions.
 
-If you are use this feature, please let us know by [opening an issue on GitHub](https://github.com/DataDog/dd-trace-rb/issues/new), so we can better understand and support your use case.
+When custom sampling is required, there are two possible strategies:
 
-You can configure *Application-side sampling* with the following settings:
+1. [Priority sampling](#priority-sampling), which is the recommended sampling strategy and supports all post-ingestion sampling configurations and reports.
+
+2. Application-side, which can completely prevent a span from being flushed from the Ruby process, but it prevents
+    [post-ingestion sampling](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_controls/) from receiving the data necessary to work correctly.
+
+    This strategy should only be used when the gains in performance and bandwidth reduction are essential to the system.
+
+    If you are use application-side sampling, please let us know by [opening an issue on GitHub](https://github.com/DataDog/dd-trace-rb/issues/new), so we can better understand and support your use case.
+
+You can configure *Custom sampling* by creating a Ruby object that responds to the methods `sample!` and `sample_rate`:
 
 ```ruby
-# Application-side sampling enabled: Ingestion Controls page will be inaccurate.
-sampler = Datadog::Tracing::Sampling::RateSampler.new(0.5) # sample 50% of the traces
+class CustomSampler
+   # Sets the trace sampling status.
+   #
+   # This method *may* modify the `trace`, in case changes are necessary based on the
+   # sampling decision (e.g. adding trace tags).
+   #
+   # @param [Datadog::Tracing::TraceOperation] trace
+   # @return [void]
+  def sample!(trace)
+     # Implement one of the two sampling strategies to record the sampling decision:
+     #
+     # 1. Priority sampling. Ingestion Controls page will be accurate.
+     #   a. Keep span with priority sampling.
+     trace.keep!
+     #   b. or drop span with priority sampling.
+     trace.reject!
+
+     # Or
+
+     # 2. Do not flush span. Ingestion Controls page will be **inaccurate**.
+     #    Can save processing time and bandwidth.
+     #   a. Flush the span
+     trace.sampled = true
+     #   b. Do not flush the span
+     trace.sampled = false
+  end
+
+  # The sampling rate, if this sampler has such concept. Otherwise, `nil`.
+  #
+  # @param [Datadog::Tracing::TraceOperation] trace
+  # @return [Float,nil] sampling ratio between 0.0 and 1.0 (inclusive), or `nil` if not applicable
+  def sample_rate(trace)
+     # ...
+  end
+end
 
 Datadog.configure do |c|
-  c.tracing.sampler = sampler
+  c.tracing.sampler = CustomSampler.new
 end
 ```
 
-See [Additional Configuration](#additional-configuration) for more details about these settings.
+See [Additional Configuration](#additional-configuration) for all other sampling options.
 
 ### Distributed Tracing
 
@@ -2229,10 +2287,10 @@ You can enable/disable the use of these formats via `Datadog.configure`:
 ```ruby
 Datadog.configure do |c|
   # List of header formats that should be extracted
-  c.tracing.distributed_tracing.propagation_extract_style = [ 'tracecontext', 'Datadog', 'b3' ]
+  c.tracing.propagation_style_extract = [ 'tracecontext', 'Datadog', 'b3' ]
 
   # List of header formats that should be injected
-  c.tracing.distributed_tracing.propagation_inject_style = [ 'tracecontext', 'Datadog' ]
+  c.tracing.propagation_style_inject = [ 'tracecontext', 'Datadog' ]
 end
 ```
 

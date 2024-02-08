@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Trilogy
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.patch_trilogy_client: () -> untyped
+        end
+      end
+    end
+  end
+end

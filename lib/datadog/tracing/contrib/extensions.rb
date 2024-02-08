@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'set'
 
 require_relative '../../core/configuration/settings'
@@ -167,9 +169,6 @@ module Datadog
 
               integration
             end
-
-            # TODO: Deprecate in the next major version, as `instrument` better describes this method's purpose
-            alias_method :use, :instrument
 
             # For the provided `integration_name`, resolves a matching configuration
             # for the provided integration from an integration-specific `key`.

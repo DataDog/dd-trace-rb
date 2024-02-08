@@ -4,8 +4,8 @@ require 'datadog/tracing/distributed/none'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'None distributed format' do
-  let(:propagation_inject_style) { ['none'] }
-  let(:propagation_extract_style) { ['none'] }
+  let(:propagation_style_inject) { ['none'] }
+  let(:propagation_style_extract) { ['none'] }
 
   describe '#inject!' do
     subject!(:inject!) { propagation.inject!(digest, data) }

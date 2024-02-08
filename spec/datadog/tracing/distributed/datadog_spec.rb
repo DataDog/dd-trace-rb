@@ -5,8 +5,8 @@ require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/utils'
 
 RSpec.shared_examples 'Datadog distributed format' do
-  let(:propagation_inject_style) { ['datadog'] }
-  let(:propagation_extract_style) { ['datadog'] }
+  let(:propagation_style_inject) { ['datadog'] }
+  let(:propagation_style_extract) { ['datadog'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 

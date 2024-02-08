@@ -22,13 +22,13 @@ module Datadog
         end
 
         Contrib::Component.register('sidekiq') do |config|
-          distributed_tracing = config.tracing.distributed_tracing
-          distributed_tracing.propagation_style # TODO: do we still need this?
+          tracing = config.tracing
+          tracing.propagation_style # TODO: do we still need this?
 
           @propagation = Sidekiq::Distributed::Propagation.new(
-            propagation_inject_style: distributed_tracing.propagation_inject_style,
-            propagation_extract_style: distributed_tracing.propagation_extract_style,
-            propagation_extract_first: distributed_tracing.propagation_extract_first
+            propagation_style_inject: tracing.propagation_style_inject,
+            propagation_style_extract: tracing.propagation_style_extract,
+            propagation_extract_first: tracing.propagation_extract_first
           )
         end
       end

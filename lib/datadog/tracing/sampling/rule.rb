@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'matcher'
 require_relative 'rate_sampler'
 
@@ -7,7 +9,6 @@ module Datadog
       # Sampling rule that dictates if a trace matches
       # a specific criteria and what sampling strategy to
       # apply in case of a positive match.
-      # @public_api
       class Rule
         attr_reader :matcher, :sampler
 
@@ -32,9 +33,9 @@ module Datadog
           nil
         end
 
-        # (see Datadog::Tracing::Sampling::Sampler#sample?)
-        def sample?(trace)
-          @sampler.sample?(trace)
+        # (see Datadog::Tracing::Sampling::Sampler#sample!)
+        def sample!(trace)
+          @sampler.sample!(trace)
         end
 
         # (see Datadog::Tracing::Sampling::Sampler#sample_rate)
@@ -46,7 +47,6 @@ module Datadog
       # A {Datadog::Tracing::Sampling::Rule} that matches a trace based on
       # trace name and/or service name and
       # applies a fixed sampling to matching spans.
-      # @public_api
       class SimpleRule < Rule
         # @param name [String,Regexp,Proc] Matcher for case equality (===) with the trace name, defaults to always match
         # @param service [String,Regexp,Proc] Matcher for case equality (===) with the service name,

@@ -503,44 +503,6 @@ RSpec.describe 'Tracer integration tests' do
         end
       end
 
-      context 'by direct sampling' do
-        let(:custom_sampler) { no_sampler }
-
-        let(:no_sampler) do
-          Class.new do
-            def sample!(trace)
-              trace.reject!
-              trace.sampled = false
-            end
-          end.new
-        end
-
-        context 'with rule matching' do
-          context 'with a dropped span' do
-            let(:wait_for_flush) {} # No spans will be flushed with direct sampling drops
-
-            context 'by sampling rate' do
-              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
-
-              it_behaves_like 'flushed no trace'
-            end
-
-            context 'by rate limiting' do
-              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
-
-              it_behaves_like 'flushed no trace'
-            end
-          end
-
-          context 'with a kept span' do
-            let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
-
-            it_behaves_like 'flushed complete trace', expected_span_count: 1
-            it_behaves_like 'set single span sampling tags'
-          end
-        end
-      end
-
       context 'ensures correct stats calculation in the agent' do
         it 'sets the Datadog-Client-Computed-Top-Level header to a non-empty value' do
           expect(WebMock)
@@ -786,7 +748,7 @@ RSpec.describe 'Tracer integration tests' do
       end
 
       let(:custom_sampler) do
-        instance_double(Datadog::Tracing::Sampling::Sampler, sample?: double, sample!: double, sample_rate: double)
+        instance_double(Datadog::Tracing::Sampling::Sampler, sample!: double, sample_rate: double)
       end
 
       context 'that accepts a span' do

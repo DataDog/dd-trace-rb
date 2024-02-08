@@ -11,23 +11,23 @@ module Datadog
       class Propagation
         # @param propagation_styles [Hash<String,Object>]
         #  a map of propagation styles to their corresponding implementations
-        # @param propagation_inject_style [Array<String>]
+        # @param propagation_style_inject [Array<String>]
         #   a list of styles to use when injecting distributed trace data
-        # @param propagation_extract_style [Array<String>]
+        # @param propagation_style_extract [Array<String>]
         #   a list of styles to use when extracting distributed trace data
         # @param propagation_extract_first [Boolean]
         #   if true, only the first successfully extracted trace will be used
         def initialize(
           propagation_styles:,
-          propagation_inject_style:,
-          propagation_extract_style:,
+          propagation_style_inject:,
+          propagation_style_extract:,
           propagation_extract_first:
         )
           @propagation_styles = propagation_styles
           @propagation_extract_first = propagation_extract_first
 
-          @propagation_inject_style = propagation_inject_style.map { |style| propagation_styles[style] }
-          @propagation_extract_style = propagation_extract_style.map { |style| propagation_styles[style] }
+          @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
+          @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
         end
 
         # inject! populates the env with span ID, trace ID and sampling priority
@@ -57,7 +57,7 @@ module Datadog
           result = false
 
           # Inject all configured propagation styles
-          @propagation_inject_style.each do |propagator|
+          @propagation_style_inject.each do |propagator|
             propagator.inject!(digest, data)
             result = true
           rescue => e
@@ -82,7 +82,7 @@ module Datadog
 
           extracted_trace_digest = nil
 
-          @propagation_extract_style.each do |propagator|
+          @propagation_style_extract.each do |propagator|
             # First extraction?
             unless extracted_trace_digest
               extracted_trace_digest = propagator.extract(data)
