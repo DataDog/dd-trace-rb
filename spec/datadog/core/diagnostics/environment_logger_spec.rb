@@ -21,6 +21,23 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
     subject(:collect_and_log!) { env_logger.collect_and_log! }
 
     let(:logger) { instance_double(Datadog::Core::Logger) }
+    let(:expected_logger_result) do
+      {
+        'date' => '2020-01-01T00:00:00Z',
+        'os_name' => (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
+        'version' => DDTrace::VERSION::STRING,
+        'lang' => 'ruby',
+        'lang_version' => match(/[23]\./),
+        'env' => nil,
+        'service' => be_a(String),
+        'dd_version' => nil,
+        'debug' => false,
+        'tags' => nil,
+        'runtime_metrics_enabled' => false,
+        'vm' => be_a(String),
+        'health_metrics_enabled' => false,
+      }
+    end
 
     before do
       allow(env_logger).to receive(:rspec?).and_return(false) # Allow rspec to log for testing purposes
@@ -35,21 +52,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       collect_and_log!
       expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION - CORE') do |msg|
         json = JSON.parse(msg.partition('- CORE -')[2].strip)
-        expect(json).to match(
-          'date' => '2020-01-01T00:00:00Z',
-          'os_name' => (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
-          'version' => DDTrace::VERSION::STRING,
-          'lang' => 'ruby',
-          'lang_version' => match(/[23]\./),
-          'env' => nil,
-          'service' => be_a(String),
-          'dd_version' => nil,
-          'debug' => false,
-          'tags' => nil,
-          'runtime_metrics_enabled' => false,
-          'vm' => be_a(String),
-          'health_metrics_enabled' => false,
-        )
+        expect(json).to match(expected_logger_result)
       end
     end
 
@@ -93,6 +96,31 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       it 'rescues error and logs exception' do
         collect_and_log!
         expect(logger).to have_received(:warn).with start_with('Failed to collect core environment information')
+      end
+    end
+
+    context 'when extra fields are provided' do
+      let(:extra_fields) { { hello: 123, world: '456' } }
+
+      subject(:collect_and_log!) { env_logger.collect_and_log!(extra_fields) }
+
+      it 'includes the base fields' do
+        collect_and_log!
+        expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION - CORE') do |msg|
+          json = JSON.parse(msg.partition('- CORE -')[2].strip)
+          expect(json).to include(expected_logger_result)
+        end
+      end
+
+      it 'includes the extra fields' do
+        collect_and_log!
+        expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION - CORE') do |msg|
+          json = JSON.parse(msg.partition('- CORE -')[2].strip)
+          expect(json).to include(
+            'hello' => 123,
+            'world' => '456',
+          )
+        end
       end
     end
   end

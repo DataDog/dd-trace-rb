@@ -48,9 +48,10 @@ module Datadog
       module EnvironmentLogger
         extend EnvironmentLogging
 
-        def self.collect_and_log!
+        def self.collect_and_log!(extra_fields = nil)
           if log?
             data = EnvironmentCollector.collect_config!
+            data = data.merge(extra_fields) if extra_fields
             log_configuration!('CORE', data.to_json)
           end
         rescue => e
