@@ -254,6 +254,12 @@ module Datadog
         components = Components.new(settings)
 
         old.shutdown!(components)
+        puts "After shutdown, sleeping!"
+
+        sleep 1
+
+        puts "Woke up after shutdown!"
+
         components.startup!(settings)
         components
       end
