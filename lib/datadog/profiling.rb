@@ -131,7 +131,6 @@ module Datadog
       require_relative 'profiling/collectors/idle_sampling_helper'
       require_relative 'profiling/collectors/stack'
       require_relative 'profiling/collectors/thread_context'
-      require_relative 'profiling/diagnostics/environment_logger'
       require_relative 'profiling/stack_recorder'
       require_relative 'profiling/exporter'
       require_relative 'profiling/flush'
