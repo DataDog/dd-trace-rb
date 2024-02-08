@@ -87,6 +87,7 @@ module Datadog
           TAG_CLIENT_IP = 'http.client_ip'
           HEADER_USER_AGENT = 'User-Agent'
           TAG_ROUTE = 'http.route'
+          TAG_ROUTE_PATH = 'http.route.path'
 
           # General header functionality
           module Headers

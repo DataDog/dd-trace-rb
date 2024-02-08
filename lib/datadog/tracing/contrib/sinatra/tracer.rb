@@ -74,9 +74,9 @@ module Datadog
                 Contrib::Analytics.set_measured(span)
 
                 _, path = env['sinatra.route'].split(' ', 2)
-                if Thread.current.key?(:datadog_http_routing) && Thread.current[:datadog_http_routing].is_a?(Array)
-                  Thread.current[:datadog_http_routing] << [:sinatra, env['SCRIPT_NAME'], path]
-                end
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, path)
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])
+                # binding.pry
                 super
               end
             end

@@ -64,7 +64,6 @@ module Datadog
               Datadog.logger.error(e.message)
             end
 
-            # rubocop:disable Metrics/AbcSize
             def endpoint_run(name, start, finish, id, payload)
               return unless Thread.current[KEY_RUN]
 
@@ -105,9 +104,8 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request_method)
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
 
-                if Thread.current.key?(:datadog_http_routing) && Thread.current[:datadog_http_routing].is_a?(Array)
-                  Thread.current[:datadog_http_routing] << [:grape, endpoint.env['SCRIPT_NAME'], integration_route]
-                end
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, integration_route)
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, endpoint.env['SCRIPT_NAME'])
               ensure
                 span.start(start)
                 span.finish(finish)
@@ -115,7 +113,6 @@ module Datadog
             rescue StandardError => e
               Datadog.logger.error(e.message)
             end
-            # rubocop:enable Metrics/AbcSize
 
             def endpoint_start_render(*)
               return if Thread.current[KEY_RENDER]

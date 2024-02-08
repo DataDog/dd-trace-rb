@@ -102,7 +102,6 @@ module Datadog
             request_trace = Tracing.active_trace || TraceOperation.new
 
             env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
-            Thread.current[:datadog_http_routing] = []
 
             Datadog::Core::Remote::Tie::Tracing.tag(boot, request_span)
 
@@ -113,9 +112,8 @@ module Datadog
             # call the rest of the stack
             status, headers, response = @app.call(env)
 
-            if status != 404 && (routed = Thread.current[:datadog_http_routing].last)
-              last_script_name = routed[1]
-              last_route = routed[2]
+            if status != 404 && (last_route = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              last_script_name = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
 
               # If the last_script_name is empty but the env['SCRIPT_NAME'] is NOT empty
               # then the current rack request was not routed and must be accounted for
@@ -128,8 +126,13 @@ module Datadog
                 last_route = env['PATH_INFO']
               end
 
-              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route) if last_route
-              Thread.current[:datadog_http_routing] = []
+              # Clear the route and route path tags from the request trace to avoid possibility of misplacement
+              request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
+              request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+
+              # Ensure tags are placed in rack.request span as desired
+              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route)
+              request_span.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
             end
 
             [status, headers, response]
