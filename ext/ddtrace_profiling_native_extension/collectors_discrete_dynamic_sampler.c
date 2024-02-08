@@ -255,6 +255,22 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   sampler->has_completed_full_adjustment_window = true;
 }
 
+VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler) {
+  VALUE arguments[] = {
+    ID2SYM(rb_intern("target_overhead")),                 /* => */ DBL2NUM(sampler->target_overhead),
+    ID2SYM(rb_intern("target_overhead_adjustment")),      /* => */ DBL2NUM(sampler->target_overhead_adjustment),
+    ID2SYM(rb_intern("events_per_sec")),                  /* => */ DBL2NUM(sampler->events_per_ns * 1e9),
+    ID2SYM(rb_intern("sampling_time_ns")),                /* => */ LONG2NUM(sampler->sampling_time_ns),
+    ID2SYM(rb_intern("sampling_interval")),               /* => */ ULONG2NUM(sampler->sampling_interval),
+    ID2SYM(rb_intern("sampling_probability")),            /* => */ DBL2NUM(sampler->sampling_probability * 100),
+    ID2SYM(rb_intern("events_since_last_readjustment")),  /* => */ ULONG2NUM(sampler->events_since_last_readjustment),
+    ID2SYM(rb_intern("samples_since_last_readjustment")), /* => */ ULONG2NUM(sampler->samples_since_last_readjustment),
+  };
+  VALUE hash = rb_hash_new();
+  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
+  return hash;
+}
+
 // ---
 // Below here is boilerplate to expose the above code to Ruby so that we can test it with RSpec as usual.
 

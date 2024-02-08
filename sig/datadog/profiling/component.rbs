@@ -17,6 +17,7 @@ module Datadog
       def self.build_profiler_exporter: (
         untyped settings,
         Datadog::Profiling::StackRecorder recorder,
+        Datadog::Profiling::Collectors::CpuAndWallTimeWorker worker,
         internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
       ) -> Datadog::Profiling::Exporter
 
