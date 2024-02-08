@@ -77,8 +77,17 @@ promote-image:
   stage: package
   # base on a merge commit into master
   # or given a tag
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == 'master'
+      when: on_success
+    - when: manual
+      allow_failure: true
   script:
-    - .gitlab/patch_gem_version.sh # if not release, patch the version
+    - if [ -z "$CI_COMMIT_TAG"]; then .gitlab/patch_gem_version.sh; fi # if not release, patch the version
     - bundle install && bundle exec rake build # .gem is created under pkg/
     - mkdir -p tmp
     - ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s' >> tmp/version.txt
