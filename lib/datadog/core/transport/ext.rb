@@ -21,6 +21,8 @@ module Datadog
           HEADER_META_LANG = 'Datadog-Meta-Lang'
           HEADER_META_LANG_VERSION = 'Datadog-Meta-Lang-Version'
           HEADER_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'
+          # Use for distinguishing between CRuby, JRuby, and TruffleRuby.
+          HEADER_META_LANG_INTERPRETER_VENDOR = 'Datadog-Meta-Lang-Interpreter-Vendor'
           HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'
 
           # Header that prevents the Net::HTTP integration from tracing internal trace requests.
