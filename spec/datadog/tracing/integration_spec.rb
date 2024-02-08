@@ -994,8 +994,10 @@ RSpec.describe 'Tracer integration tests' do
           }
         end
 
+        before { Datadog.configure {} } # Ensure tracer is configured before calling `Contrib::HTTP.extract`
+
         it 'ensures trace is flushed' do
-          trace_digest = Datadog::Tracing::Propagation::HTTP.extract(env)
+          trace_digest = Datadog::Tracing::Contrib::HTTP.extract(env)
           Datadog::Tracing.continue_trace!(trace_digest)
 
           tracer.trace('name') {}

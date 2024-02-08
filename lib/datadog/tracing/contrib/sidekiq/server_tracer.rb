@@ -26,7 +26,7 @@ module Datadog
             resource = job_resource(job)
 
             if @distributed_tracing
-              trace_digest = propagation.extract(job)
+              trace_digest = Sidekiq.extract(job)
               Datadog::Tracing.continue_trace!(trace_digest)
             end
 

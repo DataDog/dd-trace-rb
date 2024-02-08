@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative 'ext'
 
 module Datadog

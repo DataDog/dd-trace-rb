@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../tracing/context'
-require_relative '../tracing/propagation/http'
+require_relative '../tracing/contrib/http'
 require_relative '../tracing/trace_operation'
 require_relative 'propagator'
 
@@ -27,7 +27,7 @@ module Datadog
                    end
 
           # Inject Datadog trace properties
-          Tracing::Propagation::HTTP.inject!(digest, carrier)
+          Tracing::Contrib::HTTP.inject(digest, carrier)
 
           # Inject baggage
           span_context.baggage.each do |key, value|
@@ -43,7 +43,7 @@ module Datadog
         # @return [SpanContext, nil] the extracted SpanContext or nil if none could be found
         def extract(carrier)
           # First extract & build a Datadog context
-          datadog_trace_digest = Tracing::Propagation::HTTP.extract(carrier)
+          datadog_trace_digest = Tracing::Contrib::HTTP.extract(carrier)
 
           # Then extract any other baggage
           baggage = {}

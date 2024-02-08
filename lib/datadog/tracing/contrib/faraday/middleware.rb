@@ -3,7 +3,7 @@
 require 'faraday'
 
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../http_annotation_helper'
@@ -88,7 +88,7 @@ module Datadog
           end
 
           def propagate!(trace, span, env)
-            Tracing::Propagation::HTTP.inject!(trace, env[:request_headers])
+            Contrib::HTTP.inject(trace, env[:request_headers])
           end
 
           def resource_name(env)

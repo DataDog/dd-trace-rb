@@ -2,7 +2,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/context'
 require 'datadog/tracing/utils'
-require 'datadog/tracing/propagation/http'
+require 'datadog/tracing/contrib/http'
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/trace_operation'
 require 'datadog/opentracer'
@@ -118,7 +118,7 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
     end
 
     before do
-      expect(Datadog::Tracing::Propagation::HTTP).to receive(:extract)
+      expect(Datadog::Tracing::Contrib::HTTP).to receive(:extract)
         .with(carrier)
         .and_return(datadog_trace_digest)
 

@@ -7,7 +7,7 @@ require_relative '../../../core/backport'
 require_relative '../../../core/remote/tie/tracing'
 require_relative '../../client_ip'
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative '../utils/quantization/http'
 require_relative 'ext'
@@ -43,7 +43,7 @@ module Datadog
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
             if configuration[:distributed_tracing]
-              trace_digest = Tracing::Propagation::HTTP.extract(env)
+              trace_digest = Contrib::HTTP.extract(env)
               Tracing.continue_trace!(trace_digest)
             end
 

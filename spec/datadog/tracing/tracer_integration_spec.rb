@@ -3,7 +3,7 @@ require 'support/rack_support'
 
 require 'datadog/core/runtime/ext'
 
-require 'datadog/tracing/propagation/http'
+require 'datadog/tracing/contrib/http'
 require 'datadog/tracing/sampling/ext'
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/tracer'
@@ -248,7 +248,7 @@ RSpec.describe Datadog::Tracing::Tracer do
   describe 'synthetics' do
     context 'which applies the context from distributed tracing headers' do
       let(:trace_id) { 3238677264721744442 }
-      let(:synthetics_trace) { Datadog::Tracing::Propagation::HTTP.extract(distributed_tracing_headers) }
+      let(:synthetics_trace) { Datadog::Tracing::Contrib::HTTP.extract(distributed_tracing_headers) }
       let(:parent_id) { 0 }
       let(:sampling_priority) { 1 }
       let(:origin) { 'synthetics' }
@@ -263,6 +263,7 @@ RSpec.describe Datadog::Tracing::Tracer do
       end
 
       before do
+        Datadog.configure {}
         tracer.continue_trace!(synthetics_trace)
       end
 
@@ -302,12 +303,13 @@ RSpec.describe Datadog::Tracing::Tracer do
   end
 
   describe 'distributed trace' do
-    let(:extract) { Datadog::Tracing::Propagation::HTTP.extract(rack_headers) }
+    let(:extract) { Datadog::Tracing::Contrib::HTTP.extract(rack_headers) }
     let(:trace) { Datadog::Tracing.continue_trace!(extract) }
-    let(:inject) { {}.tap { |env| Datadog::Tracing::Propagation::HTTP.inject!(trace.to_digest, env) } }
+    let(:inject) { {}.tap { |env| Datadog::Tracing::Contrib::HTTP.inject(trace.to_digest, env) } }
 
     let(:rack_headers) { headers.map { |k, v| [RackSupport.header_to_rack(k), v] }.to_h }
 
+    before { Datadog.configure {} }
     after { Datadog::Tracing.continue_trace!(nil) }
 
     context 'with distributed datadog headers' do

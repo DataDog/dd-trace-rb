@@ -144,6 +144,11 @@ module Datadog
         Tracing::Sampling::Span::Sampler.new(rules || [])
       end
 
+      # Configure non-privileged components.
+      def configure_tracing(settings)
+        Datadog::Tracing::Contrib::Component.configure(settings)
+      end
+
       # Sampler wrapper component, to allow for hot-swapping
       # the sampler instance used by the tracer.
       # Swapping samplers happens during Dynamic Configuration.
