@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'date'
 require 'json'
 require 'rbconfig'
+require 'time'
 
 module Datadog
   module Core
@@ -81,7 +81,7 @@ module Datadog
 
           # @return [String] current time in ISO8601 format
           def date
-            DateTime.now.iso8601
+            Time.now.utc.iso8601
           end
 
           # Best portable guess of OS information.

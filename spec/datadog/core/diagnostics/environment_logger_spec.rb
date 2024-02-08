@@ -9,7 +9,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
 
   before do
-    allow(DateTime).to receive(:now).and_return(DateTime.new(2020))
+    allow(Time).to receive(:now).and_return(Time.new(2020))
 
     # Resets "only-once" execution pattern of `collect_and_log!`
     env_logger.instance_variable_set(:@executed, nil)
@@ -36,7 +36,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION - CORE') do |msg|
         json = JSON.parse(msg.partition('- CORE -')[2].strip)
         expect(json).to match(
-          'date' => '2020-01-01T00:00:00+00:00',
+          'date' => '2020-01-01T00:00:00Z',
           'os_name' => (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
           'version' => DDTrace::VERSION::STRING,
           'lang' => 'ruby',
@@ -105,7 +105,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
       it 'with a default core' do
         is_expected.to match(
-          date: '2020-01-01T00:00:00+00:00',
+          date: '2020-01-01T00:00:00Z',
           os_name: (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
           version: DDTrace::VERSION::STRING,
           lang: 'ruby',
