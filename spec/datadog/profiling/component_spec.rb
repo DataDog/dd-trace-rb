@@ -23,12 +23,12 @@ RSpec.describe Datadog::Profiling::Component do
     context 'when profiling is not supported' do
       before { allow(Datadog::Profiling).to receive(:supported?).and_return(false) }
 
-      it { is_expected.to be nil }
+      it { is_expected.to eq [nil, { profiling_enabled: false }] }
     end
 
     context 'by default' do
       it 'does not build a profiler' do
-        is_expected.to be nil
+        is_expected.to eq [nil, { profiling_enabled: false }]
       end
     end
 
@@ -38,7 +38,7 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       it 'does not build a profiler' do
-        is_expected.to be nil
+        is_expected.to eq [nil, { profiling_enabled: false }]
       end
     end
 
@@ -48,6 +48,10 @@ RSpec.describe Datadog::Profiling::Component do
 
         settings.profiling.enabled = true
         allow(profiler_setup_task).to receive(:run)
+      end
+
+      it 'builds a profiler instance' do
+        expect(build_profiler_component).to match([instance_of(Datadog::Profiling::Profiler), { profiling_enabled: true }])
       end
 
       context 'when using the new CPU Profiling 2.0 profiler' do
