@@ -613,6 +613,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
                 end
               end
             end
+            raise 'could not allocate an object in a recycled slot'
           end
 
           it 'enforces seen id flag on objects on recycled slots that get sampled' do
