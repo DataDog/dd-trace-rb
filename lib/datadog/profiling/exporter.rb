@@ -46,7 +46,7 @@ module Datadog
       end
 
       def flush
-        worker_stats = @worker.stats_and_reset
+        worker_stats = @worker.stats_and_reset_not_thread_safe
         start, finish, uncompressed_pprof = pprof_recorder.serialize
         @last_flush_finish_at = finish
 
