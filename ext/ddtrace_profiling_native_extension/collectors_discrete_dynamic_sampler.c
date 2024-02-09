@@ -107,9 +107,9 @@ size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sample
   return sampler->events_since_last_sample;
 }
 
-static double ewma_adj_window(double current, double avg, long current_window_time_ns, bool is_first) {
+static double ewma_adj_window(double latest_value, double avg, long current_window_time_ns, bool is_first) {
   if (is_first) {
-    return current;
+    return latest_value;
   }
 
   // We don't want samples coming from partial adjustment windows (e.g. preempted due to number of samples)
@@ -118,7 +118,7 @@ static double ewma_adj_window(double current, double avg, long current_window_ti
   double fraction_of_full_window = double_min_of((double) current_window_time_ns / ADJUSTMENT_WINDOW_NS, 1);
   double alpha = EMA_SMOOTHING_FACTOR * fraction_of_full_window;
 
-  return (1-alpha) * avg + alpha * current;
+  return (1-alpha) * avg + alpha * latest_value;
 }
 
 static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
