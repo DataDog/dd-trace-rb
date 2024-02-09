@@ -54,11 +54,11 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
   end
 
   def sampler_current_probability
-    sampler._native_state_snapshot[:sampling_probability]
+    sampler._native_state_snapshot.fetch(:sampling_probability)
   end
 
   def sampler_current_events_per_sec
-    sampler._native_state_snapshot[:events_per_sec]
+    sampler._native_state_snapshot.fetch(:events_per_sec)
   end
 
   context 'when under a constant' do
