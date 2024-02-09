@@ -594,7 +594,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             # Repeatedly allocate objects until we find one that resolves to the id of one of
             # the force recycled objects
             objs = []
-            loop do
+            100.times do
               # Instead of doing this one at a time which would be slow given id2ref will
               # raise on failure, allocate a ton of objects each time, increasing the
               # probability of getting a hit on each iteration
