@@ -69,10 +69,10 @@ RSpec.describe Datadog::Core::Configuration::Option do
         before do
           allow(definition).to receive(:after_set).and_return(after_set)
 
-          expect(context).to receive(:instance_exec) do |*args, &block|
-            expect(args.first).to be(setter_value)
-            expect(args[1]).to be(nil)
-            expect(args[2]).to be(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+          expect(context).to receive(:instance_exec) do |value, old_value, precedence, &block|
+            expect(value).to be(setter_value)
+            expect(old_value).to be(nil)
+            expect(precedence).to be(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
             expect(block).to be after_set
             after_set.call
           end
