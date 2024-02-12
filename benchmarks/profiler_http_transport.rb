@@ -51,7 +51,7 @@ class ProfilerHttpTransportBenchmark
       code_provenance_data: '', # Random.new(1).bytes(4_000),
       tags_as_array: [],
       internal_metadata: { no_signals_workaround_enabled: false },
-      info: { profiler: { benchmarking: true } },
+      info_json: JSON.fast_generate({ profiler: { benchmarking: true } }),
     )
   end
 

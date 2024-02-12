@@ -26,7 +26,7 @@ module Datadog
         code_provenance_data:,
         tags_as_array:,
         internal_metadata:,
-        info:
+        info_json:
       )
         @start = start
         @finish = finish
@@ -36,7 +36,7 @@ module Datadog
         @code_provenance_data = code_provenance_data
         @tags_as_array = tags_as_array
         @internal_metadata_json = JSON.fast_generate(internal_metadata)
-        @info_json = JSON.fast_generate(info)
+        @info_json = info_json
       end
     end
   end

@@ -6,13 +6,13 @@ module Datadog
       private
 
       attr_reader pprof_recorder: Datadog::Profiling::StackRecorder
-      attr_reader info_collector: Datadog::Profiling::Collectors::Info
       attr_reader code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?
       attr_reader minimum_duration_seconds: ::Integer
       attr_reader time_provider: untyped
       attr_reader last_flush_finish_at: ::Time?
       attr_reader created_at: ::Time
       attr_reader internal_metadata: ::Hash[::Symbol, untyped]
+      attr_reader info_json: ::String
 
       public
 

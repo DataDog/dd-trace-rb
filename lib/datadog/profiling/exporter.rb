@@ -19,12 +19,12 @@ module Datadog
       attr_reader \
         :pprof_recorder,
         :code_provenance_collector, # The code provenance collector acts both as collector and as a recorder
-        :info_collector,
         :minimum_duration_seconds,
         :time_provider,
         :last_flush_finish_at,
         :created_at,
-        :internal_metadata
+        :internal_metadata,
+        :info_json
 
       public
 
@@ -39,13 +39,15 @@ module Datadog
       )
         @pprof_recorder = pprof_recorder
         @worker = worker
-        @info_collector = info_collector
         @code_provenance_collector = code_provenance_collector
         @minimum_duration_seconds = minimum_duration_seconds
         @time_provider = time_provider
         @last_flush_finish_at = nil
         @created_at = time_provider.now.utc
         @internal_metadata = internal_metadata
+        # NOTE: At the time of this comment collected info does not change over time so we'll hardcode
+        #       it on startup to prevent serializing the same info on every flush.
+        @info_json = JSON.fast_generate(info_collector.info)
       end
 
       def flush
@@ -61,7 +63,6 @@ module Datadog
         end
 
         uncompressed_code_provenance = code_provenance_collector.refresh.generate_json if code_provenance_collector
-        info = @info_collector.info
 
         Flush.new(
           start: start,
@@ -77,7 +78,7 @@ module Datadog
               gc: GC.stat,
             }
           ),
-          info: info,
+          info_json: info_json,
         )
       end
 

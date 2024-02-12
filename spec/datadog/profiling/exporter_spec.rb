@@ -68,6 +68,7 @@ RSpec.describe Datadog::Profiling::Exporter do
           gc: hash_including(:count, :total_freed_objects),
         }
       )
+      expect(JSON.parse(flush.info_json, symbolize_names: true)).to eq(info)
     end
 
     context 'when pprof recorder has no data' do
