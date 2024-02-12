@@ -197,7 +197,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   //                                                ┌─ assuming no events will be emitted during sampling
   //                                                │
   //                           = events_per_ns * working_window_time_ns * sampling_probability * sampling_time_ns
-  //                           = events_per_ns * sampling_probability * sampling_time_ns * (window_time_ns - sampling_window_time_ns)
+  //                           = events_per_ns * (window_time_ns - sampling_window_time_ns) * sampling_probability * sampling_time_ns
   //
   // Re-ordering for sampling_probability and solving for the upper-bound of sampling_window_time_ns:
   //
