@@ -2,6 +2,7 @@ require 'date'
 
 require_relative '../../../core/environment/variable_helpers'
 require_relative '../../../core/backport'
+require_relative '../../../core/remote/tie/tracing'
 require_relative '../../client_ip'
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
@@ -65,13 +66,17 @@ module Datadog
             end
           end
 
+          # rubocop:disable Metrics/CyclomaticComplexity
+          # rubocop:disable Metrics/PerceivedComplexity
+          # rubocop:disable Metrics/MethodLength
+          # rubocop:disable Metrics/AbcSize
           def call(env)
             # Find out if this is rack within rack
             previous_request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
 
             return @app.call(env) if previous_request_span
 
-            Datadog::Core::Remote.active_remote.barrier(:once) unless Datadog::Core::Remote.active_remote.nil?
+            boot = Datadog::Core::Remote::Tie.boot
 
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
@@ -91,8 +96,14 @@ module Datadog
             # we must ensure that the span `resource` is set later
             request_span = Tracing.trace(Ext::SPAN_REQUEST, **trace_options)
             request_span.resource = nil
-            request_trace = Tracing.active_trace
+
+            # When tracing and distributed tracing are both disabled, `.active_trace` will be `nil`,
+            # Return a null object to continue operation
+            request_trace = Tracing.active_trace || TraceOperation.new
+
             env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
+
+            Datadog::Core::Remote::Tie::Tracing.tag(boot, request_span)
 
             # Copy the original env, before the rest of the stack executes.
             # Values may change; we want values before that happens.
@@ -100,6 +111,30 @@ module Datadog
 
             # call the rest of the stack
             status, headers, response = @app.call(env)
+
+            if status != 404 && (last_route = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              last_script_name = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+
+              # If the last_script_name is empty but the env['SCRIPT_NAME'] is NOT empty
+              # then the current rack request was not routed and must be accounted for
+              # which only happens in pure nested rack requests i.e /rack/rack/hello/world
+              #
+              # To account for the unaccounted nested rack requests of /rack/hello/world,
+              # we use 'PATH_INFO knowing that rack cannot have named parameters
+              if last_script_name == '' && env['SCRIPT_NAME'] != ''
+                last_script_name = last_route
+                last_route = env['PATH_INFO']
+              end
+
+              # Clear the route and route path tags from the request trace to avoid possibility of misplacement
+              request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
+              request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+
+              # Ensure tags are placed in rack.request span as desired
+              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route)
+              request_span.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+            end
+
             [status, headers, response]
 
           # rubocop:disable Lint/RescueException
@@ -135,10 +170,6 @@ module Datadog
           end
           # rubocop:enable Lint/RescueException
 
-          # rubocop:disable Metrics/AbcSize
-          # rubocop:disable Metrics/CyclomaticComplexity
-          # rubocop:disable Metrics/PerceivedComplexity
-          # rubocop:disable Metrics/MethodLength
           def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
             request_header_collection = Header::RequestHeaderCollection.new(env)
 

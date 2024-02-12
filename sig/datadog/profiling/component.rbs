@@ -17,6 +17,7 @@ module Datadog
       def self.build_profiler_exporter: (
         untyped settings,
         Datadog::Profiling::StackRecorder recorder,
+        Datadog::Profiling::Collectors::CpuAndWallTimeWorker worker,
         internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
       ) -> Datadog::Profiling::Exporter
 
@@ -26,8 +27,7 @@ module Datadog
       ) -> untyped
 
       def self.enable_gc_profiling?: (untyped settings) -> bool
-      def self.get_allocation_sample_every: (untyped settings) -> ::Integer
-      def self.enable_allocation_profiling?: (untyped settings, ::Integer allocation_sample_every) -> bool
+      def self.enable_allocation_profiling?: (untyped settings) -> bool
       def self.get_heap_sample_every: (untyped settings) -> ::Integer
       def self.enable_heap_profiling?: (untyped settings, bool allocation_profiling_enabled, ::Integer heap_sample_every) -> bool
       def self.enable_heap_size_profiling?: (untyped settings, bool heap_profiling_enabled) -> bool

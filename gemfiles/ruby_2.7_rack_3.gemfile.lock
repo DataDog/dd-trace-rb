@@ -11,10 +11,10 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.19.0)
-      datadog-ci (~> 0.6.0)
+    ddtrace (1.20.0)
+      datadog-ci (~> 0.7.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 5.0.0.1.0)
+      libdatadog (~> 6.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -41,7 +41,7 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
-    datadog-ci (0.6.0)
+    datadog-ci (0.7.0)
       msgpack
     debase-ruby_core_source (3.3.1)
     debug_inspector (1.1.0)
@@ -56,8 +56,8 @@ GEM
     json (2.6.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (5.0.0.1.0-aarch64-linux)
-    libdatadog (5.0.0.1.0-x86_64-linux)
+    libdatadog (6.0.0.1.0-aarch64-linux)
+    libdatadog (6.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)

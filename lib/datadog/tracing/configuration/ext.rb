@@ -18,7 +18,6 @@ module Datadog
           ENV_PEER_SERVICE_MAPPING = 'DD_TRACE_PEER_SERVICE_MAPPING'
         end
 
-        # @public_api
         module Analytics
           ENV_TRACE_ANALYTICS_ENABLED = 'DD_TRACE_ANALYTICS_ENABLED'
         end

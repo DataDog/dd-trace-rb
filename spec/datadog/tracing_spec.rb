@@ -128,9 +128,21 @@ RSpec.describe Datadog::Tracing do
 
   describe '.correlation' do
     subject(:correlation) { described_class.correlation }
+
     it 'delegates to the tracer' do
       expect(described_class.send(:tracer)).to receive(:active_correlation).and_return(returned)
       expect(correlation).to eq(returned)
+    end
+
+    context 'when dd-trace-rb is not initialized' do
+      before do
+        expect(Datadog.send(:components, allow_initialization: false)).to be nil
+      end
+
+      it 'does not cause components to be initialized' do
+        expect(correlation.span_id).to be 0
+        expect(Datadog.send(:components, allow_initialization: false)).to be nil
+      end
     end
   end
 

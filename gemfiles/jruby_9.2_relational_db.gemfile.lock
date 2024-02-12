@@ -11,10 +11,10 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.19.0)
-      datadog-ci (~> 0.6.0)
+    ddtrace (1.20.0)
+      datadog-ci (~> 0.7.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 5.0.0.1.0)
+      libdatadog (~> 6.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -60,7 +60,7 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
-    datadog-ci (0.6.0)
+    datadog-ci (0.7.0)
       msgpack
     debase-ruby_core_source (3.3.1)
     delayed_job (4.1.11)
@@ -80,7 +80,7 @@ GEM
     jdbc-sqlite3 (3.28.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (5.0.0.1.0)
+    libdatadog (6.0.0.1.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     makara (0.5.1)

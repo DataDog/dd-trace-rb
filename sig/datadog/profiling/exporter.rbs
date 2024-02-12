@@ -12,15 +12,16 @@ module Datadog
       attr_reader time_provider: untyped
       attr_reader last_flush_finish_at: ::Time?
       attr_reader created_at: ::Time
-      attr_reader internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric]
+      attr_reader internal_metadata: ::Hash[::Symbol, untyped]
 
       public
 
       def initialize: (
         pprof_recorder: Datadog::Profiling::StackRecorder,
+        worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker,
         info_collector: Datadog::Profiling::Collectors::Info,
         code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?,
-        internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
+        internal_metadata: ::Hash[::Symbol, untyped],
         ?minimum_duration_seconds: ::Integer,
         ?time_provider: untyped
       ) -> void

@@ -279,6 +279,17 @@ RSpec.describe 'Faraday middleware' do
       expect(span.get_tag('span.kind')).to eq('client')
     end
 
+    context 'when given `on_error`' do
+      let(:configuration_options) { { on_error: proc { @error_handler_called = true } } }
+
+      it do
+        expect { response }.to raise_error(Faraday::ConnectionFailed)
+
+        expect(span).not_to have_error
+        expect(@error_handler_called).to be_truthy
+      end
+    end
+
     it_behaves_like 'a peer service span' do
       let(:peer_service_val) { 'example.com' }
       let(:peer_service_source) { 'peer.hostname' }

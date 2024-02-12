@@ -229,7 +229,6 @@ end
 appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
-  gem 'graphql', '>= 2.0'
   gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'rack-test' # Dev dependencies for testing rack-based code
@@ -242,6 +241,16 @@ appraise 'contrib' do
   gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0', '< 2.0.0'
+end
+
+[
+  '2.0',
+  '1.13',
+  '1.12',
+].each do |v|
+  appraise "graphql-#{v}" do
+    gem 'graphql', "~> #{v}.0"
+  end
 end
 
 [1, 2, 3].each do |n|
@@ -271,7 +280,6 @@ end
 appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
   gem 'faraday', '0.17'
-  gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
   gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby
@@ -280,4 +288,12 @@ end
 
 appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
+end
+
+appraise 'multi-rack-app' do
+  gem 'sinatra'
+  gem 'rack-contrib'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+  gem 'grape'
+  gem 'rails', '~> 5.2.1'
 end

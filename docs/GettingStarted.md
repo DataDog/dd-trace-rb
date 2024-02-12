@@ -467,7 +467,7 @@ end
 
 | Key            | Description                                                                                                                                                                                       | Default                                    |
 |----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
-| `service_name` | Name of application running the `active_record` instrumentation. May be overridden by `global_default_service_name`. [See *Additional Configuration* for more details](#additional-configuration) | Name of database adapter (e.g. `'mysql2'`) |
+| `service_name` | Override the service name for the SQL query instrumentation. ActiveRecord instantiation instrumentation always uses the application's configured service name. | Name of database adapter (e.g. `'mysql2'`) |
 
 **Configuring trace settings per database**
 
@@ -584,8 +584,7 @@ Aws::S3::Client.new.list_buckets
 
 ### Concurrent Ruby
 
-The Concurrent Ruby integration adds support for context propagation when using `::Concurrent::Future`.
-Making sure that code traced within the `Future#execute` will have correct parent set.
+The Concurrent Ruby integration adds support for context propagation when using `::Concurrent::Future` and `Concurrent::Async`, and ensures that code traced within the `Future#execute` and `Concurrent::Async#async` will have the correct parent set.
 
 To activate your integration, use the `Datadog.configure` method:
 
@@ -599,6 +598,19 @@ end
 # Pass context into code executed within Concurrent::Future
 Datadog::Tracing.trace('outer') do
   Concurrent::Future.execute { Datadog::Tracing.trace('inner') { } }.wait
+end
+
+# Pass context into code executed within Concurrent::Async
+class MyClass
+  include ConcurrentAsync
+
+  def foo
+    Datadog::Tracing.trace('inner') { }
+  end
+end
+
+Datadog::Tracing.trace('outer') do
+  MyClass.new.async.foo
 end
 ```
 
@@ -838,7 +850,7 @@ connection.get('/foo')
 | `distributed_tracing` |                                 | Enables [distributed tracing](#distributed-tracing)                                                                                                                                         | `true`    |
 | `split_by_domain`     |                                 | Uses the request domain as the service name when set to `true`.                                                                                                                             | `false`   |
 | `error_handler`       |                                 | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors.                      | `nil`     |
-
+| `on_error` | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets an error on the span by default. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Grape
 
@@ -1666,6 +1678,21 @@ customer_cache.get(...)
 invoice_cache.get(...)
 ```
 
+With a standalone `RedisClient`:
+
+```ruby
+require "redis-client"
+require "ddtrace"
+
+redis = RedisClient.config(custom: { datadog: { service_name: "my-custom-redis" } }).new_client
+
+Datadog.configure do |c|
+  c.tracing.instrument :redis # Enabling integration instrumentation is still required
+end
+
+redis.call('PING')
+```
+
 With Redis version < 5:
 
 ```ruby
@@ -2085,7 +2112,6 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `version`                                               | `DD_VERSION`                                            | `nil`                        | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED`                  | `true`                       | Allows you to enable sending telemetry data to Datadog. Can be disabled, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **Tracing**                                             |                                                         |                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`                            | `nil`                        | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `tracing.contrib.peer_service_mapping`                  | `DD_TRACE_PEER_SERVICE_MAPPING`                         | `nil`                        | Defines remapping of `peer.service` tag across all instrumentation. Provide a list of `old_value1:new_value1, old_value2:new_value2, ...`                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `tracing.contrib.global_default_service_name.enabled`   | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `false`                      | Changes the default value for `service_name` to the application service name across all instrumentation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `tracing.distributed_tracing.propagation_extract_first` | `DD_TRACE_PROPAGATION_EXTRACT_FIRST` | `false` | Exit immediately on the first valid propagation format detected.  See [Distributed Tracing](#distributed-tracing) for more details. |

@@ -6,7 +6,6 @@ module Datadog
   module Tracing
     module Contrib
       # Defines analytics behavior for integrations
-      # @public_api
       module Analytics
         module_function
 

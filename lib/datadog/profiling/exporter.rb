@@ -30,6 +30,7 @@ module Datadog
 
       def initialize(
         pprof_recorder:,
+        worker:,
         info_collector:,
         code_provenance_collector:,
         internal_metadata:,
@@ -37,6 +38,7 @@ module Datadog
         time_provider: Time
       )
         @pprof_recorder = pprof_recorder
+        @worker = worker
         @info_collector = info_collector
         @code_provenance_collector = code_provenance_collector
         @minimum_duration_seconds = minimum_duration_seconds
@@ -47,6 +49,7 @@ module Datadog
       end
 
       def flush
+        worker_stats = @worker.stats_and_reset_not_thread_safe
         start, finish, uncompressed_pprof = pprof_recorder.serialize
         @last_flush_finish_at = finish
 
@@ -68,7 +71,12 @@ module Datadog
           code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
           code_provenance_data: uncompressed_code_provenance,
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
-          internal_metadata: internal_metadata,
+          internal_metadata: internal_metadata.merge(
+            {
+              worker_stats: worker_stats,
+              gc: GC.stat,
+            }
+          ),
           info: info,
         )
       end

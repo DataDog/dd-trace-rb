@@ -382,7 +382,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
-          'internal' => { 'no_signals_workaround_enabled' => 'true' },
+          'internal' => { 'no_signals_workaround_enabled' => true },
           'info' => info_string_keys,
         )
       end
