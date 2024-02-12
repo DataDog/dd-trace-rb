@@ -358,6 +358,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'version' => '4',
           'endpoint_counts' => nil,
           'internal' => { 'no_signals_workaround_enabled' => true },
+          'info' => {},
         )
       end
 
@@ -406,6 +407,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'version' => '4',
           'endpoint_counts' => nil,
           'internal' => { 'no_signals_workaround_enabled' => true },
+          'info' => {},
         )
 
         expect(body[code_provenance_file_name]).to be nil
