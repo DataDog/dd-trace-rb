@@ -223,23 +223,28 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
     end
 
-    it 'does not allocate Ruby objects during the regular operation of sampling' do
-      # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path"
-      # sampling.
-      # Note that when something does go wrong during sampling, we do allocate exceptions (and then raise them).
+    context 'with allocation profiling enabled' do
+      # We need this otherwise allocations_during_sample will never change
+      let(:allocation_profiling_enabled) { true }
 
-      start
+      it 'does not allocate Ruby objects during the regular operation of sampling' do
+        # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path"
+        # sampling.
+        # Note that when something does go wrong during sampling, we do allocate exceptions (and then raise them).
 
-      try_wait_until do
-        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-        samples if samples.any?
+        start
+
+        try_wait_until do
+          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+          samples if samples.any?
+        end
+
+        cpu_and_wall_time_worker.stop
+
+        stats = cpu_and_wall_time_worker.stats
+
+        expect(stats).to include(allocations_during_sample: 0)
       end
-
-      cpu_and_wall_time_worker.stop
-
-      stats = cpu_and_wall_time_worker.stats
-
-      expect(stats).to include(allocations_during_sample: 0)
     end
 
     it 'records garbage collection cycles' do
@@ -467,6 +472,39 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
         expect(allocation_sample.values).to include(:'alloc-samples' => test_num_allocated_object)
         expect(allocation_sample.locations.first.lineno).to eq allocation_line
+      end
+
+      context 'with dynamic_sampling_rate_enabled' do
+        let(:options) { { dynamic_sampling_rate_enabled: true } }
+        it 'keeps statistics on how allocation sampling is doing' do
+          stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
+
+          start
+
+          test_num_allocated_object.times { CpuAndWallTimeWorkerSpec::TestStruct.new }
+
+          cpu_and_wall_time_worker.stop
+
+          stats = cpu_and_wall_time_worker.stats
+
+          sampled = stats.fetch(:allocation_sampled)
+          skipped = stats.fetch(:allocation_skipped)
+          effective_rate = stats.fetch(:allocation_effective_sample_rate)
+          sampling_time_ns_min = stats.fetch(:allocation_sampling_time_ns_min)
+          sampling_time_ns_max = stats.fetch(:allocation_sampling_time_ns_max)
+          sampling_time_ns_total = stats.fetch(:allocation_sampling_time_ns_total)
+          sampling_time_ns_avg = stats.fetch(:allocation_sampling_time_ns_avg)
+
+          expect(sampled).to be > 0
+          expect(skipped).to be > 0
+          expect(effective_rate).to be > 0
+          expect(effective_rate).to be < 1
+          expect(sampling_time_ns_min).to be <= sampling_time_ns_max
+          expect(sampling_time_ns_max).to be <= sampling_time_ns_total
+          expect(sampling_time_ns_avg).to be >= sampling_time_ns_min
+          one_second_in_ns = 1_000_000_000
+          expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
+        end
       end
 
       context 'when sampling optimized Ruby strings' do
@@ -882,15 +920,15 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
           cpu_sampling_time_ns_max: nil,
           cpu_sampling_time_ns_total: nil,
           cpu_sampling_time_ns_avg: nil,
-          allocation_sampled: 0,
-          allocation_skipped: 0,
+          allocation_sampled: nil,
+          allocation_skipped: nil,
           allocation_effective_sample_rate: nil,
           allocation_sampling_time_ns_min: nil,
           allocation_sampling_time_ns_max: nil,
           allocation_sampling_time_ns_total: nil,
           allocation_sampling_time_ns_avg: nil,
-          allocation_sampler_snapshot: hash_including(:sampling_probability => be > 0),
-          allocations_during_sample: 0,
+          allocation_sampler_snapshot: nil,
+          allocations_during_sample: nil,
         }
       )
     end
@@ -976,6 +1014,47 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
           expect(described_class._native_allocation_count).to be nil
         end
       end
+    end
+  end
+
+  describe '#stats_reset_not_thread_safe' do
+    let(:allocation_profiling_enabled) { true }
+
+    it 'returns accumulated stats and resets them back to 0' do
+      cpu_and_wall_time_worker.start
+      wait_until_running
+
+      try_wait_until do
+        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+        samples if samples.any?
+      end
+
+      stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
+      1000.times { CpuAndWallTimeWorkerSpec::TestStruct.new }
+
+      cpu_and_wall_time_worker.stop
+
+      stats = cpu_and_wall_time_worker.stats_and_reset_not_thread_safe
+
+      expect(stats).to match(
+        hash_including(
+          :cpu_sampled => be > 0,
+          :allocation_sampled => be > 0,
+          :cpu_sampling_time_ns_avg => be > 0,
+          :allocation_sampling_time_ns_avg => be > 0,
+        )
+      )
+
+      stats = cpu_and_wall_time_worker.stats
+
+      expect(stats).to match(
+        hash_including(
+          :cpu_sampled => 0,
+          :allocation_sampled => 0,
+          :cpu_sampling_time_ns_avg => nil,
+          :allocation_sampling_time_ns_avg => nil,
+        )
+      )
     end
   end
 

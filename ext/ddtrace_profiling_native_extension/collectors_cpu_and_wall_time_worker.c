@@ -130,14 +130,15 @@ struct cpu_and_wall_time_worker_state {
     unsigned int signal_handler_enqueued_sample;
     // How many times the signal handler was called from the wrong thread
     unsigned int signal_handler_wrong_thread;
-    // Stats for the results of calling rb_postponed_job_register_one
-      // The same function was already waiting to be executed
+
+    // # Stats for the results of calling rb_postponed_job_register_one
+    // The same function was already waiting to be executed
     unsigned int postponed_job_skipped_already_existed;
-      // The function was added to the queue successfully
+    // The function was added to the queue successfully
     unsigned int postponed_job_success;
-      // The queue was full
+    // The queue was full
     unsigned int postponed_job_full;
-      // The function returned an unknown result code
+    // The function returned an unknown result code
     unsigned int postponed_job_unknown_result;
 
     // # CPU/Walltime sampling stats
@@ -203,10 +204,10 @@ static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE sel
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
-static VALUE _native_stats_reset(DDTRACE_UNUSED VALUE self, VALUE instance);
+static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALUE instance);
 void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused);
 static void grab_gvl_and_sample(void);
-static void reset_stats(struct cpu_and_wall_time_worker_state *state);
+static void reset_stats_not_thread_safe(struct cpu_and_wall_time_worker_state *state);
 static void sleep_for(uint64_t time_ns);
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
@@ -267,7 +268,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats_reset", _native_stats_reset, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats_reset_not_thread_safe", _native_stats_reset_not_thread_safe, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_allocation_count", _native_allocation_count, 0);
   rb_define_singleton_method(testing_module, "_native_current_sigprof_signal_handler", _native_current_sigprof_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_is_running?", _native_is_running, 1);
@@ -319,7 +320,7 @@ static VALUE _native_new(VALUE klass) {
 
   state->during_sample = false;
 
-  reset_stats(state);
+  reset_stats_not_thread_safe(state);
 
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
 }
@@ -844,7 +845,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
   // Disable all tracepoints, so that there are no more attempts to mutate the profile
   disable_tracepoints(state);
 
-  reset_stats(state);
+  reset_stats_not_thread_safe(state);
 
   // Remove all state from the `Collectors::ThreadState` and connected downstream components
   rb_funcall(state->thread_context_collector_instance, rb_intern("reset_after_fork"), 0);
@@ -879,6 +880,9 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   VALUE effective_allocation_sample_rate =
     total_allocation_samples_attempted == 0 ? Qnil : DBL2NUM(((double) state->stats.allocation_sampled) / total_allocation_samples_attempted);
 
+  VALUE allocation_sampler_snapshot = state->allocation_profiling_enabled && state->dynamic_sampling_rate_enabled ?
+    discrete_dynamic_sampler_state_snapshot(&state->allocation_sampler) : Qnil;
+
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("trigger_sample_attempts")),                    /* => */ UINT2NUM(state->stats.trigger_sample_attempts),
@@ -901,24 +905,24 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("cpu_sampling_time_ns_avg")),   /* => */ pretty_cpu_sampling_time_ns_avg,
 
     // Allocation stats
-    ID2SYM(rb_intern("allocation_sampled")),                /* => */ ULONG2NUM(state->stats.allocation_sampled),
-    ID2SYM(rb_intern("allocation_skipped")),                /* => */ ULONG2NUM(state->stats.allocation_skipped),
+    ID2SYM(rb_intern("allocation_sampled")),                /* => */ state->allocation_profiling_enabled ? ULONG2NUM(state->stats.allocation_sampled) : Qnil,
+    ID2SYM(rb_intern("allocation_skipped")),                /* => */ state->allocation_profiling_enabled ? ULONG2NUM(state->stats.allocation_skipped) : Qnil,
     ID2SYM(rb_intern("allocation_effective_sample_rate")),  /* => */ effective_allocation_sample_rate,
     ID2SYM(rb_intern("allocation_sampling_time_ns_min")),   /* => */ pretty_allocation_sampling_time_ns_min,
     ID2SYM(rb_intern("allocation_sampling_time_ns_max")),   /* => */ pretty_allocation_sampling_time_ns_max,
     ID2SYM(rb_intern("allocation_sampling_time_ns_total")), /* => */ pretty_allocation_sampling_time_ns_total,
     ID2SYM(rb_intern("allocation_sampling_time_ns_avg")),   /* => */ pretty_allocation_sampling_time_ns_avg,
-    ID2SYM(rb_intern("allocation_sampler_snapshot")),       /* => */ discrete_dynamic_sampler_state_snapshot(&state->allocation_sampler),
-    ID2SYM(rb_intern("allocations_during_sample")),         /* => */ UINT2NUM(state->stats.allocations_during_sample),
+    ID2SYM(rb_intern("allocation_sampler_snapshot")),       /* => */ allocation_sampler_snapshot,
+    ID2SYM(rb_intern("allocations_during_sample")),         /* => */ state->allocation_profiling_enabled ? UINT2NUM(state->stats.allocations_during_sample) : Qnil,
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
 }
 
-static VALUE _native_stats_reset(DDTRACE_UNUSED VALUE self, VALUE instance) {
+static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
-  reset_stats(state);
+  reset_stats_not_thread_safe(state);
   return Qnil;
 }
 
@@ -939,7 +943,7 @@ void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused) {
 
 static void grab_gvl_and_sample(void) { rb_thread_call_with_gvl(simulate_sampling_signal_delivery, NULL); }
 
-static void reset_stats(struct cpu_and_wall_time_worker_state *state) {
+static void reset_stats_not_thread_safe(struct cpu_and_wall_time_worker_state *state) {
   // NOTE: This is not really thread safe so ongoing sampling operations that are concurrent with a reset can have their stats:
   //       * Lost (writes after stats retrieval but before reset).
   //       * Included in the previous stats window (writes before stats retrieval and reset).
@@ -1014,10 +1018,14 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   // Rescue against any exceptions that happen during sampling
   safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
 
-  uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler);
-  state->stats.allocation_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_min);
-  state->stats.allocation_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_max);
-  state->stats.allocation_sampling_time_ns_total += sampling_time_ns;
+  if (state->dynamic_sampling_rate_enabled) {
+    // NOTE: To keep things lean when dynamic sampling rate is disabled we skip clock interactions.
+    uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler);
+    state->stats.allocation_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_min);
+    state->stats.allocation_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_max);
+    state->stats.allocation_sampling_time_ns_total += sampling_time_ns;
+  }
+
   state->stats.allocation_sampled++;
 
   state->during_sample = false;
