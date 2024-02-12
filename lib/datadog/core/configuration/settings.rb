@@ -381,13 +381,15 @@ module Datadog
             #
             # This feature is now controlled via {:overhead_target_percentage}
             option :experimental_allocation_sample_rate do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.experimental_allocation_sample_rate setting has been deprecated for removal ' \
-                  'and no longer does anything. Please remove it from your Datadog.configure block. ' \
-                  'Allocation sample rate is now handled by a dynamic sampler which will adjust the sampling rate to ' \
-                  'keep to the configured `profiling.advanced.overhead_target_percentage`.'
-                )
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.experimental_allocation_sample_rate setting has been deprecated for removal ' \
+                    'and no longer does anything. Please remove it from your Datadog.configure block. ' \
+                    'Allocation sample rate is now handled by a dynamic sampler which will adjust the sampling rate to ' \
+                    'keep to the configured `profiling.advanced.overhead_target_percentage`.'
+                  )
+                end
               end
             end
 
