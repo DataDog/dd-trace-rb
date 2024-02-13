@@ -320,8 +320,8 @@ RSpec.describe 'ConcurrentRuby integration tests' do
           it 'both inner span parents should be included in same outer span' do
             multiple_deferred_executions
 
-            expect(inner_span.parent_id).to eq(outer_span.span_id)
-            expect(second_inner_span.parent_id).to eq(outer_span.span_id)
+            expect(inner_span.parent_id).to eq(outer_span.id)
+            expect(second_inner_span.parent_id).to eq(outer_span.id)
           end
         end
       end
