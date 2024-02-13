@@ -16,7 +16,11 @@ module Datadog
         module Distributed
           # Extracts and injects propagation through HTTP headers.
           class Propagation < Tracing::Distributed::Propagation
-            def initialize
+            def initialize(
+              propagation_style_inject:,
+              propagation_style_extract:,
+              propagation_extract_first:
+            )
               super(
                 propagation_styles: {
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER =>
@@ -28,7 +32,11 @@ module Datadog
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT =>
                     Tracing::Distributed::TraceContext.new(fetcher: Tracing::Distributed::Fetcher),
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_NONE => Tracing::Distributed::None.new
-                })
+                },
+                propagation_style_inject: propagation_style_inject,
+                propagation_style_extract: propagation_style_extract,
+                propagation_extract_first: propagation_extract_first
+              )
             end
           end
         end

@@ -620,7 +620,9 @@ RSpec.describe Datadog::OpenTelemetry do
 
     context 'OpenTelemetry.propagation' do
       describe '#inject' do
-        subject(:inject) { ::OpenTelemetry.propagation.inject(carrier) }
+        subject(:inject) do
+          ::OpenTelemetry.propagation.inject(carrier)
+        end
         let(:carrier) { {} }
         def headers
           {

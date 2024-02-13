@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative '../http_annotation_helper'
 
@@ -30,7 +30,7 @@ module Datadog
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
                   if Tracing.enabled? && !should_skip_distributed_tracing?(client_config)
-                    Tracing::Propagation::HTTP.inject!(trace, req.header)
+                    Contrib::HTTP.inject(trace, req.header)
                   end
 
                   # Add additional request specific tags to the span.

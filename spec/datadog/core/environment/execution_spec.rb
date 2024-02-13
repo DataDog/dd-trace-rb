@@ -116,6 +116,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
             gemfile(true) do
               source 'https://rubygems.org'
               gem 'spring', '>= 2.0.2'
+              gem 'concurrent-ruby', '#{Gem.loaded_specs['concurrent-ruby'].version}'
             end
 
             # Load the `bin/spring` file, just like a real Spring application would.

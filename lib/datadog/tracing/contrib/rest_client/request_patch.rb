@@ -3,7 +3,7 @@
 require 'uri'
 
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative 'ext'
 
@@ -25,7 +25,7 @@ module Datadog
               return super(&block) unless Tracing.enabled?
 
               datadog_trace_request(uri) do |_span, trace|
-                Tracing::Propagation::HTTP.inject!(trace, processed_headers) if datadog_configuration[:distributed_tracing]
+                Contrib::HTTP.inject(trace, processed_headers) if datadog_configuration[:distributed_tracing]
 
                 super(&block)
               end

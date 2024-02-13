@@ -220,6 +220,7 @@ static VALUE perform_export(
     additional_tags,
     endpoints_stats,
     &internal_metadata,
+    NULL,
     timeout_milliseconds
   );
 

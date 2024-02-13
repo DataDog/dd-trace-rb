@@ -39,7 +39,6 @@ Metrics/BlockNesting:
 Naming/FileName:
   Exclude:
     - 'lib/datadog/appsec/autoload.rb'
-    - 'lib/datadog/core/backport.rb'
     - 'lib/datadog/opentelemetry/api/trace/span.rb'
     - 'lib/datadog/opentelemetry/sdk/trace/span.rb'
     - 'lib/datadog/profiling/load_native_extension.rb'

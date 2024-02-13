@@ -102,6 +102,12 @@ module Datadog
         def stats
           self.class._native_stats(self)
         end
+
+        def stats_and_reset_not_thread_safe
+          stats = self.stats
+          self.class._native_stats_reset_not_thread_safe(self)
+          stats
+        end
       end
     end
   end

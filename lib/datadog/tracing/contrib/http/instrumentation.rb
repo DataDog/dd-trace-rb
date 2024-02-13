@@ -36,7 +36,7 @@ module Datadog
                   span.resource = req.method
 
                   if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config)
-                    Tracing::Propagation::HTTP.inject!(trace, req)
+                    Contrib::HTTP.inject(trace, req)
                   end
 
                   # Add additional request specific tags to the span.

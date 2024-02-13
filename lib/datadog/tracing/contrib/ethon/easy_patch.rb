@@ -4,7 +4,7 @@ require 'uri'
 
 require_relative '../../../core/utils/hash'
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative 'ext'
 require_relative '../http_annotation_helper'
 
@@ -112,7 +112,7 @@ module Datadog
 
               if datadog_configuration[:distributed_tracing]
                 @datadog_original_headers ||= {}
-                Tracing::Propagation::HTTP.inject!(datadog_trace, @datadog_original_headers)
+                Contrib::HTTP.inject(datadog_trace, @datadog_original_headers)
                 self.headers = @datadog_original_headers
               end
             end

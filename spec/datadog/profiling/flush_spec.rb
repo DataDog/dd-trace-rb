@@ -33,7 +33,7 @@ RSpec.describe Datadog::Profiling::Flush do
         code_provenance_file_name: code_provenance_file_name,
         code_provenance_data: code_provenance_data,
         tags_as_array: tags_as_array,
-        internal_metadata_json: '{"no_signals_workaround_enabled":"false"}',
+        internal_metadata_json: '{"no_signals_workaround_enabled":false}',
       )
     end
   end

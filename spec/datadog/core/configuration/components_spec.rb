@@ -35,6 +35,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Client) }
 
+  let(:environment_logger_extra) { { hello: 123, world: '456' } }
+
   include_context 'non-development execution environment'
 
   before do
@@ -70,7 +72,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         settings: settings,
         agent_settings: agent_settings,
         optional_tracer: tracer,
-      ).and_return(profiler)
+      ).and_return([profiler, environment_logger_extra])
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
         .with(settings)
@@ -1022,7 +1024,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             settings: settings,
             agent_settings: agent_settings,
             optional_tracer: anything,
-          ).and_return(profiler)
+          ).and_return([profiler, environment_logger_extra])
         end
 
         it do
@@ -1070,6 +1072,15 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.remote).to be_nil # It doesn't even create it
         end
       end
+    end
+
+    it 'calls the EnvironmentLogger' do
+      expect(Datadog::Profiling::Component).to receive(:build_profiler_component)
+        .and_return([nil, environment_logger_extra])
+
+      expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!).with(environment_logger_extra)
+
+      startup!
     end
   end
 

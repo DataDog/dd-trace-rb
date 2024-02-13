@@ -166,3 +166,11 @@ end
 appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
 end
+
+appraise 'multi-rack-app' do
+  gem 'sinatra', '>= 3'
+  gem 'rack-contrib'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+  gem 'grape'
+  gem 'rails', '~> 6.1.0'
+end

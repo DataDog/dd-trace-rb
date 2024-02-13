@@ -95,6 +95,8 @@ module Datadog
                 # catch thrown exceptions
                 handle_error(span, payload[:exception_object]) if payload[:exception_object]
 
+                integration_route = endpoint.env['grape.routing_args'][:route_info].pattern.origin
+
                 # override the current span with this notification values
                 span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
                 span.set_tag(Ext::TAG_ROUTE_PATH, path)
@@ -102,6 +104,9 @@ module Datadog
 
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request_method)
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
+
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, integration_route)
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, endpoint.env['SCRIPT_NAME'])
               ensure
                 span.start(start)
                 span.finish(finish)

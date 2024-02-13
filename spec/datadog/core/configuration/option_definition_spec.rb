@@ -263,13 +263,6 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     end
   end
 
-  describe '#lazy' do
-    it 'logs deprecation warning' do
-      expect(Datadog::Core).to receive(:log_deprecation)
-      builder.lazy
-    end
-  end
-
   describe '#after_set' do
     subject(:after_set) { builder.after_set(&block) }
 

@@ -22,7 +22,7 @@ module Datadog
             )
           end
 
-          @datadog_propagator.inject!(context.trace.to_digest, carrier)
+          @datadog_propagator.inject(context.trace.to_digest, carrier)
         end
 
         def extract(

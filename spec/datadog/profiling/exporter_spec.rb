@@ -1,11 +1,16 @@
+require 'datadog/profiling/spec_helper'
+
 require 'datadog/profiling/exporter'
 require 'datadog/profiling/collectors/code_provenance'
 require 'datadog/core/logger'
 
 RSpec.describe Datadog::Profiling::Exporter do
+  before { skip_if_profiling_not_supported(self) }
+
   subject(:exporter) do
     described_class.new(
       pprof_recorder: pprof_recorder,
+      worker: worker,
       code_provenance_collector: code_provenance_collector,
       internal_metadata: internal_metadata,
       **options
@@ -18,6 +23,11 @@ RSpec.describe Datadog::Profiling::Exporter do
   let(:code_provenance_data) { 'dummy code provenance data' }
   let(:pprof_recorder_serialize) { [start, finish, pprof_data] }
   let(:pprof_recorder) { instance_double(Datadog::Profiling::StackRecorder, serialize: pprof_recorder_serialize) }
+  let(:worker) do
+    # TODO: Change this to a direct reference when we drop support for old Rubies which currently error if we try
+    #       to `require 'profiling/collectors/cpu_and_wall_time_worker'`
+    instance_double('Datadog::Profiling::Collectors::CpuAndWallTimeWorker', stats_and_reset_not_thread_safe: stats)
+  end
   let(:code_provenance_collector) do
     collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance_data)
     allow(collector).to receive(:refresh).and_return(collector)
@@ -27,6 +37,12 @@ RSpec.describe Datadog::Profiling::Exporter do
   let(:no_signals_workaround_enabled) { false }
   let(:logger) { Datadog.logger }
   let(:options) { {} }
+  let(:stats) do
+    {
+      statA: 123,
+      statB: 456,
+    }
+  end
 
   describe '#flush' do
     subject(:flush) { exporter.flush }
@@ -41,6 +57,14 @@ RSpec.describe Datadog::Profiling::Exporter do
       )
       expect(flush.pprof_data).to eq pprof_data
       expect(flush.code_provenance_data).to eq code_provenance_data
+      expect(JSON.parse(flush.internal_metadata_json, symbolize_names: true)).to match(
+        {
+          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          worker_stats: stats,
+          # GC stats are slightly different between ruby versions.
+          gc: hash_including(:count, :total_freed_objects),
+        }
+      )
     end
 
     context 'when pprof recorder has no data' do
@@ -79,12 +103,16 @@ RSpec.describe Datadog::Profiling::Exporter do
 
     context 'when no_signals_workaround_enabled is true' do
       let(:no_signals_workaround_enabled) { true }
-      it { is_expected.to have_attributes(internal_metadata_json: '{"no_signals_workaround_enabled":"true"}') }
+      it {
+        is_expected.to have_attributes(internal_metadata_json: a_string_matching('"no_signals_workaround_enabled":true'))
+      }
     end
 
     context 'when no_signals_workaround_enabled is false' do
       let(:no_signals_workaround_enabled) { false }
-      it { is_expected.to have_attributes(internal_metadata_json: '{"no_signals_workaround_enabled":"false"}') }
+      it {
+        is_expected.to have_attributes(internal_metadata_json: a_string_matching('"no_signals_workaround_enabled":false'))
+      }
     end
   end
 

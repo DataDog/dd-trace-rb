@@ -535,8 +535,7 @@ Aws::S3::Client.new.list_buckets
 
 ### Concurrent Ruby
 
-The Concurrent Ruby integration adds support for context propagation when using `::Concurrent::Future`.
-Making sure that code traced within the `Future#execute` will have correct parent set.
+The Concurrent Ruby integration adds support for context propagation when using `::Concurrent::Future` and `Concurrent::Async`, and ensures that code traced within the `Future#execute` and `Concurrent::Async#async` will have the correct parent set.
 
 To activate your integration, use the `Datadog.configure` method:
 
@@ -550,6 +549,19 @@ end
 # Pass context into code executed within Concurrent::Future
 Datadog::Tracing.trace('outer') do
   Concurrent::Future.execute { Datadog::Tracing.trace('inner') { } }.wait
+end
+
+# Pass context into code executed within Concurrent::Async
+class MyClass
+  include ConcurrentAsync
+
+  def foo
+    Datadog::Tracing.trace('inner') { }
+  end
+end
+
+Datadog::Tracing.trace('outer') do
+  MyClass.new.async.foo
 end
 ```
 
@@ -2279,21 +2291,21 @@ For more details on how to activate distributed tracing for integrations, see th
 
 **Using the HTTP propagator**
 
-To make the process of propagating this metadata easier, you can use the `Datadog::Tracing::Propagation::HTTP` module.
+To make the process of propagating this metadata easier, you can use the `Datadog::Tracing::Contrib::HTTP` module.
 
 On the client:
 
 ```ruby
 Datadog::Tracing.trace('web.call') do |span, trace|
   # Inject trace headers into request headers (`env` must be a Hash)
-  Datadog::Tracing::Propagation::HTTP.inject!(trace.to_digest, env)
+  Datadog::Tracing::Contrib::HTTP.inject(trace.to_digest, env)
 end
 ```
 
 On the server:
 
 ```ruby
-trace_digest = Datadog::Tracing::Propagation::HTTP.extract(request.env)
+trace_digest = Datadog::Tracing::Contrib::HTTP.extract(request.env)
 
 Datadog::Tracing.trace('web.work', continue_from: trace_digest) do |span|
   # Do web work...
