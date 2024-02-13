@@ -3,7 +3,6 @@
 require 'date'
 
 require_relative '../../../core/environment/variable_helpers'
-require_relative '../../../core/backport'
 require_relative '../../../core/remote/tie/tracing'
 require_relative '../../client_ip'
 require_relative '../../metadata/ext'
@@ -252,7 +251,7 @@ module Datadog
                        else
                          # normally REQUEST_URI starts at the path, but it
                          # might contain the full URL in some cases (e.g WEBrick)
-                         Datadog::Core::BackportFrom25.string_delete_prefix(request_uri, base_url)
+                         request_uri.delete_prefix(base_url)
                        end
 
             base_url + fullpath
