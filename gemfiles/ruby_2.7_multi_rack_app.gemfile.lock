@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.20.0)
-      datadog-ci (~> 0.7.0)
+      base64
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 6.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -88,8 +88,6 @@ GEM
       rexml
     crass (1.0.6)
     cri (2.15.11)
-    datadog-ci (0.7.0)
-      msgpack
     date (3.3.4)
     debase-ruby_core_source (3.3.1)
     debug_inspector (1.2.0)
