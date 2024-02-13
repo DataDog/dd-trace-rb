@@ -92,8 +92,7 @@ module Datadog
                 # Measure service stats
                 Contrib::Analytics.set_measured(span)
 
-                # catch thrown exceptions
-                handle_error(span, payload[:exception_object]) if payload[:exception_object]
+                handle_error_and_status_code(span, endpoint, payload)
 
                 integration_route = endpoint.env['grape.routing_args'][:route_info].pattern.origin
 
@@ -113,6 +112,30 @@ module Datadog
               end
             rescue StandardError => e
               Datadog.logger.error(e.message)
+            end
+
+            # Status code resolution is tied to the exception handling
+            def handle_error_and_status_code(span, endpoint, payload)
+              status = nil
+
+              # Handle exceptions and status code
+              if (exception_object = payload[:exception_object])
+                # If the exception is not an internal Grape error, we won't have a status code at this point.
+                status = exception_object.status if exception_object.respond_to?(:status)
+
+                handle_error(span, exception_object, status)
+              else
+                # Status code is unreliable in `endpoint_run.grape` if there was an exception.
+                # Only after `Grape::Middleware::Error#run_rescue_handler` that the error status code of a request with a
+                # Ruby exception error is resolved. But that handler is called further down the Grape middleware stack.
+                # Rack span will then be the most reliable source for status codes.
+                # DEV: As a corollary, instrumenting Grape without Rack will provide incomplete
+                # DEV: status quote information.
+                status = endpoint.status
+                span.set_error(endpoint) if error_status_codes.include?(status)
+              end
+
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, status) if status
             end
 
             def endpoint_start_render(*)
@@ -198,9 +221,10 @@ module Datadog
 
             private
 
-            def handle_error(span, exception)
-              if exception.respond_to?('status')
-                span.set_error(exception) if error_status_codes.include?(exception.status)
+            def handle_error(span, exception, status = nil)
+              status ||= (exception.status if exception.respond_to?(:status))
+              if status
+                span.set_error(exception) if error_status_codes.include?(status)
               else
                 on_error.call(span, exception)
               end
@@ -243,6 +267,20 @@ module Datadog
 
             def analytics_sample_rate
               datadog_configuration[:analytics_sample_rate]
+            end
+
+            def exception_is_error?(exception)
+              return false unless exception
+              return true unless exception.respond_to?(:status)
+
+              error_status?(status.exception)
+            end
+
+            def error_status?(status)
+              matcher = datadog_configuration[:error_statuses]
+              return true unless matcher
+
+              matcher.include?(status) if matcher
             end
 
             def enabled?
