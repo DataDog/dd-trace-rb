@@ -285,7 +285,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
       it 'inner span parent should be included in outer span' do
         deferred_execution
-        expect(inner_span.parent_id).to eq(outer_span.span_id)
+        expect(inner_span.parent_id).to eq(outer_span.id)
       end
 
       context 'when there are multiple asyncs with inner spans that have the same parent' do
