@@ -305,3 +305,11 @@ end
 appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
 end
+
+appraise 'multi-rack-app' do
+  gem 'sinatra'
+  gem 'rack-contrib'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+  gem 'grape'
+  gem 'rails', '~> 5.2.1'
+end

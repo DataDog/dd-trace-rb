@@ -69,7 +69,7 @@ module Datadog
           heap_sample_every: heap_sample_every,
         }.freeze
 
-        exporter = build_profiler_exporter(settings, recorder, internal_metadata: internal_metadata)
+        exporter = build_profiler_exporter(settings, recorder, worker, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
 
@@ -86,12 +86,13 @@ module Datadog
         )
       end
 
-      private_class_method def self.build_profiler_exporter(settings, recorder, internal_metadata:)
+      private_class_method def self.build_profiler_exporter(settings, recorder, worker, internal_metadata:)
         code_provenance_collector =
           (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
         Profiling::Exporter.new(
           pprof_recorder: recorder,
+          worker: worker,
           code_provenance_collector: code_provenance_collector,
           internal_metadata: internal_metadata,
         )

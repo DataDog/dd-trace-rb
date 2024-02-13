@@ -14,7 +14,7 @@ PATH
     ddtrace (1.20.0)
       base64
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 5.0.0.1.0)
+      libdatadog (~> 6.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -123,7 +123,7 @@ GEM
     json (2.6.3-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (5.0.0.1.0)
+    libdatadog (6.0.0.1.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     mail (2.8.0.1)
