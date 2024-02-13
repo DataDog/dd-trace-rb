@@ -31,6 +31,7 @@ module Datadog
             @app = app
           end
 
+          # rubocop:disable Metrics/MethodLength
           def call(env)
             # Find out if this is rack within rack
             previous_request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
@@ -69,38 +70,37 @@ module Datadog
               # call the rest of the stack
               status, headers, response = @app.call(env)
 
-            if status != 404 && (last_route = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
-              last_script_name = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+              if status != 404 && (last_route = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+                last_script_name = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
 
-              # If the last_script_name is empty but the env['SCRIPT_NAME'] is NOT empty
-              # then the current rack request was not routed and must be accounted for
-              # which only happens in pure nested rack requests i.e /rack/rack/hello/world
-              #
-              # To account for the unaccounted nested rack requests of /rack/hello/world,
-              # we use 'PATH_INFO knowing that rack cannot have named parameters
-              if last_script_name == '' && env['SCRIPT_NAME'] != ''
-                last_script_name = last_route
-                last_route = env['PATH_INFO']
+                # If the last_script_name is empty but the env['SCRIPT_NAME'] is NOT empty
+                # then the current rack request was not routed and must be accounted for
+                # which only happens in pure nested rack requests i.e /rack/rack/hello/world
+                #
+                # To account for the unaccounted nested rack requests of /rack/hello/world,
+                # we use 'PATH_INFO knowing that rack cannot have named parameters
+                if last_script_name == '' && env['SCRIPT_NAME'] != ''
+                  last_script_name = last_route
+                  last_route = env['PATH_INFO']
+                end
+
+                # Clear the route and route path tags from the request trace to avoid possibility of misplacement
+                request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
+                request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+
+                # Ensure tags are placed in rack.request span as desired
+                request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route)
+                request_span.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
               end
-
-              # Clear the route and route path tags from the request trace to avoid possibility of misplacement
-              request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
-              request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
-
-              # Ensure tags are placed in rack.request span as desired
-              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route)
-              request_span.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
-            end
 
               [status, headers, response]
 
-            # rubocop:disable Lint/RescueException
             # Here we really want to catch *any* exception, not only StandardError,
             # as we really have no clue of what is in the block,
             # and it is user code which should be executed no matter what.
             # It's not a problem since we re-raise it afterwards so for example a
             # SignalException::Interrupt would still bubble up.
-            rescue Exception => e
+            rescue Exception => e # rubocop:disable Lint/RescueException
               # catch exceptions that may be raised in the middleware chain
               # Note: if a middleware catches an Exception without re raising,
               # the Exception cannot be recorded here.
@@ -124,8 +124,12 @@ module Datadog
               end
             end
           end
-          # rubocop:enable Lint/RescueException
+          # rubocop:enable Metrics/MethodLength
 
+          # rubocop:disable Metrics/AbcSize
+          # rubocop:disable Metrics/CyclomaticComplexity
+          # rubocop:disable Metrics/MethodLength
+          # rubocop:disable Metrics/PerceivedComplexity
           def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
             request_header_collection = Header::RequestHeaderCollection.new(env)
 
@@ -225,8 +229,8 @@ module Datadog
           end
           # rubocop:enable Metrics/AbcSize
           # rubocop:enable Metrics/CyclomaticComplexity
-          # rubocop:enable Metrics/PerceivedComplexity
           # rubocop:enable Metrics/MethodLength
+          # rubocop:enable Metrics/PerceivedComplexity
 
           private
 
