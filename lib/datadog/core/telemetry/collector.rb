@@ -155,7 +155,6 @@ module Datadog
           options['appsec.enabled'] = configuration.dig('appsec', 'enabled') if configuration.respond_to?('appsec')
           options['ci.enabled'] = configuration.dig('ci', 'enabled') if configuration.respond_to?('ci')
           options['tracing.opentelemetry.enabled'] = !defined?(Datadog::OpenTelemetry::LOADED).nil?
-          options['tracing.opentracing.enabled'] = !defined?(Datadog::OpenTracer::LOADED).nil?
           options.compact!
           options
         end

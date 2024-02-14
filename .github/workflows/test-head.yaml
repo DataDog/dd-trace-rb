@@ -27,8 +27,6 @@ jobs:
         continue-on-error: true
       - run: bundle exec rake spec:contrib
         continue-on-error: true
-      - run: bundle exec rake spec:opentracer
-        continue-on-error: true
       # A few contrib jobs that `ddtrace` already includes their gem in the global Gemfile.
       # We technically don't need appraisal to run them, thus are easy candidates for early testing.
       - run: bundle exec rake spec:rake
