@@ -90,7 +90,7 @@ RSpec.describe Datadog::Profiling::TagBuilder do
 
         it 'includes the git repository URL and commit SHA' do
           expect(call).to include(
-            '_dd.git.repository_url' => 'git_repository_url', '_dd.git.commit.sha' => 'git_commit_sha'
+            'git.repository_url' => 'git_repository_url', 'git.commit.sha' => 'git_commit_sha'
           )
         end
       end
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Profiling::TagBuilder do
         end
 
         it 'includes the git repository URL and commit SHA' do
-          expect(call).to_not include('_dd.git.repository_url', '_dd.git.commit.sha')
+          expect(call).to_not include('git.repository_url', 'git.commit.sha')
         end
       end
     end
