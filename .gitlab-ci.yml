@@ -1,5 +1,6 @@
 stages:
   - manual-images
+  - build
   - package
   - deploy
   - macrobenchmarks
@@ -72,11 +73,10 @@ promote-image:
     - docker tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
     - docker push $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
 
-.install-base-ruby-gems:
-  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-$ARCHITECTURE:current
-  stage: package
-  # base on a merge commit into master
-  # or given a tag
+build-gem:
+  # TODO: Replace with the correct image for the ruby version
+  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-amd64:current
+  stage: build
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
@@ -89,6 +89,22 @@ promote-image:
   script:
     - if [ -z "$CI_COMMIT_TAG"]; then .gitlab/patch_gem_version.sh; fi # if not release, patch the version
     - bundle install && bundle exec rake build # .gem is created under pkg/
+  artifacts:
+    paths:
+      - pkg
+
+.install-base-ruby-gems:
+  stage: package
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: on_success
+    - if: $CI_COMMIT_BRANCH == 'master'
+      when: on_success
+    - when: manual
+      allow_failure: true
+  script:
     - mkdir -p tmp
     - ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s' >> tmp/version.txt
     - export RUBY_PACKAGE_VERSION=$(cat tmp/version.txt)
