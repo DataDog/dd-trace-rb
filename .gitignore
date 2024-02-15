@@ -50,3 +50,6 @@ gemfiles/.bundle
 # Native extension binaries
 lib/*.bundle
 lib/*.so
+
+# Benchmark result files
+/benchmarks/*.json

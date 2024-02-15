@@ -4,6 +4,7 @@ stages:
   - deploy
   - macrobenchmarks
   - microbenchmarks
+  - benchmarks
 
 include:
   - remote: https://gitlab-templates.ddbuild.io/apm/packaging.yml
