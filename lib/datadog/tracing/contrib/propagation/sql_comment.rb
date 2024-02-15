@@ -20,8 +20,17 @@ module Datadog
           def self.prepend_comment(sql, span_op, trace_op, mode)
             return sql unless mode.enabled?
 
+            # If the span_op service is nil or the same as the global service, use the peer service
+            # Otherwise, use the span_op service
+            # This is to ensure that the dbm service name is the same as the one used in the span
+            db_service = if span_op.service.nil? || span_op.service == Datadog.configuration.service
+                           span_op.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+                         else
+                           span_op.service
+                         end
+
             tags = {
-              Ext::KEY_DATABASE_SERVICE => span_op.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE) || span_op.service,
+              Ext::KEY_DATABASE_SERVICE => db_service,
               Ext::KEY_ENVIRONMENT => datadog_configuration.env,
               Ext::KEY_PARENT_SERVICE => datadog_configuration.service,
               Ext::KEY_VERSION => datadog_configuration.version

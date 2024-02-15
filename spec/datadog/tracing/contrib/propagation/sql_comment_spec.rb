@@ -93,7 +93,6 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           let(:span_op) do
             Datadog::Tracing::SpanOperation.new(
               'sample_span',
-              service: 'database_service',
               tags: { 'peer.service' => 'sample_peer_service' }
             )
           end
@@ -101,6 +100,38 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           it do
             is_expected.to eq(
               "/*dddbs='sample_peer_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
+            )
+          end
+        end
+
+        context 'when given a span operation tagged with peer.service and default service' do
+          let(:span_op) do
+            Datadog::Tracing::SpanOperation.new(
+              'sample_span',
+              service: Datadog.configuration.service,
+              tags: { 'peer.service' => 'sample_peer_service' }
+            )
+          end
+
+          it do
+            is_expected.to eq(
+              "/*dddbs='sample_peer_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
+            )
+          end
+        end
+
+        context 'when given a span operation tagged with peer.service and unique service' do
+          let(:span_op) do
+            Datadog::Tracing::SpanOperation.new(
+              'sample_span',
+              service: 'database_service',
+              tags: { 'peer.service' => 'sample_peer_service' }
+            )
+          end
+
+          it do
+            is_expected.to eq(
+              "/*dddbs='database_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
             )
           end
         end
@@ -125,7 +156,6 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           let(:span_op) do
             Datadog::Tracing::SpanOperation.new(
               'sample_span',
-              service: 'database_service',
               tags: { 'peer.service' => 'sample_peer_service' }
             )
           end
@@ -138,6 +168,48 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               "ddpv='1.0.0',"\
               "traceparent='#{traceparent}'*/ "\
               "#{sql_statement}"
+            )
+          }
+        end
+
+        context 'when given a span operation tagged with peer.service and default service' do
+          let(:span_op) do
+            Datadog::Tracing::SpanOperation.new(
+              'sample_span',
+              service: Datadog.configuration.service,
+              tags: { 'peer.service' => 'sample_peer_service' }
+            )
+          end
+
+          it {
+            is_expected.to eq(
+              "/*dddbs='sample_peer_service',"\
+                "dde='production',"\
+                "ddps='Traders%27%20Joe',"\
+                "ddpv='1.0.0',"\
+                "traceparent='#{traceparent}'*/ "\
+                "#{sql_statement}"
+            )
+          }
+        end
+
+        context 'when given a span operation tagged with peer.service and unique service' do
+          let(:span_op) do
+            Datadog::Tracing::SpanOperation.new(
+              'sample_span',
+              service: 'database_service',
+              tags: { 'peer.service' => 'sample_peer_service' }
+            )
+          end
+
+          it {
+            is_expected.to eq(
+              "/*dddbs='database_service',"\
+                "dde='production',"\
+                "ddps='Traders%27%20Joe',"\
+                "ddpv='1.0.0',"\
+                "traceparent='#{traceparent}'*/ "\
+                "#{sql_statement}"
             )
           }
         end
