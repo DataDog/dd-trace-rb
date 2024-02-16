@@ -139,9 +139,7 @@ module Datadog
             # Since @once only ever goes from false to true, this is semantically valid
             return :pass if @once
 
-            begin
-              @mutex.lock
-
+            @mutex.synchronize do
               return :pass if @once
 
               now = Core::Utils::Time.get_time
@@ -184,13 +182,11 @@ module Datadog
           # technically permitted; second and subsequent calls have no
           # effect.
           def lift
-            @mutex.lock
+            @mutex.synchronize do
+              @once ||= true
 
-            @once ||= true
-
-            @condition.broadcast
-          ensure
-            @mutex.unlock
+              @condition.broadcast
+            end
           end
         end
 
