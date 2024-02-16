@@ -113,13 +113,24 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
         let(:timeout) { delay * 2 }
 
         it 'unblocks before timeout' do
-          record << :one
-          expect(barrier.wait_once(timeout)).to eq :lift
-          record << :two
-          expect(barrier.wait_once(timeout)).to eq :pass
-          record << :three
+          elapsed = Datadog::Core::Utils::Time.measure do
+            record << :one
+            expect(barrier.wait_once(timeout)).to eq :lift
+            record << :two
+            expect(barrier.wait_once(timeout)).to eq :pass
+            record << :three
+          end
 
           expect(record).to eq [:one, :lift, :two, :three]
+
+          # We should have waited strictly more than the delay time.
+          expect(elapsed).to be > delay
+          # But, the only wait should have been for the delay to pass,
+          # i.e. the elapsed time should be only slightly greater than the
+          # delay time
+          expect(elapsed).to be < delay * 1.1
+          # And, just to verify, this is below the timeout.
+          expect(elapsed).to be < timeout
         end
       end
 
