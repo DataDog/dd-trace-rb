@@ -23,8 +23,8 @@ module Datadog
           FORM_FIELD_TAG_RUNTIME_VERSION: "runtime_version"
           FORM_FIELD_TAG_SERVICE: "service"
           FORM_FIELD_TAG_VERSION: "version"
-          FORM_FIELD_TAG_GIT_REPOSITORY_URL: 'git.repository_url'
-          FORM_FIELD_TAG_GIT_COMMIT_SHA: 'git.commit.sha'
+          TAG_GIT_REPOSITORY_URL: "git.repository_url"
+          TAG_GIT_COMMIT_SHA: "git.commit.sha"
           PPROF_DEFAULT_FILENAME: "rubyprofile.pprof"
           CODE_PROVENANCE_FILENAME: "code-provenance.json"
         end
