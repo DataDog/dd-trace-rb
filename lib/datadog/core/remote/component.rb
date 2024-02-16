@@ -87,17 +87,53 @@ module Datadog
           @worker.stop
         end
 
-        # Barrier provides a mechanism to fence execution until a condition happens
+        # Provides a mechanism to fence execution until a condition happens.
+        #
+        # The barrier is created when a lengthy process (e.g. remote
+        # configuration retrieval over network) starts.
+        # The barrier is initialized with an optional timeout, which is
+        # the upper bound on how long the clients want to wait for the work
+        # to complete.
+        #
+        # When work completes, the thread performing the work should call
+        # +lift+ to lift the barrier.
+        #
+        # Other threads can call +wait_once+ at any time to wait for the
+        # work to complete, up to the smaller of the barrier timeout since
+        # the work started or the per-wait timeout since waiting began.
+        # Once the barrier timeout elapsed since creation of the barrier,
+        # all waits return immediately.
+        #
+        # @note This is an internal class.
         class Barrier
           def initialize(timeout = nil)
-            @once = false
-            @timeout = timeout
+            @lifted = false
+            @deadline = timeout && Core::Utils::Time.get_time + timeout
 
             @mutex = Mutex.new
             @condition = ConditionVariable.new
           end
 
-          # Wait for first lift to happen, otherwise don't wait
+          # Wait for first lift to happen, up to the barrier timeout since
+          # the barrier was created.
+          #
+          # If timeout is provided in this call, waits up to the smaller of
+          # the provided wait timeout and the barrier timeout since the
+          # barrier was created.
+          #
+          # If neither wait timeout is provided in this call nor the
+          # barrier timeout in the constructor, waits indefinitely until
+          # the barrier is lifted.
+          #
+          # Returns:
+          # - :lift if the barrier was lifted while this method was waiting
+          #   on it
+          # - :pass if the barrier had been lifted prior to this method
+          #   being called
+          # - :timeout if this method waited for the maximum permitted time
+          #   and the barrier has not been lifted
+          # - :expired if the barrier timeout had elapsed but barrier had
+          #   not yet been lifted
           def wait_once(timeout = nil)
             # TTAS (Test and Test-And-Set) optimisation
             # Since @once only ever goes from false to true, this is semantically valid
@@ -108,31 +144,43 @@ module Datadog
 
               return :pass if @once
 
-              timeout ||= @timeout
+              now = Core::Utils::Time.get_time
+              deadline = [
+                timeout ? now + timeout : nil,
+                @deadline,
+              ].compact.sort.first
+
+              timeout = deadline ? deadline - now : nil
+              if timeout && timeout <= 0
+                return :expired
+              end
 
               # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
               #   timeout and an integer otherwise
               # - before Ruby 3.2, ConditionVariable returns itself
-              # so we have to rely on @once having been set
-              if RUBY_VERSION >= '3.2'
-                lifted = @condition.wait(@mutex, timeout)
+              # so we have to rely on @lifted having been set
+              lifted = if RUBY_VERSION >= '3.2'
+                !!@condition.wait(@mutex, timeout)
               else
                 @condition.wait(@mutex, timeout)
-                lifted = @once
+                @lifted
               end
 
               if lifted
                 :lift
               else
-                @once = true
                 :timeout
               end
-            ensure
-              @mutex.unlock
             end
           end
 
-          # Release all current waiters
+          # Lift the barrier, releasing all current waiters.
+          #
+          # Internally we only use Barrier to wait for one event, thus
+          # in practice there should only ever be one call to +lift+
+          # per instance of Barrier. But, multiple calls to +lift+ are
+          # technically permitted; second and subsequent calls have no
+          # effect.
           def lift
             @mutex.lock
 

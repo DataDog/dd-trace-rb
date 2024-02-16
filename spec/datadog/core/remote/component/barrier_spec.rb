@@ -99,13 +99,59 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
       context('shorter than lift') do
         it 'unblocks on timeout' do
-          record << :one
-          expect(barrier.wait_once(timeout)).to eq :timeout
-          record << :two
-          expect(barrier.wait_once(timeout)).to eq :pass
-          record << :three
+          elapsed = Datadog::Core::Utils::Time.measure do
+            record << :one
+            expect(barrier.wait_once(timeout)).to eq :timeout
+            record << :two
+          end
 
-          expect(record).to eq [:one, :two, :three]
+          expect(record).to eq [:one, :two]
+
+          # Should have waited just over the timeout.
+          expect(elapsed).to be < delay
+          expect(elapsed).to be < timeout * 1.1
+          expect(elapsed).to be > timeout
+        end
+
+        context 'when waiting repeatedly' do
+          context 'and barrier is lifted' do
+            it 'waits up to barrier timeout' do
+              record << :one
+              expect(barrier.wait_once(timeout)).to eq :timeout
+              record << :two
+              expect(barrier.wait_once(timeout)).to eq :timeout
+              record << :three
+              # Small sleep to make the tests not flaky.
+              sleep(timeout / 2)
+              expect(barrier.wait_once(timeout)).to eq :timeout
+              record << :four
+              # Due to the added sleep, the fourth wait should always exceed
+              # the delay, thus the fourth wait should happen while the
+              # barrier is being lifted.
+              expect(barrier.wait_once(timeout)).to eq :lift
+              record << :five
+
+              expect(record).to eq [:one, :two, :three, :four, :lift, :five]
+            end
+          end
+
+          context 'and barrier is not lifted' do
+            let(:instance_timeout) { delay / 2 }
+
+            it 'waits up to barrier timeout' do
+              record << :one
+              expect(barrier.wait_once(timeout)).to eq :timeout
+              record << :two
+              # This call should time out, but the barrier timeout is
+              # passed here and subsequent waits will be expired.
+              expect(barrier.wait_once(timeout)).to eq :timeout
+              record << :three
+              expect(barrier.wait_once(timeout)).to eq :expired
+              record << :four
+
+              expect(record).to eq [:one, :two, :three, :four]
+            end
+          end
         end
       end
 
@@ -141,7 +187,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
           record << :one
           expect(barrier.wait_once(timeout)).to eq :timeout
           record << :two
-          expect(barrier.wait_once(timeout)).to eq :pass
+          expect(barrier.wait_once(timeout)).to eq :timeout
           record << :three
 
           expect(record).to eq [:one, :two, :three]
@@ -156,7 +202,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
         record << :one
         expect(barrier.wait_once).to eq :timeout
         record << :two
-        expect(barrier.wait_once).to eq :pass
+        expect(barrier.wait_once).to eq :expired
         record << :three
 
         expect(record).to eq [:one, :two, :three]
