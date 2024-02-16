@@ -148,23 +148,21 @@ module Datadog
               deadline = [
                 timeout ? now + timeout : nil,
                 @deadline,
-              ].compact.sort.first
+              ].compact.min
 
               timeout = deadline ? deadline - now : nil
-              if timeout && timeout <= 0
-                return :expired
-              end
+              return :expired if timeout && timeout <= 0
 
               # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
               #   timeout and an integer otherwise
               # - before Ruby 3.2, ConditionVariable returns itself
               # so we have to rely on @lifted having been set
               lifted = if RUBY_VERSION >= '3.2'
-                !!@condition.wait(@mutex, timeout)
-              else
-                @condition.wait(@mutex, timeout)
-                @lifted
-              end
+                         !!@condition.wait(@mutex, timeout)
+                       else
+                         @condition.wait(@mutex, timeout)
+                         @lifted
+                       end
 
               if lifted
                 :lift
