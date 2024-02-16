@@ -45,8 +45,8 @@ module Datadog
         tags[FORM_FIELD_TAG_ENV] = env if env
         tags[FORM_FIELD_TAG_SERVICE] = service if service
         tags[FORM_FIELD_TAG_VERSION] = version if version
-        tags[FORM_FIELD_TAG_GIT_REPOSITORY_URL] = git_repository_url if git_repository_url
-        tags[FORM_FIELD_TAG_GIT_COMMIT_SHA] = git_commit_sha if git_commit_sha
+        tags[TAG_GIT_REPOSITORY_URL] = git_repository_url if git_repository_url
+        tags[TAG_GIT_COMMIT_SHA] = git_commit_sha if git_commit_sha
 
         # Make sure everything is an utf-8 string, to avoid encoding issues in native code/libddprof/further downstream
         user_tags.merge(tags).map do |key, value|
