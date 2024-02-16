@@ -21,17 +21,30 @@ File.open(gemfile_file_path, 'w') do |file|
   file.write("gem 'ddtrace', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'")
 end
 
-STDOUT.puts "Execute: bundle lock"
+STDOUT.puts '=== Reading Gemfile ==='
+File.foreach(gemfile_file_path) { |x| STDOUT.puts x }
+STDOUT.puts "=== Reading Gemfile ===\n"
+
+STDOUT.puts "=== bundle lock ==="
 output, status = Open3.capture2e({ "BUNDLE_GEMFILE" => gemfile_file_path.to_s }, "bundle lock")
 STDOUT.puts output
+STDOUT.puts "=== bundle lock ===\n"
+
+exit 1 unless status.success?
 
 lock_file_path = versioned_path.join("Gemfile.lock")
+
+STDOUT.puts '=== Reading Lockfile ==='
+File.foreach(lock_file_path) { |x| STDOUT.puts x }
+STDOUT.puts "=== Reading Lockfile ===\n"
 
 lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file(lock_file_path))
 
 gem_version_mapping = lock_file_parser.specs.each_with_object({}) do |spec, hash|
   hash[spec.name] = spec.version.to_s
 end
+
+STDOUT.puts gem_version_mapping
 
 gem_version_mapping.each do |gem, version|
   env = {}
