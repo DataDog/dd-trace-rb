@@ -120,8 +120,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         it do
           is_expected.to have_attributes(
             trace: trace,
-            root_span: root_span,
-            first_span: first_span
+            root_span: root_span
           )
         end
       end

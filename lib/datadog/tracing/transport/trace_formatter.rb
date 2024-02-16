@@ -60,10 +60,10 @@ module Datadog
           tag_sampling_priority!
           tag_profiling_enabled!
 
-          return trace unless first_span
-
-          tag_git_repository_url!
-          tag_git_commit_sha!
+          if first_span
+            tag_git_repository_url!
+            tag_git_commit_sha!
+          end
 
           trace
         end
