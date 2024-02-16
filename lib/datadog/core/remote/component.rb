@@ -148,9 +148,10 @@ module Datadog
               deadline = [
                 timeout ? now + timeout : nil,
                 @deadline,
-              ].compact.min
+              ].compact.sort.first
 
               timeout = deadline ? deadline - now : nil
+              # workaround for rubocop & steep trying to mangle the code
               if timeout && timeout.public_send(:<=, 0)
                 ret = :expired
                 return ret
@@ -161,11 +162,11 @@ module Datadog
               # - before Ruby 3.2, ConditionVariable returns itself
               # so we have to rely on @lifted having been set
               lifted = if RUBY_VERSION >= '3.2'
-                         !!@condition.wait(@mutex, timeout)
-                       else
-                         @condition.wait(@mutex, timeout)
-                         @lifted
-                       end
+                !!@condition.wait(@mutex, timeout)
+              else
+                @condition.wait(@mutex, timeout)
+                @lifted
+              end
 
               if lifted
                 :lift
