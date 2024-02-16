@@ -150,17 +150,17 @@ module Datadog
                 @deadline,
               ].compact.min
 
-              timeout = deadline ? deadline - now : nil
-              return :expired if timeout && timeout <= 0
+              _timeout = deadline ? deadline - now : nil
+              return :expired if _timeout && _timeout <= 0
 
               # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
               #   timeout and an integer otherwise
               # - before Ruby 3.2, ConditionVariable returns itself
               # so we have to rely on @lifted having been set
               lifted = if RUBY_VERSION >= '3.2'
-                         !!@condition.wait(@mutex, timeout)
+                         !!@condition.wait(@mutex, _timeout)
                        else
-                         @condition.wait(@mutex, timeout)
+                         @condition.wait(@mutex, _timeout)
                          @lifted
                        end
 
