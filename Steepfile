@@ -621,6 +621,7 @@ target :ddtrace do
   library 'base64'
   library 'digest'
   library 'zlib'
+  library 'time'
 
   repo_path 'vendor/rbs'
   library 'cucumber'
