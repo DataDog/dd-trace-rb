@@ -214,7 +214,7 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
-static void stop_if_allocation_sampling_failure(struct cpu_and_wall_time_worker_state *state);
+static void handle_allocation_sampler_error(struct cpu_and_wall_time_worker_state *state, const char *error, bool can_raise);
 static VALUE _native_force_allocation_sampler_failure(DDTRACE_UNUSED VALUE self);
 
 // Note on sampler global state safety:
@@ -310,7 +310,6 @@ static VALUE _native_new(VALUE klass) {
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
   dynamic_sampling_rate_init(&state->cpu_dynamic_sampling_rate);
-  discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation");
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
 
@@ -321,6 +320,11 @@ static VALUE _native_new(VALUE klass) {
   state->during_sample = false;
 
   reset_stats_not_thread_safe(state);
+
+  const char *error = discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation");
+  if (error) {
+    handle_allocation_sampler_error(state, error, false);
+  }
 
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
 }
@@ -357,7 +361,10 @@ static VALUE _native_initialize(
     // TODO: May be nice to offer customization here? Distribute available "overhead" margin with a bias towards one or the other
     // sampler.
     dynamic_sampling_rate_set_overhead_target_percentage(&state->cpu_dynamic_sampling_rate, total_overhead_target_percentage / 2);
-    discrete_dynamic_sampler_set_overhead_target_percentage(&state->allocation_sampler, total_overhead_target_percentage / 2);
+    const char *error = discrete_dynamic_sampler_set_overhead_target_percentage(&state->allocation_sampler, total_overhead_target_percentage / 2);
+    if (error) {
+      handle_allocation_sampler_error(state, error, true);
+    }
   }
 
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
@@ -411,7 +418,10 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   // Reset the dynamic sampling rate state, if any (reminder: the monotonic clock reference may change after a fork)
   dynamic_sampling_rate_reset(&state->cpu_dynamic_sampling_rate);
-  discrete_dynamic_sampler_reset(&state->allocation_sampler);
+  const char *error = discrete_dynamic_sampler_reset(&state->allocation_sampler);
+  if (error) {
+    handle_allocation_sampler_error(state, error, true);
+  }
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance_state = state;
@@ -1003,10 +1013,16 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
     return;
   }
 
-  if (state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler)) {
-    state->stats.allocation_skipped++;
-    stop_if_allocation_sampling_failure(state);
-    return;
+  if (state->dynamic_sampling_rate_enabled) {
+    discrete_dynamic_sampler_should_sample_result result = discrete_dynamic_sampler_should_sample(&state->allocation_sampler);
+    if (result.error) {
+      handle_allocation_sampler_error(state, result.error, false);
+      return;
+    }
+    if (!result.should_sample) {
+      state->stats.allocation_skipped++;
+      return;
+    }
   }
 
   // @ivoanjo: Strictly speaking, this is not needed because Ruby should not call the same tracepoint while a previous
@@ -1019,8 +1035,14 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
 
   if (state->dynamic_sampling_rate_enabled) {
-    // NOTE: To keep things lean when dynamic sampling rate is disabled we skip clock interactions.
-    uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler);
+    // NOTE: To keep things lean when dynamic sampling rate is disabled we skip clock interactions which is
+    //       why we're fine with having this inside this conditional.
+    discrete_dynamic_sampler_after_sample_result result = discrete_dynamic_sampler_after_sample(&state->allocation_sampler);
+    if (result.error) {
+      handle_allocation_sampler_error(state, result.error, false);
+      return;
+    }
+    uint64_t sampling_time_ns = result.sampling_time_ns;
     state->stats.allocation_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_min);
     state->stats.allocation_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_max);
     state->stats.allocation_sampling_time_ns_total += sampling_time_ns;
@@ -1029,7 +1051,6 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   state->stats.allocation_sampled++;
 
   state->during_sample = false;
-  stop_if_allocation_sampling_failure(state);
 }
 
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
@@ -1072,11 +1093,20 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
   return Qnil;
 }
 
-static void stop_if_allocation_sampling_failure(struct cpu_and_wall_time_worker_state *state) {
-  const char* error = discrete_dynamic_sampler_error(&state->allocation_sampler);
-  if (error != NULL) {
-    VALUE error_rbstr = rb_str_new_cstr("allocation sampler - ");
-    rb_str_cat_cstr(error_rbstr, discrete_dynamic_sampler_error(&state->allocation_sampler));
+static void handle_allocation_sampler_error(struct cpu_and_wall_time_worker_state *state, const char *error, bool can_raise) {
+  if (error == NULL) {
+    return;
+  }
+
+  // Lets make sure our error messages explicilty mention this is for the allocation sampler. We may end up having more than one
+  // discrete sampler in the future.
+  VALUE error_rbstr = rb_str_new_cstr("allocation sampler - ");
+  rb_str_cat_cstr(error_rbstr, error);
+
+  if (can_raise) {
+    rb_raise(rb_eRuntimeError, "%"PRIsVALUE, error_rbstr);
+  } else {
+    // If we can't raise an immediate exception at the calling site, use the asynchronous flow through the main worker loop.
     stop_state(state, rb_exc_new_str(rb_eRuntimeError, error_rbstr));
   }
 }
