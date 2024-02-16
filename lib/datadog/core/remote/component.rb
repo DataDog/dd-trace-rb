@@ -151,7 +151,7 @@ module Datadog
               ].compact.min
 
               _timeout = deadline ? deadline - now : nil
-              return :expired if !_timeout.nil? && _timeout <= 0
+              return :expired if _timeout && _timeout <= 0
 
               # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
               #   timeout and an integer otherwise
