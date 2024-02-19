@@ -6,7 +6,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
 
   before do
     skip_if_profiling_not_supported(self)
-    @now = Time.now.to_r
+    @now = Time.now.to_f
   end
 
   subject!(:sampler) do
@@ -24,19 +24,17 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
   end
 
   def maybe_sample(sampling_seconds:, ignore_errors: false)
-    sampled = false
     begin
-      if sampler._native_should_sample(to_ns(@now))
-        sampler._native_after_sample(to_ns(@now + sampling_seconds))
-        @now += sampling_seconds
-        sampled = true
-      end
+      return false unless sampler._native_should_sample(to_ns(@now))
+
+      sampler._native_after_sample(to_ns(@now + sampling_seconds))
+      @now += sampling_seconds
+      true
     rescue
       return false if ignore_errors
 
       raise
     end
-    sampled
   end
 
   def simulate_load(duration_seconds:, events_per_second:, sampling_seconds:, ignore_errors: false)
@@ -328,5 +326,67 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     # We expect the weird sample to not prevent us from sampling at least 1 sample per second from
     # the above load
     expect(stats[:num_samples]).to be >= 60
+  end
+
+  describe '.state_snapshot' do
+    let(:state_snapshot) { sampler._native_state_snapshot }
+
+    it 'fills a Ruby hash with relevant data from a sampler instance' do
+      # Max overhead of 2% over 1 second means a max of 0.02 seconds of sampling.
+      # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
+      # At an event rate of 8/sec we can sample 1/4 of total events.
+      simulate_load(duration_seconds: 120, events_per_second: 8, sampling_seconds: 0.01)
+
+      expect(state_snapshot).to match(
+        {
+          target_overhead: max_overhead_target,
+          target_overhead_adjustment: be_between(-max_overhead_target, 0),
+          events_per_sec: be_within(1).of(8),
+          sampling_time_ns: be_within(to_ns(0.001)).of(to_ns(0.01)),
+          sampling_interval: 4,
+          sampling_probability: be_within(2).of(25), # %
+          events_since_last_readjustment: be_between(0, 8),
+          samples_since_last_readjustment: be_between(0, 2),
+          max_sampling_time_ns: to_ns(1) * 0.02,
+          sampling_time_clamps: 0
+        }
+      )
+    end
+
+    context 'in a situation that triggers our minimum sampling target mechanism' do
+      let(:max_overhead_target) { 1.0 }
+
+      it 'captures time clamps accurately' do
+        # Max overhead of 1% over 1 second means a max of 0.01 seconds of sampling.
+        # With each sample taking 0.02 seconds, we can in theory only do one sample every 2 seconds.
+        # However, our minimum sampling target ensure we try at least one sample per window and we'll
+        # clamp its sampling time.
+        simulate_load(duration_seconds: 120, events_per_second: 20, sampling_seconds: 0.02)
+
+        expect(state_snapshot).to match(
+          {
+            target_overhead: max_overhead_target,
+            target_overhead_adjustment: be_between(-max_overhead_target, 0),
+            events_per_sec: be_within(1).of(20),
+            # This is clamped to 0.01
+            sampling_time_ns: be_within(to_ns(0.001)).of(to_ns(0.01)),
+            # In theory we should be sampling every 20 samples but lets make this flexible to account
+            # for our target overhead adjustment logic which may increase this
+            sampling_interval: be >= 20,
+            # Same as above. In theory 5% but overhead adjustment may push this down a bit.
+            sampling_probability: be < 5, # %
+            events_since_last_readjustment: be_between(0, 20),
+            samples_since_last_readjustment: be_between(0, 1),
+            max_sampling_time_ns: to_ns(1) * 0.01,
+            # In theory we should be sampling every adjustment window and each of those samples should
+            # have been clamped for a grand total of 120. However, target overhead adjustment logic will
+            # be triggered given we have a consistent 2x overshooting of maximum sampling time. This
+            # adjustment logic will essentially move our target overhead to be closer to 0.5% rather than
+            # the real 1% so we'd expect approx. 120 / 2 = 60 (clamped) samples.
+            sampling_time_clamps: be_between(50, 70),
+          }
+        )
+      end
+    end
   end
 end
