@@ -268,9 +268,9 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     # Question is: how long do we have to wait for probing samples? Intuitively, we need to build enough budget over
     # time for us to be able to take that probing hit assuming things remain the same. Each adjustment window
     # with no sampling activity earns us 0.02 seconds of budget. Therefore in theory we'd need 4 of these windows
-    # to go by before we see the next probing sample. However, with our new minimum sampling target, we are actually
-    # clamping the 0.08 sampling_seconds for an individual event to just 0.02 so we expect to see a sample in the next
-    # window already
+    # to go by before we see the next probing sample. However, an additional factor comes in -- the minimum sampling
+    # target -- and we are actually clamping the 0.08 sampling_seconds for an individual event to just 0.02 so we expect
+    # to see a sample in the next window already
     stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 0.08)
     expect(stats[:num_samples]).to eq(1)
   end
