@@ -101,9 +101,9 @@ module Datadog
           self.class._native_stats(self)
         end
 
-        def stats_and_reset
+        def stats_and_reset_not_thread_safe
           stats = self.stats
-          self.class._native_stats_reset(self)
+          self.class._native_stats_reset_not_thread_safe(self)
           stats
         end
       end

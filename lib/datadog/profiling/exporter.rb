@@ -23,13 +23,15 @@ module Datadog
         :time_provider,
         :last_flush_finish_at,
         :created_at,
-        :internal_metadata
+        :internal_metadata,
+        :info_json
 
       public
 
       def initialize(
         pprof_recorder:,
         worker:,
+        info_collector:,
         code_provenance_collector:,
         internal_metadata:,
         minimum_duration_seconds: PROFILE_DURATION_THRESHOLD_SECONDS,
@@ -43,10 +45,13 @@ module Datadog
         @last_flush_finish_at = nil
         @created_at = time_provider.now.utc
         @internal_metadata = internal_metadata
+        # NOTE: At the time of this comment collected info does not change over time so we'll hardcode
+        #       it on startup to prevent serializing the same info on every flush.
+        @info_json = JSON.fast_generate(info_collector.info).freeze
       end
 
       def flush
-        worker_stats = @worker.stats_and_reset
+        worker_stats = @worker.stats_and_reset_not_thread_safe
         start, finish, uncompressed_pprof = pprof_recorder.serialize
         @last_flush_finish_at = finish
 
@@ -73,6 +78,7 @@ module Datadog
               gc: GC.stat,
             }
           ),
+          info_json: info_json,
         )
       end
 

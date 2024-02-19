@@ -23,12 +23,24 @@
 #define ERR_CLOCK_FAIL "failed to get clock time"
 #define ERR_TEST "test failure"
 
-void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name) {
+static const char* _discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns);
+
+static const char* _discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name, long now_ns) {
   sampler->debug_name = debug_name;
-  discrete_dynamic_sampler_set_overhead_target_percentage(sampler, BASE_OVERHEAD_PCT);
+  return _discrete_dynamic_sampler_set_overhead_target_percentage(sampler, BASE_OVERHEAD_PCT, now_ns);
 }
 
-static void _discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, long now_ns) {
+const char* discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name) {
+  long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  return _discrete_dynamic_sampler_init(sampler, debug_name, now);
+}
+
+static const char* _discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, long now_ns) {
+  if (now_ns <= 0) {
+    sampler->error = ERR_CLOCK_FAIL;
+    return sampler->error;
+  }
+
   const char *debug_name = sampler->debug_name;
   double target_overhead = sampler->target_overhead;
   (*sampler) = (discrete_dynamic_sampler) {
@@ -48,35 +60,39 @@ static void _discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, l
     // the next event is automatically sampled by artificially locating it in the interval threshold.
     .events_since_last_sample = BASE_SAMPLING_INTERVAL - 1,
   };
+
+  return NULL;
 }
 
-void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler) {
+const char* discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler) {
   long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-  _discrete_dynamic_sampler_reset(sampler, now);
+  return _discrete_dynamic_sampler_reset(sampler, now);
 }
 
-static void _discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns) {
+static const char* _discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns) {
   if (target_overhead <= 0 || target_overhead > 100) {
     rb_raise(rb_eArgError, "Target overhead must be a double between ]0,100] was %f", target_overhead);
   }
   sampler->target_overhead = target_overhead;
-  _discrete_dynamic_sampler_reset(sampler, now_ns);
+  return _discrete_dynamic_sampler_reset(sampler, now_ns);
 }
 
-void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead) {
+const char* discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead) {
   long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-  _discrete_dynamic_sampler_set_overhead_target_percentage(sampler, target_overhead, now);
+  return _discrete_dynamic_sampler_set_overhead_target_percentage(sampler, target_overhead, now);
 }
 
 static void maybe_readjust(discrete_dynamic_sampler *sampler, long now);
 
-static bool _discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler, long now_ns) {
+static discrete_dynamic_sampler_should_sample_result _discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler, long now_ns) {
   if (now_ns <= 0) {
     sampler->error = ERR_CLOCK_FAIL;
   }
 
   if (sampler->error) {
-    return false;
+    return (discrete_dynamic_sampler_should_sample_result) {
+      .error = sampler->error,
+    };
   }
 
   // For efficiency reasons we don't do true random sampling but rather systematic
@@ -94,21 +110,25 @@ static bool _discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sa
     maybe_readjust(sampler, now_ns);
   }
 
-  return should_sample;
+  return (discrete_dynamic_sampler_should_sample_result) {
+    .should_sample = should_sample,
+  };
 }
 
-bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler) {
+discrete_dynamic_sampler_should_sample_result discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler) {
   long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   return _discrete_dynamic_sampler_should_sample(sampler, now);
 }
 
-static long _discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler, long now_ns) {
+static discrete_dynamic_sampler_after_sample_result _discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler, long now_ns) {
   if (now_ns <= 0) {
     sampler->error = ERR_CLOCK_FAIL;
   }
 
   if (sampler->error) {
-    return false;
+    return (discrete_dynamic_sampler_after_sample_result) {
+      .error = sampler->error,
+    };
   }
 
   long last_sampling_time_ns = sampler->sample_start_time_ns == 0 ? 0 : long_max_of(0, now_ns - sampler->sample_start_time_ns);
@@ -119,10 +139,12 @@ static long _discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sam
   // check if we should readjust our sampler after this sample
   maybe_readjust(sampler, now_ns);
 
-  return last_sampling_time_ns;
+  return (discrete_dynamic_sampler_after_sample_result) {
+    .sampling_time_ns = last_sampling_time_ns,
+  };
 }
 
-long discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler) {
+discrete_dynamic_sampler_after_sample_result discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler) {
   long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   return _discrete_dynamic_sampler_after_sample(sampler, now);
 }
@@ -135,13 +157,9 @@ size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sample
   return sampler->events_since_last_sample;
 }
 
-const char* discrete_dynamic_sampler_error(discrete_dynamic_sampler *sampler) {
-  return sampler->error;
-}
-
-static double ewma_adj_window(double current, double avg, long current_window_time_ns, bool is_first) {
+static double ewma_adj_window(double latest_value, double avg, long current_window_time_ns, bool is_first) {
   if (is_first) {
-    return current;
+    return latest_value;
   }
 
   // We don't want samples coming from partial adjustment windows (e.g. preempted due to number of samples)
@@ -150,7 +168,7 @@ static double ewma_adj_window(double current, double avg, long current_window_ti
   double fraction_of_full_window = double_min_of((double) current_window_time_ns / ADJUSTMENT_WINDOW_NS, 1);
   double alpha = EMA_SMOOTHING_FACTOR * fraction_of_full_window;
 
-  return (1-alpha) * avg + alpha * current;
+  return (1-alpha) * avg + alpha * latest_value;
 }
 
 static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
@@ -238,11 +256,13 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   //                                                ┌─ assuming no events will be emitted during sampling
   //                                                │
   //                           = events_per_ns * working_window_time_ns * sampling_probability * sampling_time_ns
+  //                           = events_per_ns * (window_time_ns - sampling_window_time_ns) * sampling_probability * sampling_time_ns
   //
   // Re-ordering for sampling_probability and solving for the upper-bound of sampling_window_time_ns:
   //
   //   sampling_window_time_ns = window_time_ns * target_overhead / 100
-  //   sampling_probability = window_time_ns * target_overhead / 100 / (events_per_ns * working_window_time_ns * sampling_time_ns) =
+  //   sampling_probability = (sampling_window_time_ns) / (events_per_ns * sampling_time_ns * (window_time_ns - sampling_window_time_ns))
+  //                        = (window_time_ns * target_overhead / 100) / (events_per_ns * sampling_time_ns * window_time_ns * (1 - target_overhead / 100))
   //
   // Which you can intuitively understand as:
   //
@@ -253,23 +273,22 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   //   then probability will be > 1 (but we should clamp to 1 since probabilities higher than 1 don't make sense).
   // * If app is eventing a lot or our sampling overhead is big, then as time_to_sample_all_events_ns grows, sampling_probability will
   //   tend to 0.
+  //
+  // In fact, we can simplify the equation further since the `window_time_ns` components cancel each other out:
+  //
+  //   sampling_probability = (target_overhead / 100) / (events_per_ns * sampling_time_ns * (1 - target_overhead / 100))
+  //                        = max_sampling_overhead / avg_sampling_overhead
 
-  // Use our stored data to extrapolate to a full adjustment window view
-  long window_time_ns = ADJUSTMENT_WINDOW_NS;
-  long sampling_window_time_ns = window_time_ns * sampler->events_per_ns * sampler->sampling_probability * sampler->sampling_time_ns;
-  long working_window_time_ns = long_max_of(0, window_time_ns - sampling_window_time_ns);
-  long time_to_sample_all_events_ns = sampler->events_per_ns * working_window_time_ns * sampler->sampling_time_ns;
+  double max_sampling_overhead = target_overhead / 100.;
+  double avg_sampling_overhead = sampler->events_per_ns * sampler->sampling_time_ns * (1 - max_sampling_overhead);
 
-  double max_allowed_time_for_sampling_ns = window_time_ns * (target_overhead / 100.);
-
-  if (max_allowed_time_for_sampling_ns == 0 || working_window_time_ns == 0) {
-    // if we aren't allowed any sampling time at all or if data suggests app would have no working time at all,
-    // probability has to be 0
+  if (max_sampling_overhead == 0) {
+    // if we aren't allowed any sampling overhead at all, probability has to be 0
     sampler->sampling_probability = 0;
   } else {
     // otherwise apply the formula described above (protecting against div by 0)
-    sampler->sampling_probability = time_to_sample_all_events_ns == 0 ? 1. :
-      double_min_of(1., max_allowed_time_for_sampling_ns / time_to_sample_all_events_ns);
+    sampler->sampling_probability = avg_sampling_overhead == 0 ? 1. :
+      double_min_of(1., max_sampling_overhead / avg_sampling_overhead);
   }
 
   // Doing true random selection would involve "tossing a coin" on every allocation. Lets do systematic sampling instead so that our
@@ -295,7 +314,8 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
     double samples_in_60s = allocs_in_60s * sampler->sampling_probability;
     double expected_total_sampling_time_in_60s =
       samples_in_60s * sampler->sampling_time_ns / 1e9;
-    double real_total_sampling_time_in_60s = sampling_window_time_ns / 1e9 * 60 / (window_time_ns / 1e9);
+    double num_this_windows_in_60s = 60 * 1e9 / this_window_time_ns;
+    double real_total_sampling_time_in_60s = sampler->sampling_time_since_last_readjustment_ns * num_this_windows_in_60s / 1e9;
 
     const char* readjustment_reason = should_readjust_based_on_time ? "time" : "samples";
 
@@ -312,14 +332,9 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
     fprintf(stderr, "target_overhead_adjustment=%f\n", sampler->target_overhead_adjustment);
     fprintf(stderr, "events_per_sec=%f\n", sampler->events_per_ns * 1e9);
     fprintf(stderr, "sampling_time=%ld\n", sampler->sampling_time_ns);
+    fprintf(stderr, "avg_sampling_overhead=%f\n", avg_sampling_overhead * 100);
     fprintf(stderr, "sampling_interval=%zu\n", sampler->sampling_interval);
     fprintf(stderr, "sampling_probability=%f\n", sampler->sampling_probability * 100);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "window_time_ns=%ld\n", window_time_ns);
-    fprintf(stderr, "sampling_window_time_ns=%ld\n", sampling_window_time_ns);
-    fprintf(stderr, "working_window_time_ns=%ld\n", working_window_time_ns);
-    fprintf(stderr, "time_to_sample_all_events_ns=%ld\n", time_to_sample_all_events_ns);
-    fprintf(stderr, "max_allowed_time_for_sampling_ns=%ld\n", (long) max_allowed_time_for_sampling_ns);
     fprintf(stderr, "\n");
     fprintf(stderr, "expected allocs in 60s=%f\n", allocs_in_60s);
     fprintf(stderr, "expected samples in 60s=%f\n", samples_in_60s);
@@ -358,17 +373,16 @@ VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler)
 void discrete_dynamic_sampler_testing_force_fail(discrete_dynamic_sampler *sampler) {
   sampler->error = ERR_TEST;
 }
-
 // ---
 // Below here is boilerplate to expose the above code to Ruby so that we can test it with RSpec as usual.
 
 static VALUE _native_new(VALUE klass);
+static VALUE _native_initialize(VALUE klass, VALUE now);
 static VALUE _native_reset(VALUE self, VALUE now);
 static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_overhead, VALUE now);
 static VALUE _native_should_sample(VALUE self, VALUE now);
 static VALUE _native_after_sample(VALUE self, VALUE now);
 static VALUE _native_state_snapshot(VALUE self);
-static VALUE _native_error(VALUE self);
 
 typedef struct sampler_state {
   discrete_dynamic_sampler sampler;
@@ -381,13 +395,15 @@ void collectors_discrete_dynamic_sampler_init(VALUE profiling_module) {
   VALUE sampler_class = rb_define_class_under(testing_module, "Sampler", rb_cObject);
 
   rb_define_alloc_func(sampler_class, _native_new);
+  // NOTE: Despite being native, we're using the normal ruby keyword to prevent having to write a whole
+  //       new ruby file to simply proxy the initialization call.
+  rb_define_method(sampler_class, "initialize", _native_initialize, 1);
 
   rb_define_method(sampler_class, "_native_reset", _native_reset, 1);
   rb_define_method(sampler_class, "_native_set_overhead_target_percentage", _native_set_overhead_target_percentage, 2);
   rb_define_method(sampler_class, "_native_should_sample", _native_should_sample, 1);
   rb_define_method(sampler_class, "_native_after_sample", _native_after_sample, 1);
   rb_define_method(sampler_class, "_native_state_snapshot", _native_state_snapshot, 0);
-  rb_define_method(sampler_class, "_native_error", _native_error, 0);
 }
 
 static const rb_data_type_t sampler_typed_data = {
@@ -402,9 +418,30 @@ static const rb_data_type_t sampler_typed_data = {
 static VALUE _native_new(VALUE klass) {
   sampler_state *state = ruby_xcalloc(sizeof(sampler_state), 1);
 
-  discrete_dynamic_sampler_init(&state->sampler, "test sampler");
-
   return TypedData_Wrap_Struct(klass, &sampler_typed_data, state);
+}
+
+static VALUE _native_initialize(VALUE self, VALUE now_ns) {
+  bool have_now_ns = !NIL_P(now_ns);
+  if (have_now_ns) {
+    ENFORCE_TYPE(now_ns, T_FIXNUM);
+  }
+
+  sampler_state *state;
+  TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
+
+  const char *error;
+  if (have_now_ns) {
+    error = _discrete_dynamic_sampler_init(&state->sampler, "test sampler", NUM2LONG(now_ns));
+  } else {
+    error = discrete_dynamic_sampler_init(&state->sampler, "test sampler");
+  }
+
+  if (error) {
+    rb_raise(rb_eRuntimeError, "%s", error);
+  }
+
+  return Qtrue;
 }
 
 static VALUE _native_reset(VALUE self, VALUE now_ns) {
@@ -413,8 +450,13 @@ static VALUE _native_reset(VALUE self, VALUE now_ns) {
   sampler_state *state;
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
 
-  _discrete_dynamic_sampler_reset(&state->sampler, NUM2LONG(now_ns));
-  return Qtrue;
+  const char *error = _discrete_dynamic_sampler_reset(&state->sampler, NUM2LONG(now_ns));
+
+  if (error) {
+    rb_raise(rb_eRuntimeError, "%s", error);
+  }
+
+  return Qnil;
 }
 
 static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_overhead, VALUE now_ns) {
@@ -424,7 +466,11 @@ static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_ove
   sampler_state *state;
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
 
-  _discrete_dynamic_sampler_set_overhead_target_percentage(&state->sampler, NUM2DBL(target_overhead), NUM2LONG(now_ns));
+  const char *error = _discrete_dynamic_sampler_set_overhead_target_percentage(&state->sampler, NUM2DBL(target_overhead), NUM2LONG(now_ns));
+
+  if (error) {
+    rb_raise(rb_eRuntimeError, "%s", error);
+  }
 
   return Qnil;
 }
@@ -435,7 +481,14 @@ VALUE _native_should_sample(VALUE self, VALUE now_ns) {
   sampler_state *state;
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
 
-  return _discrete_dynamic_sampler_should_sample(&state->sampler, NUM2LONG(now_ns)) ? Qtrue : Qfalse;
+  discrete_dynamic_sampler_should_sample_result result =
+    _discrete_dynamic_sampler_should_sample(&state->sampler, NUM2LONG(now_ns));
+
+  if (result.error) {
+    rb_raise(rb_eRuntimeError, "%s", result.error);
+  }
+
+  return result.should_sample ? Qtrue : Qfalse;
 }
 
 VALUE _native_after_sample(VALUE self, VALUE now_ns) {
@@ -444,7 +497,14 @@ VALUE _native_after_sample(VALUE self, VALUE now_ns) {
   sampler_state *state;
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
 
-  return LONG2NUM(_discrete_dynamic_sampler_after_sample(&state->sampler, NUM2LONG(now_ns)));
+  discrete_dynamic_sampler_after_sample_result result =
+    _discrete_dynamic_sampler_after_sample(&state->sampler, NUM2LONG(now_ns));
+
+  if (result.error) {
+    rb_raise(rb_eRuntimeError, "%s", result.error);
+  }
+
+  return LONG2NUM(result.sampling_time_ns);
 }
 
 VALUE _native_state_snapshot(VALUE self) {
@@ -452,17 +512,4 @@ VALUE _native_state_snapshot(VALUE self) {
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
 
   return discrete_dynamic_sampler_state_snapshot(&state->sampler);
-}
-
-VALUE _native_error(VALUE self) {
-  sampler_state *state;
-  TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
-
-  const char *error = discrete_dynamic_sampler_error(&state->sampler);
-
-  if (error == NULL) {
-    return Qnil;
-  }
-
-  return rb_str_new_cstr(error);
 }

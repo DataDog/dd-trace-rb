@@ -50,7 +50,8 @@ class ProfilerHttpTransportBenchmark
       code_provenance_file_name: 'example_code_provenance_file_name.json',
       code_provenance_data: '', # Random.new(1).bytes(4_000),
       tags_as_array: [],
-      internal_metadata: {no_signals_workaround_enabled: false},
+      internal_metadata: { no_signals_workaround_enabled: false },
+      info_json: JSON.fast_generate({ profiler: { benchmarking: true } }),
     )
   end
 
@@ -78,8 +79,11 @@ class ProfilerHttpTransportBenchmark
 
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 70, warmup: 2}
-      x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_http_transport'))
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 70, warmup: 2 }
+      x.config(
+        **benchmark_time,
+        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_http_transport')
+      )
 
       x.report("http_transport #{ENV['CONFIG']}") do
         run_once

@@ -78,5 +78,33 @@ RSpec.describe Datadog::Profiling::TagBuilder do
         expect(result).to include('ascii-key' => 'ascii-value')
       end
     end
+
+    describe 'source code integration' do
+      context 'when git environment is available' do
+        before do
+          allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(
+            'git_repository_url'
+          )
+          allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return('git_commit_sha')
+        end
+
+        it 'includes the git repository URL and commit SHA' do
+          expect(call).to include(
+            'git.repository_url' => 'git_repository_url', 'git.commit.sha' => 'git_commit_sha'
+          )
+        end
+      end
+
+      context 'when git environment is not available' do
+        before do
+          allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(nil)
+          allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(nil)
+        end
+
+        it 'includes the git repository URL and commit SHA' do
+          expect(call).to_not include('git.repository_url', 'git.commit.sha')
+        end
+      end
+    end
   end
 end

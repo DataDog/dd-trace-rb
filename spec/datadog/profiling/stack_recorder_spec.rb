@@ -554,28 +554,66 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             described_class::Testing._native_has_seen_id_flag(obj)
           end
 
+          # This method attempts to allocate an object on a recycled heap slot.
+          #
+          # Heap slot recycling was a troublesome feature that has been removed from Rubies >= 3.1
+          # in which an object could be freed through a fast-path that bypassed a lot of runtime
+          # machinery such as finalizers or object id tracking and thus introduced a fair amount
+          # of buggy behaviour. Some of this buggy behaviour manifests when a recycled slot gets
+          # re-used by a new live object: the new live object id will be the same as the id of
+          # the object that was recycled, violating a core constraint of Ruby objects: object ids
+          # are unique and non-repeatable.
+          #
+          # Recycling an object slot is easy (accomplished by a rb_gc_force_recycle native method call).
+          # More difficult is allocating an object on a recycled slot. Ruby gives us no control on
+          # where to allocate an object so we have to play a probability game. This method attempts to
+          # maximize our chances of quickly getting an object in a recycled slot by:
+          # 1. Force recycling 1000 objects.
+          # 2. Repeatedly allocating 1000 objects and keeping references to them, thus preventing GC
+          #    from reclaiming their slots.
+          # 3. Checking if any of the ids of the 1000 recycled objects now map to a live object. If
+          #    that happens, then we know that live object was allocated on a recycled slot and we
+          #    can return it.
           def create_obj_in_recycled_slot(should_sample_original: false)
-            obj = Object.new
-            sample_allocation(obj) if should_sample_original
-            @recycled_sample_allocation_line = __LINE__ - 1
+            # Force-recycle 1000 objects.
+            # NOTE: In theory, a single force recycle would suffice but the more recycled slots
+            #       there are to use the more probable it is for a new allocation to use it.
+            recycled_obj_ids = []
+            1000.times do
+              obj = Object.new
+              sample_allocation(obj) if should_sample_original
+              @recycled_sample_allocation_line = __LINE__ - 1
 
-            # Get the id of the object we're about to recycle
-            obj_id = obj.object_id
+              # Get the id of the object we're about to recycle
+              recycled_obj_ids << obj.object_id
 
-            # Force recycle the given object
-            described_class::Testing._native_gc_force_recycle(obj)
+              # Force recycle the given object
+              described_class::Testing._native_gc_force_recycle(obj)
+            end
 
-            # Repeatedly allocate objects until we find one that resolves to the same id
-            loop do
+            # Repeatedly allocate objects until we find one that resolves to the id of one of
+            # the force recycled objects
+            objs = []
+            100.times do
               # Instead of doing this one at a time which would be slow given id2ref will
               # raise on failure, allocate a ton of objects each time, increasing the
               # probability of getting a hit on each iteration
-              1000.times { obj = Object.new }
-              begin
-                return ObjectSpace._id2ref(obj_id)
-              rescue RangeError # rubocop:disable Lint/SuppressedException
+              # NOTE: We keep the object references around to prevent GCs from constantly
+              #       freeing up slots from the previous iteration. Thus each consecutive
+              #       iteration should get one step closer to re-using one of the recycled
+              #       slots. This should not lead to OOMs since we know there are 1000
+              #       free recycled slots available (we recycled them above). At the very
+              #       limit we'd expect the Ruby VM to prefer to re-use those slots rather
+              #       than expand heap pages and when that happens we'd stop iterating.
+              1000.times { objs << Object.new }
+              recycled_obj_ids.each do |obj_id|
+                begin
+                  return ObjectSpace._id2ref(obj_id)
+                rescue RangeError # rubocop:disable Lint/SuppressedException
+                end
               end
             end
+            raise 'could not allocate an object in a recycled slot'
           end
 
           it 'enforces seen id flag on objects on recycled slots that get sampled' do
