@@ -14,6 +14,7 @@ module Datadog
       # gathering and easily support more flexible/dynamic info collection in the future.
       class Info
         def initialize(settings)
+          @profiler_info = nil
           @info = {
             platform: collect_platform_info,
             runtime: collect_runtime_info,
