@@ -424,13 +424,14 @@ module Datadog
             #
             # @default `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_timeline_enabled do |o|
-              o.after_set do
-                # FIXME: TODO: This needs to be updated to match up with https://github.com/DataDog/dd-trace-rb/pull/3357
-                Datadog.logger.warn(
-                  'The profiling.advanced.experimental_timeline_enabled setting has been deprecated for removal ' \
-                  'and no longer does anything. Please remove it from your Datadog.configure block. ' \
-                  'The timeline feature counting is now controlled by the `timeline_enabled` setting instead.'
-                )
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.experimental_timeline_enabled setting has been deprecated for removal ' \
+                    'and no longer does anything. Please remove it from your Datadog.configure block. ' \
+                    'The timeline feature counting is now controlled by the `timeline_enabled` setting instead.'
+                  )
+                end
               end
             end
 
