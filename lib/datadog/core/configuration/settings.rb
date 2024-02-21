@@ -440,8 +440,6 @@ module Datadog
             # If you needed to disable this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>,
             # so we can fix it!
             #
-            # TODO: In the future this setting may be deprecated and the timeline may no longer be optional.
-            #
             # @default `DD_PROFILING_TIMELINE_ENABLED` environment variable as a boolean, otherwise `true`
             option :timeline_enabled do |o|
               o.type :bool
