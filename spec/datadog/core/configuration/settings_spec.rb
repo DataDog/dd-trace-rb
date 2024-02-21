@@ -723,12 +723,20 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#experimental_timeline_enabled' do
-        subject(:experimental_timeline_enabled) { settings.profiling.advanced.experimental_timeline_enabled }
+      describe '#experimental_timeline_enabled=' do
+        it 'logs a warning  that this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
 
-        context 'when DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED' do
+          settings.profiling.advanced.experimental_timeline_enabled = 0
+        end
+      end
+
+      describe '#timeline_enabled' do
+        subject(:timeline_enabled) { settings.profiling.advanced.timeline_enabled }
+
+        context 'when DD_PROFILING_TIMELINE_ENABLED' do
           around do |example|
-            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED' => environment) do
+            ClimateControl.modify('DD_PROFILING_TIMELINE_ENABLED' => environment) do
               example.run
             end
           end
@@ -736,7 +744,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           context 'is not defined' do
             let(:environment) { nil }
 
-            it { is_expected.to be false }
+            it { is_expected.to be true }
           end
 
           [true, false].each do |value|
@@ -749,12 +757,12 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#experimental_timeline_enabled=' do
-        it 'updates the #experimental_timeline_enabled setting' do
-          expect { settings.profiling.advanced.experimental_timeline_enabled = true }
-            .to change { settings.profiling.advanced.experimental_timeline_enabled }
-            .from(false)
-            .to(true)
+      describe '#timeline_enabled=' do
+        it 'updates the #timeline_enabled setting from its default of true' do
+          expect { settings.profiling.advanced.timeline_enabled = false }
+            .to change { settings.profiling.advanced.timeline_enabled }
+            .from(true)
+            .to(false)
         end
       end
 
