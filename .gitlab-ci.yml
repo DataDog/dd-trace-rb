@@ -133,7 +133,7 @@ package-amd64:
     - ../.gitlab/build-deb-rpm.sh
 
 package-arm64:
-  extends: .package
+  extends: .package-arm
   needs:
     - build-gem
     - install-version-dependent-gems-arm64
