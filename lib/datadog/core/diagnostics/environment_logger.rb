@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'date'
 require 'json'
 require 'rbconfig'
+require 'time'
 
 module Datadog
   module Core
@@ -58,9 +58,10 @@ module Datadog
       module EnvironmentLogger
         extend EnvironmentLogging
 
-        def self.collect_and_log!
+        def self.collect_and_log!(extra_fields = nil)
           log_once! do
             data = EnvironmentCollector.collect_config!
+            data = data.merge(extra_fields) if extra_fields
             log_configuration!('CORE', data.to_json)
           end
         rescue => e
@@ -91,7 +92,7 @@ module Datadog
 
           # @return [String] current time in ISO8601 format
           def date
-            DateTime.now.iso8601
+            Time.now.utc.iso8601
           end
 
           # Best portable guess of OS information.
