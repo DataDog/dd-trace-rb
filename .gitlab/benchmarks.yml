@@ -74,7 +74,7 @@ only-profiling:
     # better accuracy, mode.
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
 
-only-profiling-timeline-gc:
+only-profiling-gc:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
