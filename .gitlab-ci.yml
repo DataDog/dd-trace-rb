@@ -148,7 +148,7 @@ package:
     - ../.gitlab/build-deb-rpm.sh
 
 package-arm:
-  extends: .package
+  extends: .package-arm
   needs:
     - install-version-dependant-gems-arm64
     - install-base-ruby-gems-arm64
