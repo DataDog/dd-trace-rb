@@ -52,10 +52,10 @@ module Datadog
 
       def flush
         worker_stats = @worker.stats_and_reset_not_thread_safe
-        start, finish, uncompressed_pprof = pprof_recorder.serialize
+        start, finish, compressed_pprof = pprof_recorder.serialize
         @last_flush_finish_at = finish
 
-        return if uncompressed_pprof.nil? # We don't want to report empty profiles
+        return if compressed_pprof.nil? # We don't want to report empty profiles
 
         if duration_below_threshold?(start, finish)
           Datadog.logger.debug('Skipped exporting profiling events as profile duration is below minimum')
@@ -68,7 +68,7 @@ module Datadog
           start: start,
           finish: finish,
           pprof_file_name: Datadog::Profiling::Ext::Transport::HTTP::PPROF_DEFAULT_FILENAME,
-          pprof_data: uncompressed_pprof.to_s,
+          pprof_data: compressed_pprof.to_s,
           code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
           code_provenance_data: uncompressed_code_provenance,
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
