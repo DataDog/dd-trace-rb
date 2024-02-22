@@ -72,6 +72,17 @@ module Datadog
             options_hash
           end
 
+          def to_hash(settings = self, prefix = '')
+            settings.class.options.flat_map do |name, option_definition|
+              option = settings.get_option(name)
+              if option.is_a?(Configuration::Base)
+                to_hash(option, prefix + "#{name}.")
+              else
+                "#{prefix}#{name}: #{option_definition.type}"
+              end
+            end
+          end
+
           # Retrieves a nested option from a list of symbols
           def dig(*options)
             raise ArgumentError, 'expected at least one option' if options.empty?
