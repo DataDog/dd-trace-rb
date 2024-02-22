@@ -149,7 +149,7 @@ onboarding_tests:
   extends: .base_job_onboarding_tests
   stage: integration-tests
   needs: [ package-amd64, package-arm64]
-  allow_failure: true
+  allow_failure: false
   variables:
     TEST_LIBRARY: ruby
     ONBOARDING_FILTER_ENV: prod
