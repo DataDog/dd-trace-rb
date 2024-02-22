@@ -82,6 +82,22 @@ class TracingTraceBenchmark
       x.compare!
     end
   end
+
+  def benchmark_log_correlation
+    Datadog::Tracing.trace('op.name') do |span, trace|
+      Benchmark.ips do |x|
+        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
+        x.config(**benchmark_time)
+
+        x.report("Tracing.log_correlation") do
+          Datadog::Tracing.log_correlation
+        end
+
+        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.compare!
+      end
+    end
+  end
 end
 
 puts "Current pid is #{Process.pid}"
@@ -98,4 +114,5 @@ TracingTraceBenchmark.new.instance_exec do
   run_benchmark { benchmark_no_writer }
   run_benchmark { benchmark_no_network }
   run_benchmark { benchmark_to_digest }
+  run_benchmark { benchmark_log_correlation }
 end
