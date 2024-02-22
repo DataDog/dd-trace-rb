@@ -4,10 +4,6 @@ VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
 require 'benchmark/ips'
-
-# Load the local version of the gem
-lib = File.expand_path('lib', __dir__)
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ddtrace'
 
 class TracingTraceBenchmark

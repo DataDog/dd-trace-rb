@@ -169,6 +169,7 @@ benchmarks:
     - ./steps/run-benchmarks.sh
     - ./steps/analyze-results.sh
     - "./steps/upload-results-to-s3.sh || :"
+    - "./steps/upload-results-to-benchmarking-api.sh || :"
     - "./steps/post-pr-comment.sh || :"
   artifacts:
     name: "artifacts"

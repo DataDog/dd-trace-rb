@@ -29,8 +29,8 @@ ENV LANGUAGE en_US:en
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
 # Upgrade RubyGems and Bundler
-RUN gem update --system 3.3.26
-RUN gem install bundler -v '~> 2.3.26'
+RUN gem update --system 3.5.6
+RUN gem install bundler -v '~> 2.5.6'
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 # Reinstall a recent version of the trace to help Docker cache dependencies.

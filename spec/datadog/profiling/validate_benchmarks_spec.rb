@@ -1,6 +1,6 @@
 require 'datadog/profiling/spec_helper'
 
-RSpec.describe 'Profiling benchmarks', if: (RUBY_VERSION >= '2.4.0') do
+RSpec.describe 'Profiling benchmarks' do
   before { skip_if_profiling_not_supported(self) }
 
   around do |example|
@@ -19,9 +19,5 @@ RSpec.describe 'Profiling benchmarks', if: (RUBY_VERSION >= '2.4.0') do
 
   describe 'profiler_sample_serialize' do
     it('runs without raising errors') { expect_in_fork { load './benchmarks/profiler_sample_serialize.rb' } }
-  end
-
-  describe 'tracing_trace' do
-    it('runs without raising errors') { expect_in_fork { load './benchmarks/tracing_trace.rb' } }
   end
 end
