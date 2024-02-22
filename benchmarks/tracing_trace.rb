@@ -68,11 +68,11 @@ class TracingTraceBenchmark
   end
 
   def benchmark_to_digest
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
-      x.config(**benchmark_time)
+    Datadog::Tracing.trace('op.name') do |span, trace|
+      Benchmark.ips do |x|
+        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
+        x.config(**benchmark_time)
 
-      Datadog::Tracing.trace('op.name') do |span, trace|
         x.report("trace.to_digest") do
           trace.to_digest
         end
