@@ -7,15 +7,15 @@ RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required packages
-RUN set -ex; \
-        apt-get update; \
-        mkdir -p /usr/share/man/man1; \
+RUN set -ex && \
+        apt-get update && \
+        mkdir -p /usr/share/man/man1 && \
         apt-get install -y --no-install-recommends \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
-            tzdata rsync vim less jq; \
-        rm -rf /var/lib/apt/lists/*;
+            tzdata rsync vim less jq && \
+        rm -rf /var/lib/apt/lists/*
 
 # Set timezone to UTC by default
 RUN ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime
