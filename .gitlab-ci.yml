@@ -1,10 +1,10 @@
 stages:
   - manual-images
   - package
+  - integration-tests
   - deploy
   - macrobenchmarks
   - microbenchmarks
-  - integration-tests
 
 include:
   - remote: https://gitlab-templates.ddbuild.io/apm/packaging.yml
