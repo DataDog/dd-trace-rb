@@ -1,7 +1,7 @@
 stages:
   - manual-images
   - package
-  #- integration-tests
+  - integration-tests
   - deploy
   - macrobenchmarks
   - microbenchmarks
@@ -147,7 +147,7 @@ package-arm64:
 
 onboarding_tests:
   extends: .base_job_onboarding_tests
-  stage: package
+  stage: integration-tests
   needs: [ package-amd64, package-arm64]
   allow_failure: false
   variables:
