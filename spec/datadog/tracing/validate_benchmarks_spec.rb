@@ -1,8 +1,6 @@
-require 'datadog/profiling/spec_helper'
+require 'spec_helper'
 
-RSpec.describe 'Profiling benchmarks' do
-  before { skip_if_profiling_not_supported(self) }
-
+RSpec.describe 'Tracing benchmarks' do
   around do |example|
     ClimateControl.modify('VALIDATE_BENCHMARK' => 'true') do
       example.run
