@@ -4,6 +4,7 @@ stages:
   - deploy
   - macrobenchmarks
   - microbenchmarks
+  - integration-tests
 
 include:
   - remote: https://gitlab-templates.ddbuild.io/apm/packaging.yml
@@ -144,13 +145,13 @@ package-arm64:
     - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
 
-onboarding_tests_host:
+onboarding_tests:
   extends: .base_job_onboarding_tests
-  stage: package
+  stage: integration-tests
   needs: [ package-amd64, package-arm64]
   allow_failure: true
   variables:
-    TEST_LIBRARY: ruby #Exclude Ubuntu 18 machines to speed up the build (only used in the nighly build).
+    TEST_LIBRARY: ruby
     ONBOARDING_FILTER_ENV: prod
   parallel:
       matrix:
@@ -165,7 +166,7 @@ onboarding_tests_host:
     - ls system-tests/binaries
     - cd system-tests
     - ./build.sh -i runner
-    - timeout 2700s ./run.sh $SCENARIO --vm-weblog test-app-${TEST_LIBRARY} --vm-env dev --vm-library ${TEST_LIBRARY} --vm-provider aws
+    - timeout 2700s ./run.sh $SCENARIO --vm-weblog test-app-${TEST_LIBRARY} --vm-env prod --vm-library ${TEST_LIBRARY} --vm-provider aws
 
 .release-package:
   stage: deploy
