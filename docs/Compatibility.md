@@ -4,24 +4,24 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 ### Supported Ruby interpreters
 
-| Type  | Documentation              | Version | Support type        | Gem version support |
-|-------|----------------------------|---------|---------------------|---------------------|
-| MRI   | https://www.ruby-lang.org/ | 3.3     | [GA](#support-ga)   | Latest              |
-|       |                            | 3.2     | [GA](#support-ga)   | Latest              |
-|       |                            | 3.1     | [GA](#support-ga)   | Latest              |
-|       |                            | 3.0     | [GA](#support-ga)   | Latest              |
-|       |                            | 2.7     | [GA](#support-ga)   | Latest              |
-|       |                            | 2.6     | [GA](#support-ga)   | Latest              |
-|       |                            | 2.5     | [GA](#support-ga)   | Latest              |
-|       |                            | 2.4     | [EOL](#support-eol) | < 2.0.0             | [comment]: <> (# DEV-2.0: Update with release date)
-|       |                            | 2.3     | [EOL](#support-eol) | < 2.0.0             |
-|       |                            | 2.2     | [EOL](#support-eol) | < 2.0.0             |
-|       |                            | 2.1     | [EOL](#support-eol) | < 2.0.0             |
-|       |                            | 2.0     | [EOL](#support-eol) | < 0.50.0            |
-|       |                            | 1.9.3   | [EOL](#support-eol) | < 0.27.0            |
-|       |                            | 1.9.1   | [EOL](#support-eol) | < 0.27.0            |
-| JRuby | https://www.jruby.org      | 9.3     | [GA](#support-ga)   | Latest              |
-|       |                            | 9.2     | [GA](#support-ga)   | Latest              |
+| Type  | Documentation              | Version   | Support type        | Gem version support |
+|-------|----------------------------|-----------|---------------------|---------------------|
+| MRI   | https://www.ruby-lang.org/ | 3.3       | [GA](#support-ga)   | Latest              |
+|       |                            | 3.2       | [GA](#support-ga)   | Latest              |
+|       |                            | 3.1       | [GA](#support-ga)   | Latest              |
+|       |                            | 3.0       | [GA](#support-ga)   | Latest              |
+|       |                            | 2.7       | [GA](#support-ga)   | Latest              |
+|       |                            | 2.6       | [GA](#support-ga)   | Latest              |
+|       |                            | 2.5       | [GA](#support-ga)   | Latest              |
+|       |                            | 2.4       | [EOL](#support-eol) | < 2.0.0             | [comment]: <> (# DEV-2.0: Update with release date)
+|       |                            | 2.3       | [EOL](#support-eol) | < 2.0.0             |
+|       |                            | 2.2       | [EOL](#support-eol) | < 2.0.0             |
+|       |                            | 2.1       | [EOL](#support-eol) | < 2.0.0             |
+|       |                            | 2.0       | [EOL](#support-eol) | < 0.50.0            |
+|       |                            | 1.9.3     | [EOL](#support-eol) | < 0.27.0            |
+|       |                            | 1.9.1     | [EOL](#support-eol) | < 0.27.0            |
+| JRuby | https://www.jruby.org      | 9.3       | [GA](#support-ga)   | Latest              |
+|       |                            | 9.2.21.0+ | [GA](#support-ga)   | Latest              |
 
 ### Supported web servers
 
