@@ -14,8 +14,6 @@ include:
 # -----------------------------------------------------
 
 variables:
-  RUBY_PACKAGE_VERSION:
-    description: "The version of the gem to build the rpm/deb package"
   DOWNSTREAM_BRANCH:
     value: "master"
     description: "Run a specific datadog-reliability-env branch downstream"
