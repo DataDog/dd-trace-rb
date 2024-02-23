@@ -76,10 +76,10 @@ class TracingTraceBenchmark
         x.report("trace.to_digest") do
           trace.to_digest
         end
-      end
 
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
+        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.compare!
+      end
     end
   end
 end
