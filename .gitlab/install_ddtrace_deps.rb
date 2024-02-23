@@ -8,28 +8,51 @@ ruby_api_version = Gem.ruby_api_version
 
 current_path = Pathname.new(FileUtils.pwd)
 
-artifact_path = current_path.join("tmp")
+tmp_path = current_path.join("tmp")
 
-lock_file_path = artifact_path.join("Gemfile.lock")
-versioned_path = artifact_path.join(ruby_api_version)
+versioned_path = tmp_path.join(ruby_api_version)
+
+FileUtils.mkdir_p(versioned_path, verbose: true)
+
+gemfile_file_path = versioned_path.join('Gemfile')
+
+File.open(gemfile_file_path, 'w') do |file|
+  file.write("source \"https://rubygems.org\"\n")
+  file.write("gem 'ddtrace', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'")
+end
+
+STDOUT.puts '=== Reading Gemfile ==='
+File.foreach(gemfile_file_path) { |x| STDOUT.puts x }
+STDOUT.puts "=== Reading Gemfile ===\n"
+
+STDOUT.puts "=== bundle lock ==="
+output, status = Open3.capture2e({ "BUNDLE_GEMFILE" => gemfile_file_path.to_s }, "bundle lock")
+STDOUT.puts output
+STDOUT.puts "=== bundle lock ===\n"
+
+exit 1 unless status.success?
+
+lock_file_path = versioned_path.join("Gemfile.lock")
+
+STDOUT.puts '=== Reading Lockfile ==='
+File.foreach(lock_file_path) { |x| STDOUT.puts x }
+STDOUT.puts "=== Reading Lockfile ===\n"
 
 lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file(lock_file_path))
 
 gem_version_mapping = lock_file_parser.specs.each_with_object({}) do |spec, hash|
-  if ARGV.include? spec.name
-    hash[spec.name] = spec.version.to_s
-  end
-
-  hash
+  hash[spec.name] = spec.version.to_s
 end
+
+STDOUT.puts gem_version_mapping
 
 gem_version_mapping.each do |gem, version|
   env = {}
 
   gem_install_cmd = "gem install #{gem} "\
-  "--version #{version} "\
-  "--no-document "\
-  "--ignore-dependencies "
+    "--version #{version} "\
+    "--no-document "\
+    "--ignore-dependencies "
 
   case gem
   when "ffi"
@@ -40,14 +63,12 @@ gem_version_mapping.each do |gem, version|
     # Install `ddtrace` gem locally without its profiling native extension
     env["DD_PROFILING_NO_EXTENSION"] = "true"
     gem_install_cmd =
-      "gem install --local #{ENV['DDTRACE_GEM_LOCATION']} "\
+      "gem install --local #{ENV.fetch('DDTRACE_GEM_LOCATION')} "\
       "--no-document "\
       "--ignore-dependencies "\
       "--install-dir #{versioned_path} "
-  when "msgpack"
-    gem_install_cmd << "--install-dir #{versioned_path} "
   else
-    gem_install_cmd << "--install-dir #{artifact_path} "
+    gem_install_cmd << "--install-dir #{versioned_path} "
   end
 
   STDOUT.puts "Execute: #{gem_install_cmd}"

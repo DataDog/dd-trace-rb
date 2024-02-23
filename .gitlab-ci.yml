@@ -72,11 +72,10 @@ promote-image:
     - docker tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
     - docker push $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
 
-.install-base-ruby-gems:
-  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-$ARCHITECTURE:current
+build-gem:
+  # TODO: Replace with the correct image for the ruby version
+  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-amd64:current
   stage: package
-  # base on a merge commit into master
-  # or given a tag
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
@@ -89,71 +88,58 @@ promote-image:
   script:
     - if [ -z "$CI_COMMIT_TAG"]; then .gitlab/patch_gem_version.sh; fi # if not release, patch the version
     - bundle install && bundle exec rake build # .gem is created under pkg/
-    - mkdir -p tmp
-    - ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s' >> tmp/version.txt
-    - export RUBY_PACKAGE_VERSION=$(cat tmp/version.txt)
-    - export DDTRACE_GEM_LOCATION=$(readlink -f pkg/ddtrace-*.gem)
-    - .gitlab/prepare_tmp_directory.sh
-    - ruby .gitlab/install_ddtrace_deps.rb debase-ruby_core_source libdatadog libddwaf datadog-ci msgpack ffi ddtrace
+    - mkdir -p tmp && ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s' >> tmp/version.txt
   artifacts:
     paths:
       - pkg
       - tmp
 
-install-base-ruby-gems-amd64:
-  extends: .install-base-ruby-gems
-  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-amd64:current
-  tags: [ "runner:main" ]
-
-install-base-ruby-gems-arm64:
-  extends: .install-base-ruby-gems
-  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-arm64:current
-  tags: [ "arch:arm64" ]
-
-.install-version-dependant-gems:
+.install-version-dependent-gems:
   parallel:
     matrix:
-      - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4"]
+      - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4", "3.2.2"]
   stage: package
+  needs:
+    - build-gem
   script:
+    - export RUBY_PACKAGE_VERSION=$(cat tmp/version.txt)
     - export DDTRACE_GEM_LOCATION=$(readlink -f pkg/ddtrace-*.gem)
-    - ruby .gitlab/install_ddtrace_deps.rb msgpack ffi ddtrace
+    - if [ -z "$CI_COMMIT_TAG"]; then .gitlab/patch_gem_version.sh; fi # if not release, patch the version
+    - ruby .gitlab/install_ddtrace_deps.rb
   artifacts:
     paths:
       - pkg
       - tmp
 
-install-version-dependant-gems-amd64:
-  extends: .install-version-dependant-gems
+install-version-dependent-gems-amd64:
+  extends: .install-version-dependent-gems
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-amd64:current
   tags: [ "runner:main" ]
-  needs:
-    - install-base-ruby-gems-amd64
 
-install-version-dependant-gems-arm64:
-  extends: .install-version-dependant-gems
+install-version-dependent-gems-arm64:
+  extends: .install-version-dependent-gems
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-arm64:current
   tags: [ "arch:arm64" ]
-  needs:
-    - install-base-ruby-gems-arm64
 
-package:
+package-amd64:
   extends: .package
   needs:
-    - install-version-dependant-gems-amd64
-    - install-base-ruby-gems-amd64
+    - build-gem
+    - install-version-dependent-gems-amd64
   script:
     - ls ../pkg
+    - cp ../lib-injection/host_inject.rb ../tmp
     - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
 
-package-arm:
+package-arm64:
   extends: .package-arm
   needs:
-    - install-version-dependant-gems-arm64
-    - install-base-ruby-gems-arm64
+    - build-gem
+    - install-version-dependent-gems-arm64
   script:
     - ls ../pkg
+    - cp ../lib-injection/host_inject.rb ../tmp
     - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
 
