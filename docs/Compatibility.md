@@ -232,6 +232,17 @@ As this relates to downgrading runtime support, it implies:
   from [Beta](#support-beta)/[GA](#support-ga) to [Maintenance](#support-maintenance).
 - **Patch version updates** (e.g. `1.0.0` to `1.0.1`) will not change support for any runtime.
 
+#### Library version support
+
+Datadog APM for Ruby will provide GA support for the latest major version and maintenance support for the previous major
+version of the library.
+
+| Gem Version | Support type                        |
+|-------------|-------------------------------------|
+| 2.x         | [GA](#support-ga)                   |
+| 1.x         | [Maintenance](#support-maintenance) |
+| 0.x         | [Legacy](#support-legacy)           |
+
 #### Additional suppport resources
 
 - [Datadog Customer support](https://www.datadoghq.com/support/)
