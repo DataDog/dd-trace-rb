@@ -99,6 +99,23 @@ class TracingTraceBenchmark
     end
   end
 
+  def benchmark_to_digest_continue
+    Datadog::Tracing.trace('op.name') do |span, trace|
+      Benchmark.ips do |x|
+        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
+        x.config(**benchmark_time)
+
+        x.report("trace.to_digest - Continue") do
+          digest = trace.to_digest
+          Datadog::Tracing.continue_trace!(digest)
+        end
+
+        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.compare!
+      end
+    end
+  end
+
   def benchmark_propagation_datadog
     Datadog.configure do |c|
       c.tracing.propagation_style = ['datadog']
@@ -163,6 +180,7 @@ TracingTraceBenchmark.new.instance_exec do
   run_benchmark { benchmark_no_network }
   run_benchmark { benchmark_to_digest }
   run_benchmark { benchmark_log_correlation }
+  run_benchmark { benchmark_to_digest_continue }
   run_benchmark { benchmark_propagation_datadog }
   run_benchmark { benchmark_propagation_trace_context }
 end
