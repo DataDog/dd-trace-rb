@@ -16,7 +16,7 @@ variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
 
 default:
-  tags: [ "runner:main", "size:large" ]
+  tags: ["runner:main", "size:large"]
 
 .build-image-base:
   stage: manual-images
@@ -30,7 +30,7 @@ default:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: [ '3.2.2', '3.1.4', '3.0.6', '2.7.8' ]
+      - RUBY_VERSION: ["3.2.2", "3.1.4", "3.0.6", "2.7.8"]
   script:
     - >
       docker build
@@ -40,27 +40,27 @@ default:
     - docker push --all-tags $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE
 
 build-image-amd64:
-   extends: .build-image-base
-   tags: [ "runner:docker" ]
-   variables:
-     ARCHITECTURE: amd64
+  extends: .build-image-base
+  tags: ["runner:docker"]
+  variables:
+    ARCHITECTURE: amd64
 
 build-image-arm64:
-   extends: .build-image-base
-   tags: [ "runner:docker-arm", "platform:arm64"]
-   variables:
-     ARCHITECTURE: arm64
+  extends: .build-image-base
+  tags: ["runner:docker-arm", "platform:arm64"]
+  variables:
+    ARCHITECTURE: arm64
 
 promote-image:
   stage: manual-images
   when: manual
-  tags: [ "runner:docker" ]
+  tags: ["runner:docker"]
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: [ '3.2.2', '3.1.4', '3.0.6', '2.7.8' ]
-        ARCHITECTURE: [ 'amd64', 'arm64' ]
+      - RUBY_VERSION: ["3.2.2", "3.1.4", "3.0.6", "2.7.8"]
+        ARCHITECTURE: ["amd64", "arm64"]
   script:
     - docker pull $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID
     - docker tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
@@ -108,12 +108,12 @@ build-gem:
 install-dependencies-amd64:
   extends: .install-dependencies
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-amd64:current
-  tags: [ "runner:main" ]
+  tags: ["runner:main"]
 
 install-dependencies-arm64:
   extends: .install-dependencies
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-arm64:current
-  tags: [ "arch:arm64" ]
+  tags: ["arch:arm64"]
 
 package-amd64:
   extends: .package
@@ -161,9 +161,9 @@ deploy_to_reliability_env:
 deploy_to_docker_registries:
   stage: deploy
   rules:
-    - if: '$POPULATE_CACHE'
+    - if: "$POPULATE_CACHE"
       when: never
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+    - if: "$CI_COMMIT_TAG =~ /^v.*/"
       when: delayed
       start_in: 1 day
     - when: manual
@@ -180,9 +180,9 @@ deploy_to_docker_registries:
 deploy_latest_tag_to_docker_registries:
   stage: deploy
   rules:
-    - if: '$POPULATE_CACHE'
+    - if: "$POPULATE_CACHE"
       when: never
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+    - if: "$CI_COMMIT_TAG =~ /^v.*/"
       when: delayed
       start_in: 1 day
     - when: manual
