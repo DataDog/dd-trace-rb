@@ -1,16 +1,17 @@
 #!/bin/bash
 
-# Obtain context information
-git_sha=$(git rev-parse --short HEAD)
+echo CI_JOB_ID="${CI_JOB_ID}"
 
-# Output info for CI debug
+git_branch_hash=$(git rev-parse --abbrev-ref HEAD |ruby -rdigest -n -e 'print Digest::SHA256.hexdigest($_.chomp)[0, 6]')
+echo git_branch_hash="${git_branch_hash}"
+
+git_sha=$(git rev-parse --short=8 HEAD)
 echo git_sha="${git_sha}"
 
 PRE='dev'
-BUILD="${git_sha}"
-
-# Output info for CI debug
 echo PRE="${PRE}"
+
+BUILD="b${git_branch_hash}.glci${CI_JOB_ID}.g${git_sha}"
 echo BUILD="${BUILD}"
 
 # Patch in components

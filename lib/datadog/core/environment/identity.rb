@@ -56,58 +56,28 @@ module Datadog
 
         # Returns tracer version, comforming to https://semver.org/spec/v2.0.0.html
         def tracer_version_semver2
-          # from ddtrace/version.rb, we have MAJOR.MINOR.PATCH plus optional .PRE and .BUILD
-          # - transform .PRE to -PRE if present
-          # - transform .BUILD to +BUILD if present
-          # - keep triplet segments before that
+          major, minor, patch, rest = tracer_version.split('.', 4)
 
-          m = SEMVER2_RE.match(tracer_version)
+          semver = "#{major}.#{minor}.#{patch}"
 
-          pre = "-#{m[:pre]}" if m[:pre]
-          build = "+gha#{m[:gha_run_id]}.g#{m[:git_sha]}.#{m[:branch].tr('.', '-')}" if m[:build]
+          return semver unless rest
 
-          "#{m[:major]}.#{m[:minor]}.#{m[:patch]}#{pre}#{build}"
+          pre = ''
+          build = ''
+
+          rest.split('.').tap do |segments|
+            if segments.length >= 4
+              pre   = "-#{segments.shift}"
+              build = "+#{segments.join('.')}"
+            elsif segments.length == 1
+              pre = "-#{segments.shift}"
+            else
+              build = "+#{segments.join('.')}"
+            end
+          end
+
+          semver << pre << build
         end
-
-        SEMVER2_RE = /
-          ^
-          # mandatory segments
-          (?<major>\d+)
-          \.
-          (?<minor>\d+)
-          \.
-          (?<patch>\d+)
-
-          # pre segments start with a value
-          # - containing at least one alpha
-          # - that is not part of our build segments expected values
-          # and stop with a value that is not part of our build segments expected values
-          (?:
-            \.
-            (?<pre>
-              (?!gha)
-              [a-zA-Z0-9]*[a-zA-Z][a-zA-Z0-9]*
-              (?:
-                \.
-                (?!gha)
-                [a-zA-Z0-9]+
-              )*
-            )
-          )?
-
-          # build segments: ours include CI info (`gha`), then git (`g`), then branch name
-          (?:
-            \.
-            (?<build>
-              gha(?<gha_run_id>\d+)
-              \.
-              g(?<git_sha>[a-f0-9]+)
-              \.
-              (?<branch>(?:[a-zA-Z0-9.])+)
-            )
-          )?
-          $
-        /xm.freeze
       end
     end
   end

@@ -48,17 +48,17 @@ jobs:
           echo gha_run_id="${gha_run_id}"
 
           # Sanitize for ruby version usage
-          git_branch_sanitized="$(echo "$git_branch" | sed -e 's/[^a-zA-Z0-9+]\{1,\}/./g')"
-          echo git_branch_sanitized="${git_branch_sanitized}"
+          git_branch_sha="$(echo "$git_branch" | ruby -rdigest -n -e 'print Digest::SHA256.hexdigest($_.chomp)[0, 6]')"
+          echo git_branch_sha="${git_branch_sha}"
 
           # Shorten commit sha
-          git_sha_short="${git_sha:0:12}"
+          git_sha_short="${git_sha:0:8}"
           echo git_sha_short="${git_sha_short}"
 
           # Set component values:
           # - PRE is `dev` to denote being a development version and
           #   act as a categorizer.
-          # - BUILD starts with CI run id for ordering.
+          # - BUILD starts with git branch sha for grouping, prefixed by `b`.
           # - BUILD has CI run id for traceability, prefixed by `gha`
           #   for identification.
           # - BUILD has commit next for traceability, prefixed git-describe
@@ -68,7 +68,7 @@ jobs:
           #   unpredictable ordering; it can thus be reliably extracted
           #   and does not impair readability in lists
           PRE='${{ matrix.type }}'
-          BUILD="gha${gha_run_id}.g${git_sha_short}.${git_branch_sanitized}"
+          BUILD="b${git_branch_sha}.gha${gha_run_id}.g${git_sha_short}"
 
           # Output info for CI debug
           echo PRE="${PRE}"
