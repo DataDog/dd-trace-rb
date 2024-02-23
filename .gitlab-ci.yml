@@ -9,10 +9,6 @@ include:
   - remote: https://gitlab-templates.ddbuild.io/apm/packaging.yml
   - local: ".gitlab/benchmarks.yml"
 
-# -----------------------------------------------------
-# Reliability Environment configuration
-# -----------------------------------------------------
-
 variables:
   DOWNSTREAM_BRANCH:
     value: "master"
@@ -92,7 +88,7 @@ build-gem:
       - tmp
       - lib/ddtrace/version.rb
 
-.install-version-dependent-gems:
+.install-dependencies:
   parallel:
     matrix:
       - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4", "3.2.2"]
@@ -109,13 +105,13 @@ build-gem:
       - tmp
       - lib/ddtrace/version.rb
 
-install-version-dependent-gems-amd64:
-  extends: .install-version-dependent-gems
+install-dependencies-amd64:
+  extends: .install-dependencies
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-amd64:current
   tags: [ "runner:main" ]
 
-install-version-dependent-gems-arm64:
-  extends: .install-version-dependent-gems
+install-dependencies-arm64:
+  extends: .install-dependencies
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-arm64:current
   tags: [ "arch:arm64" ]
 
@@ -123,7 +119,7 @@ package-amd64:
   extends: .package
   needs:
     - build-gem
-    - install-version-dependent-gems-amd64
+    - install-dependencies-amd64
   script:
     - ls ../pkg
     - cp ../lib-injection/host_inject.rb ../tmp
@@ -134,7 +130,7 @@ package-arm64:
   extends: .package-arm
   needs:
     - build-gem
-    - install-version-dependent-gems-arm64
+    - install-dependencies-arm64
   script:
     - ls ../pkg
     - cp ../lib-injection/host_inject.rb ../tmp
