@@ -56,6 +56,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       code_provenance_data: code_provenance_data,
       tags_as_array: tags_as_array,
       internal_metadata: { no_signals_workaround_enabled: true },
+      info_json: info_json,
     )
   end
   let(:start_timestamp) { '2022-02-07T15:59:53.987654321Z' }
@@ -67,6 +68,29 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:code_provenance_file_name) { 'the_code_provenance_file_name.json' }
   let(:code_provenance_data) { 'the_code_provenance_data' }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
+  let(:info_json) do
+    JSON.fast_generate(
+      {
+        application: {
+          start_time: '2024-01-24T11:17:22Z'
+        },
+        runtime: {
+          engine: 'ruby'
+        },
+      }
+    )
+  end
+  # Like above but with string keys (JSON parsing unsymbolizes keys by default)
+  let(:info_string_keys) do
+    {
+      'application' => {
+        'start_time' => '2024-01-24T11:17:22Z'
+      },
+      'runtime' => {
+        'engine' => 'ruby'
+      },
+    }
+  end
 
   describe '#initialize' do
     context 'when agent_settings are provided' do
@@ -187,7 +211,9 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       finish_timespec_seconds = 1699718400
       finish_timespec_nanoseconds = 123456789
 
-      internal_metadata_json = '{"no_signals_workaround_enabled":"true"}'
+      internal_metadata_json = '{"no_signals_workaround_enabled":true}'
+
+      info_json = '{"application":{"start_time":"2024-01-24T11:17:22Z"},"runtime":{"engine":"ruby"}}'
 
       expect(described_class).to receive(:_native_do_export).with(
         kind_of(Array), # exporter_configuration
@@ -202,6 +228,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         code_provenance_data,
         tags_as_array,
         internal_metadata_json,
+        info_json,
       ).and_return([:ok, 200])
 
       export
@@ -357,7 +384,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
-          'internal' => { 'no_signals_workaround_enabled' => 'true' },
+          'internal' => { 'no_signals_workaround_enabled' => true },
+          'info' => info_string_keys,
         )
       end
 
@@ -405,7 +433,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
-          'internal' => { 'no_signals_workaround_enabled' => 'true' },
+          'internal' => { 'no_signals_workaround_enabled' => true },
+          'info' => info_string_keys,
         )
 
         expect(body[code_provenance_file_name]).to be nil

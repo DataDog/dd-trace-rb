@@ -74,13 +74,13 @@ only-profiling:
     # better accuracy, mode.
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
 
-only-profiling-timeline:
+only-profiling-gc:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-    DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED: "true"
+    DD_PROFILING_FORCE_ENABLE_GC: "true"
 
 profiling-and-tracing:
   extends: .benchmarks
@@ -109,15 +109,6 @@ profiling-and-tracing-and-appsec:
     DD_APPSEC_ENABLED: "true"
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-
-profiling-and-tracing-and-appsec-timeline:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing-and-appsec
-    DD_APPSEC_ENABLED: "true"
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-    DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED: "true"
 
 candidate-tracer-appsec-with-api-security:
   extends: .benchmarks

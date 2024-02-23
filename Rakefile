@@ -18,6 +18,7 @@ TEST_METADATA = {
     '' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
   },
   'profiling:main' => {
+    'opentelemetry' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby',
     '' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
   },
   'profiling:ractors' => {
@@ -261,6 +262,9 @@ TEST_METADATA = {
     'redis-4' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
     'redis-5' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
   },
+  'routetest' => {
+    'multi-rack-app' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
   'appsec:rack' => {
     # Non-deprecated form of Regexp.new does not backport to Rack 1.x, see: https://github.com/rack/rack/pull/1998
     'rack-1' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ❌ 3.3 / ✅ jruby',
@@ -343,7 +347,7 @@ namespace :spec do
   task all: [:main, :benchmark,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-             :profiling]
+             :profiling, :routetest]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -375,6 +379,12 @@ namespace :spec do
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*_spec.rb'
     t.exclude_pattern = 'spec/datadog/tracing/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,'\
                         'semantic_logger}*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  desc '' # "Explicitly hiding from `rake -T`"
+  RSpec::Core::RakeTask.new(:routetest) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/http_route_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 

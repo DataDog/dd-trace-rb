@@ -53,6 +53,14 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     sampler_instance._native_set_overhead_target_percentage(new_overhead_target, (@now * 1e9).to_i)
   end
 
+  def sampler_current_probability
+    sampler._native_state_snapshot.fetch(:sampling_probability)
+  end
+
+  def sampler_current_events_per_sec
+    sampler._native_state_snapshot.fetch(:events_per_sec)
+  end
+
   context 'when under a constant' do
     let(:stats) do
       # Warm things up a little to overcome the hardcoded starting parameters
@@ -70,7 +78,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
         # At an event rate of 1/sec we can sample all.
         expect(stats[:sampling_ratio]).to eq(1)
         expect(stats[:overhead]).to be < max_overhead_target
-        expect(sampler._native_probability).to eq(100)
+        expect(sampler_current_probability).to eq(100)
       end
     end
 
@@ -83,7 +91,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
         # At an event rate of 8/sec we can sample 1/4 of total events.
         expect(stats[:sampling_ratio]).to be_between(0.23, 0.27)
         expect(stats[:overhead]).to be < max_overhead_target
-        expect(sampler._native_probability).to be_between(23, 27)
+        expect(sampler_current_probability).to be_between(23, 27)
       end
     end
 
@@ -96,7 +104,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
         # At an event rate of 100/sec we can sample 2% of total events.
         expect(stats[:sampling_ratio]).to be_between(0.01, 0.03)
         expect(stats[:overhead]).to be < max_overhead_target
-        expect(sampler._native_probability).to be_between(1, 3)
+        expect(sampler_current_probability).to be_between(1, 3)
       end
     end
   end
@@ -106,7 +114,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       it 'will readjust to decrease sampling rate' do
         # Baseline
         simulate_load(duration_seconds: 10, events_per_second: 10, sampling_seconds: 0.01)
-        p_baseline = sampler._native_probability
+        p_baseline = sampler_current_probability
 
         # We'll spike every 5 seconds. Sampler should have some short term memory so
         # after a spiking period it should be using a lower probability
@@ -117,7 +125,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
         simulate_load(duration_seconds: 1, events_per_second: 1000, sampling_seconds: 0.01)
         simulate_load(duration_seconds: 10, events_per_second: 10, sampling_seconds: 0.01)
 
-        p_after_spikes = sampler._native_probability
+        p_after_spikes = sampler_current_probability
 
         expect(p_after_spikes).to be < p_baseline
       end
@@ -132,7 +140,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
         # baseline, entire minutes could pass before we even decide to sample again and realize that
         # we've been sampling nothing for a while.
         simulate_load(duration_seconds: 5, events_per_second: 10000, sampling_seconds: 0.01)
-        p1 = sampler._native_probability
+        p1 = sampler_current_probability
         expect(p1).to be < 0.1 # %
 
         # With such a low probability, our sampling skip is >1000 so if we relied on samples alone
@@ -143,7 +151,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
         samples = 0
         5.times do
           stats = simulate_load(duration_seconds: 2, events_per_second: 1, sampling_seconds: 0.01)
-          current_p = sampler._native_probability
+          current_p = sampler_current_probability
           expect(current_p).to be > last_p
 
           last_p = current_p
@@ -154,7 +162,29 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
 
         # After 10 seconds of 1 event/sec at 0.01 sampling time (fully inside our overhead target),
         # we should be back to a relatively high probability
-        expect(sampler._native_probability).to be > 30 # %
+        expect(sampler_current_probability).to be > 30 # %
+      end
+    end
+
+    context 'with a big spike that fits within an adjustment window' do
+      it 'will readjust preemptively with smaller windows to prevent sampling overload' do
+        # Start with a very small constant load during a long time. So low in fact that we'll
+        # decide to sample everything
+        simulate_load(duration_seconds: 60, events_per_second: 1, sampling_seconds: 0.0001)
+        expect(sampler_current_probability).to eq(100) # %
+        expect(sampler_current_events_per_sec).to be_within(0.1).of(1)
+
+        # Now lets do a big event spike over half a second. This is within an adjustment
+        # window so in theory we should only react after it occurred. But if this happened
+        # we'd sample all of these events. Instead, we expect our sampler to preempt
+        # adjustments with smaller windows to try and contain the deluge
+        stats = simulate_load(duration_seconds: 0.5, events_per_second: 5000, sampling_seconds: 0.0001)
+        expect(stats[:num_samples]).to be < 1000
+        expect(sampler_current_probability).to be < 25 # %
+        # We also expect this brief spike to not have led us to completely forget the recent past
+        # where we had very little eventing taking place so events_per_sec for instance should
+        # not be too close to 5000.
+        expect(sampler_current_events_per_sec).to be < 1250
       end
     end
   end
@@ -213,7 +243,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     # so probability and intervals must go down to 0.
     # This will trigger a readjustment because duration >= readjust_window
     simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 0.08)
-    expect(sampler._native_probability).to eq(0)
+    expect(sampler_current_probability).to eq(0)
 
     # Since that initial readjustment set probability to 0, all events in the next window will be ignored but
     # ideally we should slowly relax this over time otherwise probability = 0 would be a terminal state (if we

@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include <ruby.h>
+
 // A sampler that will sample discrete events based on the overhead of their
 // sampling.
 //
@@ -87,3 +89,8 @@ double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler);
 
 // Retrieve the current number of events seen since last sample.
 unsigned long discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler);
+
+// Return a Ruby hash containing a snapshot of this sampler's interesting state at calling time.
+// WARN: This allocates in the Ruby VM and therefore should not be called without the
+//       VM lock or during GC.
+VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler);

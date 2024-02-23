@@ -5,7 +5,7 @@ module Datadog
         settings: untyped,
         agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
         optional_tracer: Datadog::Tracing::Tracer?,
-      ) -> Datadog::Profiling::Profiler?
+      ) -> [Datadog::Profiling::Profiler?, {profiling_enabled: bool}]
 
       def self.build_thread_context_collector: (
         untyped settings,
@@ -17,6 +17,7 @@ module Datadog
       def self.build_profiler_exporter: (
         untyped settings,
         Datadog::Profiling::StackRecorder recorder,
+        Datadog::Profiling::Collectors::CpuAndWallTimeWorker worker,
         internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
       ) -> Datadog::Profiling::Exporter
 
