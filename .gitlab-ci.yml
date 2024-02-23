@@ -73,8 +73,7 @@ promote-image:
     - docker push $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
 
 build-gem:
-  # TODO: Replace with the correct image for the ruby version
-  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-amd64:current
+  image: $DOCKER_REGISTRY/ruby:3.2.2
   stage: package
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -87,7 +86,7 @@ build-gem:
       allow_failure: true
   script:
     - if [ -z "$CI_COMMIT_TAG"]; then .gitlab/patch_gem_version.sh; fi # if not release, patch the version
-    - bundle install && bundle exec rake build # .gem is created under pkg/
+    - bundle install && bundle exec rake build
     - mkdir -p tmp && ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s' >> tmp/version.txt
   artifacts:
     paths:
