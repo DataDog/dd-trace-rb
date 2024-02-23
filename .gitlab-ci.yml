@@ -67,7 +67,7 @@ promote-image:
     - docker push $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
 
 build-gem:
-  image: $DOCKER_REGISTRY/ruby:3.2.2
+  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
   stage: package
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
