@@ -123,13 +123,13 @@ module Datadog
       return false unless supported?
 
       require_relative 'profiling/ext/forking'
+      require_relative 'profiling/collectors/info'
       require_relative 'profiling/collectors/code_provenance'
       require_relative 'profiling/collectors/cpu_and_wall_time_worker'
       require_relative 'profiling/collectors/dynamic_sampling_rate'
       require_relative 'profiling/collectors/idle_sampling_helper'
       require_relative 'profiling/collectors/stack'
       require_relative 'profiling/collectors/thread_context'
-      require_relative 'profiling/diagnostics/environment_logger'
       require_relative 'profiling/stack_recorder'
       require_relative 'profiling/exporter'
       require_relative 'profiling/flush'
