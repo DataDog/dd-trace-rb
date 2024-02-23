@@ -156,11 +156,11 @@ onboarding_tests:
   parallel:
       matrix:
         - ONBOARDING_FILTER_WEBLOG: [test-app-ruby]
-          SCENARIO: [HOST_AUTO_INJECTION]
+          SCENARIO: [SIMPLE_HOST_AUTO_INJECTION]
         - ONBOARDING_FILTER_WEBLOG: [test-app-ruby-container]
-          SCENARIO: [CONTAINER_AUTO_INJECTION]
+          SCENARIO: [SIMPLE_CONTAINER_AUTO_INJECTION]
   script:
-    - git clone https://git@github.com/DataDog/system-tests.git system-tests
+    - git clone --branch robertomonteromiguel/onboarding_define_minimal_scenario https://git@github.com/DataDog/system-tests.git system-tests
     - cp packaging/*.rpm system-tests/binaries
     - cp packaging/*.deb system-tests/binaries
     - ls system-tests/binaries
