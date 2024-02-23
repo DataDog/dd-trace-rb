@@ -215,7 +215,7 @@ maintainers, Datadog APM for Ruby limits its support for these as well.
 | <span id="support-unsupported">Unsupported</span>      | No implementation. [Contact our customer support team for special requests.](https://www.datadoghq.com/support/)                                                             |
 | <span id="support-beta">Beta</span>                    | Initial implementation. May not yet contain all features. Support for new features, bug & security fixes provided on a best-effort basis.                                    |
 | <span id="support-ga">General Availability (GA)</span> | Full implementation of all features. Full support for new features, bug & security fixes.                                                                                    |
-| <span id="support-maintenance">Maintenance</span>      | Full implementation of existing features. Does not receive new features. Support for bug & security fixes only.                                                              |
+| <span id="support-maintenance">Maintenance</span>      | Full implementation of existing features. Does not receive new features. Support for critical bug & security fixes only.                                                     |
 | <span id="support-legacy">Legacy</span>                | Legacy implementation. May have limited function, but no maintenance provided. [Contact our customer support team for special requests.](https://www.datadoghq.com/support/) |
 | <span id="support-eol">End-of-life (EOL)</span>        | No support. The version can still be used but no bugfixes will be provided.                                                                                                  |
 
@@ -241,7 +241,7 @@ version of the library.
 |-------------|-------------------------------------|
 | 2.x         | [GA](#support-ga)                   |
 | 1.x         | [Maintenance](#support-maintenance) |
-| 0.x         | [Legacy](#support-legacy)           |
+| 0.x         | [EOL](#support-eol)                 |
 
 #### Additional suppport resources
 
