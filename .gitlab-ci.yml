@@ -93,6 +93,7 @@ build-gem:
     paths:
       - pkg
       - tmp
+      - lib/ddtrace/version.rb
 
 .install-version-dependent-gems:
   parallel:
@@ -104,12 +105,12 @@ build-gem:
   script:
     - export RUBY_PACKAGE_VERSION=$(cat tmp/version.txt)
     - export DDTRACE_GEM_LOCATION=$(readlink -f pkg/ddtrace-*.gem)
-    - if [ -z "$CI_COMMIT_TAG"]; then .gitlab/patch_gem_version.sh; fi # if not release, patch the version
     - ruby .gitlab/install_ddtrace_deps.rb
   artifacts:
     paths:
       - pkg
       - tmp
+      - lib/ddtrace/version.rb
 
 install-version-dependent-gems-amd64:
   extends: .install-version-dependent-gems
