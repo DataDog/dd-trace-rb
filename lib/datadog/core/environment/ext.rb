@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../ddtrace/version'
+require_relative '../../../datadog/version'
 
 module Datadog
   module Core
@@ -38,8 +38,7 @@ module Datadog
         TAG_SERVICE = 'service'
         TAG_VERSION = 'version'
 
-        # TODO: Migrate to Datadog::Tracing
-        TRACER_VERSION = DDTrace::VERSION::STRING
+        TRACER_VERSION = Datadog::VERSION::STRING
       end
     end
   end

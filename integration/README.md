@@ -1,6 +1,6 @@
 # Datadog APM Ruby integration test suite
 
-Integration tests for `ddtrace` that use a variety of real applications.
+Integration tests for `datadog` that use a variety of real applications.
 
 ## Quickstart
 

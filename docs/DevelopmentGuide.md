@@ -87,7 +87,7 @@ $ bundle exec rake test:main
 
 **For integrations**
 
-Integrations which interact with dependencies not listed in the `ddtrace` gemspec will need to load these dependencies to run their tests. Each test task could consist of multiple spec tasks which are executed with different groups of dependencies (likely against different versions or variations).
+Integrations which interact with dependencies not listed in the `datadog` gemspec will need to load these dependencies to run their tests. Each test task could consist of multiple spec tasks which are executed with different groups of dependencies (likely against different versions or variations).
 
 To get a list of the test tasks, run `bundle exec rake -T test`
 
@@ -164,11 +164,11 @@ Test leaked 1 thread: "Datadog::Workers::AsyncTransport integration tests"
 Ensure all threads are terminated when test finishes:
 1: #<Thread:0x00007fcbc99863d0 /Users/marco.costa/work/dd-trace-rb/spec/spec_helper.rb:145 sleep> (Thread)
 Thread Creation Site:
-        ./dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:245:in 'new'
-        ./dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:245:in 'block (4 levels) in <top (required)>'
+        ./dd-trace-rb/spec/datadog/tracing/workers_integration_spec.rb:245:in 'new'
+        ./dd-trace-rb/spec/datadog/tracing/workers_integration_spec.rb:245:in 'block (4 levels) in <top (required)>'
 Thread Backtrace:
-        ./dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:262:in 'sleep'
-        .dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:262:in 'block (5 levels) in <top (required)>'
+        ./dd-trace-rb/spec/datadog/tracing/workers_integration_spec.rb:262:in 'sleep'
+        .dd-trace-rb/spec/datadog/tracing/workers_integration_spec.rb:262:in 'block (5 levels) in <top (required)>'
         ./dd-trace-rb/spec/spec_helper.rb:147:in 'block in initialize'
 ```
 
@@ -212,7 +212,7 @@ Integrations are extensions to the trace library that add support for external d
 
 Some general guidelines for adding new integrations:
 
- - An integration can either be added directly to `dd-trace-rb`, or developed as its own gem that depends on `ddtrace`.
+ - An integration can either be added directly to `dd-trace-rb`, or developed as its own gem that depends on `datadog`.
  - Integrations should implement the configuration API for easy, consistent implementation. (See existing integrations as examples of this.)
  - All new integrations require documentation, unit/integration tests written in RSpec, and passing CI builds.
  - It's highly encouraged to share screenshots or other demos of how the new integration looks and works.

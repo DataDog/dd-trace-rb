@@ -47,11 +47,11 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 ### Apple macOS support
 
-Use of `ddtrace` on macOS is supported for development, but not for production deployments.
+Use of `datadog` on macOS is supported for development, but not for production deployments.
 
 ### Microsoft Windows support
 
-Using `ddtrace` on Microsoft Windows is currently unsupported. We'll still accept community contributions and issues,
+Using `datadog` on Microsoft Windows is currently unsupported. We'll still accept community contributions and issues,
 but will consider them as having low priority.
 
 ## Integrations

@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
-require 'ddtrace'
+require 'datadog'
 
 require 'elasticsearch'
 

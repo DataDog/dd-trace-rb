@@ -42,4 +42,4 @@ dev/ci:
 
 # Version bump pull request
 release:
-  - all: [ '{CHANGELOG.md,lib/ddtrace/version.rb}' ]
+  - all: [ '{CHANGELOG.md,lib/datadog/version.rb}' ]

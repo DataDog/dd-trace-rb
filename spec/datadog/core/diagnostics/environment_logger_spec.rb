@@ -25,7 +25,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       {
         'date' => '2020-01-01T00:00:00Z',
         'os_name' => (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
-        'version' => DDTrace::VERSION::STRING,
+        'version' => Datadog::VERSION::STRING,
         'lang' => 'ruby',
         'lang_version' => match(/[23]\./),
         'env' => nil,
@@ -135,7 +135,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
         is_expected.to match(
           date: '2020-01-01T00:00:00Z',
           os_name: (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
-          version: DDTrace::VERSION::STRING,
+          version: Datadog::VERSION::STRING,
           lang: 'ruby',
           lang_version: match(/[23]\./),
           env: nil,

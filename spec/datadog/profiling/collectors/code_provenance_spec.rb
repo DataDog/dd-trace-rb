@@ -19,8 +19,8 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
         ),
         have_attributes(
           kind: 'library',
-          name: 'ddtrace',
-          version: DDTrace::VERSION::STRING,
+          name: 'datadog',
+          version: Datadog::VERSION::STRING,
           path: start_with('/'),
         ),
         have_attributes(
@@ -32,13 +32,13 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
       )
     end
 
-    it 'records the correct path for ddtrace' do
+    it 'records the correct path for datadog' do
       refresh
 
       current_file_directory = __dir__
-      dd_trace_root_directory = code_provenance.generate.find { |lib| lib.name == 'ddtrace' }.path
+      datadog_gem_root_directory = code_provenance.generate.find { |lib| lib.name == 'datadog' }.path
 
-      expect(current_file_directory).to start_with(dd_trace_root_directory)
+      expect(current_file_directory).to start_with(datadog_gem_root_directory)
     end
 
     it 'skips libraries not present in the loaded files' do
@@ -75,7 +75,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
 
     context "when a gem's path is inside another gem's path" do
       # I'm not entirely sure if this can happen in end-user apps, but can happen in CI if bundler is configured to
-      # install dependencies into a subfolder of ddtrace. In particular GitHub Actions does this.
+      # install dependencies into a subfolder of datadog. In particular GitHub Actions does this.
 
       it 'matches the loaded file to the longest matching path' do
         code_provenance.refresh(
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           loaded_specs: [
             instance_double(
               Gem::Specification,
-              name: 'ddtrace',
+              name: 'datadog',
               version: '1.2.3',
               gem_dir: '/dd-trace-rb'
             ),
@@ -170,9 +170,9 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           'paths' => include(start_with('/')),
         ),
         hash_including(
-          'name' => 'ddtrace',
+          'name' => 'datadog',
           'kind' => 'library',
-          'version' => DDTrace::VERSION::STRING,
+          'version' => Datadog::VERSION::STRING,
           'paths' => include(start_with('/')),
         ),
         hash_including(

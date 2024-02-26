@@ -10,7 +10,7 @@ module Datadog
 
           def at_fork: (untyped stage) ?{ () -> untyped } -> untyped
 
-          def self?.ddtrace_at_fork_blocks: () -> untyped
+          def self?.datadog_at_fork_blocks: () -> untyped
         end
         module ProcessDaemonPatch
           def daemon: (*untyped args) -> untyped

@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'rack'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/rack/request_queue'
 
 RSpec.describe Datadog::Tracing::Contrib::Rack::QueueTime do

@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'time'
 require 'sequel'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/sequel/integration'
 
 RSpec.describe 'Sequel instrumentation' do

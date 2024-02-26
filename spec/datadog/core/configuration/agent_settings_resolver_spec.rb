@@ -13,7 +13,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     }
   end
   let(:environment) { {} }
-  let(:ddtrace_settings) { Datadog::Core::Configuration::Settings.new }
+  let(:datadog_settings) { Datadog::Core::Configuration::Settings.new }
   let(:logger) { instance_double(Datadog::Core::Logger) }
 
   let(:settings) do
@@ -39,7 +39,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     allow(File).to receive(:exist?).with('/var/run/datadog/apm.socket').and_return(false)
   end
 
-  subject(:resolver) { described_class.call(ddtrace_settings, logger: logger) }
+  subject(:resolver) { described_class.call(datadog_settings, logger: logger) }
 
   context 'by default' do
     it 'contacts the agent using the http adapter, using hostname 127.0.0.1 and port 8126' do
@@ -80,7 +80,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
     context 'when a custom hostname is specified via code using "agent.host ="' do
       before do
-        ddtrace_settings.agent.host = 'custom-hostname'
+        datadog_settings.agent.host = 'custom-hostname'
       end
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
@@ -113,8 +113,8 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       before do
         allow(logger).to receive(:warn)
-        (ddtrace_settings.agent.host = with_agent_host) if with_agent_host
-        (ddtrace_settings.agent.port = with_agent_port) if with_agent_port
+        (datadog_settings.agent.host = with_agent_host) if with_agent_host
+        (datadog_settings.agent.port = with_agent_port) if with_agent_port
       end
 
       context 'when agent.host, DD_TRACE_AGENT_URL, DD_AGENT_HOST are provided' do
@@ -351,7 +351,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
     context 'when a custom port is specified via code using "agent.port = "' do
       before do
-        ddtrace_settings.agent.port = 1234
+        datadog_settings.agent.port = 1234
       end
 
       it 'contacts the agent using the http adapter, using the custom port' do
@@ -360,7 +360,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       it_behaves_like "parsing of port when it's not an integer" do
         before do
-          ddtrace_settings.agent.port = port_value_to_parse
+          datadog_settings.agent.port = port_value_to_parse
         end
       end
     end
@@ -388,7 +388,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       before do
         allow(logger).to receive(:warn)
-        (ddtrace_settings.agent.port = with_agent_port) if with_agent_port
+        (datadog_settings.agent.port = with_agent_port) if with_agent_port
       end
 
       context 'when all of agent.port, DD_TRACE_AGENT_URL, DD_TRACE_AGENT_PORT are provided' do
@@ -515,7 +515,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
     context 'when a custom timeout is specified via code using "agent.timeout_seconds = "' do
       before do
-        ddtrace_settings.agent.timeout_seconds = 111
+        datadog_settings.agent.timeout_seconds = 111
       end
 
       it 'contacts the agent using the http adapter, using the custom timeout' do
@@ -524,7 +524,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       it_behaves_like "parsing of timeout when it's not an integer" do
         before do
-          ddtrace_settings.agent.timeout_seconds = timeout_value_to_parse
+          datadog_settings.agent.timeout_seconds = timeout_value_to_parse
         end
       end
     end
@@ -542,7 +542,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       before do
         allow(logger).to receive(:warn)
-        (ddtrace_settings.agent.timeout_seconds = with_agent_timeout) if with_agent_timeout
+        (datadog_settings.agent.timeout_seconds = with_agent_timeout) if with_agent_timeout
       end
 
       context 'when all of agent.timeout_seconds, DD_TRACE_AGENT_TIMEOUT_SECONDS are provided' do
@@ -579,7 +579,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   describe 'ssl' do
     context 'When agent.use_ssl is set' do
       before do
-        ddtrace_settings.agent.use_ssl = agent_use_ssl
+        datadog_settings.agent.use_ssl = agent_use_ssl
       end
 
       context 'when agent.use_ssl is true' do
@@ -629,7 +629,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       before do
         allow(logger).to receive(:warn)
-        (ddtrace_settings.agent.use_ssl = with_agent_use_ssl) if with_agent_use_ssl
+        (datadog_settings.agent.use_ssl = with_agent_use_ssl) if with_agent_use_ssl
       end
 
       context 'when agent.use_ssl, DD_TRACE_AGENT_URL are provided' do
@@ -729,7 +729,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
     context 'when a custom path is specified via code using "agent.uds_path ="' do
       before do
-        ddtrace_settings.agent.uds_path = '/var/code/custom.socket'
+        datadog_settings.agent.uds_path = '/var/code/custom.socket'
       end
 
       it 'contacts the agent using the unix adapter, using the custom path' do
@@ -758,7 +758,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       before do
         allow(logger).to receive(:warn)
-        (ddtrace_settings.agent.uds_path = with_agent_uds_path) if with_agent_uds_path
+        (datadog_settings.agent.uds_path = with_agent_uds_path) if with_agent_uds_path
       end
 
       context 'when agent.uds_path, DD_TRACE_AGENT_URL are provided' do
@@ -798,7 +798,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     let(:message) { 'this is a test warning' }
 
     subject(:log_warning) do
-      described_class.new(ddtrace_settings, logger: logger).send(:log_warning, message)
+      described_class.new(datadog_settings, logger: logger).send(:log_warning, message)
     end
 
     it 'logs a warning used the configured logger' do

@@ -28,6 +28,6 @@ jobs:
           push: true
           tags: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${{ steps.version.outputs.version }}
           platforms: 'linux/amd64,linux/arm64/v8'
-          build-args: DDTRACE_RUBY_VERSION=${{ steps.version.outputs.version }}
+          build-args: DATADOG_RUBY_GEM_VERSION=${{ steps.version.outputs.version }}
           context: ./lib-injection
 

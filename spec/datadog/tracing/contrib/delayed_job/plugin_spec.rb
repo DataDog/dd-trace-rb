@@ -4,7 +4,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'active_record'
 require 'delayed_job'
 require 'delayed_job_active_record'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/delayed_job/plugin'
 require_relative 'delayed_job_active_record'
 

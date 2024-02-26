@@ -1,4 +1,4 @@
-require 'ddtrace'
+require 'datadog'
 require 'mongo'
 
 RSpec.describe 'Mongo crash regression #1235' do

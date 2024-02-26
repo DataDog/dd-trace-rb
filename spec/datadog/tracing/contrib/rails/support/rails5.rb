@@ -23,7 +23,7 @@ RSpec.shared_context 'Rails 5 test application' do
         else
           [:redis_cache_store, { url: ENV['REDIS_URL'] }]
         end
-      file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
+      file_cache = [:file_store, '/tmp/datadog-rb/cache/']
 
       config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
@@ -51,7 +51,7 @@ RSpec.shared_context 'Rails 5 test application' do
       # we want to disable explicit instrumentation
       # when testing auto patching
       if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
-        require 'ddtrace/auto_instrument'
+        require 'datadog/auto_instrument'
       else
         # Enables the auto-instrumentation for the testing application
         Datadog.configure do |c|

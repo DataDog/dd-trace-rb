@@ -36,13 +36,13 @@ gem 'unicorn'
 # they are not supported by Ruby < 2.5.
 gem 'loofah', '2.19.1'
 
-# Choose correct specs for 'ddtrace' demo environment
-gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
+# Choose correct specs for 'datadog' demo environment
+gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
 
 gem 'dogstatsd-ruby'
 gem 'ffi'
 
-# Needed for ddtrace profiling
+# Needed for datadog profiling
 if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.4')
   gem 'google-protobuf', *google_protobuf_versions
 else

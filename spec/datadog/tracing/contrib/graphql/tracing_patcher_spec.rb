@@ -2,7 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/graphql/test_schema_examples'
 require 'datadog/tracing/contrib/graphql/tracing_patcher'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe Datadog::Tracing::Contrib::GraphQL::TracingPatcher do
   describe '#patch!' do

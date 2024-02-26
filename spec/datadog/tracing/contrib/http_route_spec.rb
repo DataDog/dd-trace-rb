@@ -6,7 +6,7 @@ require 'sinatra'
 require 'rails'
 require 'action_controller'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'Multi-app testing for http.route' do
   include Rack::Test::Methods

@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/core/diagnostics/health'
 require 'datadog/tracing/diagnostics/health'
 

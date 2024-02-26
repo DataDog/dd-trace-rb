@@ -1,5 +1,5 @@
 require 'sinatra/base'
-require 'ddtrace'
+require 'datadog'
 
 class Parent < Sinatra::Base
 end

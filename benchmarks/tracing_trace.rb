@@ -6,7 +6,7 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 require 'benchmark/ips'
 require 'open3'
 
-require 'ddtrace'
+require 'datadog'
 
 class TracingTraceBenchmark
   module NoopWriter
@@ -180,7 +180,7 @@ class TracingTraceBenchmark
   end
 
   def benchmark_gem_loading
-    # This benchmark needs to be run in a clean environment where ddtrace is not loaded yet
+    # This benchmark needs to be run in a clean environment where datadog is not loaded yet
     output, status = Open3.capture2e('ruby', stdin_data: <<-RUBY)
       raise "Datadog is already loaded" if defined?(::Datadog)
 
@@ -193,7 +193,7 @@ class TracingTraceBenchmark
         x.config(**benchmark_time)
   
         x.report("Gem loading") do
-          pid = fork { require 'ddtrace' }
+          pid = fork { require 'datadog' }
   
           _, status = Process.wait2(pid)
           raise unless status.success?

@@ -6,7 +6,7 @@ require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'dalli'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/dalli/patcher'
 
 RSpec.describe 'Dalli instrumentation' do

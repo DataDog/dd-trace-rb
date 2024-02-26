@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe Datadog::Core::Configuration::Options do
   describe 'implemented' do

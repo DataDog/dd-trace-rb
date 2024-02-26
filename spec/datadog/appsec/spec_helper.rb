@@ -1,3 +1,3 @@
-require 'ddtrace'
+require 'datadog'
 require 'datadog/appsec'
 require 'spec_helper'

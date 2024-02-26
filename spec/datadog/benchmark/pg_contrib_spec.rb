@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'benchmark'
-require 'ddtrace'
+require 'datadog'
 require 'pg'
 
 RSpec.describe 'Pg Tracing Integration', :order => :defined do

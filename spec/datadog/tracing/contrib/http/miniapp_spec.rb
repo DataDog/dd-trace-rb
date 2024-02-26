@@ -1,6 +1,6 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'net/http'
 require 'time'
 

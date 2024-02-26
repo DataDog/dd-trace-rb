@@ -3,7 +3,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require_relative 'support/grpc_helper'
 
 require 'grpc'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'gRPC integration test' do
   include GRPCHelper

@@ -95,7 +95,7 @@ module Datadog
       # @public_api
       def correlation
         # We access this in this way as:
-        # * If the components have not been initialized, it doesn't make sense to initialize ddtrace just to say
+        # * If the components have not been initialized, it doesn't make sense to initialize datadog just to say
         #   'nil' here
         # * It prevents recursive initialization attempts, see https://github.com/DataDog/dd-trace-rb/issues/3385
         components = Datadog.send(:components, allow_initialization: false)

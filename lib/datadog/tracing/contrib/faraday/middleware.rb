@@ -12,7 +12,7 @@ module Datadog
   module Tracing
     module Contrib
       module Faraday
-        # Middleware implements a faraday-middleware for ddtrace instrumentation
+        # Middleware implements a faraday-middleware for datadog instrumentation
         class Middleware < ::Faraday::Middleware
           include Contrib::HttpAnnotationHelper
 

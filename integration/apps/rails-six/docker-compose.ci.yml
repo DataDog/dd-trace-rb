@@ -2,7 +2,7 @@ version: '3.4'
 services:
   app:
     # Build at dd-trace-rb level to copy in current code
-    # and use it as the `ddtrace` gem.
+    # and use it as the `datadog` gem.
     build:
       context: ../../..
       dockerfile: integration/apps/rails-six/Dockerfile-ci
@@ -60,7 +60,7 @@ services:
     expose:
       - "6379"
   # Build at dd-trace-rb level to copy in current code
-  # and use it as the `ddtrace` gem.
+  # and use it as the `datadog` gem.
   integration-tester:
     build:
       context: ../../..

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'benchmark/ips'
-require 'ddtrace'
+require 'datadog'
 require 'mysql2'
 
 RSpec.describe 'SQL comment propagation', :order => :defined do

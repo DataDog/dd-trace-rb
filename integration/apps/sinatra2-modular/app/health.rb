@@ -1,5 +1,5 @@
 require 'sinatra/base'
-require 'ddtrace'
+require 'datadog'
 
 class Health < Sinatra::Base
   # register Datadog::Tracing::Contrib::Sinatra::Tracer

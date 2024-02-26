@@ -43,7 +43,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
       let!(:repl_script) do
         lib = File.expand_path('lib')
         <<-RUBY
-          # Load the working directory version of `ddtrace`
+          # Load the working directory version of `datadog`
           $LOAD_PATH.unshift("#{lib}") unless $LOAD_PATH.include?("#{lib}")
           require 'datadog/core/environment/execution'
 

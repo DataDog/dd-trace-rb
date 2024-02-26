@@ -8,7 +8,7 @@ require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
-require 'ddtrace'
+require 'datadog'
 require 'pg'
 
 RSpec.describe 'PG::Connection patcher' do

@@ -162,14 +162,14 @@ RSpec.configure do |config|
       end
 
       unless background_threads.empty?
-        # TODO: Temporarily disabled for `spec/ddtrace/workers`
+        # TODO: Temporarily disabled for `spec/datadog/tracing/workers`
         # was meaningful changes are required to address clean
         # teardown in those tests.
         # They currently flood the output, making our test
         # suite output unreadable.
         if example.file_path.start_with?(
           './spec/datadog/core/workers/',
-          './spec/ddtrace/workers/'
+          './spec/datadog/tracing/workers/'
         )
           puts # Add newline so we get better output when the progress formatter is being used
           RSpec.warning("FIXME: #{example.file_path}:#{example.metadata[:line_number]} is leaking threads")

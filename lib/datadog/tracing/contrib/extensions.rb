@@ -57,10 +57,10 @@ module Datadog
         # Configuration methods for Datadog module.
         module Configuration
           # TODO: Is is not possible to separate this configuration method
-          # TODO: from core ddtrace parts ()e.g. the registry).
+          # TODO: from core datadog parts ()e.g. the registry).
           # TODO: Today this method sits here in the `Datadog::Tracing::Contrib::Extensions` namespace
           # TODO: but cannot empirically constraints to the contrib domain only.
-          # TODO: We should promote most of this logic to core parts of ddtrace.
+          # TODO: We should promote most of this logic to core parts of datadog.
           def configure(&block)
             # Reconfigure core settings
             super(&block)

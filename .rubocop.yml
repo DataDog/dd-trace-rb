@@ -17,7 +17,6 @@ AllCops:
     - 'Rakefile'
   Exclude:
     - 'Appraisals'
-    - 'lib/ddtrace/**/vendor/**/*.rb'
     - 'lib/datadog/**/vendor/**/*.rb'
     - 'integration/apps/*/bin/*'
     - 'integration/apps/*/Gemfile'
@@ -344,10 +343,6 @@ RSpec/AnyInstance:
   Enabled: false
 
 # Enforces strict matching of example class with spec file name.
-# This does not work for our current namespacing as our gem is called
-# `ddtrace` while our namespace is `::Datadog`.
-# It would have to either be `ddtrace` + `::DDTrace` or
-# `datadog` + `::Datadog`.
 RSpec/FilePath:
   Enabled: false
 

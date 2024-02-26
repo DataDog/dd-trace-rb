@@ -39,7 +39,7 @@ module Datadog
             child_block = if block_given?
                             proc do
                               # Trigger :child callback
-                              ddtrace_at_fork_blocks[:child].each(&:call) if ddtrace_at_fork_blocks.key?(:child)
+                              datadog_at_fork_blocks[:child].each(&:call) if datadog_at_fork_blocks.key?(:child)
 
                               # Invoke original block
                               yield
@@ -53,7 +53,7 @@ module Datadog
             # Trigger correct callbacks depending on whether we're in the parent or child.
             # If we're in the fork, result = nil: trigger child callbacks.
             # If we're in the parent, result = fork PID: trigger parent callbacks.
-            ddtrace_at_fork_blocks[:child].each(&:call) if result.nil? && ddtrace_at_fork_blocks.key?(:child)
+            datadog_at_fork_blocks[:child].each(&:call) if result.nil? && datadog_at_fork_blocks.key?(:child)
 
             # Return PID from #fork
             result
@@ -62,17 +62,17 @@ module Datadog
           def at_fork(stage, &block)
             raise ArgumentError, 'Bad \'stage\' for ::at_fork' unless stage == :child
 
-            ddtrace_at_fork_blocks[stage] = [] unless ddtrace_at_fork_blocks.key?(stage)
-            ddtrace_at_fork_blocks[stage] << block
+            datadog_at_fork_blocks[stage] = [] unless datadog_at_fork_blocks.key?(stage)
+            datadog_at_fork_blocks[stage] << block
           end
 
           module_function
 
-          def ddtrace_at_fork_blocks
+          def datadog_at_fork_blocks
             # Blocks should be shared across all users of this module,
             # e.g. Process#fork, Kernel#fork, etc. should all invoke the same callbacks.
             # rubocop:disable Style/ClassVars
-            @@ddtrace_at_fork_blocks ||= {}
+            @@datadog_at_fork_blocks ||= {}
             # rubocop:enable Style/ClassVars
           end
         end
@@ -83,11 +83,11 @@ module Datadog
         # This monkey patch makes the `Kernel#at_fork` mechanism defined above also work in this situation.
         module ProcessDaemonPatch
           def daemon(*args)
-            ddtrace_at_fork_blocks = Datadog::Profiling::Ext::Forking::Kernel.ddtrace_at_fork_blocks
+            datadog_at_fork_blocks = Datadog::Profiling::Ext::Forking::Kernel.datadog_at_fork_blocks
 
             result = super
 
-            ddtrace_at_fork_blocks[:child].each(&:call) if ddtrace_at_fork_blocks.key?(:child)
+            datadog_at_fork_blocks[:child].each(&:call) if datadog_at_fork_blocks.key?(:child)
 
             result
           end

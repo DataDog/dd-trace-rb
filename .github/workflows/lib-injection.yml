@@ -21,7 +21,7 @@ jobs:
           push: true
           tags: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${{ github.sha }}
           platforms: 'linux/amd64,linux/arm64/v8'
-          build-args: DDTRACE_RUBY_SHA=${{ github.sha }}
+          build-args: DATADOG_RUBY_GEM_SHA=${{ github.sha }}
           context: ./lib-injection
 
   test:

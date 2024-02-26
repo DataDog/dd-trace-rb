@@ -1,5 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/integration_examples'
 
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'

@@ -8,7 +8,7 @@ require 'time'
 require 'elasticsearch'
 require 'faraday'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   before do

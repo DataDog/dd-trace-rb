@@ -1,7 +1,7 @@
 RSpec.describe 'gem release process' do
-  context 'ddtrace.gemspec' do
+  context 'datadog.gemspec' do
     context 'files' do
-      subject(:files) { Gem::Specification.load('ddtrace.gemspec').files }
+      subject(:files) { Gem::Specification.load('datadog.gemspec').files }
 
       # It's easy to forget to ship new files, especially when a new paradigm is
       # introduced (e.g. introducing native files requires the inclusion `ext/`)
@@ -31,7 +31,7 @@ RSpec.describe 'gem release process' do
            |Gemfile-.*
            |Rakefile
            |Steepfile
-           |ddtrace\.gemspec
+           |datadog\.gemspec
            |docker-compose\.yml
            |shell\.nix
           )

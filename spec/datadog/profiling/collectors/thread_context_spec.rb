@@ -536,7 +536,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               require 'datadog/opentelemetry'
 
               OpenTelemetry::SDK.configure
-              OpenTelemetry.tracer_provider.tracer('ddtrace-profiling-test')
+              OpenTelemetry.tracer_provider.tracer('datadog-profiling-test')
             end
 
             let(:t1) do
@@ -593,8 +593,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               end
             end
 
-            context 'mixing of otel sdk and ddtrace' do
-              context 'when top-level span is started from ddtrace' do
+            context 'mixing of otel sdk and datadog' do
+              context 'when top-level span is started from datadog' do
                 let(:t1) do
                   Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
                     Datadog::Tracing.trace('profiler.test', type: :web) do |_span, trace|

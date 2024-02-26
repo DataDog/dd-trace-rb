@@ -7,7 +7,7 @@ require 'datadog/tracing/contrib/peer_service_configuration_examples'
 require 'datadog/tracing/contrib/support/http'
 
 require 'excon'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/excon/middleware'
 
 RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do

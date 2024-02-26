@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'benchmark'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/transport/http'
 
 RSpec.describe 'Transport::HTTP benchmarks' do
