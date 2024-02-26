@@ -224,9 +224,10 @@ module Datadog
       # @return [Datadog::Tracing::Correlation::Identifier] correlation object
       def active_correlation(key = nil)
         trace = active_trace(key)
-        Correlation.identifier_from_digest(
-          trace && trace.to_digest
-        )
+
+        return Datadog::Tracing::Correlation::Identifier.new unless trace
+
+        trace.to_correlation
       end
 
       # Setup a new trace to continue from where another
