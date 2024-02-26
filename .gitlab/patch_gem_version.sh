@@ -2,10 +2,13 @@
 
 echo CI_JOB_ID="${CI_JOB_ID}"
 
-git_branch=$(git rev-parse --abbrev-ref HEAD)
+git_ref="${CI_COMMIT_REF_NAME}"
+echo git_ref="${git_ref}"
+
+git_branch="$(echo "${git_ref}" | sed -e 's#^refs/heads/##')"
 echo git_branch="${git_branch}"
 
-git_branch_hash=$(echo "$git_branch" |ruby -rdigest -n -e 'print Digest::SHA256.hexdigest($_.chomp)[0, 6]')
+git_branch_hash=$(echo "$git_branch" | ruby -rdigest -n -e 'print Digest::SHA256.hexdigest($_.chomp)[0, 6]')
 echo git_branch_hash="${git_branch_hash}"
 
 git_sha=$(git rev-parse --short=8 HEAD)
