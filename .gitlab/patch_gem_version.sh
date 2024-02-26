@@ -2,7 +2,10 @@
 
 echo CI_JOB_ID="${CI_JOB_ID}"
 
-git_branch_hash=$(git rev-parse --abbrev-ref HEAD |ruby -rdigest -n -e 'print Digest::SHA256.hexdigest($_.chomp)[0, 6]')
+git_branch=$(git rev-parse --abbrev-ref HEAD)
+echo git_branch="${git_branch}"
+
+git_branch_hash=$(echo "$git_branch" |ruby -rdigest -n -e 'print Digest::SHA256.hexdigest($_.chomp)[0, 6]')
 echo git_branch_hash="${git_branch_hash}"
 
 git_sha=$(git rev-parse --short=8 HEAD)
