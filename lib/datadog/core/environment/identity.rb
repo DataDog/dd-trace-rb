@@ -76,7 +76,7 @@ module Datadog
             end
           end
 
-          semver << pre << build
+          semver + pre + build
         end
       end
     end

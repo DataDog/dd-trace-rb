@@ -75,7 +75,7 @@ RSpec.describe Datadog::Core::Environment::Identity do
 
     context 'when not prerelease' do
       before do
-        expect(described_class).to receive(:tracer_version).and_return('10.20.30')
+        expect(described_class).to receive(:tracer_version).and_return('10.20.30'.freeze)
       end
 
       it { is_expected.to eq('10.20.30') }
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Core::Environment::Identity do
 
     context 'when prerelease' do
       before do
-        expect(described_class).to receive(:tracer_version).and_return('10.20.30.beta40')
+        expect(described_class).to receive(:tracer_version).and_return('10.20.30.beta40'.freeze)
       end
 
       it { is_expected.to eq('10.20.30-beta40') }
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Core::Environment::Identity do
 
     context 'when development' do
       before do
-        expect(described_class).to receive(:tracer_version).and_return('10.20.30.b3fe268.gha12345.ga1b2c3d4')
+        expect(described_class).to receive(:tracer_version).and_return('10.20.30.b3fe268.gha12345.ga1b2c3d4'.freeze)
       end
 
       it { is_expected.to eq('10.20.30+b3fe268.gha12345.ga1b2c3d4') }
@@ -99,7 +99,7 @@ RSpec.describe Datadog::Core::Environment::Identity do
 
     context 'when prerelease and development' do
       before do
-        expect(described_class).to receive(:tracer_version).and_return('10.20.30.beta40.b3fe268.gha12345.ga1b2c3d4')
+        expect(described_class).to receive(:tracer_version).and_return('10.20.30.beta40.b3fe268.gha12345.ga1b2c3d4'.freeze)
       end
 
       it { is_expected.to eq('10.20.30-beta40+b3fe268.gha12345.ga1b2c3d4') }
