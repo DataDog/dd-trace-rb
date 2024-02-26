@@ -81,7 +81,14 @@ build-gem:
     - when: manual
       allow_failure: true
   script:
-    - if [ -z "$CI_COMMIT_TAG"]; then .gitlab/patch_gem_version.sh; fi # if not release, patch the version
+    - |
+      if [ -z "$CI_COMMIT_TAG" ]; then
+        echo CI_JOB_ID=$CI_JOB_ID
+        echo CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME
+        echo CI_COMMIT_SHA=$CI_COMMIT_SHA
+
+        .gitlab/patch_gem_version.sh glci $CI_JOB_ID $CI_COMMIT_REF_NAME $CI_COMMIT_SHA
+      fi
     - bundle install && bundle exec rake build
     - mkdir -p tmp && ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s' >> tmp/version.txt
   artifacts:

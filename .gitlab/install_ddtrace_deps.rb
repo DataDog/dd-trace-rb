@@ -17,26 +17,26 @@ FileUtils.mkdir_p(versioned_path, verbose: true)
 gemfile_file_path = versioned_path.join('Gemfile')
 
 File.open(gemfile_file_path, 'w') do |file|
-  file.write("source \"https://rubygems.org\"\n")
+  file.write("source 'https://rubygems.org'\n")
   file.write("gem 'ddtrace', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'")
 end
 
-$stdout.puts '=== Reading Gemfile ==='
-File.foreach(gemfile_file_path) { |x| $stdout.puts x }
-$stdout.puts "=== Reading Gemfile ===\n"
+puts '=== Reading Gemfile ==='
+File.foreach(gemfile_file_path) { |x| puts x }
+puts "=== Reading Gemfile ===\n"
 
-$stdout.puts '=== bundle lock ==='
+puts '=== bundle lock ==='
 output, status = Open3.capture2e({ 'BUNDLE_GEMFILE' => gemfile_file_path.to_s }, 'bundle lock')
-$stdout.puts output
-$stdout.puts "=== bundle lock ===\n"
+puts output
+puts "=== bundle lock ===\n"
 
 exit 1 unless status.success?
 
 lock_file_path = versioned_path.join('Gemfile.lock')
 
-$stdout.puts '=== Reading Lockfile ==='
-File.foreach(lock_file_path) { |x| $stdout.puts x }
-$stdout.puts "=== Reading Lockfile ===\n"
+puts '=== Reading Lockfile ==='
+File.foreach(lock_file_path) { |x| puts x }
+puts "=== Reading Lockfile ===\n"
 
 lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file(lock_file_path))
 
@@ -44,7 +44,7 @@ gem_version_mapping = lock_file_parser.specs.each_with_object({}) do |spec, hash
   hash[spec.name] = spec.version.to_s
 end
 
-$stdout.puts gem_version_mapping
+puts gem_version_mapping
 
 gem_version_mapping.each do |gem, version|
   env = {}
@@ -71,9 +71,9 @@ gem_version_mapping.each do |gem, version|
     gem_install_cmd << "--install-dir #{versioned_path} "
   end
 
-  $stdout.puts "Execute: #{gem_install_cmd}"
+  puts "Execute: #{gem_install_cmd}"
   output, status = Open3.capture2e(env, gem_install_cmd)
-  $stdout.puts output
+  puts output
 
   if status.success?
     next
