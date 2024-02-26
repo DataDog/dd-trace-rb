@@ -36,52 +36,16 @@ jobs:
         if: ${{ matrix.type != 'final' }}
         run: |
           # Obtain context information
-          git_ref='${{ github.ref }}'
-          git_branch="$(echo "${git_ref}" | sed -e 's#^refs/heads/##')"
-          git_sha='${{ github.sha }}'
           gha_run_id='${{ github.run_id }}'
+          git_ref='${{ github.ref }}'
+          git_sha='${{ github.sha }}'
 
           # Output info for CI debug
-          echo git_ref="${git_ref}"
-          echo git_branch="${git_branch}"
-          echo git_sha="${git_sha}"
           echo gha_run_id="${gha_run_id}"
+          echo git_ref="${git_ref}"
+          echo git_sha="${git_sha}"
 
-          # Sanitize for ruby version usage
-          git_branch_sha="$(echo "$git_branch" | ruby -rdigest -n -e 'print Digest::SHA256.hexdigest($_.chomp)[0, 6]')"
-          echo git_branch_sha="${git_branch_sha}"
-
-          # Shorten commit sha
-          git_sha_short="${git_sha:0:8}"
-          echo git_sha_short="${git_sha_short}"
-
-          # Set component values:
-          # - PRE is `dev` to denote being a development version and
-          #   act as a categorizer.
-          # - BUILD starts with git branch sha for grouping, prefixed by `b`.
-          # - BUILD has CI run id for traceability, prefixed by `gha`
-          #   for identification.
-          # - BUILD has commit next for traceability, prefixed git-describe
-          #   style by `g` for identification.
-          # - BUILD has branch name last since it has to be separated
-          #   by dots and thus has variable version segment size and
-          #   unpredictable ordering; it can thus be reliably extracted
-          #   and does not impair readability in lists
-          PRE='${{ matrix.type }}'
-          BUILD="b${git_branch_sha}.gha${gha_run_id}.g${git_sha_short}"
-
-          # Output info for CI debug
-          echo PRE="${PRE}"
-          echo BUILD="${BUILD}"
-
-          # Patch in components
-          sed lib/ddtrace/version.rb -i -e "s/^\([\t ]*PRE\) *= */\1 = \'${PRE}\' # /"
-          sed lib/ddtrace/version.rb -i -e "s/^\([\t ]*BUILD\) *= */\1 = \'${BUILD}\' # /"
-
-          # Test result
-          cat lib/ddtrace/version.rb | grep -e PRE -e BUILD
-          ruby -Ilib -rddtrace/version -e 'puts DDTrace::VERSION::STRING'
-          ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s'
+          .gitlab/patch_gem_version.sh gha $gha_run_id $git_ref $git_sha;
       - name: Patch gem host
         if: ${{ matrix.type != 'final' }}
         run: |
