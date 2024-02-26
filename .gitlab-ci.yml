@@ -9,20 +9,14 @@ include:
   - remote: https://gitlab-templates.ddbuild.io/apm/packaging.yml
   - local: ".gitlab/benchmarks.yml"
 
-# -----------------------------------------------------
-# Reliability Environment configuration
-# -----------------------------------------------------
-
 variables:
-  RUBY_PACKAGE_VERSION:
-    description: "The version of the gem to build the rpm/deb package"
   DOWNSTREAM_BRANCH:
     value: "master"
     description: "Run a specific datadog-reliability-env branch downstream"
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
 
 default:
-  tags: [ "runner:main", "size:large" ]
+  tags: ["runner:main", "size:large"]
 
 .build-image-base:
   stage: manual-images
@@ -36,7 +30,7 @@ default:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: [ '3.2.2', '3.1.4', '3.0.6', '2.7.8' ]
+      - RUBY_VERSION: ["3.2.2", "3.1.4", "3.0.6", "2.7.8"]
   script:
     - >
       docker build
@@ -46,131 +40,101 @@ default:
     - docker push --all-tags $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE
 
 build-image-amd64:
-   extends: .build-image-base
-   tags: [ "runner:docker" ]
-   variables:
-     ARCHITECTURE: amd64
+  extends: .build-image-base
+  tags: ["runner:docker"]
+  variables:
+    ARCHITECTURE: amd64
 
 build-image-arm64:
-   extends: .build-image-base
-   tags: [ "runner:docker-arm", "platform:arm64"]
-   variables:
-     ARCHITECTURE: arm64
+  extends: .build-image-base
+  tags: ["runner:docker-arm", "platform:arm64"]
+  variables:
+    ARCHITECTURE: arm64
 
 promote-image:
   stage: manual-images
   when: manual
-  tags: [ "runner:docker" ]
+  tags: ["runner:docker"]
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: [ '3.2.2', '3.1.4', '3.0.6', '2.7.8' ]
-        ARCHITECTURE: [ 'amd64', 'arm64' ]
+      - RUBY_VERSION: ["3.2.2", "3.1.4", "3.0.6", "2.7.8"]
+        ARCHITECTURE: ["amd64", "arm64"]
   script:
     - docker pull $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID
     - docker tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
     - docker push $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
 
-.install-base-ruby-gems:
-  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-$ARCHITECTURE:current
-  needs:
-    - check-gem-presence
+build-gem:
+  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
   stage: package
   rules:
-    - if: $RUBY_PACKAGE_VERSION
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_TAG
       when: on_success
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+    - if: $CI_COMMIT_BRANCH == 'master'
       when: on_success
+    - when: manual
+      allow_failure: true
   script:
-    # This would install all dependencies
-    - .gitlab/prepare_pkg_directory.sh
-    - ruby pkg/install_ddtrace_deps.rb debase-ruby_core_source libdatadog libddwaf datadog-ci msgpack ffi ddtrace
+    - if [ -z "$CI_COMMIT_TAG"]; then .gitlab/patch_gem_version.sh; fi # if not release, patch the version
+    - bundle install && bundle exec rake build
+    - mkdir -p tmp && ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s' >> tmp/version.txt
   artifacts:
     paths:
       - pkg
+      - tmp
+      - lib/ddtrace/version.rb
 
-install-base-ruby-gems-amd64:
-  extends: .install-base-ruby-gems
-  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-amd64:current
-  tags: [ "runner:main" ]
-
-install-base-ruby-gems-arm64:
-  extends: .install-base-ruby-gems
-  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-arm64:current
-  tags: [ "arch:arm64" ]
-
-.install-version-dependant-gems:
+.install-dependencies:
   parallel:
     matrix:
-      - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4"]
-  rules:
-    - if: $RUBY_PACKAGE_VERSION
-      when: on_success
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
-      when: on_success
+      - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4", "3.2.2"]
   stage: package
+  needs:
+    - build-gem
   script:
-    - ruby pkg/install_ddtrace_deps.rb msgpack ffi ddtrace
+    - export RUBY_PACKAGE_VERSION=$(cat tmp/version.txt)
+    - export DDTRACE_GEM_LOCATION=$(readlink -f pkg/ddtrace-*.gem)
+    - ruby .gitlab/install_ddtrace_deps.rb
   artifacts:
     paths:
       - pkg
+      - tmp
+      - lib/ddtrace/version.rb
 
-install-version-dependant-gems-amd64:
-  extends: .install-version-dependant-gems
+install-dependencies-amd64:
+  extends: .install-dependencies
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-amd64:current
-  tags: [ "runner:main" ]
-  needs:
-    - check-gem-presence
-    - install-base-ruby-gems-amd64
+  tags: ["runner:main"]
 
-install-version-dependant-gems-arm64:
-  extends: .install-version-dependant-gems
+install-dependencies-arm64:
+  extends: .install-dependencies
   image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-arm64:current
-  tags: [ "arch:arm64" ]
-  needs:
-    - check-gem-presence
-    - install-base-ruby-gems-arm64
+  tags: ["arch:arm64"]
 
-check-gem-presence:
-  image: $RUBY_CUSTOM_IMAGE_BASE/3.2.2-amd64:current
-  rules:
-    - if: $RUBY_PACKAGE_VERSION
-      when: on_success
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
-      when: on_success
-  stage: package
-  script:
-    -  .gitlab/check_gem_presence.sh
-
-package:
+package-amd64:
   extends: .package
   needs:
-    - check-gem-presence
-    - install-version-dependant-gems-amd64
-    - install-base-ruby-gems-amd64
-  rules:
-    - if: $RUBY_PACKAGE_VERSION
-      when: on_success
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
-      when: on_success
+    - build-gem
+    - install-dependencies-amd64
   script:
     - ls ../pkg
+    - cp ../lib-injection/host_inject.rb ../tmp
+    - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
 
-package-arm:
+package-arm64:
   extends: .package-arm
   needs:
-    - check-gem-presence
-    - install-version-dependant-gems-arm64
-    - install-base-ruby-gems-arm64
-  rules:
-    - if: $RUBY_PACKAGE_VERSION
-      when: on_success
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
-      when: on_success
+    - build-gem
+    - install-dependencies-arm64
   script:
     - ls ../pkg
+    - cp ../lib-injection/host_inject.rb ../tmp
+    - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
 
 .release-package:
@@ -197,9 +161,9 @@ deploy_to_reliability_env:
 deploy_to_docker_registries:
   stage: deploy
   rules:
-    - if: '$POPULATE_CACHE'
+    - if: "$POPULATE_CACHE"
       when: never
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+    - if: "$CI_COMMIT_TAG =~ /^v.*/"
       when: delayed
       start_in: 1 day
     - when: manual
@@ -216,9 +180,9 @@ deploy_to_docker_registries:
 deploy_latest_tag_to_docker_registries:
   stage: deploy
   rules:
-    - if: '$POPULATE_CACHE'
+    - if: "$POPULATE_CACHE"
       when: never
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+    - if: "$CI_COMMIT_TAG =~ /^v.*/"
       when: delayed
       start_in: 1 day
     - when: manual
