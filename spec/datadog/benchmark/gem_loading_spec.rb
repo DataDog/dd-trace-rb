@@ -12,12 +12,12 @@ RSpec.describe 'Gem loading' do
 
   let(:program) do
     <<-RUBY
-      require 'ddtrace'
+      require 'datadog'
     RUBY
   end
 
   let(:load_path) do
-    # Ensure we load the working directory version of 'ddtrace'
+    # Ensure we load the working directory version of 'datadog'
     <<-RUBY
       lib = File.expand_path('../lib', __FILE__)
       $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
@@ -39,20 +39,20 @@ RSpec.describe 'Gem loading' do
       <<-'RUBY'
       require 'benchmark'
       bm = Benchmark.measure do
-        require 'ddtrace'
+        require 'datadog'
       end
       puts bm.real
       RUBY
     end
 
-    it { puts "ddtrace gem load time: #{report_average}s" }
+    it { puts "datadog gem load time: #{report_average}s" }
   end
 
   context 'memory' do
     let(:program) do
       <<-'RUBY'
       puts `ps -o rss= -p #{Process.pid}`.to_i
-      require 'ddtrace'
+      require 'datadog'
       puts `ps -o rss= -p #{Process.pid}`.to_i
       RUBY
     end
@@ -64,7 +64,7 @@ RSpec.describe 'Gem loading' do
       after.to_i - before.to_i
     end
 
-    it { puts "ddtrace gem memory footprint: #{report_average} KiB" }
+    it { puts "datadog gem memory footprint: #{report_average} KiB" }
   end
 
   context 'detailed report' do
@@ -76,12 +76,12 @@ RSpec.describe 'Gem loading' do
 
       # Exclude Ruby internals and gems from the report.
       # The memory consumed by them will still be captured
-      # through 'require' statements and method calls present in ddtrace,
+      # through 'require' statements and method calls present in datadog,
       # but their internals won't pollute the report output.
       ignore_files = %r{(.*/gems/[^/]*/lib/|/lib/ruby/\d)}
 
       report = MemoryProfiler.report(ignore_files: ignore_files) do
-        require 'ddtrace'
+        require 'datadog'
       end
 
       report.pretty_print

@@ -238,7 +238,7 @@ module Datadog
         def can_use_uds?
           !configured_uds_path.nil? ||
             # If no agent settings have been provided, we try to connect using a local unix socket.
-            # We only do so if the socket is present when `ddtrace` runs.
+            # We only do so if the socket is present when `datadog` runs.
             !uds_fallback.nil?
         end
 

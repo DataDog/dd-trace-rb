@@ -23,10 +23,10 @@ gem 'resque'
 gem 'rake'
 
 gem 'dogstatsd-ruby'
-# Choose correct specs for 'ddtrace' demo environment
-gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
+# Choose correct specs for 'datadog' demo environment
+gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
 
-# Needed for ddtrace profiling
+# Needed for datadog profiling
 google_protobuf_versions = [
   '~> 3.0',
   '!= 3.7.0.rc.2',

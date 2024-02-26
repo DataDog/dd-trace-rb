@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module DDTrace
+module Datadog
   module VERSION
     MAJOR = 2
     MINOR = 0

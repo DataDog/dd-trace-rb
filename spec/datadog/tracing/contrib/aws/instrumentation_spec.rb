@@ -9,7 +9,7 @@ require 'aws-sdk'
 
 require 'datadog/tracing'
 require 'datadog/tracing/metadata/ext'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/aws/patcher'
 
 RSpec.describe 'AWS instrumentation' do

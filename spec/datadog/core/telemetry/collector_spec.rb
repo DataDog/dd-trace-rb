@@ -12,8 +12,8 @@ require 'datadog/core/telemetry/v1/product'
 require 'datadog/core/transport/ext'
 require 'datadog/profiling/profiler'
 
-require 'ddtrace'
-require 'ddtrace/version'
+require 'datadog'
+require 'datadog/version'
 
 RSpec.describe Datadog::Core::Telemetry::Collector do
   let(:dummy_class) { Class.new { extend(Datadog::Core::Telemetry::Collector) } }

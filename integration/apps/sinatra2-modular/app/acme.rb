@@ -1,8 +1,8 @@
 require 'sinatra/base'
 require 'sinatra/router'
-require 'ddtrace'
+require 'datadog'
 
-# require 'ddtrace/auto_instrument'
+# require 'datadog/auto_instrument'
 
 Datadog.configure do |c|
   c.service = 'acme-sinatra2-modular'

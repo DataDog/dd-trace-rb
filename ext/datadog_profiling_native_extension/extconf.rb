@@ -26,7 +26,7 @@ def skip_building_extension!(reason)
   if fail_install_if_missing_extension
     require 'mkmf'
     Logging.message(
-      '[ddtrace] Failure cause: ' \
+      '[datadog] Failure cause: ' \
       "#{Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason)}\n"
     )
   else
@@ -43,19 +43,19 @@ end
 $stderr.puts(
   %(
 +------------------------------------------------------------------------------+
-| ** Preparing to build the ddtrace profiling native extension... **           |
+| ** Preparing to build the datadog profiling native extension... **           |
 |                                                                              |
 | If you run into any failures during this step, you can set the               |
 | `DD_PROFILING_NO_EXTENSION` environment variable to `true` e.g.              |
 | `$ DD_PROFILING_NO_EXTENSION=true bundle install` to skip this step.         |
 |                                                                              |
 | If you disable this extension, the Datadog Continuous Profiler will          |
-| not be available, but all other ddtrace features will work fine!             |
+| not be available, but all other datadog features will work fine!             |
 |                                                                              |
 | If you needed to use this, please tell us why on                             |
 | <https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :\)      |
 |                                                                              |
-| Thanks for using ddtrace! You rock!                                          |
+| Thanks for using datadog! You rock!                                          |
 +------------------------------------------------------------------------------+
 
 )
@@ -65,9 +65,9 @@ $stderr.puts(
 # that may fail on an environment not properly setup for building Ruby extensions.
 require 'mkmf'
 
-Logging.message("[ddtrace] Using compiler:\n")
+Logging.message("[datadog] Using compiler:\n")
 xsystem("#{CONFIG['CC']} -v")
-Logging.message("[ddtrace] End of compiler information\n")
+Logging.message("[datadog] End of compiler information\n")
 
 # mkmf on modern Rubies actually has an append_cflags that does something similar
 # (see https://github.com/ruby/ruby/pull/5760), but as usual we need a bit more boilerplate to deal with legacy Rubies
@@ -81,11 +81,11 @@ end
 
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
-add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true'
+add_compiler_flag '-Werror' if ENV['DATADOG_GEM_CI'] == 'true'
 
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase
-# * by msgpack, another ddtrace dependency
+# * by msgpack, another datadog gem dependency
 #   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
 add_compiler_flag '-std=gnu99'
 
@@ -205,11 +205,11 @@ $defs << '-DNO_SEEN_OBJ_ID_FLAG' if RUBY_VERSION < '2.7'
 
 # If we got here, libdatadog is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
-Logging.message("[ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
+Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
 unless pkg_config('datadog_profiling_with_rpath')
-  Logging.message("[ddtrace] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
+  Logging.message("[datadog] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
 
   skip_building_extension!(
     if Datadog::Profiling::NativeExtensionHelpers::Supported.pkg_config_missing?
@@ -231,7 +231,7 @@ end
 $LDFLAGS += \
   ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/' \
   "#{Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder}"
-Logging.message("[ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
+Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that

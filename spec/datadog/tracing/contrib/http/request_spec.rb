@@ -7,7 +7,7 @@ require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 require 'datadog/tracing/contrib/support/http'
 
-require 'ddtrace'
+require 'datadog'
 require 'net/http'
 require 'time'
 require 'json'

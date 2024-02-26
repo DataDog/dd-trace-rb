@@ -6,7 +6,7 @@ module Datadog
           def perform: () -> untyped
         end
         module ResqueJob
-          def around_perform0_ddtrace: (*untyped args) { () -> untyped } -> untyped
+          def around_perform0_datadog: (*untyped args) { () -> untyped } -> untyped
 
           def after_perform_shutdown_tracer: (*untyped _) -> untyped
 

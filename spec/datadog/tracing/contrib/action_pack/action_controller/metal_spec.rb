@@ -2,7 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'action_controller'
 
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/action_pack/action_controller/instrumentation'
 
 RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionController::Metal' do

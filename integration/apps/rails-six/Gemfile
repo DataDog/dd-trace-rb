@@ -27,8 +27,8 @@ gem 'mysql2'
 gem 'puma'
 gem 'unicorn'
 
-# Choose correct specs for 'ddtrace' demo environment
-gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
+# Choose correct specs for 'datadog' demo environment
+gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
 
 gem 'dogstatsd-ruby'
 gem 'ffi'

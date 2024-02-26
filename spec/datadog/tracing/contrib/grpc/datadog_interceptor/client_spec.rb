@@ -8,7 +8,7 @@ require 'datadog/tracing/contrib/peer_service_configuration_examples'
 require_relative 'shared_examples'
 
 require 'grpc'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'tracing on the client connection' do
   subject(:client) { Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new }

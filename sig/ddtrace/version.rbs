@@ -1,4 +1,4 @@
-module DDTrace
+module Datadog
   module VERSION
     MAJOR: 1
 

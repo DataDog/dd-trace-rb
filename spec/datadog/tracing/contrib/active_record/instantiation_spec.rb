@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
-require 'ddtrace'
+require 'datadog'
 
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'
 

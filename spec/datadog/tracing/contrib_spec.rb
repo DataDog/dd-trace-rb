@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe Datadog::Tracing::Contrib do
-  root = Gem::Specification.find_by_name('ddtrace').gem_dir
+  root = Gem::Specification.find_by_name('datadog').gem_dir
 
   # Our module names are camelized directory name with some exceptions
   mapping = {

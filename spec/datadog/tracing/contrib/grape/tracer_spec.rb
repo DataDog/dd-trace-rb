@@ -1,6 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/grape/patcher'
 require 'datadog/tracing/contrib/rack/middlewares'
 require 'rack/test'

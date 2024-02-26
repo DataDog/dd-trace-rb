@@ -137,7 +137,7 @@ module Datadog
           settings :startup_logs do
             # Enable startup logs collection.
             #
-            # If `nil`, defaults to logging startup logs when `ddtrace` detects that the application
+            # If `nil`, defaults to logging startup logs when `datadog` detects that the application
             # is *not* running in a development environment.
             #
             # @default `DD_TRACE_STARTUP_LOGS` environment variable, otherwise `nil`

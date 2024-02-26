@@ -3,7 +3,7 @@ require 'datadog/tracing/contrib/graphql/test_schema_examples'
 require 'datadog/tracing/contrib/graphql/tracing_patcher'
 require 'datadog/tracing/contrib/graphql/trace_patcher'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
   around do |example|

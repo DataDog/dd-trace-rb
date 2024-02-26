@@ -11,7 +11,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
 
   subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::UnixSocket.new(**options) }
 
-  let(:uds_path) { '/tmp/ddtrace_unix_test.sock' }
+  let(:uds_path) { '/tmp/datadog_unix_test.sock' }
   let(:options) { { uds_path: uds_path, timeout: timeout } }
   let(:timeout) { 2 }
 

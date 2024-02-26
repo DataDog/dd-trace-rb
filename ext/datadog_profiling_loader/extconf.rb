@@ -24,11 +24,11 @@ end
 
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
-add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true'
+add_compiler_flag '-Werror' if ENV['DATADOG_GEM_CI'] == 'true'
 
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase
-# * by msgpack, another ddtrace dependency
+# * by msgpack, another datadog gem dependency
 #   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
 add_compiler_flag '-std=gnu99'
 

@@ -6,8 +6,8 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 7.0.5"
 
-# Choose correct specs for 'ddtrace' demo environment
-gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
+# Choose correct specs for 'datadog' demo environment
+gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
 
 gem 'dogstatsd-ruby'
 

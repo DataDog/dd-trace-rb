@@ -13,7 +13,7 @@ module Datadog
   module Tracing
     module Contrib
       module Excon
-        # Middleware implements an excon-middleware for ddtrace instrumentation
+        # Middleware implements an excon-middleware for datadog instrumentation
         class Middleware < ::Excon::Middleware::Base
           include Contrib::HttpAnnotationHelper
 

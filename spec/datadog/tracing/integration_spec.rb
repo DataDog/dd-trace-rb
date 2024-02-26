@@ -143,7 +143,7 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'using unix transport' do
       before do
-        skip('ddtrace only supports unix socket connectivity on Linux') unless PlatformHelpers.linux?
+        skip('datadog only supports unix socket connectivity on Linux') unless PlatformHelpers.linux?
 
         # DEV: To connect to a unix socket in another docker container (the agent container in our case)
         # we need to share a volume with that container. Our current CircleCI setup uses `docker` executors

@@ -1,6 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe Datadog::Tracing::Contrib::Configuration::Settings do
   subject(:settings) { described_class.new }

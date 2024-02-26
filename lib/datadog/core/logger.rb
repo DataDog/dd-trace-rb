@@ -5,12 +5,11 @@ require 'logger'
 module Datadog
   module Core
     # A custom logger with minor enhancements:
-    # - progname defaults to ddtrace to clearly identify Datadog dd-trace-rb related messages
+    # - progname defaults to datadog to clearly identify Datadog dd-trace-rb related messages
     # - adds last caller stack-trace info to know where the message comes from
     # @public_api
     class Logger < ::Logger
-      # TODO: Consider renaming this to 'datadog'
-      PREFIX = 'ddtrace'
+      PREFIX = 'datadog'
 
       def initialize(*args, &block)
         super

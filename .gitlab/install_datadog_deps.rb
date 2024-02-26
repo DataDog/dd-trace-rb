@@ -18,7 +18,7 @@ gemfile_file_path = versioned_path.join('Gemfile')
 
 File.open(gemfile_file_path, 'w') do |file|
   file.write("source 'https://rubygems.org'\n")
-  file.write("gem 'ddtrace', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'")
+  file.write("gem 'datadog', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'")
 end
 
 puts '=== Reading Gemfile ==='
@@ -59,11 +59,11 @@ gem_version_mapping.each do |gem, version|
     gem_install_cmd << "--install-dir #{versioned_path} "
     # Install `ffi` gem with its built-in `libffi` native extension instead of using system's `libffi`
     gem_install_cmd << '-- --disable-system-libffi '
-  when 'ddtrace'
-    # Install `ddtrace` gem locally without its profiling native extension
+  when 'datadog'
+    # Install `datadog` gem locally without its profiling native extension
     env['DD_PROFILING_NO_EXTENSION'] = 'true'
     gem_install_cmd =
-      "gem install --local #{ENV.fetch('DDTRACE_GEM_LOCATION')} "\
+      "gem install --local #{ENV.fetch('DATADOG_GEM_LOCATION')} "\
       '--no-document '\
       '--ignore-dependencies '\
       "--install-dir #{versioned_path} "

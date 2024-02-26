@@ -21,7 +21,7 @@ module Datadog
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
       end
 
-      # Used as an workaround for a limitation with how dynamic linking works in environments where ddtrace and
+      # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
       # libdatadog are moved after the extension gets compiled.
       #
       # Because the libddpprof native library is installed on a non-standard system path, in order for it to be
@@ -31,10 +31,10 @@ module Datadog
       # This runpath gets hardcoded at native library linking time. You can look at it using the `readelf` tool in
       # Linux: e.g. `readelf -d datadog_profiling_native_extension.2.7.3_x86_64-linux.so`.
       #
-      # In older versions of ddtrace, we only set as runpath an absolute path to libdatadog.
+      # In older versions of the datadog gem, we only set as runpath an absolute path to libdatadog.
       # (This gets set automatically by the call
       # to `pkg_config('datadog_profiling_with_rpath')` in `extconf.rb`). This worked fine as long as libdatadog was **NOT**
-      # moved from the folder it was present at ddtrace installation/linking time.
+      # moved from the folder it was present at datadog gem installation/linking time.
       #
       # Unfortunately, environments such as Heroku and AWS Elastic Beanstalk move gems around in the filesystem after
       # installation. Thus, the profiling native extension could not be loaded in these environments
@@ -107,7 +107,7 @@ module Datadog
             else
               [
                 'The Datadog Continuous Profiler will not be available,',
-                'but all other ddtrace features will work fine!',
+                'but all other datadog features will work fine!',
               ]
             end
 
@@ -213,7 +213,7 @@ module Datadog
 
         private_class_method def self.on_truffleruby?
           truffleruby_not_supported = explain_issue(
-            'TruffleRuby is not supported by the ddtrace gem.',
+            'TruffleRuby is not supported by the datadog gem.',
             suggested: GET_IN_TOUCH,
           )
 
@@ -221,7 +221,7 @@ module Datadog
         end
 
         # See https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#microsoft-windows-support for current
-        # state of Windows support in ddtrace.
+        # state of Windows support in the datadog gem.
         private_class_method def self.on_windows?
           windows_not_supported = explain_issue(
             'Microsoft Windows is not supported by the Datadog Continuous Profiler.',

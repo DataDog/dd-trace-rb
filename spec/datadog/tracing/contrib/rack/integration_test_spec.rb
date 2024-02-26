@@ -2,7 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'rack/test'
 require 'securerandom'
 require 'rack'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/rack/middlewares'
 require_relative '../support/http'
 

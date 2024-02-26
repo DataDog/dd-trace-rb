@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/core/metrics/client'
 require 'datadog/core/runtime/metrics'
 

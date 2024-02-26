@@ -3,7 +3,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'time'
 require 'redis'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'Redis mini app test' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }

@@ -91,9 +91,9 @@ module Datadog
             RbConfig::CONFIG['host']
           end
 
-          # @return [String] ddtrace version
+          # @return [String] datadog version
           def version
-            DDTrace::VERSION::STRING
+            Datadog::VERSION::STRING
           end
 
           # @return [String] "ruby"
