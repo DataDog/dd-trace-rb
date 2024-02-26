@@ -42,7 +42,7 @@ module Datadog
 
           return unless trace_id # Could not parse traceparent
 
-          tracestate, sampling_priority, origin, tags, unknown_fields = extract_tracestate(fetcher[@tracestate_key])
+          tracestate, sampling_priority, origin, dd_parent_id, tags, unknown_fields = extract_tracestate(fetcher[@tracestate_key])
 
           sampling_priority = parse_priority_sampling(sampled, sampling_priority) do |decision|
             case decision
@@ -52,6 +52,12 @@ module Datadog
             when :drop
               tags.delete(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER) if tags
             end
+          end
+
+          if dd_parent_id
+            tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = dd_parent_id
+          else
+            tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = "0000000000000000"
           end
 
           TraceDigest.new(
@@ -142,6 +148,7 @@ module Datadog
         # @see https://www.w3.org/TR/trace-context/#tracestate-header
         def build_tracestate(digest)
           tracestate = String.new('dd=')
+          tracestate << "p:#{format('%016x', digest.span_id)};"
           tracestate << "s:#{digest.trace_sampling_priority};" if digest.trace_sampling_priority
           tracestate << "o:#{serialize_origin(digest.trace_origin)};" if digest.trace_origin
 
@@ -282,7 +289,7 @@ module Datadog
           trace_flags & TRACE_FLAGS_SAMPLED
         end
 
-        # @return [Array<String,Integer,String,Hash>] returns 4 values: tracestate, sampling_priority, origin, tags.
+        # @return [Array<String,Integer,String,String,Hash>] returns 4 values: tracestate, sampling_priority, dd_parent_id, origin, tags.
         def extract_tracestate(tracestate)
           return unless tracestate
 
@@ -296,14 +303,15 @@ module Datadog
           dd_tracestate = vendors.delete_at(idx)
           dd_tracestate.slice!(0..2)
 
-          origin, sampling_priority, tags, unknown_fields = extract_datadog_fields(dd_tracestate)
+          origin, sampling_priority, dd_parent_id, tags, unknown_fields = extract_datadog_fields(dd_tracestate)
 
-          [vendors.join(','), sampling_priority, origin, tags, unknown_fields]
+          [vendors.join(','), sampling_priority, origin, dd_parent_id, tags, unknown_fields]
         end
 
         def extract_datadog_fields(dd_tracestate)
           sampling_priority = nil
           origin = nil
+          dd_parent_id = nil
           tags = nil
           unknown_fields = nil
 
@@ -315,6 +323,8 @@ module Datadog
               sampling_priority = Integer(value) rescue nil
             when 'o'
               origin = value
+            when 'p'
+              dd_parent_id = value
             when /^t\./
               key.slice!(0..1) # Delete `t.` prefix
 
@@ -333,7 +343,7 @@ module Datadog
             end
           end
 
-          [origin, sampling_priority, tags, unknown_fields]
+          [origin, sampling_priority, dd_parent_id, tags, unknown_fields]
         end
 
         # Restore `~` back to `=`.
