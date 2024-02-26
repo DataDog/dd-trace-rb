@@ -11,7 +11,6 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Checking code quality](#checking-code-quality)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
-     - [Custom transport adapters](#custom-transport-adapters)
 
 ## Setting up
 
@@ -228,68 +227,6 @@ Then [open a pull request](../CONTRIBUTING.md#have-a-patch) and be sure to add t
  - Links to the repository/website of the library being integrated
  - Screenshots showing a sample trace
  - Any additional code snippets, sample apps, benchmarks, or other resources that demonstrate its implementation are a huge plus!
-
-### Custom transport adapters
-
-The tracer can be configured with transports that customize how data is sent and where it is sent to. This is done through the use of adapters: classes that receive generic requests, process them, and return appropriate responses.
-
-#### Developing HTTP transport adapters
-
-To create a custom HTTP adapter, define a class that responds to `call(env)` which returns a kind of `Datadog::Transport::Response`:
-
-```ruby
-require 'ddtrace/transport/response'
-
-class CustomAdapter
-  # Sends HTTP request
-  # env: Datadog::Transport::HTTP::Env
-  def call(env)
-    # Add custom code here to send data.
-    # Then return a Response object.
-    Response.new
-  end
-
-  class Response
-    include Datadog::Transport::Response
-
-    # Implement the following methods as appropriate
-    # for your adapter.
-
-    # Return a String
-    def payload; end
-
-    # Return true/false
-    # Return nil if it does not apply
-    def ok?; end
-    def unsupported?; end
-    def not_found?; end
-    def client_error?; end
-    def server_error?; end
-    def internal_error?; end
-  end
-end
-```
-
-Optionally, you can register the adapter as a well-known type:
-
-```ruby
-Datadog::Transport::HTTP::Builder::REGISTRY.set(CustomAdapter, :custom)
-```
-
-Then pass an adapter instance to the tracer configuration:
-
-```ruby
-Datadog.configure do |c|
-  c.tracing.transport_options = proc { |t|
-    # By name
-    t.adapter :custom
-
-    # By instance
-    custom_adapter = CustomAdapter.new
-    t.adapter custom_adapter
-  }
-end
-```
 
 ### Generating GRPC proto stubs for tests
 
