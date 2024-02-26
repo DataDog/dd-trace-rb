@@ -17,7 +17,7 @@ FileUtils.mkdir_p(versioned_path, verbose: true)
 gemfile_file_path = versioned_path.join('Gemfile')
 
 File.open(gemfile_file_path, 'w') do |file|
-  file.write("source \"https://rubygems.org\"\n")
+  file.write("source 'https://rubygems.org'\n")
   file.write("gem 'ddtrace', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'")
 end
 
