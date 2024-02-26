@@ -1,16 +1,32 @@
 #!/bin/bash
+set -e
 
-# Obtain context information
-git_sha=$(git rev-parse --short HEAD)
+echo CI=$1
+echo MONOTONIC_ID=$2
+echo GIT_REF=$3
+echo GIT_COMMIT_SHA=$4
 
-# Output info for CI debug
-echo git_sha="${git_sha}"
+git_branch="${3#refs/heads/}"
+echo git_branch="${git_branch}"
 
-PRE='dev'
-BUILD="${git_sha}"
+git_branch_hash=$(echo "$git_branch" | ruby -rdigest -n -e 'print Digest::SHA256.hexdigest($_.chomp)[0, 6]')
+echo git_branch_hash="${git_branch_hash}"
 
-# Output info for CI debug
+git_short_sha=${4:0:8}
+echo git_short_sha=$git_short_sha
+
+PRE=dev
 echo PRE="${PRE}"
+
+# Set component values:
+# - PRE is `dev` to denote being a development version and
+#   act as a categorizer.
+# - BUILD starts with git branch sha for grouping, prefixed by `b`.
+# - BUILD has CI run id for traceability, prefixed by `gha` or `glci`
+#   for identification.
+# - BUILD has commit next for traceability, prefixed git-describe
+#   style by `g` for identification.
+BUILD="b${git_branch_hash}.${1}${2}.g${git_short_sha}"
 echo BUILD="${BUILD}"
 
 # Patch in components
