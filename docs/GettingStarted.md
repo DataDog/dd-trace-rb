@@ -949,7 +949,7 @@ end
 | `peer_service`        | `DD_TRACE_HTTPRB_PEER_SERVICE`           | Name of external service the application connects to                                                                                                                                       | `nil`       |
 | `distributed_tracing` |                                          | Enables [distributed tracing](#distributed-tracing)                                                                                                                                        | `true`      |
 | `split_by_domain`     |                                          | Uses the request domain as the service name when set to `true`.                                                                                                                            | `false`     |
-| `error_status_codes`  | `DD_TRACE_HTTPRB_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
+| `error_status_codes`  | `DD_TRACE_HTTPRB_ERROR_STATUS_CODES` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...**600**]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600` |
 
 ### httpclient
 
@@ -2470,6 +2470,7 @@ end
 ```
 
 See [Additional Configuration](#additional-configuration) for more details.
+
 
 #### Agent connection methods
 The agent supports communication via TCP or Unix Domain Socket (UDS). The tracer will automatically detect the agent's

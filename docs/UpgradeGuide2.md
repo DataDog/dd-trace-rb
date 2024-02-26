@@ -18,7 +18,19 @@ Upgrading `ddtrace` from 1.x to 2.0 introduces some breaking changes which are o
 
 For users with an advanced implementation of `ddtrace` (custom instrumentation, sampling or processing behavior, etc), some additional namespace and behavioral changes may be required. See the following sections for details about what features changed and how to use them.
 
+- [Frozen String](#2.0-frozen-string)
 - [Tracing API](#2.0-tracing-api)
+- [Log Correlation](#2.0-log-correlation)
+- [Distributed Tracing](#2.0-distributed-tracing)
+- [Transport](#2.0-transport)
+- [Sampling](#2.0-sampling)
+
+
+**Instrumentations**
+
+- [Instrumentation Changes](#2.0-instrumentation)
+  - [Error Handling with `error_handler`](#2.0-error-handling)
+  - [Setting `error_status_codes` option with ENV](#2.0-error-status-codes)
 
 <h3 id="2.0-requires-ruby-2.5+">Requires Ruby 2.5+</h3>
 
@@ -115,6 +127,10 @@ Programmatic configuration options have been made more consistent with their res
 
 <h2 id="2.0-advanced-upgrade">Upgrading advanced usage</h1>
 
+<h3 id="2.0-frozen-string">Frozen String</h3>
+
+All strings the strings are frozen by default. Make sure your code does not mutate them.
+
 <h3 id="2.0-tracing-api">Tracing API</h3>
 
 Remove option `span_type` from `Datadog::Tracing.trace` method and the following alias methods
@@ -147,17 +163,13 @@ Datadog::Tracing.trace('my_span', type: 'custom') do |span|
 end
 ```
 
-#### Frozen strings
+<h3 id="2.0-log-correlation">Log Correlation</h3>
 
-All strings the strings are frozen by default. Make sure your code does not mutate them.
+Remove obsolete fields from `Datadog::Tracing::Correlation::Identifier`, and responds to `#env`, `#service`, `#version`, `#trace_id`, `#span_id` and `#to_log_format`. The values returned from `#trace_id` and `#span_id` are now `String`.
 
-#### Log Correlation
+Check if your usage still compatible when manually correlating logs.
 
-Remove obsolete fields from `Datadog::Tracing::Correlation::Identifier` , and responds to `#env`, `#service`, `#version`, `#trace_id`, `#span_id` and `#to_log_format`. The values returned from `#trace_id` and `#span_id` are now `String`.
-
-Make sure to check if your usage still compatible when manually correlating logs.
-
-<h4 id="2.0-distributed-tracing">Distributed Tracing</h4>
+<h3 id="2.0-distributed-tracing">Distributed Tracing</h3>
 
 `Datadog::Tracing::Propagation::HTTP` has moved to `Datadog::Tracing::Contrib::HTTP`.
 
@@ -184,21 +196,14 @@ The deprecated B3 and B3 single header propagation style configuration values ha
 
 Remove deprecated constants at `Datadog::Tracing::Distributed::Headers::Ext`. These constants have been moved to `Datadog::Tracing::Distributed::Datadog` and `Datadog::Tracing::Distributed::B3`.
 
-<h4 id="2.0-transport">Transport</h4>
+<h3 id="2.0-transport">Transport</h3>
 
-The `c.tracing.transport_options` option has been removed. The library can no longer be configured with a custom transport adapter. The default, or test adapter must be used. All agent transport configuration options can be set via the `Datadog.configure` block, or environment variables.
+The `c.tracing.transport_options` option has been removed and cannot be configured with a custom transport adapter.
 
-The following options have been added to replace configuration options previously only available via `transport_options`:
+- See [Test adapter](GettingStarted.md#transporting-in-test-mode)
+- See [Unix Domain Socket (UDS) adapter](GettingStarted.md#unix-domain-socket-uds)
 
-- `c.agent.timeout_seconds` or DD_TRACE_AGENT_TIMEOUT_SECONDS
-- `c.agent.uds_path` or DD_TRACE_AGENT_UDS_PATH
-- `c.agent.use_ssl` or DD_AGENT_USE_SSL
-
-Setting uds path or the use of SSL via `DD_TRACE_AGENT_URL` continues to work as it did in 1.x.
-
-To use the test adapter set `c.agent.tracing.test_mode.enabled = true`
-
-Constant changes
+Changes
 
 | 1.x                                                              | 2.0                                                     |
 | ---------------------------------------------------------------- | ------------------------------------------------------- |
@@ -206,57 +211,66 @@ Constant changes
 | `Datadog::Transport::Ext::Test`                                  | `Datadog::Core::Transport::Ext::Test`                   |
 | `Datadog::Transport::Ext::UnixSocket`                            | `Datadog::Core::Transport::Ext::UnixSocket`             |
 | `Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST` | `Datadog::Core::Configuration::Agent::ENV_DEFAULT_HOST` |
+| `Datadog::Tracing::Transport::HTTP#default_hostname`             | Removed                                                 |
+| `Datadog::Tracing::Transport::HTTP#default_port`                 | Removed                                                 |
+| `Datadog::Tracing::Transport::HTTP#default_url`                  | Removed                                                 |
+| `Datadog::Core::Remote::Transport::HTTP#default_hostname`        | Removed                                                 |
+| `Datadog::Core::Remote::Transport::HTTP#default_port`            | Removed                                                 |
+| `Datadog::Core::Remote::Transport::HTTP#default_url`             | Removed                                                 |
 
-Removed unused, non-public methods:
-
-- `Datadog::Tracing::Transport::HTTP#default_hostname`
-- `Datadog::Tracing::Transport::HTTP#default_port`
-- `Datadog::Tracing::Transport::HTTP#default_url`
-- `Datadog::Core::Remote::Transport::HTTP#default_hostname`
-- `Datadog::Core::Remote::Transport::HTTP#default_port`
-- `Datadog::Core::Remote::Transport::HTTP#default_url`
-
-<h4 id="2.0-sampling">Sampling</h4>
-
-The following sampling classes have been removed from the public API:
-
-```ruby
-Datadog::Tracing::Sampling::AllSampler
-Datadog::Tracing::Sampling::Matcher
-Datadog::Tracing::Sampling::SimpleMatcher
-Datadog::Tracing::Sampling::ProcMatcher
-Datadog::Tracing::Sampling::PrioritySampler
-Datadog::Tracing::Sampling::RateByKeySampler
-Datadog::Tracing::Sampling::RateByServiceSampler
-Datadog::Tracing::Sampling::RateLimiter
-Datadog::Tracing::Sampling::TokenBucket
-Datadog::Tracing::Sampling::UnlimitedLimiter
-Datadog::Tracing::Sampling::RateSampler
-Datadog::Tracing::Sampling::Rule
-Datadog::Tracing::Sampling::SimpleRule
-Datadog::Tracing::Sampling::RuleSampler
-Datadog::Tracing::Sampling::Sampler
-```
+<h3 id="2.0-sampling">Sampling</h3>
 
 Most custom sampling can be accomplished with a combination of Ingestion Controls and user-defined rules. This is the preferred option, as it is more maintainable and auditable than custom sampling.
 
-If you still need a custom sampler, its API has been simplified in 2.0. See https://github.com/DataDog/dd-trace-rb/blob/2.0/docs/GettingStarted.md#custom-sampling for the new detailed requirements of a custom sampler.
+If you still need a custom sampler, its API has been simplified in 2.0 by privatizing sampling objects. See [Custom Sampling](GettingStarted.md#custom-sampling) for the new detailed requirements of a custom sampler.
 
 The custom sampler class `Datadog::Tracing::Sampling::RateSampler` now accepts a `sample_rate` of zero. This will drop all spans. Before 2.0, the RateSampler would fall back to a sample rate of 1.0 when provided with a `sample_rate` of zero.
 
-The configuration setting `c.tracing.priority_sampling` has been removed. This option was used to disable priority sampling, which was enabled by default. To disable priority sampling, you now have to create a custom sampler.
+The configuration option `c.tracing.priority_sampling` has been removed. To disable priority sampling, you now have to create a custom sampler.
 
-<h3 id="2.0-instrumentation">Instrumentation changes</h3>
+<!-- EXAMPLE -->
+```ruby
+```
 
-The `error_handler` settings have been replaced by `on_error` to align with the options for `Datadog::Tracing.trace(options)`.
+#### Objects privatized
+
+| 1.x                                                | 2.0        |
+| -------------------------------------------------- | ---------- |
+| `Datadog::Tracing::Sampling::AllSampler`           | Privatized |
+| `Datadog::Tracing::Sampling::Matcher`              | Privatized |
+| `Datadog::Tracing::Sampling::SimpleMatcher`        | Privatized |
+| `Datadog::Tracing::Sampling::ProcMatcher`          | Privatized |
+| `Datadog::Tracing::Sampling::PrioritySampler`      | Privatized |
+| `Datadog::Tracing::Sampling::RateByKeySampler`     | Privatized |
+| `Datadog::Tracing::Sampling::RateByServiceSampler` | Privatized |
+| `Datadog::Tracing::Sampling::RateLimiter`          | Privatized |
+| `Datadog::Tracing::Sampling::TokenBucket`          | Privatized |
+| `Datadog::Tracing::Sampling::UnlimitedLimiter`     | Privatized |
+| `Datadog::Tracing::Sampling::RateSampler`          | Privatized |
+| `Datadog::Tracing::Sampling::Rule`                 | Privatized |
+| `Datadog::Tracing::Sampling::SimpleRule`           | Privatized |
+| `Datadog::Tracing::Sampling::RuleSampler`          | Privatized |
+| `Datadog::Tracing::Sampling::Sampler`              | Privatized |
+
+<h2 id="2.0-instrumentation">Instrumentation changes</h2>
+
+<h3 id='2.0-error-handling'>Error Handling</h3>
+
+The `error_handler` options have been replaced by `on_error` to align with `options` for our public API `Datadog::Tracing.trace(options)`.
+
+Rename `error_handler` option  to `on_error` in your configuration, except for [`active_job`](#activejob), [`grpc`](#grpc), [`faraday`](#faraday) and [`excon`](#excon).
+
+<h3 id='2.0-error-status-codes'>Setting `error_status_codes` option with ENV</h3>
+
+Option `error_status_codes` is introduced to various http integrations. It tags the span with an error based on http status from response header. Its value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for an end-excluded range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)
 
 #### ActiveJob
 
-Remove `error_handler` option, it was never used.
+Remove `error_handler` option.
 
 #### DelayedJob
 
-Rename `error_handler` option to `on_error`
+Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
 #### Elasticsearch
 
@@ -273,29 +287,51 @@ Datadog.configure_onto(client.transport, **options)
 
 #### Excon
 
-Remove option `error_handler`
+Remove option `error_handler`, and use `error_status_codes` instead.
 
-Add `on_error` and `error_status_codes`
+Configure option `error_status_codes` to tag span with an error based on http status from response header, the default is 400...600 (Only server errors are tagged in 1.x).
 
-Configure option `error_status_codes` to control tagging span with error, the default is 400...600 (previous only server servers are tagged.)
+```ruby
+# === with 1.x ===
+Datadog.configure do |c|
+  c.tracing.instrument :excon, error_handler: lambda do |response|
+    (400...600).cover?(response[:status])
+  end
+end
 
-Configure option `on_error` to control behaviour when exception is raised.
+# === with 2.0 ===
+Datadog.configure do |c|
+  c.tracing.instrument :excon, error_status_codes: 400...600
+end
+```
+
+Additionally, configure `on_error` option to control behaviour when an exception (ie. `Excon::Error::Timeout`) is raised.
 
 #### Faraday
 
-Remove option `error_handler`
+Remove option `error_handler`, and use `error_status_codes` instead.
 
-Add `on_error` and `error_status_codes`
+Configure option `error_status_codes` to tag span with an error based on http status from response header, the default is 400...600 (Only server errors are tagged in 1.x).
 
-Configure option `error_status_codes` to control tagging span with error, the default is 400...600 (previous only server servers are tagged.)
+```ruby
+# === with 1.x ===
+Datadog.configure do |c|
+  c.tracing.instrument :faraday, error_handler: lambda do |env|
+    (400...600).cover?(env[:status])
+  end
+end
 
-Configure option `on_error` to control behaviour when exception is raised. For example: `Faraday::ConnectionFailed/Excon::Error::Timeout`
+# === with 2.0 ===
+Datadog.configure do |c|
+  c.tracing.instrument :faraday, error_status_codes: 400...600
+end
+```
+
+Additionally, configure `on_error` option to control behaviour when an exception (ie.`Faraday::ConnectionFailed`) is raised.
 
 #### Grape
 
-Replace option `error_statuses` with `error_status_codes`.
-
-Change your configuration from string to array of ranges or integers.
+Option `error_statuses` has been removed, use `error_status_codes` instead.
 
 ```ruby
 # === with 1.x ===
@@ -355,11 +391,9 @@ end
 
 `Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request` has been removed.
 
-This hook was intrusive, only restricted to the net/http client, and was not generalizable to other HTTP client gems. If you require this hook, please open a "Feature request" stating your use case so we can asses how to best support it.
-
 #### PG
 
-Rename `error_handler` option to `on_error`
+Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
 #### Qless
 
@@ -367,7 +401,7 @@ Removed
 
 #### Que
 
-Rename `error_handler` option to `on_error`
+Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
 #### Rack
 
@@ -409,15 +443,15 @@ The `exception_controller` configuration option has been removed for Rails and A
 
 #### Resque
 
-Rename `error_handler` option to `on_error`
+Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
 #### Shoryuken
 
-Rename `error_handler` option to `on_error`
+Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
 #### Sidekiq
 
-Rename `error_handler` option to `on_error`
+Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
 `tag_args` option is removed, use `quantize` instead
 
@@ -447,17 +481,7 @@ Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_MIDDLEWARE_TRACED
 
 #### Sneakers
 
-Rename `error_handler` option to `on_error`
-
----
-
-#### Remove unused module Compression
-
-The unused module Datadog::Core::Utils::Compression has been removed
-
-#### Fix error_status_codes options
-
-Fix and standardize the way to configure an array of ranges for error_status_codes from environment variables.
+Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
 ## Ensure traces reach the agent
 
