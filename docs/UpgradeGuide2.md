@@ -12,7 +12,7 @@ Upgrading `ddtrace` from 1.x to 2.0 introduces some breaking changes which are o
   - [Replace `use` with `instrument`](#2.0-use-instrument)
   - [Type checking](#2.0-type-checking)
   - [Propagation default](#2.0-propagation-default)
-  - [Namespace](#2.0-namespace)
+  - [Options](#2.0-options)
 
 **Additional upgrades for advanced usage**
 
@@ -24,7 +24,6 @@ For users with an advanced implementation of `ddtrace` (custom instrumentation, 
 - [Distributed Tracing](#2.0-distributed-tracing)
 - [Transport](#2.0-transport)
 - [Sampling](#2.0-sampling)
-
 
 **Instrumentations**
 
@@ -102,13 +101,13 @@ Here's the list of all affected options:
 
 <!-- Configuration options can no longer be defined as lazy. All options are lazily evaluated, making this redundant. -->
 
-Configuration `c.tracing.client_ip.enabled` with `ENV['DD_TRACE_CLIENT_IP_HEADER_DISABLED']` is removed, use `ENV['DD_TRACE_CLIENT_IP_ENABLED']` instead.
-
 <h4 id="2.0-propagation-default">Propagation default</h4>
 
-The default distributed tracing propagation extraction style is now `Datadog,tracecontext`.
+The default distributed tracing propagation extraction is now `Datadog,tracecontext` (Before 2.0, the default was `Datadog,b3multi,b3,tracecontext`).
 
-<h4 id="2.0-namespace">Namespace</h4>
+<h4 id="2.0-options">options</h4>
+
+Configuration `c.tracing.client_ip.enabled` with `ENV['DD_TRACE_CLIENT_IP_HEADER_DISABLED']` is removed, use `ENV['DD_TRACE_CLIENT_IP_ENABLED']` instead.
 
 Programmatic configuration options have been made more consistent with their respective environment variables:
 
@@ -171,6 +170,8 @@ Check if your usage still compatible when manually correlating logs.
 
 <h3 id="2.0-distributed-tracing">Distributed Tracing</h3>
 
+<h4 id="2.0-distributed-tracing-api">API changes</h4>
+
 `Datadog::Tracing::Propagation::HTTP` has moved to `Datadog::Tracing::Contrib::HTTP`.
 
 ```ruby
@@ -183,18 +184,37 @@ Datadog::Tracing::Contrib::HTTP.inject
 Datadog::Tracing::Contrib::HTTP.extract
 ```
 
-Environment variable changes
+<h4 id="2.0-distributed-tracing-env">Environment variable changes</h4>
 
 | 1.x                            | 2.0                                  |
 | ------------------------------ | ------------------------------------ |
 | `DD_PROPAGATION_STYLE_INJECT`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`  |
 | `DD_PROPAGATION_STYLE_EXTRACT` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT` |
 
-The the values for the environment variables `DD_TRACE_PROPAGATION_STYLE`, `DD_TRACE_PROPAGATION_STYLE_INJECT`, and `DD_TRACE_PROPAGATION_STYLE_EXTRACT` are now considered case-insensitive. The major impact of this change is that, previously, B3 would configure Tracing with the B3 Multiple Headers propagator. Now B3 will configure it with the B3 Single Header propagator.
+The values from the environment variables `DD_TRACE_PROPAGATION_STYLE`, `DD_TRACE_PROPAGATION_STYLE_INJECT`, and `DD_TRACE_PROPAGATION_STYLE_EXTRACT` are now considered case-insensitive. Hence, the values mapped to different b3 strategies (single header vs. multiple headers) also changed.
 
-The deprecated B3 and B3 single header propagation style configuration values have been removed, use b3multi and b3 respectively instead.
+| Constant                                                                                | Value     | Strategy         |
+| --------------------------------------------------------------------------------------- | --------- | ---------------- |
+| `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER` | `b3`      | single header    |
+| `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER`  | `b3multi` | multiple headers |
 
-Remove deprecated constants at `Datadog::Tracing::Distributed::Headers::Ext`. These constants have been moved to `Datadog::Tracing::Distributed::Datadog` and `Datadog::Tracing::Distributed::B3`.
+Remove deprecated constants at `Datadog::Tracing::Distributed::Headers::Ext`. These constants have been moved to `Datadog::Tracing::Distributed::Datadog`, `Datadog::Tracing::Distributed::B3Single` and `Datadog::Tracing::Distributed::B3Mulit`.
+
+| 1.x                                                                            | 2.0                                                             |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID`            | `Datadog::Tracing::Distributed::Datadog::TRACE_ID_KEY`          |
+| `Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID`           | `Datadog::Tracing::Distributed::Datadog::PARENT_ID_KEY`         |
+| `Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY`   | `Datadog::Tracing::Distributed::Datadog::SAMPLING_PRIORITY_KEY` |
+| `Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN`              | `Datadog::Tracing::Distributed::Datadog::ORIGIN_KEY`            |
+| `Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TAGS`                | `Datadog::Tracing::Distributed::Datadog::TAGS_KEY`              |
+| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID`              | `Datadog::Tracing::Distirbuted::B3Multi::B3_TRACE_ID_KEY`       |
+| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID`               | `Datadog::Tracing::Distirbuted::B3Multi::B3_SPAN_ID_KEY`        |
+| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SAMPLED`               | `Datadog::Tracing::Distirbuted::B3Multi::B3_SAMPLED_KEY`        |
+| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE`                | `Datadog::Tracing::Distirbuted::B3Single::B3_SINGLE_HEADER_KEY` |
+| `Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID`          | `Datadog::Tracing::Distributed::Datadog::TRACE_ID_KEY`          |
+| `Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID`         | `Datadog::Tracing::Distributed::Datadog::PARENT_ID_KEY`         |
+| `Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_SAMPLING_PRIORITY` | `Datadog::Tracing::Distributed::Datadog::SAMPLING_PRIORITY_KEY` |
+| `Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_ORIGIN`            | `Datadog::Tracing::Distributed::Datadog::ORIGIN_KEY`            |
 
 <h3 id="2.0-transport">Transport</h3>
 
@@ -229,7 +249,9 @@ The custom sampler class `Datadog::Tracing::Sampling::RateSampler` now accepts a
 The configuration option `c.tracing.priority_sampling` has been removed. To disable priority sampling, you now have to create a custom sampler.
 
 <!-- EXAMPLE -->
+
 ```ruby
+
 ```
 
 #### Objects privatized
@@ -258,7 +280,7 @@ The configuration option `c.tracing.priority_sampling` has been removed. To disa
 
 The `error_handler` options have been replaced by `on_error` to align with `options` for our public API `Datadog::Tracing.trace(options)`.
 
-Rename `error_handler` option  to `on_error` in your configuration, except for [`active_job`](#activejob), [`grpc`](#grpc), [`faraday`](#faraday) and [`excon`](#excon).
+Rename `error_handler` option to `on_error` in your configuration, except for [`active_job`](#activejob), [`grpc`](#grpc), [`faraday`](#faraday) and [`excon`](#excon).
 
 <h3 id='2.0-error-status-codes'>Setting `error_status_codes` option with ENV</h3>
 
@@ -349,9 +371,9 @@ end
 
 Support `graphql-ruby` versions `>= 2.2.6`, which breaking changes were introduced. No longer support and patch GraphQL's defined-based schema.
 
-* `schemas` : Optional (default: `[]`). Providing GraphQL schemas is not required. By default, every schema is instrumented.
+- `schemas` : Optional (default: `[]`). Providing GraphQL schemas is not required. By default, every schema is instrumented.
 
-* `with_deprecated_tracer` : Optional (default: `false`). Spans are generated by `GraphQL::Tracing::DataDogTrace`. When `true` , spans are generated by deprecated `GraphQL::Tracing::DataDogTracing`
+- `with_deprecated_tracer` : Optional (default: `false`). Spans are generated by `GraphQL::Tracing::DataDogTrace`. When `true` , spans are generated by deprecated `GraphQL::Tracing::DataDogTracing`
 
 Notes: `GraphQL::Tracing::DataDogTrace` is only available With `graphql-ruby(>= 2.0.19)`. Otherwise, it will fallback to the `GraphQL::Tracing::DataDogTracing`
 
