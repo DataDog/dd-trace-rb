@@ -176,6 +176,7 @@ onboarding_tests:
 
 deploy_to_reliability_env:
   stage: deploy
+  needs: [] # This allows the job to run without prerequisites
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: on_success
