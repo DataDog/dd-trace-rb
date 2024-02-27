@@ -363,7 +363,7 @@ RSpec.describe Datadog::Tracing::Tracer do
       let(:headers) do
         {
           'traceparent' => '00-0000000000000000000000000000007b-00000000000001c8-01',
-          'tracestate' => 'dd=s:1;o:orig;t.test:value',
+          'tracestate' => 'dd=p:00000000000001c8;s:1;o:orig;t.test:value',
         }
       end
 
@@ -386,7 +386,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
         expect(inject).to eq(
           'traceparent' => '00-0000000000000000000000000000007b-00000000000001c8-01',
-          'tracestate' => 'dd=s:9;o:other-origin;t.test:changed'
+          'tracestate' => 'dd=p:00000000000001c8;s:9;o:other-origin;t.test:changed'
         )
       end
     end

@@ -53,7 +53,8 @@ module Datadog
               tags.delete(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER) if tags
             end
           end
-
+          
+          tags ||= {}
           if dd_parent_id
             tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = dd_parent_id
           else
