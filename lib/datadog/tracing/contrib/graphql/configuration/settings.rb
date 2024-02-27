@@ -34,7 +34,9 @@ module Datadog
               o.default []
             end
 
-            option :service_name
+            option :service_name do |o|
+              o.type :string, nilable: true
+            end
 
             option :with_deprecated_tracer do |o|
               o.type :bool

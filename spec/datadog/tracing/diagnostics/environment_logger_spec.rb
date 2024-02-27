@@ -198,14 +198,6 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           it { is_expected.to include integration_http_split_by_domain: 'false' }
         end
 
-        context 'with a complex setting value' do
-          let(:options) { { service_name: Class.new } }
-
-          it 'converts to a string' do
-            is_expected.to include integration_http_service_name: start_with('#<Class:')
-          end
-        end
-
         context 'with partial flushing enabled' do
           before { expect(Datadog.configuration.tracing.partial_flush).to receive(:enabled).and_return(true) }
 

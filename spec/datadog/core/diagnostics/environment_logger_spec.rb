@@ -166,7 +166,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with service configured' do
-        let(:service) { double('service') }
+        let(:service) { 'service' }
 
         before { allow(Datadog.configuration).to receive(:service).and_return(service) }
 

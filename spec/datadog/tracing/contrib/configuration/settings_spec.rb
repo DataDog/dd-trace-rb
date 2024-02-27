@@ -33,7 +33,7 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::Settings do
 
     context 'given an option' do
       let(:options) { { service_name: service_name } }
-      let(:service_name) { double('service_name') }
+      let(:service_name) { 'service_name' }
 
       before { allow(settings).to receive(:set_option).and_call_original }
 

@@ -31,7 +31,10 @@ module Datadog
             end
 
             option :service_name
-            option :template_base_path, default: 'views/'
+            option :template_base_path do |o|
+              o.type :string
+              o.default 'views/'
+            end
           end
         end
       end
