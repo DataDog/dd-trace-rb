@@ -775,7 +775,10 @@ RSpec.describe 'Tracer integration tests' do
       it 'drops trace at application side' do
         expect(tracer.writer).to_not receive(:write)
 
-        tracer.trace('span') { |_, trace| trace.reject! }
+        tracer.trace('span') do |_, trace|
+          trace.reject!
+          trace.sampled = false
+        end
       end
     end
 
