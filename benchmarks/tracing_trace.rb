@@ -98,6 +98,71 @@ class TracingTraceBenchmark
       end
     end
   end
+
+  def benchmark_to_digest_continue
+    Datadog::Tracing.trace('op.name') do |span, trace|
+      Benchmark.ips do |x|
+        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
+        x.config(**benchmark_time)
+
+        x.report("trace.to_digest - Continue") do
+          digest = trace.to_digest
+          Datadog::Tracing.continue_trace!(digest)
+        end
+
+        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.compare!
+      end
+    end
+  end
+
+  def benchmark_propagation_datadog
+    Datadog.configure do |c|
+      c.tracing.propagation_style = ['datadog']
+    end
+
+    Datadog::Tracing.trace('op.name') do |span, trace|
+      injected_trace_digest = trace.to_digest
+      Benchmark.ips do |x|
+        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
+        x.config(**benchmark_time)
+
+        x.report("Propagation - Datadog") do
+          env = {}
+          Datadog::Tracing::Contrib::HTTP.inject(injected_trace_digest, env)
+          extracted_trace_digest = Datadog::Tracing::Contrib::HTTP.extract(env)
+          raise unless extracted_trace_digest
+        end
+
+        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.compare!
+      end
+    end
+  end
+
+  def benchmark_propagation_trace_context
+    Datadog.configure do |c|
+      c.tracing.propagation_style = ['tracecontext']
+    end
+
+    Datadog::Tracing.trace('op.name') do |span, trace|
+      injected_trace_digest = trace.to_digest
+      Benchmark.ips do |x|
+        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
+        x.config(**benchmark_time)
+
+        x.report("Propagation - Trace Context") do
+          env = {}
+          Datadog::Tracing::Contrib::HTTP.inject(injected_trace_digest, env)
+          extracted_trace_digest = Datadog::Tracing::Contrib::HTTP.extract(env)
+          raise unless extracted_trace_digest
+        end
+
+        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.compare!
+      end
+    end
+  end
 end
 
 puts "Current pid is #{Process.pid}"
@@ -115,4 +180,7 @@ TracingTraceBenchmark.new.instance_exec do
   run_benchmark { benchmark_no_network }
   run_benchmark { benchmark_to_digest }
   run_benchmark { benchmark_log_correlation }
+  run_benchmark { benchmark_to_digest_continue }
+  run_benchmark { benchmark_propagation_datadog }
+  run_benchmark { benchmark_propagation_trace_context }
 end
