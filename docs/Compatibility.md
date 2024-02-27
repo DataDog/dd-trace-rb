@@ -13,7 +13,7 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 |       |                            | 2.7       | [GA](#support-ga)   | Latest              |
 |       |                            | 2.6       | [GA](#support-ga)   | Latest              |
 |       |                            | 2.5       | [GA](#support-ga)   | Latest              |
-|       |                            | 2.4       | [EOL](#support-eol) | < 2.0.0             | [comment]: <> (# DEV-2.0: Update with release date)
+|       |                            | 2.4       | [EOL](#support-eol) | < 2.0.0             |
 |       |                            | 2.3       | [EOL](#support-eol) | < 2.0.0             |
 |       |                            | 2.2       | [EOL](#support-eol) | < 2.0.0             |
 |       |                            | 2.1       | [EOL](#support-eol) | < 2.0.0             |
@@ -48,11 +48,11 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 ### Supported Datadog agent versions
 
-| Datadog Agent version                                                    | Support type      | Package version |
-|--------------------------------------------------------------------------|-------------------|-----------------|
-| [7.x](https://docs.datadoghq.com/agent/basic_agent_usage/?tab=agentv6v7) | [GA](#support-ga) | Latest          |
-| [6.x](https://docs.datadoghq.com/agent/basic_agent_usage/?tab=agentv6v7) | [GA](#support-ga) | Latest          |
-| [5.x](https://docs.datadoghq.com/agent/basic_agent_usage/?tab=agentv5)   | [GA](#support-ga) | Latest          |
+| Datadog Agent version | Support type      | Package version |
+|-----------------------|-------------------|-----------------|
+| [7.x][53]             | [GA](#support-ga) | Latest          |
+| [6.x][53]             | [GA](#support-ga) | Latest          |
+| [5.x][54]             | [GA](#support-ga) | Latest          |
 
 ## Integrations
 
@@ -107,6 +107,53 @@ For a list of available integrations, and their configuration options, refer to 
 | Sneakers                   | `sneakers`                 | `>= 2.12.0`                                 | `>= 2.12.0`                                 | [Link][46]       | [Link](https://github.com/jondot/sneakers)                                   |
 | Stripe                     | `stripe`                   | `>= 5.15.0`                                 | `>= 5.15.0`                                 | [Link][47]       | [Link](https://github.com/stripe/stripe-ruby)                                |
 | Sucker Punch               | `sucker_punch`             | `>= 2.0`                                    | `>= 2.0`                                    | [Link][48]       | [Link](https://github.com/brandonhilkert/sucker_punch)                       |
+
+### Support Policy
+
+Datadog APM for Ruby is built upon dependencies defined in specific versions of the host operating system, Ruby
+runtime, certain Ruby libraries, and the Datadog Agent/API. When these versions are no longer supported by their
+maintainers, Datadog APM for Ruby limits its support for these as well.
+
+#### Levels of Support
+
+| **Level**                                              | **Support provided**                                                                                                                         |
+|--------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| <span id="support-unsupported">Unsupported</span>      | No implementation. [Contact our customer support team for special requests.][49]                                                             |
+| <span id="support-beta">Beta</span>                    | Initial implementation. May not yet contain all features. Support for new features, bug & security fixes provided on a best-effort basis.    |
+| <span id="support-ga">General Availability (GA)</span> | Full implementation of all features. Full support for new features, bug & security fixes.                                                    |
+| <span id="support-maintenance">Maintenance</span>      | Full implementation of existing features. Does not receive new features. Support for critical bug & security fixes only.                     |
+| <span id="support-legacy">Legacy</span>                | Legacy implementation. May have limited function, but no maintenance provided. [Contact our customer support team for special requests.][49] |
+| <span id="support-eol">End-of-life (EOL)</span>        | No support. The version can still be used but no bugfixes will be provided.                                                                  |
+
+#### Package Versioning
+
+Datadog APM for Ruby practices [semantic versioning][50].
+
+As this relates to downgrading runtime support, it implies:
+
+- **Major version updates** (e.g. `1.0.0` to `2.0.0`) may change support for any runtime
+  from [Beta](#support-beta)/[GA](#support-ga)
+  to [Maintenance](#support-maintenance)/[Legacy](#support-legacy)/[EOL](#support-eol).
+- **Minor version updates** (e.g. `1.0.0` to `1.1.0`) may change support for any runtime
+  from [Beta](#support-beta)/[GA](#support-ga) to [Maintenance](#support-maintenance).
+- **Patch version updates** (e.g. `1.0.0` to `1.0.1`) will not change support for any runtime.
+
+#### Library version support
+
+Datadog APM for Ruby will provide GA support for the latest major version and maintenance support for the previous major
+version of the library.
+
+| Gem Version | Support type                        |
+|-------------|-------------------------------------|
+| 2.x         | [GA](#support-ga)                   |
+| 1.x         | [Maintenance](#support-maintenance) |
+| 0.x         | [EOL](#support-eol)                 |
+
+#### Additional suppport resources
+
+- [Datadog Customer support][49]
+- [Datadog APM for Ruby Setup Documentation][51]
+- [Datadog APM for Ruby GitHub repository][52]
 
 [1]: https://github.com/DataDog/dd-trace-rb
 
@@ -202,49 +249,14 @@ For a list of available integrations, and their configuration options, refer to 
 
 [48]: https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby#sucker-punch
 
-### Support Policy
+[49]: https://www.datadoghq.com/support
 
-Datadog APM for Ruby is built upon dependencies defined in specific versions of the host operating system, Ruby
-runtime, certain Ruby libraries, and the Datadog Agent/API. When these versions are no longer supported by their
-maintainers, Datadog APM for Ruby limits its support for these as well.
+[50]: https://semver.org
 
-#### Levels of Support
+[51]: https://docs.datadoghq.com/tracing/setup_overview/setup/ruby
 
-| **Level**                                              | **Support provided**                                                                                                                                                         |
-|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| <span id="support-unsupported">Unsupported</span>      | No implementation. [Contact our customer support team for special requests.](https://www.datadoghq.com/support/)                                                             |
-| <span id="support-beta">Beta</span>                    | Initial implementation. May not yet contain all features. Support for new features, bug & security fixes provided on a best-effort basis.                                    |
-| <span id="support-ga">General Availability (GA)</span> | Full implementation of all features. Full support for new features, bug & security fixes.                                                                                    |
-| <span id="support-maintenance">Maintenance</span>      | Full implementation of existing features. Does not receive new features. Support for critical bug & security fixes only.                                                     |
-| <span id="support-legacy">Legacy</span>                | Legacy implementation. May have limited function, but no maintenance provided. [Contact our customer support team for special requests.](https://www.datadoghq.com/support/) |
-| <span id="support-eol">End-of-life (EOL)</span>        | No support. The version can still be used but no bugfixes will be provided.                                                                                                  |
+[52]: https://github.com/DataDog/dd-trace-rb
 
-#### Package Versioning
+[53]: https://docs.datadoghq.com/agent/basic_agent_usage/?tab=agentv6v7
 
-Datadog APM for Ruby practices [semantic versioning](https://semver.org/).
-
-As this relates to downgrading runtime support, it implies:
-
-- **Major version updates** (e.g. `1.0.0` to `2.0.0`) may change support for any runtime
-  from [Beta](#support-beta)/[GA](#support-ga)
-  to [Maintenance](#support-maintenance)/[Legacy](#support-legacy)/[EOL](#support-eol).
-- **Minor version updates** (e.g. `1.0.0` to `1.1.0`) may change support for any runtime
-  from [Beta](#support-beta)/[GA](#support-ga) to [Maintenance](#support-maintenance).
-- **Patch version updates** (e.g. `1.0.0` to `1.0.1`) will not change support for any runtime.
-
-#### Library version support
-
-Datadog APM for Ruby will provide GA support for the latest major version and maintenance support for the previous major
-version of the library.
-
-| Gem Version | Support type                        |
-|-------------|-------------------------------------|
-| 2.x         | [GA](#support-ga)                   |
-| 1.x         | [Maintenance](#support-maintenance) |
-| 0.x         | [EOL](#support-eol)                 |
-
-#### Additional suppport resources
-
-- [Datadog Customer support](https://www.datadoghq.com/support/)
-- [Datadog APM for Ruby Setup Documentation](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/)
-- [Datadog APM for Ruby GitHub repository](https://github.com/DataDog/dd-trace-rb)
+[54]: https://docs.datadoghq.com/agent/basic_agent_usage/?tab=agentv5
