@@ -285,12 +285,14 @@ module Datadog
             #
             # This feature is now controlled via {:experimental_allocation_enabled}
             option :allocation_counting_enabled do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.allocation_counting_enabled setting has been deprecated for removal and no ' \
-                  'longer does anything. Please remove it from your Datadog.configure block. ' \
-                  'Allocation counting is now controlled by the `experimental_allocation_enabled` setting instead.'
-                )
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.allocation_counting_enabled setting has been deprecated for removal and no ' \
+                    'longer does anything. Please remove it from your Datadog.configure block. ' \
+                    'Allocation counting is now controlled by the `experimental_allocation_enabled` setting instead.'
+                  )
+                end
               end
             end
 
@@ -340,13 +342,15 @@ module Datadog
             #
             # This feature is now controlled via {:overhead_target_percentage}
             option :experimental_allocation_sample_rate do |o|
-              o.after_set do
-                Datadog.logger.warn(
-                  'The profiling.advanced.experimental_allocation_sample_rate setting has been deprecated for removal ' \
-                  'and no longer does anything. Please remove it from your Datadog.configure block. ' \
-                  'Allocation sample rate is now handled by a dynamic sampler which will adjust the sampling rate to ' \
-                  'keep to the configured `profiling.advanced.overhead_target_percentage`.'
-                )
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.experimental_allocation_sample_rate setting has been deprecated for removal ' \
+                    'and no longer does anything. Please remove it from your Datadog.configure block. ' \
+                    'Allocation sample rate is now handled by a dynamic sampler which will adjust the sampling rate to ' \
+                    'keep to the configured `profiling.advanced.overhead_target_percentage`.'
+                  )
+                end
               end
             end
 
@@ -381,9 +385,27 @@ module Datadog
             #
             # @default `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED` environment variable as a boolean, otherwise `false`
             option :experimental_timeline_enabled do |o|
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.experimental_timeline_enabled setting has been deprecated for removal ' \
+                    'and no longer does anything. Please remove it from your Datadog.configure block. ' \
+                    'The timeline feature counting is now controlled by the `timeline_enabled` setting instead.'
+                  )
+                end
+              end
+            end
+
+            # Controls data collection for the timeline feature.
+            #
+            # If you needed to disable this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>,
+            # so we can fix it!
+            #
+            # @default `DD_PROFILING_TIMELINE_ENABLED` environment variable as a boolean, otherwise `true`
+            option :timeline_enabled do |o|
               o.type :bool
-              o.env 'DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED'
-              o.default false
+              o.env 'DD_PROFILING_TIMELINE_ENABLED'
+              o.default true
             end
 
             # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.

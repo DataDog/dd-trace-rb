@@ -125,6 +125,7 @@ module Datadog
       return false unless supported?
 
       require_relative 'profiling/ext/forking'
+      require_relative 'profiling/collectors/info'
       require_relative 'profiling/collectors/code_provenance'
       require_relative 'profiling/collectors/cpu_and_wall_time_worker'
       require_relative 'profiling/collectors/dynamic_sampling_rate'

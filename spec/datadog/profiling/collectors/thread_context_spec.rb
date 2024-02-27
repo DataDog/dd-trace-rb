@@ -377,19 +377,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
 
           before do
-            # Sanity checks
-            expect(@t1_span_id).to be > 0
-            expect(@t1_local_root_span_id).to be > 0
-            expect(@t1_span_id).to_not be @t1_local_root_span_id
-          end
-
-          it 'samples successfully' do
-            sample
-
-            expect(t1_sample).to_not be_nil
+            expect(@t1_span_id.to_i).to be > 0
+            expect(@t1_local_root_span_id.to_i).to be > 0
           end
 
           it 'includes "local root span id" and "span id" labels in the samples' do
+            expect(@t1_span_id).to_not be @t1_local_root_span_id
+
             sample
 
             expect(t1_sample.labels).to include(
@@ -526,6 +520,154 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             let(:root_span_type) { 'proxy' }
 
             it_behaves_like 'samples with code hotspots information'
+          end
+
+          def self.otel_sdk_available?
+            begin
+              require 'opentelemetry/sdk'
+              true
+            rescue LoadError
+              false
+            end
+          end
+
+          context 'when trace comes from otel sdk', if: otel_sdk_available? do
+            let(:otel_tracer) do
+              require 'datadog/opentelemetry'
+
+              OpenTelemetry::SDK.configure
+              OpenTelemetry.tracer_provider.tracer('ddtrace-profiling-test')
+            end
+
+            let(:t1) do
+              Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
+                otel_tracer.in_span('profiler.test') do
+                  @t1_span_id = Datadog::Tracing.correlation.span_id
+                  @t1_local_root_span_id = Datadog::Tracing.correlation.span_id
+                  ready_queue << true
+                  sleep
+                end
+              end
+            end
+
+            it 'includes "local root span id" and "span id" labels in the samples' do
+              sample
+
+              expect(t1_sample.labels).to include(
+                :'local root span id' => @t1_local_root_span_id.to_i,
+                :'span id' => @t1_span_id.to_i,
+              )
+            end
+
+            it 'does not include the "trace endpoint" label' do
+              sample
+
+              expect(t1_sample.labels).to_not include(:'trace endpoint' => anything)
+            end
+
+            context 'when there are multiple otel spans nested' do
+              let(:t1) do
+                Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
+                  otel_tracer.in_span('profiler.test') do
+                    @t1_local_root_span_id = Datadog::Tracing.correlation.span_id
+                    otel_tracer.in_span('profiler.test.nested.1') do
+                      otel_tracer.in_span('profiler.test.nested.2') do
+                        otel_tracer.in_span('profiler.test.nested.3') do
+                          @t1_span_id = Datadog::Tracing.correlation.span_id
+                          ready_queue << true
+                          sleep
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+
+              it 'includes "local root span id" and "span id" labels in the samples' do
+                sample
+
+                expect(t1_sample.labels).to include(
+                  :'local root span id' => @t1_local_root_span_id.to_i,
+                  :'span id' => @t1_span_id.to_i,
+                )
+              end
+            end
+
+            context 'mixing of otel sdk and ddtrace' do
+              context 'when top-level span is started from ddtrace' do
+                let(:t1) do
+                  Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
+                    Datadog::Tracing.trace('profiler.test', type: :web) do |_span, trace|
+                      trace.resource = 'example_resource'
+
+                      @t1_local_root_span_id = Datadog::Tracing.correlation.span_id
+                      otel_tracer.in_span('profiler.test.nested.1') do
+                        Datadog::Tracing.trace('profiler.test.nested.2') do
+                          otel_tracer.in_span('profiler.test.nested.3') do
+                            Datadog::Tracing.trace('profiler.test.nested.4') do
+                              @t1_span_id = Datadog::Tracing.correlation.span_id
+                              ready_queue << true
+                              sleep
+                            end
+                          end
+                        end
+                      end
+                    end
+                  end
+                end
+
+                it 'uses the local root span id from the top-level span, and the span id from the leaf span' do
+                  sample
+
+                  expect(t1_sample.labels).to include(
+                    :'local root span id' => @t1_local_root_span_id.to_i,
+                    :'span id' => @t1_span_id.to_i,
+                  )
+                end
+
+                it 'includes the "trace endpoint" label in the samples with the trace resource' do
+                  sample
+
+                  expect(t1_sample.labels).to include(:'trace endpoint' => 'example_resource')
+                end
+              end
+
+              context 'when top-level span is started from otel' do
+                let(:t1) do
+                  Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
+                    otel_tracer.in_span('profiler.test') do
+                      @t1_local_root_span_id = Datadog::Tracing.correlation.span_id
+                      otel_tracer.in_span('profiler.test.nested.1') do
+                        Datadog::Tracing.trace('profiler.test.nested.2') do
+                          otel_tracer.in_span('profiler.test.nested.3') do
+                            Datadog::Tracing.trace('profiler.test.nested.4') do
+                              @t1_span_id = Datadog::Tracing.correlation.span_id
+                              ready_queue << true
+                              sleep
+                            end
+                          end
+                        end
+                      end
+                    end
+                  end
+                end
+
+                it 'uses the local root span id from the top-level span, and the span id from the leaf span' do
+                  sample
+
+                  expect(t1_sample.labels).to include(
+                    :'local root span id' => @t1_local_root_span_id.to_i,
+                    :'span id' => @t1_span_id.to_i,
+                  )
+                end
+              end
+            end
+          end
+
+          context 'when trace comes from otel sdk (warning)', unless: otel_sdk_available? do
+            it 'is not being tested' do
+              skip 'Skipping OpenTelemetry tests because `opentelemetry-sdk` gem is not available'
+            end
           end
         end
       end

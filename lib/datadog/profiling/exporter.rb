@@ -25,13 +25,15 @@ module Datadog
         :time_provider,
         :last_flush_finish_at,
         :created_at,
-        :internal_metadata
+        :internal_metadata,
+        :info_json
 
       public
 
       def initialize(
         pprof_recorder:,
         worker:,
+        info_collector:,
         code_provenance_collector:,
         internal_metadata:,
         minimum_duration_seconds: PROFILE_DURATION_THRESHOLD_SECONDS,
@@ -45,14 +47,17 @@ module Datadog
         @last_flush_finish_at = nil
         @created_at = time_provider.now.utc
         @internal_metadata = internal_metadata
+        # NOTE: At the time of this comment collected info does not change over time so we'll hardcode
+        #       it on startup to prevent serializing the same info on every flush.
+        @info_json = JSON.fast_generate(info_collector.info).freeze
       end
 
       def flush
         worker_stats = @worker.stats_and_reset_not_thread_safe
-        start, finish, uncompressed_pprof = pprof_recorder.serialize
+        start, finish, compressed_pprof = pprof_recorder.serialize
         @last_flush_finish_at = finish
 
-        return if uncompressed_pprof.nil? # We don't want to report empty profiles
+        return if compressed_pprof.nil? # We don't want to report empty profiles
 
         if duration_below_threshold?(start, finish)
           Datadog.logger.debug('Skipped exporting profiling events as profile duration is below minimum')
@@ -65,7 +70,7 @@ module Datadog
           start: start,
           finish: finish,
           pprof_file_name: Datadog::Profiling::Ext::Transport::HTTP::PPROF_DEFAULT_FILENAME,
-          pprof_data: uncompressed_pprof.to_s,
+          pprof_data: compressed_pprof.to_s,
           code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
           code_provenance_data: uncompressed_code_provenance,
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
@@ -75,6 +80,7 @@ module Datadog
               gc: GC.stat,
             }
           ),
+          info_json: info_json,
         )
       end
 
