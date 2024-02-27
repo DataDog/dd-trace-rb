@@ -377,8 +377,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
 
           before do
-            expect(@t1_span_id).to be > 0
-            expect(@t1_local_root_span_id).to be > 0
+            expect(@t1_span_id.to_i).to be > 0
+            expect(@t1_local_root_span_id.to_i).to be > 0
           end
 
           it 'includes "local root span id" and "span id" labels in the samples' do
