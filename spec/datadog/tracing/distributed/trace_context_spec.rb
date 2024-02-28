@@ -275,7 +275,9 @@ RSpec.shared_examples 'Trace Context distributed format' do
             let(:upstream_tracestate) { Array.new(32) { |i| "other=vendor#{i}" }.join(',') }
 
             it 'removes 1 trailing value, prepending new `dd=p:0000000000000bee;` value' do
-              expect(tracestate).to eq('dd=p:0000000000000bee;o:origin,' + Array.new(31) { |i| "other=vendor#{i}" }.join(','))
+              expect(tracestate).to eq(
+                'dd=p:0000000000000bee;o:origin,' + Array.new(31) { |i| "other=vendor#{i}" }.join(',')
+              )
             end
           end
 
@@ -348,7 +350,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to eq("_dd.parent_id"=>"bbbbbbbbbbbbbbbb") }
+      it { expect(digest.trace_distributed_tags).to eq('_dd.parent_id' => 'bbbbbbbbbbbbbbbb') }
     end
 
     context 'with traceparent without tracestate' do
@@ -360,7 +362,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to eq("_dd.parent_id"=>"0000000000000000") }
+      it { expect(digest.trace_distributed_tags).to eq('_dd.parent_id' => '0000000000000000') }
     end
 
     context 'with traceparent and with empty tracestate' do
@@ -373,7 +375,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to eq("_dd.parent_id"=>"0000000000000000") }
+      it { expect(digest.trace_distributed_tags).to eq('_dd.parent_id' => '0000000000000000') }
     end
 
     context 'with valid trace_id and parent_id' do
@@ -428,17 +430,17 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         context 'nil' do
           let(:tags) { nil }
-          it { is_expected.to eq("_dd.parent_id" => "0000000000000000") }
+          it { is_expected.to eq('_dd.parent_id' => '0000000000000000') }
         end
 
         context 'an empty value' do
           let(:tags) { '' }
-          it { is_expected.to eq("_dd.parent_id" => "0000000000000000") }
+          it { is_expected.to eq('_dd.parent_id' => '0000000000000000') }
         end
 
         context "{ '_dd.p.key' => 'value' }" do
           let(:tags) { 't.key:value' }
-          it { is_expected.to eq('_dd.p.key' => 'value', "_dd.parent_id" => "0000000000000000") }
+          it { is_expected.to eq('_dd.p.key' => 'value', '_dd.parent_id' => '0000000000000000') }
         end
 
         context "{ '_dd.p.dm' => '-1' }" do
@@ -451,13 +453,13 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
           context 'with a kept trace' do
             let(:trace_flags) { '01' }
-            it { is_expected.to eq('_dd.p.dm' => '-1', "_dd.parent_id" => "0000000000000000") }
+            it { is_expected.to eq('_dd.p.dm' => '-1', '_dd.parent_id' => '0000000000000000') }
           end
         end
 
         context "{ 'key' => 'value~with~tilde' }" do
           let(:tags) { 't.key:value~with~tilde' }
-          it { is_expected.to eq('_dd.p.key' => 'value=with=tilde', "_dd.parent_id" => "0000000000000000") }
+          it { is_expected.to eq('_dd.p.key' => 'value=with=tilde', '_dd.parent_id' => '0000000000000000') }
         end
       end
 

@@ -42,7 +42,9 @@ module Datadog
 
           return unless trace_id # Could not parse traceparent
 
-          tracestate, sampling_priority, origin, dd_parent_id, tags, unknown_fields = extract_tracestate(fetcher[@tracestate_key])
+          tracestate, sampling_priority, origin, dd_parent_id, tags, unknown_fields = extract_tracestate(
+            fetcher[@tracestate_key]
+          )
 
           sampling_priority = parse_priority_sampling(sampled, sampling_priority) do |decision|
             case decision
@@ -53,13 +55,9 @@ module Datadog
               tags.delete(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER) if tags
             end
           end
-          
+
           tags ||= {}
-          if dd_parent_id
-            tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = dd_parent_id
-          else
-            tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = "0000000000000000"
-          end
+          tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = dd_parent_id || '0000000000000000'
 
           TraceDigest.new(
             span_id: parent_id,
@@ -290,7 +288,8 @@ module Datadog
           trace_flags & TRACE_FLAGS_SAMPLED
         end
 
-        # @return [Array<String,Integer,String,String,Hash>] returns 4 values: tracestate, sampling_priority, dd_parent_id, origin, tags.
+        # @return [Array<String,Integer,String,String,Hash>] returns 4 values:
+        # tracestate, sampling_priority, dd_parent_id, origin, tags.
         def extract_tracestate(tracestate)
           return unless tracestate
 
