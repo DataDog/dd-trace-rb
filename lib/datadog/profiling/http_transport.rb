@@ -45,6 +45,8 @@ module Datadog
 
           tags_as_array: flush.tags_as_array,
           internal_metadata_json: flush.internal_metadata_json,
+
+          info_json: flush.info_json
         )
 
         if status == :ok
@@ -113,7 +115,8 @@ module Datadog
         code_provenance_file_name:,
         code_provenance_data:,
         tags_as_array:,
-        internal_metadata_json:
+        internal_metadata_json:,
+        info_json:
       )
         self.class._native_do_export(
           exporter_configuration,
@@ -128,6 +131,7 @@ module Datadog
           code_provenance_data,
           tags_as_array,
           internal_metadata_json,
+          info_json,
         )
       end
 
