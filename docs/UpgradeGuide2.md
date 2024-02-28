@@ -103,7 +103,11 @@ Here's the list of all affected options:
 
 <h4 id="2.0-propagation-default">Propagation default</h4>
 
-The default distributed tracing propagation extraction is now `Datadog,tracecontext` (Before 2.0, the default was `Datadog,b3multi,b3,tracecontext`).
+B3 propagation has been removed from the default propagation. See [this](GettingStarted.md#distributed-header-formats) to configure explicity if you want to propagate with B3.
+
+| 1.x                               | 2.0                    |
+| --------------------------------- | ---------------------- |
+| `datadog,b3multi,b3,tracecontext` | `datadog,tracecontext` |
 
 <h4 id="2.0-options">options</h4>
 
