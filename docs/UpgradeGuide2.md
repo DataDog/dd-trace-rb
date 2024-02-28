@@ -30,6 +30,7 @@ For users with an advanced implementation of `ddtrace` (custom instrumentation, 
 - [Instrumentation Changes](#2.0-instrumentation)
   - [Error Handling with `error_handler`](#2.0-error-handling)
   - [Setting `error_status_codes` option with ENV](#2.0-error-status-codes)
+  - [List of Integration changes](#2.0-list-of-integration-changes)
 
 <h3 id="2.0-requires-ruby-2.5+">Requires Ruby 2.5+</h3>
 
@@ -222,10 +223,14 @@ Remove deprecated constants at `Datadog::Tracing::Distributed::Headers::Ext`. Th
 
 <h3 id="2.0-transport">Transport</h3>
 
-The `c.tracing.transport_options` option has been removed and cannot be configured with a custom transport adapter.
+The `c.tracing.transport_options` option has been removed and cannot be configured with a custom transport adapter. The following options have been added to replace configuration options previously only available via transport_options:
 
-- See [Test adapter](GettingStarted.md#transporting-in-test-mode)
-- See [Unix Domain Socket (UDS) adapter](GettingStarted.md#unix-domain-socket-uds)
+* `c.agent.timeout_seconds` or `DD_TRACE_AGENT_TIMEOUT_SECONDS`
+* `c.agent.uds_path`
+* `c.agent.use_ssl`
+
+see [configure transport layer](#GettingStarted.md#configuring-the-transport-layer).
+
 
 Changes
 
@@ -284,11 +289,13 @@ The configuration option `c.tracing.priority_sampling` has been removed. To disa
 
 The `error_handler` options have been replaced by `on_error` to align with `options` for our public API `Datadog::Tracing.trace(options)`.
 
-Rename `error_handler` option to `on_error` in your configuration, except for [`active_job`](#activejob), [`grpc`](#grpc), [`faraday`](#faraday) and [`excon`](#excon).
+For the majority of integrations, rename the `error_handler` option to `on_error` in your configuration. See details for [`active_job`](#activejob), [`grpc`](#grpc), [`faraday`](#faraday) and [`excon`](#excon), which have unique implementation changes.
 
 <h3 id='2.0-error-status-codes'>Setting `error_status_codes` option with ENV</h3>
 
 Option `error_status_codes` is introduced to various http integrations. It tags the span with an error based on http status from response header. Its value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for an end-excluded range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)
+
+<h3 id='2.0-list-of-integration-changes'>List of Integration Changes</h3>
 
 #### ActiveJob
 
