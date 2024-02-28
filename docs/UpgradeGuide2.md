@@ -225,12 +225,11 @@ Remove deprecated constants at `Datadog::Tracing::Distributed::Headers::Ext`. Th
 
 The `c.tracing.transport_options` option has been removed and cannot be configured with a custom transport adapter. The following options have been added to replace configuration options previously only available via transport_options:
 
-* `c.agent.timeout_seconds` or `DD_TRACE_AGENT_TIMEOUT_SECONDS`
-* `c.agent.uds_path`
-* `c.agent.use_ssl`
+- `c.agent.timeout_seconds` or `DD_TRACE_AGENT_TIMEOUT_SECONDS`
+- `c.agent.uds_path`
+- `c.agent.use_ssl`
 
 see [configure transport layer](#GettingStarted.md#configuring-the-transport-layer).
-
 
 Changes
 
@@ -297,216 +296,210 @@ Option `error_status_codes` is introduced to various http integrations. It tags 
 
 <h3 id='2.0-list-of-integration-changes'>List of Integration Changes</h3>
 
+#### ActionPack
+
+- Removed: `exception_controller` option.
+
 #### ActiveJob
 
-Remove `error_handler` option.
+- Removed: `error_handler` option.
 
 #### DelayedJob
 
-Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
+- Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
 #### Elasticsearch
 
-Only ElasticSearch "transport" can be configured.
+- Only ElasticSearch "transport" can be configured.
 
-```ruby
-# === with 1.x ===
-Datadog.configure_onto(client, **options)
-Datadog.configure_onto(client.transport, **options)
+  ```ruby
+  # === with 1.x ===
+  Datadog.configure_onto(client, **options)
+  Datadog.configure_onto(client.transport, **options)
 
-# === with 2.0 ===
-Datadog.configure_onto(client.transport, **options)
-```
+  # === with 2.0 ===
+  Datadog.configure_onto(client.transport, **options)
+  ```
 
 #### Excon
 
-Remove option `error_handler`, and use `error_status_codes` instead.
+- Removed: `error_handler` option. Use `error_status_codes` option to tag span with an error based on http status from response header, the default is `400...600` (Only server errors are tagged in 1.x). Additionally, configure `on_error` option to control behaviour when an exception (ie. `Excon::Error::Timeout`) is raised.
 
-Configure option `error_status_codes` to tag span with an error based on http status from response header, the default is 400...600 (Only server errors are tagged in 1.x).
-
-```ruby
-# === with 1.x ===
-Datadog.configure do |c|
-  c.tracing.instrument :excon, error_handler: lambda do |response|
-    (400...600).cover?(response[:status])
+  ```ruby
+  # === with 1.x ===
+  Datadog.configure do |c|
+    c.tracing.instrument :excon, error_handler: lambda do |response|
+      (400...600).cover?(response[:status])
+    end
   end
-end
 
-# === with 2.0 ===
-Datadog.configure do |c|
-  c.tracing.instrument :excon, error_status_codes: 400...600
-end
-```
-
-Additionally, configure `on_error` option to control behaviour when an exception (ie. `Excon::Error::Timeout`) is raised.
+  # === with 2.0 ===
+  Datadog.configure do |c|
+    c.tracing.instrument :excon, error_status_codes: 400...600
+  end
+  ```
 
 #### Faraday
 
-Remove option `error_handler`, and use `error_status_codes` instead.
+- Removed: `error_handler` option. Use `error_status_codes` option to tag span with an error based on http status from response header, the default is `400...600` (Only server errors are tagged in 1.x). Additionally, configure `on_error` option to control behaviour when an exception (ie.`Faraday::ConnectionFailed`) is raised.
 
-Configure option `error_status_codes` to tag span with an error based on http status from response header, the default is 400...600 (Only server errors are tagged in 1.x).
-
-```ruby
-# === with 1.x ===
-Datadog.configure do |c|
-  c.tracing.instrument :faraday, error_handler: lambda do |env|
-    (400...600).cover?(env[:status])
+  ```ruby
+  # === with 1.x ===
+  Datadog.configure do |c|
+    c.tracing.instrument :faraday, error_handler: lambda do |env|
+      (400...600).cover?(env[:status])
+    end
   end
-end
 
-# === with 2.0 ===
-Datadog.configure do |c|
-  c.tracing.instrument :faraday, error_status_codes: 400...600
-end
-```
-
-Additionally, configure `on_error` option to control behaviour when an exception (ie.`Faraday::ConnectionFailed`) is raised.
+  # === with 2.0 ===
+  Datadog.configure do |c|
+    c.tracing.instrument :faraday, error_status_codes: 400...600
+  end
+  ```
 
 #### Grape
 
-Option `error_statuses` has been removed, use `error_status_codes` instead.
+- Removed: `error_statuses` option. Use `error_status_codes` instead.
 
-```ruby
-# === with 1.x ===
-Datadog.configure do |c|
-  c.tracing.instrument :grape, error_statuses: '400,500-599'
-end
+  ```ruby
+  # === with 1.x ===
+  Datadog.configure do |c|
+    c.tracing.instrument :grape, error_statuses: '400,500-599'
+  end
 
-# === with 2.0 ===
-Datadog.configure do |c|
-  c.tracing.instrument :grape, error_status_codes: [400, 500..599]
-end
-```
+  # === with 2.0 ===
+  Datadog.configure do |c|
+    c.tracing.instrument :grape, error_status_codes: [400, 500..599]
+  end
+  ```
 
 #### GraphQL
 
-Support `graphql-ruby` versions `>= 2.2.6`, which breaking changes were introduced. No longer support and patch GraphQL's defined-based schema.
+- Support changes:
+  - Supports `graphql-ruby` versions `>= 2.2.6`, see [other backported versions](#2.0-graphql-versions)
+  - Do not support or patch GraphQL's defined-based schema.
 
-- `schemas` : Optional (default: `[]`). Providing GraphQL schemas is not required. By default, every schema is instrumented.
+- Option `schemas` becomes optional. Providing GraphQL schemas is not required. By default, every schema is instrumented.
 
-- `with_deprecated_tracer` : Optional (default: `false`). Spans are generated by `GraphQL::Tracing::DataDogTrace`. When `true` , spans are generated by deprecated `GraphQL::Tracing::DataDogTracing`
+- Instrument with `GraphQL::Tracing::DataDogTrace`. Set `with_deprecated_tracer` option to `true` to rollback instrumentation with deprecated `GraphQL::Tracing::DataDogTracing`.
 
-Notes: `GraphQL::Tracing::DataDogTrace` is only available With `graphql-ruby(>= 2.0.19)`. Otherwise, it will fallback to the `GraphQL::Tracing::DataDogTracing`
+<h5 id='2.0-graphql-versions'>Backported Versions</h5>
 
-Notes: The changes are backported to previous `graphql-ruby` versions
+The changes are backported to previous `graphql-ruby` versions
 
-| branch   | version             |
+| Branch   | Version             |
 | -------- | ------------------- |
-| `1.13.x` | `>= 1.13.21, < 2.0` |
-| `2.0.x`  | `>= 2.0.28, < 2.1`  |
+| `2.2.x`  | `>= 2.2.6`          |
 | `2.1.x`  | `>= 2.1.11, > 2.2`  |
+| `2.0.x`  | `>= 2.0.28, < 2.1`  |
+| `1.13.x` | `>= 1.13.21, < 2.0` |
 
 #### GRPC
 
-Replace options `error_handler`, `server_error_handler` and `client_error_handler` with `on_error`
+- `error_handler`, `server_error_handler` and `client_error_handler` options are removed. Replace them with option `on_error`, which is invoked on both server and client side instrumentation. Merge your implementation for `server_error_handler` and `client_error_handler` to `on_error`. The implementation for `on_error` should distinguish between the server and client.
 
-`on_error` options would be invoked on both server and client side instrumentation. Merge your `server_error_handler` and `client_error_handler` to `on_error`. The implementation for `on_error` should distinguish between the server and client.
+  ```ruby
+  Datadog.configure do |c|
+    c.tracing.instrument :grpc, on_error: proc do |span, error|
+      if span.name == 'grpc.service'
+        # Do something for server instrumentation
+      end
 
-```ruby
-Datadog.configure do |c|
-  c.tracing.instrument :grpc, on_error: proc do |span, error|
-    if span.name == 'grpc.service'
-      # Do something for server instrumentation
-    end
-
-    if span.name == 'grpc.client'
-      # Do something for client instrumentation
+      if span.name == 'grpc.client'
+        # Do something for client instrumentation
+      end
     end
   end
-end
-```
+  ```
 
 #### Net/Http
 
-`Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request` has been removed.
+- `Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request` has been removed.
 
 #### PG
 
-Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
+- Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
 #### Qless
 
-Removed
+- Removed entirely. Use `ddtrace` 1.x.
 
 #### Que
 
-Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
+- Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
-#### Rack
+<h4 id='2.0-instrumentation-rack'>Rack</h4>
 
-`request_queuing` option on rack/rails must be boolean.
+- The type for `request_queuing` option is `Boolean`. When enabled, the behaviour changes from 1 span to 2 spans. The original `http_server.queue` span rename to `http.proxy.request`, with an additional `http.proxy.queue` span representing the time spent in a load balancer queue before reaching application.
 
-```ruby
-# === with 1.x ===
-Datadog.configure do |c|
-  c.tracing.instrument :rack, request_queuing: :include_request
-  # or
-  c.tracing.instrument :rack, request_queuing: :exclude_request
-end
-
-# === with 2.0 ===
-Datadog.configure do |c|
-  c.tracing.instrument :rack, request_queuing: true
-end
-```
-
-With `request_queuing` enabled, the behaviour changes from 1 span to 2 spans. The original `http_server.queue` span rename to `http.proxy.request`, with an additional `http.proxy.queue` span representing the time spent in a load balancer queue before reaching application.
-
-Changing the name of the top-level span (`http_server.queue` -> `http.proxy.request`) would break a lot of stuff (monitors, dashboards, notebooks). The following snippet rename the top-level span back to help migration.
-
-```ruby
-Datadog::Tracing.before_flush(
-  Datadog::Tracing::Pipeline::SpanProcessor.new do |span|
-    if span.name == 'http.proxy.request'
-      span.name = 'http_server.queue'
-    end
+  ```ruby
+  # === with 1.x ===
+  Datadog.configure do |c|
+    c.tracing.instrument :rack, request_queuing: :include_request
+    # or
+    c.tracing.instrument :rack, request_queuing: :exclude_request
   end
-)
-```
+
+  # === with 2.0 ===
+  Datadog.configure do |c|
+    c.tracing.instrument :rack, request_queuing: true
+  end
+  ```
+
+  Changing the name of the top-level span (`http_server.queue` -> `http.proxy.request`) would break a lot of stuff (monitors, dashboards, notebooks). The following snippet rename the top-level span back to help migration.
+
+  ```ruby
+  Datadog::Tracing.before_flush(
+    Datadog::Tracing::Pipeline::SpanProcessor.new do |span|
+      if span.name == 'http.proxy.request'
+        span.name = 'http_server.queue'
+      end
+    end
+  )
+  ```
 
 #### Rails
 
-No longer support Rails 3
+- Support changes: Support Rails 4+ (Drops Rails 3)
 
-The `exception_controller` configuration option has been removed for Rails and Action Pack because it is automatically detected.
+- Removed: `exception_controller` option.
+
+- See [Rack](#2.0-instrumentation-rack)
 
 #### Resque
 
-Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
+- Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
+
+#### Sinatra
+
+* Removed following constants:
+  * `Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_REQUEST_SPAN`
+  * `Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_MIDDLEWARE_START_TIME`
+  * `Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_MIDDLEWARE_TRACED`
 
 #### Shoryuken
 
-Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
+- Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
 #### Sidekiq
 
-Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
+- Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
 
-`tag_args` option is removed, use `quantize` instead
+- Removed: `tag_args` option. Use `quantize` instead.
 
-```ruby
-# === with 1.x ===
-Datadog.configure do |c|
-  c.tracing.instrument :sidekiq, tag_args: true
-end
+  ```ruby
+  # === with 1.x ===
+  Datadog.configure do |c|
+    c.tracing.instrument :sidekiq, tag_args: true
+  end
 
-# === with 2.0 ===
-Datadog.configure do |c|
-  c.tracing.instrument :sidekiq, quantize: { args: { show: :all } }
-end
-```
+  # === with 2.0 ===
+  Datadog.configure do |c|
+    c.tracing.instrument :sidekiq, quantize: { args: { show: :all } }
+  end
+  ```
 
-Remove Sidekiq worker specific configuration
-
-Defining `datadog_tracer_config` on Sidekiq worker is never documented and publicly supported.
-
-Removed constants
-
-```ruby
-Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_REQUEST_SPAN
-Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_MIDDLEWARE_START_TIME
-Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_MIDDLEWARE_TRACED
-```
+* No longer support worker specific configuration from `#datadog_tracer_config` method.
 
 #### Sneakers
 
