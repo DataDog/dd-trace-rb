@@ -42,7 +42,7 @@ module Datadog
 
           return unless trace_id # Could not parse traceparent
 
-          tracestate, sampling_priority, origin, dd_parent_id, tags, unknown_fields = extract_tracestate(
+          tracestate, sampling_priority, origin, tp_parent_id, tags, unknown_fields = extract_tracestate(
             fetcher[@tracestate_key]
           )
 
@@ -57,7 +57,7 @@ module Datadog
           end
 
           tags ||= {}
-          tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = dd_parent_id || '0000000000000000'
+          tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = tp_parent_id || '0000000000000000'
 
           TraceDigest.new(
             span_id: parent_id,
@@ -289,7 +289,7 @@ module Datadog
         end
 
         # @return [Array<String,Integer,String,String,Hash>] returns 4 values:
-        # tracestate, sampling_priority, dd_parent_id, origin, tags.
+        # tracestate, sampling_priority, tp_parent_id, origin, tags.
         def extract_tracestate(tracestate)
           return unless tracestate
 
@@ -303,15 +303,15 @@ module Datadog
           dd_tracestate = vendors.delete_at(idx)
           dd_tracestate.slice!(0..2)
 
-          origin, sampling_priority, dd_parent_id, tags, unknown_fields = extract_datadog_fields(dd_tracestate)
+          origin, sampling_priority, tp_parent_id, tags, unknown_fields = extract_datadog_fields(dd_tracestate)
 
-          [vendors.join(','), sampling_priority, origin, dd_parent_id, tags, unknown_fields]
+          [vendors.join(','), sampling_priority, origin, tp_parent_id, tags, unknown_fields]
         end
 
         def extract_datadog_fields(dd_tracestate)
           sampling_priority = nil
           origin = nil
-          dd_parent_id = nil
+          tp_parent_id = nil
           tags = nil
           unknown_fields = nil
 
@@ -324,7 +324,7 @@ module Datadog
             when 'o'
               origin = value
             when 'p'
-              dd_parent_id = value
+              tp_parent_id = value
             when /^t\./
               key.slice!(0..1) # Delete `t.` prefix
 
@@ -343,7 +343,7 @@ module Datadog
             end
           end
 
-          [origin, sampling_priority, dd_parent_id, tags, unknown_fields]
+          [origin, sampling_priority, tp_parent_id, tags, unknown_fields]
         end
 
         # Restore `~` back to `=`.
