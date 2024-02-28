@@ -500,7 +500,3 @@ Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_MIDDLEWARE_TRACED
 #### Sneakers
 
 Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
-
-## Ensure traces reach the agent
-
-Datadog::Tracing.reject! now only changes the priority sampling, as documented, instead of preventing the trace from reaching the Datadog Agent. Now, rejected traces will correctly count towards trace metrics.
