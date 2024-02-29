@@ -2289,7 +2289,7 @@ For more details on how to activate distributed tracing for integrations, see th
 - [httpclient](#httpclient)
 - [httpx](#httpx)
 
-**Using the HTTP propagator**
+#### Using the HTTP propagator
 
 To make the process of propagating this metadata easier, you can use the `Datadog::Tracing::Contrib::HTTP` module.
 

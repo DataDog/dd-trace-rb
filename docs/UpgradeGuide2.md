@@ -4,7 +4,9 @@
 
 Upgrading `ddtrace` from 1.x to 2.0 introduces some breaking changes which are outlined below.
 
-**How to upgrade basic usage**
+[**Upgrade basic usage**](#2.0-upgrading-basic-usage)
+
+For users with a basic implementation (configuration file + out-of-the-box instrumentation), only minor changes to your configuration file are required: most applications take just minutes to update. Check out the following sections for a step-by-step guide.
 
 - [Requires Ruby 2.5+](#2.0-requires-ruby-2.5+)
 - [Extracts datadog-ci gem](#2.0-extracts-ci)
@@ -14,29 +16,35 @@ Upgrading `ddtrace` from 1.x to 2.0 introduces some breaking changes which are o
   - [Propagation default](#2.0-propagation-default)
   - [Options](#2.0-options)
 
-**Additional upgrades for advanced usage**
+---
 
-For users with an advanced implementation of `ddtrace` (custom instrumentation, sampling or processing behavior, etc), some additional namespace and behavioral changes may be required. See the following sections for details about what features changed and how to use them.
+[**Upgrade advanced usage**](#2.0-upgrading-advanced-usage)
+
+For users with an advanced implementation of `ddtrace` (custom instrumentation, sampling or processing behavior, etc), some additional may be required. See the following sections for details about what features changed and how to use them.
 
 - [Frozen String](#2.0-frozen-string)
 - [Tracing API](#2.0-tracing-api)
+- [Configuration API](#2.0-configuration-api)
 - [Log Correlation](#2.0-log-correlation)
 - [Distributed Tracing](#2.0-distributed-tracing)
 - [Transport](#2.0-transport)
 - [Sampling](#2.0-sampling)
 
-**Instrumentations**
+---
 
-- [Instrumentation Changes](#2.0-instrumentation)
-  - [Error Handling with `error_handler`](#2.0-error-handling)
-  - [Setting `error_status_codes` option with ENV](#2.0-error-status-codes)
-  - [List of Integration changes](#2.0-list-of-integration-changes)
+[**Upgrade Instrumentations**](#2.0-upgrade-instrumentations)
+
+Outlines the changes for our instrumentations (ie: change of support policy and option behaviour).
+
+- [Error Handling](#2.0-error-handling)
+- [Option `error_status_codes`](#2.0-error-status-codes)
+- [List of Integration changes](#2.0-list-of-integration-changes)
+
+<h2 id="2.0-upgrading-basic-usage">Upgrading Basic Usage</h2>
 
 <h3 id="2.0-requires-ruby-2.5+">Requires Ruby 2.5+</h3>
 
 The minimum Ruby version requirement for ddtrace 2.x is 2.5.0. For prior Ruby versions, you can use ddtrace 1.x. see more with our support policy.
-
-<!-- OpenTracing is no longer supported -->
 
 <h3 id="2.0-extracts-ci">Extracts datadog-ci gem</h3>
 
@@ -68,13 +76,8 @@ end
 ```
 
 <h4 id="2.0-type-checking">Enforce type checking</h4>
-<!--
-Configuration options of types ':int' and ':float' now have stricter type validation:
-Fractional numbers are no longer considered valid for ':int' options.
-Empty values (nil or empty string) are no longer considered valid for ':int' or ':float' options.
-This applies to both environment variable and programmatic configuration. -->
 
-Configuration options are type checked. When validation fails, it raises `ArgumentError` . Skipping validation with `ENV['DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION']` has now been removed.
+Configuration options are type checked. When validation fails, it raises `ArgumentError`.
 
 For example `c.env` and `c.service` now have to be `String`.
 
@@ -82,64 +85,73 @@ For example `c.env` and `c.service` now have to be `String`.
 # === with 1.x ===
 Datadog.configure do |c|
   c.env = :production
-
-  c.agent.port = '8160'
-  c.tracing.sampling.rate_limit = 50.0
 end
 
 # === with 2.0 ===
 Datadog.configure do |c|
-  c.env = 'production' # Must be string
-
-  # Must be Integer
-  c.agent.port = 8160
-  c.tracing.sampling.rate_limit = 50
+  c.env = 'production'
 end
 ```
 
-Here's the list of all affected options:
-[Insert all :int and :float options at release time!!!]
+Notes: Skipping validation with `ENV['DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION']` has been removed.
 
-<!-- Configuration options can no longer be defined as lazy. All options are lazily evaluated, making this redundant. -->
+<!-- Here's the list of all affected options:
+[Insert all :int and :float options at release time!!!] -->
 
 <h4 id="2.0-propagation-default">Propagation default</h4>
 
-B3 propagation has been removed from the default propagation. See [this](GettingStarted.md#distributed-header-formats) to configure explicity if you want to propagate with B3.
+B3 propagation has been removed from the default propagation. If you want to configure B3 propagation, see [document](GettingStarted.md#distributed-header-formats).
 
 | 1.x                               | 2.0                    |
 | --------------------------------- | ---------------------- |
 | `datadog,b3multi,b3,tracecontext` | `datadog,tracecontext` |
 
-<h4 id="2.0-options">options</h4>
+<h4 id="2.0-options">Options</h4>
 
-Configuration `c.tracing.client_ip.enabled` with `ENV['DD_TRACE_CLIENT_IP_HEADER_DISABLED']` is removed, use `ENV['DD_TRACE_CLIENT_IP_ENABLED']` instead.
+- Option `c.tracing.client_ip.enabled`: `ENV['DD_TRACE_CLIENT_IP_HEADER_DISABLED']` is removed. Use `ENV['DD_TRACE_CLIENT_IP_ENABLED']` instead.
 
-Programmatic configuration options have been made more consistent with their respective environment variables:
+- Programmatic configuration options have been made more consistent with their respective environment variables:
 
-| 1.x                                                     | 2.0                                 | Environment Variable (unchanged)     |
-| ------------------------------------------------------- | ----------------------------------- | ------------------------------------ |
-| `tracing.distributed_tracing.propagation_extract_first` | `tracing.propagation_extract_first` | `DD_TRACE_PROPAGATION_EXTRACT_FIRST` |
-| `tracing.distributed_tracing.propagation_extract_style` | `tracing.propagation_style_extract` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT` |
-| `tracing.distributed_tracing.propagation_inject_style`  | `tracing.propagation_style_inject`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`  |
-| `tracing.distributed_tracing.propagation_style`         | `tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE`         |
-| `diagnostics.health_metrics.enabled`                    | `health_metrics.enabled`            | `DD_HEALTH_METRICS_ENABLED`          |
-| `diagnostics.health_metrics.statsd`                     | `health_metrics.statsd`             | (none)                               |
-| `profiling.advanced.max_events`                         | Removed                             | (none)                               |
-| `profiling.advanced.legacy_transport_enabled`           | Removed                             | (none)                               |
-| `profiling.advanced.force_enable_new_profiler`          | Removed                             | (none)                               |
-| `profiling.advanced.force_enable_legacy_profiler`       | Removed                             | (none)                               |
+  | 1.x                                                     | 2.0                                 | Environment Variable (unchanged)     |
+  | ------------------------------------------------------- | ----------------------------------- | ------------------------------------ |
+  | `tracing.distributed_tracing.propagation_extract_first` | `tracing.propagation_extract_first` | `DD_TRACE_PROPAGATION_EXTRACT_FIRST` |
+  | `tracing.distributed_tracing.propagation_extract_style` | `tracing.propagation_style_extract` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT` |
+  | `tracing.distributed_tracing.propagation_inject_style`  | `tracing.propagation_style_inject`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`  |
+  | `tracing.distributed_tracing.propagation_style`         | `tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE`         |
+  | `diagnostics.health_metrics.enabled`                    | `health_metrics.enabled`            | `DD_HEALTH_METRICS_ENABLED`          |
+  | `diagnostics.health_metrics.statsd`                     | `health_metrics.statsd`             | (none)                               |
+  | `profiling.advanced.max_events`                         | Removed                             | (none)                               |
+  | `profiling.advanced.legacy_transport_enabled`           | Removed                             | (none)                               |
+  | `profiling.advanced.force_enable_new_profiler`          | Removed                             | (none)                               |
+  | `profiling.advanced.force_enable_legacy_profiler`       | Removed                             | (none)                               |
 
-<h2 id="2.0-advanced-upgrade">Upgrading advanced usage</h1>
+<h2 id="2.0-upgrading-advanced-usage">Upgrading Advanced Usage</h2>
 
 <h3 id="2.0-frozen-string">Frozen String</h3>
 
-All strings the strings are frozen by default. Make sure your code does not mutate them.
+All strings are frozen by default. Make sure your code does not mutate them.
+
+<h3 id="2.0-configuration-api">Configuration API</h3>
+
+If you are [writing your own instrumentation](DevelopmentGuide.md#writing-new-integrations),
+configuration options are now lazily evaluated by default, hence remove `.lazy` from option definition.
+
+```ruby
+class MySettings < Datadog::Tracing::Contrib::Configuration::Settings
+  option :boom do |o|
+    o.default do
+      true
+    end
+    o.lazy # === Remove this with 2.0 ===
+  end
+end
+```
 
 <h3 id="2.0-tracing-api">Tracing API</h3>
 
 Remove option `span_type` from `Datadog::Tracing.trace` method and the following alias methods
 
-| 1.x                                            | 2.0                                       |
+| 1.x                                            | Replacement in 2.0                        |
 | ---------------------------------------------- | ----------------------------------------- |
 | `Datadog::Tracing.trace(name, span_type: ...)` | `Datadog::Tracing.trace(name, type: ...)` |
 | `Datadog::Tracing::SpanOperation#span_id`      | `Datadog::Tracing::SpanOperation#id`      |
@@ -149,7 +161,7 @@ Remove option `span_type` from `Datadog::Tracing.trace` method and the following
 | `Datadog::Tracing::Span#span_type`             | `Datadog::Tracing::Span#type`             |
 | `Datadog::Tracing::Span#span_type=`            | `Datadog::Tracing::Span#type=`            |
 
-If you are manual instrumentation or pipeline processors
+If you are using [manual instrumentation](GettingStarted.md#manual-instrumentation) or [processing pipeline](GettingStarted.md#processing-pipeline)
 
 ```ruby
 # === with 1.x ===
@@ -169,15 +181,25 @@ end
 
 <h3 id="2.0-log-correlation">Log Correlation</h3>
 
-Remove obsolete fields from `Datadog::Tracing::Correlation::Identifier`, and responds to `#env`, `#service`, `#version`, `#trace_id`, `#span_id` and `#to_log_format`. The values returned from `#trace_id` and `#span_id` are now `String`.
+Remove obsolete fields from `Datadog::Tracing::Correlation::Identifier`, and responds to `#env`, `#service`, `#version`, `#trace_id`, `#span_id` and `#to_log_format`. The values returned from `#trace_id` and `#span_id` change from `Integer` to `String`.
 
-Check if your usage still compatible when manually correlating logs.
+If you are [manually correlating logs](GettingStarted.md#trace-correlation), check if it is still compatible.
+
+```ruby
+# === with 1.x ===
+Datadog::Tracing.correlation.span_id
+# => 50288418819650436
+
+# === with 2.0 ===
+Datadog::Tracing.correlation.span_id
+# => '50288418819650436'
+```
 
 <h3 id="2.0-distributed-tracing">Distributed Tracing</h3>
 
-<h4 id="2.0-distributed-tracing-api">API changes</h4>
+<h4 id="2.0-distributed-tracing-api">Propagation API changes</h4>
 
-`Datadog::Tracing::Propagation::HTTP` has moved to `Datadog::Tracing::Contrib::HTTP`.
+If you are [manually propagating distributed tracing metadata](GettingStarted.md#using-the-http-propagator) `Datadog::Tracing::Propagation::HTTP` has moved to `Datadog::Tracing::Contrib::HTTP`.
 
 ```ruby
 # === with 1.x ===
@@ -203,7 +225,9 @@ The values from the environment variables `DD_TRACE_PROPAGATION_STYLE`, `DD_TRAC
 | `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER` | `b3`      | single header    |
 | `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER`  | `b3multi` | multiple headers |
 
-Remove deprecated constants at `Datadog::Tracing::Distributed::Headers::Ext`. These constants have been moved to `Datadog::Tracing::Distributed::Datadog`, `Datadog::Tracing::Distributed::B3Single` and `Datadog::Tracing::Distributed::B3Mulit`.
+<h4>Constant changes</h4>
+
+Remove constants at `Datadog::Tracing::Distributed::Headers::Ext`. see table below:
 
 | 1.x                                                                            | 2.0                                                             |
 | ------------------------------------------------------------------------------ | --------------------------------------------------------------- |
@@ -223,15 +247,15 @@ Remove deprecated constants at `Datadog::Tracing::Distributed::Headers::Ext`. Th
 
 <h3 id="2.0-transport">Transport</h3>
 
-The `c.tracing.transport_options` option has been removed and cannot be configured with a custom transport adapter. The following options have been added to replace configuration options previously only available via transport_options:
+The `c.tracing.transport_options` option has been removed and cannot be configured with a custom transport adapter. The following options have been added to replace options previously only available via `transport_options`:
 
 - `c.agent.timeout_seconds` or `DD_TRACE_AGENT_TIMEOUT_SECONDS`
 - `c.agent.uds_path`
 - `c.agent.use_ssl`
 
-see [configure transport layer](#GettingStarted.md#configuring-the-transport-layer).
+see [configure transport layer](GettingStarted.md#configuring-the-transport-layer).
 
-Changes
+See table below for constant and method changes:
 
 | 1.x                                                              | 2.0                                                     |
 | ---------------------------------------------------------------- | ------------------------------------------------------- |
@@ -282,15 +306,15 @@ The configuration option `c.tracing.priority_sampling` has been removed. To disa
 | `Datadog::Tracing::Sampling::RuleSampler`          | Privatized |
 | `Datadog::Tracing::Sampling::Sampler`              | Privatized |
 
-<h2 id="2.0-instrumentation">Instrumentation changes</h2>
+<h2 id="2.0-upgrade-instrumentations">Upgrade Instrumentations</h2>
 
 <h3 id='2.0-error-handling'>Error Handling</h3>
 
-The `error_handler` options have been replaced by `on_error` to align with `options` for our public API `Datadog::Tracing.trace(options)`.
+The `error_handler` options have been replaced by `on_error` to align with `options` for our public API `Datadog::Tracing.trace(name, options)`.
 
 For the majority of integrations, rename the `error_handler` option to `on_error` in your configuration. See details for [`active_job`](#activejob), [`grpc`](#grpc), [`faraday`](#faraday) and [`excon`](#excon), which have unique implementation changes.
 
-<h3 id='2.0-error-status-codes'>Setting `error_status_codes` option with ENV</h3>
+<h3 id='2.0-error-status-codes'>Option `error_status_codes`</h3>
 
 Option `error_status_codes` is introduced to various http integrations. It tags the span with an error based on http status from response header. Its value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for an end-excluded range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)
 
@@ -376,23 +400,18 @@ Option `error_status_codes` is introduced to various http integrations. It tags 
 #### GraphQL
 
 - Support changes:
-  - Supports `graphql-ruby` versions `>= 2.2.6`, see [other backported versions](#2.0-graphql-versions)
-  - Do not support or patch GraphQL's defined-based schema.
+
+  - Supports `graphql-ruby` versions `>= 2.2.6`, and the below backported versions:
+    | Branch | Version |
+    | -------- | ------------------- |
+    | `2.1.x` | `>= 2.1.11, > 2.2` |
+    | `2.0.x` | `>= 2.0.28, < 2.1` |
+    | `1.13.x` | `>= 1.13.21, < 2.0` |
+  - Do **NOT** support or patch defined-based schema.
 
 - Option `schemas` becomes optional. Providing GraphQL schemas is not required. By default, every schema is instrumented.
 
 - Instrument with `GraphQL::Tracing::DataDogTrace`. Set `with_deprecated_tracer` option to `true` to rollback instrumentation with deprecated `GraphQL::Tracing::DataDogTracing`.
-
-<h5 id='2.0-graphql-versions'>Backported Versions</h5>
-
-The changes are backported to previous `graphql-ruby` versions
-
-| Branch   | Version             |
-| -------- | ------------------- |
-| `2.2.x`  | `>= 2.2.6`          |
-| `2.1.x`  | `>= 2.1.11, > 2.2`  |
-| `2.0.x`  | `>= 2.0.28, < 2.1`  |
-| `1.13.x` | `>= 1.13.21, < 2.0` |
 
 #### GRPC
 
@@ -415,6 +434,10 @@ The changes are backported to previous `graphql-ruby` versions
 #### Net/Http
 
 - `Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request` has been removed.
+
+#### OpenTracing
+
+- Removed entirely. Use `ddtrace` 1.x.
 
 #### PG
 
@@ -472,10 +495,10 @@ The changes are backported to previous `graphql-ruby` versions
 
 #### Sinatra
 
-* Removed following constants:
-  * `Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_REQUEST_SPAN`
-  * `Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_MIDDLEWARE_START_TIME`
-  * `Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_MIDDLEWARE_TRACED`
+- Removed following constants:
+  - `Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_REQUEST_SPAN`
+  - `Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_MIDDLEWARE_START_TIME`
+  - `Datadog::Tracing::Contrib::Sinatra::Ext::RACK_ENV_MIDDLEWARE_TRACED`
 
 #### Shoryuken
 
@@ -503,4 +526,4 @@ The changes are backported to previous `graphql-ruby` versions
 
 #### Sneakers
 
-Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
+- Rename `error_handler` option to `on_error`. See [Error Handling](#2.0-error-handling)
