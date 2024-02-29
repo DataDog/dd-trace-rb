@@ -23,7 +23,11 @@ class TracingTraceBenchmark
     end
   end
 
-  def benchmark_time(time: 10.5, warmup: 2)
+  # @param [Integer] time in seconds. The default is 12 seconds because having over 105 samples allows the
+  #   benchmarking platform to calculate helpful aggregate stats. Because benchmark-ips tries to run one iteration
+  #   pre 100 ms, this means we'll have around 120 samples (give or take a small margin of error).
+  # @param [Integer] warmup in seconds. The default is 2 seconds.
+  def benchmark_time(time: 12, warmup: 2)
     VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: time, warmup: warmup }
   end
 
@@ -31,7 +35,7 @@ class TracingTraceBenchmark
     ::Datadog::Tracing::Writer.prepend(NoopWriter)
 
     Benchmark.ips do |x|
-      x.config(**benchmark_time(time: 20))
+      x.config(**benchmark_time)
 
       def trace(x, depth)
         x.report(
@@ -49,11 +53,17 @@ class TracingTraceBenchmark
     end
   end
 
+  # Because the writer runs in the background, on a timed interval, benchmark results will have
+  # dips (lower ops/sec) whenever the writer wakes up and consumes all pending traces.
+  # This is OK for our measurements, because we want to measure the full performance cost,
+  # but it creates high variability, depending on the sampled interval.
+  # This means that this benchmark will be marked as internally "unstable",
+  # but we trust it's total average result.
   def benchmark_no_network
     ::Datadog::Core::Transport::HTTP::Adapters::Net.prepend(NoopAdapter)
 
     Benchmark.ips do |x|
-      x.config(**benchmark_time(time: 20))
+      x.config(**benchmark_time)
 
       def trace(x, depth)
         x.report(
