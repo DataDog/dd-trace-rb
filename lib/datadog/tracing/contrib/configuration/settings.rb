@@ -17,7 +17,9 @@ module Datadog
           option :enabled, default: true
           # TODO: Deprecate per-integration service name when first-class peer service support is added
           # TODO: We don't want to recommend per-integration service naming, but there are no equivalent alternatives today.
-          option :service_name
+          option :service_name do |o|
+            o.type :string, nilable: true
+          end
 
           def configure(options = {})
             self.class.options.each do |name, _value|
