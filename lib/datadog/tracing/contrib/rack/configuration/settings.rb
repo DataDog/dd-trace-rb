@@ -46,7 +46,9 @@ module Datadog
               o.default false
             end
 
-            option :service_name
+            option :service_name do |o|
+              o.type :string, nilable: true
+            end
 
             option :web_service_name, default: Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME, type: :string
           end
