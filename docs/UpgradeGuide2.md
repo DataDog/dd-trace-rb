@@ -404,7 +404,7 @@ Option `error_status_codes` is introduced to various http integrations. It tags 
   - Supports `graphql-ruby` versions `>= 2.2.6`, and the below backported versions:
     | Branch | Version |
     | -------- | ------------------- |
-    | `2.1.x` | `>= 2.1.11, > 2.2` |
+    | `2.1.x` | `>= 2.1.11, < 2.2` |
     | `2.0.x` | `>= 2.0.28, < 2.1` |
     | `1.13.x` | `>= 1.13.21, < 2.0` |
   - Do **NOT** support or patch defined-based schema.
