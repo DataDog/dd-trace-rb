@@ -35,7 +35,8 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
     include_context 'HTTP connection stub'
 
     subject(:endpoint?) { negotiation.endpoint?('/foo') }
-    let(:negotiation) { described_class.new(settings, agent_settings) }
+    let(:suppress_logging) { {} }
+    let(:negotiation) { described_class.new(settings, agent_settings, suppress_logging: suppress_logging) }
 
     context 'when /info exists' do
       let(:response_code) { 200 }
@@ -58,6 +59,16 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
         expect(Datadog.logger).to receive(:error).and_return(nil)
 
         expect(negotiation.endpoint?('/bar')).to be false
+      end
+
+      context 'when logging for :no_config_endpoint is suppressed' do
+        let(:suppress_logging) { { no_config_endpoint: true } }
+
+        it 'does not log an error' do
+          expect(Datadog.logger).to_not receive(:error)
+
+          expect(negotiation.endpoint?('/bar')).to be false
+        end
       end
     end
 
