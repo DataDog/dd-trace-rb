@@ -45,6 +45,8 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 | macOS        | Dev environments only               | Latest          |
 | MS Windows   | [Unsupported](#support-unsupported) | Latest          |
 
+Need linux support for a CPU architecture not listed? [Contact our customer support team for special requests.][49]
+
 ### Supported Datadog agent versions
 
 | Datadog Agent version | Support type      | Package version |
