@@ -1,2 +1,17 @@
 #!/usr/bin/env ruby
-require_relative './ddprofrb'
+Kernel.warn 'WARNING: Use of `ddtracerb` is deprecated, and will be removed in 2.0. Use `ddprofrb` instead.'
+
+require 'datadog/profiling/tasks/exec'
+require 'datadog/profiling/tasks/help'
+
+command = ARGV.shift
+
+case command
+when 'exec'
+  Datadog::Profiling::Tasks::Exec.new(ARGV).run
+when 'help', '--help'
+  Datadog::Profiling::Tasks::Help.new.run
+else
+  puts "Command '#{command}' is not valid for ddtracerb."
+  Datadog::Profiling::Tasks::Help.new.run
+end
