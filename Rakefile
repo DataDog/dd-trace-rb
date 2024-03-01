@@ -663,12 +663,12 @@ namespace :changelog do
 end
 
 NATIVE_EXTS = [
-  Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-    ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
+  Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/datadog_profiling_native_extension'
   end,
 
-  Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-    ext.ext_dir = 'ext/ddtrace_profiling_loader'
+  Rake::ExtensionTask.new("datadog_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/datadog_profiling_loader'
   end
 ].freeze
 

@@ -29,7 +29,7 @@ module Datadog
       # native extension), we need to add a "runpath" -- a list of folders to search for libdatadog.
       #
       # This runpath gets hardcoded at native library linking time. You can look at it using the `readelf` tool in
-      # Linux: e.g. `readelf -d ddtrace_profiling_native_extension.2.7.3_x86_64-linux.so`.
+      # Linux: e.g. `readelf -d datadog_profiling_native_extension.2.7.3_x86_64-linux.so`.
       #
       # In older versions of ddtrace, we only set as runpath an absolute path to libdatadog.
       # (This gets set automatically by the call
