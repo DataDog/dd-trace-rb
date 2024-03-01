@@ -143,43 +143,6 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
       end
 
-      describe ':child_of' do
-        let(:options) { { child_of: child_of } }
-
-        context 'that is nil' do
-          let(:child_of) { nil }
-          it_behaves_like 'a root span operation'
-        end
-
-        context 'that is a SpanOperation' do
-          include_context 'parent span operation'
-          let(:child_of) { parent }
-
-          context 'and no :service is given' do
-            it_behaves_like 'a child span operation'
-
-            it 'does not use the parent span service' do
-              is_expected.to have_attributes(
-                service: nil
-              )
-            end
-          end
-
-          context 'and :service is given' do
-            let(:options) { { child_of: parent, service: service } }
-            let(:service) { String.new }
-
-            it_behaves_like 'a child span operation'
-
-            it 'uses the :service option' do
-              is_expected.to have_attributes(
-                service: service
-              )
-            end
-          end
-        end
-      end
-
       context ':on_error' do
         let(:options) { { on_error: block } }
 
@@ -250,26 +213,11 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         context 'that is nil' do
           let(:parent_id) { nil }
           it { is_expected.to have_attributes(parent_id: 0) }
-
-          context 'and :child_of is defined' do
-            include_context 'parent span operation'
-            let(:options) { { child_of: parent, parent_id: parent_id } }
-
-            it_behaves_like 'a child span operation'
-          end
         end
 
         context 'that is an Integer' do
           let(:parent_id) { instance_double(Integer) }
           it { is_expected.to have_attributes(parent_id: parent_id) }
-
-          context 'and :child_of is defined' do
-            include_context 'parent span operation'
-            let(:options) { { child_of: parent, parent_id: parent_id } }
-
-            # :child_of will override :parent_id, if both are provided.
-            it { is_expected.to have_attributes(parent_id: parent.id) }
-          end
         end
       end
 
@@ -306,33 +254,14 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         context 'that is nil' do
           let(:tags) { nil }
 
-          context 'and :child_of is not given' do
-            it_behaves_like 'a root span operation'
-          end
-
-          context 'and :child_of is given' do
-            include_context 'parent span operation'
-            let(:options) { { child_of: parent, tags: tags } }
-
-            it_behaves_like 'a child span operation'
-          end
+          it_behaves_like 'a root span operation'
         end
 
         context 'that is a Hash' do
           let(:tags) { { 'custom_tag' => 'custom_value' } }
 
-          context 'and :child_of is not given' do
-            it_behaves_like 'a root span operation'
-            it { expect(span_op.get_tag('custom_tag')).to eq(tags['custom_tag']) }
-          end
-
-          context 'and :child_of is given' do
-            include_context 'parent span operation'
-            let(:options) { { child_of: parent, tags: tags } }
-
-            it_behaves_like 'a child span operation'
-            it { expect(span_op.get_tag('custom_tag')).to eq(tags['custom_tag']) }
-          end
+          it_behaves_like 'a root span operation'
+          it { expect(span_op.get_tag('custom_tag')).to eq(tags['custom_tag']) }
         end
       end
 
@@ -514,7 +443,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'when service of root and child are `nil`' do
         it do
           root_span_op = described_class.new('root')
-          child_span_op = described_class.new('child_1', child_of: root_span_op)
+          child_span_op = described_class.new('child_1')
+          child_span_op.send(:parent=, root_span_op)
 
           root_span_op.measure do
             child_span_op.measure do
@@ -533,7 +463,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'when service of root and child are identical' do
         it do
           root_span_op = described_class.new('root', service: 'root_service')
-          child_span_op = described_class.new('child_1', child_of: root_span_op, service: root_span_op.service)
+          child_span_op = described_class.new('child_1', service: root_span_op.service)
+          child_span_op.send(:parent=, root_span_op)
 
           root_span_op.measure do
             child_span_op.measure do
@@ -552,7 +483,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'when service of root and child are different' do
         it do
           root_span_op = described_class.new('root')
-          child_span_op = described_class.new('child_1', child_of: root_span_op, service: 'child_service')
+          child_span_op = described_class.new('child_1', service: 'child_service')
+          child_span_op.send(:parent=, root_span_op)
 
           root_span_op.measure do
             child_span_op.measure do
@@ -571,7 +503,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'when service of root and child are different, overriden within the measure block' do
         it do
           root_span_op = described_class.new('root')
-          child_span_op = described_class.new('child_1', child_of: root_span_op)
+          child_span_op = described_class.new('child_1')
+          child_span_op.send(:parent=, root_span_op)
 
           root_span_op.measure do
             child_span_op.measure do |span_op|
