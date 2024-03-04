@@ -8,8 +8,6 @@
 #include <errno.h>
 
 #include "helpers.h"
-#include "ruby/internal/core/rstring.h"
-#include "ruby/internal/intern/string.h"
 #include "ruby_helpers.h"
 #include "collectors_thread_context.h"
 #include "collectors_dynamic_sampling_rate.h"
