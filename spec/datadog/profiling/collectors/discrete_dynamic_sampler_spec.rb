@@ -374,7 +374,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
             # for our target overhead adjustment logic which may increase this
             sampling_interval: be >= 20,
             # Same as above. In theory 5% but overhead adjustment may push this down a bit.
-            sampling_probability: be < 5, # %
+            sampling_probability: be <= 5, # %
             events_since_last_readjustment: be_between(0, 20),
             samples_since_last_readjustment: be_between(0, 1),
             max_sampling_time_ns: to_ns(1) * 0.01,
