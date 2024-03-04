@@ -232,6 +232,11 @@ static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VA
 static VALUE active_sampler_instance = Qnil;
 static struct cpu_and_wall_time_worker_state *active_sampler_instance_state = NULL;
 
+// See handle_sampling_signal for details on what this does
+#ifdef NO_POSTPONED_TRIGGER
+  static void *gc_finalize_deferred_workaround;
+#endif
+
 // Used to implement CpuAndWallTimeWorker._native_allocation_count . To be able to use cheap thread-local variables
 // (here with `__thread`, see https://gcc.gnu.org/onlinedocs/gcc/Thread-Local.html), this needs to be global.
 //
@@ -250,6 +255,8 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     if (sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID || after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID) {
       rb_raise(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
     }
+  #else
+    gc_finalize_deferred_workaround = objspace_ptr_for_gc_finalize_deferred_workaround();
   #endif
 
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -544,7 +551,32 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     rb_postponed_job_trigger(sample_from_postponed_job_handle);
     state->stats.postponed_job_success++; // Always succeeds
   #else
-    int result = rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
+
+    // This is a workaround for https://bugs.ruby-lang.org/issues/19991 (for Ruby < 3.3)
+    //
+    // TL;DR the `rb_postponed_job_register_one` API is not atomic (which is why it got replaced by `rb_postponed_job_trigger`)
+    // and in rare cases can cause VM crashes.
+    //
+    // Specifically, if we're interrupting `rb_postponed_job_flush` (the function that processes postponed jobs), the way
+    // that this function reads the jobs is not atomic, and can cause our call to
+    // `rb_postponed_job_register(function, arg)` to clobber an existing job that is getting dequeued.
+    // Clobbering an existing job is somewhat annoying, but the worst part is that it can happen that we clobber only
+    // the existing job's arguments.
+    // As surveyed in https://github.com/ruby/ruby/pull/8949#issuecomment-1821441370 clobbering the arguments turns out
+    // to not matter in many cases as usually `rb_postponed_job_register` calls in the VM and ecosystem ignore the argument.
+    //
+    // https://bugs.ruby-lang.org/issues/19991 is the exception: inside Ruby's `gc.c`, when dealing with object
+    // finalizers, Ruby calls `gc_finalize_deferred_register` which internally calls
+    // `rb_postponed_job_register_one(gc_finalize_deferred, objspace)`.
+    // Clobbering this call means that `gc_finalize_deferred` would get called with `NULL`, causing a segmentation fault.
+    //
+    // Note that this is quite rare: our signal needs to land at exactly the point where the VM has read the function
+    // to execute, but has yet to read the arguments. @ivoanjo: I could only reproduce it by manually changing the VM
+    // code to simulate this happening.
+    //
+    // Thus, our workaround is simple: we pass in objspace as our argument, just in case the clobbering happens.
+    // In the happy path, we never use this argument so it makes no difference. In the buggy path, we avoid crashing the VM.
+    int result = rb_postponed_job_register(0, sample_from_postponed_job, gc_finalize_deferred_workaround /* instead of NULL */);
 
     // Officially, the result of rb_postponed_job_register_one is documented as being opaque, but in practice it does not
     // seem to have changed between Ruby 2.3 and 3.2, and so we track it as a debugging mechanism
