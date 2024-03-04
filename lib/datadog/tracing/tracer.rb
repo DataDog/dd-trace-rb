@@ -376,23 +376,36 @@ module Datadog
       )
         trace = _trace || start_trace(continue_from: continue_from)
 
-        options = {
-          events: SpanOperation::Events.new,
-          on_error: on_error,
-          resource: resource,
-          service: service,
-          tags: resolve_tags(tags),
-          type: type,
-        }
+        events = SpanOperation::Events.new
 
         if block
           # Ignore start time if a block has been given
-          trace.measure(name, **options, &block)
+          trace.measure(
+            name,
+            events: events,
+            on_error: on_error,
+            resource: resource,
+            service: service,
+            tags: resolve_tags(tags),
+            type: type,
+            &block
+          )
         else
           # Return the new span
-          trace.build_span(name, start_time: start_time, **options).tap do |span|
-            span.start(start_time)
-          end
+          span = trace.build_span(
+            name,
+            events: events,
+            on_error: on_error,
+            resource: resource,
+            service: service,
+            start_time: start_time,
+            tags: resolve_tags(tags),
+            type: type
+          )
+
+          span.start(start_time)
+
+          span
         end
       end
       # rubocop:enable Lint/UnderscorePrefixedVariableName
