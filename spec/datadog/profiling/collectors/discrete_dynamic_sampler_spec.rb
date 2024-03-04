@@ -10,24 +10,18 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
   end
 
   subject!(:sampler) do
-    sampler = Datadog::Profiling::Collectors::DiscreteDynamicSampler::Testing::Sampler.new(nil)
+    sampler = Datadog::Profiling::Collectors::DiscreteDynamicSampler::Testing::Sampler.new((@now * 1e9).to_i)
     update_overhead_target(max_overhead_target, sampler)
     sampler
   end
 
-  def maybe_sample(sampling_seconds:, ignore_errors: false)
+  def maybe_sample(sampling_seconds:)
     start_ns = (@now * 1e9).to_i
     end_ns = start_ns + (sampling_seconds * 1e9).to_i
-    begin
-      sampler._native_after_sample(end_ns) / 1e9 if sampler._native_should_sample(start_ns)
-    rescue
-      return if ignore_errors
-
-      raise
-    end
+    sampler._native_after_sample(end_ns) / 1e9 if sampler._native_should_sample(start_ns)
   end
 
-  def simulate_load(duration_seconds:, events_per_second:, sampling_seconds:, ignore_errors: false)
+  def simulate_load(duration_seconds:, events_per_second:, sampling_seconds:)
     start = @now
     num_events = (events_per_second.to_f * duration_seconds).to_i
     time_between_events = duration_seconds.to_f / num_events
@@ -39,7 +33,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       # consciously go with end-aligned allocations in these simulated loads
       # so that it's easier to force
       @now += time_between_events
-      sampling_time = maybe_sample(sampling_seconds: sampling_seconds, ignore_errors: ignore_errors)
+      sampling_time = maybe_sample(sampling_seconds: sampling_seconds)
       next if sampling_time.nil?
 
       num_samples += 1
@@ -265,38 +259,5 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     expect(stats[:num_samples]).to eq(0)
     stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 2)
     expect(stats[:num_samples]).to eq(1)
-  end
-
-  context 'with failing clock' do
-    after do
-      unless @skip_load_test_at_end
-        # After entering failing mode we expect no further sampling to occur
-        stats = simulate_load(duration_seconds: 20, events_per_second: 4, sampling_seconds: 0.001, ignore_errors: true)
-        expect(stats[:num_samples]).to eq(0)
-      end
-    end
-
-    it 'enters failure mode on initialization' do
-      expect do
-        Datadog::Profiling::Collectors::DiscreteDynamicSampler::Testing::Sampler.new(0)
-      end.to raise_error('failed to get clock time')
-
-      # Since the sampler under test failed to init, the load test at the end doesn't make sense
-      @skip_load_test_at_end = true
-    end
-
-    it 'enters failure mode on should_sample call' do
-      expect { sampler._native_should_sample(0) }.to raise_error('failed to get clock time')
-    end
-
-    it 'enters failure mode on after_sample call' do
-      expect { sampler._native_should_sample(123) }.not_to raise_error
-
-      expect { sampler._native_after_sample(0) }.to raise_error('failed to get clock time')
-    end
-
-    it 'enters failure mode on reset call' do
-      expect { sampler._native_set_overhead_target_percentage(3.0, 0) }.to raise_error('failed to get clock time')
-    end
   end
 end
