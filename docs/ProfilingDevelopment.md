@@ -32,7 +32,7 @@ with ongoing tracing information, if any. Relies on the `Collectors::Stack` for 
 
 ## Initialization
 
-When started via `ddtracerb exec` (together with `DD_PROFILING_ENABLED=true`), initialization goes through the following
+When started via `ddprofrb exec` (together with `DD_PROFILING_ENABLED=true`), initialization goes through the following
 flow:
 
 1. <../lib/datadog/profiling/preload.rb> triggers the creation of the profiler instance by calling the method `Datadog::Profiling.start_if_enabled`

@@ -1,6 +1,4 @@
 #!/usr/bin/env ruby
-Kernel.warn 'WARNING: Use of `ddtracerb` is deprecated, and will be removed in 2.0. Use `ddprofrb` instead.'
-
 require 'datadog/profiling/tasks/exec'
 require 'datadog/profiling/tasks/help'
 
@@ -12,6 +10,6 @@ when 'exec'
 when 'help', '--help'
   Datadog::Profiling::Tasks::Help.new.run
 else
-  puts "Command '#{command}' is not valid for ddtracerb."
+  puts "Command '#{command}' is not valid for ddprofrb."
   Datadog::Profiling::Tasks::Help.new.run
 end
