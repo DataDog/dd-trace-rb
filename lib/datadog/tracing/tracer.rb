@@ -376,47 +376,26 @@ module Datadog
       )
         trace = _trace || start_trace(continue_from: continue_from)
 
+        options = {
+          events: SpanOperation::Events.new,
+          on_error: on_error,
+          resource: resource,
+          service: service,
+          tags: resolve_tags(tags),
+          type: type,
+        }
+
         if block
           # Ignore start time if a block has been given
-          trace.measure(
-            name,
-            events: build_span_events,
-            on_error: on_error,
-            resource: resource,
-            service: service,
-            tags: resolve_tags(tags),
-            type: type,
-            &block
-          )
+          trace.measure(name, **options, &block)
         else
           # Return the new span
-          span = trace.build_span(
-            name,
-            events: build_span_events,
-            on_error: on_error,
-            resource: resource,
-            service: service,
-            start_time: start_time,
-            tags: resolve_tags(tags),
-            type: type
-          )
-
-          span.start(start_time)
-          span
+          trace.build_span(name, start_time: start_time, **options).tap do |span|
+            span.start(start_time)
+          end
         end
       end
       # rubocop:enable Lint/UnderscorePrefixedVariableName
-
-      def build_span_events(events = nil)
-        case events
-        when SpanOperation::Events
-          events
-        when Hash
-          SpanOperation::Events.build(events)
-        else
-          SpanOperation::Events.new
-        end
-      end
 
       def resolve_tags(tags)
         if @tags.any? && tags
