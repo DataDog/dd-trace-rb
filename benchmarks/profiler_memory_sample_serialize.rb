@@ -81,8 +81,8 @@ class ProfilerMemorySampleSerializeBenchmark
 
   def run_forever
     loop do
-      1000.times do
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
+      1000.times do |i|
+        sample_object(@recorder, i % 400)
       end
       @recorder.serialize
       print '.'
