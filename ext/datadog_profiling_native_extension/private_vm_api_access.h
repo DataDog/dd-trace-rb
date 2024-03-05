@@ -55,3 +55,7 @@ void self_test_mn_enabled(void);
 
 // Provides more specific information on what kind an imemo is
 const char *imemo_kind(VALUE imemo);
+
+#ifdef NO_POSTPONED_TRIGGER
+  void *objspace_ptr_for_gc_finalize_deferred_workaround(void);
+#endif

@@ -3,12 +3,12 @@
 module Datadog
   module Profiling
     module Tasks
-      # Prints help message for usage of `ddtrace`
+      # Prints help message for usage of `ddprofrb`
       class Help
         def run
           puts %(
-  Usage: ddtracerb [command] [arguments]
-    exec [command]: Executes command with tracing & profiling preloaded.
+  Usage: ddprofrb [command] [arguments]
+    exec [command]: Executes command with profiling preloaded.
     help:           Prints this help message.
           )
         end

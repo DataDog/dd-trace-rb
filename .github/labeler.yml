@@ -14,7 +14,7 @@ dev/testing:
 
 # Changes to Profiling
 profiling:
-  - any: [ '{lib/datadog/profiling/**,ext/ddtrace_profiling_loader/**,ext/ddtrace_profiling_native_extension/**}' ]
+  - any: [ '{lib/datadog/profiling/**,ext/datadog_profiling_loader/**,ext/datadog_profiling_native_extension/**}' ]
 
 # Changes to CI-App
 ci-app:

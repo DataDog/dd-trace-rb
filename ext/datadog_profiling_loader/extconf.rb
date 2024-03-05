@@ -3,7 +3,7 @@
 
 if RUBY_ENGINE != 'ruby' || Gem.win_platform?
   $stderr.puts(
-    'WARN: Skipping build of ddtrace profiling loader. See ddtrace profiling native extension note for details.'
+    'WARN: Skipping build of Datadog profiling loader. See Datadog profiling native extension note for details.'
   )
 
   File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
@@ -46,7 +46,7 @@ add_compiler_flag '-Werror-implicit-function-declaration'
 add_compiler_flag '-Wunused-parameter'
 
 # The native extension is not intended to expose any symbols/functions for other native libraries to use;
-# the sole exception being `Init_ddtrace_profiling_loader` which needs to be visible for Ruby to call it when
+# the sole exception being `Init_datadog_profiling_loader` which needs to be visible for Ruby to call it when
 # it `dlopen`s the library.
 #
 # By setting this compiler flag, we tell it to assume that everything is private unless explicitly stated.
@@ -64,7 +64,7 @@ add_compiler_flag '-Wextra'
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.
 # When requiring, we need to use the exact same string, including the version and the platform.
-EXTENSION_NAME = "ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
+EXTENSION_NAME = "datadog_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
 
 create_makefile(EXTENSION_NAME)
 

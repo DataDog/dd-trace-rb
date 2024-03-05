@@ -209,7 +209,7 @@ RSpec.describe Datadog::Profiling do
     let(:read) { '' }
 
     it 'tries to read the skipped_reason.txt file in the native extension folder' do
-      expected_path = File.expand_path('../../ext/ddtrace_profiling_native_extension/skipped_reason.txt', __dir__)
+      expected_path = File.expand_path('../../ext/datadog_profiling_native_extension/skipped_reason.txt', __dir__)
 
       expect(file_api).to receive(:exist?) do |path|
         expect(File.expand_path(path)).to eq expected_path
