@@ -21,7 +21,7 @@ RSpec.describe 'Profiling benchmarks', if: (RUBY_VERSION >= '2.4.0') do
     it('runs without raising errors') { expect_in_fork { load './benchmarks/profiler_sample_serialize.rb' } }
   end
 
-  describe 'profiler_memory sample_serialize' do
+  describe 'profiler_memory_sample_serialize' do
     it('runs without raising errors') { expect_in_fork { load './benchmarks/profiler_memory_sample_serialize.rb' } }
   end
 end
