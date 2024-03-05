@@ -83,7 +83,7 @@ module Datadog
         private
 
         def configuration
-          Datadog::configuration
+          Datadog.configuration
         end
       end
     end
